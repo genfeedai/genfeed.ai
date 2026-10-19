@@ -11,7 +11,7 @@ function readinessScript(file) {
   );
   const step = workflow
     .split('- name: Readiness — stage 2')[1]
-    .split('- name: Setup Bun environment')[0];
+    .split('\n      - name: ')[0];
   return step
     .split('        run: |\n')[1]
     .split('\n')

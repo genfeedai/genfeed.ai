@@ -20,6 +20,7 @@ import './mcp-auth-network-guard.test.mjs';
 import './scheduled-failure-tracker.test.mjs';
 import './scheduled-suite-ownership.test.mjs';
 import './selfhosted-auth-readiness.test.mjs';
+import './selfhosted-schedule-readiness.test.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
