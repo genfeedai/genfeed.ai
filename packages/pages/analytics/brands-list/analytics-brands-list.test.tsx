@@ -2,7 +2,13 @@ import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import AnalyticsBrandsList from '@pages/analytics/brands-list/analytics-brands-list';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -70,15 +76,55 @@ const stableDateRange = {
   startDate: new Date('2026-03-01T00:00:00.000Z'),
 };
 
-vi.mock('@contexts/analytics/analytics-context', () => ({
-  useAnalyticsContext: () => ({
-    dateRange: stableDateRange,
-    filters: contextFilters,
-    refreshTrigger: 0,
-    setFilter: setFilterMock,
-    setToolbarNode: setToolbarNodeMock,
-    triggerRefresh: triggerRefreshMock,
-  }),
+vi.mock('@contexts/analytics/analytics-context', async () => {
+  const { useEffect } = await import('react');
+  return {
+    useAnalyticsContext: () => ({
+      dateRange: stableDateRange,
+      filters: contextFilters,
+      refreshTrigger: 0,
+      setFilter: setFilterMock,
+      triggerRefresh: triggerRefreshMock,
+    }),
+    useAnalyticsToolbar: (node: unknown) => {
+      useEffect(() => {
+        setToolbarNodeMock(node);
+      }, [node]);
+    },
+  };
+});
+
+vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+  default: ({
+    facets,
+    onClear,
+  }: {
+    facets: Array<{
+      label: string;
+      onChange: (value: string) => void;
+      options: Array<{ label: string; value: string }>;
+    }>;
+    onClear: () => void;
+  }) => (
+    <div>
+      {facets.map((facet) => (
+        <div key={facet.label} role="group" aria-label={facet.label}>
+          {facet.options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => facet.onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ))}
+      <button type="button" onClick={onClear}>
+        Clear
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -259,6 +305,19 @@ describe('AnalyticsBrandsList', () => {
     });
 
     expect(setFilterMock).toHaveBeenCalledWith('query', 'acme');
+  });
+
+  it('sorts through the shared filter menu in the subbar', async () => {
+    contextFilters = { sort: 'views' };
+    render(<AnalyticsBrandsList />);
+
+    render(setToolbarNodeMock.mock.calls.at(-1)?.[0]);
+    const sortGroup = screen.getByRole('group', { name: 'Sort by' });
+    fireEvent.click(within(sortGroup).getByText('Posts'));
+    expect(setFilterMock).toHaveBeenCalledWith('sort', 'posts');
+
+    fireEvent.click(screen.getByText('Clear'));
+    expect(setFilterMock).toHaveBeenCalledWith('sort', undefined);
   });
 
   it('navigates to the brand detail preserving the current query string', async () => {
