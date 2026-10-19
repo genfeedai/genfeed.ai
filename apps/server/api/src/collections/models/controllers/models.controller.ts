@@ -303,6 +303,17 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
+    // Retired rows resolve to their successor at dispatch, so a customer who
+    // picks one is quoted a different model than the row they chose. Only a
+    // platform superadmin reviews them.
+    if (!isSuperAdmin) {
+      const existingAnd = Array.isArray(where.AND) ? where.AND : [];
+      where.AND = [
+        ...existingAnd,
+        { lifecycle: { not: ModelLifecycle.RETIRED } },
+      ];
+    }
+
     // Models that cannot be priced (red in the admin pricing panel) are not
     // offered to anyone but a platform superadmin.
     if (!isSuperAdmin) {

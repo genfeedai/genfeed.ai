@@ -1,6 +1,6 @@
 'use client';
 
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   isImageEditModel,
   isVoiceSpeechModel,
@@ -27,8 +27,13 @@ export interface UseStudioPlaygroundModelsReturn {
  */
 function filterCategoryRows(
   category: ModelCategory,
-  rows: readonly IModel[],
+  allRows: readonly IModel[],
 ): readonly IModel[] {
+  // A retired row dispatches to its successor, so the quote never matches the
+  // row the operator picked. It is not a choice Studio can honour.
+  const rows = allRows.filter(
+    (row) => row.lifecycle !== ModelLifecycle.RETIRED,
+  );
   if (category === ModelCategory.IMAGE_EDIT) {
     return rows.filter((row) => isImageEditModel(row.key));
   }
@@ -98,6 +103,7 @@ export function useStudioPlaygroundModels(
         const rows = await service.findAll(
           {
             category,
+            includeRetired: false,
             isActive: true,
             limit: MODEL_PAGE_LIMIT,
             organizationId,

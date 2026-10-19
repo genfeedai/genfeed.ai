@@ -453,7 +453,10 @@ describe('ModelsController', () => {
       );
 
       expect(findAllWhere(modelsService)).toMatchObject({
-        AND: [{ id: { notIn: ['red-model'] } }],
+        AND: [
+          { lifecycle: { not: ModelLifecycle.RETIRED } },
+          { id: { notIn: ['red-model'] } },
+        ],
       });
       // Classified for exactly the rows the list returns: the caller's org.
       expect(unpriceableModelsScope).toHaveBeenCalledWith(mockOrgId);
@@ -577,6 +580,7 @@ describe('ModelsController', () => {
                 { key: { in: [seededModelId] } },
               ],
             },
+            { lifecycle: { not: ModelLifecycle.RETIRED } },
           ],
         },
       });

@@ -11,6 +11,7 @@ import {
   tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('ModelsController tenant reads (#6176)', () => {
@@ -77,6 +78,28 @@ describe('ModelsController tenant reads (#6176)', () => {
     ).not.toContain(targetOrganizationId);
     expect(fieldValues(mock.mock.calls[0]?.[0], 'isDeleted')).not.toContain(
       true,
+    );
+  });
+
+  it('hides retired models from a member but not from a superadmin', async () => {
+    const retired = { lifecycle: { not: ModelLifecycle.RETIRED } };
+    const member = setup();
+    await member.controller.findAll(
+      tenantReadRequest(memberUser),
+      memberUser,
+      tenantReadQuery(ModelsQueryDto, {}),
+    );
+    expect(member.mock.mock.calls[0]?.[0].where.AND).toContainEqual(retired);
+
+    const admin = setup();
+    const query = tenantReadQuery(ModelsQueryDto, {});
+    await admin.controller.findAll(
+      tenantReadRequest(adminUser, query),
+      adminUser,
+      query,
+    );
+    expect(admin.mock.mock.calls[0]?.[0].where.AND ?? []).not.toContainEqual(
+      retired,
     );
   });
 });

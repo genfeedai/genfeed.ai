@@ -1,4 +1,4 @@
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -76,6 +76,29 @@ describe('useStudioPlaygroundModels', () => {
         isActive: true,
         organizationId: 'org-1',
       }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('asks the API for non-retired rows and drops any retired row that still arrives', async () => {
+    mocks.findAll.mockResolvedValue([
+      makeModel('music-a', ModelCategory.MUSIC),
+      {
+        ...makeModel('genfeed-ai/gone', ModelCategory.MUSIC),
+        lifecycle: ModelLifecycle.RETIRED,
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+    );
+
+    await waitFor(() => expect(result.current.isModelCatalogReady).toBe(true));
+    expect(result.current.models.map((model) => model.key)).toEqual([
+      'music-a',
+    ]);
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ includeRetired: false }),
       expect.any(AbortSignal),
     );
   });
