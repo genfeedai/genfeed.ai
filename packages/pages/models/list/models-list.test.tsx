@@ -11,6 +11,7 @@ import {
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -336,13 +337,18 @@ describe('ModelsList', () => {
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
-  it('preserves other filters and scope while changing categories from the popover', async () => {
+  it('preserves other filters and scope while changing categories from the nested menu', async () => {
+    const user = userEvent.setup();
     mockSearchParams =
       'organization=org-1&brand=brand-1&provider=fal&status=active&page=3';
     renderModelsList(PageScope.SUPERADMIN);
-    fireEvent.click(await screen.findByRole('button', { name: /^Filters/ }));
-    const categories = screen.getByRole('group', { name: 'Categories' });
-    fireEvent.click(within(categories).getByRole('button', { name: 'Image' }));
+    await user.click(await screen.findByRole('button', { name: /^Filters/ }));
+    const categories = screen.getByRole('menuitem', { name: /Categories/ });
+    categories.focus();
+    await user.keyboard('{ArrowRight}');
+    await user.click(
+      await screen.findByRole('menuitemcheckbox', { name: 'Image' }),
+    );
     const query = new URL(
       mockReplace.mock.calls.at(-1)?.[0],
       'https://app.genfeed.ai',
@@ -356,11 +362,12 @@ describe('ModelsList', () => {
   });
 
   it('clears category, provider and status filters without clearing organization scope', async () => {
+    const user = userEvent.setup();
     mockSearchParams =
       'organization=org-1&brand=brand-1&category=video&provider=fal&status=active&page=3';
     renderModelsList(PageScope.SUPERADMIN);
-    fireEvent.click(await screen.findByRole('button', { name: /^Filters/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await user.click(await screen.findByRole('button', { name: /^Filters/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Clear filters' }));
     const query = new URL(
       mockReplace.mock.calls.at(-1)?.[0],
       'https://app.genfeed.ai',
