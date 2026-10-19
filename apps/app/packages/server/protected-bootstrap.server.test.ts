@@ -1,5 +1,5 @@
 import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getBetterAuthServerTokenMock = vi.fn();
 const getBootstrapMock = vi.fn();
@@ -320,5 +320,70 @@ describe('loadProtectedBootstrap', () => {
       }),
     );
     expect(getInstanceMock).toHaveBeenCalledWith('');
+  });
+});
+
+describe('loadServerSuperAdmin', () => {
+  const adminToken = `h.${Buffer.from(JSON.stringify({ isSuperAdmin: true })).toString('base64url')}.s`;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getBetterAuthServerTokenMock.mockReset();
+    // Earlier cases `doMock` a throwing token exchange, which outlives them.
+    vi.doMock('@genfeedai/auth-client/server', () => ({
+      getBetterAuthServerToken: getBetterAuthServerTokenMock,
+      isBetterAuthEnabled: () => true,
+    }));
+    vi.resetModules();
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    delete process.env.PLAYWRIGHT_TEST;
+    delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
+    cookiesMock.mockResolvedValue({
+      get: vi.fn(() => undefined),
+      getAll: vi.fn(() => []),
+    });
+    headersMock.mockResolvedValue(
+      new Headers({ 'x-forwarded-for': '203.0.113.7' }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('decides from the token claim without loading the bootstrap or flags', async () => {
+    getBetterAuthServerTokenMock.mockResolvedValue(adminToken);
+
+    const { loadServerSuperAdmin } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(loadServerSuperAdmin()).resolves.toBe(true);
+    expect(getBootstrapMock).not.toHaveBeenCalled();
+    expect(getPlatformFlagsMock).not.toHaveBeenCalled();
+  });
+
+  it('denies a visitor whose token has no super-admin claim', async () => {
+    getBetterAuthServerTokenMock.mockResolvedValue('h.e30.s');
+
+    const { loadServerSuperAdmin } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(loadServerSuperAdmin()).resolves.toBe(false);
+  });
+
+  it('denies a visitor with no token', async () => {
+    getBetterAuthServerTokenMock.mockResolvedValue(null);
+
+    const { loadServerSuperAdmin } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(loadServerSuperAdmin()).resolves.toBe(false);
   });
 });
