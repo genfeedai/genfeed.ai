@@ -209,15 +209,11 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         refresh={
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
         }
-        iconActions={
-          <>
-            {viewToggleNode}
-            {exportNode}
-          </>
-        }
+        iconActions={exportNode}
         right={
           <div className="flex min-w-0 items-center justify-end gap-2">
             {filtersNode}
+            {viewToggleNode}
             {scheduleActionsNode}
             <Button
               size={ButtonSize.SM}
