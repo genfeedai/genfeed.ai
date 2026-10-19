@@ -34,15 +34,6 @@ const ASSET_RESIDENCIES = [
   'upload-pending',
 ] as const;
 const ASSET_UPLOAD_POLICIES = ['full', 'metadata-only', 'never'] as const;
-const RETIRED_GENERIC_CLOUD_JOB_TYPES = [
-  'generateContent',
-  'generateHooks',
-  'post-draft',
-  'publishPost',
-  'runAgent',
-  'runWorkflow',
-] as const;
-
 const isOneOf = <T extends string>(
   value: string | undefined,
   allowed: readonly T[],
@@ -61,14 +52,6 @@ export class DesktopSyncService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async init(): Promise<void> {
-    await this.prisma.desktopSyncJob.deleteMany({
-      where: {
-        type: {
-          in: [...RETIRED_GENERIC_CLOUD_JOB_TYPES],
-        },
-      },
-    });
-
     const [assetRows, brandRows, cloudOrganizationRows, jobRows, opRows] =
       await Promise.all([
         this.prisma.desktopAsset.findMany({
