@@ -897,6 +897,10 @@ export class AgentThreadsService extends BaseService<
       return [];
     }
 
+    // The thread predicate must be the jsonb path `#>` expression that
+    // `workflow_executions_agent_thread_lookup_idx` indexes. A `->>` text
+    // comparison cannot use it and walks every execution of the organization,
+    // detoasting each `result` blob.
     return this.prisma.$queryRaw<ThreadExecutionRow[]>`
       SELECT
         execution.id AS "id",
@@ -906,8 +910,8 @@ export class AgentThreadsService extends BaseService<
       FROM workflow_executions AS execution
       WHERE execution."organizationId" = ${organizationId}
         AND execution."isDeleted" = false
-        AND execution.result -> 'metadata' ->> 'threadId' IN (${Prisma.join(
-          threadIds,
+        AND (execution.result #> '{metadata,threadId}'::text[]) IN (${Prisma.join(
+          threadIds.map((threadId) => Prisma.sql`to_jsonb(${threadId}::text)`),
         )})
       ORDER BY execution."createdAt" DESC
       LIMIT ${limit}

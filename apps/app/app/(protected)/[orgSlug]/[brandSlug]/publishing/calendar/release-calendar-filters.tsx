@@ -5,6 +5,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,
@@ -90,8 +91,18 @@ export default function ReleaseCalendarFilters({
     key,
     label,
     onChange: (values: string[]) => handleChange(key, values),
-    options,
-    selection: 'multiple',
+    options: options.map((option) => {
+      const PlatformIcon = option.platform
+        ? getPlatformIconComponent(option.platform)
+        : undefined;
+      return {
+        ...option,
+        icon: PlatformIcon ? (
+          <PlatformIcon aria-hidden="true" className="size-4" />
+        ) : undefined,
+      };
+    }),
+    selection: multiple,
     values: filters[key],
   }));
 

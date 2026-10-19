@@ -151,10 +151,9 @@ function LightingsListContent({
     if (onRefresh) {
       return onRefresh(async () => {
         await refreshLightings();
-        notificationsService.success('Lightings refreshed');
       });
     }
-  }, [onRefresh, refreshLightings, notificationsService]);
+  }, [onRefresh, refreshLightings]);
 
   function openLightingModal(
     modalId: ModalEnum,

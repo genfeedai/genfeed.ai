@@ -77,4 +77,18 @@ describe('Badge', () => {
     expect(screen.getByText('Information')).toBeInTheDocument();
     expect(container.querySelector('[data-slot="badge-icon"]')).toBeNull();
   });
+
+  it.each([
+    ['TRIALING', 'Trialing'],
+    ['PAST_DUE', 'Past Due'],
+    ['INCOMPLETE', 'Incomplete'],
+    ['SOMETHING_NEW', 'Something New'],
+  ])(
+    'names the %s status instead of rendering an empty dot',
+    (status, label) => {
+      render(<Badge status={status} />);
+
+      expect(screen.getByText(label)).toBeInTheDocument();
+    },
+  );
 });

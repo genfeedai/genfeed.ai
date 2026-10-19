@@ -1,0 +1,168 @@
+{
+  "period": "Last {days} days",
+  "periodLabel": "Report period",
+  "loadFailed": "This report could not be loaded",
+  "empty": "Nothing recorded in this period",
+  "overview": {
+    "title": "Economics",
+    "chartRevenueCost": "Revenue and provider cost",
+    "chartRevenueCostLabel": "Revenue and provider cost per day",
+    "chartCredits": "Credits consumed and provider cost",
+    "chartCreditsLabel": "Credit value consumed and provider cost per day",
+    "chartEmpty": "No revenue or cost in this period",
+    "series": {
+      "creditValue": "Credit value consumed",
+      "providerCost": "Provider cost",
+      "revenue": "Revenue"
+    },
+    "kpis": {
+      "revenue": "Revenue",
+      "revenueDescription": "{events} Stripe payments from {organizations} organizations",
+      "providerCost": "Provider cost",
+      "providerCostDescription": "LLM {llm} · generation {media}",
+      "grossMargin": "Gross margin",
+      "grossMarginDescription": "{percent} of revenue",
+      "creditValue": "Credit value consumed",
+      "creditValueDescription": "{credits} credits across {organizations} organizations",
+      "pricingMargin": "Pricing margin",
+      "pricingMarginDescription": "{percent} of credit value",
+      "calls": "Provider calls",
+      "callsDescription": "{llm} LLM · {media} generations",
+      "previous": "vs {value}"
+    },
+    "definitions": "Gross margin is Stripe revenue minus provider cost. Pricing margin is the retail value of the credits consumed (1 credit = $0.01) minus provider cost, so it shows whether prices cover cost even when nobody paid cash."
+  },
+  "revenue": {
+    "title": "Revenue",
+    "chart": "Revenue by day",
+    "chartLabel": "Revenue per day by source",
+    "series": {
+      "creditPack": "Credit packs",
+      "subscription": "Subscriptions"
+    },
+    "kpis": {
+      "revenue": "Revenue",
+      "payments": "Payments",
+      "payingOrganizations": "Paying organizations",
+      "averagePayment": "Average payment"
+    },
+    "sources": {
+      "credit_purchase": "Credit pack",
+      "subscription_invoice": "Subscription"
+    },
+    "topOrganizations": "Top organizations",
+    "latestPayments": "Latest {limit} payments",
+    "columns": {
+      "amount": "Amount",
+      "date": "Date",
+      "events": "Payments",
+      "organization": "Organization",
+      "revenue": "Revenue",
+      "source": "Source",
+      "stripeId": "Stripe object"
+    },
+    "ledgerStartsLate": "The revenue ledger starts on {date}. Stripe payments before that day are not in this report.",
+    "ledgerEmpty": "The revenue ledger has no payments at all yet.",
+    "nonUsd": "{count} payments in another currency are left out of these totals."
+  },
+  "costs": {
+    "title": "Costs",
+    "chart": "Provider cost by day",
+    "chartLabel": "Provider cost per day by kind",
+    "series": {
+      "llm": "LLM",
+      "media": "Generation"
+    },
+    "kpis": {
+      "providerCost": "Provider cost",
+      "llm": "LLM cost",
+      "llmDescription": "{calls} completions",
+      "media": "Generation cost",
+      "mediaDescription": "{calls} generations",
+      "unpriced": "Unpriced calls",
+      "unpricedDescription": "Recorded at $0 without BYOK; {byok} BYOK calls are free by design"
+    },
+    "models": "Models by cost",
+    "categories": "Generation cost by category",
+    "kinds": {
+      "llm": "LLM",
+      "media": "Generation"
+    },
+    "columns": {
+      "averageCost": "Cost per call",
+      "byok": "BYOK",
+      "calls": "Calls",
+      "category": "Category",
+      "cost": "Cost",
+      "generations": "Generations",
+      "kind": "Kind",
+      "model": "Model",
+      "provider": "Provider",
+      "tokens": "Tokens in / out",
+      "unpriced": "Unpriced"
+    }
+  },
+  "coverage": {
+    "title": "Coverage",
+    "ledgers": "Ledgers",
+    "operations": "Credits spent against recorded provider cost",
+    "operationsHint": "An operation with credits spent and no provider cost recorded is a hole in the cost ledger, not a free operation.",
+    "notTracked": "Not tracked yet",
+    "ledgerNames": {
+      "credits": "Credit usage",
+      "llm": "LLM provider cost",
+      "media": "Generation provider cost",
+      "revenue": "Stripe revenue"
+    },
+    "operationNames": {
+      "agent_chat": "Agent chat",
+      "avatar": "Avatar video",
+      "image": "Images",
+      "music": "Music and audio",
+      "other": "Text, prompts and everything else",
+      "video": "Video",
+      "voice": "Voice"
+    },
+    "status": {
+      "missing": "No cost recorded",
+      "tracked": "Tracked"
+    },
+    "columns": {
+      "byok": "BYOK rows",
+      "cost": "Provider cost",
+      "credits": "Credits",
+      "creditValue": "Credit value",
+      "first": "First row",
+      "last": "Last row",
+      "ledger": "Ledger",
+      "operation": "Operation",
+      "pending": "Pending",
+      "pricingMargin": "Pricing margin",
+      "rows": "Rows in period",
+      "status": "Status",
+      "unpriced": "Unpriced rows"
+    },
+    "gaps": {
+      "refunds": {
+        "title": "Refunds and disputes",
+        "description": "Stripe refunds and chargebacks are not subtracted from revenue."
+      },
+      "stripeFees": {
+        "title": "Stripe processing fees",
+        "description": "Revenue is net of tax but not net of Stripe fees."
+      },
+      "storage": {
+        "title": "Storage and delivery",
+        "description": "S3 and CDN cost per organization is not measured."
+      },
+      "infra": {
+        "title": "Infrastructure",
+        "description": "Hosting, database and queue cost is not allocated to organizations."
+      },
+      "messaging": {
+        "title": "Email, scraping and social APIs",
+        "description": "Transactional email, scraping and platform API usage carry no cost rows."
+      }
+    }
+  }
+}

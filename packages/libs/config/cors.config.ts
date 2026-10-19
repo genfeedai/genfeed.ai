@@ -27,7 +27,12 @@ export interface CorsOriginConfig {
 }
 
 export const GENFEED_CORS_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
-export const GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
+/**
+ * Browsers cap Access-Control-Max-Age (Chromium at 2 hours, Firefox at 24).
+ * The app calls this API cross-origin with an Authorization header, so every
+ * distinct URL starts with a preflight until one is cached.
+ */
+export const GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS = 7200;
 
 export interface GenfeedCorsOptions {
   credentials: true;

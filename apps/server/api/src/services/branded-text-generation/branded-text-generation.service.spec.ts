@@ -1,4 +1,5 @@
 import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
+import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
@@ -284,6 +285,7 @@ describe('BrandedTextGenerationService', () => {
           messages: [{ role: 'user', content: 'COMPILED' }],
           max_tokens: 500,
           temperature: 0.8,
+          reasoning: { enabled: false },
         },
         'byok-key',
       );
@@ -501,6 +503,25 @@ describe('BrandedTextGenerationService', () => {
       );
       expect(h.validator.preflightBrandCapabilities).not.toHaveBeenCalled();
       expect(h.openRouter.chatCompletion).not.toHaveBeenCalled();
+      expect(outcome.kind).toBe('stopped');
+    });
+
+    it('records which integrity sub-check failed on the blocked receipt', async () => {
+      h.snapshots.preview.mockRejectedValue(
+        new BrandIdentityIntegrityError('rules_hash_mismatch'),
+      );
+      const outcome = await h.service.generate(h.request);
+
+      expect(compileSnapshotBriefResolution).toHaveBeenCalledWith(
+        input,
+        null,
+        expect.anything(),
+        {},
+        [],
+        [],
+        [],
+        ['brand_identity_integrity_failed', 'integrity_rules_hash_mismatch'],
+      );
       expect(outcome.kind).toBe('stopped');
     });
 

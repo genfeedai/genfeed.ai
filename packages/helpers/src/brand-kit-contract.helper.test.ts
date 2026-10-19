@@ -326,6 +326,20 @@ describe('brand kit contract helpers', () => {
     );
   });
 
+  it('never proposes the og:image as a banner when the crawl found none', () => {
+    const draft = buildBrandKitDraftFromWebsiteScrape(createCompleteBrand(), {
+      companyName: 'Acme',
+      ogImage: 'https://pbs.twimg.com/profile_images/1/me_400x400.jpg',
+      scrapedAt: new Date('2026-06-30T10:00:00Z'),
+      sourceUrl: 'https://x.com/acme',
+    });
+
+    expect(draft.fields.banner?.proposedValue).toBeUndefined();
+    expect(
+      draft.assetCandidates.filter((candidate) => candidate.role === 'banner'),
+    ).toEqual([]);
+  });
+
   it('keeps real website sentences and drops media config from prompt guidelines', () => {
     const draft = buildBrandKitDraftFromWebsiteScrape(createCompleteBrand(), {
       description: 'Operating system for finance teams.',

@@ -105,10 +105,19 @@ export class BrandWebsiteParserService {
     const aboutText = this.extractAboutText(bodyText);
 
     const icons = this.extractIconsFromDom($, sourceUrl);
-    const pageLogoUrl = this.extractLogoFromDom($, sourceUrl);
+    // On a social profile page `og:image` is the profile picture: it is the
+    // brand's logo, never a banner.
+    const isProfilePage = this.isSocialProfileUrl(sourceUrl);
+    const pageLogoUrl =
+      this.extractLogoFromDom($, sourceUrl) ??
+      (isProfilePage ? ogImage : undefined);
     const logoUrl = pageLogoUrl ?? icons[0]?.url;
     const images = this.extractImagesFromDom($, sourceUrl);
-    const bannerUrl = this.extractBannerFromDom($, sourceUrl, ogImage);
+    const bannerUrl = this.extractBannerFromDom(
+      $,
+      sourceUrl,
+      isProfilePage ? undefined : ogImage,
+    );
 
     return {
       aboutText,
@@ -701,6 +710,21 @@ export class BrandWebsiteParserService {
     });
 
     return images.slice(0, MAX_IMAGE_CANDIDATES);
+  }
+
+  /** True when `url` is a profile on a social network rather than a brand site. */
+  isSocialProfileUrl(url: string): boolean {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+
+      return Object.values(BRAND_SOCIAL_HOSTS).some((hosts) =>
+        hosts.some(
+          (host) => hostname === host || hostname.endsWith(`.${host}`),
+        ),
+      );
+    } catch {
+      return false;
+    }
   }
 
   private extractBannerFromDom(

@@ -1151,7 +1151,10 @@ describe('VideoProcessor', () => {
         expect.any(String),
         expect.any(String),
         'Hello World',
-        { position: 'top' },
+        {
+          fontFile: expect.stringContaining('montserrat-bold.ttf'),
+          position: 'top',
+        },
         expect.any(Function),
       );
     });
@@ -1168,7 +1171,48 @@ describe('VideoProcessor', () => {
         expect.any(String),
         expect.any(String),
         'Test',
-        { position: 'bottom' },
+        {
+          fontFile: expect.stringContaining('montserrat-bold.ttf'),
+          position: 'bottom',
+        },
+        expect.any(Function),
+      );
+    });
+
+    it('should render the overlay in the requested font', async () => {
+      const data = createMockJobData({
+        params: { fontFamily: 'poppins-bold', text: 'Hi' },
+      });
+      const job = createMockJob(JOB_TYPES.ADD_TEXT_OVERLAY, data);
+
+      await processor.handleTextOverlay(job);
+
+      expect(ffmpegService.addTextOverlay).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'Hi',
+        expect.objectContaining({
+          fontFile: expect.stringContaining('poppins-bold.ttf'),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('should fall back to the default font for an unknown key', async () => {
+      const data = createMockJobData({
+        params: { fontFamily: '../../etc/passwd', text: 'Hi' },
+      });
+      const job = createMockJob(JOB_TYPES.ADD_TEXT_OVERLAY, data);
+
+      await processor.handleTextOverlay(job);
+
+      expect(ffmpegService.addTextOverlay).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'Hi',
+        expect.objectContaining({
+          fontFile: expect.stringContaining('montserrat-bold.ttf'),
+        }),
         expect.any(Function),
       );
     });

@@ -431,9 +431,10 @@ export class UsersController {
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(@Req() request: Request, @Param('userId') userId: string) {
-    const data = await this.usersService.findOne({
-      id: userId,
-    });
+    const data = await this.usersService.findOne({ id: userId }, [
+      { path: 'settings' },
+      { path: 'signupAttribution' },
+    ]);
     return data
       ? serializeSingle(request, UserSerializer, data)
       : returnNotFound(this.constructorName, userId);

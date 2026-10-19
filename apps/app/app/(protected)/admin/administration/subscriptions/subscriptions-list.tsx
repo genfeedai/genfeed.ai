@@ -2,12 +2,14 @@
 
 import { LazyModalSubscription } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IUser } from '@genfeedai/contracts/interfaces';
+import {
+  formatCreditBalanceExact,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Subscription } from '@models/billing/subscription.model';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -17,11 +19,17 @@ import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { Copy, CreditCard, ExternalLink, Pencil } from 'lucide-react';
+import { Progress } from '@ui/primitives/progress';
+import { Copy, CreditCard, Pencil, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import CreditHoldsPanel from './credit-holds-panel';
+
+const EMPTY_CELL = '-';
 
 export default function SubscriptionsList() {
+  const t = useTranslations('pages.adminCreditHolds');
   const getSubscriptionsService = useAuthedService((token: string) =>
     SubscriptionsService.getInstance(token),
   );
@@ -29,150 +37,201 @@ export default function SubscriptionsList() {
   const clipboardService = ClipboardService.getInstance();
   const currentPage = Number(useSearchParams().get('page')) || 1;
 
-  const [selectedOrgId, setSelectedOrg] = useState<string | null>(null);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [holdsOrganization, setHoldsOrganization] =
+    useState<IOrganizationBilling>();
 
   const {
-    data: subscriptions,
+    data: billing,
     isLoading,
     isFetching,
-    error: subscriptionsError,
+    error: billingError,
     refetch,
-  } = useQuery<Subscription[]>({
+  } = useQuery({
     queryKey: ['admin-subscriptions', currentPage],
     queryFn: async () => {
       const service = await getSubscriptionsService();
-      return service.findAll({ limit: ITEMS_PER_PAGE, page: currentPage });
+      return service.getAdminBilling({
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+      });
     },
   });
 
   const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {
-    if (subscriptionsError) {
-      logger.error('GET /subscriptions failed', subscriptionsError);
+    if (billingError) {
+      logger.error('GET /subscriptions/admin/billing failed', billingError);
     }
-  }, [subscriptionsError]);
+  }, [billingError]);
 
   const refresh = () => {
     refetch();
   };
 
-  const columns: TableColumn<Subscription>[] = [
-    {
-      header: 'Organization',
-      key: 'organization',
-      render: (subscription: Subscription) =>
-        subscription?.organization?.label || 'N/A',
-    },
-    {
-      header: 'User',
-      key: 'user',
-      render: (subscription: Subscription) => subscription.user?.email || 'N/A',
-    },
-    {
-      header: 'Category',
-      key: 'category',
-      render: (subscription: Subscription) => (
-        <Badge variant="outline" className="uppercase">
-          {subscription.category}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Status',
-      key: 'status',
-      render: (subscription: Subscription) => (
-        <Badge status={subscription.status} />
-      ),
-    },
-    {
-      header: 'Customer ID',
-      key: 'stripeSubscriptionId',
-      render: (subscription: Subscription) => (
-        <Button
-          variant={ButtonVariant.SECONDARY}
-          tooltip="Copy Customer ID"
-          tooltipPosition="right"
-          onClick={() => handleCopy(subscription.stripeCustomerId)}
-          label={
-            <span className="flex items-center gap-2">
-              <Copy />
-              {subscription.stripeCustomerId}
-            </span>
-          }
-        />
-      ),
-    },
-    {
-      header: 'Balance',
-      key: 'balance',
-      render: (subscription: Subscription) =>
-        subscription.organization?.balance ?? 0,
-    },
-
-    {
-      header: 'Period End',
-      key: 'currentPeriodEnd',
-      render: (subscription: Subscription) =>
-        subscription.currentPeriodEnd
-          ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
-          : 'N/A',
-    },
-  ];
-
-  const openSubscriptionModal = (orgId: string) => {
-    setSelectedOrg(orgId);
-    openModal(ModalEnum.SUBSCRIPTION);
-  };
-
   const handleCopy = async (customerId: string) =>
     await clipboardService.copyToClipboard(customerId);
 
+  const columns: TableColumn<IOrganizationBilling>[] = [
+    {
+      header: t('columnOrganization'),
+      key: 'organizationName',
+      render: (row: IOrganizationBilling) => row.organizationName,
+    },
+    {
+      header: t('columnOwner'),
+      key: 'ownerEmail',
+      render: (row: IOrganizationBilling) => row.ownerEmail ?? EMPTY_CELL,
+    },
+    {
+      header: t('columnPlan'),
+      key: 'tier',
+      render: (row: IOrganizationBilling) =>
+        row.tier ? (
+          <Badge variant="outline" className="uppercase">
+            {row.tier}
+          </Badge>
+        ) : (
+          EMPTY_CELL
+        ),
+    },
+    {
+      header: t('columnStatus'),
+      key: 'status',
+      render: (row: IOrganizationBilling) =>
+        row.status ? <Badge status={row.status} /> : EMPTY_CELL,
+    },
+    {
+      header: t('columnBalance'),
+      key: 'balance',
+      render: (row: IOrganizationBilling) =>
+        formatCreditBalanceExact(row.balance),
+    },
+    {
+      header: t('columnUsed'),
+      key: 'usedPercent',
+      render: (row: IOrganizationBilling) =>
+        row.planLimit > 0 ? (
+          <div className="flex items-center gap-2">
+            <Progress value={row.usedPercent} className="w-24" />
+            <span className="text-muted-foreground text-sm">
+              {Math.round(row.usedPercent)}%
+            </span>
+          </div>
+        ) : (
+          EMPTY_CELL
+        ),
+    },
+    {
+      header: t('columnFlag'),
+      key: 'isMaxedOut',
+      render: (row: IOrganizationBilling) => {
+        if (row.isMaxedOut) {
+          return <Badge variant="destructive">{t('flagMaxedOut')}</Badge>;
+        }
+
+        if (row.isUnderUsing) {
+          return <Badge variant="outline">{t('flagUnderUsing')}</Badge>;
+        }
+
+        return EMPTY_CELL;
+      },
+    },
+    {
+      header: t('columnCustomerId'),
+      key: 'stripeCustomerId',
+      render: (row: IOrganizationBilling) => {
+        const customerId = row.stripeCustomerId;
+        if (!customerId) {
+          return EMPTY_CELL;
+        }
+
+        return (
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            tooltip={t('copyCustomerId')}
+            tooltipPosition="right"
+            onClick={() => handleCopy(customerId)}
+            label={
+              <span className="flex items-center gap-2">
+                <Copy />
+                {customerId}
+              </span>
+            }
+          />
+        );
+      },
+    },
+    {
+      header: t('columnPeriodEnd'),
+      key: 'currentPeriodEnd',
+      render: (row: IOrganizationBilling) =>
+        row.currentPeriodEnd
+          ? new Date(row.currentPeriodEnd).toLocaleDateString()
+          : EMPTY_CELL,
+    },
+  ];
+
+  const actions: TableAction<IOrganizationBilling>[] = [
+    {
+      href: (row: IOrganizationBilling) =>
+        row.stripeCustomerId
+          ? `https://dashboard.stripe.com/customers/${row.stripeCustomerId}`
+          : undefined,
+      icon: <CreditCard />,
+      isExternal: true,
+      size: ButtonSize.SM,
+      tooltip: t('openStripe'),
+      variant: ButtonVariant.SECONDARY,
+    },
+    {
+      icon: <ShieldAlert />,
+      onClick: (row: IOrganizationBilling) => setHoldsOrganization(row),
+      size: ButtonSize.SM,
+      tooltip: t('reviewHolds'),
+      variant: ButtonVariant.SECONDARY,
+    },
+    {
+      icon: <Pencil />,
+      onClick: (row: IOrganizationBilling) => {
+        setSelectedOrgId(row.organizationId);
+        openModal(ModalEnum.SUBSCRIPTION);
+      },
+      size: ButtonSize.SM,
+      tooltip: t('editSubscription'),
+      tooltipPosition: 'left',
+      variant: ButtonVariant.DEFAULT,
+    },
+  ];
+
   return (
     <AdminPageShell
-      title="Subscriptions"
+      title={t('subscriptionsTitle')}
       icon={CreditCard}
       onRefresh={() => refresh()}
       isRefreshing={isRefreshing}
     >
-      <AppTable<Subscription>
-        items={subscriptions || []}
+      <AppTable<IOrganizationBilling>
+        items={billing?.data ?? []}
         isLoading={isLoading}
         columns={columns}
-        getRowKey={(subscription) => subscription.id}
-        emptyLabel="No subscriptions found"
-        actions={[
-          {
-            icon: <ExternalLink />,
-            onClick: (subscription: Subscription) => {
-              window.open(
-                `https://dashboard.stripe.com/customers/${subscription.stripeCustomerId}?prefilled_email=${(subscription.user as IUser)?.email}`,
-                '_blank',
-              );
-            },
-            size: ButtonSize.SM,
-            tooltip: 'Stripe',
-            variant: ButtonVariant.SECONDARY,
-          },
-          {
-            icon: <Pencil />,
-            onClick: (subscription: Subscription) => {
-              const organizationId = subscription.organization?.id;
-              if (organizationId) {
-                openSubscriptionModal(organizationId);
-              }
-            },
-            size: ButtonSize.SM,
-            tooltip: 'Edit',
-            tooltipPosition: 'left',
-            variant: ButtonVariant.DEFAULT,
-          },
-        ]}
+        actions={actions}
+        getRowKey={(row) => row.organizationId}
+        emptyLabel={t('subscriptionsEmpty')}
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="subscriptions" />
+        <AutoPagination showTotal totalLabel={t('subscriptionsTotalLabel')} />
       </div>
+
+      {holdsOrganization && (
+        <CreditHoldsPanel
+          key={holdsOrganization.organizationId}
+          organizationId={holdsOrganization.organizationId}
+          organizationName={holdsOrganization.organizationName}
+        />
+      )}
 
       <LazyModalSubscription
         organizationId={selectedOrgId}

@@ -4,6 +4,7 @@ import type {
   IArticle,
   IBrand,
   IBrandConversationStarter,
+  IBrandKitAssetCandidate,
   IBrandKitAssetValue,
   IBrandKitDraft,
   IBrandPromptSeed,
@@ -306,7 +307,12 @@ export interface BrandKitReviewCardProps {
 
 export interface BrandKitAssetGridProps {
   assets: IBrandKitAssetValue[];
+  /** Crawled candidates a proposed asset can be selected through. */
+  candidates?: readonly IBrandKitAssetCandidate[];
   emptyLabel: string;
+  statusLabelByCandidateId?: ReadonlyMap<string, string>;
+  onToggleCandidate?: (candidateId: string) => void;
+  selectedCandidateIds?: ReadonlySet<string>;
 }
 
 export interface BrandKitAssetTileProps {

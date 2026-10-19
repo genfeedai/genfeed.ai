@@ -24,6 +24,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
+import { SourceCollectorModule } from '@api/services/source-collector/source-collector.module';
 import { ACCOUNT_GENERATION_QUEUE } from '@genfeedai/contracts/queue';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
@@ -50,6 +51,7 @@ import { Module } from '@nestjs/common';
     ReplicateModule,
     NotificationsPublisherModule,
     PromptBuilderModule,
+    SourceCollectorModule,
     LoggerModule,
   ],
   providers: [

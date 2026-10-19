@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dto';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionBillingExceptionFilter } from '@api/collections/subscriptions/errors/subscription-billing-exception.filter';
@@ -22,7 +21,7 @@ import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { SubscriptionPlan } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
-  OrganizationCreditUsageResponse,
+  OrganizationBillingResponse,
   SubscriptionChangePreview,
 } from '@genfeedai/contracts/interfaces';
 import { SubscriptionPlanChangeCreditsOutcome } from '@genfeedai/contracts/interfaces/billing';
@@ -48,15 +47,6 @@ interface SubscriptionMutationResponse<T = unknown> {
   success: boolean;
   message: string;
   data: T;
-}
-
-/** Minimal subscription projection used by the admin credit-usage list. */
-interface SubscriptionRowSource {
-  id: string;
-  organizationId: string;
-  stripePriceId?: string | null;
-  status?: string | null;
-  currentPeriodEnd?: Date | null;
 }
 
 interface CreditsBreakdownResponse {
@@ -112,7 +102,6 @@ export class SubscriptionsController {
     private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly organizationsService: OrganizationsService,
   ) {}
 
   @Get()
@@ -279,79 +268,30 @@ export class SubscriptionsController {
     }
   }
 
-  @Get('admin/credit-usage')
+  @Get('admin/billing')
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getCreditUsage(
+  async getAdminBilling(
     @Query() query: BaseQueryDto,
-  ): Promise<OrganizationCreditUsageResponse> {
+  ): Promise<OrganizationBillingResponse> {
     try {
-      const options = {
-        customLabels,
-        ...QueryDefaultsUtil.getPaginationDefaults(query),
-      };
-
-      const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-      const aggregate = {
-        where: { isDeleted },
-        orderBy: { createdAt: -1 },
-      };
+      const { limit, page } = QueryDefaultsUtil.getPaginationDefaults(query);
 
       const paginated = await this.readAsPlatformAdmin(
-        async () => await this.subscriptionsService.findAll(aggregate, options),
-      );
-
-      const subscriptions =
-        paginated.docs as unknown as SubscriptionRowSource[];
-
-      const organizationIds = Array.from(
-        new Set(
-          subscriptions
-            .map((subscription) => subscription.organizationId)
-            .filter((id): id is string => Boolean(id)),
-        ),
-      );
-
-      const organizations = organizationIds.length
-        ? await this.organizationsService.find({
-            id: { in: organizationIds },
-          })
-        : [];
-
-      const organizationNameById = new Map<string, string>(
-        organizations.map((organization) => [
-          String((organization as { id: string }).id),
-          String(
-            (organization as { name?: string; label?: string }).name ??
-              (organization as { name?: string; label?: string }).label ??
-              'N/A',
-          ),
-        ]),
-      );
-
-      const data = await this.readAsPlatformAdmin(
         async () =>
-          await Promise.all(
-            subscriptions.map((subscription) =>
-              this.buildCreditUsageRow(subscription, organizationNameById),
-            ),
-          ),
+          await this.subscriptionsService.findAdminBilling({ limit, page }),
       );
 
       return {
-        data,
+        data: paginated.docs,
         limit: paginated.limit,
-        page: paginated.page ?? 1,
+        page: paginated.page,
         success: true,
         totalDocs: paginated.totalDocs,
         totalPages: paginated.totalPages,
       };
     } catch (error: unknown) {
-      throw toReadFailure(
-        error,
-        'Failed to retrieve organization credit usage',
-      );
+      throw toReadFailure(error, 'Failed to retrieve organization billing');
     }
   }
 
@@ -362,55 +302,6 @@ export class SubscriptionsController {
    */
   private readAsPlatformAdmin<T>(work: () => Promise<T>): Promise<T> {
     return crossOrgUnsafe(async () => await work());
-  }
-
-  private async buildCreditUsageRow(
-    subscription: SubscriptionRowSource,
-    organizationNameById: Map<string, string>,
-  ): Promise<OrganizationCreditUsageResponse['data'][number]> {
-    const organizationId = subscription.organizationId;
-
-    const tier = this.creditGrantService.resolveTierFromPriceId(
-      subscription.stripePriceId,
-    );
-    const planLimit =
-      (await this.creditGrantService.resolveMonthlyCredits(
-        subscription.stripePriceId,
-      )) ?? 0;
-
-    const balance = organizationId
-      ? await this.creditsUtilsService.getOrganizationCreditsBalance(
-          organizationId,
-        )
-      : 0;
-
-    // A price with no resolvable grant reports 0% used rather than dividing by
-    // zero; the admin list shows the row so the gap is visible, not hidden.
-    const usedCredits = planLimit > 0 ? Math.max(0, planLimit - balance) : 0;
-    const usedPercent =
-      planLimit > 0
-        ? Math.min(100, Math.max(0, (usedCredits / planLimit) * 100))
-        : 0;
-    const remainingPercent = 100 - usedPercent;
-
-    return {
-      balance,
-      currentPeriodEnd: subscription.currentPeriodEnd
-        ? new Date(subscription.currentPeriodEnd).toISOString()
-        : null,
-      isMaxedOut: usedPercent >= 90,
-      isUnderUsing: planLimit > 0 && usedPercent <= 10,
-      organizationId,
-      organizationName: organizationNameById.get(organizationId) ?? 'N/A',
-      planLimit,
-      remainingPercent,
-      status:
-        (subscription.status as OrganizationCreditUsageResponse['data'][number]['status']) ??
-        null,
-      tier,
-      usedCredits,
-      usedPercent,
-    };
   }
 
   private getCycleWindow(

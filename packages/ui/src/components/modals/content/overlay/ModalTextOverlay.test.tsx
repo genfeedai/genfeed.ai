@@ -7,6 +7,10 @@ import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('@ui/modals/modal/Modal', () => ({
   __esModule: true,
   default: ({ children }: ModalProps) => (
@@ -69,5 +73,11 @@ describe('ModalTextOverlay', () => {
   it('renders text overlay form', () => {
     render(<ModalTextOverlay {...defaultProps} />);
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+
+  it('offers a font picker that defaults to the video font', () => {
+    render(<ModalTextOverlay {...defaultProps} />);
+    const picker = screen.getByRole('combobox', { name: 'font' });
+    expect(picker).toHaveTextContent('fontDefault');
   });
 });

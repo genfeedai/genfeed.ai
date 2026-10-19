@@ -35,7 +35,14 @@ import { ColorInput } from '@ui/primitives/color-input';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import BrandKitAssetGrid from './BrandKitAssetGrid';
 import BrandKitAssetTile from './BrandKitAssetTile';
 import {
@@ -160,6 +167,8 @@ function showsScoredKind(
 }
 
 function ReviewProposedValue({
+  assetCandidates,
+  assetImportFooter,
   editableValue,
   isAssetField,
   isColorField,
@@ -167,11 +176,16 @@ function ReviewProposedValue({
   isSocialField,
   label,
   noProposalLabel,
+  onToggleCandidate,
   onValueChange,
   proposedAssets,
   proposedValue,
+  selectedCandidateIds,
   socialValue,
+  statusLabelByCandidateId,
 }: {
+  assetCandidates: readonly IBrandKitAssetCandidate[];
+  assetImportFooter: ReactNode;
   editableValue: string;
   isAssetField: boolean;
   isColorField: boolean;
@@ -179,17 +193,27 @@ function ReviewProposedValue({
   isSocialField: boolean;
   label: string;
   noProposalLabel: string;
+  onToggleCandidate: (candidateId: string) => void;
   onValueChange: (value: string) => void;
   proposedAssets: readonly IBrandKitAssetValue[];
   proposedValue: string;
+  selectedCandidateIds: ReadonlySet<string>;
   socialValue: unknown;
+  statusLabelByCandidateId: ReadonlyMap<string, string>;
 }) {
   if (isAssetField) {
     return (
-      <BrandKitAssetGrid
-        assets={[...proposedAssets]}
-        emptyLabel={noProposalLabel}
-      />
+      <div className="space-y-2">
+        <BrandKitAssetGrid
+          assets={[...proposedAssets]}
+          candidates={assetCandidates}
+          emptyLabel={noProposalLabel}
+          selectedCandidateIds={selectedCandidateIds}
+          statusLabelByCandidateId={statusLabelByCandidateId}
+          onToggleCandidate={onToggleCandidate}
+        />
+        {assetImportFooter}
+      </div>
     );
   }
   if (isSocialField) {
@@ -656,6 +680,16 @@ export default function BrandKitReviewCard({
 
     return statuses;
   }, [assetImportResult]);
+
+  const statusLabelByCandidateId = useMemo(() => {
+    const labels = new Map<string, string>();
+
+    for (const [candidateId, status] of importStatusByCandidateId) {
+      labels.set(candidateId, ASSET_IMPORT_STATUS_LABELS[status]);
+    }
+
+    return labels;
+  }, [importStatusByCandidateId]);
 
   const selectedApplyCount = useMemo(() => {
     if (!draft) {
@@ -1195,7 +1229,7 @@ export default function BrandKitReviewCard({
                               ) : (
                                 <span className="rounded-full bg-background-secondary px-2 py-1 text-xs text-muted-foreground">
                                   {isAssetField
-                                    ? 'Pick images below'
+                                    ? 'Select images to import'
                                     : isDeferred
                                       ? 'Safe import pending'
                                       : 'Review only'}
@@ -1231,6 +1265,30 @@ export default function BrandKitReviewCard({
                                     {BRAND_KIT_REVIEW_COPY.proposed}
                                   </div>
                                   <ReviewProposedValue
+                                    assetCandidates={draft.assetCandidates}
+                                    assetImportFooter={
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <p className="text-xs text-muted-foreground">
+                                          {formatSelectedAssetCount(
+                                            selectedCandidateIds.size,
+                                          )}
+                                        </p>
+                                        <Button
+                                          isDisabled={
+                                            selectedCandidateIds.size === 0
+                                          }
+                                          isLoading={isImportingAssets}
+                                          label={translate(
+                                            'importSelectedAssets',
+                                          )}
+                                          size={ButtonSize.SM}
+                                          variant={ButtonVariant.SECONDARY}
+                                          onClick={() =>
+                                            void handleImportAssets()
+                                          }
+                                        />
+                                      </div>
+                                    }
                                     editableValue={
                                       fieldValues[key] ?? proposedValue
                                     }
@@ -1244,7 +1302,12 @@ export default function BrandKitReviewCard({
                                     noProposalLabel={translate('noProposal')}
                                     proposedAssets={proposedAssets}
                                     proposedValue={proposedValue}
+                                    selectedCandidateIds={selectedCandidateIds}
                                     socialValue={field.proposedValue}
+                                    statusLabelByCandidateId={
+                                      statusLabelByCandidateId
+                                    }
+                                    onToggleCandidate={handleToggleCandidate}
                                     onValueChange={(value) =>
                                       handleFieldValueChange(key, value)
                                     }

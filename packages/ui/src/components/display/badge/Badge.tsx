@@ -75,7 +75,7 @@ function getCanonicalStatusVariant(status: StatusKey): BadgeProps['variant'] {
   return 'secondary';
 }
 
-function getCanonicalStatusLabel(status: StatusKey): string {
+function getCanonicalStatusLabel(status: string): string {
   return status
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (character) => character.toUpperCase());
@@ -202,8 +202,26 @@ function getStatusConfig(status: string): BadgeStatusConfig {
         variant: 'validated',
       };
 
-    default:
+    // Subscription lifecycle states that have no canonical tone of their own
+    case 'trialing':
       return {
+        label: getCanonicalStatusLabel(normalizedStatus),
+        variant: 'info',
+      };
+
+    case 'past_due':
+    case 'incomplete':
+    case 'unpaid':
+      return {
+        canonicalStatus: 'pending',
+        label: getCanonicalStatusLabel(normalizedStatus),
+        variant: 'warning',
+      };
+
+    default:
+      // An unmapped status still names itself; an empty dot says nothing.
+      return {
+        label: getCanonicalStatusLabel(normalizedStatus),
         variant: 'default',
       };
   }

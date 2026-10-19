@@ -2,6 +2,7 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
+import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type {
@@ -41,6 +42,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -70,6 +72,8 @@ const RECOVERABLE_SNAPSHOT_FAILURES = new Set([
  */
 @Injectable()
 export class BrandedTextGenerationService {
+  private readonly logger = new Logger(BrandedTextGenerationService.name);
+
   constructor(
     private readonly receipts: BrandedGenerationReceiptsService,
     private readonly snapshots: BrandIdentitySnapshotService,
@@ -333,6 +337,9 @@ export class BrandedTextGenerationService {
           messages: [{ role: 'user', content: compiledPrompt }],
           max_tokens: parameters.maxTokens,
           temperature: parameters.temperature,
+          // A short post must not spend its whole token budget on hidden
+          // reasoning and come back empty.
+          reasoning: { enabled: false },
         },
         apiKey,
       );
@@ -342,10 +349,18 @@ export class BrandedTextGenerationService {
         !learningContractIdSchema.safeParse(providerAttemptRef).success
       )
         return null;
-      return {
-        providerAttemptRef,
-        text: response.choices?.[0]?.message?.content ?? '',
-      };
+      const text = response.choices?.[0]?.message?.content ?? '';
+      if (!text.trim())
+        this.logger.warn('Branded text provider returned no content', {
+          completionTokens: response.usage?.completion_tokens,
+          finishReason: response.choices?.[0]?.finish_reason,
+          hasReasoning: Boolean(
+            response.choices?.[0]?.message?.reasoning_content,
+          ),
+          model: input.model,
+          providerAttemptRef,
+        });
+      return { providerAttemptRef, text };
     } catch {
       return null;
     }
@@ -415,6 +430,17 @@ export class BrandedTextGenerationService {
     } catch (error) {
       if (!(error instanceof ConflictException)) throw error;
       const code = error.message;
+      if (error instanceof BrandIdentityIntegrityError) {
+        // The public code stays generic; the failed sub-check goes to the
+        // receipt diagnostic and the log so a stopped brand can be diagnosed.
+        this.logger.warn('Brand identity integrity check failed', {
+          brandId: actor.brandId,
+          detail: error.detail,
+          organizationId: actor.organizationId,
+          reason: error.reason,
+        });
+        return blocked(null, [code, `integrity_${error.reason}`]);
+      }
       if (RECOVERABLE_SNAPSHOT_FAILURES.has(code)) return blocked(null, [code]);
       if (code !== 'brand_identity_unavailable') throw error;
       if (input.mode === 'provisional_brand')

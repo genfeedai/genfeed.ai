@@ -80,6 +80,7 @@ export default function PublishingRssSourcesSection({
     [],
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   const toggleChannel = useCallback((credentialId: string) => {
     setSelectedCredentialIds((previous) =>
@@ -137,11 +138,14 @@ export default function PublishingRssSourcesSection({
 
   const handleToggleEnabled = useCallback(
     async (source: IRssSource, isEnabled: boolean) => {
+      setIsToggling(true);
       try {
         await update(source.id, { isEnabled });
       } catch (error) {
         logger.error('Failed to update RSS source', error);
         notifications.error('Failed to update RSS source');
+      } finally {
+        setIsToggling(false);
       }
     },
     [notifications, update],
@@ -202,6 +206,7 @@ export default function PublishingRssSourcesSection({
                 <Switch
                   aria-label={`Enable ${source.label}`}
                   isChecked={source.isEnabled}
+                  isDisabled={isToggling}
                   onChange={(event: ChangeEvent<HTMLInputElement>) => {
                     void handleToggleEnabled(source, event.target.checked);
                   }}

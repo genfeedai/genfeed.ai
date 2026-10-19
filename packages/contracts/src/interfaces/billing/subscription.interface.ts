@@ -63,15 +63,22 @@ export interface SubscriptionMetadata {
 }
 
 /**
- * Per-organization credit usage row for the superadmin credit-usage list
- * (GET /subscriptions/admin/credit-usage). Computed, not a serialized entity —
- * mirrors the plain-object contract already used by getCreditsBreakdown.
+ * One organization's billing state for the superadmin Subscriptions list
+ * (GET /subscriptions/admin/billing). Computed, not a serialized entity —
+ * every organization appears, with `hasSubscription: false` and a null
+ * `status` when it never went through Stripe checkout.
  */
-export interface IOrganizationCreditUsage {
+export interface IOrganizationBilling {
   organizationId: string;
   organizationName: string;
+  ownerEmail: string | null;
+  hasSubscription: boolean;
   tier: string | null;
+  plan: string | null;
   status: SubscriptionStatus | null;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  currentPeriodEnd: string | null;
   balance: number;
   planLimit: number;
   usedCredits: number;
@@ -79,12 +86,11 @@ export interface IOrganizationCreditUsage {
   remainingPercent: number;
   isMaxedOut: boolean;
   isUnderUsing: boolean;
-  currentPeriodEnd: string | null;
 }
 
-export interface OrganizationCreditUsageResponse {
+export interface OrganizationBillingResponse {
   success: boolean;
-  data: IOrganizationCreditUsage[];
+  data: IOrganizationBilling[];
   page: number;
   limit: number;
   totalDocs: number;

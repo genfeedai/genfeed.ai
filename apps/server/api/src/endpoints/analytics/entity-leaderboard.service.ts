@@ -492,6 +492,28 @@ export class EntityLeaderboardService {
     );
   }
 
+  /** Count active, non-deleted members grouped by organization, for the given orgs */
+  private async countMembersByOrganization(
+    organizationIds: string[],
+  ): Promise<Map<string, number>> {
+    if (organizationIds.length === 0) {
+      return new Map();
+    }
+
+    const memberCountRows = await this.prisma.member.groupBy({
+      by: ['organizationId'],
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: { in: organizationIds },
+      },
+      _count: { id: true },
+    });
+    return new Map<string, number>(
+      memberCountRows.map((row) => [row.organizationId, row._count.id]),
+    );
+  }
+
   /** Shape a database-paged result into the paginated payload */
   private buildPaginationSlice<TItem>(
     data: TItem[],
@@ -600,9 +622,11 @@ export class EntityLeaderboardService {
       this.countEntities('organization', {}),
     ]);
 
-    const brandCountMap = await this.countBrandsByOrganization(
-      rows.map(({ entity }) => entity.id),
-    );
+    const organizationIds = rows.map(({ entity }) => entity.id);
+    const [brandCountMap, memberCountMap] = await Promise.all([
+      this.countBrandsByOrganization(organizationIds),
+      this.countMembersByOrganization(organizationIds),
+    ]);
 
     const data = rows.map(
       ({ entity, prevEngagement, stats }) =>
@@ -614,7 +638,7 @@ export class EntityLeaderboardService {
           name: entity.label || entity.name || 'Unknown',
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
-          totalMembers: 0,
+          totalMembers: memberCountMap.get(entity.id) || 0,
           totalPosts: stats.totalPosts,
           totalViews: stats.totalViews,
         }),

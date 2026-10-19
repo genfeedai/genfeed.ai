@@ -128,6 +128,8 @@ export interface VideoProcessingParams {
   // Text overlay params
   text?: string;
   position?: 'top' | 'bottom' | 'center';
+  /** Font key or label for the overlay text; unknown values use the default. */
+  fontFamily?: string;
 
   // Audio conversion params
   audioCodec?: string;

@@ -1,3 +1,4 @@
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
@@ -18,6 +19,7 @@ import {
   WORKSPACE_TASK_WORKFLOW_DEFINITIONS,
   type WorkspaceTaskWorkflowRequest,
 } from '@api/services/task-orchestration/workspace-task-workflow-definition';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable, type OnModuleInit } from '@nestjs/common';
@@ -65,6 +67,7 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly taskOrchestrator: TaskOrchestratorService,
     private readonly logger: LoggerService,
+    private readonly agentThreadsService: AgentThreadsService,
   ) {}
 
   onModuleInit(): void {
@@ -220,6 +223,17 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
   ): Promise<AgentExecutionState> {
     const item = this.readAgentExecutionItem(request.input.request);
     return this.withTaskFailure(item, async () => {
+      // An agent turn always runs inside a thread; `prepare` rejects a request
+      // without one, so each subtask gets its own.
+      const thread = await this.agentThreadsService.create({
+        brandId: item.brandId,
+        organizationId: item.organizationId,
+        source: 'workspace-task',
+        status: AgentThreadStatus.ACTIVE,
+        title: item.subtask.label.slice(0, 120) || 'Workspace task',
+        userId: item.userId,
+      });
+      const threadId = String(thread.id);
       const { executionId } = await this.workflowRunner.enqueueWorkflow(
         {
           actionType: AGENT_TURN_WORKFLOW_ID,
@@ -229,6 +243,8 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
             request: {
               agentType: item.subtask.agentType,
               content: item.subtask.brief,
+              threadId,
+              ...(item.brandId ? { brandId: item.brandId } : {}),
             },
           },
           metadata: {
@@ -236,6 +252,7 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
             parentExecutionId: request.provenance.executionId,
             parentNodeId: request.provenance.nodeId,
             source: 'workspace-task',
+            threadId,
             workspaceTaskId: item.taskId,
           },
           organizationId: item.organizationId,

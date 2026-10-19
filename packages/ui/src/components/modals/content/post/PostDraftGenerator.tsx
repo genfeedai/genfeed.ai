@@ -3,6 +3,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { PostDraftGeneratorProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
+import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import GenerationFeedback from '@ui/generation-receipts/GenerationFeedback';
@@ -13,6 +14,21 @@ import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+/** A stopped branded generation says what to fix instead of a generic retry. */
+function failureMessageKey(
+  error: unknown,
+):
+  | 'failed'
+  | 'failedBrandAssets'
+  | 'failedBrandIdentity'
+  | 'failedReferencePost' {
+  const code = getJsonApiErrorMember(error)?.code;
+  if (code === 'reference_post_unavailable') return 'failedReferencePost';
+  if (code === 'brand_identity_integrity_failed') return 'failedBrandIdentity';
+  if (code === 'brand_identity_asset_unavailable') return 'failedBrandAssets';
+  return 'failed';
+}
 
 export default function PostDraftGenerator({
   platform,
@@ -79,7 +95,9 @@ export default function PostDraftGenerator({
     } catch (error) {
       logger.error('Post draft generation failed', error);
       if (version === requestVersion.current)
-        NotificationsService.getInstance().error(translate('failed'));
+        NotificationsService.getInstance().error(
+          translate(failureMessageKey(error)),
+        );
     } finally {
       if (version === requestVersion.current) setIsGenerating(false);
     }

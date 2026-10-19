@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { resolveFontFile } from '@files/helpers/utils/font/font-file.util';
 import {
   isFinalAttempt,
   isRawCutJob,
@@ -22,6 +23,7 @@ import {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
+import { FontFamily } from '@genfeedai/contracts';
 import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import {
   FILE_JOB_TYPES as JOB_TYPES,
@@ -629,7 +631,13 @@ export class VideoProcessor extends WorkerHost {
         inputPath,
         outputPath,
         params.text || '',
-        { position: params.position || 'bottom' },
+        {
+          fontFile: resolveFontFile(
+            params.fontFamily,
+            FontFamily.MONTSERRAT_BOLD,
+          ),
+          position: params.position || 'bottom',
+        },
         this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 

@@ -34,10 +34,17 @@ const isProduction = process.env.NODE_ENV === 'production';
  * three (`pages`, `pages-rsc`, `apis` — plus a same-origin catch-all), which is
  * why it is not used here.
  *
- * The trailing NetworkOnly catch-all makes that guarantee explicit rather than
- * incidental: a response is cached only if a rule above it opts the response
- * in, so adding a route never silently starts caching tenant data.
+ * The trailing NetworkOnly rule covers document navigations only. It exists so
+ * the offline fallback (a catch handler) fires when a navigation fails; a
+ * response is still cached only if a rule above it opts the response in.
+ * API, RSC and other fetches match no rule, so the browser sends them natively:
+ * a catch-all here would re-issue every request from the worker, doubling each
+ * one in DevTools and adding a worker hop to every API call.
  */
+function isNavigationRequest({ request }: { request: Request }): boolean {
+  return request.mode === 'navigate';
+}
+
 const runtimeCaching: RuntimeCaching[] = [
   {
     handler: new CacheFirst({
@@ -108,7 +115,7 @@ const runtimeCaching: RuntimeCaching[] = [
   },
   {
     handler: new NetworkOnly(),
-    matcher: /.*/i,
+    matcher: isNavigationRequest,
   },
 ];
 
@@ -139,11 +146,11 @@ function createServiceWorker(): void {
     },
     navigationPreload: true,
     precacheEntries: self.__SW_MANIFEST,
-    // In development every request is NetworkOnly anyway, so the runtime rules
-    // would only add noise to an already-cold Turbopack compile.
+    // In development only navigations are routed, so the runtime rules would
+    // only add noise to an already-cold Turbopack compile.
     runtimeCaching: isProduction
       ? runtimeCaching
-      : [{ handler: new NetworkOnly(), matcher: /.*/i }],
+      : [{ handler: new NetworkOnly(), matcher: isNavigationRequest }],
     skipWaiting: false,
   });
 

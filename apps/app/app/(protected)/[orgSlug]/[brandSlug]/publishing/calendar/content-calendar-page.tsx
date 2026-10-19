@@ -462,6 +462,7 @@ export default function ContentCalendarPage({
           credential.externalName ||
           credential.externalHandle ||
           (formatPlatformLabel(credential.platform) ?? credential.platform),
+        platform: credential.platform,
         value: credential.id,
       })),
     [credentials],
@@ -488,6 +489,7 @@ export default function ContentCalendarPage({
         seen.set(credential.platform, {
           label:
             formatPlatformLabel(credential.platform) ?? credential.platform,
+          platform: credential.platform,
           value: credential.platform,
         });
       }

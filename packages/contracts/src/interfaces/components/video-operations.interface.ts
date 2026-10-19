@@ -28,6 +28,7 @@ export interface IVideoTextOverlayStyle {
 export interface IVideoTextOverlayParams {
   text: string;
   position?: string;
+  fontFamily?: string;
   fontSize?: string;
   style?: IVideoTextOverlayStyle;
 }

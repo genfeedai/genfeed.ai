@@ -84,16 +84,19 @@ export class WorkflowExecutionsController {
     return service;
   }
 
-  private buildFindAllQuery(
+  private async buildFindAllQuery(
     organizationId: string,
     query: WorkflowExecutionQueryDto,
-  ): PrismaFindAllInput {
+  ): Promise<PrismaFindAllInput> {
     return {
       include: {
         workflow: { select: { description: true, id: true, label: true } },
       },
       orderBy: handleQuerySort(query.sort),
-      where: buildCustomerExecutionWhere(organizationId, query),
+      where: await this.workflowExecutionsService.buildCustomerListWhere(
+        organizationId,
+        query,
+      ),
     };
   }
 
@@ -160,7 +163,7 @@ export class WorkflowExecutionsController {
       limit !== undefined ? Number(limit) : (query.limit ?? undefined);
     const parsedOffset = offset !== undefined ? Number(offset) : 0;
     const result = await this.workflowExecutionsService.findAll(
-      this.buildFindAllQuery(tenant.organizationId, query),
+      await this.buildFindAllQuery(tenant.organizationId, query),
       {
         customLabels,
         ...QueryDefaultsUtil.getPaginationDefaults({

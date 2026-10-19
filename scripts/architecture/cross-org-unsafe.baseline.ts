@@ -414,7 +414,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 375,
+      line: 304,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).

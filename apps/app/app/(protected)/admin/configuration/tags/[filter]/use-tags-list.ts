@@ -178,15 +178,7 @@ export function useTagsList({
     });
   }, [filterSignature, pathname, replace, searchParamsString]);
 
-  const wasFetchingRef = useRef(false);
   const isRefreshing = isFetching;
-
-  useEffect(() => {
-    if (wasFetchingRef.current && !isFetching && !isLoading) {
-      notificationsService.success('Tags refreshed');
-    }
-    wasFetchingRef.current = isFetching;
-  }, [isFetching, isLoading, notificationsService]);
 
   useEffect(() => {
     if (tagsError) {

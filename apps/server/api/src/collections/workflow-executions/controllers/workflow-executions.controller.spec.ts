@@ -35,6 +35,10 @@ describe('WorkflowExecutionsController', () => {
   } as never;
 
   const mockService = {
+    buildCustomerListWhere: vi.fn(
+      async (organizationId: string, query: never) =>
+        buildCustomerExecutionWhere(organizationId, query),
+    ),
     cancelExecution: vi.fn(),
     createExecution: vi.fn(),
     findAll: vi.fn(),

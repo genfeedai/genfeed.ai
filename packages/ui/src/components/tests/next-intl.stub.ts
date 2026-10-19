@@ -689,10 +689,17 @@ const UI_TEST_MESSAGES = {
     },
     postDraft: {
       topic: 'What do you want to post about?',
-      placeholder: 'Describe an idea, announcement, or topic',
+      placeholder:
+        'Describe an idea, announcement, or topic, or paste an X post link to remix',
       generate: 'Generate draft',
       generating: 'Generating…',
       failed: 'Could not generate a draft. Please try again.',
+      failedBrandIdentity:
+        'Your approved brand kit could not be read. Open the brand kit, review it, and approve it again.',
+      failedBrandAssets:
+        'A logo or font in your approved brand kit is missing. Re-upload it in the brand kit, then approve it again.',
+      failedReferencePost:
+        'That X post could not be read. Paste its text into the prompt instead.',
       savedReady: 'Draft saved with your approved brand kit.',
       savedNeedsReview:
         'Draft saved in a provisional style until you approve your own brand kit.',
@@ -725,6 +732,12 @@ const UI_TEST_MESSAGES = {
       longPostHelp: 'Over 280 characters, X publishes this as a long post.',
       titleOptional: 'Title',
       createThread: 'Create Thread',
+      saveDraft: 'Save draft',
+      publishNow: 'Publish now',
+      schedule: 'Schedule',
+      confirmSchedule: 'Schedule post',
+      scheduleAt: 'Publish at',
+      scheduleNeedsAccount: 'Select an account to publish or schedule.',
       createTitle: 'New post',
       createDescription: 'Write once, then choose where it goes.',
       draftDescription:

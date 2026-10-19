@@ -262,6 +262,27 @@ describe('AgentThreadsService Prisma row contract', () => {
     );
   });
 
+  it('looks executions up through the indexed jsonb thread path', async () => {
+    delegate.findMany.mockResolvedValue([
+      { id: 'thread-1', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([]);
+
+    await service.getUserThreads('user-1', 'org-1');
+
+    const [strings, ...values] = queryRaw.mock.calls[0] as [
+      TemplateStringsArray,
+      ...unknown[],
+    ];
+    const sql = strings.join('?');
+
+    // `workflow_executions_agent_thread_lookup_idx` indexes the `#>` jsonb
+    // path; a `->>` text predicate cannot use it and scans every execution.
+    expect(sql).toContain("execution.result #> '{metadata,threadId}'::text[]");
+    expect(sql).not.toMatch(/->> 'threadId' IN/);
+    expect(JSON.stringify(values)).toContain('thread-1');
+  });
+
   it('falls back to the latest meaningful timeline response for list previews', async () => {
     delegate.findMany.mockResolvedValue([
       {

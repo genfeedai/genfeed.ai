@@ -97,6 +97,9 @@ describe('EntityLeaderboardService', () => {
       count: vi.fn(),
       groupBy: vi.fn(),
     },
+    member: {
+      groupBy: vi.fn(),
+    },
     organization: {
       count: vi.fn(),
       findMany: vi.fn(),
@@ -124,6 +127,7 @@ describe('EntityLeaderboardService', () => {
     mockPrismaService.$queryRaw.mockResolvedValue([]);
     mockPrismaService.brand.count.mockResolvedValue(0);
     mockPrismaService.brand.groupBy.mockResolvedValue([]);
+    mockPrismaService.member.groupBy.mockResolvedValue([]);
     mockPrismaService.organization.count.mockResolvedValue(0);
     mockPrismaService.organization.findMany.mockResolvedValue([]);
     mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
@@ -625,6 +629,25 @@ describe('EntityLeaderboardService', () => {
       await service.getOrganizationsWithStats();
 
       expect(mockPrismaService.brand.groupBy).not.toHaveBeenCalled();
+    });
+
+    it('should include active member counts per org', async () => {
+      const orgId = 'org-cuid-2';
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [{ id: orgId, label: 'Test Org' }],
+      });
+      mockPrismaService.member.groupBy.mockResolvedValue([
+        { organizationId: orgId, _count: { id: 3 } },
+      ]);
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(result.data[0].totalMembers).toBe(3);
+      expect(mockPrismaService.member.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true, isDeleted: false },
+        }),
+      );
     });
   });
 

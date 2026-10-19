@@ -303,7 +303,9 @@ export default function PostDetail({
   ]);
 
   const isPagePresentation = presentation === 'page';
-  const wrapperClassName = isPagePresentation ? 'container mx-auto p-6' : '';
+  const wrapperClassName = isPagePresentation
+    ? 'container mx-auto flex flex-1 flex-col p-6'
+    : '';
 
   const handleScheduleChange = useCallback(
     (value: typeof scheduleDraft) => {
@@ -595,14 +597,14 @@ export default function PostDetail({
           <div
             className={
               usesContextSidebar
-                ? 'min-w-0'
-                : 'grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
+                ? 'flex min-w-0 flex-1 flex-col'
+                : 'grid min-w-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
             }
           >
             <section
               aria-label={translate('composerLabel')}
-              className="min-w-0"
-            >
+              className="flex min-w-0 flex-1 flex-col"
+           >
               <div className="min-w-0">
                 {isStandalonePage && isPublished ? (
                   <PostDetailPublished

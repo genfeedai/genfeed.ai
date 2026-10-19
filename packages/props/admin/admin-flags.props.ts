@@ -8,7 +8,8 @@ export interface AdminFlagCardProps {
   flagKey: PlatformFlagKey;
   /** Stored switches, as the operator left them. */
   flags: IPlatformFlags;
-  isDisabled: boolean;
+  /** A save is in flight: every switch on the page is locked. */
+  isSaving: boolean;
   /** Every flag nested under `flagKey`, depth first. */
   nestedKeys: readonly PlatformFlagKey[];
   onToggle: (key: PlatformFlagKey, isOn: boolean) => void;

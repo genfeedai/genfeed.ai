@@ -429,11 +429,9 @@ describe('PresetsList', () => {
       expect(mocks.patch).toHaveBeenCalledWith('preset-1', {
         isActive: false,
       });
-      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-        'Preset deactivated',
-      );
       expect(mocks.refetch).toHaveBeenCalledTimes(1);
     });
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     mocks.patch.mockRejectedValueOnce(new Error('patch failed'));
     fireEvent.click(screen.getByRole('button', { name: 'Inactive' }));

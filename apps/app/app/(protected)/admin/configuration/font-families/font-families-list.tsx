@@ -156,10 +156,6 @@ function FontFamiliesListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'FETCH_SUCCESS', fontFamilies: data });
 
-        if (isRefreshingArg) {
-          notificationsService.success('Font families refreshed');
-        }
-
         logger.info(`${url} success`, data);
       } catch (error) {
         logger.error(`${url} failed`, error);
@@ -174,7 +170,6 @@ function FontFamiliesListContent({
       currentPage,
       getFontFamiliesService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

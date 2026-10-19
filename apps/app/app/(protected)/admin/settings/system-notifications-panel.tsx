@@ -88,12 +88,12 @@ export default function SystemNotificationsPanel() {
     operation: (
       service: AdminSystemNotificationsService,
     ) => Promise<ISystemNotificationOverview>,
-    message: string,
+    message?: string,
   ): Promise<boolean> {
     setIsBusy(true);
     try {
       setOverview(await operation(await getService()));
-      alerts.success(message);
+      if (message) alerts.success(message);
       return true;
     } catch (error) {
       alerts.error(getJsonApiErrorMessage(error, t('actionFailed')));
@@ -189,13 +189,8 @@ export default function SystemNotificationsPanel() {
             isChecked={overview.configuration.enabled}
             isDisabled={isBusy}
             onCheckedChange={(isEnabled) =>
-              void act(
-                (service) =>
-                  service.configure(
-                    isEnabled,
-                    overview.configuration.eventTypes,
-                  ),
-                t('saved'),
+              void act((service) =>
+                service.configure(isEnabled, overview.configuration.eventTypes),
               )
             }
           />
@@ -217,17 +212,15 @@ export default function SystemNotificationsPanel() {
                   isChecked={destination.isEnabled}
                   isDisabled={isBusy}
                   onCheckedChange={(isEnabled) =>
-                    void act(
-                      (service) =>
-                        service.save(
-                          {
-                            ...destination,
-                            address: destination.address ?? undefined,
-                            isEnabled,
-                          },
-                          destination.id,
-                        ),
-                      t('saved'),
+                    void act((service) =>
+                      service.save(
+                        {
+                          ...destination,
+                          address: destination.address ?? undefined,
+                          isEnabled,
+                        },
+                        destination.id,
+                      ),
                     )
                   }
                 />

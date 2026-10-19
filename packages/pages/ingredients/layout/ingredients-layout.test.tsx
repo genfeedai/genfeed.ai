@@ -18,6 +18,10 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
+vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+  default: () => <div data-testid="admin-org-filter" />,
+}));
+
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick?: () => void }) => (
     <button type="button" onClick={onClick}>

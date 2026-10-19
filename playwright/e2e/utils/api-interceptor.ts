@@ -2206,6 +2206,83 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     );
   }
 
+  if (
+    /\/admin\/economics\/(overview|revenue|costs|coverage)\/?$/.test(pathname)
+  ) {
+    const kind = pathname.replace(/\/$/, '').split('/').pop() ?? 'overview';
+    const day = (searchParams.get('to') ?? new Date().toISOString()).slice(
+      0,
+      10,
+    );
+    const totals = {
+      activeOrganizations: 0,
+      creditsConsumed: 0,
+      creditValueUsd: 0,
+      grossMarginPercent: null,
+      grossMarginUsd: 0,
+      llmCalls: 0,
+      llmCostUsd: 0,
+      mediaCostUsd: 0,
+      mediaGenerations: 0,
+      payingOrganizations: 0,
+      pricingMarginPercent: null,
+      pricingMarginUsd: 0,
+      providerCostUsd: 0,
+      revenueEvents: 0,
+      revenueUsd: 0,
+    };
+    const reports: Record<string, object> = {
+      costs: {
+        daily: [],
+        from: day,
+        mediaCategories: [],
+        models: [],
+        to: day,
+        totals: {
+          byokCalls: 0,
+          llmCalls: 0,
+          llmCostUsd: 0,
+          mediaCostUsd: 0,
+          mediaGenerations: 0,
+          providerCostUsd: 0,
+          unpricedCalls: 0,
+        },
+      },
+      coverage: { from: day, ledgers: [], operations: [], to: day },
+      overview: {
+        daily: [],
+        from: day,
+        previousFrom: day,
+        previousTo: day,
+        previousTotals: totals,
+        to: day,
+        totals,
+      },
+      revenue: {
+        daily: [],
+        from: day,
+        latestEvents: [],
+        latestEventsLimit: 50,
+        ledgerStartedAt: null,
+        nonUsdEvents: 0,
+        sources: [],
+        to: day,
+        topOrganizations: [],
+        totals: {
+          averageRevenuePerEventUsd: 0,
+          events: 0,
+          payingOrganizations: 0,
+          revenueUsd: 0,
+        },
+      },
+    };
+    return wrapInJsonApi(
+      reports[kind] ?? reports.overview,
+      `economics-${kind}-report`,
+      `mock-economics-${kind}`,
+    );
+  }
+
   // AdminModelPricingController serializes one report resource. An empty
   // collection deserializes to [] and ModelPricingToolbar's report.rows.filter
   // throws because an array has no rows.

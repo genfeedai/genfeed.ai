@@ -197,6 +197,36 @@ describe('TemplatesService persistence', () => {
     });
   });
 
+  it('keeps config values the typed columns never received', async () => {
+    // Rows imported before the typed columns existed carry category and
+    // isActive only inside `config`; the null columns must not shadow them.
+    prisma.template.findMany.mockResolvedValue([
+      {
+        ...row({ category: 'caption', isActive: true }),
+        category: null,
+        isActive: null,
+      },
+    ]);
+
+    expect((await service.findAll('org-1')).docs).toEqual([
+      expect.objectContaining({ category: 'caption', isActive: true }),
+    ]);
+  });
+
+  it('lets a stored column win over the config value', async () => {
+    prisma.template.findMany.mockResolvedValue([
+      {
+        ...row({ category: 'caption', isActive: true }),
+        category: 'email',
+        isActive: false,
+      },
+    ]);
+
+    expect((await service.findAll('org-1')).docs).toEqual([
+      expect.objectContaining({ category: 'email', isActive: false }),
+    ]);
+  });
+
   it('hydrates config fields for list and detail reads', async () => {
     expect(await service.findOne('template-1', 'org-1')).toMatchObject({
       content: dto.content,

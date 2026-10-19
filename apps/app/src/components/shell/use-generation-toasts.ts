@@ -7,6 +7,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   getActivityDescription,
@@ -15,7 +16,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   getGenerationActivityHref,
   getGenerationActivityStatus,
@@ -26,6 +27,8 @@ import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageForm
 
 export const LIVE_ACTIVITY_LIMIT = 50;
 export const ACTIVITY_RECONCILE_MS = 15_000;
+/** A connect-time reconcile skips activity reads newer than this. */
+export const ACTIVITY_CONNECT_FRESH_MS = 5_000;
 const REFRESH_EVENTS = [
   'background-task-update',
   'ingredient-status',
@@ -86,16 +89,25 @@ export function useGenerationToasts(): void {
     [scopedActivities],
   );
 
+  const isActivityScopeReady =
+    scopeReady && isSignedIn && Boolean(userId) && Boolean(organizationId);
+  const isScopedActivityQuery = useCallback(
+    (queryKey: readonly unknown[]) =>
+      queryKey[0] === 'activities' &&
+      queryKey.includes(organizationId) &&
+      queryKey.includes(userId),
+    [organizationId, userId],
+  );
+
   useEffect(() => {
-    if (!scopeReady || !isSignedIn || !userId || !organizationId) return;
+    if (!isActivityScopeReady) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
-      void client.invalidateQueries({
-        predicate: (query) =>
-          query.queryKey[0] === 'activities' &&
-          query.queryKey.includes(organizationId) &&
-          query.queryKey.includes(userId),
-      });
+      void client.invalidateQueries(
+        { predicate: (query) => isScopedActivityQuery(query.queryKey) },
+        // A read already in flight is current: never cancel and re-send it.
+        { cancelRefetch: false },
+      );
     };
     // Socket payloads only trigger authenticated reads; they never become UI data.
     const scheduleRefresh = () => {
@@ -118,27 +130,38 @@ export function useGenerationToasts(): void {
     const interval = needsPolling
       ? setInterval(reconcileVisible, ACTIVITY_RECONCILE_MS)
       : undefined;
-    window.addEventListener('focus', reconcileVisible);
-    document.addEventListener('visibilitychange', reconcileVisible);
-    if (connectionState === 'connected') refresh();
+    const disposeForeground = onForeground(refresh);
     return () => {
       if (timer) clearTimeout(timer);
       if (interval) clearInterval(interval);
       for (const dispose of disposers) dispose();
-      window.removeEventListener('focus', reconcileVisible);
-      document.removeEventListener('visibilitychange', reconcileVisible);
+      disposeForeground();
     };
   }, [
     activeCount,
     client,
     connectionState,
+    isActivityScopeReady,
     isReady,
-    isSignedIn,
-    organizationId,
-    scopeReady,
+    isScopedActivityQuery,
     subscribe,
-    userId,
   ]);
+
+  // Catch up on events missed while the socket was down, once per (re)connect.
+  // Not part of the effect above: that one re-runs whenever the active count
+  // changes, which would re-read both lists on every status change. Reads
+  // fetched moments ago (the mount reads) are already current.
+  useEffect(() => {
+    if (!isActivityScopeReady || connectionState !== 'connected') return;
+    void client.invalidateQueries(
+      {
+        predicate: (query) =>
+          isScopedActivityQuery(query.queryKey) &&
+          Date.now() - query.state.dataUpdatedAt > ACTIVITY_CONNECT_FRESH_MS,
+      },
+      { cancelRefetch: false },
+    );
+  }, [client, connectionState, isActivityScopeReady, isScopedActivityQuery]);
 
   useEffect(() => {
     if (seen.current.scope !== scopeKey)

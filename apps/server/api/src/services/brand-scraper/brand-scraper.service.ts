@@ -5,6 +5,10 @@ import {
   MAX_HTML_BYTES,
   MAX_TOTAL_CSS_BYTES,
 } from '@api/services/brand-scraper/brand-scraper-http.util';
+import {
+  expandTcoLinks,
+  replaceTcoLinks,
+} from '@api/services/brand-scraper/brand-short-link.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import type {
   BrandScrapeSources,
@@ -107,6 +111,7 @@ export class BrandScraperService {
         rawContent,
         normalizedUrl,
       );
+      await this.expandShortLinks(scrapedData, budget);
       scrapedData.logoUrl = this.resolveWebsiteLogoUrl(
         scrapedData.logoUrl,
         normalizedUrl,
@@ -142,14 +147,16 @@ export class BrandScraperService {
           fallback.title,
           fallback.ogTitle,
         );
+        const isProfilePage =
+          this.brandWebsiteParser.isSocialProfileUrl(normalizedUrl);
         const logoCandidates = this.resolveWebsiteLogoCandidates(
-          [],
+          isProfilePage && fallback.ogImage ? [{ url: fallback.ogImage }] : [],
           normalizedUrl,
         );
 
         const data: IScrapedBrandData = {
           aboutText: undefined,
-          bannerUrl: fallback.ogImage,
+          bannerUrl: isProfilePage ? undefined : fallback.ogImage,
           companyName: companyName || fallback.siteName,
           description: fallback.description || fallback.ogDescription,
           fontCandidates: [],
@@ -773,6 +780,37 @@ export class BrandScraperService {
     return buildLogoDevLogoUrl(
       sourceUrl,
       this.configService.get('LOGO_DEV_PUBLISHABLE_KEY'),
+    );
+  }
+
+  /** Replace `t.co` links in the crawled text with the URLs they point to. */
+  private async expandShortLinks(
+    data: IScrapedBrandData,
+    budget: WebsiteFetchBudget,
+  ): Promise<void> {
+    const expanded = await expandTcoLinks(
+      [
+        data.description,
+        data.metaDescription,
+        data.tagline,
+        data.heroText,
+        data.aboutText,
+        ...(data.valuePropositions ?? []),
+      ],
+      (link) => this.http.resolveRedirectTarget(link, budget),
+    );
+
+    if (expanded.size === 0) {
+      return;
+    }
+
+    data.aboutText = replaceTcoLinks(data.aboutText, expanded);
+    data.description = replaceTcoLinks(data.description, expanded);
+    data.heroText = replaceTcoLinks(data.heroText, expanded);
+    data.metaDescription = replaceTcoLinks(data.metaDescription, expanded);
+    data.tagline = replaceTcoLinks(data.tagline, expanded);
+    data.valuePropositions = (data.valuePropositions ?? []).map(
+      (value) => replaceTcoLinks(value, expanded) ?? value,
     );
   }
 

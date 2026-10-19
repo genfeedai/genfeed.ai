@@ -267,6 +267,23 @@ describe('UsersController', () => {
     });
   });
 
+  describe('findOne (superadmin)', () => {
+    it('loads the signup attribution alongside the settings', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        signupAttribution: { referrerDomain: 'google.com' },
+      });
+
+      const result = await controller.findOne(mockRequest, userId);
+
+      expect(usersService.findOne).toHaveBeenCalledWith({ id: userId }, [
+        { path: 'settings' },
+        { path: 'signupAttribution' },
+      ]);
+      expect(result).toBeDefined();
+    });
+  });
+
   describe('findMe', () => {
     it('should return current user data', async () => {
       subscriptionsService.findOne.mockResolvedValue(null);

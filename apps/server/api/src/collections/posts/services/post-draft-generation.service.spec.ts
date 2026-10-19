@@ -9,6 +9,7 @@ import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedModeResolverService } from '@api/services/branded-text-generation/branded-mode-resolver.service';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
+import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -17,6 +18,7 @@ import {
 } from '@genfeedai/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import { testId } from '@helpers/testing/test-id.helper';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import {
   beforeEach,
@@ -48,6 +50,8 @@ describe('PostDraftGenerationService', () => {
   const mockPostsService = { create: vi.fn(), findOne: vi.fn() };
   const mockBrandedText = { generate: vi.fn() };
   const mockModeResolver = { resolve: vi.fn() };
+  const mockSourceCollector = { collectPost: vi.fn() };
+  const mockLogger = { warn: vi.fn() };
   const blocked = vi.fn(() => {
     throw new Error('Accountless learning must not access persistence');
   });
@@ -95,6 +99,8 @@ describe('PostDraftGenerationService', () => {
         { provide: PostsService, useValue: mockPostsService },
         { provide: BrandedTextGenerationService, useValue: mockBrandedText },
         { provide: BrandedModeResolverService, useValue: mockModeResolver },
+        { provide: SourceCollectorService, useValue: mockSourceCollector },
+        { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
     service = context.get(PostDraftGenerationService);
@@ -173,6 +179,78 @@ describe('PostDraftGenerationService', () => {
       const request = mockBrandedText.generate.mock.calls[0][0];
       expect(request.input.originalPrompt).toContain('25000');
       expect(request.acceptText('x'.repeat(20000))).toBe(true);
+    });
+  });
+
+  describe('reference X post', () => {
+    const tweetUrl = 'https://x.com/levie/status/2112051081014649303?s=20';
+    const dto = {
+      brandId,
+      platform: CredentialPlatform.TWITTER,
+      prompt: `Remix this ${tweetUrl}`,
+      requestKey: '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f',
+    };
+    const completed = {
+      hasNewDispatch: true,
+      kind: 'completed',
+      postId: 'post-1',
+      receipt: {
+        artifact: null,
+        compliance: 'unverified',
+        id: 'receipt-1',
+        revision: 1,
+        state: 'needs_review',
+      },
+      text: 'Remixed',
+    };
+
+    it('reads the linked post and quotes it in the model prompt', async () => {
+      mockSourceCollector.collectPost.mockResolvedValue({
+        posts: [
+          {
+            authorUsername: 'levie',
+            id: '2112051081014649303',
+            text: 'Agents "eat" SaaS',
+          },
+        ],
+      });
+      mockBrandedText.generate.mockResolvedValue(completed);
+      await service.generateDraftText(dto, identity);
+      expect(mockSourceCollector.collectPost).toHaveBeenCalledWith(
+        expect.objectContaining({ postId: '2112051081014649303' }),
+        { brandId, organizationId },
+      );
+      const prompt =
+        mockBrandedText.generate.mock.calls[0][0].input.originalPrompt;
+      expect(prompt).toContain(`Request: ${dto.prompt}`);
+      expect(prompt).toContain('Reference post by @levie');
+      expect(prompt).toContain('"Agents \\"eat\\" SaaS"');
+    });
+
+    it('leaves prompts without an X post link untouched', async () => {
+      mockBrandedText.generate.mockResolvedValue(completed);
+      await service.generateDraftText(
+        {
+          ...dto,
+          prompt: 'See https://example.com/status/2112051081014649303',
+        },
+        identity,
+      );
+      expect(mockSourceCollector.collectPost).not.toHaveBeenCalled();
+      expect(
+        mockBrandedText.generate.mock.calls[0][0].input.originalPrompt,
+      ).not.toContain('Reference post');
+    });
+
+    it('stops with a stable code instead of remixing a post it could not read', async () => {
+      mockSourceCollector.collectPost.mockRejectedValue(new Error('402'));
+      await expect(
+        service.generateDraftText(dto, identity),
+      ).rejects.toMatchObject({
+        response: { code: 'reference_post_unavailable' },
+        status: 422,
+      });
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
     });
   });
 

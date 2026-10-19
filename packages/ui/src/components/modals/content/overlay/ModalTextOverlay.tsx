@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  FONT_FAMILY_METADATA,
+  FontFamily,
+  ModalEnum,
+} from '@genfeedai/contracts';
 import type { ITextOverlayErrors } from '@genfeedai/contracts/interfaces/ui/text-overlay-errors.interface';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -20,12 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+
+/** Keeps the video's own font (the one picked in the prompt bar). */
+const DEFAULT_FONT = 'default';
 
 export default function ModalTextOverlay({
   video,
   onConfirm,
 }: ModalTextOverlayProps) {
+  const t = useTranslations('ui.textOverlayFields');
   const notificationsService = NotificationsService.getInstance();
 
   const getVideosService = useAuthedService((token: string) =>
@@ -35,6 +45,7 @@ export default function ModalTextOverlay({
   const [text, setText] = useState('');
   const [position, setPosition] = useState('center');
   const [fontSize, setFontSize] = useState('medium');
+  const [fontFamily, setFontFamily] = useState(DEFAULT_FONT);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<ITextOverlayErrors>({});
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +70,7 @@ export default function ModalTextOverlay({
     try {
       const service = (await getVideosService()) as VideosService;
       await service.postTextOverlay(video.id, {
+        ...(fontFamily !== DEFAULT_FONT ? { fontFamily } : {}),
         fontSize,
         position,
         text: text.trim(),
@@ -82,6 +94,7 @@ export default function ModalTextOverlay({
     setText('');
     setPosition('center');
     setFontSize('medium');
+    setFontFamily(DEFAULT_FONT);
     setErrors({});
     setError(null); // Clear error when closing modal
   };
@@ -125,6 +138,22 @@ export default function ModalTextOverlay({
               <SelectItem value="top-right">Top Right</SelectItem>
               <SelectItem value="bottom-left">Bottom Left</SelectItem>
               <SelectItem value="bottom-right">Bottom Right</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormControl>
+
+        <FormControl label={t('font')}>
+          <Select value={fontFamily} onValueChange={setFontFamily}>
+            <SelectTrigger aria-label={t('font')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={DEFAULT_FONT}>{t('fontDefault')}</SelectItem>
+              {Object.values(FontFamily).map((font) => (
+                <SelectItem key={font} value={FONT_FAMILY_METADATA[font].key}>
+                  {FONT_FAMILY_METADATA[font].label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </FormControl>
