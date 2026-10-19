@@ -53,6 +53,13 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
           </div>
         </Link>
       ))}
+
+      <Link
+        href="/articles"
+        className="block text-center text-sm text-surface/70 hover:text-surface"
+      >
+        View all articles
+      </Link>
     </div>
   );
 }

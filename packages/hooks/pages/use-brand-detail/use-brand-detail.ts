@@ -6,7 +6,6 @@ import {
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  ArticleStatus,
   AssetCategory,
   IngredientCategory,
   IngredientStatus,
@@ -34,6 +33,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { PublicService } from '@genfeedai/services/external/public.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
+import { buildLatestBrandArticlesQuery } from '@helpers/content/latest-brand-articles-query.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
@@ -202,13 +202,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
       limit: 3,
       sort: 'createdAt: -1',
     };
-    const articleQuery = {
-      brand: state.brand.id,
-      limit: 3,
-      sortBy: 'createdAt',
-      sortOrder: 'desc' as const,
-      status: [ArticleStatus.PUBLISHED],
-    };
+    const articleQuery = buildLatestBrandArticlesQuery(state.brand.id);
 
     try {
       const [videosResult, imagesResult, articlesResult] =

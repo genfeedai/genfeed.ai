@@ -1,3 +1,4 @@
+import { ArticleStatus } from '@genfeedai/contracts';
 import type { Article } from '@models/content/article.model';
 import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type { Video } from '@models/ingredients/video.model';
@@ -92,6 +93,18 @@ describe('getPublicProfilePageData', () => {
     expect(data.links).toEqual([{ id: 'l1' }]);
     expect(data.referralCode).toBe('owner2345xyz');
     expect(findPublicReferralCode).toHaveBeenCalledWith('brand-1');
+  });
+
+  it('lists only the latest three published articles, like the settings preview', async () => {
+    await getPublicProfilePageData('page-data-latest-articles');
+
+    expect(findPublicArticles).toHaveBeenCalledWith({
+      brand: 'brand-1',
+      limit: 3,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+      status: [ArticleStatus.PUBLISHED],
+    });
   });
 
   it('keeps the profile when the referral lookup fails', async () => {

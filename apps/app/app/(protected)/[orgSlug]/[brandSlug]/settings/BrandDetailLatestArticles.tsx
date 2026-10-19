@@ -37,14 +37,14 @@ export default function BrandDetailLatestArticles({
       }
     >
       {articles && articles.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {articles.map((article) => (
             <div
               key={article.id}
-              className="overflow-hidden rounded-lg border border-border/50"
+              className="flex flex-col overflow-hidden rounded-lg border border-border/50"
             >
               {article.coverImageUrl ? (
-                <div className="relative h-36 w-full">
+                <div className="relative aspect-video w-full">
                   <Image
                     src={article.coverImageUrl}
                     alt={article.label || 'Article'}
@@ -55,8 +55,10 @@ export default function BrandDetailLatestArticles({
                 </div>
               ) : null}
 
-              <div className="p-3">
-                <h3 className="text-sm font-semibold">{article.label}</h3>
+              <div className="flex flex-1 flex-col p-3">
+                <h3 className="line-clamp-2 text-sm font-semibold">
+                  {article.label}
+                </h3>
                 {article.summary ? (
                   <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                     {article.summary}
@@ -64,7 +66,7 @@ export default function BrandDetailLatestArticles({
                 ) : null}
                 <Button
                   asChild
-                  className="mt-2"
+                  className="mt-auto self-start"
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
