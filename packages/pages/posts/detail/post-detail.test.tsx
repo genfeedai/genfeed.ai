@@ -411,7 +411,7 @@ describe('PostDetail standalone composer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows a published preview beside the content without enabling edits', () => {
+  it('shows a published post as its live thread in the content, not the sidebar, without enabling edits', () => {
     const hookData = buildHookData({
       isPublished: true,
       post: buildPost({
@@ -423,10 +423,17 @@ describe('PostDetail standalone composer', () => {
     mockUsePostDetail.mockReturnValue(hookData);
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
-    expect(screen.getByTestId('post-content')).toBeVisible();
     expect(
-      within(screen.getByTestId('post-sidebar')).getByTestId('target-preview'),
+      within(screen.getByTestId('post-detail-published')).getByTestId(
+        'target-preview',
+      ),
     ).toBeVisible();
+    expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('post-sidebar')).queryByTestId(
+        'target-preview',
+      ),
+    ).not.toBeInTheDocument();
     expect(hookData.setViewMode).not.toHaveBeenCalled();
     expect(hookData.handleContentSave).not.toHaveBeenCalled();
     expect(hookData.performAutoSaveForPost).not.toHaveBeenCalled();

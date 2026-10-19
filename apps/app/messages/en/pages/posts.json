@@ -75,6 +75,8 @@
     "title": "Post detail",
     "tweetFieldLabel": "Post",
     "composerLabel": "Post composer",
+    "performance": "Performance",
+    "publishedThread": "Published thread",
     "contentLabel": "Content",
     "choosePlatform": "Choose a platform to preview this post.",
     "threadFooter": {

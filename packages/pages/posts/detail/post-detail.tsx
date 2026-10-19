@@ -20,6 +20,7 @@ import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
 import PostDetailNeedsYou from '@pages/posts/detail/components/PostDetailNeedsYou';
+import PostDetailPublished from '@pages/posts/detail/components/PostDetailPublished';
 import { buildPostDetailFacts } from '@pages/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@pages/posts/detail/post-detail-preview.helpers';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
@@ -298,20 +299,15 @@ export default function PostDetail({
     [setScheduleDraft],
   );
 
-  // Stable node for workspace Context adapter registration — rebuilding this
-  // JSX every keystroke was thrashing parent memos. Hooks stay above early returns.
-  const sidebar = useMemo(() => {
+  // The thread as each platform renders it. Shown in the sidebar's Preview tab
+  // while composing, and in the page body once the post is published.
+  const threadPreview = useMemo(() => {
     if (!post) {
-      return null;
+      return undefined;
     }
-    const targetPreview = buildPostTargetPreview(
-      post,
-      descriptionDraft,
-      credential,
-    );
     // The standalone inspector shows every post of the thread as plain text,
     // the way each platform will render it.
-    const threadPreview = isStandalonePage ? (
+    return isStandalonePage ? (
       <div className="space-y-4">
         {[post, ...sortedChildren].map((item, index) => {
           const description =
@@ -340,10 +336,35 @@ export default function PostDetail({
         {!isPublished ? <EngagementPreview post={post} /> : null}
       </div>
     ) : undefined;
+  }, [
+    childDescriptions,
+    credential,
+    descriptionDraft,
+    isPublished,
+    isStandalonePage,
+    labelDraft,
+    post,
+    selectedIngredients,
+    sortedChildren,
+    translate,
+  ]);
+
+  // Stable node for workspace Context adapter registration — rebuilding this
+  // JSX every keystroke was thrashing parent memos. Hooks stay above early returns.
+  const sidebar = useMemo(() => {
+    if (!post) {
+      return null;
+    }
+    const targetPreview = buildPostTargetPreview(
+      post,
+      descriptionDraft,
+      credential,
+    );
     return (
       <div className="space-y-3">
         <PostDetailSidebar
-          preview={threadPreview}
+          isPerformanceShown={!isStandalonePage}
+          preview={isPublished ? undefined : threadPreview}
           post={post}
           credential={credential}
           scheduleDraft={scheduleDraft}
@@ -371,13 +392,9 @@ export default function PostDetail({
     );
   }, [
     analyticsStats,
-    childDescriptions,
     credential,
     descriptionDraft,
-    labelDraft,
-    selectedIngredients,
-    sortedChildren,
-    translate,
+    threadPreview,
     handleScheduleChange,
     handleScoreSeo,
     publishNow,
@@ -515,56 +532,63 @@ export default function PostDetail({
               className="min-w-0"
             >
               <div className="min-w-0">
-                <PostDetailContent
-                  post={post}
-                  sortedChildren={sortedChildren}
-                  scope={scope}
-                  viewMode={viewMode}
-                  descriptionDraft={descriptionDraft}
-                  labelDraft={labelDraft}
-                  childDescriptions={childDescriptions}
-                  selectedIngredients={selectedIngredients}
-                  focusedPostId={focusedPostId}
-                  draggedPostId={draggedPostId}
-                  dragOverDividerIndex={dragOverDividerIndex}
-                  enhancingPostId={enhancingPostId}
-                  isSavingIngredients={isSavingIngredients}
-                  isSavingDescription={isSavingDescription}
-                  isTogglingGrok={isTogglingGrok}
-                  isTogglingFirstComment={isTogglingFirstComment}
-                  carouselValidation={carouselValidation}
-                  publishedDisplay={publishedDisplay}
-                  isContentDirty={isContentDirty}
-                  canAddThread={canAddThread}
-                  canAddFirstComment={canAddFirstComment}
-                  firstCommentPost={firstCommentPost}
-                  isLastChildGrokTweet={isLastChildGrokTweet}
-                  setDescriptionDraft={setDescriptionDraft}
-                  setLabelDraft={setLabelDraft}
-                  setChildDescription={setChildDescription}
-                  setFocusedPostId={setFocusedPostId}
-                  setDragOverDividerIndex={setDragOverDividerIndex}
-                  handleContentSave={handleContentSave}
-                  handleAddToThread={handleAddToThread}
-                  handleAddThreadPosts={handleAddThreadPosts}
-                  handleDeleteChild={handleDeleteChild}
-                  handleSelectMedia={handleSelectMedia}
-                  handleGenerateIllustration={handleGenerateIllustration}
-                  handleQuickAction={handleQuickAction}
-                  handlePerTweetEnhance={handlePerTweetEnhance}
-                  handleDraftThread={handleDraftThread}
-                  handleDragStart={handleDragStart}
-                  handleDragEnd={handleDragEnd}
-                  handleDrop={handleDrop}
-                  handleToggleGrokFeedback={handleToggleGrokFeedback}
-                  handleSetGrokQuestion={handleSetGrokQuestion}
-                  handleToggleFirstComment={handleToggleFirstComment}
-                  handleUpdateChild={handleUpdateChild}
-                  autoSaveRefs={autoSaveRefs}
-                  performAutoSaveForPost={performAutoSaveForPost}
-                  getPostsService={getPostsService}
-                  notificationsService={notificationsService}
-                />
+                {isStandalonePage && isPublished ? (
+                  <PostDetailPublished
+                    stats={analyticsStats}
+                    thread={threadPreview}
+                  />
+                ) : (
+                  <PostDetailContent
+                    post={post}
+                    sortedChildren={sortedChildren}
+                    scope={scope}
+                    viewMode={viewMode}
+                    descriptionDraft={descriptionDraft}
+                    labelDraft={labelDraft}
+                    childDescriptions={childDescriptions}
+                    selectedIngredients={selectedIngredients}
+                    focusedPostId={focusedPostId}
+                    draggedPostId={draggedPostId}
+                    dragOverDividerIndex={dragOverDividerIndex}
+                    enhancingPostId={enhancingPostId}
+                    isSavingIngredients={isSavingIngredients}
+                    isSavingDescription={isSavingDescription}
+                    isTogglingGrok={isTogglingGrok}
+                    isTogglingFirstComment={isTogglingFirstComment}
+                    carouselValidation={carouselValidation}
+                    publishedDisplay={publishedDisplay}
+                    isContentDirty={isContentDirty}
+                    canAddThread={canAddThread}
+                    canAddFirstComment={canAddFirstComment}
+                    firstCommentPost={firstCommentPost}
+                    isLastChildGrokTweet={isLastChildGrokTweet}
+                    setDescriptionDraft={setDescriptionDraft}
+                    setLabelDraft={setLabelDraft}
+                    setChildDescription={setChildDescription}
+                    setFocusedPostId={setFocusedPostId}
+                    setDragOverDividerIndex={setDragOverDividerIndex}
+                    handleContentSave={handleContentSave}
+                    handleAddToThread={handleAddToThread}
+                    handleAddThreadPosts={handleAddThreadPosts}
+                    handleDeleteChild={handleDeleteChild}
+                    handleSelectMedia={handleSelectMedia}
+                    handleGenerateIllustration={handleGenerateIllustration}
+                    handleQuickAction={handleQuickAction}
+                    handlePerTweetEnhance={handlePerTweetEnhance}
+                    handleDraftThread={handleDraftThread}
+                    handleDragStart={handleDragStart}
+                    handleDragEnd={handleDragEnd}
+                    handleDrop={handleDrop}
+                    handleToggleGrokFeedback={handleToggleGrokFeedback}
+                    handleSetGrokQuestion={handleSetGrokQuestion}
+                    handleToggleFirstComment={handleToggleFirstComment}
+                    handleUpdateChild={handleUpdateChild}
+                    autoSaveRefs={autoSaveRefs}
+                    performAutoSaveForPost={performAutoSaveForPost}
+                    getPostsService={getPostsService}
+                    notificationsService={notificationsService}
+                  />
+                )}
               </div>
             </section>
 
