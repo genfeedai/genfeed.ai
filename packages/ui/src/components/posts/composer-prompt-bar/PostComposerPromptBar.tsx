@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PostQuickActionKey } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
@@ -336,9 +335,9 @@ export default function PostComposerPromptBar({
     ) : null;
 
   return (
-    <div className={cn('sticky bottom-4 z-10', className)}>
       <PromptBarContainer
-        layoutMode="inflow"
+        className={className}
+        layoutMode="sticky-bottom"
         maxWidth="full"
         topContent={
           resultPanel || isPresetRowVisible ? (
@@ -409,6 +408,5 @@ export default function PostComposerPromptBar({
           />
         </PromptBarComposer>
       </PromptBarContainer>
-    </div>
   );
 }
