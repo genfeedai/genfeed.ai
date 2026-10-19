@@ -44,7 +44,7 @@ describe('HookStatCards metric definitions', () => {
 
   it('keeps the missing-average state unannotated', () => {
     render(<HookStatCards analysisData={{ ...analysisData, topHooks: [] }} />);
-    expect(screen.getAllByText('N/A')).toHaveLength(2);
+    expect(screen.getAllByText('-')).toHaveLength(2);
     expect(
       screen.queryByRole('button', { name: 'About Engagement' }),
     ).toBeNull();

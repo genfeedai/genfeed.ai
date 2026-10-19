@@ -5,6 +5,8 @@ import type {
 
 export interface AnalyticsOutliersProps {
   brandId?: string;
+  platform?: string;
+  tier?: 'outlier' | 'breakout';
 }
 
 export interface OutlierBaselineDrawerProps {

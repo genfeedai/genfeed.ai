@@ -4,13 +4,14 @@ import { ButtonVariant, InsightImpact } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { InsightListCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Lightbulb, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 
 const IMPACT_BADGE_VARIANT: Record<InsightImpact, BadgeProps['variant']> = {
   [InsightImpact.HIGH]: 'warning',
@@ -26,20 +27,10 @@ const InsightListCard = memo(function InsightListCard({
   className,
 }: InsightListCardProps) {
   const translate = useTranslations('ui.insightListCard');
-  const unreadCount = useMemo(
-    () => insights.filter((insight) => !insight.isRead).length,
-    [insights],
-  );
 
   if (isLoading) {
     return (
-      <Card
-        data-testid="insight-list-card"
-        label={translate('title')}
-        icon={Lightbulb}
-        iconClassName="text-warning"
-        className={className}
-      >
+      <Card data-testid="insight-list-card" className={className}>
         <div className="space-y-3">
           {[1, 2, 3].map((placeholderId) => (
             <div
@@ -60,39 +51,14 @@ const InsightListCard = memo(function InsightListCard({
 
   if (insights.length === 0) {
     return (
-      <Card
-        data-testid="insight-list-card"
-        label={translate('title')}
-        icon={Lightbulb}
-        iconClassName="text-warning"
-        className={className}
-      >
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Lightbulb className="size-12 text-foreground/30 mb-3" />
-          <p className="text-foreground/70 font-medium">
-            {translate('emptyTitle')}
-          </p>
-          <p className="text-sm text-foreground/50">
-            {translate('emptyDescription')}
-          </p>
-        </div>
+      <Card data-testid="insight-list-card" className={className}>
+        <CardEmptyContent icon={Lightbulb} label={translate('emptyTitle')} />
       </Card>
     );
   }
 
   return (
-    <Card
-      data-testid="insight-list-card"
-      label={translate('title')}
-      icon={Lightbulb}
-      iconClassName="text-warning"
-      description={
-        unreadCount > 0
-          ? translate('unreadCount', { count: unreadCount })
-          : translate('allRead')
-      }
-      className={className}
-    >
+    <Card data-testid="insight-list-card" className={className}>
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {insights.map((insight) => (
           <div

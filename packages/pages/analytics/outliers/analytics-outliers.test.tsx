@@ -29,7 +29,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isCollectionFetchReady: () => true,
   toBrandListParams: ({ brandId }: { brandId?: string }) =>
     brandId ? { brandId } : {},
-  useCollectionScope: () => mocks.scope,
+  useCollectionScope: () => ({ ...mocks.scope }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -119,7 +119,7 @@ describe('AnalyticsOutliers', () => {
       postId: 'post-1',
     });
     expect(mocks.listPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ brandId: 'brand-1', limit: 50 }),
+      expect.objectContaining({ brandId: 'brand-1', limit: 20, page: 1 }),
       expect.any(AbortSignal),
     );
   });
@@ -132,5 +132,56 @@ describe('AnalyticsOutliers', () => {
       </AnalyticsProvider>,
     );
     await waitFor(() => expect(screen.getByText('empty')).toBeInTheDocument());
+  });
+
+  it('reads the list once per scope instead of refetching on every render', async () => {
+    mocks.listPosts.mockResolvedValue({ docs: [], total: 0 });
+    // A fresh scope object every render, as the real hook returns.
+    const { rerender } = render(
+      <AnalyticsProvider>
+        <AnalyticsOutliers />
+      </AnalyticsProvider>,
+    );
+    await waitFor(() => expect(screen.getByText('empty')).toBeInTheDocument());
+    rerender(
+      <AnalyticsProvider>
+        <AnalyticsOutliers />
+      </AnalyticsProvider>,
+    );
+
+    expect(mocks.listPosts).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the platform and tier filters from the subbar', async () => {
+    mocks.listPosts.mockResolvedValue({ docs: [], total: 0 });
+    render(
+      <AnalyticsProvider>
+        <AnalyticsOutliers platform="tiktok" tier="breakout" />
+      </AnalyticsProvider>,
+    );
+
+    await waitFor(() =>
+      expect(mocks.listPosts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          platform: 'tiktok',
+          tier: 'breakout',
+        }),
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
+  it('shows an error state instead of an empty list when the read fails', async () => {
+    mocks.listPosts.mockRejectedValue(new Error('boom'));
+    render(
+      <AnalyticsProvider>
+        <AnalyticsOutliers />
+      </AnalyticsProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText('loadError')).toBeInTheDocument(),
+    );
   });
 });

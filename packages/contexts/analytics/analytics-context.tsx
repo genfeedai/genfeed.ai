@@ -185,3 +185,20 @@ export function useOptionalAnalyticsContext():
   | undefined {
   return use(AnalyticsContext);
 }
+
+/**
+ * Publishes a page's controls (filters, view toggles) into the analytics
+ * subbar so they never render inside the content. The node must be memoized by
+ * the caller: a fresh node every render would re-publish on every render.
+ */
+export function useAnalyticsToolbar(node: ReactNode): void {
+  const setToolbarNode = use(AnalyticsContext)?.setToolbarNode;
+
+  useEffect(() => {
+    if (!setToolbarNode) {
+      return;
+    }
+    setToolbarNode(node);
+    return () => setToolbarNode(null);
+  }, [node, setToolbarNode]);
+}

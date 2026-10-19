@@ -1,39 +1,39 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
+import {
+  useAnalyticsContext,
+  useAnalyticsToolbar,
+} from '@genfeedai/contexts/analytics/analytics-context';
 import type {
   IQueryParams,
   IViralHookAnalysis,
   IViralHookVideo,
 } from '@genfeedai/contracts/interfaces';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
 import type { AnalyticsHooksProps } from '@props/analytics/analytics-hooks.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { format } from 'date-fns';
-import { Video } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import HookAnalysisSection from './HookAnalysisSection';
 import HookStatCards from './HookStatCards';
 import PlatformPerformanceSection from './PlatformPerformanceSection';
+
+const PAGE_SIZE = 10;
+const EMPTY_VIDEOS: IViralHookVideo[] = [];
+const OUTLIER_TIERS = ['outlier', 'breakout'] as const;
 
 const createDefaultAnalysis = (): IViralHookAnalysis => ({
   hookEffectiveness: [],
@@ -46,14 +46,13 @@ export default function AnalyticsHooks({
   brandId: propBrandId,
 }: AnalyticsHooksProps) {
   const { brandId: contextBrandId, organizationId } = useBrand();
-  const { dateRange } = useAnalyticsContext();
+  const { dateRange, filters, refreshTrigger, setFilter } =
+    useAnalyticsContext();
   const searchParams = useSearchParams();
   const translateFilter = useTranslations('pages.analytics.hooksOutlierFilter');
   const brandId = propBrandId || contextBrandId;
   const postId = searchParams.get('postId')?.trim() || undefined;
-  const [minOutlierTier, setMinOutlierTier] = useState<
-    'all' | 'outlier' | 'breakout'
-  >('all');
+  const minOutlierTier = OUTLIER_TIERS.find((tier) => tier === filters.tier);
 
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -85,7 +84,7 @@ export default function AnalyticsHooks({
           query.brand = brandId;
           query.brandId = brandId;
         }
-        if (minOutlierTier !== 'all') {
+        if (minOutlierTier) {
           query.minOutlierTier = minOutlierTier;
         }
         if (postId) {
@@ -107,6 +106,7 @@ export default function AnalyticsHooks({
     [brandId, dateRange, getAnalyticsService, minOutlierTier, postId],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger explicitly re-reads the hooks.
   useEffect(() => {
     if (!organizationId) {
       return;
@@ -114,143 +114,127 @@ export default function AnalyticsHooks({
     const controller = new AbortController();
     void fetchHookData(controller.signal);
     return () => controller.abort();
-  }, [organizationId, fetchHookData]);
+  }, [organizationId, fetchHookData, refreshTrigger]);
 
-  const handleRefresh = () => {
-    const controller = new AbortController();
-    void fetchHookData(controller.signal);
-  };
+  const toolbar = useMemo(() => {
+    const facets: FilterMenuFacet[] = [
+      {
+        defaultValue: '',
+        key: 'tier',
+        label: translateFilter('label'),
+        onChange: (value) => setFilter('tier', value || undefined),
+        options: [
+          { label: translateFilter('outliersFirst'), value: 'outlier' },
+          { label: translateFilter('breakoutsOnly'), value: 'breakout' },
+        ],
+        selection: 'single',
+        value: minOutlierTier ?? '',
+      },
+    ];
+    return (
+      <AnalyticsFilterMenu facets={facets} onClear={() => setFilter('tier')} />
+    );
+  }, [minOutlierTier, setFilter, translateFilter]);
+
+  useAnalyticsToolbar(toolbar);
+
+  const { currentPage, pageItems, setPage, totalPages } = useClientPagination(
+    videos ?? EMPTY_VIDEOS,
+    PAGE_SIZE,
+  );
 
   return (
-    <Container
-      label="Viral Hooks"
-      description="Analyze hooks and engagement patterns."
-      icon={Video}
-    >
-      <div className="flex justify-end gap-2 pb-4">
-        <Select
-          value={minOutlierTier}
-          onValueChange={(value) =>
-            setMinOutlierTier(value as 'all' | 'outlier' | 'breakout')
-          }
-        >
-          <SelectTrigger className="w-48" aria-label={translateFilter('label')}>
-            <SelectValue placeholder={translateFilter('outliersFirst')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{translateFilter('allPosts')}</SelectItem>
-            <SelectItem value="outlier">
-              {translateFilter('outliersFirst')}
-            </SelectItem>
-            <SelectItem value="breakout">
-              {translateFilter('breakoutsOnly')}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <ButtonRefresh onClick={handleRefresh} isRefreshing={isLoading} />
-      </div>
-
+    <div>
       <div className="space-y-8 pb-12">
         <HookStatCards analysisData={analysisData} isLoading={isLoading} />
 
         <PlatformPerformanceSection topPlatforms={analysisData.topPlatforms} />
 
-        <section>
-          <Card>
-            <div className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold tracking-tight">
-                Post Hook Breakdown
-              </h2>
-              <Table<IViralHookVideo>
-                items={videos ?? []}
-                isLoading={isLoading}
-                columns={[
-                  {
-                    className: 'min-w-48',
-                    header: 'Post',
-                    key: 'title',
-                    render: (video) => (
-                      <p className="font-semibold line-clamp-1">
-                        {video.title}
-                      </p>
-                    ),
-                  },
-                  {
-                    className: 'min-w-64',
-                    header: 'Hook',
-                    key: 'hook',
-                    render: (video) =>
-                      video.hook ? (
-                        <p className="text-sm line-clamp-2">{video.hook}</p>
-                      ) : (
-                        <p className="text-xs text-foreground/60">
-                          No hook detected
-                        </p>
-                      ),
-                  },
-                  {
-                    className: 'w-32',
-                    header: 'Platforms',
-                    key: 'platforms',
-                    render: (video) => (
-                      <div className="flex gap-2">
-                        {video.platforms.map((platform) => {
-                          const config = PLATFORM_CONFIGS.find(
-                            (c) => c.id === platform,
-                          );
-                          const Icon = config?.icon;
-                          return Icon ? (
-                            <span
-                              key={platform}
-                              role="img"
-                              aria-label={config.label}
-                              className="flex size-6 items-center justify-center bg-background/60"
-                              style={{ color: config.color }}
-                            >
-                              <Icon className="text-sm" />
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
-                    ),
-                  },
-                  {
-                    className: 'w-28',
-                    header: (
-                      <AnalyticsMetricLabel metric="views">
-                        Views
-                      </AnalyticsMetricLabel>
-                    ),
-                    key: 'totalViews',
-                    render: (video) => (
-                      <span className="text-sm font-medium">
-                        {formatCompactNumber(video.totalViews)}
-                      </span>
-                    ),
-                  },
-                  {
-                    className: 'w-28',
-                    header: (
-                      <AnalyticsMetricLabel metric="engagement">
-                        Engagement
-                      </AnalyticsMetricLabel>
-                    ),
-                    key: 'totalEngagement',
-                    render: (video) => (
-                      <span className="text-sm font-medium">
-                        {formatCompactNumber(video.totalEngagement)}
-                      </span>
-                    ),
-                  },
-                ]}
-                getRowKey={(video) => video.id}
-              />
-            </div>
-          </Card>
+        <section className="space-y-4">
+          <Table<IViralHookVideo>
+            label="Post hook breakdown"
+            items={pageItems}
+            isLoading={isLoading}
+            columns={[
+              {
+                className: 'min-w-48',
+                header: 'Post',
+                key: 'title',
+                render: (video) => (
+                  <p className="font-semibold line-clamp-1">{video.title}</p>
+                ),
+              },
+              {
+                className: 'min-w-64',
+                header: 'Hook',
+                key: 'hook',
+                render: (video) =>
+                  video.hook ? (
+                    <p className="text-sm line-clamp-2">{video.hook}</p>
+                  ) : (
+                    <p className="text-xs text-foreground/60">
+                      No hook detected
+                    </p>
+                  ),
+              },
+              {
+                className: 'w-32',
+                header: 'Platforms',
+                key: 'platforms',
+                render: (video) => (
+                  <div className="flex gap-2">
+                    {video.platforms.map((platform) => (
+                      <PlatformBadge
+                        key={platform}
+                        platform={platform}
+                        showLabel={false}
+                      />
+                    ))}
+                  </div>
+                ),
+              },
+              {
+                className: 'w-28',
+                header: (
+                  <AnalyticsMetricLabel metric="views">
+                    Views
+                  </AnalyticsMetricLabel>
+                ),
+                key: 'totalViews',
+                render: (video) => (
+                  <span className="text-sm font-medium">
+                    {formatCompactNumber(video.totalViews)}
+                  </span>
+                ),
+              },
+              {
+                className: 'w-28',
+                header: (
+                  <AnalyticsMetricLabel metric="engagement">
+                    Engagement
+                  </AnalyticsMetricLabel>
+                ),
+                key: 'totalEngagement',
+                render: (video) => (
+                  <span className="text-sm font-medium">
+                    {formatCompactNumber(video.totalEngagement)}
+                  </span>
+                ),
+              },
+            ]}
+            getRowKey={(video) => video.id}
+          />
+          <Pagination
+            currentPage={currentPage}
+            onPageChange={setPage}
+            totalItems={videos?.length ?? 0}
+            totalLabel="posts"
+            totalPages={totalPages}
+          />
         </section>
 
         <HookAnalysisSection analysisData={analysisData} />
       </div>
-    </Container>
+    </div>
   );
 }

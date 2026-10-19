@@ -68,8 +68,8 @@ describe('InsightsOverview', () => {
   it('leaves the title and Refresh to the Analytics sub-topbar instead of nesting its own page chrome', () => {
     render(<InsightsOverview brandId="brand-123" />);
 
-    // Only the insight list card keeps its own heading; no nested page title.
-    expect(screen.getAllByText('AI Insights')).toHaveLength(1);
+    // The breadcrumb is the only title: no heading inside the content.
+    expect(screen.queryByText('AI Insights')).not.toBeInTheDocument();
     expect(
       screen.queryByText('AI-driven analytics and recommendations.'),
     ).not.toBeInTheDocument();

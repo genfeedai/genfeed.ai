@@ -67,6 +67,25 @@ describe('Analytics work surface state', () => {
     expect(elsewhere.canonicalSearchParams.get('show')).toBeNull();
   });
 
+  it('restores the outlier tier on Outliers and Hooks and drops unknown tiers', () => {
+    const outliers = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/outliers',
+      searchParams: new URLSearchParams('tier=breakout'),
+    });
+    const hooks = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/hooks',
+      searchParams: new URLSearchParams('tier=outlier'),
+    });
+    const unknown = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/outliers',
+      searchParams: new URLSearchParams('tier=legendary'),
+    });
+
+    expect(outliers.filters.tier).toBe('breakout');
+    expect(hooks.canonicalSearchParams.get('tier')).toBe('outlier');
+    expect(unknown.filters.tier).toBeUndefined();
+  });
+
   it('restores the lowercase extension source on Posts and drops anything else', () => {
     const extension = restoreAnalyticsSurfaceState({
       pathname: '/acme/moonrise/analytics/posts',

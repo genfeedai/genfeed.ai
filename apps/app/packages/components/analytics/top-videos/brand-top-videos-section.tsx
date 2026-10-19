@@ -1,44 +1,30 @@
 'use client';
 
-import { AlertCategory, ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
 import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
-import {
-  type TopVideosTimeframe,
-  useBrandTopVideos,
-} from './use-brand-top-videos';
+import { useBrandTopVideos } from './use-brand-top-videos';
 
-const TIMEFRAME_OPTIONS: TopVideosTimeframe[] = [
-  Timeframe.H24,
-  Timeframe.H72,
-  Timeframe.D7,
-];
+const PAGE_SIZE = 10;
 
 /**
  * The brand's own recent videos ranked by evaluated score, with the persuasion
@@ -54,8 +40,6 @@ export default function BrandTopVideosSection() {
     isLoading,
     isUsingCachedVideos,
     retryRead,
-    setTimeframe,
-    timeframe,
     videos,
   } = useBrandTopVideos();
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
@@ -65,39 +49,17 @@ export default function BrandTopVideosSection() {
     [videos],
   );
 
+  const { currentPage, pageItems, setPage, totalPages } = useClientPagination(
+    rankedVideos,
+    PAGE_SIZE,
+  );
+
   if (!isBrandReady) {
     return null;
   }
 
   return (
-    <Card className="backdrop-blur" bodyClassName="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <Heading size="xl">{translateTopVideos('title')}</Heading>
-          <Text as="p" size="sm" color="subtle-60">
-            {translateTopVideos('description')}
-          </Text>
-        </div>
-        <Select
-          value={timeframe}
-          onValueChange={(value) => setTimeframe(value as TopVideosTimeframe)}
-        >
-          <SelectTrigger
-            className="w-44"
-            aria-label={translateTopVideos('timeframe')}
-          >
-            <SelectValue placeholder={translateTopVideos('timeframe')} />
-          </SelectTrigger>
-          <SelectContent>
-            {TIMEFRAME_OPTIONS.map((option) => (
-              <SelectItem key={option} value={option}>
-                {translateTopVideos(`timeframes.${option}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
+    <div className="space-y-4">
       {hasReadError && (
         <Alert
           type={
@@ -122,7 +84,8 @@ export default function BrandTopVideosSection() {
       )}
 
       <Table<ITrendVideo>
-        items={rankedVideos}
+        label={translateTopVideos('title')}
+        items={pageItems}
         isLoading={isLoading}
         emptyLabel={translateTopVideos('empty')}
         onRowClick={(video) => {
@@ -162,23 +125,7 @@ export default function BrandTopVideosSection() {
             className: 'min-w-32',
             header: translateTopVideos('columns.platform'),
             key: 'platform',
-            render: (video) => {
-              const platform = PLATFORM_CONFIGS[video.platform];
-              const Icon = platform?.icon;
-
-              return (
-                <div className="flex items-center gap-2">
-                  {Icon && (
-                    <span className="text-lg text-foreground/70">
-                      <Icon />
-                    </span>
-                  )}
-                  <span className="font-medium text-foreground">
-                    {platform?.label ?? video.platform}
-                  </span>
-                </div>
-              );
-            },
+            render: (video) => <PlatformBadge platform={video.platform} />,
           },
           {
             className: 'min-w-24',
@@ -269,12 +216,19 @@ export default function BrandTopVideosSection() {
         ]}
         getRowKey={(video) => video.id || video.externalId || ''}
       />
+      <Pagination
+        currentPage={currentPage}
+        onPageChange={setPage}
+        totalItems={rankedVideos.length}
+        totalLabel={translateTopVideos('totalLabel')}
+        totalPages={totalPages}
+      />
 
       <HookRemixModal
         video={remixVideo}
         isOpen={remixVideo !== null}
         onClose={() => setRemixVideo(null)}
       />
-    </Card>
+    </div>
   );
 }
