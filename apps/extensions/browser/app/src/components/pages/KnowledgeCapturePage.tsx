@@ -47,7 +47,6 @@ export function KnowledgeCapturePage({
   const [spaceId, setSpaceId] = useState('inbox');
   const [spaces, setSpaces] = useState<KnowledgeCaptureSpace[]>([]);
   const [receipts, setReceipts] = useState<KnowledgeCaptureReceipt[]>([]);
-  const [legacyCount, setLegacyCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -66,9 +65,6 @@ export function KnowledgeCapturePage({
 
   useEffect(() => {
     void refresh();
-    void background<number>({ event: 'captureLegacyCount' })
-      .then(setLegacyCount)
-      .catch(() => undefined);
     void background<string | null>({ event: 'captureBrand' })
       .then((savedBrand) => {
         if (savedBrand && !useBrandStore.getState().activeBrandId)
@@ -214,29 +210,6 @@ export function KnowledgeCapturePage({
       );
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function importIdeas() {
-    setBusy(true);
-    setError(null);
-    try {
-      await background({ event: 'captureImportLegacy', brandId });
-      await refresh();
-    } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : 'Could not import saved ideas.',
-      );
-    } finally {
-      try {
-        setLegacyCount(
-          await background<number>({ event: 'captureLegacyCount' }),
-        );
-      } finally {
-        setBusy(false);
-      }
     }
   }
 
@@ -408,21 +381,6 @@ export function KnowledgeCapturePage({
       >
         {busy ? 'Working…' : saved ? 'Capture submitted' : 'Save to Genfeed'}
       </Button>
-      {legacyCount > 0 && (
-        <div className="border border-border p-3 space-y-2">
-          <p className="text-xs text-muted-foreground">
-            {legacyCount} older ideas are stored on this browser. Import them
-            into the selected brand’s Knowledge.
-          </p>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            disabled={!brandId || busy}
-            onClick={importIdeas}
-          >
-            Import saved ideas
-          </Button>
-        </div>
-      )}
       <section className="space-y-2" aria-label="Recent captures">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Recent captures</h3>

@@ -78,8 +78,8 @@ describe('extension API authentication', () => {
       new Headers(mocks.fetch.mock.calls[0][1].headers).get('Authorization'),
     ).toBe('Bearer existing-api-key');
   });
-  it('recovers a legacy session credential on 401 and validates the refreshed identity', async () => {
-    mocks.values.set('genfeed_token', 'legacy-session-cookie');
+  it('recovers a rejected stored credential on 401 and validates the refreshed identity', async () => {
+    mocks.values.set('genfeed_token', 'rejected-session-token');
     mocks.fetch
       .mockResolvedValueOnce(response({}, 401))
       .mockResolvedValueOnce(response({ token: 'fresh-jwt' }))
@@ -435,37 +435,10 @@ describe('scoped authenticated send and replay fence', () => {
     expect(mocks.fetch).toHaveBeenCalledTimes(1);
     expect(mocks.values.get('genfeed_token')).toBe('old');
   });
-  it('migrates a legacy sync token to local storage once and removes it from sync', async () => {
-    mocks.syncValues.set('genfeed_token', 'sk-legacy-sync');
-    mocks.fetch.mockResolvedValue(response({ data: context }));
-    const { authService } = await import('../src/services/auth.service');
-    expect(await authService.getTokenInfo()).toEqual(
-      expect.objectContaining({ token: 'sk-legacy-sync' }),
-    );
-    expect(mocks.values.get('genfeed_token')).toBe('sk-legacy-sync');
-    expect(mocks.syncValues.has('genfeed_token')).toBe(false);
-  });
-  it('keeps a newer local token and still clears the stale sync copy', async () => {
-    mocks.syncValues.set('genfeed_token', 'stale-sync');
-    mocks.values.set('genfeed_token', 'current-local');
-    const { authService } = await import('../src/services/auth.service');
-    await authService.getTokenInfo();
-    expect(mocks.values.get('genfeed_token')).toBe('current-local');
-    expect(mocks.syncValues.has('genfeed_token')).toBe(false);
-  });
   it('never writes a new token to sync storage', async () => {
     const { authService } = await import('../src/services/auth.service');
     await authService.setToken('fresh');
     expect(mocks.values.get('genfeed_token')).toBe('fresh');
     expect(mocks.syncValues.size).toBe(0);
-  });
-  it('clears a legacy sync token on sign-out without copying it to local storage', async () => {
-    mocks.syncValues.set('genfeed_token', 'legacy');
-    mocks.fetch.mockResolvedValue(response({}, 401));
-    const { authService } = await import('../src/services/auth.service');
-    await authService.clearToken();
-    expect(mocks.values.has('genfeed_token')).toBe(false);
-    expect(mocks.syncValues.has('genfeed_token')).toBe(false);
-    expect(await authService.getTokenInfo()).toBeNull();
   });
 });

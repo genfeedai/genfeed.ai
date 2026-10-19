@@ -1188,25 +1188,10 @@ it('reply retains its own ID/kind/date in durable retry and rejects a parent Com
     clock.mockRestore();
   }
 });
-it('restores legacy home pending without erasing malformed or modal-missing-surface storage', async () => {
-  const { surface: _surface, ...legacy } = attempt();
+it('rejects pending attempts without a surface without erasing storage', async () => {
+  const { surface: _surface, ...withoutSurface } = attempt();
   session[PENDING] = {
-    '1': { tabId: 1, origin: 'https://x.com', attempt: legacy },
-  };
-  const response = await service.handlePublicationCaptureMessage(
-    { event: 'publicationCaptureContext' },
-    source,
-  );
-  expect(response).toMatchObject({
-    success: true,
-    data: { pending: { surface: { kind: 'x-home' } } },
-  });
-  session[PENDING] = {
-    '1': {
-      tabId: 1,
-      origin: 'https://x.com',
-      attempt: { ...legacy, documentUrl: 'https://x.com/compose/post' },
-    },
+    '1': { tabId: 1, origin: 'https://x.com', attempt: withoutSurface },
   };
   const before = structuredClone(session);
   expect(

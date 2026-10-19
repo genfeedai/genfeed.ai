@@ -17,7 +17,7 @@ describe('useSettingsStore theme preference', () => {
     });
   });
 
-  it('migrates legacy settings without a theme to system', async () => {
+  it('defaults stored settings without a theme to system', async () => {
     vi.mocked(chrome.storage.local.get).mockResolvedValue({
       'genfeed-settings': { autoFill: true, autoPost: false },
     });

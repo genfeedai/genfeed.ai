@@ -40,7 +40,6 @@ The Chrome extension services have been refactored to follow the same pattern as
 - **Features**:
   - `generateTweetReply()` method for Twitter/X integration
   - `getLatest()` method for fetching recent prompts
-  - Backward compatibility with existing `generateTweetReply()` function
 
 #### New Services
 
@@ -73,7 +72,6 @@ The Chrome extension services have been refactored to follow the same pattern as
 - **New file**: Centralized exports for all services
 - **Features**:
   - Clean imports from a single location
-  - Backward compatibility exports
   - Organized service exports
 
 ### 5. API Endpoints
@@ -153,14 +151,6 @@ The extension now supports the following environment variables:
 - `PLASMO_PUBLIC_WS_ENDPOINT` - WebSocket endpoint URL
 - `PLASMO_PUBLIC_ENV` - Environment setting (development/production)
 
-## Backward Compatibility
-
-All existing functionality is preserved:
-
-- `generateTweetReply()` function still works as before
-- Auth service maintains all existing methods
-- No breaking changes to existing code
-
 ## Benefits
 
 1. **Consistency**: Same service pattern as frontend
@@ -170,25 +160,6 @@ All existing functionality is preserved:
 5. **Type-safe**: Full TypeScript support
 6. **Cached**: API responses are cached for performance
 7. **Secure**: Chrome extension CORS support added
-
-## Migration Guide
-
-### For Existing Code
-
-No changes required! All existing imports and function calls continue to work.
-
-### For New Code
-
-Use the new service architecture:
-
-```typescript
-// Old way (still works)
-import { generateTweetReply } from '../services';
-
-// New way (recommended)
-import { promptsService } from '../services';
-const result = await promptsService.generateTweetReply(tweetId, url);
-```
 
 ## Testing
 

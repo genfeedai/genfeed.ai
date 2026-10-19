@@ -350,34 +350,3 @@ export async function setCaptureBrand(brandId: string): Promise<void> {
     throw new Error('Select an accessible brand first.');
   await storage.set(`${current.key}:brand`, brandId);
 }
-
-const legacyStorage = new Storage();
-interface LegacyIdea {
-  id: string;
-  title?: string;
-  url: string;
-}
-
-export async function legacyCaptureCount(): Promise<number> {
-  return ((await legacyStorage.get<LegacyIdea[]>('saved_ideas')) ?? []).length;
-}
-
-/** Only explicit import moves earlier device-local ideas into the selected brand. */
-export async function importLegacyCaptures(brandId: string): Promise<void> {
-  if (!brandId) throw new Error('Select a brand before importing saved ideas.');
-  const ideas = (await legacyStorage.get<LegacyIdea[]>('saved_ideas')) ?? [];
-  for (const idea of ideas) {
-    await enqueueKnowledgeCapture({
-      brandId,
-      mode: 'link',
-      title: idea.title ?? '',
-      url: idea.url,
-      text: '',
-      purpose: KnowledgeSourcePurpose.INSPIRATION,
-    });
-    const remaining = (
-      (await legacyStorage.get<LegacyIdea[]>('saved_ideas')) ?? []
-    ).filter((item) => item.id !== idea.id);
-    await legacyStorage.set('saved_ideas', remaining);
-  }
-}
