@@ -1198,6 +1198,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/configuration/tags/:filter',
   '/admin/library/voices',
   '/admin/organization',
+  '/admin/administration',
   '/admin/administration/users',
   '/admin/administration/users/:id',
   '/admin/administration/warmup-accounts',

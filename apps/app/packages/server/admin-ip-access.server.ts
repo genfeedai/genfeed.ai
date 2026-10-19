@@ -119,6 +119,33 @@ export async function isAdminIpAllowedForServerRequest(): Promise<boolean> {
   return clientIp !== '' && allowedIps.includes(clientIp);
 }
 
+function isLocalIdentityDeployment(): boolean {
+  return isSelfHostedDeployment() && !isBetterAuthEnabled();
+}
+
+/**
+ * The `isSuperAdmin` claim the API stamps into every Better Auth JWT from
+ * `users.platformRole` (`definePayload` in `better-auth.factory.ts`). The token
+ * comes straight from the API's `/token` endpoint with the visitor's session
+ * cookie, so it is read, not verified: this only decides whether to render the
+ * admin shell, and the API still enforces every admin call itself.
+ */
+function readTokenSuperAdminClaim(token: string): boolean {
+  const payload = token.split('.')[1];
+  if (!payload) {
+    return false;
+  }
+
+  try {
+    const claims = JSON.parse(
+      Buffer.from(payload, 'base64url').toString('utf8'),
+    ) as { isSuperAdmin?: unknown };
+    return claims.isSuperAdmin === true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The API judges super-admin on the caller's IP, and the server-side bootstrap
  * declares its caller unknown, so the API never grants it. Re-derive the flag
@@ -130,11 +157,25 @@ export async function resolveServerSuperAdmin(
   access: AccessBootstrapState,
   currentUser: IUser | null | undefined,
 ): Promise<boolean> {
-  const isLocalIdentity = isSelfHostedDeployment() && !isBetterAuthEnabled();
   const hasSuperAdminRole =
-    isLocalIdentity ||
+    isLocalIdentityDeployment() ||
     access.isSuperAdmin === true ||
     currentUser?.platformRole === PlatformRole.SUPERADMIN;
+
+  return hasSuperAdminRole && (await isAdminIpAllowedForServerRequest());
+}
+
+/**
+ * Same decision as {@link resolveServerSuperAdmin}, from the JWT the server
+ * already holds instead of a full bootstrap payload. The admin gate runs on
+ * every navigation into `/admin`, so it must not pay for brands, credits and
+ * paywall signals it never reads.
+ */
+export async function resolveServerSuperAdminFromToken(
+  token: string,
+): Promise<boolean> {
+  const hasSuperAdminRole =
+    isLocalIdentityDeployment() || readTokenSuperAdminClaim(token);
 
   return hasSuperAdminRole && (await isAdminIpAllowedForServerRequest());
 }

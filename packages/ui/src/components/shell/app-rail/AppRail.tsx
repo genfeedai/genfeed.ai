@@ -202,6 +202,7 @@ export function AppRail({
   modulePreferences,
   onNavigate,
   onNavigationEvent,
+  onOpenAdminExternally,
   orgSlug,
   hiddenAppIds = [],
   onRailAppOrderChange,
@@ -440,12 +441,17 @@ export function AppRail({
       });
       setNavigationAnnouncement(item.announcement ?? t('opening'));
       onNavigate?.();
+      if (onOpenAdminExternally && item.app.group === 'admin') {
+        onOpenAdminExternally(item.href);
+        return;
+      }
       if (via !== 'click') router.push(item.href);
     },
     [
       activeAppId,
       isNavigationSuspended,
       onNavigationEvent,
+      onOpenAdminExternally,
       surface,
       t,
       onNavigate,
@@ -473,7 +479,13 @@ export function AppRail({
         badge={badges?.[item.app.id]}
         isActive={item.app.id === activeAppId}
         isNavigationSuspended={isNavigationSuspended}
-        onNavigateStart={() => handleNavigate(item, 'click')}
+        onNavigateStart={(event) => {
+          // The link would also navigate in place; Admin opens elsewhere.
+          if (onOpenAdminExternally && item.app.group === 'admin') {
+            event.preventDefault();
+          }
+          handleNavigate(item, 'click');
+        }}
       />
     );
   }
