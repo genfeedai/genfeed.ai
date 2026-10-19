@@ -1,4 +1,8 @@
-import type { BrandPolicyDraftFacts } from '@api/services/brand-publish-policy/brand-publish-policy.service';
+import type {
+  BrandPolicyDraftFacts,
+  BrandPostCapScope,
+  BrandPublishPolicyService,
+} from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import {
   BrandedPublishHoldException,
   BrandedPublishHoldService,
@@ -8,6 +12,7 @@ import {
   createDefaultBrandPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type { IBrandPolicyViolation } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
 const FACTS: BrandPolicyDraftFacts = {
@@ -23,8 +28,16 @@ const FACTS: BrandPolicyDraftFacts = {
 /** A stub of the brand Policy reader: an approved default Policy, plus judge findings. */
 function makePolicy(input: {
   format?: BrandPolicyDraftFacts['format'];
+  /** Whether the brand has caps, so the lock is taken. */
+  isLocked?: boolean;
   judgeViolations?: IBrandPolicyViolation[];
 }) {
+  const withPostCapLock = vi.fn(
+    async (
+      _scope: BrandPostCapScope,
+      work: (isLocked: boolean) => Promise<unknown>,
+    ) => work(input.isLocked ?? false),
+  );
   return {
     buildEvaluation: vi.fn(
       async (
@@ -45,6 +58,8 @@ function makePolicy(input: {
     ),
     describePost: vi.fn().mockResolvedValue(FACTS),
     recordViolations: vi.fn().mockResolvedValue(undefined),
+    withPostCapLock: withPostCapLock as typeof withPostCapLock &
+      BrandPublishPolicyService['withPostCapLock'],
   };
 }
 
@@ -319,6 +334,94 @@ describe('BrandedPublishHoldService', () => {
         [],
         undefined,
       );
+    });
+
+    it('evaluates the Policy caps in the transaction the approval is written in (#7458)', async () => {
+      const policy = makePolicy({});
+      const { service } = makeService({ policy });
+      const transaction = {} as Prisma.TransactionClient;
+
+      await service.assertPostPublishable({
+        ...scope,
+        isHumanApproval: false,
+        isPolicyBound: true,
+        transaction,
+      });
+
+      // The count takes the brand lock in this transaction, so it stays held
+      // until the approval's SCHEDULED post commits with it.
+      expect(policy.describePost).toHaveBeenCalledWith(
+        'org-1',
+        'post-1',
+        transaction,
+      );
+      expect(policy.buildEvaluation).toHaveBeenCalledWith(
+        FACTS,
+        { isJudgeEnabled: true },
+        transaction,
+      );
+      expect(policy.recordViolations).toHaveBeenCalledWith(
+        'org-1',
+        'post-1',
+        [],
+        transaction,
+      );
+    });
+
+    it('counts the caps again behind a publish still writing under the brand lock (#7458)', async () => {
+      const policy = makePolicy({ isLocked: true });
+      const violating = await makePolicy({ format: 'video' }).buildEvaluation(
+        FACTS,
+      );
+      const clean = await policy.buildEvaluation(FACTS);
+      policy.buildEvaluation
+        .mockResolvedValueOnce(clean)
+        .mockResolvedValueOnce(violating);
+      const { service } = makeService({ policy });
+
+      const error = await service
+        .assertPostPublishable({
+          ...scope,
+          isHumanApproval: false,
+          isPolicyBound: true,
+        })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(BrandedPublishHoldException);
+      expect(policy.withPostCapLock).toHaveBeenCalledWith(
+        { brandId: 'brand-1', organizationId: 'org-1' },
+        expect.any(Function),
+      );
+      expect(policy.buildEvaluation).toHaveBeenCalledTimes(3);
+      expect(policy.recordViolations).toHaveBeenCalledWith(
+        'org-1',
+        'post-1',
+        [expect.objectContaining({ rule: 'video_always_reviewed' })],
+        undefined,
+      );
+    });
+
+    it('does not take the lock when the first evaluation already holds the post, or a transaction holds it', async () => {
+      const held = makePolicy({ format: 'video', isLocked: true });
+      await makeService({ policy: held })
+        .service.assertPostPublishable({
+          ...scope,
+          isHumanApproval: false,
+          isPolicyBound: true,
+        })
+        .catch(() => undefined);
+      const transactional = makePolicy({ isLocked: true });
+      await makeService({
+        policy: transactional,
+      }).service.assertPostPublishable({
+        ...scope,
+        isHumanApproval: false,
+        isPolicyBound: true,
+        transaction: {} as Prisma.TransactionClient,
+      });
+
+      expect(held.withPostCapLock).not.toHaveBeenCalled();
+      expect(transactional.withPostCapLock).not.toHaveBeenCalled();
     });
 
     it('does not read the Policy for a human approval or an unbound origin', async () => {

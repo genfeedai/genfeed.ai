@@ -101,19 +101,30 @@ export class BreakoutAutoPublishService {
     // A person who already decided on this draft schedules it themselves.
     if (!post || post.reviewDecision !== null)
       return reviewOnly('output_reviewed');
-    const resolved = await this.policy.resolveForPost({
-      organizationId: scope.organizationId,
-      postId: post.id,
-      strategyId: request.strategyId,
-    });
-    await request.reauthorize(this.prisma);
-    if (resolved.result.decision !== AgentPublishDecision.PERMITTED)
-      return reviewOnly(`publish_policy_${resolved.result.reason}`);
-    try {
-      await this.posts.patch(post.id, {
-        scheduledDate: new Date(),
-        targetExecutionState: TargetExecutionState.SCHEDULED,
+    const resolve = () =>
+      this.policy.resolveForPost({
+        organizationId: scope.organizationId,
+        postId: post.id,
+        strategyId: request.strategyId,
       });
+    const preview = await resolve();
+    await request.reauthorize(this.prisma);
+    if (preview.result.decision !== AgentPublishDecision.PERMITTED)
+      return reviewOnly(`publish_policy_${preview.result.reason}`);
+    try {
+      // The Policy's post caps are counted and the post scheduled under one lock.
+      const { policy, scheduled } = await this.policy.scheduleWithinPostCaps(
+        { brandId: scope.brandId, organizationId: scope.organizationId },
+        preview,
+        resolve,
+        () =>
+          this.posts.patch(post.id, {
+            scheduledDate: new Date(),
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+      );
+      if (!scheduled)
+        return reviewOnly(`publish_policy_${policy.result.reason}`);
     } catch (error: unknown) {
       this.logger.warn('Breakout response was not auto-published', {
         error: getErrorMessage(error),

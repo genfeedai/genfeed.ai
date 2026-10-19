@@ -343,21 +343,24 @@ export async function scheduleAgentPost(
       'scheduled post',
     );
 
-    if (ctx.isProactive || ctx.strategyId) {
-      const policy = await deps.autonomousPublishPolicyService?.resolveForPost({
+    const resolvePolicy = () =>
+      deps.autonomousPublishPolicyService?.resolveForPost({
         organizationId: ctx.organizationId,
         postId,
         publishAt: scheduledDate,
         strategyId: ctx.strategyId,
       });
-      if (!policy || policy.result.decision === AgentPublishDecision.DENIED) {
-        return {
-          creditsUsed: 0,
-          success: false,
-          error: policy?.result.reason ?? 'Publish policy unavailable.',
-          data: { id: postId, requiredAction: 'approval' },
-        };
-      }
+    const policyDenied = (reason: string | undefined): AgentToolResult => ({
+      creditsUsed: 0,
+      success: false,
+      error: reason ?? 'Publish policy unavailable.',
+      data: { id: postId, requiredAction: 'approval' },
+    });
+    let preview: Awaited<ReturnType<typeof resolvePolicy>>;
+    if (ctx.isProactive || ctx.strategyId) {
+      preview = await resolvePolicy();
+      if (!preview || preview.result.decision === AgentPublishDecision.DENIED)
+        return policyDenied(preview?.result.reason);
     }
 
     groupId = readOptionalString(post.groupId);
@@ -384,12 +387,27 @@ export async function scheduleAgentPost(
       };
     }
 
-    return await deps.scheduleCanonicalPost({
-      ctx,
-      groupId,
-      postId,
-      scheduledAt: scheduledDate.toISOString(),
-    });
+    const canonicalGroupId = groupId;
+    const scheduleCanonical = () =>
+      deps.scheduleCanonicalPost({
+        ctx,
+        groupId: canonicalGroupId,
+        postId,
+        scheduledAt: scheduledDate.toISOString(),
+      });
+    const brandId = readOptionalString(post.brandId);
+    const approved = preview;
+    if (!approved || !deps.autonomousPublishPolicyService || !brandId)
+      return await scheduleCanonical();
+    // The Policy's post caps are counted and the post scheduled under one lock.
+    const { policy, scheduled } =
+      await deps.autonomousPublishPolicyService.scheduleWithinPostCaps(
+        { brandId, organizationId: ctx.organizationId },
+        approved,
+        async () => (await resolvePolicy()) ?? approved,
+        scheduleCanonical,
+      );
+    return scheduled ?? policyDenied(policy.result.reason);
   } catch (error: unknown) {
     const validationError = readAgentScheduleValidationError(error);
     if (!validationError) {

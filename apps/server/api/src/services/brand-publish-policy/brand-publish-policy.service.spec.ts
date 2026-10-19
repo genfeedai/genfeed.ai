@@ -14,6 +14,7 @@ import type {
   IBrandPolicyViolation,
   IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const FACTS: BrandPolicyDraftFacts = {
@@ -30,6 +31,8 @@ const FACTS: BrandPolicyDraftFacts = {
 function makeDb(policy: IBrandPublishPolicy | null | 'invalid') {
   return {
     $executeRaw: vi.fn().mockResolvedValue(1),
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    $transaction: vi.fn(),
     brand: {
       findFirst: vi.fn().mockResolvedValue({
         agentConfig: { voice: { bannedPhrases: ['synergy', 'Synergy', 7] } },
@@ -404,5 +407,181 @@ describe('BrandPublishPolicyService', () => {
       makeService(db).readIngredientCategories('org-1', []),
     ).resolves.toEqual([]);
     expect(db.ingredient.findMany).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BrandPublishPolicyService post cap lock (#7458)', () => {
+  const CAPPED: IBrandPublishPolicy = {
+    ...createDefaultBrandPublishPolicy(),
+    maxPostsPerDay: 2,
+    maxPostsPerWeek: 5,
+  };
+  const SCOPE = { brandId: 'brand-1', organizationId: 'org-1' };
+  const LOCK_KEY = 'brand-publish-cap:v1:org-1:brand-1';
+
+  function makeCappedDb(policy: IBrandPublishPolicy = CAPPED) {
+    const db = makeDb(policy);
+    const tx = makeDb(policy);
+    db.$transaction.mockImplementation(
+      async (work: (client: unknown) => Promise<unknown>) => work(tx),
+    );
+    return { db, tx };
+  }
+
+  it('locks the brand before counting inside a transaction', async () => {
+    const { db, tx } = makeCappedDb();
+
+    await makeService(db).buildEvaluation(
+      FACTS,
+      { isJudgeEnabled: false },
+      tx as unknown as Prisma.TransactionClient,
+    );
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw.mock.calls[0]?.slice(1)).toEqual([LOCK_KEY]);
+    expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain(
+      'pg_advisory_xact_lock',
+    );
+    expect(tx.post.count).toHaveBeenCalledTimes(2);
+    const lockOrder = tx.$queryRaw.mock.invocationCallOrder[0] ?? Infinity;
+    for (const countOrder of tx.post.count.mock.invocationCallOrder)
+      expect(lockOrder).toBeLessThan(countOrder);
+  });
+
+  it('locks when only one of the caps is set', async () => {
+    const { db, tx } = makeCappedDb({
+      ...createDefaultBrandPublishPolicy(),
+      maxPostsPerWeek: 5,
+    });
+
+    await makeService(db).buildEvaluation(
+      FACTS,
+      { isJudgeEnabled: false },
+      tx as unknown as Prisma.TransactionClient,
+    );
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.post.count).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes no lock when the Policy sets no caps', async () => {
+    const { db, tx } = makeCappedDb(createDefaultBrandPublishPolicy());
+
+    await makeService(db).buildEvaluation(
+      FACTS,
+      { isJudgeEnabled: false },
+      tx as unknown as Prisma.TransactionClient,
+    );
+
+    expect(tx.$queryRaw).not.toHaveBeenCalled();
+    expect(tx.post.count).not.toHaveBeenCalled();
+  });
+
+  it('takes no lock outside a transaction, where an evaluation only previews', async () => {
+    const { db } = makeCappedDb();
+
+    await makeService(db).buildEvaluation(FACTS, { isJudgeEnabled: false });
+
+    expect(db.$queryRaw).not.toHaveBeenCalled();
+    expect(db.post.count).toHaveBeenCalledTimes(2);
+  });
+
+  it('runs the work under a lock-only transaction and tells it the lock is held', async () => {
+    const { db, tx } = makeCappedDb();
+    const work = vi.fn(async (isLocked: boolean) => {
+      // The lock is already taken when the work starts.
+      expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+      return isLocked ? 'locked' : 'unlocked';
+    });
+
+    const result = await makeService(db).withPostCapLock(SCOPE, work);
+
+    expect(result).toBe('locked');
+    expect(work).toHaveBeenCalledWith(true);
+    expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'ReadCommitted',
+      maxWait: 5000,
+      timeout: 30000,
+    });
+    expect(tx.$queryRaw.mock.calls[0]?.slice(1)).toEqual([LOCK_KEY]);
+    expect(db.brandOsRevision.findFirst).toHaveBeenCalledWith({
+      select: { content: true },
+      where: {
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: 'APPROVED',
+      },
+    });
+  });
+
+  it('runs the work without a transaction for a brand without caps', async () => {
+    const { db, tx } = makeCappedDb(createDefaultBrandPublishPolicy());
+    const work = vi.fn(async (isLocked: boolean) => isLocked);
+
+    expect(await makeService(db).withPostCapLock(SCOPE, work)).toBe(false);
+
+    expect(db.$transaction).not.toHaveBeenCalled();
+    expect(tx.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('runs the work without a transaction for a publish with no brand', async () => {
+    const { db } = makeCappedDb();
+
+    await makeService(db).withPostCapLock(
+      { brandId: '', organizationId: 'org-1' },
+      async () => undefined,
+    );
+
+    expect(db.$transaction).not.toHaveBeenCalled();
+    expect(db.brandOsRevision.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('does not lock again for a nested check in the same flow', async () => {
+    const { db, tx } = makeCappedDb();
+    const service = makeService(db);
+
+    await service.withPostCapLock(SCOPE, async () => {
+      // A check in another transaction of the flow would otherwise wait on
+      // the lock the flow already holds.
+      await service.buildEvaluation(
+        FACTS,
+        { isJudgeEnabled: false },
+        makeDb(CAPPED) as unknown as Prisma.TransactionClient,
+      );
+      const nested = await service.withPostCapLock(
+        SCOPE,
+        async (locked) => locked,
+      );
+      expect(nested).toBe(true);
+    });
+
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks another brand nested in the flow, and forgets the lock afterwards', async () => {
+    const { db, tx } = makeCappedDb();
+    const service = makeService(db);
+
+    await service.withPostCapLock(SCOPE, async () => {
+      await service.withPostCapLock(
+        { brandId: 'brand-2', organizationId: 'org-1' },
+        async () => undefined,
+      );
+    });
+    await service.withPostCapLock(SCOPE, async () => undefined);
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
+  });
+
+  it('lets a failed write roll the lock transaction back', async () => {
+    const { db } = makeCappedDb();
+
+    await expect(
+      makeService(db).withPostCapLock(SCOPE, async () => {
+        throw new Error('post write failed');
+      }),
+    ).rejects.toThrow('post write failed');
   });
 });

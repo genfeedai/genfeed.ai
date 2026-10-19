@@ -52,7 +52,10 @@ import type { PostCreateInput } from '@api/collections/posts/services/posts.serv
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import {
+  AutonomousPublishPolicyService,
+  type ResolvedAutonomousPostPolicy,
+} from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
@@ -897,25 +900,36 @@ export class AgentStrategyAutopilotExecutionService {
     // clear the shared autonomy × brand × channel policy, so a brand that
     // requires approval (Expert Path's default), a platform reverted to
     // supervised, or a disconnected account sends the draft to review.
-    for (const target of targets) {
-      const policy = await this.autonomousPublishPolicy.resolveForTarget({
-        brandId,
-        caption: target.caption,
-        credentialId: target.credentialId,
-        organizationId,
-        platform: target.platform,
-        postId: draftId,
-        postCategory: PostCategory.TEXT,
-        qualityScore: qualityContext?.gate.overallScore,
-        strategyId: getStrategyId(strategy),
-      });
-      if (policy.result.decision !== AgentPublishDecision.PERMITTED) {
-        return {
-          policyReason: policy.result.reason,
-          postIds: [],
-          scheduled: false,
-        };
+    const evaluateTargets = async (): Promise<
+      ResolvedAutonomousPostPolicy | undefined
+    > => {
+      let resolved: ResolvedAutonomousPostPolicy | undefined;
+      for (const target of targets) {
+        const policy = await this.autonomousPublishPolicy.resolveForTarget({
+          brandId,
+          caption: target.caption,
+          credentialId: target.credentialId,
+          organizationId,
+          platform: target.platform,
+          postId: draftId,
+          postCategory: PostCategory.TEXT,
+          qualityScore: qualityContext?.gate.overallScore,
+          strategyId: getStrategyId(strategy),
+        });
+        if (policy.result.decision !== AgentPublishDecision.PERMITTED)
+          return policy;
+        resolved ??= policy;
       }
+      return resolved;
+    };
+    const preview = await evaluateTargets();
+    if (!preview) return { postIds: [], scheduled: false };
+    if (preview.result.decision !== AgentPublishDecision.PERMITTED) {
+      return {
+        policyReason: preview.result.reason,
+        postIds: [],
+        scheduled: false,
+      };
     }
     for (const target of targets) {
       if (
@@ -945,38 +959,56 @@ export class AgentStrategyAutopilotExecutionService {
     }
     const groupId = randomUUID();
 
-    for (const target of targets) {
-      const post = reusedDraft
-        ? await this.postsService.create({
-            agentStrategyId: getStrategyId(strategy),
-            brandId,
-            category: PostCategory.TEXT,
-            contentRunId: draft.contentRunId ?? undefined,
-            credentialId: target.credentialId,
-            description: target.caption,
-            groupId,
-            organizationId,
-            platform: target.platform,
-            promptUsed: draft.promptUsed ?? undefined,
-            scheduledDate: new Date(),
-            source: draft.source ?? undefined,
-            targetAttachments: draft.targetAttachments,
-            targetExecutionState: TargetExecutionState.SCHEDULED,
-            targetSettings: draft.targetSettings,
-            userId,
-          } as PostCreateInput)
-        : await this.postsService.patch(draftId, {
-            description: target.caption,
-            credentialId: target.credentialId,
-            groupId,
-            platform: target.platform,
-            scheduledDate: new Date(),
-            targetExecutionState: TargetExecutionState.SCHEDULED,
-            userId,
-          });
+    // The Policy's post caps are counted and the posts scheduled under one lock.
+    const { policy, scheduled } =
+      await this.autonomousPublishPolicy.scheduleWithinPostCaps(
+        { brandId, organizationId },
+        preview,
+        async () => (await evaluateTargets()) ?? preview,
+        async () => {
+          for (const target of targets) {
+            const post = reusedDraft
+              ? await this.postsService.create({
+                  agentStrategyId: getStrategyId(strategy),
+                  brandId,
+                  category: PostCategory.TEXT,
+                  contentRunId: draft.contentRunId ?? undefined,
+                  credentialId: target.credentialId,
+                  description: target.caption,
+                  groupId,
+                  organizationId,
+                  platform: target.platform,
+                  promptUsed: draft.promptUsed ?? undefined,
+                  scheduledDate: new Date(),
+                  source: draft.source ?? undefined,
+                  targetAttachments: draft.targetAttachments,
+                  targetExecutionState: TargetExecutionState.SCHEDULED,
+                  targetSettings: draft.targetSettings,
+                  userId,
+                } as PostCreateInput)
+              : await this.postsService.patch(draftId, {
+                  description: target.caption,
+                  credentialId: target.credentialId,
+                  groupId,
+                  platform: target.platform,
+                  scheduledDate: new Date(),
+                  targetExecutionState: TargetExecutionState.SCHEDULED,
+                  userId,
+                });
 
-      createdPostIds.push(documentId(post));
-      reusedDraft = true;
+            createdPostIds.push(documentId(post));
+            reusedDraft = true;
+          }
+
+          return createdPostIds;
+        },
+      );
+    if (!scheduled) {
+      return {
+        policyReason: policy.result.reason,
+        postIds: [],
+        scheduled: false,
+      };
     }
 
     return { postIds: createdPostIds, scheduled: createdPostIds.length > 0 };

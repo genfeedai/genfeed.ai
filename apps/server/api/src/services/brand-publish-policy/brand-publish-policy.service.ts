@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   harnessProfileBrandFilter,
   pickActiveHarnessProfile,
@@ -32,6 +33,7 @@ import { Injectable, Optional } from '@nestjs/common';
 type PolicyDb = Pick<
   Prisma.TransactionClient,
   | '$executeRaw'
+  | '$queryRaw'
   | 'brand'
   | 'brandOsRevision'
   | 'ingredient'
@@ -54,6 +56,25 @@ const COUNTED_STATES = [
   TargetExecutionState.PUBLISHING,
   TargetExecutionState.PUBLISHED,
 ];
+
+const POST_CAP_LOCK_TRANSACTION = {
+  isolationLevel: 'ReadCommitted',
+  maxWait: 5000,
+  timeout: 30000,
+} as const;
+
+/** The cap locks the current async flow holds, so a nested check never waits on its own flow. */
+const heldPostCapLocks = new AsyncLocalStorage<ReadonlySet<string>>();
+
+function postCapLockKey(organizationId: string, brandId: string): string {
+  return `brand-publish-cap:v1:${organizationId}:${brandId}`;
+}
+
+/** The brand whose post caps an unattended publish consumes. */
+export interface BrandPostCapScope {
+  brandId: string;
+  organizationId: string;
+}
 
 /** The draft facts the brand Policy is checked against. */
 export interface BrandPolicyDraftFacts {
@@ -150,6 +171,7 @@ export class BrandPublishPolicyService {
     const facts = Number.isNaN(draftFacts.publishAt.getTime())
       ? { ...draftFacts, publishAt: new Date() }
       : draftFacts;
+    const isInTransaction = db !== this.prisma;
     const { guardrails, policy } = await this.loadEffectivePolicy(
       db,
       facts.organizationId,
@@ -170,7 +192,7 @@ export class BrandPublishPolicyService {
       judgeViolations: [],
       passedChecks: [...(facts.passedChecks ?? [])],
       policy,
-      usage: await this.countUsage(db, facts, policy),
+      usage: await this.countUsage(db, facts, policy, isInTransaction),
     };
     if (
       !options.isJudgeEnabled ||
@@ -189,7 +211,6 @@ export class BrandPublishPolicyService {
     };
     // Inside a transaction the judge only reads its cache: a model call would
     // hold the transaction's locks past its timeout. Callers judge first.
-    const isInTransaction = db !== this.prisma;
     const judged = !this.judge
       ? undefined
       : isInTransaction
@@ -275,11 +296,56 @@ export class BrandPublishPolicyService {
     };
   }
 
-  private async loadEffectivePolicy(
+  /**
+   * Runs an unattended publish's SCHEDULED write under the brand's post-cap
+   * lock, for services that write through their own connections. The lock is
+   * held by a transaction that only locks, so `work` evaluates and writes as
+   * it always did, and every publish that held the lock before has committed
+   * its post by the time the next one counts. `isLocked` tells `work` to
+   * evaluate again: its first evaluation, and the judge, ran before the lock.
+   * A brand without caps takes no lock.
+   */
+  async withPostCapLock<T>(
+    scope: BrandPostCapScope,
+    work: (isLocked: boolean) => Promise<T>,
+  ): Promise<T> {
+    const key = postCapLockKey(scope.organizationId, scope.brandId);
+    const held = heldPostCapLocks.getStore();
+    if (held?.has(key)) return work(true);
+    if (!scope.brandId) return work(false);
+    const content = await this.readApprovedContent(
+      this.prisma,
+      scope.organizationId,
+      scope.brandId,
+    );
+    const policy =
+      parseBrandPublishPolicy(content.policy) ??
+      createDefaultBrandPublishPolicy();
+    if (policy.maxPostsPerDay === null && policy.maxPostsPerWeek === null)
+      return work(false);
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockPostCaps(tx, scope.organizationId, scope.brandId);
+      return heldPostCapLocks.run(new Set([...(held ?? []), key]), () =>
+        work(true),
+      );
+    }, POST_CAP_LOCK_TRANSACTION);
+  }
+
+  private async lockPostCaps(
+    db: Pick<PolicyDb, '$queryRaw'>,
+    organizationId: string,
+    brandId: string,
+  ): Promise<void> {
+    const key = postCapLockKey(organizationId, brandId);
+    if (heldPostCapLocks.getStore()?.has(key)) return;
+    await db.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+  }
+
+  private async readApprovedContent(
     db: PolicyDb,
     organizationId: string,
     brandId: string,
-  ): Promise<EffectiveBrandPolicy> {
+  ): Promise<Record<string, unknown>> {
     const revision = brandId
       ? await db.brandOsRevision.findFirst({
           select: { content: true },
@@ -289,7 +355,15 @@ export class BrandPublishPolicyService {
           }),
         })
       : null;
-    const content = readRecord(revision?.content);
+    return readRecord(revision?.content);
+  }
+
+  private async loadEffectivePolicy(
+    db: PolicyDb,
+    organizationId: string,
+    brandId: string,
+  ): Promise<EffectiveBrandPolicy> {
+    const content = await this.readApprovedContent(db, organizationId, brandId);
     // A brand that has not approved a Policy runs under the default one.
     const policy =
       parseBrandPublishPolicy(content.policy) ??
@@ -346,9 +420,14 @@ export class BrandPublishPolicyService {
     db: PolicyDb,
     facts: BrandPolicyDraftFacts,
     policy: IBrandPublishPolicy,
+    isInTransaction: boolean,
   ): Promise<BrandPolicyEvaluationInput['usage']> {
     if (policy.maxPostsPerDay === null && policy.maxPostsPerWeek === null)
       return { postsInDay: 0, postsInWeek: 0 };
+    // The slot this count admits is only taken when the caller's transaction
+    // writes SCHEDULED, so the lock stays held to its commit.
+    if (isInTransaction)
+      await this.lockPostCaps(db, facts.organizationId, facts.brandId);
     const windows = resolveBrandPolicyWindows(facts.publishAt, policy.timezone);
     const count = (start: Date, end: Date) =>
       db.post.count({

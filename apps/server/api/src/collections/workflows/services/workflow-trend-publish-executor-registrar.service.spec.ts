@@ -347,3 +347,163 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
     expect(result.status).toBe('queued');
   });
 });
+
+describe('WorkflowTrendPublishExecutorRegistrarService post caps (#7458)', () => {
+  const SCHEDULED = {
+    datetime: '2026-10-20T10:00:00.000Z',
+    type: 'scheduled',
+  };
+  const CAPPED: IBrandPublishPolicy = {
+    ...createDefaultBrandPublishPolicy(),
+    maxPostsPerDay: 1,
+    maxPostsPerWeek: 5,
+  };
+  const targets: PostAccountTarget[] = [
+    {
+      caption: 'Launch post',
+      credentialId: 'cred-1',
+      platform: Platform.TWITTER,
+    },
+  ];
+
+  /**
+   * A database whose cap lock is a real mutex held until the transaction that
+   * took it finishes, and whose post count is the posts the service created.
+   */
+  function fixture(policy: IBrandPublishPolicy) {
+    const events: string[] = [];
+    const scheduled: string[] = [];
+    let isLocked = false;
+    const waiters: Array<() => void> = [];
+    const acquire = async () => {
+      while (isLocked) await new Promise<void>((r) => waiters.push(r));
+      isLocked = true;
+    };
+    const release = () => {
+      isLocked = false;
+      waiters.shift()?.();
+    };
+    const prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      $transaction: vi.fn(async (work: (tx: unknown) => Promise<unknown>) => {
+        let hasLock = false;
+        const tx = {
+          $queryRaw: vi.fn(async () => {
+            await acquire();
+            hasLock = true;
+            events.push('lock');
+            return [];
+          }),
+        };
+        try {
+          return await work(tx);
+        } finally {
+          if (hasLock) release();
+          events.push('commit');
+        }
+      }),
+      brand: { findFirst: vi.fn().mockResolvedValue({ agentConfig: {} }) },
+      brandOsRevision: {
+        findFirst: vi.fn().mockResolvedValue({ content: { policy } }),
+      },
+      brandedGenerationReceipt: { findMany: vi.fn().mockResolvedValue([]) },
+      ingredient: { findMany: vi.fn().mockResolvedValue([]) },
+      post: {
+        count: vi.fn(async () => {
+          events.push('count');
+          return scheduled.length;
+        }),
+      },
+      profile: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const postsService = {
+      create: vi.fn(async (data: { targetExecutionState: string }) => {
+        // The post only becomes visible to counts a moment after create starts.
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        events.push('create');
+        if (data.targetExecutionState === TargetExecutionState.SCHEDULED)
+          scheduled.push('post');
+        return { id: `post-${events.length}` };
+      }),
+    };
+    const fanoutService = {
+      resolveTargets: vi.fn().mockResolvedValue(targets),
+    };
+    return { events, fanoutService, postsService, prisma, scheduled };
+  }
+
+  it('takes the brand cap lock before the last count and keeps it until the post is created', async () => {
+    const { events, fanoutService, postsService, prisma } = fixture(CAPPED);
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(result.status).toBe('scheduled');
+    const lock = events.indexOf('lock');
+    expect(lock).toBeGreaterThan(-1);
+    // The count that admits the post comes after the lock, and the lock's
+    // transaction commits only after the SCHEDULED post exists.
+    expect(events.lastIndexOf('count')).toBeGreaterThan(lock);
+    expect(events.indexOf('create')).toBeGreaterThan(
+      events.lastIndexOf('count'),
+    );
+    expect(events.indexOf('commit')).toBeGreaterThan(events.indexOf('create'));
+  });
+
+  it('admits only one of two concurrent publishes for the last slot', async () => {
+    const { fanoutService, postsService, prisma, scheduled } = fixture(CAPPED);
+
+    const results = (await Promise.all([
+      runPublishNode(postsService, fanoutService, {
+        prisma,
+        schedule: SCHEDULED,
+      }),
+      runPublishNode(postsService, fanoutService, {
+        prisma,
+        schedule: SCHEDULED,
+      }),
+    ])) as Array<Record<string, unknown>>;
+
+    expect(results.map((result) => result.status).sort()).toEqual([
+      'held',
+      'scheduled',
+    ]);
+    expect(results.find((result) => result.status === 'held')).toMatchObject({
+      holdReason: 'policy_violation',
+      scheduledFor: null,
+    });
+    expect(scheduled).toHaveLength(1);
+  });
+
+  it('takes no lock for a brand whose Policy sets no caps', async () => {
+    const { events, fanoutService, postsService, prisma } = fixture(
+      createDefaultBrandPublishPolicy(),
+    );
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(result.status).toBe('scheduled');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(events).not.toContain('lock');
+  });
+
+  it('takes no lock for a publish that is already held', async () => {
+    const { fanoutService, postsService, prisma } = fixture({
+      ...CAPPED,
+      bannedPhrases: ['launch'],
+    });
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(result.status).toBe('held');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

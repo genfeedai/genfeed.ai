@@ -34,6 +34,10 @@ const on: Settings = {
   isBreakoutResponsesEnabled: true,
 };
 
+type PostPolicy = {
+  result: { decision: AgentPublishDecision; reason: string };
+};
+
 function harness(settings: Settings | null = on) {
   const prisma = {
     organizationSetting: {
@@ -53,6 +57,20 @@ function harness(settings: Settings | null = on) {
     resolveForPost: vi.fn(async () => ({
       result: { decision: AgentPublishDecision.PERMITTED, reason: 'ok' },
     })),
+    // A brand with caps: the policy is evaluated again under the lock.
+    scheduleWithinPostCaps: vi.fn(
+      async (
+        _scope: unknown,
+        _preview: PostPolicy,
+        evaluate: () => Promise<PostPolicy>,
+        schedule: () => Promise<unknown>,
+      ) => {
+        const decided = await evaluate();
+        return decided.result.decision === AgentPublishDecision.PERMITTED
+          ? { policy: decided, scheduled: await schedule() }
+          : { policy: decided };
+      },
+    ),
   };
   const logger = { warn: vi.fn() };
   const service = Reflect.construct(BreakoutAutoPublishService, [
@@ -234,6 +252,34 @@ describe('BreakoutAutoPublishService (#6526)', () => {
     });
     expect(await h.service.schedule(request)).toEqual({
       reason: 'publish_policy_brand_requires_approval',
+      status: 'review_only',
+    });
+    expect(h.posts.patch).not.toHaveBeenCalled();
+  });
+
+  it('counts the Policy post caps and schedules under one brand lock', async () => {
+    const h = harness();
+    await h.service.schedule(request);
+    expect(h.policy.scheduleWithinPostCaps).toHaveBeenCalledWith(
+      { brandId: 'brand-a', organizationId: 'org-a' },
+      expect.objectContaining({ result: expect.any(Object) }),
+      expect.any(Function),
+      expect.any(Function),
+    );
+    expect(h.policy.resolveForPost).toHaveBeenCalledTimes(2);
+  });
+
+  it('stays review-only and writes nothing when the lock shows the last slot is gone', async () => {
+    const h = harness();
+    h.policy.resolveForPost
+      .mockResolvedValueOnce({
+        result: { decision: AgentPublishDecision.PERMITTED, reason: 'ok' },
+      })
+      .mockResolvedValueOnce({
+        result: { decision: AgentPublishDecision.DENIED, reason: 'weekly_cap' },
+      });
+    expect(await h.service.schedule(request)).toEqual({
+      reason: 'publish_policy_weekly_cap',
       status: 'review_only',
     });
     expect(h.posts.patch).not.toHaveBeenCalled();

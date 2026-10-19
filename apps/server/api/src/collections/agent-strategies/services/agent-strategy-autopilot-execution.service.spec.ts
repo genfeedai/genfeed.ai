@@ -55,6 +55,20 @@ describe('AgentStrategyAutopilotExecutionService publishTextDraft (#5193)', () =
       resolveForTarget: vi.fn().mockResolvedValue({
         result: { decision: AgentPublishDecision.PERMITTED },
       }),
+      // A brand with caps: the policy is evaluated again under the lock.
+      scheduleWithinPostCaps: vi.fn(
+        async (
+          _scope: unknown,
+          _preview: unknown,
+          evaluate: () => Promise<{ result: { decision: string } }>,
+          schedule: () => Promise<unknown>,
+        ) => {
+          const policy = await evaluate();
+          return policy.result.decision === AgentPublishDecision.PERMITTED
+            ? { policy, scheduled: await schedule() }
+            : { policy };
+        },
+      ),
     };
     const service = new AgentStrategyAutopilotExecutionService(
       {} as never,
@@ -75,7 +89,13 @@ describe('AgentStrategyAutopilotExecutionService publishTextDraft (#5193)', () =
       'evaluateDraft',
     ).mockResolvedValue({ decision: 'approved', reasons: [] });
 
-    return { logger, postCreate, postPatch, service };
+    return {
+      autonomousPublishPolicy,
+      logger,
+      postCreate,
+      postPatch,
+      service,
+    };
   }
 
   it('filters out a fanned-out platform that requires media before creating a text-only post for it', async () => {
@@ -169,5 +189,101 @@ describe('AgentStrategyAutopilotExecutionService publishTextDraft (#5193)', () =
     expect(postPatch).toHaveBeenCalledTimes(1);
     expect(postCreate).toHaveBeenCalledTimes(1);
     expect(result.postIds).toEqual(['draft-1-published', 'post-created-1']);
+  });
+
+  it('counts the Policy post caps and schedules every target under one brand lock', async () => {
+    const { autonomousPublishPolicy, postCreate, postPatch, service } =
+      makeService([
+        {
+          caption: 'Hello world',
+          credentialId: 'credential-twitter',
+          platform: CredentialPlatform.TWITTER,
+        },
+        {
+          caption: 'Hello world',
+          credentialId: 'credential-linkedin',
+          platform: CredentialPlatform.LINKEDIN,
+        },
+      ]);
+
+    await (
+      service as unknown as {
+        publishTextDraft: (
+          strategy: unknown,
+          draft: unknown,
+          content: string,
+          platforms: string[],
+          userId: string,
+        ) => Promise<{ postIds: string[]; scheduled: boolean }>;
+      }
+    ).publishTextDraft(
+      strategy,
+      draft,
+      'Hello world',
+      [CredentialPlatform.TWITTER, CredentialPlatform.LINKEDIN],
+      'user-1',
+    );
+
+    expect(autonomousPublishPolicy.scheduleWithinPostCaps).toHaveBeenCalledWith(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      expect.anything(),
+      expect.any(Function),
+      expect.any(Function),
+    );
+    // Once per target before the lock, once per target under it.
+    expect(autonomousPublishPolicy.resolveForTarget).toHaveBeenCalledTimes(4);
+    expect(postPatch).toHaveBeenCalledTimes(1);
+    expect(postCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('schedules nothing and reports the policy when the lock shows the last slot is gone', async () => {
+    const { autonomousPublishPolicy, postCreate, postPatch, service } =
+      makeService([
+        {
+          caption: 'Hello world',
+          credentialId: 'credential-twitter',
+          platform: CredentialPlatform.TWITTER,
+        },
+      ]);
+    autonomousPublishPolicy.resolveForTarget
+      .mockResolvedValueOnce({
+        result: { decision: AgentPublishDecision.PERMITTED },
+      })
+      .mockResolvedValueOnce({
+        result: {
+          decision: AgentPublishDecision.DENIED,
+          reason: 'The brand already has 3 posts that day.',
+        },
+      });
+
+    const result = await (
+      service as unknown as {
+        publishTextDraft: (
+          strategy: unknown,
+          draft: unknown,
+          content: string,
+          platforms: string[],
+          userId: string,
+        ) => Promise<{
+          policyReason?: string;
+          postIds: string[];
+          scheduled: boolean;
+        }>;
+      }
+    ).publishTextDraft(
+      strategy,
+      draft,
+      'Hello world',
+      [CredentialPlatform.TWITTER],
+      'user-1',
+    );
+
+    expect(result).toEqual({
+      policyReason: 'The brand already has 3 posts that day.',
+      postIds: [],
+      scheduled: false,
+    });
+    expect(postPatch).not.toHaveBeenCalled();
+    expect(postCreate).not.toHaveBeenCalled();
   });
 });

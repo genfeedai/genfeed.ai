@@ -12,16 +12,12 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import {
-  AgentPublishDecision,
-  PostCategory,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { PostCategory, TargetExecutionState } from '@genfeedai/contracts';
 
 export interface AutopilotThreadPublishDependencies {
   autonomousPublishPolicy: Pick<
     AutonomousPublishPolicyService,
-    'resolveForTarget'
+    'resolveForTarget' | 'scheduleWithinPostCaps'
   >;
   postAccountFanoutService: Pick<
     PostAccountFanoutService,
@@ -59,32 +55,41 @@ export async function publishAutopilotThread(
     platform: input.platform,
   });
   if (!target) return { postIds: [], scheduled: false };
-  const policy = await deps.autonomousPublishPolicy.resolveForTarget({
-    brandId,
-    caption: target.caption,
-    credentialId: target.credentialId,
-    organizationId,
-    platform: target.platform,
-    postId: input.draftId,
-    postCategory: PostCategory.TEXT,
-    qualityScore: input.qualityScore,
-    strategyId: strategyId(input.strategy),
-  });
-  if (policy.result.decision !== AgentPublishDecision.PERMITTED)
+  const resolve = () =>
+    deps.autonomousPublishPolicy.resolveForTarget({
+      brandId,
+      caption: target.caption,
+      credentialId: target.credentialId,
+      organizationId,
+      platform: target.platform,
+      postId: input.draftId,
+      postCategory: PostCategory.TEXT,
+      qualityScore: input.qualityScore,
+      strategyId: strategyId(input.strategy),
+    });
+  // Scheduling the root schedules its replies on the same account. The
+  // Policy's post caps are counted and the root scheduled under one lock.
+  const { policy, scheduled: post } =
+    await deps.autonomousPublishPolicy.scheduleWithinPostCaps(
+      { brandId, organizationId },
+      await resolve(),
+      resolve,
+      () =>
+        deps.postsService.patch(input.draftId, {
+          credentialId: target.credentialId,
+          groupId: randomUUID(),
+          platform: target.platform,
+          scheduledDate: new Date(),
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          userId: input.userId,
+        }),
+    );
+  if (!post)
     return {
       policyReason: policy.result.reason,
       postIds: [],
       scheduled: false,
     };
-  // Scheduling the root schedules its replies on the same account.
-  const post = await deps.postsService.patch(input.draftId, {
-    credentialId: target.credentialId,
-    groupId: randomUUID(),
-    platform: target.platform,
-    scheduledDate: new Date(),
-    targetExecutionState: TargetExecutionState.SCHEDULED,
-    userId: input.userId,
-  });
   return { postIds: [documentId(post)], scheduled: true };
 }
 
