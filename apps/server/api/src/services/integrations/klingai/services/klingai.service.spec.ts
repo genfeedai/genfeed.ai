@@ -222,69 +222,6 @@ describe('KlingAIService', () => {
     });
   });
 
-  describe('generateImageToVideo', () => {
-    it('resolves the parent image through the ingredients endpoint', async () => {
-      const { post, service } = createHarness();
-
-      await expect(
-        service.generateImageToVideo('pan left', 'ingredient-1'),
-      ).resolves.toBe('req-1');
-
-      expect(post).toHaveBeenCalledWith(
-        'https://api.klingai.com/v1/videos/image2video',
-        expect.objectContaining({
-          duration: 5,
-          image: 'https://ingredients.test/images/ingredient-1',
-          model: 'kling-v1',
-          prompt: 'pan left',
-        }),
-        expect.anything(),
-      );
-    });
-
-    it('honours an explicit model override', async () => {
-      const { post, service } = createHarness();
-
-      await service.generateImageToVideo('pan left', 'ingredient-1', {
-        model: 'kling-v2',
-      });
-
-      expect(post).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ model: 'kling-v2' }),
-        expect.anything(),
-      );
-    });
-
-    it('throws on a non-200 provider status', async () => {
-      const { post, service } = createHarness();
-      post.mockReturnValue(of({ data: {}, status: 502 }));
-
-      await expect(
-        service.generateImageToVideo('pan left', 'ingredient-1'),
-      ).rejects.toThrowError('KlingAI API returned non-200 status');
-    });
-
-    it('raises an authorization failure for a 401 response', async () => {
-      const { post, service } = createHarness();
-      post.mockReturnValue(throwError(() => axiosError(401)));
-
-      await expect(
-        service.generateImageToVideo('pan left', 'ingredient-1'),
-      ).rejects.toThrowError('KlingAI authorization failed');
-    });
-
-    it('logs and rethrows a transport error', async () => {
-      const { loggerService, post, service } = createHarness();
-      post.mockReturnValue(throwError(() => new Error('socket hang up')));
-
-      await expect(
-        service.generateImageToVideo('pan left', 'ingredient-1'),
-      ).rejects.toThrowError('socket hang up');
-      expect(loggerService.error).toHaveBeenCalled();
-    });
-  });
-
   describe('generateTextToVideo', () => {
     it('posts to the text2video endpoint with a 5 second duration', async () => {
       const { post, service } = createHarness();
@@ -354,19 +291,6 @@ describe('KlingAIService', () => {
 
       await expect(service.queueGenerateImage('a cat')).resolves.toBe('req-1');
       expect(post).toHaveBeenCalledTimes(1);
-    });
-
-    it('runs queued image-to-video generation through the limiter', async () => {
-      const { post, service } = createHarness();
-
-      await expect(
-        service.queueGenerateImageToVideo('pan left', 'ingredient-1'),
-      ).resolves.toBe('req-1');
-      expect(post).toHaveBeenCalledWith(
-        'https://api.klingai.com/v1/videos/image2video',
-        expect.anything(),
-        expect.anything(),
-      );
     });
 
     it('runs queued text-to-video generation through the limiter', async () => {

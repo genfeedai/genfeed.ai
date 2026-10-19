@@ -88,6 +88,7 @@ describe('CronIngredientsService', () => {
           provide: FilesClientService,
           useValue: {
             extractMetadataFromUrl: vi.fn(),
+            getPresignedDownloadUrlForObjectKey: vi.fn(),
           },
         },
         {
@@ -294,6 +295,37 @@ describe('CronIngredientsService', () => {
           'Checking for completed ingredients with missing dimensions',
         ),
         expect.any(String),
+      );
+    });
+
+    it('reads media through its stored object key when it has one', async () => {
+      filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
+        'https://s3.test/signed',
+      );
+      filesClientService.extractMetadataFromUrl.mockResolvedValue({
+        height: 1080,
+        width: 1920,
+      });
+      metadataService.patch.mockResolvedValue({} as unknown as MetadataEntity);
+      ingredientsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            category: IngredientCategory.IMAGE,
+            id: 'ing-keyed',
+            metadata: { height: 0, id: 'meta-1', width: 0 },
+            metadataId: 'meta-1',
+            s3Key: 'ingredients/images/abc',
+          },
+        ],
+      } as unknown as AggregatePaginateResult<IngredientEntity>);
+
+      await service.refreshMissingMetadataDimensions();
+
+      expect(
+        filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).toHaveBeenCalledWith('ingredients/images/abc');
+      expect(filesClientService.extractMetadataFromUrl).toHaveBeenCalledWith(
+        'https://s3.test/signed',
       );
     });
 
