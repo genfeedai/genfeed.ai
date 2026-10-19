@@ -9,11 +9,15 @@ import type {
   StudioPlaygroundCapabilities,
 } from '@genfeedai/contracts/interfaces';
 import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
 import { describe, expect, it, vi } from 'vitest';
+
+const BANNER_ID = testId('systembanner');
+const DANCE_ID = testId('systemdance');
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
@@ -738,8 +742,8 @@ describe('GenerationSetupPopover', () => {
       onDeletePreset,
       presets: [createPreset({ id: 'preset-1', label: 'Studio Look' })],
       systemPresets: [
-        { id: 'cpresetbuiltinstudiobanner', label: 'Banner' },
-        { id: 'cpresetbuiltinstudiodance', label: 'Dance' },
+        { id: BANNER_ID, label: 'Banner' },
+        { id: DANCE_ID, label: 'Dance' },
       ],
     });
     await openPopover(user);
@@ -755,9 +759,7 @@ describe('GenerationSetupPopover', () => {
     await user.click(
       screen.getByRole('button', { name: 'Apply preset Banner' }),
     );
-    expect(onApplySystemPreset).toHaveBeenCalledWith(
-      'cpresetbuiltinstudiobanner',
-    );
+    expect(onApplySystemPreset).toHaveBeenCalledWith(BANNER_ID);
     expect(onDeletePreset).not.toHaveBeenCalled();
   });
 
@@ -765,7 +767,7 @@ describe('GenerationSetupPopover', () => {
     const user = userEvent.setup();
     renderPopover({
       presets: [],
-      systemPresets: [{ id: 'cpresetbuiltinstudiodance', label: 'Dance' }],
+      systemPresets: [{ id: DANCE_ID, label: 'Dance' }],
     });
     await openPopover(user);
     await user.click(screen.getByRole('button', { name: 'Configure Presets' }));
@@ -778,8 +780,8 @@ describe('GenerationSetupPopover', () => {
   it('names a pinned system preset in the banner', async () => {
     const user = userEvent.setup();
     renderPopover({
-      setup: createSetup({ presetId: 'cpresetbuiltinstudiodance' }),
-      systemPresets: [{ id: 'cpresetbuiltinstudiodance', label: 'Dance' }],
+      setup: createSetup({ presetId: DANCE_ID }),
+      systemPresets: [{ id: DANCE_ID, label: 'Dance' }],
     });
     await openPopover(user);
     expect(screen.getByText('Pinned: Dance')).toBeInTheDocument();
