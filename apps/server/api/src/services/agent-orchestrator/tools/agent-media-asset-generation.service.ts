@@ -7,6 +7,7 @@ import {
   type IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
+import { buildIdentityAvatarVideoBody } from '@api/services/agent-orchestrator/tools/agent-identity-avatar-body.util';
 import {
   buildImageGenerationResult,
   buildMediaAssetData,
@@ -36,9 +37,7 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
-  isAvatarVideoAspectRatio,
   resolveAgentGenerationDimensions,
-  resolveAvatarVideoAspectRatio,
 } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -754,17 +753,7 @@ export class AgentMediaAssetGenerationService {
     }
     const response = toMediaResponseRecord(
       await this.generationGateway.generateAvatarVideo({
-        body: {
-          aspectRatio: resolveAvatarVideoAspectRatio({
-            aspectRatio: [
-              params.aspectRatio,
-              ctx.generationSettings?.aspectRatio,
-            ].find(isAvatarVideoAspectRatio),
-            platform: params.platform,
-          }),
-          text,
-          useIdentity: true,
-        },
+        body: buildIdentityAvatarVideoBody(text, params, ctx),
         principal: this.toPrincipal(ctx),
       }),
     );
