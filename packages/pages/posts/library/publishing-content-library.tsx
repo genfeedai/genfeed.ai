@@ -1,6 +1,7 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -33,6 +34,7 @@ import type { Newsletter } from '@models/content/newsletter.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
 import {
+  createPublishingContentAccounts,
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
   formatPublishingContentChannel,
@@ -109,6 +111,7 @@ export default function PublishingContentLibrary({
   const translate = useTranslations('pages.posts.list.collection');
   const translateList = useTranslations('pages.posts.list');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
+  const { credentials } = useBrand();
   const isFetchReady = isCollectionFetchReady({
     brandId,
     isReady,
@@ -241,6 +244,10 @@ export default function PublishingContentLibrary({
         }))
         .sort((left, right) => left.label.localeCompare(right.label)),
     [items],
+  );
+  const accountOptions = useMemo(
+    () => createPublishingContentAccounts(credentials ?? []),
+    [credentials],
   );
   const statusOptions = useMemo(
     () =>
@@ -614,6 +621,7 @@ export default function PublishingContentLibrary({
     setFiltersNode(
       <PublishingContentLibraryToolbar
         showSearch={false}
+        accountOptions={accountOptions}
         channelOptions={channelOptions}
         channelValue={channel}
         searchValue={search}
@@ -634,6 +642,7 @@ export default function PublishingContentLibrary({
       setLeadingNode(null);
     };
   }, [
+    accountOptions,
     channel,
     channelOptions,
     isApprovals,
