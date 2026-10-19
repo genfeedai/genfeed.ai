@@ -46,6 +46,15 @@
   "allStatuses": "All statuses",
   "active": "Active",
   "inactive": "Inactive",
+  "detail": {
+    "capabilities": "Capabilities",
+    "description": "Description",
+    "maxDimensions": "Max: {width} x {height}px",
+    "minDimensions": "Min: {width} x {height}px",
+    "recommendedFor": "Recommended For",
+    "supportedDimensions": "Supported Dimensions",
+    "supportedFeatures": "Supported Features"
+  },
   "viewDetails": "View Details",
   "approve": "Approve",
   "approveModel": "Approve Model",

@@ -1,19 +1,20 @@
 'use client';
 
-import {
-  useIngredientOverlay,
-  usePostModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
   IngredientLineageDirection,
+  IngredientStatus,
   LIBRARY_SHELF_LABELS,
   LibraryShelf,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
@@ -33,6 +34,8 @@ import {
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
@@ -42,7 +45,9 @@ import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickAct
 import { format } from 'date-fns';
 import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
 import IngredientLineageStrip from './IngredientLineageStrip';
 import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
@@ -128,20 +133,55 @@ function InspectorNote({
  */
 export default function IngredientInspectorRail({
   className,
+  detailHref,
   ingredient,
   onOpenPreview,
 }: IngredientInspectorRailProps) {
   const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
   const grant = useAuthorizedMediaPreview(ingredient);
-  // The rail is a full detail surface, so Publish and Download run the same
-  // handlers as the asset modal. Without them the quick actions render as
+  const { push } = useRouter();
+  const { href } = useOrgUrl();
+  // The rail is a full detail surface, so Publish, Download and Share run the
+  // same handlers the asset cards do. Without them the quick actions render as
   // locked placeholders.
   const { openPostBatchModal } = usePostModal();
-  const { openIngredientOverlay } = useIngredientOverlay();
   const { handlers, loadingStates } = useIngredientActions({
     onPublishIngredient: openPostBatchModal,
   });
+  const handleSeeDetails = useCallback(() => {
+    if (detailHref) {
+      push(detailHref);
+    }
+  }, [detailHref, push]);
+  const handleCreateVariation = useCallback(
+    (image: IIngredient) => {
+      if (image.status === IngredientStatus.PROCESSING) {
+        return;
+      }
+
+      push(
+        href(
+          buildContextualRemixHref(APP_ROUTES.STUDIO.PLAYGROUND, {
+            kind: 'ingredient',
+            recordId: image.id,
+            recordVersion: image.version?.toString(),
+          }),
+        ),
+      );
+    },
+    [href, push],
+  );
+  const handleUsePrompt = useCallback(
+    (source: IIngredient) => {
+      if (source.promptText) {
+        // One-off generation is Agent-first, so reusing a prompt opens a new
+        // Agent thread.
+        push(href(buildAgentPromptHref(source.promptText)));
+      }
+    },
+    [href, push],
+  );
   const previewUrl = grant
     ? isRasterPreviewUrl(grant.url)
       ? grant.url
@@ -305,8 +345,15 @@ export default function IngredientInspectorRail({
           await handlers.handleDownload(asset);
           return undefined;
         }}
+        onCreateVariation={
+          ingredient.category === IngredientCategory.IMAGE
+            ? handleCreateVariation
+            : undefined
+        }
         onPublish={handlers.handlePublish}
-        onSeeDetails={(ingredient) => openIngredientOverlay(ingredient)}
+        onSeeDetails={detailHref ? handleSeeDetails : undefined}
+        onShare={handlers.handleShare}
+        onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
         selectedIngredient={ingredient}
       />
     </aside>

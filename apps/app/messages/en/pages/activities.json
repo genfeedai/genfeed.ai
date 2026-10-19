@@ -5,6 +5,7 @@
   "markRead": "Mark as read",
   "markUnread": "Mark as unread",
   "copyValue": "Copy",
+  "detailOpen": "Open",
   "detailValue": "Stored value",
   "detailPreviewAlt": "Activity preview",
   "detailViewOnNetwork": "View on {platform}",

@@ -177,7 +177,6 @@ export function useIngredientsList({
     handleReprompt: actionsState.handleReprompt,
     handleReverse: actionsState.handleReverse,
     handleScopeChange: actionsState.handleScopeChange,
-    handleSeeDetails: actionsState.handleSeeDetails,
     handleSelectFolder: actionsState.handleSelectFolder,
     handleUpdateParent: actionsState.handleUpdateParent,
     hasFilteredEmptyState,

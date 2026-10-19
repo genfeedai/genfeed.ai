@@ -23,6 +23,17 @@ Unit and HTTP module tests cover canonical organization scope, free/API-key/admi
 
 Before activation, the protected output-generation and output-quality owners must replace any remaining ID-derived or computed-clean media reads in their claimed source/mask admission, evaluation and quality-scoring surfaces with organization-bound execution hydration. This PR deliberately leaves those owner surfaces untouched. Queued editor, training and YouTube jobs now carry canonical keys authored only after scoped producer lookup; browser DTOs cannot supply those keys. Workers use the trusted service transport and sign exact keys at each attempt. Editor key maps are excluded from persisted provenance and HTTP responses. Legacy queued jobs still require the drain/requeue step above.
 
+### Execution reads by surface
+
+With delivery enabled, every server-side read of tenant media mints a short-lived grant from the stored key after an organization-bound lookup. An ID-derived path is never built. Reads that cannot be expressed that way are refused, not downgraded to an unsigned URL.
+
+| Surface | Behaviour when delivery is enabled |
+| --- | --- |
+| Image edit and generation sources, masks, FLUX.3 references | `AuthorizedMediaUrlService.issueServerPublish`, in the granted character's owning organization for an admitted shared avatar |
+| Image and video reference ids (`buildReferenceImageUrl(s)`) | Image ingredients through `issueServerPublish`, brand assets (reference, logo, banner) through `issueServerAssetUrls` |
+| Video references and end frames | A video id used as an image reference is refused: no thumbnail key is stored once keys are random |
+| Crun quotes | Every reference is refused. The frozen quote hashes and stores its input, so it cannot hold an expiring URL. Re-enable once quotes carry stored keys and sign at dispatch |
+
 Before closing #4895, record nonproduction CDN checks for unsigned-original denial, cross-organization denial, expiry, URL/path tampering, literal `?`, `#`, `%2F` and whitespace keys, public-share revocation, and cached-response grant renewal. Measure first preparation latency, repeat-preview origin downloads and repeated list/bootstrap query counts. A ready variant must be reused without rendering or downloading its original again. Cache hits must receive fresh grants after authorization and must not retain another organization's grants.
 
 ## Recovery and rollback

@@ -8,9 +8,6 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountConnectionStatus } from '@genfeedai/props/pages/brand-integrations.props';
 
-export type BrandOverlayView = 'edit' | 'overview';
-export type BrandEditorTab = 'branding' | 'info' | 'models';
-
 export type BrandOverlayRecord = Brand &
   IBrand & {
     defaultImageModel?: string | null;

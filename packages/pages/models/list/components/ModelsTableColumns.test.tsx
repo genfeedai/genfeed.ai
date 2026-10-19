@@ -393,12 +393,21 @@ describe('buildModelsTableColumns', () => {
     expect(screen.getByText('Free')).toBeInTheDocument();
   });
 
-  it('opens model details from the label', () => {
+  it('leaves the label to the row sidebar outside the admin', () => {
+    renderColumn('Label', buildModel({ label: 'Flux Dev' }), false);
+
+    expect(screen.getByText('Flux Dev')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'View details for Flux Dev' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens the model editor from the admin label', () => {
     const onOpenDetails = vi.fn();
     renderColumn(
       'Label',
       buildModel({ label: 'Flux Dev' }),
-      false,
+      true,
       onOpenDetails,
     );
 

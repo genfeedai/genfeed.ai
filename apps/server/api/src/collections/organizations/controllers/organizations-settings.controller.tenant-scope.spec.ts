@@ -81,7 +81,11 @@ describe('Organization settings authorized path reads (#6176)', () => {
       targetOrganizationId,
     );
     expect(response.data?.id).toBe('settings');
-    expect(read).toHaveBeenCalledWith({ organizationId: targetOrganizationId });
+    expect(read).toHaveBeenCalledWith(
+      { organizationId: targetOrganizationId },
+      [],
+      { includePaidHint: true },
+    );
     expect(ensure).not.toHaveBeenCalled();
   });
 
@@ -93,9 +97,11 @@ describe('Organization settings authorized path reads (#6176)', () => {
         targetOrganizationId,
       ),
     ).rejects.toMatchObject({ status: 404 });
-    expect(read).toHaveBeenCalledWith({
-      organizationId: targetOrganizationId,
-    });
+    expect(read).toHaveBeenCalledWith(
+      { organizationId: targetOrganizationId },
+      [],
+      { includePaidHint: true },
+    );
     expect(ensure).not.toHaveBeenCalled();
   });
 
@@ -107,7 +113,9 @@ describe('Organization settings authorized path reads (#6176)', () => {
         tenantReadRequest(user),
         sessionOrganizationId,
       );
-      expect(ensure).toHaveBeenCalledWith(sessionOrganizationId);
+      expect(ensure).toHaveBeenCalledWith(sessionOrganizationId, {
+        includePaidHint: true,
+      });
     },
   );
 

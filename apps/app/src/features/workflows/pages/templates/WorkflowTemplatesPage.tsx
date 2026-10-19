@@ -70,7 +70,7 @@ import {
   templateAttemptScope,
 } from './template-bootstrap-attempt';
 import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
-import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
+import { WorkflowTemplateDetailsPanel } from './WorkflowTemplateDetailsPanel';
 
 /**
  * Category ids with a catalog label, mapped to their `categories.*` key.
@@ -1146,7 +1146,7 @@ function WorkflowTemplatesPageContent() {
     return actions;
   }
 
-  /** The dialog's primary action when it is a command rather than a link. */
+  /** The details panel's primary action when it is a command rather than a link. */
   function detailsInstallAction(
     item: CatalogItem | null,
   ): (() => void) | undefined {
@@ -1444,7 +1444,7 @@ function WorkflowTemplatesPageContent() {
           </p>
         ) : null}
       </div>
-      <WorkflowTemplateDetailsDialog
+      <WorkflowTemplateDetailsPanel
         actionLabel={translate('actions.useTemplate')}
         categoryLabel={
           detailsItem?.category
@@ -1459,13 +1459,9 @@ function WorkflowTemplatesPageContent() {
             ? detailsItem.featuredWorkflowId === copyingFeaturedWorkflowId
             : detailsItem?.systemEntry?.canonicalId === installingCanonicalId
         }
-        isOpen={detailsItem !== null}
+        id={detailsItem?.id ?? null}
+        onClose={() => setDetailsItem(null)}
         onInstall={detailsInstallAction(detailsItem)}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setDetailsItem(null);
-          }
-        }}
         preview={
           detailsItem
             ? {

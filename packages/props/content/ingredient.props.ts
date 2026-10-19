@@ -82,6 +82,8 @@ export interface IngredientTileOverlaysProps {
 export interface IngredientInspectorRailProps {
   ingredient: IIngredient;
   className?: string;
+  /** The ingredient's own page, when it has one; "See details" links there. */
+  detailHref?: string;
   /** Opens the full-size lightbox; the preview is not interactive without it. */
   onOpenPreview?: () => void;
 }
@@ -177,13 +179,6 @@ export interface IngredientParentsManagerProps {
   ingredient: IIngredient;
   onParentsChange?: (parents: string[]) => void;
   isDisabled?: boolean;
-}
-
-export interface VideoTextOverlayPanelProps {
-  video: IVideo;
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess?: () => void;
 }
 
 /**

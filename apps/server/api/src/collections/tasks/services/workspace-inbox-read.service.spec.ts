@@ -38,6 +38,16 @@ describe('WorkspaceInboxReadService', () => {
       }),
     });
   });
+  it('skips the receipt list for the count-only rail poll', async () => {
+    const { service, prisma } = await setup();
+    expect(await service.list('org-1', 'user-1', { countOnly: true })).toEqual({
+      id: 'org-1',
+      unreadCount: 1,
+      reads: [],
+    });
+    expect(prisma.workspaceInboxRead.findMany).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+  });
   it('validates displayed versions before writing', async () => {
     const { service, prisma } = await setup();
     await service.markRead('org-1', 'user-1', [version]);

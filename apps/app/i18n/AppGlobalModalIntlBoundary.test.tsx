@@ -188,7 +188,7 @@ describe('host global modal catalog boundary', () => {
     },
   );
 
-  it.each(['brand', 'ingredient', 'gallery'] as const)(
+  it.each(['brand', 'gallery'] as const)(
     'adds the bounded asset catalog to %s opened from another area',
     async (kind) => {
       navigation.pathname = '/acme/brand/workspace/overview';
@@ -220,10 +220,8 @@ describe('host global modal catalog boundary', () => {
     'postBatch',
     'upload',
     'export',
-    'credential',
     'prompt',
     'metadata',
-    'postMetadata',
     'illustration',
     'postRemix',
     'postRepurpose',

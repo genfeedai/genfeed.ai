@@ -86,6 +86,7 @@ function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
 }
 
 const mocks = vi.hoisted(() => ({
+  agentProposals: vi.fn(),
   advancedMode: {
     value: { isAdvancedMode: true, isLoaded: true, setAdvancedMode: vi.fn() },
   },
@@ -278,6 +279,39 @@ vi.mock('next-intl', () => ({
         ? 'One prompt bar for every asset type, enriched with your brand.'
         : key,
 }));
+
+vi.mock(
+  '@pages/studio/playground/components/StudioPlaygroundAgentProposals',
+  () => ({
+    default: (props: {
+      brandId?: string;
+      onSelect: (selection: {
+        aspectRatio: string;
+        content: { content: unknown[]; type: string };
+        seedId: string;
+        type: string;
+      }) => void;
+      type: string;
+    }) => {
+      mocks.agentProposals(props);
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            props.onSelect({
+              aspectRatio: '9:16',
+              content: { content: [], type: 'doc' },
+              seedId: 'proposal:0:1',
+              type: props.type,
+            })
+          }
+        >
+          Agent draft
+        </button>
+      );
+    },
+  }),
+);
 
 vi.mock('@pages/studio/playground/components/StudioPlaygroundComposer', () => ({
   default: (props: {
@@ -874,6 +908,36 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(setup.values.aspectRatio).toBe('1:1');
     expect(setup.sources.promptTemplate).toBe('user');
     expect(setup.sources.aspectRatio).toBe('user');
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+  });
+
+  it('opens an empty Playground on the agent drafts for the brand', () => {
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(mocks.agentProposals).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandId: mocks.brandId.value || undefined,
+        type: 'image',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Agent draft' }));
+
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      documentSeed?: { id: string } | null;
+    };
+    expect(composerProps.documentSeed?.id).toBe('proposal:0:1');
+    const setup = getGenerationSetup(
+      'studio:image',
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(setup.values.aspectRatio).toBe('9:16');
     useGenerationSetupStore.setState({
       reasonsByScope: {},
       setupByScope: {},

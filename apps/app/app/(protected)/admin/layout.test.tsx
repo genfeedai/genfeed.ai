@@ -54,7 +54,7 @@ describe('AdminLayout authorization', () => {
     const AdminLayout = (await import('./layout')).default;
 
     await expect(AdminLayout({ children })).resolves.toMatchObject({
-      props: { children },
+      props: { children: expect.arrayContaining([children]) },
     });
     expect(loadServerSuperAdminMock).not.toHaveBeenCalled();
     expect(notFoundMock).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('AdminLayout authorization', () => {
     const AdminLayout = (await import('./layout')).default;
 
     await expect(AdminLayout({ children })).resolves.toMatchObject({
-      props: { children },
+      props: { children: expect.arrayContaining([children]) },
     });
     expect(notFoundMock).not.toHaveBeenCalled();
   });

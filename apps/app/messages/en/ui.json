@@ -711,5 +711,39 @@
   "promptBarBlacklist": {
     "avoid": "Avoid",
     "chooseWhatToAvoid": "Choose what to avoid"
+  },
+  "brandCreate": {
+    "title": "New brand",
+    "description": "Paste a website to autofill name and description, or enter details manually. Finish setup on the brand page after create.",
+    "website": {
+      "label": "Website",
+      "description": "We’ll scrape the public site for label, slug, and description.",
+      "placeholder": "https://example.com",
+      "load": "Load from site",
+      "loading": "Loading…"
+    },
+    "label": {
+      "label": "Label",
+      "placeholder": "Acme"
+    },
+    "slug": {
+      "label": "Slug",
+      "placeholder": "acme"
+    },
+    "descriptionField": {
+      "label": "Description",
+      "placeholder": "What this brand is about"
+    },
+    "cancel": "Cancel",
+    "submit": "Create brand",
+    "submitting": "Creating…"
+  },
+  "brandSidebar": {
+    "loading": "Loading brand…",
+    "unavailable": "Brand unavailable",
+    "public": "Public",
+    "private": "Private",
+    "connected": "{count} connected",
+    "openSettings": "Open settings"
   }
 }

@@ -14,16 +14,24 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
 }));
 
 const openPostBatchModal = vi.fn();
-const openIngredientOverlay = vi.fn();
 const handleDownload = vi.fn();
+const handleShare = vi.fn();
+const push = vi.fn();
 
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
     usePostModal: () => ({ openPostBatchModal }),
-    useIngredientOverlay: () => ({ openIngredientOverlay }),
   }),
 );
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+}));
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand${path}` }),
+}));
 
 vi.mock(
   '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
@@ -37,6 +45,7 @@ vi.mock(
         handleDownload,
         handlePublish: (ingredient: IIngredient) =>
           onPublishIngredient(ingredient),
+        handleShare,
       },
       loadingStates: { isDownloading: false, isPublishing: false },
     }),
@@ -48,11 +57,15 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
     onDownload,
     onPublish,
     onSeeDetails,
+    onShare,
+    onUsePrompt,
     selectedIngredient,
   }: {
     onDownload?: (ingredient: IIngredient) => Promise<undefined>;
     onPublish?: (ingredient: IIngredient, platform: string) => void;
     onSeeDetails?: (ingredient: IIngredient) => void;
+    onShare?: (ingredient: IIngredient) => void;
+    onUsePrompt?: (ingredient: IIngredient) => void;
     selectedIngredient: IIngredient;
   }) => (
     <div>
@@ -72,6 +85,18 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
         aria-label="download-action"
         disabled={!onDownload}
         onClick={() => onDownload?.(selectedIngredient)}
+        type="checkbox"
+      />
+      <input
+        aria-label="share-action"
+        disabled={!onShare}
+        onClick={() => onShare?.(selectedIngredient)}
+        type="checkbox"
+      />
+      <input
+        aria-label="prompt-action"
+        disabled={!onUsePrompt}
+        onClick={() => onUsePrompt?.(selectedIngredient)}
         type="checkbox"
       />
     </div>
@@ -315,13 +340,45 @@ describe('IngredientInspectorRail', () => {
     expect(handleDownload).toHaveBeenCalledWith(ingredient);
   });
 
-  it('opens the existing metadata editor for the inspected asset', () => {
-    render(<IngredientInspectorRail ingredient={ingredient} />);
+  it('links See details to the asset page only when it has one', () => {
+    const { rerender } = render(
+      <IngredientInspectorRail ingredient={ingredient} />,
+    );
+    expect(
+      screen.getByRole('checkbox', { name: 'details-action' }),
+    ).toBeDisabled();
 
+    rerender(
+      <IngredientInspectorRail
+        detailHref="/admin/images/asset-1"
+        ingredient={ingredient}
+      />,
+    );
     const details = screen.getByRole('checkbox', { name: 'details-action' });
     expect(details).toBeEnabled();
     fireEvent.click(details);
-    expect(openIngredientOverlay).toHaveBeenCalledWith(ingredient);
+    expect(push).toHaveBeenCalledWith('/admin/images/asset-1');
+  });
+
+  it('shares the asset and reuses its prompt in a new Agent thread', () => {
+    push.mockClear();
+    const { rerender } = render(
+      <IngredientInspectorRail ingredient={ingredient} />,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'share-action' }));
+    expect(handleShare).toHaveBeenCalledWith(ingredient);
+    expect(
+      screen.getByRole('checkbox', { name: 'prompt-action' }),
+    ).toBeDisabled();
+
+    rerender(
+      <IngredientInspectorRail
+        ingredient={{ ...ingredient, promptText: 'A red mug' }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'prompt-action' }));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push.mock.calls[0]?.[0]).toContain('A+red+mug');
   });
 
   it('omits the origin row when the asset carries none', () => {

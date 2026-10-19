@@ -6,6 +6,7 @@ import {
 } from '@app-server/protected-bootstrap.server';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { notFound } from 'next/navigation';
+import AdminContextSidebar from '@/components/workspace-shell/AdminContextSidebar';
 
 /**
  * Platform admin is gated on `platformRole = SUPERADMIN` only.
@@ -26,7 +27,10 @@ import { notFound } from 'next/navigation';
 export default async function AdminLayout({ children }: LayoutProps) {
   if (await isProtectedBootstrapBypassed()) {
     return (
-      <AppPageIntlProvider pages={messages}>{children}</AppPageIntlProvider>
+      <AppPageIntlProvider pages={messages}>
+        {children}
+        <AdminContextSidebar />
+      </AppPageIntlProvider>
     );
   }
 
@@ -34,5 +38,10 @@ export default async function AdminLayout({ children }: LayoutProps) {
     notFound();
   }
 
-  return <AppPageIntlProvider pages={messages}>{children}</AppPageIntlProvider>;
+  return (
+    <AppPageIntlProvider pages={messages}>
+      {children}
+      <AdminContextSidebar />
+    </AppPageIntlProvider>
+  );
 }

@@ -98,6 +98,16 @@ describe('Crun canonical reference authorization', () => {
       );
     },
   );
+  it('refuses every reference while authorized delivery is on, since a frozen quote cannot hold an expiring URL', async () => {
+    const f = fixture();
+    (f.context.config as { isAuthorizedMediaDeliveryEnabled?: boolean }) = {
+      ...(f.context.config as object),
+      isAuthorizedMediaDeliveryEnabled: true,
+    };
+    expect(await resolveCrunReferences(f.context)).toBeNull();
+    expect(f.assets.findOne).not.toHaveBeenCalled();
+    expect(f.ingredients.findOne).not.toHaveBeenCalled();
+  });
   it('rejects a foreign-user asset through the canonical user-scoped lookup', async () => {
     const f = fixture({ userId: 'foreign-user' });
     f.assets.findOne.mockResolvedValue(null);

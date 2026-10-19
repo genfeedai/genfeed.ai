@@ -23,7 +23,6 @@ const _mockHandlers = {
   handlePortrait: vi.fn(),
   handleReprompt: vi.fn(),
   handleReverse: vi.fn(),
-  handleSeeDetails: vi.fn(),
   handleUpdateParent: vi.fn(),
 };
 
@@ -82,7 +81,6 @@ vi.mock(
         handlePortrait: vi.fn(),
         handleReprompt: vi.fn(),
         handleReverse: vi.fn(),
-        handleSeeDetails: vi.fn(),
         handleUpdateParent: vi.fn(),
       },
       loadingStates: {
@@ -104,7 +102,6 @@ vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
     useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
-    useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
     usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
     useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
   }),

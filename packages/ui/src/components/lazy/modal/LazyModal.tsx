@@ -14,16 +14,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import type {
-  BrandOverlayProps,
-  IngredientOverlayProps,
   ModalArticleProps,
   ModalAvatarProps,
   ModalBlacklistProps,
   ModalBotProps,
+  ModalBrandCreateProps,
   ModalBrandGenerateProps,
   ModalBrandLinkProps,
   ModalConfirmProps,
-  ModalCredentialProps,
   ModalCrudProps,
   ModalExportProps,
   ModalFolderProps,
@@ -44,7 +42,6 @@ import type {
   ModalTrimProps,
   ModalUploadProps,
   ModalVideoProps,
-  PostMetadataOverlayProps,
 } from '@genfeedai/props/modals/modal.props';
 import type { ModalPostRemixProps } from '@genfeedai/props/modals/modal-post-remix.props';
 import type { ModalPostRepurposeProps } from '@genfeedai/props/modals/modal-post-repurpose.props';
@@ -62,10 +59,10 @@ export const LazyModalBot = dynamic(
 ) as ComponentType<ModalBotProps>;
 
 // Account modals
-export const LazyBrandOverlay = dynamic(
-  () => import('@ui/modals/brands/brand/ModalBrand'),
+export const LazyModalBrandCreate = dynamic(
+  () => import('@ui/modals/brands/brand/ModalBrandCreate'),
   { ssr: false },
-) as ComponentType<BrandOverlayProps>;
+) as ComponentType<ModalBrandCreateProps>;
 
 export const LazyModalBrandGenerate = dynamic(
   () => import('@ui/modals/brands/generate/ModalBrandGenerate'),
@@ -82,11 +79,6 @@ export const LazyModalAvatar = dynamic(
   () => import('@ui/modals/ingredients/avatar/ModalAvatar'),
   { ssr: false },
 ) as ComponentType<ModalAvatarProps>;
-
-export const LazyIngredientOverlay = dynamic(
-  () => import('@ui/modals/ingredients/ingredient/ModalIngredient'),
-  { ssr: false },
-) as ComponentType<IngredientOverlayProps>;
 
 export const LazyModalImageToVideo = dynamic(
   () => import('@ui/modals/ingredients/image-to-video/ModalImageToVideo'),
@@ -169,11 +161,6 @@ export const LazyModalConfirm = dynamic(
   { ssr: false },
 ) as ComponentType<ModalConfirmProps>;
 
-export const LazyModalCredential = dynamic(
-  () => import('@ui/modals/system/credential/ModalCredential'),
-  { ssr: false },
-) as ComponentType<ModalCredentialProps>;
-
 export const LazyModalExport = dynamic(
   () => import('@ui/modals/system/export/ModalExport'),
   { ssr: false },
@@ -236,11 +223,6 @@ export const LazyModalPostBatch = dynamic(
   () => import('@ui/modals/content/batch/ModalPostBatch'),
   { ssr: false },
 ) as ComponentType<ModalPostBatchProps>;
-
-export const LazyPostMetadataOverlay = dynamic(
-  () => import('@ui/modals/content/post/ModalPostMetadata'),
-  { ssr: false },
-) as ComponentType<PostMetadataOverlayProps>;
 
 export const LazyModalTextOverlay = dynamic(
   () => import('@ui/modals/content/overlay/ModalTextOverlay'),

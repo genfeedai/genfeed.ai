@@ -1,5 +1,6 @@
 'use client';
 
+import { AppAssetCatalogBoundary } from '@app-i18n/AppGlobalModalIntlBoundary';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
@@ -13,15 +14,19 @@ import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import type { BlockedCharacter } from '@props/characters/characters-page.props';
-import type { TableRowLink } from '@props/ui/display/table.props';
+import type {
+  TableRowLink,
+  TableRowSidebar,
+} from '@props/ui/display/table.props';
 import {
-  useBrandOverlay,
+  useBrandCreateModal,
   useConfirmModal,
 } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
+import BrandSidebarPanel from '@ui/brands/sidebar/BrandSidebarPanel';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { EmptyState } from '@ui/card/EmptyState';
 import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
@@ -37,7 +42,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -52,7 +56,7 @@ const ITEMS_PER_PAGE = 20;
 
 function BrandsListContent() {
   const { organizationId, refreshBrands } = useBrand();
-  const { openBrandOverlay } = useBrandOverlay();
+  const { openBrandCreateModal } = useBrandCreateModal();
   const { openConfirm } = useConfirmModal();
   const { orgSlug } = useOrgUrl();
   const { push } = useRouter();
@@ -67,8 +71,8 @@ function BrandsListContent() {
 
   // The brand name and the "Open settings" action go to the brand settings
   // page — the real home for identity, voice, publishing and agent defaults.
-  // A click anywhere else on the row opens the brand overview overlay; the
-  // checkbox only selects.
+  // A click anywhere else on the row opens the brand overview in the right
+  // context sidebar; the checkbox only selects.
   const openBrandSettings = useCallback(
     (brand: Brand) => {
       if (!orgSlug || !brand.slug) {
@@ -213,40 +217,27 @@ function BrandsListContent() {
       {
         header: 'Brand',
         key: 'label',
-        render: (brand: Brand) => {
-          const link = getBrandLink(brand);
-          return (
-            <div className="flex items-center gap-2.5">
-              {brand.logoUrl ? (
-                <Image
-                  alt={brand.label}
-                  className="size-6 rounded-md object-cover outline-media"
-                  src={brand.logoUrl}
-                  sizes="24px"
-                  unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-                  width={24}
-                  height={24}
-                />
-              ) : (
-                <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
-                  {brand.label.charAt(0).toUpperCase()}
-                </div>
-              )}
-              {link ? (
-                <Link
-                  aria-label={link.label}
-                  className="font-medium text-foreground hover:underline focus-visible:underline focus-visible:outline-none"
-                  href={link.href}
-                  prefetch={false}
-                >
-                  {brand.label}
-                </Link>
-              ) : (
-                <span className="font-medium">{brand.label}</span>
-              )}
-            </div>
-          );
-        },
+        // The table links this name to the brand settings page (`getRowLink`).
+        render: (brand: Brand) => (
+          <div className="flex items-center gap-2.5">
+            {brand.logoUrl ? (
+              <Image
+                alt={brand.label}
+                className="size-6 rounded-md object-cover outline-media"
+                src={brand.logoUrl}
+                sizes="24px"
+                unoptimized={!canOptimizeImageSource(brand.logoUrl)}
+                width={24}
+                height={24}
+              />
+            ) : (
+              <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
+                {brand.label.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="font-medium">{brand.label}</span>
+          </div>
+        ),
       },
       {
         header: 'Slug',
@@ -286,7 +277,22 @@ function BrandsListContent() {
         ),
       },
     ],
-    [getBrandLink],
+    [],
+  );
+
+  const rowSidebar = useMemo<TableRowSidebar<Brand>>(
+    () => ({
+      getId: (brand) => brand.id,
+      getSubtitle: (brand) => (brand.slug ? `@${brand.slug}` : undefined),
+      getTitle: (brand) => brand.label,
+      kind: 'brand',
+      render: (brand) => (
+        <AppAssetCatalogBoundary>
+          <BrandSidebarPanel brand={brand} onChange={() => void refresh()} />
+        </AppAssetCatalogBoundary>
+      ),
+    }),
+    [refresh],
   );
 
   const actions = useMemo(
@@ -347,7 +353,7 @@ function BrandsListContent() {
             variant={ButtonVariant.DEFAULT}
             icon={<Plus />}
             label="Add Brand"
-            onClick={() => openBrandOverlay(null, () => refresh())}
+            onClick={() => openBrandCreateModal(() => void refresh())}
           />
         </div>
       }
@@ -363,18 +369,17 @@ function BrandsListContent() {
             icon={Building2}
             action={{
               label: 'Add Brand',
-              onClick: () => openBrandOverlay(null, () => refresh()),
+              onClick: () => openBrandCreateModal(() => void refresh()),
               variant: ButtonVariant.DEFAULT,
             }}
           />
         }
         getItemId={(brand) => brand.id}
         getRowKey={(brand) => brand.id}
+        getRowLink={getBrandLink}
         isLoading={isLoading}
         items={brands || []}
-        onRowClick={(brand) =>
-          openBrandOverlay(brand, () => void refresh(), 'overview')
-        }
+        rowSidebar={rowSidebar}
         onSelectionChange={setSelectedIds}
         selectable={canMoveBrands}
         selectedIds={selectedIds}

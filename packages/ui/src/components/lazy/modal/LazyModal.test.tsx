@@ -21,9 +21,18 @@ vi.mock('next/dynamic', () => ({
 
 describe('LazyModal', () => {
   describe('Account Modals', () => {
-    it('should export LazyBrandOverlay', () => {
-      expect(LazyModals.LazyBrandOverlay).toBeDefined();
-      expect(typeof LazyModals.LazyBrandOverlay).toBe('function');
+    it('should export LazyModalBrandCreate', () => {
+      expect(LazyModals.LazyModalBrandCreate).toBeDefined();
+      expect(typeof LazyModals.LazyModalBrandCreate).toBe('function');
+    });
+
+    it('should render LazyModalBrandCreate when mounted', async () => {
+      const { getByTestId } = render(
+        <LazyModals.LazyModalBrandCreate onConfirm={() => {}} />,
+      );
+      await waitFor(() => {
+        expect(getByTestId('lazy-component')).toBeInTheDocument();
+      });
     });
 
     it('should export LazyModalBrandGenerate', () => {
@@ -43,26 +52,9 @@ describe('LazyModal', () => {
       expect(typeof LazyModals.LazyModalAvatar).toBe('function');
     });
 
-    it('should export LazyIngredientOverlay', () => {
-      expect(LazyModals.LazyIngredientOverlay).toBeDefined();
-      expect(typeof LazyModals.LazyIngredientOverlay).toBe('function');
-    });
-
     it('should export LazyModalVideo', () => {
       expect(LazyModals.LazyModalVideo).toBeDefined();
       expect(typeof LazyModals.LazyModalVideo).toBe('function');
-    });
-
-    it('should render LazyIngredientOverlay when mounted', async () => {
-      const { getByTestId } = render(
-        <LazyModals.LazyIngredientOverlay
-          ingredient={null}
-          onConfirm={() => {}}
-        />,
-      );
-      await waitFor(() => {
-        expect(getByTestId('lazy-component')).toBeInTheDocument();
-      });
     });
   });
 
@@ -117,11 +109,6 @@ describe('LazyModal', () => {
     it('should export LazyModalConfirm', () => {
       expect(LazyModals.LazyModalConfirm).toBeDefined();
       expect(typeof LazyModals.LazyModalConfirm).toBe('function');
-    });
-
-    it('should export LazyModalCredential', () => {
-      expect(LazyModals.LazyModalCredential).toBeDefined();
-      expect(typeof LazyModals.LazyModalCredential).toBe('function');
     });
 
     it('should export LazyModalExport', () => {
@@ -184,7 +171,9 @@ describe('LazyModal', () => {
 
   it('should have correct number of exported modals', () => {
     const exports = Object.keys(LazyModals);
-    // 47 -> 46: LazyModalCreateThread removed; threads come from the post composer (#5980).
-    expect(exports.length).toBe(46); // Count of all exported modals
+    // 46 -> 43: the ingredient, credential and post-metadata overlays are gone
+    // (ingredients open in the context sidebar). Earlier: 47 -> 46,
+    // LazyModalCreateThread removed; threads come from the post composer (#5980).
+    expect(exports.length).toBe(43); // Count of all exported modals
   });
 });

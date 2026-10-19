@@ -41,10 +41,6 @@ vi.mock('./ModalModelFormContent', () => ({
   default: () => <div data-testid="model-form">form</div>,
 }));
 
-vi.mock('./ModalModelViewContent', () => ({
-  default: () => <div data-testid="model-view">view</div>,
-}));
-
 vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   useCrudModal: () => ({
     closeModal,
@@ -79,23 +75,13 @@ describe('ModalModel', () => {
     expect(screen.getByTestId('modal')).toBeInTheDocument();
   });
 
-  it('opens the add-model form and the view-model details', () => {
-    const { rerender } = render(<ModalModel onConfirm={vi.fn()} />);
+  it('opens the add-model form', () => {
+    render(<ModalModel onConfirm={vi.fn()} />);
 
     expect(
       screen.getByRole('heading', { name: 'Add Model' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('model-form')).toBeInTheDocument();
-
-    rerender(
-      <ModalModel mode="view" onConfirm={vi.fn()} entity={imagenModel} />,
-    );
-
-    expect(
-      screen.getByRole('heading', { name: 'Imagen 4' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('model-view')).toBeInTheDocument();
-    expect(screen.queryByTestId('model-form')).not.toBeInTheDocument();
   });
 
   it('titles the edit mode from the existing model', () => {
