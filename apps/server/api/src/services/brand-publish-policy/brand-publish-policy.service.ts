@@ -5,6 +5,7 @@ import {
 } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { BrandPolicyJudgeService } from '@api/services/brand-publish-policy/brand-policy-judge.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { PostCategory, TargetExecutionState } from '@genfeedai/contracts';
@@ -68,6 +69,11 @@ const POST_CAP_LOCK_TRANSACTION = {
 } as const;
 const POST_CAP_LOCK_RETRY_MS = 100;
 const POST_CAP_LOCK_WAIT_MS = 20000;
+/**
+ * A lock holder keeps one connection for the lock while its write takes
+ * another, so holders are capped well below any pool size.
+ */
+const postCapLockHolders = createConcurrencyLimit(2);
 
 /** The cap locks the current async flow holds, so a nested check never waits on its own flow. */
 const heldPostCapLocks = new AsyncLocalStorage<ReadonlySet<string>>();
@@ -333,18 +339,23 @@ export class BrandPublishPolicyService {
     // pool connection while the holder's write needs one.
     const deadline = Date.now() + POST_CAP_LOCK_WAIT_MS;
     for (;;) {
-      const outcome = await this.prisma.$transaction(async (tx) => {
-        const [row] = await tx.$queryRaw<
-          { isLocked: boolean }[]
-        >`SELECT pg_try_advisory_xact_lock(hashtextextended(${key}, 0)) AS "isLocked"`;
-        if (!row?.isLocked) return null;
-        return {
-          value: await heldPostCapLocks.run(
-            new Set([...(held ?? []), key]),
-            () => work(true),
-          ),
-        };
-      }, POST_CAP_LOCK_TRANSACTION);
+      const attempt = () =>
+        this.prisma.$transaction(async (tx) => {
+          const [row] = await tx.$queryRaw<
+            { isLocked: boolean }[]
+          >`SELECT pg_try_advisory_xact_lock(hashtextextended(${key}, 0)) AS "isLocked"`;
+          if (!row?.isLocked) return null;
+          return {
+            value: await heldPostCapLocks.run(
+              new Set([...(held ?? []), key]),
+              () => work(true),
+            ),
+          };
+        }, POST_CAP_LOCK_TRANSACTION);
+      // A flow that already holds a cap lock takes no second holder slot.
+      const outcome = held?.size
+        ? await attempt()
+        : await postCapLockHolders(attempt);
       if (outcome) return outcome.value;
       if (Date.now() >= deadline)
         throw new ServiceUnavailableException(

@@ -4,7 +4,10 @@ import {
   filterTargetsByMediaCapability,
   toValidationMediaFromIngredientIds,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
-import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
+import {
+  PostAccountFanoutService,
+  type PostAccountTarget,
+} from '@api/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
@@ -493,25 +496,15 @@ export class WorkflowTrendPublishExecutorRegistrarService {
    * account. They share a groupId so downstream review and notifications still
    * see a single batch.
    */
-  private async resolvePublishTargets(
-    fanoutService: PostAccountFanoutService,
+  private filterPublishTargets(
+    resolvedTargets: PostAccountTarget[],
     input: {
-      brandId: string;
-      caption: string;
       category: PostCategory;
       ingredients: string[];
       isScheduling: boolean;
-      organizationId: string;
-      platforms: string[];
       workflowId: string;
     },
-  ) {
-    const resolvedTargets = await fanoutService.resolveTargets({
-      brandId: input.brandId,
-      caption: input.caption,
-      organizationId: input.organizationId,
-      platforms: input.platforms,
-    });
+  ): PostAccountTarget[] {
     // Only filter when this run actually schedules the fan-out — a
     // caption-only draft is fine to create on every platform, it's
     // SCHEDULED that the channel contract rejects (#5193). Filtering
@@ -578,21 +571,24 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         const previewHold = holdInput
           ? await this.findTextPublishHold(publishHold, holdInput)
           : null;
+        const category =
+          ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT;
+        // Resolved before any lock: caption variations may need a model call.
+        const resolvedTargets = await fanoutService.resolveTargets({
+          brandId,
+          caption,
+          organizationId,
+          platforms,
+        });
         const publish = async (hold: BrandedPublishHold | null) => {
           const scheduledSlot = hold ? null : scheduledFor;
           const postIds: string[] = [];
           const publishedPlatforms: SocialPlatform[] = [];
 
-          const category =
-            ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT;
-          const targets = await this.resolvePublishTargets(fanoutService, {
-            brandId,
-            caption,
+          const targets = this.filterPublishTargets(resolvedTargets, {
             category,
             ingredients,
             isScheduling: Boolean(scheduledSlot),
-            organizationId,
-            platforms,
             workflowId,
           });
           const groupId = randomUUID();

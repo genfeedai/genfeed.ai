@@ -285,6 +285,26 @@ describe('BreakoutAutoPublishService (#6526)', () => {
     expect(h.posts.patch).not.toHaveBeenCalled();
   });
 
+  it('holds the draft when the actor loses authority while waiting on the lock', async () => {
+    const h = harness();
+    const permitted = {
+      result: { decision: AgentPublishDecision.PERMITTED, reason: 'ok' },
+    };
+    h.policy.resolveForPost
+      .mockResolvedValueOnce(permitted)
+      .mockImplementationOnce(async () => {
+        vi.mocked(request.reauthorize).mockRejectedValueOnce(
+          new Error('revoked'),
+        );
+        return permitted;
+      });
+    expect(await h.service.schedule(request)).toEqual({
+      reason: 'publication_held',
+      status: 'review_only',
+    });
+    expect(h.posts.patch).not.toHaveBeenCalled();
+  });
+
   it('keeps the paid draft for review when the publication gate holds the schedule', async () => {
     const h = harness();
     h.posts.patch.mockRejectedValue(

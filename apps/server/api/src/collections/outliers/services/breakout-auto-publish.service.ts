@@ -116,7 +116,13 @@ export class BreakoutAutoPublishService {
       const { policy, scheduled } = await this.policy.scheduleWithinPostCaps(
         { brandId: scope.brandId, organizationId: scope.organizationId },
         preview,
-        resolve,
+        // The lock can be waited on, so the request is authorized again
+        // before the post is scheduled under it.
+        async () => {
+          const locked = await resolve();
+          await request.reauthorize(this.prisma);
+          return locked;
+        },
         () =>
           this.posts.patch(post.id, {
             scheduledDate: new Date(),
