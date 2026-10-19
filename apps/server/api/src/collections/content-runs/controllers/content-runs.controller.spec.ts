@@ -92,13 +92,26 @@ describe('ContentRunsController', () => {
   });
 
   describe('listBrandRuns', () => {
-    it('lists runs scoped to org and brand', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
+    const emptyPage = {
+      docs: [],
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 20,
+      page: 1,
+      pagingCounter: 1,
+      totalDocs: 0,
+      totalPages: 0,
+    };
+    const defaultWindow = { limit: 20, page: 1, skip: 0 };
+
+    it('lists runs scoped to org and brand with the default page window', async () => {
+      mockService.listByBrand.mockResolvedValue(emptyPage);
 
       await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
+        undefined,
         undefined,
         undefined,
       );
@@ -108,17 +121,19 @@ describe('ContentRunsController', () => {
         'brand-1',
         undefined,
         undefined,
+        defaultWindow,
       );
     });
 
     it('passes skillSlug filter', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
+      mockService.listByBrand.mockResolvedValue(emptyPage);
 
       await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
         'content-writing',
+        undefined,
         undefined,
       );
 
@@ -127,11 +142,12 @@ describe('ContentRunsController', () => {
         'brand-1',
         'content-writing',
         undefined,
+        defaultWindow,
       );
     });
 
     it('passes status filter', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
+      mockService.listByBrand.mockResolvedValue(emptyPage);
 
       await controller.listBrandRuns(
         mockReq,
@@ -139,6 +155,7 @@ describe('ContentRunsController', () => {
         mockUser,
         undefined,
         ContentRunStatus.COMPLETED,
+        undefined,
       );
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
@@ -146,11 +163,12 @@ describe('ContentRunsController', () => {
         'brand-1',
         undefined,
         ContentRunStatus.COMPLETED,
+        defaultWindow,
       );
     });
 
     it('passes both skillSlug and status filters', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
+      mockService.listByBrand.mockResolvedValue(emptyPage);
 
       await controller.listBrandRuns(
         mockReq,
@@ -158,6 +176,7 @@ describe('ContentRunsController', () => {
         mockUser,
         'image-gen',
         ContentRunStatus.FAILED,
+        undefined,
       );
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
@@ -165,7 +184,69 @@ describe('ContentRunsController', () => {
         'brand-1',
         'image-gen',
         ContentRunStatus.FAILED,
+        defaultWindow,
       );
+    });
+
+    it('resolves the requested page and limit into a skip/take window', async () => {
+      mockService.listByBrand.mockResolvedValue(emptyPage);
+
+      await controller.listBrandRuns(
+        mockReq,
+        'brand-1',
+        mockUser,
+        undefined,
+        undefined,
+        { limit: 15, page: 3 },
+      );
+
+      expect(mockService.listByBrand).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        undefined,
+        undefined,
+        { limit: 15, page: 3, skip: 30 },
+      );
+    });
+
+    it('emits JSON:API pagination links for the paginated result', async () => {
+      mockService.listByBrand.mockResolvedValue({
+        ...emptyPage,
+        docs: [
+          {
+            brandId: 'brand-1',
+            createdAt: new Date('2026-09-01T10:00:00.000Z'),
+            id: 'run-1',
+            organizationId: 'org-1',
+            status: ContentRunStatus.COMPLETED,
+            updatedAt: new Date('2026-09-01T10:05:00.000Z'),
+          },
+        ],
+        hasNextPage: true,
+        limit: 15,
+        page: 2,
+        totalDocs: 31,
+        totalPages: 3,
+      });
+
+      const response = (await controller.listBrandRuns(
+        {
+          ...mockReq,
+          originalUrl: '/brands/brand-1/content-runs?page=2',
+        } as unknown as Request,
+        'brand-1',
+        mockUser,
+        undefined,
+        undefined,
+        { limit: 15, page: 2 },
+      )) as { links?: { pagination?: Record<string, unknown> } };
+
+      expect(response.links?.pagination).toEqual({
+        limit: 15,
+        page: 2,
+        pages: 3,
+        total: 31,
+      });
     });
   });
 

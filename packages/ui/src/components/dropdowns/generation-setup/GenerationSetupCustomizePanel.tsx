@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { GenerationSetupCustomizePanelProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationHarnessSettingsSection from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsSection';
 import GenerationSetupBrandSection from '@ui/dropdowns/generation-setup/GenerationSetupBrandSection';
 import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import GenerationSetupLookSection from '@ui/dropdowns/generation-setup/GenerationSetupLookSection';
@@ -10,12 +9,11 @@ import GenerationSetupModelSection from '@ui/dropdowns/generation-setup/Generati
 import GenerationSetupOutputSection from '@ui/dropdowns/generation-setup/GenerationSetupOutputSection';
 import GenerationSetupPresetsSection from '@ui/dropdowns/generation-setup/GenerationSetupPresetsSection';
 import { Button } from '@ui/primitives/button';
-import { ArrowLeft, Check, Undo2 } from 'lucide-react';
+import { ArrowLeft, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export default function GenerationSetupCustomizePanel({
   typeOptions,
-  onTypeChange,
   capabilities,
   inputControls,
   referenceCount,
@@ -24,8 +22,10 @@ export default function GenerationSetupCustomizePanel({
   initialSection,
   isPresetsLoading,
   onApplyPreset,
+  onApplySystemPreset,
   onDeletePreset,
   presets,
+  systemPresets,
   isDisabled = false,
   lookOptions,
   models,
@@ -37,6 +37,7 @@ export default function GenerationSetupCustomizePanel({
   outputControls,
   reasons,
   setup,
+  showEnhancementSettings,
 }: GenerationSetupCustomizePanelProps) {
   const translate = useTranslations('agent.generationSetup');
   const scopedLookOptions =
@@ -99,37 +100,6 @@ export default function GenerationSetupCustomizePanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        {resolvedSection === 'type' ? (
-          <div className="flex flex-col gap-1">
-            {typeOptions.map((option) => (
-              <Button
-                key={option.value}
-                aria-pressed={setup.values.type === option.value}
-                className="h-9 w-full justify-between px-2 text-xs"
-                isDisabled={isDisabled}
-                variant={ButtonVariant.GHOST}
-                textTransform="none"
-                withWrapper={false}
-                onClick={() => {
-                  if (option.value !== setup.values.type) {
-                    onSetField('type', option.value);
-                    onTypeChange?.(option.value);
-                  }
-                  onBack();
-                }}
-              >
-                {option.label}
-                {setup.values.type === option.value ? (
-                  <Check className="size-3.5" />
-                ) : null}
-              </Button>
-            ))}
-          </div>
-        ) : null}
-        {resolvedSection === 'enhancement' ? (
-          <GenerationHarnessSettingsSection />
-        ) : null}
-
         {resolvedSection === 'model' ? (
           <GenerationSetupModelSection
             capabilities={capabilities}
@@ -169,10 +139,12 @@ export default function GenerationSetupCustomizePanel({
 
         {resolvedSection === 'brand' ? (
           <GenerationSetupBrandSection
+            capabilities={capabilities}
             onResetField={onResetField}
             onSetField={onSetField}
             reasons={reasons}
             setup={setup}
+            showEnhancementSettings={showEnhancementSettings}
           />
         ) : null}
         {resolvedSection === 'presets' ? (
@@ -180,9 +152,11 @@ export default function GenerationSetupCustomizePanel({
             isDisabled={isDisabled}
             isPresetsLoading={isPresetsLoading}
             onApplyPreset={onApplyPreset}
+            onApplySystemPreset={onApplySystemPreset}
             onDeletePreset={onDeletePreset}
             onSavePreset={onSavePreset}
             presets={presets}
+            systemPresets={systemPresets}
             setup={setup}
           />
         ) : null}

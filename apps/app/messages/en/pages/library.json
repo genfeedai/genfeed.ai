@@ -1,6 +1,13 @@
 {
   "emptyOpenPlayground": "Open Playground",
   "browser": {
+    "assetTypeTabs": {
+      "all": "All",
+      "gifs": "GIFs",
+      "images": "Images",
+      "music": "Music",
+      "videos": "Videos"
+    },
     "columns": {
       "asset": "Asset",
       "created": "Created",

@@ -93,7 +93,21 @@ export class TemplatesQueryDto {
   sort?: 'popular';
 
   @ApiProperty({
-    description: 'Maximum number of templates to return',
+    default: 1,
+    description: 'Page number for pagination',
+    minimum: 1,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiProperty({
+    default: 20,
+    description: 'Number of templates per page',
+    maximum: 100,
     minimum: 1,
     required: false,
   })

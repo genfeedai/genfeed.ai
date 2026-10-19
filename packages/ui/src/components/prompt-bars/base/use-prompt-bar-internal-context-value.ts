@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type {
   FormDropdownOption as DropdownFieldOption,
+  IElementBlacklist,
   IElementCamera,
   IElementCameraMovement,
   IElementLens,
@@ -113,6 +114,7 @@ type UsePromptBarInternalContextValueParams = {
   filteredLenses: IElementLens[];
   filteredCameraMovements: IElementCameraMovement[];
   filteredMoods: IElementMood[];
+  filteredBlacklists: IElementBlacklist[];
   selectedPreset: string;
   setSelectedPreset: Dispatch<SetStateAction<string>>;
   selectedProfile: string;
@@ -231,6 +233,7 @@ export function usePromptBarInternalContextValue(
       filteredLenses: p.filteredLenses,
       filteredCameraMovements: p.filteredCameraMovements,
       filteredMoods: p.filteredMoods,
+      filteredBlacklists: p.filteredBlacklists,
       selectedPreset: p.selectedPreset,
       setSelectedPreset: p.setSelectedPreset,
       selectedProfile: p.selectedProfile,
@@ -347,6 +350,7 @@ export function usePromptBarInternalContextValue(
       p.filteredLenses,
       p.filteredCameraMovements,
       p.filteredMoods,
+      p.filteredBlacklists,
       p.selectedPreset,
       p.setSelectedPreset,
       p.selectedProfile,

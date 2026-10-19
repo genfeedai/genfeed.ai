@@ -49,7 +49,11 @@ describe('SavedAdsController', () => {
 
   it('rejects a cross-brand list before querying storage', async () => {
     await expect(
-      controller.list(request, user, '550e8400-e29b-41d4-a716-446655440004'),
+      controller.list(request, user, {
+        brandId: '550e8400-e29b-41d4-a716-446655440004',
+        limit: 20,
+        page: 1,
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(service.list).not.toHaveBeenCalled();
   });

@@ -31,7 +31,7 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { LockKeyhole } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 export type ModelsTableTranslate = (
   key: string,
@@ -52,7 +52,6 @@ export type BuildModelsTableColumnsParams = {
   onOpenDetails: (model: IModel) => void;
   togglingModelId: string | null;
   models: IModel[];
-  renderCostAction?: (model: IModel) => ReactNode;
   translate: ModelsTableTranslate;
 };
 
@@ -62,12 +61,27 @@ const BREAKDOWN_PRICING_TYPES = new Set<string>([
   PricingType.PER_MEGAPIXEL,
 ]);
 
+function hasPositiveStoredCost(model: IModel): boolean {
+  return Number.isFinite(model.cost) && model.cost > 0;
+}
+
+/**
+ * Reviewed provider rates price a model that carries no stored credits (a
+ * seeded row, or one whose rates depend on the generation settings).
+ */
+function isPricedByReviewedRates(model: IModel): boolean {
+  return (
+    model.hasReviewedPricing === true &&
+    (model.pricingType === 'conditional' || !hasPositiveStoredCost(model))
+  );
+}
+
 /** Paid rows with a missing or non-positive credit price stay off promotion. */
 function isPaidModelPricingLocked(model: IModel): boolean {
   if (model.isFree === true) return false;
-  if (model.pricingType === 'conditional')
-    return model.hasReviewedPricing !== true;
-  return !Number.isFinite(model.cost) || model.cost <= 0;
+  if (isPricedByReviewedRates(model)) return false;
+  if (model.pricingType === 'conditional') return true;
+  return !hasPositiveStoredCost(model);
 }
 
 function isPromotedLifecycle(lifecycle: ModelLifecycle): boolean {
@@ -142,7 +156,7 @@ function formatAdminCostTooltip(
     )}`;
   }
 
-  if (model.pricingType === 'conditional' && model.hasReviewedPricing)
+  if (isPricedByReviewedRates(model))
     return translate('table.variablePricingDescription');
 
   const providerCostUsd = model.providerCostUsd;
@@ -309,10 +323,9 @@ function formatModelCreditCost(
     return 'Free';
   }
 
-  if (model.pricingType === 'conditional' && model.hasReviewedPricing)
-    return translate('table.variablePricing');
+  if (isPricedByReviewedRates(model)) return translate('table.variablePricing');
 
-  if (!Number.isFinite(model.cost) || model.cost <= 0) return 'Unresolved';
+  if (!hasPositiveStoredCost(model)) return 'Unresolved';
 
   return model.cost.toLocaleString('en-US');
 }
@@ -347,7 +360,6 @@ export function buildModelsTableColumns({
   onOpenDetails,
   togglingModelId,
   models,
-  renderCostAction,
   translate,
 }: BuildModelsTableColumnsParams): TableColumn<IModel>[] {
   const getRegistryStatus = (model: IModel) => {
@@ -482,7 +494,6 @@ export function buildModelsTableColumns({
             ) : (
               cost
             )}
-            {isAdminScope ? renderCostAction?.(model) : null}
           </div>
         );
       },

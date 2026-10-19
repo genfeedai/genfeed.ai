@@ -162,6 +162,16 @@ describe('AssetIngestionService', () => {
       'public',
     ]);
     expect(cacheService.del).toHaveBeenCalledWith(`brand:${brandId}`);
+    // The bust must follow the new asset, or a read in between re-caches the
+    // brand without its logo.
+    const invalidatedAt =
+      cacheService.invalidateByTags.mock.invocationCallOrder[0];
+    expect(assetsService.create.mock.invocationCallOrder[0]).toBeLessThan(
+      invalidatedAt,
+    );
+    expect(
+      filesClientService.uploadToS3.mock.invocationCallOrder[0],
+    ).toBeLessThan(invalidatedAt);
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
       parentId: brandId,

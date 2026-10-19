@@ -13,7 +13,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 describe('WatchlistsController tenant reads (#6176)', () => {
   function setup() {
-    const mock = vi.fn().mockResolvedValue([]);
+    const mock = vi.fn().mockResolvedValue({ docs: [] });
     const controller = Object.create(
       WatchlistsController.prototype,
     ) as WatchlistsController;

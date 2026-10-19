@@ -26,6 +26,7 @@ export type TenantScopeAccess = 'read' | 'write';
  * isDeleted), the same inventory the runtime tenant guard enforces.
  */
 export const PLATFORM_ROW_MODELS: ReadonlySet<string> = new Set([
+  'ElementBlacklist',
   'ElementCamera',
   'ElementCameraMovement',
   'ElementLens',

@@ -29,6 +29,9 @@ export type {
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 
+/** The opportunities endpoint returns at most this many open rows, newest first. */
+const OPEN_OPPORTUNITY_LIST_LIMIT = 100;
+
 @Injectable()
 export class AgentStrategyAutopilotService {
   constructor(
@@ -51,7 +54,11 @@ export class AgentStrategyAutopilotService {
       strategyIdValue,
       organizationId,
     );
-    return this.planningService.refreshOpportunities(strategy);
+    return this.planningService.refreshOpportunities(
+      strategy,
+      false,
+      OPEN_OPPORTUNITY_LIST_LIMIT,
+    );
   }
 
   getPerformanceSnapshot(

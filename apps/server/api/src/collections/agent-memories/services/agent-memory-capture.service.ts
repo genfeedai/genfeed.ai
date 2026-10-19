@@ -121,13 +121,12 @@ export class AgentMemoryCaptureService {
     userId: string,
     brandId: string,
   ): Promise<string> {
-    const existing = await this.contextsService.findAll(organizationId, {
-      category: 'content_library',
-      isActive: true,
-    });
-    const matching = existing.find(
-      (item) => item.sourceBrandId === brandId && !item.isDeleted,
+    const { docs } = await this.contextsService.findAll(
+      organizationId,
+      { category: 'content_library', isActive: true, sourceBrandId: brandId },
+      { limit: 1, page: 1 },
     );
+    const matching = docs[0];
 
     if (matching?.id) {
       return String(matching.id);

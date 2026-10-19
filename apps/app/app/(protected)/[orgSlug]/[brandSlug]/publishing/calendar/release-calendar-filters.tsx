@@ -6,6 +6,7 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,
@@ -144,6 +145,9 @@ export default function ReleaseCalendarFilters({
               ) : (
                 options.map((option) => {
                   const values: string[] = filters[key];
+                  const PlatformIcon = option.platform
+                    ? getPlatformIconComponent(option.platform)
+                    : undefined;
                   return (
                     <DropdownMenuCheckboxItem
                       key={option.value}
@@ -158,7 +162,12 @@ export default function ReleaseCalendarFilters({
                         )
                       }
                     >
-                      {option.label}
+                      <span className="flex items-center gap-2">
+                        {PlatformIcon ? (
+                          <PlatformIcon aria-hidden="true" className="size-4" />
+                        ) : null}
+                        {option.label}
+                      </span>
                     </DropdownMenuCheckboxItem>
                   );
                 })

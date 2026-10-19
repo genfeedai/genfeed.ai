@@ -41,11 +41,7 @@ const defaults: GenerationSetupFrontDoorProps = {
     hasSpeech: false,
     hasStyle: false,
   },
-  lookOptions: {},
-  models: [],
   onCustomize: vi.fn(),
-  onResetAll: vi.fn(),
-  onSetField: vi.fn(),
   presets: [],
   setup: {
     sources: {},
@@ -59,7 +55,6 @@ const defaults: GenerationSetupFrontDoorProps = {
       type: 'image',
     },
   },
-  typeOptions: [{ label: 'Image', value: 'image' }],
 };
 
 function Fixture({
@@ -114,34 +109,35 @@ describe('GenerationSetupFrontDoor desktop submenus with real Radix', () => {
   it('opens on hover without applying a value or moving focus; keeps the root and only one child', async () => {
     const onApply = vi.fn();
     render(<Fixture onApply={onApply} />);
-    const model = screen.getByRole('button', { name: 'Configure Model' });
-    model.focus();
-    fireEvent.pointerEnter(model, { pointerType: 'mouse' });
-    await screen.findByRole('textbox', { name: 'model search' });
-    expect(model).toHaveFocus();
+    const brand = screen.getByRole('button', { name: 'Configure Brand' });
+    brand.focus();
+    fireEvent.pointerEnter(brand, { pointerType: 'mouse' });
+    await screen.findByRole('textbox', { name: 'brand search' });
+    expect(brand).toHaveFocus();
     expect(onApply).not.toHaveBeenCalled();
     expect(
       within(screen.getByTestId('root-picker')).getByRole('button', {
-        name: 'Configure Output',
+        name: 'Configure Presets',
       }),
     ).toBeVisible();
     fireEvent.pointerEnter(
-      screen.getByRole('button', { name: 'Configure Output' }),
+      screen.getByRole('button', { name: 'Configure Presets' }),
       { pointerType: 'mouse' },
     );
-    await screen.findByRole('textbox', { name: 'output search' });
-    expect(screen.queryByRole('textbox', { name: 'model search' })).toBeNull();
+    await screen.findByRole('textbox', { name: 'presets search' });
+    expect(screen.queryByRole('textbox', { name: 'brand search' })).toBeNull();
     expect(screen.getAllByTestId('generation-setup-submenu')).toHaveLength(1);
     expect(onApply).not.toHaveBeenCalled();
   });
 
   it('cancels a fleeting hover and does not open disabled sections', async () => {
-    render(<Fixture onApply={vi.fn()} />);
-    const model = screen.getByRole('button', { name: 'Configure Model' });
-    fireEvent.pointerEnter(model, { pointerType: 'mouse' });
-    fireEvent.pointerLeave(model, { pointerType: 'mouse' });
+    const view = render(<Fixture onApply={vi.fn()} />);
+    const brand = screen.getByRole('button', { name: 'Configure Brand' });
+    fireEvent.pointerEnter(brand, { pointerType: 'mouse' });
+    fireEvent.pointerLeave(brand, { pointerType: 'mouse' });
+    view.rerender(<Fixture isDisabled onApply={vi.fn()} />);
     fireEvent.pointerEnter(
-      screen.getByRole('button', { name: 'Configure Type' }),
+      screen.getByRole('button', { name: 'Configure Presets' }),
       { pointerType: 'mouse' },
     );
     await act(async () => {
@@ -154,10 +150,10 @@ describe('GenerationSetupFrontDoor desktop submenus with real Radix', () => {
     const user = userEvent.setup();
     const onApply = vi.fn();
     render(<Fixture onApply={onApply} />);
-    const model = screen.getByRole('button', { name: 'Configure Model' });
-    fireEvent.pointerEnter(model, { pointerType: 'mouse' });
-    const search = await screen.findByRole('textbox', { name: 'model search' });
-    await user.click(model);
+    const brand = screen.getByRole('button', { name: 'Configure Brand' });
+    fireEvent.pointerEnter(brand, { pointerType: 'mouse' });
+    const search = await screen.findByRole('textbox', { name: 'brand search' });
+    await user.click(brand);
     expect(search).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Apply choice' }));
     expect(onApply).toHaveBeenCalledTimes(1);
@@ -166,17 +162,17 @@ describe('GenerationSetupFrontDoor desktop submenus with real Radix', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('generation-setup-submenu')).toBeNull(),
     );
-    expect(model).toHaveFocus();
+    expect(brand).toHaveFocus();
     expect(screen.getByTestId('root-picker')).toBeVisible();
   });
 
   it('opens and focuses with ArrowRight, and Back preserves the root', async () => {
     const user = userEvent.setup();
     render(<Fixture onApply={vi.fn()} />);
-    screen.getByRole('button', { name: 'Configure Output' }).focus();
+    screen.getByRole('button', { name: 'Configure Presets' }).focus();
     await user.keyboard('{ArrowRight}');
     expect(
-      await screen.findByRole('textbox', { name: 'output search' }),
+      await screen.findByRole('textbox', { name: 'presets search' }),
     ).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.queryByTestId('generation-setup-submenu')).toBeNull();
@@ -186,14 +182,14 @@ describe('GenerationSetupFrontDoor desktop submenus with real Radix', () => {
   it('does not hover-open on touch and keeps click navigation without desktop submenus', async () => {
     const user = userEvent.setup();
     render(<Fixture onApply={vi.fn()} hasSubmenus={false} />);
-    const model = screen.getByRole('button', { name: 'Configure Model' });
-    fireEvent.pointerEnter(model, { pointerType: 'touch' });
+    const brand = screen.getByRole('button', { name: 'Configure Brand' });
+    fireEvent.pointerEnter(brand, { pointerType: 'touch' });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 160));
     });
     expect(screen.getByLabelText('Active section')).toBeEmptyDOMElement();
-    await user.click(model);
-    expect(screen.getByLabelText('Active section')).toHaveTextContent('model');
+    await user.click(brand);
+    expect(screen.getByLabelText('Active section')).toHaveTextContent('brand');
     expect(screen.queryByTestId('generation-setup-submenu')).toBeNull();
   });
 
@@ -201,7 +197,7 @@ describe('GenerationSetupFrontDoor desktop submenus with real Radix', () => {
     render(<Fixture onApply={vi.fn()} />);
     const event = new Event('pointerover', { bubbles: true });
     Object.defineProperty(event, 'pointerType', { value: 'touch' });
-    fireEvent(screen.getByRole('button', { name: 'Configure Model' }), event);
+    fireEvent(screen.getByRole('button', { name: 'Configure Brand' }), event);
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 160));
     });

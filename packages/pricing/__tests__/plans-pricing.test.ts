@@ -359,7 +359,7 @@ describe('website plan catalogue', () => {
     expect(scale.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
     expect(scale.features).toContain('Unlimited seats and client workspaces');
     expect(scale.features).toContain('Brand model training');
-    expect(scale.features).toContain('API and BYOK');
+    expect(scale.features).toContain('Higher API limits and BYOK');
     expect(scale.outputs).toBeNull();
   });
 

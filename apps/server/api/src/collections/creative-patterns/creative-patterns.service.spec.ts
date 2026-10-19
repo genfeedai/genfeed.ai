@@ -30,6 +30,8 @@ describe('CreativePatternsService.findAll', () => {
 
     expect(scopedWhere).toHaveBeenCalledWith('org-1', {});
     expect(prisma.creativePattern.findMany).toHaveBeenCalledWith({
+      orderBy: { updatedAt: 'desc' },
+      take: 500,
       where: {
         isDeleted: false,
         organizationId: 'org-1',
@@ -49,6 +51,8 @@ describe('CreativePatternsService.findAll', () => {
     });
 
     expect(prisma.creativePattern.findMany).toHaveBeenCalledWith({
+      orderBy: { updatedAt: 'desc' },
+      take: 500,
       where: {
         AND: [
           { data: { equals: 'instagram', path: ['platform'] } },
@@ -70,6 +74,8 @@ describe('CreativePatternsService.findAll', () => {
     });
 
     expect(prisma.creativePattern.findMany).toHaveBeenCalledWith({
+      orderBy: { updatedAt: 'desc' },
+      take: 500,
       where: {
         AND: [
           {
@@ -89,5 +95,33 @@ describe('CreativePatternsService.findAll', () => {
         organizationId: 'org-1',
       },
     });
+  });
+
+  it('caps the rows read and the rows returned, ranked by score', async () => {
+    const service = new CreativePatternsService(prisma as never);
+    prisma.creativePattern.findMany.mockResolvedValue(
+      [1, 9, 5, 7].map((score, index) => ({
+        brandId: null,
+        data: { avgPerformanceScore: score },
+        id: `pattern-${index}`,
+        organizationId: 'org-1',
+      })),
+    );
+
+    const top = await service.findAll({
+      limit: 2,
+      organizationId: 'org-1',
+      top: true,
+    });
+    const listed = await service.findAll({
+      limit: 1000,
+      organizationId: 'org-1',
+    });
+
+    expect(top.map((pattern) => pattern.avgPerformanceScore)).toEqual([9, 7]);
+    expect(listed).toHaveLength(4);
+    expect(prisma.creativePattern.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 500 }),
+    );
   });
 });

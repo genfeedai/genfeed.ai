@@ -3,6 +3,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { MAX_PAGE_SIZE } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -17,6 +18,9 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+
+/** Runs returned when the client does not ask for a limit. */
+const DEFAULT_RUNS_LIMIT = 50;
 
 @ApiTags('Agent Runs')
 @FeatureFlag('agent')
@@ -38,15 +42,20 @@ export class AgentRunsController {
     @Req() req: Request,
     @CurrentUser() user: User,
     @Query('brand') brand?: string,
+    @Query('limit') limit?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
       const brandId = brand?.trim() ? brand.trim() : undefined;
+      const parsedLimit = Number.parseInt(limit ?? '', 10);
       const docs = await this.agentThreadsService.listAgentRuns(
         dbUserId,
         organizationId,
         brandId,
+        Number.isInteger(parsedLimit) && parsedLimit > 0
+          ? Math.min(parsedLimit, MAX_PAGE_SIZE)
+          : DEFAULT_RUNS_LIMIT,
       );
       return serializeCollection(req, AgentRunSerializer, { docs });
     } catch (error: unknown) {

@@ -3,12 +3,14 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AgentFailureReason,
+  type AgentFailureResolution,
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsIn,
@@ -128,11 +130,32 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
   readonly strategyId?: string;
 }
 
+export const AGENT_FAILURE_RESOLUTIONS: readonly AgentFailureResolution[] = [
+  'open',
+  'resolved',
+  'all',
+];
+
+export class AgentFailureResolutionDto {
+  @IsBoolean()
+  @ApiProperty({ description: 'Whether the failed run is marked as handled' })
+  readonly isResolved!: boolean;
+}
+
 export class AgentFailureQueryDto {
   @IsOptional()
   @IsEnum(AgentFailureReason)
   @ApiProperty({ enum: AgentFailureReason, required: false })
   failureReason?: AgentFailureReason;
+
+  @IsOptional()
+  @IsIn(AGENT_FAILURE_RESOLUTIONS)
+  @ApiProperty({
+    default: 'open',
+    enum: AGENT_FAILURE_RESOLUTIONS,
+    required: false,
+  })
+  resolution: AgentFailureResolution = 'open';
 
   @Type(() => Number)
   @IsInt()

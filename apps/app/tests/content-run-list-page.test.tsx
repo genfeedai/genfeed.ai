@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import ContentRunListPage from '@pages/content-runs/list/content-run-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -6,6 +7,18 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const list = vi.fn();
+const replace = vi.fn();
+const navigation = vi.hoisted(() => ({ searchParams: new URLSearchParams() }));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/main/automation/content-runs',
+  useRouter: () => ({ push: vi.fn(), replace }),
+  useSearchParams: () => navigation.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -71,6 +84,7 @@ function renderContentRunList() {
 describe('ContentRunListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.searchParams = new URLSearchParams();
   });
 
   it('links every run row to its brand-scoped detail page', async () => {
@@ -107,7 +121,29 @@ describe('ContentRunListPage', () => {
         name: /Turn the trend into a proof thread\./,
       }),
     ).toHaveAttribute('href', '/acme/main/automation/content-runs/run-2');
-    expect(list).toHaveBeenCalledWith('brand-1', { status: undefined });
+    expect(list).toHaveBeenCalledWith(
+      'brand-1',
+      { limit: ITEMS_PER_PAGE, page: 1, status: undefined },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('requests the server page named in the URL', async () => {
+    navigation.searchParams = new URLSearchParams('page=3');
+    list.mockResolvedValue([]);
+
+    renderContentRunList();
+
+    await waitFor(() =>
+      expect(list).toHaveBeenCalledWith(
+        'brand-1',
+        { limit: ITEMS_PER_PAGE, page: 3, status: undefined },
+        expect.any(AbortSignal),
+      ),
+    );
   });
 
   it('points the empty state back at Discovery, where content runs originate', async () => {

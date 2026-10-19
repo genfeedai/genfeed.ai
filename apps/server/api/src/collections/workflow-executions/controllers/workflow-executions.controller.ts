@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   AgentFailureQueryDto,
+  AgentFailureResolutionDto,
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
@@ -83,16 +84,19 @@ export class WorkflowExecutionsController {
     return service;
   }
 
-  private buildFindAllQuery(
+  private async buildFindAllQuery(
     organizationId: string,
     query: WorkflowExecutionQueryDto,
-  ): PrismaFindAllInput {
+  ): Promise<PrismaFindAllInput> {
     return {
       include: {
         workflow: { select: { description: true, id: true, label: true } },
       },
       orderBy: handleQuerySort(query.sort),
-      where: buildCustomerExecutionWhere(organizationId, query),
+      where: await this.workflowExecutionsService.buildCustomerListWhere(
+        organizationId,
+        query,
+      ),
     };
   }
 
@@ -159,7 +163,7 @@ export class WorkflowExecutionsController {
       limit !== undefined ? Number(limit) : (query.limit ?? undefined);
     const parsedOffset = offset !== undefined ? Number(offset) : 0;
     const result = await this.workflowExecutionsService.findAll(
-      this.buildFindAllQuery(tenant.organizationId, query),
+      await this.buildFindAllQuery(tenant.organizationId, query),
       {
         customLabels,
         ...QueryDefaultsUtil.getPaginationDefaults({
@@ -198,12 +202,20 @@ export class WorkflowExecutionsController {
       async () =>
         await this.workflowExecutionsService.findAll(
           {
-            include: { workflow: { select: { id: true, label: true } } },
+            include: {
+              organization: { select: { id: true, label: true } },
+              workflow: { select: { id: true, label: true } },
+            },
             orderBy: [{ completedAt: 'desc' }, { id: 'desc' }],
             // tenant-scope-ignore: superadmin-only cross-tenant failure feed; both execution and workflow must be non-deleted
             where: {
               isDeleted: false,
               status: WorkflowExecutionStatus.FAILED,
+              ...(query.resolution === 'open'
+                ? { failureResolvedAt: null }
+                : query.resolution === 'resolved'
+                  ? { failureResolvedAt: { not: null } }
+                  : {}),
               ...(query.failureReason
                 ? query.failureReason === AgentFailureReason.UNKNOWN
                   ? {
@@ -259,6 +271,47 @@ export class WorkflowExecutionsController {
         ),
     );
     return serializeCollection(req, WorkflowExecutionSerializer, result);
+  }
+
+  @Patch('admin/failures/:id/resolution')
+  @RolesDecorator('superadmin')
+  @ApiOperation({ summary: 'Mark an agent failure as resolved or reopen it' })
+  @ApiParam({ description: 'Execution ID', name: 'id' })
+  async resolveAdminFailure(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: AgentFailureResolutionDto,
+  ) {
+    if (!getIsSuperAdmin(user, req)) {
+      throw new ForbiddenException(
+        'Only platform superadmins can resolve agent failures',
+      );
+    }
+    // Same cross-org read as the failure feed; the superadmin gate above is
+    // the authorization. The write below is scoped to the row's own tenant.
+    const updated = await crossOrgUnsafe(async () => {
+      // tenant-scope-ignore: superadmin-only lookup of a failed execution to learn its tenant
+      const execution = await this.workflowExecutionsService.findOne({
+        id,
+        isDeleted: false,
+        status: WorkflowExecutionStatus.FAILED,
+      });
+      if (!execution) {
+        throw new NotFoundException('Execution');
+      }
+      return await this.workflowExecutionsService.patchOneWhere(
+        { id, isDeleted: false, organizationId: execution.organizationId },
+        dto.isResolved
+          ? { failureResolvedAt: new Date(), failureResolvedBy: user.userId }
+          : { failureResolvedAt: null, failureResolvedBy: null },
+        ['organization', 'workflow'],
+      );
+    });
+    if (!updated) {
+      throw new NotFoundException('Execution');
+    }
+    return serializeSingle(req, WorkflowExecutionSerializer, updated);
   }
 
   @TenantReadPolicy('selected')

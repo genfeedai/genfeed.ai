@@ -43,6 +43,7 @@ const POST = {
 
 describe('usePostDetailActions', () => {
   const mockServiceDelete = vi.fn();
+  const mockServiceRetry = vi.fn();
   const mockServiceEnhance = vi.fn();
   const mockServiceDraftThread = vi.fn();
   const mockGetPostsService = vi.fn();
@@ -93,7 +94,9 @@ describe('usePostDetailActions', () => {
       description: 'Enhanced text',
       id: 'post-1',
     });
+    mockServiceRetry.mockResolvedValue({ id: 'post-1' });
     mockGetPostsService.mockResolvedValue({
+      retry: mockServiceRetry,
       delete: mockServiceDelete,
       draftThread: mockServiceDraftThread,
       enhance: mockServiceEnhance,
@@ -219,6 +222,21 @@ describe('usePostDetailActions', () => {
       expect(mockScheduleTarget).not.toHaveBeenCalled();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Publishing now',
+      );
+    });
+
+    it('retries a failed post through the retry endpoint, not the release schedule', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handleRetryPublish();
+      });
+
+      expect(mockServiceRetry).toHaveBeenCalledWith('post-1');
+      expect(mockPublishNow).not.toHaveBeenCalled();
+      expect(mockFetchPost).toHaveBeenCalledWith(true);
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Retrying publish',
       );
     });
 

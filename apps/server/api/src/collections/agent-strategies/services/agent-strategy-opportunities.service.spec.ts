@@ -27,6 +27,16 @@ describe('AgentStrategyOpportunitiesService', () => {
     vi.clearAllMocks();
   });
 
+  it('caps the rows read when a limit is given', async () => {
+    findMany.mockResolvedValue([]);
+
+    await service.listOpenByStrategy('strategy-1', 'org-1', 100);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'desc' }, take: 100 }),
+    );
+  });
+
   it('filters requested statuses in the persistence query', async () => {
     findMany.mockResolvedValue([]);
 

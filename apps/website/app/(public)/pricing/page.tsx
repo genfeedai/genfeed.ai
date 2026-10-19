@@ -18,7 +18,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 // site audit.
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing: PAYG, Agencies and Done for you',
-  `${PLAN_COPY.payg.name} credits; ${PLAN_COPY.scale.name} with unlimited seats, client workspaces and API access. ${serviceOffering.name} ${serviceOffering.priceLabel.toLowerCase()}. Book a call.`,
+  `${PLAN_COPY.payg.name} credits; ${PLAN_COPY.scale.name} with unlimited seats, client workspaces and higher API limits. ${serviceOffering.name} ${serviceOffering.priceLabel.toLowerCase()}. Book a call.`,
   '/pricing',
 );
 
@@ -30,7 +30,7 @@ const OFFER_DESCRIPTIONS: Record<PlanTier, string> = {
   enterprise:
     'Enterprise plan with custom output terms, SSO, SLA, and dedicated support.',
   payg: `Pay-per-output credits at $${CREDIT_VALUE_DOLLARS.toFixed(2)} each, with no monthly fee. Buy credit packs for images, video, voice, and articles.`,
-  scale: `For agencies: unlimited seats and client workspaces, a shared pool of ${PLAN_COPY.scale.includedCredits}, clean exports, brand model training, and API access.`,
+  scale: `For agencies: unlimited seats and client workspaces, a shared pool of ${PLAN_COPY.scale.includedCredits}, clean exports, brand model training, and higher API limits.`,
 };
 
 export function buildPricingJsonLd() {

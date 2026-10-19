@@ -664,6 +664,26 @@ export default function StudioPlaygroundComposer({
     ],
   );
 
+  const systemPresetOptions = useMemo(
+    () =>
+      systemPresets.map((preset) => ({
+        description: preset.description,
+        id: studioSystemPresetId(preset.key),
+        label: preset.label,
+      })),
+    [systemPresets],
+  );
+
+  const handleApplySystemPresetById = useCallback(
+    (presetId: string) => {
+      const preset = systemPresets.find(
+        (candidate) => studioSystemPresetId(candidate.key) === presetId,
+      );
+      if (preset) handleApplySystemPreset(preset);
+    },
+    [handleApplySystemPreset, systemPresets],
+  );
+
   const handleDeletePreset = useCallback(
     (presetId: string) => {
       void deleteLook(presetId);
@@ -1217,6 +1237,7 @@ export default function StudioPlaygroundComposer({
             lookOptions={lookOptions}
             models={isModelChoiceVisible ? models : []}
             onApplyPreset={handleApplyPreset}
+            onApplySystemPreset={handleApplySystemPresetById}
             onClearPreset={handleClearPreset}
             onDeletePreset={handleDeletePreset}
             onFavoriteToggle={onFavoriteToggle}
@@ -1233,6 +1254,7 @@ export default function StudioPlaygroundComposer({
               }
             }}
             presets={presets}
+            systemPresets={systemPresetOptions}
             reasons={reasons}
             scopeKey={scope}
             setup={setupForComposer}
@@ -1276,6 +1298,7 @@ export default function StudioPlaygroundComposer({
                 lookOptions={lookOptions}
                 models={isModelChoiceVisible ? models : []}
                 onApplyPreset={handleApplyPreset}
+                onApplySystemPreset={handleApplySystemPresetById}
                 onDeletePreset={handleDeletePreset}
                 onFavoriteToggle={onFavoriteToggle}
                 onResetField={handleResetField}
@@ -1283,6 +1306,7 @@ export default function StudioPlaygroundComposer({
                 onSetField={handleSetField}
                 outputControls={outputControls}
                 presets={presets}
+                systemPresets={systemPresetOptions}
                 reasons={reasons}
                 referenceCount={crunReferenceCount ?? attachedAssets.length}
                 setup={setupForComposer}

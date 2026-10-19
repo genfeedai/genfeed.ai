@@ -3,14 +3,19 @@ import {
   CREDIT_USAGE_FILTER_SQL,
 } from '@api/collections/credits/services/credit-usage.util';
 import {
-  buildUnitEconomicsRows,
-  EMPTY_UNIT_ECONOMICS_AGGREGATE,
+  buildUnitEconomicsRow,
+  toUnitEconomicsMetrics,
   type UnitEconomicsAggregate,
 } from '@api/endpoints/admin/unit-economics/unit-economics-report.util';
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  resolvePageWindow,
+  toPaginationParams,
+} from '@api/helpers/dto/pagination-query.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource } from '@genfeedai/contracts';
+import type { UnitEconomicsSortKey } from '@genfeedai/contracts/constants';
 import type {
   IUnitEconomicsQuery,
   IUnitEconomicsReport,
@@ -21,26 +26,23 @@ import { Injectable } from '@nestjs/common';
 
 type NumericSqlValue = bigint | number | string | null;
 
-interface RevenueRow {
-  key: string | null;
+/** One grouping key's merged ledger aggregates, as the page query returns them. */
+interface MergedAggregateColumns {
+  agentChatCredits: NumericSqlValue;
+  agentTurns: NumericSqlValue;
+  generationCredits: NumericSqlValue;
+  llmProviderCostMicros: NumericSqlValue;
+  mediaProviderCostMicros: NumericSqlValue;
   revenueMinor: NumericSqlValue;
 }
 
-interface CreditRow {
-  agentChatCredits: NumericSqlValue;
-  generationCredits: NumericSqlValue;
-  key: string | null;
+interface PageRow extends MergedAggregateColumns {
+  key: string;
+  label: string;
 }
 
-interface LlmRow {
-  agentTurns: NumericSqlValue;
-  key: string | null;
-  llmProviderCostMicros: NumericSqlValue;
-}
-
-interface MediaRow {
-  key: string | null;
-  mediaProviderCostMicros: NumericSqlValue;
+interface SummaryRow extends MergedAggregateColumns {
+  totalRows: NumericSqlValue;
 }
 
 interface TopModelRow {
@@ -55,6 +57,24 @@ interface ReportScope {
   organizationId?: string;
   to: Date;
 }
+
+interface ReportOrder {
+  direction: 'asc' | 'desc';
+  key?: UnitEconomicsSortKey;
+}
+
+/** Columns of the labelled CTE that each sort key orders by. */
+const SORT_COLUMN_SQL: Record<UnitEconomicsSortKey, string> = {
+  agentChatCredits: '"agentChatCredits"',
+  agentTurns: '"agentTurns"',
+  generationCredits: '"generationCredits"',
+  grossMarginPercent: '"grossMarginPercent"',
+  grossMarginUsd: '"grossMarginUsd"',
+  label: 'LOWER("label")',
+  llmProviderCostUsd: '"llmProviderCostMicros"',
+  mediaProviderCostUsd: '"mediaProviderCostMicros"',
+  revenueUsd: '"revenueMinor"',
+};
 
 const TOP_MODELS_PER_ROW = 3;
 const REPORTING_CURRENCY = 'usd';
@@ -71,6 +91,19 @@ function toNumber(value: NumericSqlValue): number {
 
 function toKey(value: string | null): string {
   return value ?? UNATTRIBUTED_KEY;
+}
+
+function toAggregate(
+  row: MergedAggregateColumns | undefined,
+): UnitEconomicsAggregate {
+  return {
+    agentChatCredits: toNumber(row?.agentChatCredits ?? null),
+    agentTurns: toNumber(row?.agentTurns ?? null),
+    generationCredits: toNumber(row?.generationCredits ?? null),
+    llmProviderCostMicros: toNumber(row?.llmProviderCostMicros ?? null),
+    mediaProviderCostMicros: toNumber(row?.mediaProviderCostMicros ?? null),
+    revenueMinor: toNumber(row?.revenueMinor ?? null),
+  };
 }
 
 /**
@@ -90,48 +123,36 @@ export class UnitEconomicsService {
       organizationId: query.organizationId,
       to: range.to,
     };
+    const order: ReportOrder = {
+      direction: query.sortDirection ?? 'desc',
+      key: query.sortKey,
+    };
+    const { limit, page, skip } = resolvePageWindow(query);
     const organizationLabel = scope.organizationId
       ? await this.readOrganizationLabel(scope.organizationId)
       : null;
 
+    // The page is ranked, labelled and cut in Postgres; the summary row sums
+    // every grouping key so totals stay report-wide, not page-wide.
     // tenant-scope-ignore: superadmin cross-organization reporting
-    const [revenueRows, creditRows, llmRows, mediaRows, topModelRows] =
-      await Promise.all([
-        this.prisma.$queryRaw<RevenueRow[]>(this.revenueSql(scope)),
-        this.prisma.$queryRaw<CreditRow[]>(this.creditSql(scope)),
-        this.prisma.$queryRaw<LlmRow[]>(this.llmSql(scope)),
-        this.prisma.$queryRaw<MediaRow[]>(this.mediaSql(scope)),
-        this.prisma.$queryRaw<TopModelRow[]>(this.topModelsSql(scope)),
-      ]);
+    const [pageRows, [summary]] = await Promise.all([
+      this.prisma.$queryRaw<PageRow[]>(
+        this.pageSql(scope, order, { limit, skip }),
+      ),
+      this.prisma.$queryRaw<SummaryRow[]>(this.summarySql(scope)),
+    ]);
 
-    const aggregates = new Map<string, UnitEconomicsAggregate>();
-    const aggregateFor = (key: string | null): UnitEconomicsAggregate => {
-      const normalized = toKey(key);
-      const existing = aggregates.get(normalized);
-      if (existing) return existing;
-      const created = { ...EMPTY_UNIT_ECONOMICS_AGGREGATE };
-      aggregates.set(normalized, created);
-      return created;
-    };
-
-    for (const row of revenueRows) {
-      aggregateFor(row.key).revenueMinor += toNumber(row.revenueMinor);
-    }
-    for (const row of creditRows) {
-      const aggregate = aggregateFor(row.key);
-      aggregate.agentChatCredits += toNumber(row.agentChatCredits);
-      aggregate.generationCredits += toNumber(row.generationCredits);
-    }
-    for (const row of llmRows) {
-      const aggregate = aggregateFor(row.key);
-      aggregate.llmProviderCostMicros += toNumber(row.llmProviderCostMicros);
-      aggregate.agentTurns += toNumber(row.agentTurns);
-    }
-    for (const row of mediaRows) {
-      aggregateFor(row.key).mediaProviderCostMicros += toNumber(
-        row.mediaProviderCostMicros,
-      );
-    }
+    // Only the rows on this page need their top models.
+    // tenant-scope-ignore: superadmin cross-organization reporting
+    const topModelRows =
+      pageRows.length > 0
+        ? await this.prisma.$queryRaw<TopModelRow[]>(
+            this.topModelsSql(
+              scope,
+              pageRows.map((row) => toKey(row.key)),
+            ),
+          )
+        : [];
 
     const topModels = new Map<string, IUnitEconomicsTopModel[]>();
     for (const row of topModelRows) {
@@ -146,23 +167,23 @@ export class UnitEconomicsService {
       topModels.set(key, models);
     }
 
-    const labels = await this.readLabels([...aggregates.keys()], scope);
-    const { rows, totals } = buildUnitEconomicsRows(
-      [...aggregates.entries()].map(([key, aggregate]) => ({
-        aggregate,
-        id: key,
-        label: labels.get(key) ?? (key || UNATTRIBUTED_LABEL),
-        topModels: topModels.get(key) ?? [],
-      })),
-    );
-
+    const totalRows = toNumber(summary?.totalRows ?? null);
     return {
       from: range.from.toISOString(),
       organizationId: scope.organizationId ?? null,
       organizationLabel,
-      rows,
+      pagination: toPaginationParams(totalRows, page, limit),
+      rows: pageRows.map((row) => {
+        const key = toKey(row.key);
+        return buildUnitEconomicsRow({
+          aggregate: toAggregate(row),
+          id: key,
+          label: row.label || key || UNATTRIBUTED_LABEL,
+          topModels: topModels.get(key) ?? [],
+        });
+      }),
       to: range.to.toISOString(),
-      totals,
+      totals: toUnitEconomicsMetrics(toAggregate(summary)),
     };
   }
 
@@ -178,55 +199,6 @@ export class UnitEconomicsService {
     return organization.label;
   }
 
-  private async readLabels(
-    keys: string[],
-    scope: ReportScope,
-  ): Promise<Map<string, string>> {
-    const ids = keys.filter((key) => key !== UNATTRIBUTED_KEY);
-    const labels = new Map<string, string>([
-      [UNATTRIBUTED_KEY, UNATTRIBUTED_LABEL],
-    ]);
-    if (ids.length === 0) {
-      return labels;
-    }
-
-    if (scope.organizationId) {
-      // tenant-scope-ignore: users are platform identities, keyed by ledger actors
-      const users = await this.prisma.user.findMany({
-        select: {
-          email: true,
-          firstName: true,
-          handle: true,
-          id: true,
-          lastName: true,
-          name: true,
-        },
-        where: { id: { in: ids } },
-      });
-      for (const user of users) {
-        const fullName = [user.firstName, user.lastName]
-          .filter(Boolean)
-          .join(' ')
-          .trim();
-        labels.set(
-          user.id,
-          user.email || user.name || fullName || user.handle || user.id,
-        );
-      }
-      return labels;
-    }
-
-    // tenant-scope-ignore: superadmin cross-organization reporting
-    const organizations = await this.prisma.organization.findMany({
-      select: { id: true, label: true },
-      where: { id: { in: ids } },
-    });
-    for (const organization of organizations) {
-      labels.set(organization.id, organization.label);
-    }
-    return labels;
-  }
-
   private organizationFilter(scope: ReportScope, alias?: string): Prisma.Sql {
     if (!scope.organizationId) {
       return Prisma.empty;
@@ -240,6 +212,130 @@ export class UnitEconomicsService {
   /** Grouping key: organization, or the acting user inside a drill-down. */
   private groupKey(scope: ReportScope, userColumn: string): Prisma.Sql {
     return Prisma.raw(scope.organizationId ? userColumn : '"organizationId"');
+  }
+
+  /**
+   * The four ledgers grouped by key, merged into one row per key. Every key
+   * seen in any ledger gets a row (a missing ledger counts as zero).
+   */
+  private mergedLedgersSql(scope: ReportScope): Prisma.Sql {
+    return Prisma.sql`
+      "revenue" AS (${this.revenueSql(scope)}),
+      "credits" AS (${this.creditSql(scope)}),
+      "llm" AS (${this.llmSql(scope)}),
+      "media" AS (${this.mediaSql(scope)}),
+      "keys" AS (
+        SELECT COALESCE("key", '') AS "key" FROM "revenue"
+        UNION SELECT COALESCE("key", '') FROM "credits"
+        UNION SELECT COALESCE("key", '') FROM "llm"
+        UNION SELECT COALESCE("key", '') FROM "media"
+      ),
+      "combined" AS (
+        SELECT
+          k."key" AS "key",
+          COALESCE(r."revenueMinor", 0)::double precision AS "revenueMinor",
+          COALESCE(c."agentChatCredits", 0)::double precision AS "agentChatCredits",
+          COALESCE(c."generationCredits", 0)::double precision AS "generationCredits",
+          COALESCE(l."llmProviderCostMicros", 0)::double precision AS "llmProviderCostMicros",
+          COALESCE(l."agentTurns", 0)::double precision AS "agentTurns",
+          COALESCE(m."mediaProviderCostMicros", 0)::double precision AS "mediaProviderCostMicros"
+        FROM "keys" k
+        LEFT JOIN "revenue" r ON COALESCE(r."key", '') = k."key"
+        LEFT JOIN "credits" c ON COALESCE(c."key", '') = k."key"
+        LEFT JOIN "llm" l ON COALESCE(l."key", '') = k."key"
+        LEFT JOIN "media" m ON COALESCE(m."key", '') = k."key"
+      )`;
+  }
+
+  /** Organization label, or the acting user's best display name in a drill-down. */
+  private labelSql(scope: ReportScope): {
+    join: Prisma.Sql;
+    label: Prisma.Sql;
+  } {
+    if (scope.organizationId) {
+      return {
+        join: Prisma.sql`LEFT JOIN "users" u ON u."id" = c."key"`,
+        label: Prisma.sql`COALESCE(
+          NULLIF(u."email", ''),
+          NULLIF(u."name", ''),
+          NULLIF(TRIM(CONCAT_WS(' ', u."firstName", u."lastName")), ''),
+          NULLIF(u."handle", ''),
+          NULLIF(c."key", ''),
+          ${UNATTRIBUTED_LABEL}
+        )`,
+      };
+    }
+    return {
+      join: Prisma.sql`LEFT JOIN "organizations" o ON o."id" = c."key"`,
+      label: Prisma.sql`COALESCE(o."label", NULLIF(c."key", ''), ${UNATTRIBUTED_LABEL})`,
+    };
+  }
+
+  private orderSql(order: ReportOrder): Prisma.Sql {
+    const column = order.key ? SORT_COLUMN_SQL[order.key] : undefined;
+    if (!column) {
+      // Default: provider cost, the number an operator scans first.
+      return Prisma.raw(
+        '("llmProviderCostMicros" + "mediaProviderCostMicros") DESC, "revenueMinor" DESC, LOWER("label") ASC, "key" ASC',
+      );
+    }
+    // A row without revenue has no margin %; it ranks below every real value.
+    const direction =
+      order.direction === 'asc' ? 'ASC NULLS FIRST' : 'DESC NULLS LAST';
+    return Prisma.raw(`${column} ${direction}, LOWER("label") ASC, "key" ASC`);
+  }
+
+  /** One ranked, labelled page of merged rows. */
+  pageSql(
+    scope: ReportScope,
+    order: ReportOrder,
+    window: { limit: number; skip: number },
+  ): Prisma.Sql {
+    const { join, label } = this.labelSql(scope);
+    return Prisma.sql`
+      WITH ${this.mergedLedgersSql(scope)},
+      "labelled" AS (
+        SELECT
+          c."key",
+          c."revenueMinor",
+          c."agentChatCredits",
+          c."generationCredits",
+          c."llmProviderCostMicros",
+          c."mediaProviderCostMicros",
+          c."agentTurns",
+          ${label} AS "label",
+          c."revenueMinor" / 100.0
+            - (c."llmProviderCostMicros" + c."mediaProviderCostMicros") / 1000000.0 AS "grossMarginUsd",
+          CASE WHEN c."revenueMinor" > 0
+            THEN (
+              c."revenueMinor" / 100.0
+                - (c."llmProviderCostMicros" + c."mediaProviderCostMicros") / 1000000.0
+            ) / (c."revenueMinor" / 100.0)
+          END AS "grossMarginPercent"
+        FROM "combined" c
+        ${join}
+      )
+      SELECT *
+      FROM "labelled"
+      ORDER BY ${this.orderSql(order)}
+      LIMIT ${window.limit} OFFSET ${window.skip}
+    `;
+  }
+
+  /** Row count and sums across every key: the report-wide totals. */
+  summarySql(scope: ReportScope): Prisma.Sql {
+    return Prisma.sql`
+      WITH ${this.mergedLedgersSql(scope)}
+      SELECT
+        COUNT(*)::bigint AS "totalRows",
+        COALESCE(SUM("revenueMinor"), 0)::double precision AS "revenueMinor",
+        COALESCE(SUM("agentChatCredits"), 0)::double precision AS "agentChatCredits",
+        COALESCE(SUM("generationCredits"), 0)::double precision AS "generationCredits",
+        COALESCE(SUM("llmProviderCostMicros"), 0)::double precision AS "llmProviderCostMicros",
+        COALESCE(SUM("mediaProviderCostMicros"), 0)::double precision AS "mediaProviderCostMicros",
+        COALESCE(SUM("agentTurns"), 0)::double precision AS "agentTurns"
+      FROM "combined"
+    `;
   }
 
   revenueSql(scope: ReportScope): Prisma.Sql {
@@ -314,10 +410,12 @@ export class UnitEconomicsService {
     `;
   }
 
-  topModelsSql(scope: ReportScope): Prisma.Sql {
+  /** Top models for the grouping keys on the current page only. */
+  topModelsSql(scope: ReportScope, keys: string[]): Prisma.Sql {
     const mediaKey = scope.organizationId
       ? Prisma.raw('i."userId"')
       : Prisma.raw('m."organizationId"');
+    const pageKeys = Prisma.join(keys);
     return Prisma.sql`
       WITH "modelCosts" AS (
         SELECT
@@ -330,6 +428,7 @@ export class UnitEconomicsService {
           AND ("workflowExecutionId" IS NULL OR "costEvidence" IN (${Prisma.join(SETTLED_COST_EVIDENCE)}))
           AND "createdAt" >= ${scope.from}
           AND "createdAt" <= ${scope.to}
+          AND COALESCE(${this.groupKey(scope, '"userId"')}, '') IN (${pageKeys})
           ${this.organizationFilter(scope)}
         GROUP BY 1, 2
 
@@ -345,6 +444,7 @@ export class UnitEconomicsService {
           AND (m."workflowExecutionId" IS NULL OR m."costEvidence" IN (${Prisma.join(SETTLED_COST_EVIDENCE)}))
           AND m."createdAt" >= ${scope.from}
           AND m."createdAt" <= ${scope.to}
+          AND COALESCE(${mediaKey}, '') IN (${pageKeys})
           ${this.organizationFilter(scope, 'm')}
         GROUP BY 1, 2
       ),

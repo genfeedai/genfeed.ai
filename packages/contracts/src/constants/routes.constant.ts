@@ -12,11 +12,20 @@ export const APP_ROUTES = {
   ADMIN: {
     ROOT: '/admin',
     FLAGS: '/admin/flags',
+    SETTINGS: {
+      ACCOUNTS: '/admin/settings/accounts',
+      AGENT: '/admin/settings/agent',
+      AI: '/admin/settings/ai',
+      BILLING: '/admin/settings/billing',
+      MEDIA: '/admin/settings/media',
+      NOTIFICATIONS: '/admin/settings/notifications',
+      PROVIDERS: '/admin/settings/providers',
+      ROOT: '/admin/settings',
+    },
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
       CREDIT_USAGE: '/admin/administration/credit-usage',
       REFERRALS: '/admin/administration/referrals',
-      PLATFORM_SETTINGS: '/admin/administration/platform-settings',
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       SYSTEM_EMAILS: '/admin/administration/system-emails',
@@ -25,6 +34,7 @@ export const APP_ROUTES = {
       WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
     AUTOMATION: {
+      AGENTS: '/admin/automation/agents',
       BOTS: '/admin/automation/bots',
       FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',

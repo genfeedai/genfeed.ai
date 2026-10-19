@@ -22,6 +22,9 @@ export interface IWorkflowExecution {
   accounting?: WorkflowAccounting | null;
   failureReason?: AgentFailureReason | null;
   failure?: IAgentFailure | null;
+  /** Set when a platform admin marked this failed run as handled. */
+  failureResolvedAt?: string | null;
+  failureResolvedBy?: string | null;
   completedAt?: string;
   createdAt: string;
   /** Absent on rows the API never recorded credits for; treat as zero. */
@@ -33,6 +36,10 @@ export interface IWorkflowExecution {
   inputValues: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   nodeResults: IWorkflowExecutionNodeResult[];
+  organization?: {
+    id: string;
+    label: string;
+  };
   organizationId: string;
   progress: number;
   result?: Record<string, unknown>;

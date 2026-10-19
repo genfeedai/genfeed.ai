@@ -201,7 +201,7 @@ vi.mock('@pages/posts/list/components/PostsGrid', () => ({
   },
 }));
 
-vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
+vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
     <div data-testid="post-detail-overlay">{postId ?? 'closed'}</div>

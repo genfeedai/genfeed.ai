@@ -15,7 +15,7 @@ paths:
 Enabling a feature, a rollout mode (`off | shadow | live`), a confidence
 threshold or any other operator decision about product behaviour is a typed
 column on the `PlatformSetting` singleton, edited at
-`/admin/administration/platform-settings` (superadmin + IP allowlist).
+`/admin/settings` (superadmin + IP allowlist).
 
 **Why:** an env switch changes only with a deploy by someone holding AWS/SSM
 access; a kill switch that needs a deploy is not a kill switch.

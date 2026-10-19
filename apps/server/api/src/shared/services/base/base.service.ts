@@ -390,10 +390,16 @@ export abstract class BaseService<
       const isPaginated = options.pagination !== false;
 
       if (!isPaginated) {
+        // An explicit numeric `limit` still caps the unpaginated read.
+        const take =
+          typeof options.limit === 'number' && options.limit > 0
+            ? options.limit
+            : undefined;
         const docs = this.normalizeDocuments(
           await this.internalDelegate.findMany({
             where,
             orderBy,
+            ...(take !== undefined ? { take } : {}),
             ...projection,
           }),
         );

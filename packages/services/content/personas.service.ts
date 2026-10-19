@@ -73,8 +73,20 @@ export class PersonasService extends BaseService<
     return BaseService.getDataServiceInstance(PersonasService, token);
   }
 
-  async listCharacters(): Promise<BrandCharacterListItem[]> {
-    return toCharacterListItems(await this.findAll());
+  /**
+   * With `page`, returns that single server page (and records the totals for
+   * `<AutoPagination />`). Without it, returns every character across all
+   * pages so pickers never silently stop at the API default of 10.
+   */
+  async listCharacters(
+    query: { limit?: number; page?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<BrandCharacterListItem[]> {
+    return toCharacterListItems(
+      query.page
+        ? await this.findAll(query, signal)
+        : await this.findAllPages({}, signal),
+    );
   }
 
   /**

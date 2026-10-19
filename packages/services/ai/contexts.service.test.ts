@@ -63,9 +63,25 @@ describe('ContextsService', () => {
     const result = await service.listContexts();
 
     const [url, init] = lastCall();
-    expect(url).toContain('/contexts');
+    expect(url).toContain('/contexts?limit=100&page=1');
     expect(init.method).toBe('GET');
     expect(result).toEqual([{ id: 'ctx_1', label: 'Docs' }]);
+  });
+
+  it('listContexts walks every page', async () => {
+    const withPages = (id: string, page: number) => ({
+      ...collectionDocument([{ id, label: id }]),
+      links: { pagination: { limit: 100, page, pages: 2, total: 101 } },
+    });
+    fetchMock
+      .mockResolvedValueOnce(fetchResponse(withPages('ctx_1', 1)))
+      .mockResolvedValueOnce(fetchResponse(withPages('ctx_2', 2)));
+
+    const result = await ContextsService.getInstance(token).listContexts();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('page=2');
+    expect(result.map((context) => context.id)).toEqual(['ctx_1', 'ctx_2']);
   });
 
   it('getContext GETs a single context', async () => {

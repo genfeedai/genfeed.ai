@@ -13,7 +13,7 @@ import type {
   UpdateRecurrenceSeriesInput,
   UpdateReleaseGroupInput,
 } from '@genfeedai/contracts/api-types/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import { API_ENDPOINTS, MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
   IReleaseGroup,
@@ -59,6 +59,9 @@ export interface ReleaseGroupListQuery {
   status?: ReleaseStatus[];
 }
 
+/** Safety ceiling for {@link ReleaseGroupsService.findAllPages}. */
+const MAX_RELEASE_PAGES = 50;
+
 export class ReleaseGroupsService extends HTTPBaseService {
   constructor(token: string) {
     super(
@@ -74,6 +77,10 @@ export class ReleaseGroupsService extends HTTPBaseService {
     ) as ReleaseGroupsService;
   }
 
+  /**
+   * One server page. The API pages every release read (20 by default), so a
+   * caller that needs every release in a window uses {@link findAllPages}.
+   */
   async findAll(
     query: ReleaseGroupListQuery,
     signal?: AbortSignal,
@@ -84,6 +91,29 @@ export class ReleaseGroupsService extends HTTPBaseService {
     });
 
     return extractCollection<IReleaseGroup>(response.data);
+  }
+
+  /** Every release matching the query, walking the server pages. */
+  async findAllPages(
+    query: Omit<ReleaseGroupListQuery, 'limit' | 'page'>,
+    signal?: AbortSignal,
+  ): Promise<IReleaseGroup[]> {
+    const first = await this.findAllPage(
+      { ...query, limit: MAX_PAGE_SIZE, page: 1 },
+      signal,
+    );
+    const releases = [...first.items];
+    const lastPage = Math.min(first.totalPages, MAX_RELEASE_PAGES);
+
+    for (let page = 2; page <= lastPage; page += 1) {
+      const next = await this.findAllPage(
+        { ...query, limit: MAX_PAGE_SIZE, page },
+        signal,
+      );
+      releases.push(...next.items);
+    }
+
+    return releases;
   }
 
   async findAllPage(

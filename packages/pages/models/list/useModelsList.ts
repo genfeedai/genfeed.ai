@@ -1,9 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ModalEnum,
-  type ModelLifecycle,
-  PageScope,
-} from '@genfeedai/contracts';
+import { ModalEnum, ModelLifecycle, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IModel,
@@ -41,7 +37,7 @@ export function useModelsList({
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
   onRefresh,
-  renderCostAction,
+  isModelPinned,
 }: ModelsListProps) {
   const { organizationId } = useBrand();
   const translate = useTranslations('pages.models');
@@ -277,6 +273,50 @@ export function useModelsList({
       ),
     [catalogModels, category, type],
   );
+
+  // Models that need an operator lead the first page, whatever page they sit
+  // on in the sort order, so required work is never buried. The rest of the
+  // list keeps the server's sort and pagination.
+  const displayModels = useMemo(() => {
+    if (!isAdminScope || !isModelPinned) return models;
+    const search = normalizedSearchTerm.toLowerCase();
+    const matchesFilters = (model: IModel) =>
+      (adminFilters.categories.length === 0 ||
+        adminFilters.categories.some((value) => value === model.category)) &&
+      (adminFilters.providers.length === 0 ||
+        adminFilters.providers.some((value) => value === model.provider)) &&
+      (adminFilters.statuses.length !== 1 ||
+        model.isActive === (adminFilters.statuses[0] === 'active')) &&
+      (includeRetired || model.lifecycle !== ModelLifecycle.RETIRED) &&
+      (!search ||
+        [model.label, model.key, model.description].some((value) =>
+          value?.toLowerCase().includes(search),
+        ));
+    const pageIds = new Set(models.map((model) => model.id));
+    const offPage =
+      currentPage === 1
+        ? catalogModels.filter(
+            (model) =>
+              isModelPinned(model) &&
+              !pageIds.has(model.id) &&
+              matchesFilters(model),
+          )
+        : [];
+    return [
+      ...models.filter((model) => isModelPinned(model) && currentPage === 1),
+      ...offPage,
+      ...models.filter((model) => !isModelPinned(model)),
+    ];
+  }, [
+    adminFilters,
+    catalogModels,
+    currentPage,
+    includeRetired,
+    isAdminScope,
+    isModelPinned,
+    models,
+    normalizedSearchTerm,
+  ]);
 
   const refresh = useCallback(async () => {
     await Promise.all([refetchModels(), refetchCatalogModels(), onRefresh?.()]);
@@ -627,7 +667,6 @@ export function useModelsList({
         onOpenDetails: handleViewDetails,
         togglingModelId,
         models,
-        renderCostAction,
         translate,
       }),
     [
@@ -640,7 +679,6 @@ export function useModelsList({
       handleViewDetails,
       togglingModelId,
       models,
-      renderCostAction,
       translate,
     ],
   );
@@ -659,7 +697,7 @@ export function useModelsList({
     isLoading,
     selectedGroupKey,
     columns,
-    models,
+    models: displayModels,
     searchTerm,
     sortKey,
     sortDirection,

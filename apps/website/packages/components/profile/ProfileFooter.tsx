@@ -1,14 +1,25 @@
 'use client';
 
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
+import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function ProfileFooter() {
+interface ProfileFooterProps {
+  handle: string;
+  referralCode?: string | null;
+}
+
+export default function ProfileFooter({
+  handle,
+  referralCode,
+}: ProfileFooterProps) {
   const logoUrl = useThemeLogo();
 
   return (
-    <div className="text-center pt-8 pb-4">
+    <footer className="flex flex-col items-center gap-8 pt-8 pb-4 text-center">
+      <ProfileSignupCta handle={handle} referralCode={referralCode} />
+
       <Link
         href="/"
         className="flex flex-col items-center gap-3 text-surface/55 hover:text-surface/75 transition-colors"
@@ -24,6 +35,6 @@ export default function ProfileFooter() {
         )}
         <span className="text-sm">Create content with Genfeed</span>
       </Link>
-    </div>
+    </footer>
   );
 }

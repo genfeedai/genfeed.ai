@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import SystemEmailRangeFilter from './system-email-range-filter';
@@ -11,6 +11,39 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@ui/primitives/date-range-picker', () => ({
+  default: ({
+    onChange,
+  }: {
+    onChange: (range: { startDate: Date; endDate: Date }) => void;
+  }) => (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            endDate: new Date(2026, 7, 31),
+            startDate: new Date(2026, 7, 1),
+          })
+        }
+      >
+        August
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            endDate: new Date(2026, 7, 31),
+            startDate: new Date(2025, 0, 1),
+          })
+        }
+      >
+        Too long
+      </button>
+    </>
+  ),
+}));
+
 function Harness({ onQuery }: { onQuery: (query: unknown) => void }) {
   const range = useSystemEmailRange();
   onQuery(range.query);
@@ -19,16 +52,10 @@ function Harness({ onQuery }: { onQuery: (query: unknown) => void }) {
 }
 
 describe('SystemEmailRangeFilter', () => {
-  it('applies inclusive UTC calendar days', async () => {
+  it('applies a picked range as inclusive calendar days', async () => {
     const onQuery = vi.fn();
     render(<Harness onQuery={onQuery} />);
-    fireEvent.change(screen.getByLabelText('From (UTC)'), {
-      target: { value: '2026-08-01' },
-    });
-    fireEvent.change(screen.getByLabelText('Through (UTC)'), {
-      target: { value: '2026-08-31' },
-    });
-    await userEvent.click(screen.getByRole('button', { name: 'Apply dates' }));
+    await userEvent.click(screen.getByRole('button', { name: 'August' }));
 
     expect(onQuery).toHaveBeenLastCalledWith({
       from: '2026-08-01T00:00:00.000Z',
@@ -36,18 +63,12 @@ describe('SystemEmailRangeFilter', () => {
     });
   });
 
-  it('blocks an excessive date range', () => {
+  it('blocks an excessive date range', async () => {
     const onQuery = vi.fn();
     render(<Harness onQuery={onQuery} />);
     const initial = onQuery.mock.calls.at(-1)?.[0];
-    fireEvent.change(screen.getByLabelText('From (UTC)'), {
-      target: { value: '2025-01-01' },
-    });
-    fireEvent.change(screen.getByLabelText('Through (UTC)'), {
-      target: { value: '2026-08-31' },
-    });
+    await userEvent.click(screen.getByRole('button', { name: 'Too long' }));
 
-    expect(screen.getByRole('button', { name: 'Apply dates' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Choose a date range of 1–90 days.',
     );

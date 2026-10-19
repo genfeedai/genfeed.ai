@@ -39,6 +39,7 @@ last_verified: 2026-10-14
 | First-party skills | Built-in identity, instructions, version, catalog origin | Organization-owned forks |
 | Studio presets | Insert-if-missing platform templates | Activation, deletion, tenant forks |
 | Studio elements | Insert-if-missing platform rows (deterministic id) | Renames, edits, activation, deletion |
+| Font families | Insert-if-missing platform rows (deterministic id) | Renames, edits, deletion |
 | Music defaults | `UNIFIED_MODEL_CATALOG` music entries (no extra seeder) | Same as model catalog |
 
 A model row created by the sync is also offered once to every organization with an explicit `enabledModelIds` allowlist (allowlists are never merged on read); later syncs leave the allowlist alone, so a switched-off model stays off.
@@ -67,6 +68,7 @@ The sync is a compiled Nest one-off app (`api-reference-data-sync`). It is not i
 | `SkillCatalogSeedService` + `SkillLibraryService.backfillExistingOrganizations` | Reference-data sync (new orgs still get `assignSharedDefaults` on setup) |
 | `StudioPresetSeedService` | Reference-data sync |
 | Studio elements | Reference-data sync (`STUDIO_ELEMENT_CATALOG`) |
+| Font families | Reference-data sync (`FONT_FAMILY_METADATA`, one row per shipped TTF) |
 | Music catalog default | Model catalog domain |
 | `SelfHostedSeedService` | Tenant fixture on API boot |
 | `PlatformScheduleRegistryService` | Runtime BullMQ registration |

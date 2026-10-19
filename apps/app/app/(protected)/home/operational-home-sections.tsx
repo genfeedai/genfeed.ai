@@ -518,7 +518,7 @@ function UpcomingScheduleBlock({
 
         // Same scheduler read model the publish calendar queries — the window
         // filter narrows releases, the target filter narrows to live sends.
-        const releases = await service.findAll(
+        const releases = await service.findAllPages(
           {
             ...(brandId ? { brandId } : {}),
             endDate: windowEnd.toISOString(),

@@ -5,6 +5,8 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import {
+  ButtonSize,
+  ButtonVariant,
   CredentialPlatform,
   normalizeReviewDecision,
   type PageScope,
@@ -20,6 +22,7 @@ import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
 import PostDetailNeedsYou from '@pages/posts/detail/components/PostDetailNeedsYou';
+import PostDetailPublished from '@pages/posts/detail/components/PostDetailPublished';
 import { buildPostDetailFacts } from '@pages/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@pages/posts/detail/post-detail-preview.helpers';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
@@ -29,11 +32,14 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import TargetPreview from '@ui/previews/TargetPreview';
+import { Button } from '@ui/primitives/button';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
@@ -41,7 +47,13 @@ import { type ReactNode, useCallback, useMemo, useState } from 'react';
 export interface PostDetailProps {
   postId: string;
   scope: PageScope;
-  presentation?: 'page' | 'overlay';
+  /**
+   * `page` is the full editor. `sidebar` is the compact detail shown in the
+   * shell's right context sidebar when a row is selected in a list.
+   */
+  presentation?: 'page' | 'sidebar';
+  /** Sidebar presentation only: called when the sidebar is closed. */
+  onClose?: () => void;
   /**
    * When set, sidebar meta (schedule, quality, SEO, …) is handed to the host
    * (e.g. workspace Context rail) instead of rendering inline beside content.
@@ -56,6 +68,7 @@ export default function PostDetail({
   postId,
   scope,
   presentation = 'page',
+  onClose,
   renderContextSidebar,
 }: PostDetailProps) {
   const router = useRouter();
@@ -100,6 +113,7 @@ export default function PostDetail({
     handleContentSave,
     handleScheduleSave,
     handlePublishNow,
+    handleRetryPublish,
     handlePublishViaTikTokApp,
     handleAddToThread,
     handleAddThreadPosts,
@@ -298,20 +312,15 @@ export default function PostDetail({
     [setScheduleDraft],
   );
 
-  // Stable node for workspace Context adapter registration — rebuilding this
-  // JSX every keystroke was thrashing parent memos. Hooks stay above early returns.
-  const sidebar = useMemo(() => {
+  // The thread as each platform renders it. Shown in the sidebar's Preview tab
+  // while composing, and in the page body once the post is published.
+  const threadPreview = useMemo(() => {
     if (!post) {
-      return null;
+      return undefined;
     }
-    const targetPreview = buildPostTargetPreview(
-      post,
-      descriptionDraft,
-      credential,
-    );
     // The standalone inspector shows every post of the thread as plain text,
     // the way each platform will render it.
-    const threadPreview = isStandalonePage ? (
+    return isStandalonePage ? (
       <div className="space-y-4">
         {[post, ...sortedChildren].map((item, index) => {
           const description =
@@ -340,10 +349,35 @@ export default function PostDetail({
         {!isPublished ? <EngagementPreview post={post} /> : null}
       </div>
     ) : undefined;
+  }, [
+    childDescriptions,
+    credential,
+    descriptionDraft,
+    isPublished,
+    isStandalonePage,
+    labelDraft,
+    post,
+    selectedIngredients,
+    sortedChildren,
+    translate,
+  ]);
+
+  // Stable node for workspace Context adapter registration — rebuilding this
+  // JSX every keystroke was thrashing parent memos. Hooks stay above early returns.
+  const sidebar = useMemo(() => {
+    if (!post) {
+      return null;
+    }
+    const targetPreview = buildPostTargetPreview(
+      post,
+      descriptionDraft,
+      credential,
+    );
     return (
       <div className="space-y-3">
         <PostDetailSidebar
-          preview={threadPreview}
+          isPerformanceShown={!isStandalonePage}
+          preview={isPublished ? undefined : threadPreview}
           post={post}
           credential={credential}
           scheduleDraft={scheduleDraft}
@@ -371,13 +405,9 @@ export default function PostDetail({
     );
   }, [
     analyticsStats,
-    childDescriptions,
     credential,
     descriptionDraft,
-    labelDraft,
-    selectedIngredients,
-    sortedChildren,
-    translate,
+    threadPreview,
     handleScheduleChange,
     handleScoreSeo,
     publishNow,
@@ -398,6 +428,64 @@ export default function PostDetail({
   const usesContextSidebar = Boolean(renderContextSidebar) || usesShellSidebar;
   const contextLabel =
     labelDraft?.trim() || post?.label?.trim() || 'Untitled post';
+
+  if (presentation === 'sidebar') {
+    const editorHref = href(getPublishingPostHref(postId));
+    let panelBody: ReactNode;
+    if (error) {
+      panelBody = <p className="p-4 text-sm text-error">{error}</p>;
+    } else if (!post && !isLoading) {
+      panelBody = (
+        <p className="p-4 text-sm text-error">{translate('notFound')}</p>
+      );
+    } else if (!post) {
+      panelBody = (
+        <div className="p-4" data-testid="post-detail-skeleton">
+          <SkeletonCard showImage={false} />
+        </div>
+      );
+    } else {
+      panelBody = (
+        <>
+          <div className="flex justify-end border-b border-border px-4 py-3">
+            <Button
+              asChild
+              icon={<ExternalLink className="size-3.5" />}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link href={editorHref}>{translate('openEditor')}</Link>
+            </Button>
+          </div>
+          <div className="space-y-4 p-4">
+            <PostDetailNeedsYou
+              isPublished={isPublished}
+              onPublishNow={publishNow}
+              onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+              post={post}
+            />
+            {sidebar}
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <ContextSidebarPanel
+        onClose={onClose}
+        selection={{
+          id: postId,
+          kind: 'post',
+          origin: 'user',
+          title: post ? contextLabel : translate('title'),
+        }}
+      >
+        <div className="flex flex-col" data-testid="post-detail-panel">
+          {panelBody}
+        </div>
+      </ContextSidebarPanel>
+    );
+  }
 
   // Error state
   if (error) {
@@ -487,6 +575,7 @@ export default function PostDetail({
               className="mb-6"
               isPublished={isPublished}
               onPublishNow={publishNow}
+              onRetryPublish={handleRetryPublish}
               onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
               post={post}
             />
@@ -515,56 +604,63 @@ export default function PostDetail({
               className="min-w-0"
             >
               <div className="min-w-0">
-                <PostDetailContent
-                  post={post}
-                  sortedChildren={sortedChildren}
-                  scope={scope}
-                  viewMode={viewMode}
-                  descriptionDraft={descriptionDraft}
-                  labelDraft={labelDraft}
-                  childDescriptions={childDescriptions}
-                  selectedIngredients={selectedIngredients}
-                  focusedPostId={focusedPostId}
-                  draggedPostId={draggedPostId}
-                  dragOverDividerIndex={dragOverDividerIndex}
-                  enhancingPostId={enhancingPostId}
-                  isSavingIngredients={isSavingIngredients}
-                  isSavingDescription={isSavingDescription}
-                  isTogglingGrok={isTogglingGrok}
-                  isTogglingFirstComment={isTogglingFirstComment}
-                  carouselValidation={carouselValidation}
-                  publishedDisplay={publishedDisplay}
-                  isContentDirty={isContentDirty}
-                  canAddThread={canAddThread}
-                  canAddFirstComment={canAddFirstComment}
-                  firstCommentPost={firstCommentPost}
-                  isLastChildGrokTweet={isLastChildGrokTweet}
-                  setDescriptionDraft={setDescriptionDraft}
-                  setLabelDraft={setLabelDraft}
-                  setChildDescription={setChildDescription}
-                  setFocusedPostId={setFocusedPostId}
-                  setDragOverDividerIndex={setDragOverDividerIndex}
-                  handleContentSave={handleContentSave}
-                  handleAddToThread={handleAddToThread}
-                  handleAddThreadPosts={handleAddThreadPosts}
-                  handleDeleteChild={handleDeleteChild}
-                  handleSelectMedia={handleSelectMedia}
-                  handleGenerateIllustration={handleGenerateIllustration}
-                  handleQuickAction={handleQuickAction}
-                  handlePerTweetEnhance={handlePerTweetEnhance}
-                  handleDraftThread={handleDraftThread}
-                  handleDragStart={handleDragStart}
-                  handleDragEnd={handleDragEnd}
-                  handleDrop={handleDrop}
-                  handleToggleGrokFeedback={handleToggleGrokFeedback}
-                  handleSetGrokQuestion={handleSetGrokQuestion}
-                  handleToggleFirstComment={handleToggleFirstComment}
-                  handleUpdateChild={handleUpdateChild}
-                  autoSaveRefs={autoSaveRefs}
-                  performAutoSaveForPost={performAutoSaveForPost}
-                  getPostsService={getPostsService}
-                  notificationsService={notificationsService}
-                />
+                {isStandalonePage && isPublished ? (
+                  <PostDetailPublished
+                    stats={analyticsStats}
+                    thread={threadPreview}
+                  />
+                ) : (
+                  <PostDetailContent
+                    post={post}
+                    sortedChildren={sortedChildren}
+                    scope={scope}
+                    viewMode={viewMode}
+                    descriptionDraft={descriptionDraft}
+                    labelDraft={labelDraft}
+                    childDescriptions={childDescriptions}
+                    selectedIngredients={selectedIngredients}
+                    focusedPostId={focusedPostId}
+                    draggedPostId={draggedPostId}
+                    dragOverDividerIndex={dragOverDividerIndex}
+                    enhancingPostId={enhancingPostId}
+                    isSavingIngredients={isSavingIngredients}
+                    isSavingDescription={isSavingDescription}
+                    isTogglingGrok={isTogglingGrok}
+                    isTogglingFirstComment={isTogglingFirstComment}
+                    carouselValidation={carouselValidation}
+                    publishedDisplay={publishedDisplay}
+                    isContentDirty={isContentDirty}
+                    canAddThread={canAddThread}
+                    canAddFirstComment={canAddFirstComment}
+                    firstCommentPost={firstCommentPost}
+                    isLastChildGrokTweet={isLastChildGrokTweet}
+                    setDescriptionDraft={setDescriptionDraft}
+                    setLabelDraft={setLabelDraft}
+                    setChildDescription={setChildDescription}
+                    setFocusedPostId={setFocusedPostId}
+                    setDragOverDividerIndex={setDragOverDividerIndex}
+                    handleContentSave={handleContentSave}
+                    handleAddToThread={handleAddToThread}
+                    handleAddThreadPosts={handleAddThreadPosts}
+                    handleDeleteChild={handleDeleteChild}
+                    handleSelectMedia={handleSelectMedia}
+                    handleGenerateIllustration={handleGenerateIllustration}
+                    handleQuickAction={handleQuickAction}
+                    handlePerTweetEnhance={handlePerTweetEnhance}
+                    handleDraftThread={handleDraftThread}
+                    handleDragStart={handleDragStart}
+                    handleDragEnd={handleDragEnd}
+                    handleDrop={handleDrop}
+                    handleToggleGrokFeedback={handleToggleGrokFeedback}
+                    handleSetGrokQuestion={handleSetGrokQuestion}
+                    handleToggleFirstComment={handleToggleFirstComment}
+                    handleUpdateChild={handleUpdateChild}
+                    autoSaveRefs={autoSaveRefs}
+                    performAutoSaveForPost={performAutoSaveForPost}
+                    getPostsService={getPostsService}
+                    notificationsService={notificationsService}
+                  />
+                )}
               </div>
             </section>
 

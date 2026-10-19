@@ -15,7 +15,11 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(
       ADMIN_MENU_ITEMS.some((item) => item.href === '/admin/overview'),
     ).toBe(false);
-    expect(ADMIN_MENU_ITEMS.some((item) => item.label === 'Agent')).toBe(false);
+    expect(
+      ADMIN_MENU_ITEMS.some(
+        (item) => item.label === 'Agent' && item.group !== 'Settings',
+      ),
+    ).toBe(false);
   });
 
   it('lights Overview only on its own pages, not on every /admin route', () => {
@@ -45,6 +49,7 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(hrefs).toContain('/admin/administration/system-emails');
     expect(hrefs).toContain('/admin/overview/analytics/all');
     expect(hrefs).toContain('/admin/content/generations');
+    expect(hrefs).toContain('/admin/automation/agents');
   });
 
   it('lists prompts inside Generations instead of as their own page', () => {

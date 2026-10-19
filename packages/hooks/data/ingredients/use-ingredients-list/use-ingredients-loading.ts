@@ -6,6 +6,7 @@ import {
   IngredientStatus,
   LibraryShelf,
   PageScope,
+  parseIngredientCategory,
 } from '@genfeedai/contracts';
 import {
   ITEMS_PER_PAGE,
@@ -163,9 +164,21 @@ export function useIngredientsLoading({
 }: UseIngredientsLoadingProps) {
   const notificationsService = NotificationsService.getInstance();
 
+  // The admin library reads the unified `/ingredients` list for every tab, so
+  // the all-organizations view and the type tabs share one endpoint and one
+  // keyset pager; the type becomes a `categories` filter below.
   const getIngredientsService = useAuthedService((token) =>
-    IngredientsService.getInstance(type, token),
+    IngredientsService.getInstance(
+      scope === PageScope.SUPERADMIN ? 'ingredients' : type,
+      token,
+    ),
   );
+  const adminOrganization =
+    scope === PageScope.SUPERADMIN
+      ? parsedSearchParams.get('organization') || ''
+      : '';
+  const adminBrand =
+    scope === PageScope.SUPERADMIN ? parsedSearchParams.get('brand') || '' : '';
 
   const getBulkIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
@@ -223,6 +236,8 @@ export function useIngredientsLoading({
         scope,
         brandId ?? 'none',
         organizationId ?? 'none',
+        adminOrganization || 'all',
+        adminBrand || 'all',
         _queryKey ?? 'none',
         formatFilter ?? 'all',
         currentPage,
@@ -232,6 +247,8 @@ export function useIngredientsLoading({
       scope,
       brandId,
       organizationId,
+      adminOrganization,
+      adminBrand,
       _queryKey,
       formatFilter,
       currentPage,
@@ -271,6 +288,22 @@ export function useIngredientsLoading({
           // Same endpoint and query as a brand; `allBrands` only widens the
           // brand axis to every brand in the organization.
           queryParams.allBrands = true;
+        }
+        if (scope === PageScope.SUPERADMIN) {
+          // Platform admins see every organization unless the subbar picker
+          // narrows to one; the API refuses `allOrganizations` for anyone else.
+          if (adminOrganization) {
+            queryParams.organizationId = adminOrganization;
+          } else {
+            queryParams.allOrganizations = true;
+          }
+          if (adminBrand) {
+            queryParams.brandId = adminBrand;
+          }
+          const adminCategory = parseIngredientCategory(singularType);
+          if (type !== 'ingredients' && adminCategory) {
+            queryParams.categories = [adminCategory];
+          }
         }
 
         if (
@@ -405,6 +438,8 @@ export function useIngredientsLoading({
       getIngredientsService,
       notificationsService,
       organizationId,
+      adminOrganization,
+      adminBrand,
       scope,
       currentPage,
       setIsRefreshing,

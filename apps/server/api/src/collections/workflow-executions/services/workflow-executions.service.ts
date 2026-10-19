@@ -20,7 +20,10 @@ import {
   buildWorkflowOutcomeInput,
   suppressWorkflowOutcomeNotification,
 } from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
-import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+import {
+  buildCustomerExecutionWhere,
+  resolveCustomerExecutionWorkflowIds,
+} from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import {
   composeEtaMetadata,
   readOptionalNumber,
@@ -972,7 +975,26 @@ export class WorkflowExecutionsService extends BaseService<
     };
   }
 
-  getCustomerSummary(
+  /**
+   * Customer-activity filter for list and count reads, with the workflow arms
+   * resolved to ids so Postgres does not join `workflows` per arm.
+   */
+  async buildCustomerListWhere(
+    organizationId: string,
+    query: WorkflowExecutionQueryDto,
+  ) {
+    return buildCustomerExecutionWhere(
+      organizationId,
+      query,
+      await resolveCustomerExecutionWorkflowIds(
+        this.prisma,
+        organizationId,
+        query,
+      ),
+    );
+  }
+
+  async getCustomerSummary(
     organizationId: string,
     query: WorkflowExecutionQueryDto,
     dayStart: Date,
@@ -981,7 +1003,7 @@ export class WorkflowExecutionsService extends BaseService<
     return readWorkflowExecutionSummary(
       this.prisma,
       organizationId,
-      buildCustomerExecutionWhere(organizationId, query),
+      await this.buildCustomerListWhere(organizationId, query),
       dayStart,
       dayEnd,
     );

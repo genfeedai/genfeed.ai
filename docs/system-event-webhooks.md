@@ -6,7 +6,7 @@ notifications service. They work without any external management application.
 ## Configuration
 
 Turn on **Record system events** in Admin → Platform settings
-(`/admin/administration/platform-settings`) to begin recording. It stores the
+(`/admin/settings`) to begin recording. It stores the
 moment recording started (`systemEventsEnabledAt`) on the platform-settings
 singleton, shared by API and workers (#5407). Off means disabled: ordinary
 signup and billing continue, with no notification delivery calls. The start

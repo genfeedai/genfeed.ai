@@ -22,10 +22,20 @@ const mocks = vi.hoisted(() => {
   return {
     service,
     notifications,
+    replace: vi.fn(),
+    searchParams: new URLSearchParams(),
     translate,
     getService: vi.fn(async () => service),
   };
 });
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin/content/templates',
+  useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
+  useSearchParams: () => mocks.searchParams,
+}));
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
 vi.mock('next-intl', () => ({ useTranslations: () => mocks.translate }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -68,7 +78,7 @@ vi.mock('@services/content/template.service', () => ({ TemplateService: {} }));
 
 import TemplatesPage from './templates-page';
 
-const templates = Array.from({ length: 55 }, (_, index) => ({
+const templates = Array.from({ length: 15 }, (_, index) => ({
   id: `template-${index}`,
   name: `Template ${index}`,
   description: 'Reusable draft',
@@ -81,21 +91,22 @@ const templates = Array.from({ length: 55 }, (_, index) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  mocks.searchParams = new URLSearchParams();
   mocks.service.getTemplates.mockResolvedValue(templates);
 });
 describe('admin templates collection', () => {
-  it('defaults to 55 navigable rows and persists the grid choice', async () => {
+  it('renders one page of navigable rows and persists the grid choice', async () => {
     const user = userEvent.setup();
     const first = render(<TemplatesPage />);
     expect(
       await screen.findByRole('link', { name: 'open Template 0' }),
     ).toHaveAttribute('href', expect.stringContaining('/template-0'));
     expect(screen.getByTestId('templates-list')).toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(55);
+    expect(screen.getAllByRole('link')).toHaveLength(15);
     expect(screen.queryByTestId('template-card')).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: 'grid' }));
     expect(screen.getByTestId('templates-grid')).toHaveClass('@container');
-    expect(screen.getAllByTestId('template-card')).toHaveLength(55);
+    expect(screen.getAllByTestId('template-card')).toHaveLength(15);
     first.unmount();
     render(<TemplatesPage />);
     expect(await screen.findByTestId('templates-grid')).toBeInTheDocument();
@@ -140,9 +151,10 @@ describe('admin templates collection', () => {
     expect(
       await screen.findByRole('link', { name: 'open Video default' }),
     ).toBeInTheDocument();
-    expect(mocks.service.getTemplates).toHaveBeenCalledWith({
-      includeSystem: true,
-    });
+    expect(mocks.service.getTemplates).toHaveBeenCalledWith(
+      { includeSystem: true, limit: 15, page: 1 },
+      expect.any(AbortSignal),
+    );
     expect(screen.getAllByText('system')).toHaveLength(1);
     expect(screen.getByText('content.video.default')).toBeInTheDocument();
     expect(
@@ -150,16 +162,53 @@ describe('admin templates collection', () => {
     ).toBeInTheDocument();
   });
 
-  it('filters the loaded templates from the subbar search and refreshes from it', async () => {
+  it('asks the API for the page and search in the URL instead of filtering the page', async () => {
+    mocks.searchParams = new URLSearchParams('page=3&q=tweet');
+    render(<TemplatesPage />);
+    await screen.findByRole('link', { name: 'open Template 0' });
+    expect(mocks.service.getTemplates).toHaveBeenCalledWith(
+      { includeSystem: true, limit: 15, page: 3, search: 'tweet' },
+      expect.any(AbortSignal),
+    );
+    expect(screen.getAllByRole('link')).toHaveLength(15);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('writes a search to the URL and returns to page 1', async () => {
+    mocks.searchParams = new URLSearchParams('page=3');
+    render(<TemplatesPage />);
+    await screen.findByRole('link', { name: 'open Template 0' });
+    const input = screen.getByLabelText('search');
+    fireEvent.change(input, { target: { value: 'sunset' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() =>
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/admin/content/templates?q=sunset',
+        { scroll: false },
+      ),
+    );
+  });
+
+  it('refreshes from the subbar', async () => {
     const user = userEvent.setup();
     render(<TemplatesPage />);
     await screen.findByRole('link', { name: 'open Template 0' });
-    await user.type(screen.getByLabelText('search'), 'Template 54');
-    await waitFor(() => expect(screen.getAllByRole('link')).toHaveLength(1));
     await user.click(screen.getByRole('button', { name: 'refresh' }));
     await waitFor(() =>
       expect(mocks.service.getTemplates).toHaveBeenCalledTimes(2),
     );
+  });
+
+  it('shows no active badge for a template that never had the flag', async () => {
+    mocks.service.getTemplates.mockResolvedValue([
+      { id: 'legacy', label: 'Legacy prompt', isActive: null },
+    ]);
+    render(<TemplatesPage />);
+    await screen.findByRole('link', { name: 'open Legacy prompt' });
+    expect(screen.queryByText('inactive')).not.toBeInTheDocument();
+    expect(screen.queryByText('active')).not.toBeInTheDocument();
   });
 
   it('mirrors the stored grid view while loading', () => {

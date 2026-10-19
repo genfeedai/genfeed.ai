@@ -1,5 +1,6 @@
 import {
   assertBrandIdentityAssetsAvailable,
+  BrandIdentityIntegrityError,
   projectApprovedBrandIdentitySnapshot,
   projectProvisionalBrandIdentitySnapshot,
 } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
@@ -52,7 +53,7 @@ export class BrandIdentitySnapshotService {
         parsed.data.brandId !== actor.brandId ||
         hashBrandIdentitySnapshotV1(parsed.data) !== parsed.data.contentHash
       )
-        throw new ConflictException('brand_identity_integrity_failed');
+        throw new BrandIdentityIntegrityError('receipt_snapshot_invalid');
       return receipt.snapshot;
     }
     return this.prisma.$transaction(
@@ -78,7 +79,7 @@ export class BrandIdentitySnapshotService {
           revision.organizationId !== actor.organizationId ||
           revision.brandId !== actor.brandId
         )
-          throw new ConflictException('brand_identity_integrity_failed');
+          throw new BrandIdentityIntegrityError('revision_scope_mismatch');
         const snapshot = projectApprovedBrandIdentitySnapshot(
           revision,
           new Date().toISOString(),

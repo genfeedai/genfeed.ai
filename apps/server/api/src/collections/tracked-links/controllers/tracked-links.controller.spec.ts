@@ -63,8 +63,9 @@ describe('TrackedLinksController', () => {
     getByShortCode: vi.fn(),
     getContentCTAStats: vi.fn(),
     getContentLinks: vi.fn(),
+    listContentLinks: vi.fn(),
+    listOrganizationLinks: vi.fn(),
     getLinkPerformance: vi.fn(),
-    getOrganizationLinks: vi.fn(),
     trackClick: vi.fn(),
     update: vi.fn(),
   };
@@ -131,45 +132,46 @@ describe('TrackedLinksController', () => {
   });
 
   describe('getLinks', () => {
-    it('should return content links when contentId provided', async () => {
-      const contentId = 'content123';
-      const links = [mockTrackedLink];
-
-      mockTrackedLinksService.getContentLinks.mockResolvedValue(links);
+    it('should page content links when contentId provided', async () => {
+      const page = { docs: [mockTrackedLink], page: 1, totalDocs: 1 };
+      mockTrackedLinksService.listContentLinks.mockResolvedValue(page);
 
       const result = await controller.getLinks(
         mockReq,
-        contentId,
-        undefined,
-        undefined,
+        { contentId: 'content123', limit: 20, page: 2 },
         mockUser,
       );
 
-      expect(service.getContentLinks).toHaveBeenCalledWith(
-        contentId,
+      expect(service.listContentLinks).toHaveBeenCalledWith(
+        'content123',
         mockUser.organizationId,
+        { limit: 20, page: 2 },
       );
       expect(result).toBeDefined();
     });
 
-    it('should return organization links when no contentId', async () => {
-      const links = [mockTrackedLink];
-      mockTrackedLinksService.getOrganizationLinks.mockResolvedValue(links);
+    it('should page organization links when no contentId', async () => {
+      const page = { docs: [mockTrackedLink], page: 1, totalDocs: 1 };
+      mockTrackedLinksService.listOrganizationLinks.mockResolvedValue(page);
 
       const result = await controller.getLinks(
         mockReq,
-        undefined,
-        'twitter',
-        'summer-campaign',
+        {
+          campaignName: 'summer-campaign',
+          limit: 20,
+          page: 1,
+          platform: 'twitter',
+        },
         mockUser,
       );
 
-      expect(service.getOrganizationLinks).toHaveBeenCalledWith(
+      expect(service.listOrganizationLinks).toHaveBeenCalledWith(
         mockUser.organizationId,
         {
           campaignName: 'summer-campaign',
           platform: 'twitter',
         },
+        { limit: 20, page: 1 },
       );
       expect(result).toBeDefined();
     });

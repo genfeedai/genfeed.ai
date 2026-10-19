@@ -309,6 +309,47 @@ describe('AppRail', () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it('opens Admin through the external handler instead of navigating in place', () => {
+    const onOpenAdminExternally = vi.fn();
+    render(
+      <AppRail
+        currentPath="/acme/brand/workspace"
+        onOpenAdminExternally={onOpenAdminExternally}
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+
+    const notPrevented = fireEvent.click(
+      screen.getByTestId('app-rail-item-admin'),
+    );
+
+    expect(notPrevented).toBe(false);
+    expect(onOpenAdminExternally).toHaveBeenCalledWith(
+      '/admin/overview/dashboard',
+    );
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('leaves other apps navigating in place when Admin opens externally', () => {
+    const onOpenAdminExternally = vi.fn();
+    render(
+      <AppRail
+        currentPath="/acme/brand/workspace"
+        onOpenAdminExternally={onOpenAdminExternally}
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+
+    const notPrevented = fireEvent.click(
+      screen.getByTestId('app-rail-item-agent'),
+    );
+
+    expect(notPrevented).toBe(true);
+    expect(onOpenAdminExternally).not.toHaveBeenCalled();
+  });
+
   it('lists admin categories instead of the app loop in admin chrome', () => {
     render(
       <AppRail
@@ -326,6 +367,7 @@ describe('AppRail', () => {
       'admin-automation',
       'admin-configuration',
       'admin-administration',
+      'admin-settings',
     ]) {
       expect(screen.getByTestId(`app-rail-item-${id}`)).toBeInTheDocument();
     }
@@ -369,8 +411,8 @@ describe('AppRail', () => {
     );
     const nav = screen.getByTestId('app-rail');
     const categories = screen.getByTestId('app-rail-admin-categories');
-    // The divider is the group's first child, followed by the five categories.
-    expect(categories.querySelectorAll('a')).toHaveLength(5);
+    // The divider is the group's first child, followed by the six categories.
+    expect(categories.querySelectorAll('a')).toHaveLength(6);
     expect(categories.firstElementChild?.tagName).toBe('DIV');
     expect(categories.firstElementChild).toHaveClass('my-1', 'w-5');
     // No empty app-loop group between the back button and the categories.

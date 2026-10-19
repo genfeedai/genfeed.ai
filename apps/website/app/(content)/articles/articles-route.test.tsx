@@ -55,15 +55,28 @@ describe('getPublicArticlesPageCached', () => {
   });
 });
 
+function articlesMetadataProps(page?: string) {
+  return {
+    searchParams: Promise.resolve(page === undefined ? {} : { page }),
+  };
+}
+
 describe('generateMetadata', () => {
   it('canonicalises /articles and assigns its dedicated image', async () => {
     const parent = Promise.resolve({
       openGraph: { images: [{ url: 'https://cdn.genfeed.ai/og.png' }] },
     }) as unknown as Parameters<typeof generateMetadata>[1];
 
-    const meta = await generateMetadata(undefined, parent);
+    const meta = await generateMetadata(articlesMetadataProps(), parent);
 
     expect(meta.alternates?.canonical).toMatch(/\/articles$/);
+    expect(meta.title).toBe(
+      'Articles and Blog: AI Content Insights | Genfeed.ai',
+    );
+    expect(meta.description).toBe(
+      'Discover insights, tutorials, and case studies about AI-powered content creation and digital marketing strategies.',
+    );
+    expect(meta.openGraph?.url).toBe('https://genfeed.ai/articles');
     expect(meta.openGraph?.images).toEqual([
       expect.objectContaining({
         url: 'https://genfeed.ai/og/articles',
@@ -76,7 +89,7 @@ describe('generateMetadata', () => {
   });
 
   it('assigns its dedicated image without parent images', async () => {
-    const meta = await generateMetadata(undefined, EMPTY_PARENT);
+    const meta = await generateMetadata(articlesMetadataProps(), EMPTY_PARENT);
 
     expect(meta.openGraph?.images).toEqual([
       expect.objectContaining({
@@ -87,6 +100,48 @@ describe('generateMetadata', () => {
       }),
     ]);
   });
+
+  it.each([
+    ['2', 'https://genfeed.ai/articles?page=2', '– Page 2'],
+    ['3', 'https://genfeed.ai/articles?page=3', '– Page 3'],
+  ])(
+    'gives page %s a self-referencing canonical and unique copy',
+    async (rawPage, canonical, pageLabel) => {
+      const meta = await generateMetadata(
+        articlesMetadataProps(rawPage),
+        EMPTY_PARENT,
+      );
+
+      expect(meta.alternates?.canonical).toBe(canonical);
+      expect(meta.title).toBe(
+        `Articles and Blog: AI Content Insights ${pageLabel} | Genfeed.ai`,
+      );
+      expect(meta.description).toBe(
+        `Discover insights, tutorials, and case studies about AI-powered content creation and digital marketing strategies ${pageLabel}.`,
+      );
+      expect(meta.openGraph?.title).toBe(meta.title);
+      expect(meta.openGraph?.description).toBe(meta.description);
+      expect(meta.openGraph?.url).toBe(canonical);
+      expect(meta.twitter?.title).toBe(meta.title);
+      expect(meta.twitter?.description).toBe(meta.description);
+    },
+  );
+
+  it.each(['1', '0', '-2', 'abc'])(
+    'keeps %s on the unpaginated canonical',
+    async (rawPage) => {
+      const meta = await generateMetadata(
+        articlesMetadataProps(rawPage),
+        EMPTY_PARENT,
+      );
+
+      expect(meta.alternates?.canonical).toBe('https://genfeed.ai/articles');
+      expect(meta.title).toBe(
+        'Articles and Blog: AI Content Insights | Genfeed.ai',
+      );
+      expect(String(meta.description)).not.toContain('Page');
+    },
+  );
 });
 
 describe('ArticlesPage', () => {

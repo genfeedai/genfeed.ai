@@ -6,7 +6,7 @@ import {
   ComponentSize,
   ViewType,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import {
@@ -43,6 +43,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -338,15 +339,36 @@ export default function AgentHubPage() {
   const collectionScope = useCollectionScope();
   const { brandId, isReady, organizationId, pageScope } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
-  const { error, strategies, isLoading, refresh } = useAgentStrategies({
-    ...toBrandListParams({ brandId }),
-    enabled: isCollectionFetchReady({
-      brandId,
-      isReady,
-      organizationId,
-      pageScope,
-    }),
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const isFetchReady = isCollectionFetchReady({
+    brandId,
+    isReady,
+    organizationId,
+    pageScope,
   });
+  // The "all agents" list is server-paged; "Needs you" and "Your agents" are
+  // derived from every strategy so an agent on page 2 never goes unnoticed.
+  const {
+    error,
+    strategies: pagedStrategies,
+    isLoading,
+    refresh: refreshPage,
+  } = useAgentStrategies({
+    ...toBrandListParams({ brandId }),
+    enabled: isFetchReady,
+    limit: ITEMS_PER_PAGE,
+    page: currentPage,
+  });
+  const { strategies: allStrategies, refresh: refreshAll } = useAgentStrategies(
+    {
+      ...toBrandListParams({ brandId }),
+      enabled: isFetchReady,
+    },
+  );
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshPage(), refreshAll()]);
+  }, [refreshAll, refreshPage]);
   const { setView, view } = useCollectionViewPreference({
     defaultView: ViewType.LIST,
     surface: AGENT_HUB_SURFACE,
@@ -354,7 +376,6 @@ export default function AgentHubPage() {
   const notificationsService = NotificationsService.getInstance();
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { href } = useOrgUrl();
 
   const getService = useAuthedService((token: string) =>
@@ -388,20 +409,20 @@ export default function AgentHubPage() {
   useVisiblePolling(refresh, { intervalMs: AGENT_HUB_POLL_INTERVAL_MS });
 
   const needsYouAgents = useMemo(
-    () => strategies.filter(isNeedingAttention),
-    [strategies],
+    () => allStrategies.filter(isNeedingAttention),
+    [allStrategies],
   );
 
   const yourAgents = useMemo(
     () =>
-      strategies
+      allStrategies
         .filter(
           (strategy) =>
             !isNeedingAttention(strategy) && Boolean(strategy.lastRunAt),
         )
         .sort(compareLastRunDescending)
         .slice(0, YOUR_AGENTS_LIMIT),
-    [strategies],
+    [allStrategies],
   );
 
   const handleToggle = useCallback(
@@ -490,7 +511,7 @@ export default function AgentHubPage() {
     openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
   }, [brandId, openContentAgentConversation]);
 
-  const hasStrategies = strategies.length > 0;
+  const hasStrategies = pagedStrategies.length > 0 || allStrategies.length > 0;
   // A failed poll keeps showing the agents already loaded; only a failure
   // with nothing to show replaces the collection with the error.
   const hasLoadError = error !== null && !isLoading && !hasStrategies;
@@ -615,14 +636,14 @@ export default function AgentHubPage() {
             }
             isCountVisible
             isLoading={isLoading}
-            itemCount={strategies.length}
+            itemCount={pagedStrategies.length}
             title={translate('sections.all')}
           >
             <CollectionView
               data-testid="agent-hub-collection"
               getItemKey={(strategy) => strategy.id}
               isLoading={isLoading}
-              items={strategies}
+              items={pagedStrategies}
               maxColumns={3}
               renderGridItem={(strategy) => (
                 <AgentHubCard strategy={strategy} {...actionHandlers} />
@@ -638,6 +659,7 @@ export default function AgentHubPage() {
               view={view}
             />
           </CollectionSection>
+          <AutoPagination showTotal totalLabel="agents" />
         </div>
       )}
 

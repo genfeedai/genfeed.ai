@@ -8,6 +8,7 @@ import type {
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
+import { Platform } from '@genfeedai/contracts';
 import {
   describePlatformTextLimit,
   getPlatformTextLimit,
@@ -17,6 +18,8 @@ import {
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
 export const DEFAULT_TEXT_OPPORTUNITY_COST = 10;
+/** Share of X text slots the agent writes as threads when the mix sets none. */
+export const DEFAULT_X_THREAD_PERCENT = 25;
 
 export function documentId(entity: unknown): string {
   return String((entity as Record<string, unknown>).id);
@@ -173,6 +176,38 @@ export function resolveFormatsForStrategy(
     : ['text'];
 }
 
+/**
+ * The format one claimed opportunity is written in. A text slot on X becomes
+ * a thread for the strategy's `contentMix.threadPercent` share of
+ * opportunities (25 when unset), picked by the opportunity id so a retry
+ * keeps its format. Only the cadence generator writes threads.
+ */
+export function resolveOpportunityFormat(
+  strategy: Pick<AgentStrategyDocument, 'contentMix'>,
+  opportunity: AgentStrategyOpportunityDocument,
+  platform: string,
+  canWriteThreads: boolean,
+): string {
+  const format = opportunity.formatCandidates[0] ?? 'text';
+  if (format !== 'text' || !canWriteThreads || platform !== Platform.TWITTER)
+    return format;
+  const configured = Number(strategy.contentMix?.threadPercent);
+  const threadPercent = Number.isFinite(configured)
+    ? Math.min(100, Math.max(0, configured))
+    : DEFAULT_X_THREAD_PERCENT;
+  return stableBucket(opportunityId(opportunity)) < threadPercent
+    ? 'thread'
+    : format;
+}
+
+/** 0–99 from an id, stable across runs. */
+function stableBucket(id: string): number {
+  let hash = 0;
+  for (const character of id)
+    hash = (hash * 31 + (character.codePointAt(0) ?? 0)) >>> 0;
+  return hash % 100;
+}
+
 export function buildImagePrompt(
   strategy: AgentStrategyDocument,
   opportunity: AgentStrategyOpportunityDocument,
@@ -212,16 +247,22 @@ export function resolveReportWindow(reportType: AgentStrategyReportType): {
 function findPlatformLengthViolation(
   content: string,
   platform: string | undefined,
+  segments?: readonly string[],
 ): { instruction: string; reason: string } | undefined {
   if (!platform) return undefined;
   const maxLength = getPlatformTextLimit(platform);
   if (maxLength === undefined) return undefined;
-  const length = measurePlatformText(content, platform);
-  if (length <= maxLength) return undefined;
-  return {
-    instruction: `Shorten it to ${describePlatformTextLimit(platform, maxLength)}.`,
-    reason: `Draft is ${length} characters; the ${platform} limit is ${maxLength}.`,
-  };
+  // A thread posts each segment on its own, so each must fit, not the whole.
+  const parts = segments?.length ? segments : [content];
+  for (const [index, part] of parts.entries()) {
+    const length = measurePlatformText(part, platform);
+    if (length <= maxLength) continue;
+    return {
+      instruction: `Shorten ${parts.length > 1 ? `thread post ${index + 1}` : 'it'} to ${describePlatformTextLimit(platform, maxLength)}.`,
+      reason: `${parts.length > 1 ? `Thread post ${index + 1}` : 'Draft'} is ${length} characters; the ${platform} limit is ${maxLength}.`,
+    };
+  }
+  return undefined;
 }
 
 /**
@@ -237,6 +278,8 @@ export function scoreTextPublishGate(
   content: string,
   analysis: OptimizerAnalysisResult,
   platform?: string,
+  /** A thread's posts in order; each is held to the channel limit. */
+  segments?: readonly string[],
 ): PublishGateResult {
   const hasCTA =
     analysis.metadata?.hasCallToAction ??
@@ -245,7 +288,11 @@ export function scoreTextPublishGate(
   const ctaRequired = strategy.goalProfile === 'reach_traffic';
   const minPostScore = strategy.publishPolicy?.minPostScore ?? 70;
   const reasons: string[] = [];
-  const lengthViolation = findPlatformLengthViolation(content, platform);
+  const lengthViolation = findPlatformLengthViolation(
+    content,
+    platform,
+    segments,
+  );
 
   if (overallScore < minPostScore) {
     reasons.push('Post quality score fell below the publish threshold.');

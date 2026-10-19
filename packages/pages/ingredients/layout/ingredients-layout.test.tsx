@@ -18,6 +18,10 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
+vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+  default: () => <div data-testid="admin-org-filter" />,
+}));
+
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
@@ -164,5 +168,25 @@ describe('IngredientsLayout', () => {
     await waitFor(() => {
       expect(replaceSpy).not.toHaveBeenCalled();
     });
+  });
+
+  it('opens the admin library on All assets when no asset type is chosen', () => {
+    window.history.replaceState({}, '', '/admin/content/ingredients');
+
+    const { getByText } = render(
+      <IngredientsLayout scope={PageScope.SUPERADMIN} />,
+    );
+
+    expect(getByText('Assets')).toBeTruthy();
+  });
+
+  it('keeps Videos as the fallback outside the admin scope', () => {
+    window.history.replaceState({}, '', '/library');
+
+    const { getAllByText } = render(
+      <IngredientsLayout scope={PageScope.BRAND} />,
+    );
+
+    expect(getAllByText('Videos').length).toBeGreaterThan(0);
   });
 });

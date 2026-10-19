@@ -9,6 +9,8 @@ export class ElementBlacklist extends BaseEntity implements IElementBlacklist {
   declare public category?: ModelCategory;
   declare public isActive: boolean;
   declare public isDefault: boolean;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 
   constructor(data: Partial<IElementBlacklist> = {}) {
     super(data);

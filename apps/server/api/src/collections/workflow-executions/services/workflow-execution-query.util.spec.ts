@@ -1,4 +1,7 @@
-import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+import {
+  buildCustomerExecutionWhere,
+  resolveCustomerExecutionWorkflowIds,
+} from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { BATCH_WORKFLOW_EXECUTION_ID } from '@api/collections/workflows/services/batch-workflow-execution.definition';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
@@ -184,6 +187,13 @@ function evaluateFilter(
       return !evaluateFilter(row, expected as Record<string, unknown>);
     }
     const actual = row[key];
+    if (
+      expected !== null &&
+      typeof expected === 'object' &&
+      Array.isArray((expected as { in?: unknown }).in)
+    ) {
+      return (expected as { in: unknown[] }).in.includes(actual);
+    }
     if (isJsonPathFilter(expected)) {
       const resolved = resolveJsonPath(actual, expected.path);
       if (expected.equals === Prisma.AnyNull) {
@@ -314,5 +324,216 @@ describe('batch execution visibility (behavioral, #5398)', () => {
         where as unknown as Record<string, unknown>,
       ),
     ).toBe(true);
+  });
+});
+
+describe('customer execution visibility by workflow id', () => {
+  const ids = {
+    agentTurn: ['wf-agent'],
+    authored: ['wf-1', 'wf-2'],
+    batch: ['wf-batch'],
+  };
+
+  it('matches workflow ids instead of filtering through the workflow relation', () => {
+    expect(buildCustomerExecutionWhere('org-1', {}, ids)).toEqual({
+      organizationId: 'org-1',
+      isDeleted: false,
+      AND: [
+        {
+          OR: [
+            { workflowId: { in: ['wf-1', 'wf-2'] } },
+            {
+              AND: [
+                {
+                  result: { path: ['metadata', 'source'], equals: 'proactive' },
+                },
+                {
+                  result: {
+                    path: ['metadata', 'canonicalId'],
+                    equals: 'agent.turn.execute',
+                  },
+                },
+                {
+                  NOT: {
+                    result: {
+                      path: ['metadata', 'strategyId'],
+                      equals: Prisma.AnyNull,
+                    },
+                  },
+                },
+              ],
+              workflowId: { in: ['wf-agent'] },
+            },
+            { workflowId: { in: ['wf-batch'] } },
+          ],
+        },
+      ],
+    });
+    expect(
+      JSON.stringify(buildCustomerExecutionWhere('org-1', {}, ids)),
+    ).not.toContain('"workflow":');
+  });
+
+  it('keeps the brand and strategy filters and drops the batch arm for a brand view', () => {
+    const where = buildCustomerExecutionWhere(
+      'org-1',
+      { brandId: 'brand-1', strategyId: 'agent-1', workflowId: 'wf-1' },
+      { ...ids, batch: [] },
+    );
+    expect(where).toMatchObject({
+      organizationId: 'org-1',
+      isDeleted: false,
+      workflowId: 'wf-1',
+      AND: [
+        {
+          OR: [
+            { workflowId: { in: ['wf-1', 'wf-2'] } },
+            expect.objectContaining({
+              workflowId: { in: ['wf-agent'] },
+              AND: expect.arrayContaining([
+                {
+                  result: { path: ['metadata', 'brandId'], equals: 'brand-1' },
+                },
+              ]),
+            }),
+          ],
+        },
+        {
+          OR: [
+            { result: { path: ['metadata', 'strategyId'], equals: 'agent-1' } },
+            {
+              result: {
+                path: ['metadata', 'agentStrategyId'],
+                equals: 'agent-1',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('selects the same executions as the relation filter', () => {
+    const authoredExecution: FakeExecution = {
+      organizationId: 'org-1',
+      isDeleted: false,
+      workflowId: 'wf-1',
+      workflow: { organizationId: 'org-1', isDeleted: false },
+    };
+    const agentTurn = (strategyId: unknown): FakeExecution => ({
+      organizationId: 'org-1',
+      isDeleted: false,
+      workflowId: 'wf-agent',
+      result: {
+        metadata: {
+          source: 'proactive',
+          canonicalId: 'agent.turn.execute',
+          brandId: 'brand-1',
+          strategyId,
+        },
+      },
+      workflow: {
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        isDeleted: false,
+        metadata: { systemWorkflow: { canonicalId: 'agent.turn.execute' } },
+      },
+    });
+    const batchExecution = batchParentExecution({ workflowId: 'wf-batch' });
+    const hiddenSystem = batchParentExecution({
+      workflowId: 'wf-other-system',
+      result: { metadata: { canonicalId: 'some.other.system.workflow' } },
+      workflow: {
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        isDeleted: false,
+        metadata: {
+          systemWorkflow: { canonicalId: 'some.other.system.workflow' },
+        },
+      },
+    });
+    const rows = [
+      authoredExecution,
+      agentTurn('agent-1'),
+      agentTurn(undefined),
+      batchExecution,
+      hiddenSystem,
+    ];
+
+    for (const query of [
+      {},
+      { brandId: 'brand-1' },
+      { strategyId: 'agent-1' },
+    ]) {
+      const viaRelation = buildCustomerExecutionWhere('org-1', query);
+      const viaIds = buildCustomerExecutionWhere('org-1', query, {
+        ...ids,
+        // The resolver only returns this fixture's non-brand workflow for
+        // unfiltered views, and never resolves batch workflows for a brand.
+        authored: 'brandId' in query ? [] : ids.authored,
+        batch: 'brandId' in query ? [] : ids.batch,
+      });
+      expect(
+        rows.filter((row) => evaluateFilter(row as never, viaIds as never)),
+      ).toEqual(
+        rows.filter((row) =>
+          evaluateFilter(row as never, viaRelation as never),
+        ),
+      );
+    }
+  });
+});
+
+describe('resolveCustomerExecutionWorkflowIds', () => {
+  function setup() {
+    const findMany = vi.fn(
+      async ({ where }: { where: { organizationId?: string } }) =>
+        where.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID
+          ? [{ id: 'wf-system' }]
+          : [{ id: 'wf-authored' }],
+    );
+    return { findMany, prisma: { workflow: { findMany } } as never };
+  }
+
+  it('resolves tenant workflows under the organization and system workflows under the system principal', async () => {
+    const { findMany, prisma } = setup();
+
+    await expect(
+      resolveCustomerExecutionWorkflowIds(prisma, 'org-1'),
+    ).resolves.toEqual({
+      agentTurn: ['wf-system'],
+      authored: ['wf-authored'],
+      batch: ['wf-system'],
+    });
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          ...EXCLUDE_SYSTEM_WORKFLOW,
+        }),
+      }),
+    );
+  });
+
+  it('scopes a brand view to that brand and skips the batch workflows', async () => {
+    const { findMany, prisma } = setup();
+
+    const resolved = await resolveCustomerExecutionWorkflowIds(
+      prisma,
+      'org-1',
+      {
+        brandId: 'brand-1',
+      },
+    );
+
+    expect(resolved.batch).toEqual([]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(findMany).toHaveBeenCalledTimes(2);
   });
 });
