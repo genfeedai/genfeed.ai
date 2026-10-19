@@ -1,4 +1,4 @@
-import { PLAN_COPY } from '@genfeedai/pricing';
+import { FREE_API_RATE_LIMIT, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { ReactNode } from 'react';
 
@@ -62,7 +62,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     category: 'Pricing',
     questions: [
       {
-        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, API access on paid plans, and shared team seats.`,
+        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, higher API limits, and shared team seats.`,
         question: 'How does pricing work?',
       },
       {
@@ -70,7 +70,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'What are the pricing tiers?',
       },
       {
-        answer: `Yes. API access is included on every paid plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.scale.name} gets higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
+        answer: `Yes. API access is included on every plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.scale.name} gets higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
         question: 'Is there an API?',
       },
       {
@@ -121,7 +121,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     category: 'Features & Access',
     questions: [
       {
-        answer: `${PLAN_COPY.payg.name} includes one personal organization, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. ${PLAN_COPY.scale.name} adds ${PLAN_COPY.scale.includedCredits} monthly at a better rate and API access.`,
+        answer: `${PLAN_COPY.payg.name} includes one personal organization, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. ${PLAN_COPY.scale.name} adds ${PLAN_COPY.scale.includedCredits} monthly at a better rate and higher API limits.`,
         question: `What's included in the ${PLAN_COPY.payg.name} plan?`,
       },
       {
@@ -133,7 +133,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: `What is included in ${PLAN_COPY.enterprise.name}?`,
       },
       {
-        answer: `Managed API access depends on ${PLAN_COPY.scale.name} or ${PLAN_COPY.enterprise.name} scope. Contact sales for production API terms.`,
+        answer: `API access is included on every plan: ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute. ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} get higher limits. Contact sales for production API terms.`,
         question: 'Do you have an API?',
       },
     ],

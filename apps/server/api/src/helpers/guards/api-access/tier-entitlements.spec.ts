@@ -1,5 +1,6 @@
 import { SubscriptionTier } from '@genfeedai/contracts';
 import {
+  FREE_API_RATE_LIMIT,
   FREE_SEAT_LIMIT,
   getApiEntitlementForTier,
   getApiRateLimitForTier,
@@ -30,12 +31,12 @@ describe('tier API entitlements', () => {
     }
   });
 
-  it('denies API access to the free tier', () => {
+  it('gives the free tier rate-limited API access', () => {
     expect(TIER_API_ENTITLEMENTS[SubscriptionTier.FREE]).toEqual({
-      apiAccess: false,
-      apiRateLimit: 0,
+      apiAccess: true,
+      apiRateLimit: FREE_API_RATE_LIMIT,
     });
-    expect(hasApiAccess(SubscriptionTier.FREE)).toBe(false);
+    expect(hasApiAccess(SubscriptionTier.FREE)).toBe(true);
   });
 
   it('denies training access to free tiers and grants Scale+', () => {
@@ -70,12 +71,12 @@ describe('tier API entitlements', () => {
     expect(getApiRateLimitForTier(SubscriptionTier.ENTERPRISE)).toBeNull();
   });
 
-  it('default-denies unknown/empty tiers', () => {
+  it('gives unknown/empty tiers the free tier entitlement', () => {
     for (const tier of ['', 'bogus', null, undefined]) {
-      expect(hasApiAccess(tier)).toBe(false);
+      expect(hasApiAccess(tier)).toBe(true);
       expect(getApiEntitlementForTier(tier)).toEqual({
-        apiAccess: false,
-        apiRateLimit: 0,
+        apiAccess: true,
+        apiRateLimit: FREE_API_RATE_LIMIT,
       });
     }
   });
@@ -127,7 +128,9 @@ describe('tier API entitlements', () => {
   });
 
   it('exposes per-tier rate limits via getApiRateLimitForTier', () => {
-    expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(0);
+    expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(
+      FREE_API_RATE_LIMIT,
+    );
     expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(600);
     expect(getApiRateLimitForTier(SubscriptionTier.ENTERPRISE)).toBeNull();
   });
