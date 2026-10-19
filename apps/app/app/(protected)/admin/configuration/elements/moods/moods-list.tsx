@@ -139,7 +139,6 @@ function MoodsListContent({
       filters?.search,
       getMoodsService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

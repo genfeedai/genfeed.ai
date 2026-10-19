@@ -150,7 +150,6 @@ function ScenesListContent({
       filters?.search,
       getScenesService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

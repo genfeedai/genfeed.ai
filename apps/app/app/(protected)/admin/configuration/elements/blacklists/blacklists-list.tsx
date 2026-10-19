@@ -202,7 +202,6 @@ function BlacklistsListContent({
       filters?.type,
       getBlacklistsService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

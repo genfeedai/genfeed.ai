@@ -189,7 +189,6 @@ function CameraMovementsListContent({
       filters?.search,
       getCameraMovementsService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

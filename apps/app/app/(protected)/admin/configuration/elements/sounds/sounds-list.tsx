@@ -146,7 +146,6 @@ function SoundsListContent({
       filters?.type,
       getSoundsService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

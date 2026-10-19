@@ -170,7 +170,6 @@ function FontFamiliesListContent({
       currentPage,
       getFontFamiliesService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

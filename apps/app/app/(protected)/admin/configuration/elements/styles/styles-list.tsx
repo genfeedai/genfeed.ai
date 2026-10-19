@@ -182,7 +182,6 @@ function StylesListContent({
       filters?.search,
       getStylesService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,
