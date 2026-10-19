@@ -49,8 +49,12 @@ test.describe('Admin Content Management', () => {
       await expect(
         adminPage.getByRole('button', { name: 'Sync All' }),
       ).toBeVisible();
+      // Results are the catalog table inside the voices list, or its empty
+      // state when the catalog has no voices.
+      const voicesList = adminPage.getByTestId('voices-list');
+      await expect(voicesList).toBeVisible();
       await expect(
-        adminPage.locator('[data-testid="voices-library-results-surface"]'),
+        voicesList.getByRole('table').or(voicesList.getByTestId('table-empty')),
       ).toBeVisible();
     });
   });
