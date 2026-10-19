@@ -63,6 +63,7 @@ import {
   buildGenerationBriefExemptionSource,
   type GenerationBriefPersistedEvidence,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import {
   isFlux3ImageModel,
   isImageEditModel,
@@ -767,6 +768,10 @@ export class ImageGenerationService {
       ...(params.createImageDto.blacklist ?? []),
       ...(params.createImageDto.negativePrompt
         ? [params.createImageDto.negativePrompt]
+        : []),
+      ...(params.generationHarness.negativePrompt &&
+      params.model === QWEN_IMAGE_MODEL_KEY
+        ? [params.generationHarness.negativePrompt]
         : []),
     ];
 

@@ -10,6 +10,10 @@ import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prom
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import {
+  MEDIA_PROMPT_OUTPUT_CONTRACT,
+  parseMediaPromptOutput,
+} from '@api/services/prompt-enhancement/media-prompt-output.util';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
   PromptCategory,
@@ -41,6 +45,8 @@ export interface PromptEnhancementServerOptions {
 
 export interface PromptEnhancementResult {
   result: string;
+  /** Media enhancement only: exclusions the model asked for, kept out of `result`. */
+  negativePrompt?: string;
   tokensUsed: number;
   isByok: boolean;
 }
@@ -118,9 +124,12 @@ export class PromptEnhancementService {
         requestedSkillSlugs,
         { actorUserId: input.actorUserId, modality: input.contentType },
       )) ?? '';
-    const systemContent = skillSections
+    const guidance = skillSections
       ? `${basePrompt}\n\n${skillSections}`
       : basePrompt;
+    const systemContent = input.contentType
+      ? `${guidance}\n\n${MEDIA_PROMPT_OUTPUT_CONTRACT}`
+      : guidance;
     await this.skills?.recordPromptEvidence?.({
       actorUserId: input.actorUserId,
       brandId: input.brandId,
@@ -149,10 +158,17 @@ export class PromptEnhancementService {
     const result = response.choices[0]?.message?.content?.trim() ?? '';
     if (!result || result.length > 8000)
       throw new PromptEnhancementResponseError();
-    return {
-      result,
+    const usage = {
       tokensUsed: response.usage?.total_tokens ?? 0,
       isByok: Boolean(options?.byokApiKey),
+    };
+    if (!input.contentType) return { result, ...usage };
+    const { prompt, negativePrompt } = parseMediaPromptOutput(result);
+    if (!prompt) throw new PromptEnhancementResponseError();
+    return {
+      result: prompt,
+      ...(negativePrompt ? { negativePrompt } : {}),
+      ...usage,
     };
   }
 }

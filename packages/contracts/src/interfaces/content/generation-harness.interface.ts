@@ -31,6 +31,8 @@ export interface GenerationHarnessReceipt {
   composedPrompt?: string;
   originalPrompt: string;
   enhancedPrompt: string;
+  /** Exclusions the enhancer asked for; dispatched only to models with a native negative prompt. */
+  negativePrompt?: string;
   /**
    * Enhancement never degrades silently: when brand enhancement fails the
    * request stops before any paid call, so a receipt is either `applied` or

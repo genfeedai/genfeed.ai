@@ -29,14 +29,59 @@ describe('buildMediaPromptFromHarness', () => {
     );
   });
 
-  it('appends brand directives after the operator prompt for visual kinds', () => {
+  it('folds a short brand look into visual prompts and leaves copy voice out', () => {
     const result = buildMediaPromptFromHarness(
       'product on marble table',
       brief({
-        guardrails: ['Do not look like stock AI slop.'],
+        guardrails: [
+          'Do not sound like: generic AI SaaS landing page copy.',
+          'Never show competitor logos.',
+          'Never claim: 100% accurate.',
+        ],
         metadata: {
           brandName: 'genfeed.ai',
           contentType: 'image',
+          objective: 'awareness',
+        },
+        sources: [
+          {
+            content: 'Ship the OS, not another wrapper.',
+            id: 'ex-1',
+            kind: 'brand_example',
+          },
+        ],
+        styleDirectives: [
+          'Primary color: #000000',
+          'Background color: transparent',
+          'Font family: MONTSERRAT_REGULAR',
+          'Voice tone: Keep paragraphs short or absent.',
+          'Prefer distinctive brand-native visuals over generic stock or template looks.',
+        ],
+        systemDirectives: [
+          'Write as genfeed.ai.',
+          'Core beliefs: Write with compressed operator cadence: BAM BAM BAM.',
+        ],
+      }),
+      { subjectLock: 'This brand is software. Depict the person.' },
+    );
+
+    expect(result).toBe(
+      [
+        'product on marble table',
+        '',
+        'Brand look: Primary color: #000000. Font family: Montserrat Regular. Prefer distinctive brand-native visuals over generic stock or template looks. Never show competitor logos. This brand is software. Depict the person.',
+      ].join('\n'),
+    );
+    expect(result).not.toMatch(/BAM|Write as|harness|Voice tone|wrapper/);
+  });
+
+  it('keeps the generic brand harness for non-visual kinds', () => {
+    const result = buildMediaPromptFromHarness(
+      'launch note',
+      brief({
+        guardrails: ['Avoid hype.'],
+        metadata: {
+          contentType: 'post',
           objective: 'awareness',
         },
         sources: [
@@ -51,12 +96,10 @@ describe('buildMediaPromptFromHarness', () => {
       }),
     );
 
-    expect(result.startsWith('product on marble table')).toBe(true);
-    expect(result).toContain('visual generation');
+    expect(result.startsWith('launch note')).toBe(true);
     expect(result).toContain('Write as genfeed.ai.');
-    expect(result).toContain('Prefer premium product-led visuals.');
+    expect(result).toContain('Avoid hype.');
     expect(result).toContain('[brand_example]');
-    expect(result).toContain('Do not look like stock AI slop.');
   });
 
   it('marks image, video, ad-creative, and ugc as visual kinds', () => {
@@ -97,10 +140,11 @@ describe('media prompt Knowledge', () => {
   it('folds cited Knowledge of every purpose into the prompt once', () => {
     const result = buildMediaPromptFromHarness('mascot poster', knowledgeBrief);
 
-    expect(result).toContain('Brand knowledge:');
-    expect(result).toContain('- Our mascot is a teal heron named Pim.');
+    expect(result).toContain(
+      'Brand facts: Our mascot is a teal heron named Pim.',
+    );
     expect(result.match(/teal heron/g)).toHaveLength(1);
-    expect(result).toContain('[brand_example] Ship the OS');
+    expect(result).not.toContain('Ship the OS');
   });
 
   it('selects only cited sources, bounded and trimmed as prompted', () => {

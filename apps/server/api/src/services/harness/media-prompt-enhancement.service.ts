@@ -171,7 +171,7 @@ export class MediaPromptEnhancementService {
         input.prompt,
         brandOfferingCorpus(snapshot, brief, input.prompt),
       );
-      const { result } = await this.promptEnhancement.enhance({
+      const { result, negativePrompt } = await this.promptEnhancement.enhance({
         actorUserId: input.actorUserId,
         organizationId: input.organizationId,
         brandId: input.brandId,
@@ -182,12 +182,8 @@ export class MediaPromptEnhancementService {
         contentType: input.contentType,
       });
       stage = 'response';
-      const enhancedPrompt = buildMediaPromptFromHarness(result, {
-        ...brief,
-        guardrails: [
-          ...brief.guardrails,
-          subjectLock.split('\n\n')[0] ?? subjectLock,
-        ],
+      const enhancedPrompt = buildMediaPromptFromHarness(result, brief, {
+        subjectLock: subjectLock.split('\n\n')[0] ?? subjectLock,
       });
       const knowledgeReceipts = collectKnowledgeReceipts(
         selectMediaKnowledgeSources(brief),
@@ -197,6 +193,7 @@ export class MediaPromptEnhancementService {
       return {
         ...receipt,
         enhancedPrompt,
+        ...(negativePrompt ? { negativePrompt } : {}),
         brandMode: mode,
         brandRevisionId: snapshot.revisionId,
         brandRevisionVersion: snapshot.revisionVersion,

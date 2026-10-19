@@ -1,5 +1,6 @@
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { MEDIA_PROMPT_OUTPUT_CONTRACT } from '@api/services/prompt-enhancement/media-prompt-output.util';
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { PromptStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
@@ -132,12 +133,53 @@ describe('PromptEnhancementService', () => {
         messages: [
           {
             role: 'system',
-            content: 'Existing Studio template\n\nSelected skill',
+            content: `Existing Studio template\n\nSelected skill\n\n${MEDIA_PROMPT_OUTPUT_CONTRACT}`,
           },
           { role: 'user', content: input.userPrompt },
         ],
       },
       undefined,
+    );
+  });
+
+  it('sends only the clean prompt of a coaching-style media reply', async () => {
+    const { service, openRouter } = setup();
+    openRouter.chatCompletion.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content:
+              '## Image Prompt\n**Recommended model:** Flux 2 Dev\n### Prompt\nA red bicycle at dawn.\n### Negative prompt\nblurry\n### Generation settings\n- Steps: 30',
+          },
+        },
+      ],
+      usage: { total_tokens: 9 },
+    });
+    expect(await service.enhance({ ...input, contentType: 'image' })).toEqual({
+      result: 'A red bicycle at dawn.',
+      negativePrompt: 'blurry',
+      tokensUsed: 9,
+      isByok: false,
+    });
+  });
+
+  it('rejects a media reply with no prompt left in it', async () => {
+    const { service, openRouter } = setup();
+    openRouter.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'Recommended model: Flux 2 Dev' } }],
+    });
+    await expect(
+      service.enhance({ ...input, contentType: 'image' }),
+    ).rejects.toThrow('invalid response');
+  });
+
+  it('leaves text enhancement replies untouched', async () => {
+    const { service, openRouter } = setup();
+    openRouter.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: '### Prompt\nKeep my markdown' } }],
+    });
+    expect((await service.enhance(input)).result).toBe(
+      '### Prompt\nKeep my markdown',
     );
   });
 
