@@ -1,6 +1,10 @@
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import { describe, expect, it } from 'vitest';
-import { matchesOrientation, selectModels } from './ai-model-selector';
+import {
+  matchesOrientation,
+  modelSelectorJsonLd,
+  selectModels,
+} from './ai-model-selector';
 
 function model(
   key: string,
@@ -76,5 +80,27 @@ describe('AI model selector', () => {
     expect(
       selectModels(models, 'image', 'default', 'any', 'not-listed'),
     ).toEqual([]);
+  });
+
+  it('emits FAQ and breadcrumb JSON-LD without an unrated WebApplication', () => {
+    const jsonLd = modelSelectorJsonLd();
+    const types = jsonLd['@graph'].map((node) => node['@type']);
+
+    expect(types).toEqual(['FAQPage', 'BreadcrumbList']);
+    expect(jsonLd['@graph'][1]).toMatchObject({
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        expect.objectContaining({ name: 'Genfeed', position: 1 }),
+        expect.objectContaining({ name: 'Free AI tools', position: 2 }),
+        expect.objectContaining({
+          item: 'https://genfeed.ai/tools/ai-model-selector',
+          name: 'AI model selector',
+          position: 3,
+        }),
+      ],
+    });
+    expect(JSON.stringify(jsonLd)).not.toContain('WebApplication');
+    expect(JSON.stringify(jsonLd)).not.toContain('aggregateRating');
+    expect(JSON.stringify(jsonLd)).not.toContain('"review"');
   });
 });
