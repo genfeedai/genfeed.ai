@@ -20,8 +20,6 @@ beforeEach(() => {
     if (message.event === 'captureList' || message.event === 'captureSpaces')
       return { success: true, data: [] };
     if (message.event === 'captureBrand') return { success: true, data: null };
-    if (message.event === 'captureLegacyCount')
-      return { success: true, data: 0 };
     if (message.event === 'captureSave')
       return { success: true, data: { id: 'capture-a', state: 'queued' } };
     return { success: false, error: 'Unsupported fixture request' };
@@ -72,8 +70,6 @@ describe('Knowledge capture panel', () => {
       async (message) => {
         if (message.event === 'captureSave')
           return { success: false, error: 'Select an accessible brand.' };
-        if (message.event === 'captureLegacyCount')
-          return { success: true, data: 0 };
         if (message.event === 'captureBrand')
           return { success: true, data: null };
         return { success: true, data: [] };

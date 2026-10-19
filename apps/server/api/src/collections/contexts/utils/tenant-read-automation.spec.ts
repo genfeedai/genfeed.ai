@@ -560,7 +560,7 @@ describe('unchanged read-only workflow service contracts', () => {
       brandId: selectedBrand,
       organizationId: selectedOrg,
       label: 'Strategy',
-      config: { preferredWorkflowTemplateId: 'missing-template' },
+      preferredWorkflowTemplateId: 'missing-template',
     }));
     const findMany = vi.fn(async () => []);
     const create = vi.fn();

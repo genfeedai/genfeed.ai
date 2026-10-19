@@ -205,7 +205,7 @@ REDIS_URL=redis://localhost:6379
 Then generate workspace environment files and start the dependencies:
 
 ```bash
-bun run env:sync local --prune-legacy
+bun run env:sync local
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
 ```
 

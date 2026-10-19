@@ -20,6 +20,6 @@ export const MANAGED_API_KEY_SCOPES = [
   ApiKeyScope.BRANDS_READ,
   ApiKeyScope.CREDITS_READ,
   ApiKeyScope.MANAGED_INFERENCE_EXECUTE,
-  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_DRAFT,
   ApiKeyScope.ANALYTICS_READ,
 ];

@@ -21,8 +21,8 @@ describe('api-key.enum', () => {
   });
 
   describe('ApiKeyScope', () => {
-    it('should have 25 members', () => {
-      expect(Object.values(ApiKeyScope)).toHaveLength(25);
+    it('should have 24 members', () => {
+      expect(Object.values(ApiKeyScope)).toHaveLength(24);
     });
 
     it('should have correct values', () => {
@@ -46,7 +46,6 @@ describe('api-key.enum', () => {
       expect(ApiKeyScope.MANAGED_INFERENCE_EXECUTE).toBe(
         'managed-inference:execute',
       );
-      expect(ApiKeyScope.POSTS_CREATE).toBe('posts:create');
       expect(ApiKeyScope.POSTS_DRAFT).toBe('posts:draft');
       expect(ApiKeyScope.POSTS_SCHEDULE).toBe('posts:schedule');
       expect(ApiKeyScope.POSTS_APPROVE).toBe('posts:approve');

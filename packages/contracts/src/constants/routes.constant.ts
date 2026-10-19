@@ -326,9 +326,6 @@ export const APP_ROUTES = {
     MODELS: '/settings/models',
     MODEL_TRAININGS: '/settings/models/trainings',
     MODEL_VIDEO: '/settings/models/video',
-    ORGANIZATION: '/settings/organization',
-    ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
-    ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     /**
      * Org agent/automation defaults. Menu label is Agents — keep the slug

@@ -85,7 +85,7 @@ describe('PublishEventWebhookService', () => {
   it('queues deterministic target and release events for a published post', async () => {
     const occurredAt = new Date('2026-07-07T10:00:00.000Z');
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       externalProviderId: 'post_123',
       occurredAt,
       platform: 'twitter',
@@ -142,8 +142,8 @@ describe('PublishEventWebhookService', () => {
       retryable: false,
     };
 
-    await service.emitLegacyPostFailed(input);
-    await service.emitLegacyPostFailed(input);
+    await service.emitPostFailed(input);
+    await service.emitPostFailed(input);
 
     expect(queue.add).toHaveBeenCalledTimes(4);
     const jobIds = queue.add.mock.calls.map((call) => call[2]?.jobId);
@@ -195,7 +195,7 @@ describe('PublishEventWebhookService', () => {
       total: 2,
     });
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       post: {
         credentialId: 'cred_123',
         groupId: 'group_123',
@@ -236,7 +236,7 @@ describe('PublishEventWebhookService', () => {
       total: 2,
     });
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       post: {
         credentialId: 'cred_123',
         groupId: 'group_123',
@@ -258,7 +258,7 @@ describe('PublishEventWebhookService', () => {
   });
 
   it('redacts secret material from failed publish payloads', async () => {
-    await service.emitLegacyPostFailed({
+    await service.emitPostFailed({
       errorMessage: 'Provider rejected access_token=abc123',
       post: {
         credentialId: 'cred_123',
@@ -278,7 +278,7 @@ describe('PublishEventWebhookService', () => {
   });
 
   it('snapshots failed payloads without secret-bearing source fields', async () => {
-    await service.emitLegacyPostFailed({
+    await service.emitPostFailed({
       errorCode: 'provider_503 api_key=raw-code-key',
       errorMessage:
         'Provider timeout 503 with api_key=raw-provider-key, Bearer raw-bearer-token, webhook_secret=raw-webhook-secret',
@@ -366,7 +366,7 @@ describe('PublishEventWebhookService', () => {
     );
 
     await expect(
-      service.emitLegacyPostPublished({
+      service.emitPostPublished({
         post: {
           credentialId: 'cred_123',
           id: 'post_123',
@@ -398,7 +398,7 @@ describe('PublishEventWebhookService', () => {
       webhookSecret: 'secret',
     });
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       post: {
         credentialId: 'cred_123',
         id: 'post_123',
@@ -418,7 +418,7 @@ describe('PublishEventWebhookService', () => {
       webhookSecret: 'secret',
     });
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       post: {
         credentialId: 'cred_123',
         id: 'post_123',
@@ -467,7 +467,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
   }
 
   // The fire-and-forget capture chain resolves on a later microtask than
-  // `emitLegacyPostPublished` itself — flush the queue before asserting.
+  // `emitPostPublished` itself — flush the queue before asserting.
   async function flushMicrotasks(): Promise<void> {
     await new Promise((resolve) => setImmediate(resolve));
   }
@@ -475,7 +475,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
   it("captures first_successful_publish, keyed by the post's owning user, exactly once for the org's first published post", async () => {
     const { funnelCaptureService, prisma, service } = buildService();
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       platform: 'twitter',
       post: { id: 'post_1', organizationId: 'org_1', userId: 'user_1' },
     });
@@ -499,7 +499,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
       priorPublishCount: 1,
     });
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       platform: 'twitter',
       post: { id: 'post_2', organizationId: 'org_1', userId: 'user_1' },
     });
@@ -511,7 +511,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
   it('is skipped without a post id or organization id', async () => {
     const { funnelCaptureService, prisma, service } = buildService();
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       platform: 'twitter',
       post: {},
     });
@@ -524,7 +524,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
   it('is skipped without a userId, rather than inventing an identity (e.g. the organization)', async () => {
     const { funnelCaptureService, prisma, service } = buildService();
 
-    await service.emitLegacyPostPublished({
+    await service.emitPostPublished({
       platform: 'twitter',
       post: { id: 'post_4', organizationId: 'org_1' },
     });
@@ -541,7 +541,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     const { service } = buildService({ funnelCaptureService });
 
     await expect(
-      service.emitLegacyPostPublished({
+      service.emitPostPublished({
         platform: 'twitter',
         post: { id: 'post_3', organizationId: 'org_1', userId: 'user_1' },
       }),

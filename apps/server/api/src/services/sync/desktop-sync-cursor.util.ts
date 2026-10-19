@@ -2,12 +2,10 @@ import { BadRequestException } from '@nestjs/common';
 
 /**
  * Keyset position of the last row a client received for one synced
- * collection. `id` is absent only for legacy plain-ISO cursors, which carried
- * no tie-breaker — those keep the old `updatedAt > cursor` semantics until
- * the client stores a composite cursor from its next pull.
+ * collection: `updatedAt` with `id` as the tie-breaker.
  */
 export interface DesktopSyncCursorPosition {
-  id?: string;
+  id: string;
   updatedAt: string;
 }
 
@@ -34,10 +32,7 @@ export interface DesktopSyncCursorWhere {
   OR?: Array<
     { updatedAt: { gt: Date } } | { id: { gt: string }; updatedAt: Date }
   >;
-  updatedAt?: { gt: Date };
 }
-
-const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
 
 function isCursorPosition(value: unknown): value is DesktopSyncCursorPosition {
   if (typeof value !== 'object' || value === null) {
@@ -50,7 +45,7 @@ function isCursorPosition(value: unknown): value is DesktopSyncCursorPosition {
   if (Number.isNaN(new Date(candidate.updatedAt).getTime())) {
     return false;
   }
-  return candidate.id === undefined || typeof candidate.id === 'string';
+  return typeof candidate.id === 'string';
 }
 
 function decodeCursorPayload(cursor: string): unknown {
@@ -72,15 +67,6 @@ export function decodeManifestCursor(
 ): DesktopManifestCursorPositions {
   if (!cursor) {
     return {};
-  }
-
-  // Legacy cursors were a bare ISO timestamp covering every collection.
-  if (ISO_TIMESTAMP_PATTERN.test(cursor)) {
-    if (Number.isNaN(new Date(cursor).getTime())) {
-      throw new BadRequestException('Malformed desktop sync cursor.');
-    }
-    const position: DesktopSyncCursorPosition = { updatedAt: cursor };
-    return { assets: position, brands: position, ingredients: position };
   }
 
   const payload = decodeCursorPayload(cursor);
@@ -115,14 +101,6 @@ export function decodeThreadCursor(
     return undefined;
   }
 
-  // Legacy cursors were a bare ISO timestamp with no tie-breaking id.
-  if (ISO_TIMESTAMP_PATTERN.test(cursor)) {
-    if (Number.isNaN(new Date(cursor).getTime())) {
-      throw new BadRequestException('Malformed desktop sync cursor.');
-    }
-    return { updatedAt: cursor };
-  }
-
   const payload = decodeCursorPayload(cursor);
   if (!isCursorPosition(payload)) {
     throw new BadRequestException('Malformed desktop sync cursor.');
@@ -137,9 +115,6 @@ export function buildCursorWhere(
     return {};
   }
   const updatedAt = new Date(position.updatedAt);
-  if (!position.id) {
-    return { updatedAt: { gt: updatedAt } };
-  }
   return {
     OR: [
       { updatedAt: { gt: updatedAt } },

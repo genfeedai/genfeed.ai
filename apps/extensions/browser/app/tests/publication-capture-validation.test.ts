@@ -42,15 +42,15 @@ const observation = {
   description: attempt.description,
   publicationDate: new Date(now).toISOString(),
 };
-it('normalizes only legacy home attempts without mutating their stored bytes', () => {
-  const { surface: _surface, ...legacy } = attempt;
-  const home = { ...legacy, documentUrl: 'https://x.com/home?tab=following' };
-  const original = structuredClone(home);
-  expect(parsePublicationCaptureAttempt(home)?.surface).toEqual({
-    kind: 'x-home',
-  });
-  expect(home).toEqual(original);
-  expect(parsePublicationCaptureAttempt(legacy)).toBeNull();
+it('rejects attempts without an explicit surface', () => {
+  const { surface: _surface, ...withoutSurface } = attempt;
+  expect(parsePublicationCaptureAttempt(withoutSurface)).toBeNull();
+  expect(
+    parsePublicationCaptureAttempt({
+      ...withoutSurface,
+      documentUrl: 'https://x.com/home?tab=following',
+    }),
+  ).toBeNull();
 });
 it('requires explicit modal surface and exact same-origin parent, token and baseline', () => {
   expect(parsePublicationCaptureAttempt(attempt)).toEqual(attempt);

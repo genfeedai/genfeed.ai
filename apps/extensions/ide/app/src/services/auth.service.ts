@@ -6,7 +6,6 @@ import type { AuthState } from '@/types';
 const AUTH_SECRET_KEY = 'genfeed.auth';
 const API_KEY_SECRET = 'genfeed.apiKey';
 const IDE_AUTH_CLIENT = 'extension-ide';
-const LEGACY_IDE_AUTH_CLIENT = 'genfeed-cursor';
 const IDE_CALLBACK_AUTHORITY = 'genfeedai.extension-ide';
 
 interface DeviceFlowStartResponse {
@@ -343,17 +342,12 @@ export class AuthService {
 
   private async startDeviceFlow(): Promise<DeviceFlowStartResponse> {
     const response = await this.startDeviceFlowForClient(IDE_AUTH_CLIENT);
-    const fallbackResponse =
-      !response.ok && response.status === 400
-        ? await this.startDeviceFlowForClient(LEGACY_IDE_AUTH_CLIENT)
-        : response;
 
-    if (!fallbackResponse.ok) {
-      throw new Error(`Device flow start failed (${fallbackResponse.status})`);
+    if (!response.ok) {
+      throw new Error(`Device flow start failed (${response.status})`);
     }
 
-    const payload =
-      (await fallbackResponse.json()) as Partial<DeviceFlowStartResponse>;
+    const payload = (await response.json()) as Partial<DeviceFlowStartResponse>;
 
     if (!payload.deviceCode || !payload.userCode || !payload.verificationUri) {
       throw new Error('Device flow payload is incomplete');

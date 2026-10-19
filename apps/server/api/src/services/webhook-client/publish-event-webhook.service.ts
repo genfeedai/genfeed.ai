@@ -85,8 +85,8 @@ export class PublishEventWebhookService {
     private readonly funnelCaptureService?: ServerFunnelCaptureService,
   ) {}
 
-  async emitLegacyPostPublished(input: PublishOutcomeInput): Promise<void> {
-    await this.emitLegacyPostOutcome(input, TargetExecutionState.PUBLISHED);
+  async emitPostPublished(input: PublishOutcomeInput): Promise<void> {
+    await this.emitPostOutcome(input, TargetExecutionState.PUBLISHED);
     this.captureFirstSuccessfulPublishBestEffort(input);
   }
 
@@ -95,9 +95,9 @@ export class PublishEventWebhookService {
    * (genfeedai/genfeed.ai#4969), added to this existing dependency of
    * `ScheduledPostDeliveryService` (and the YouTube/TikTok status crons, and
    * the YouTube upload-completion service — every caller of
-   * `emitLegacyPostPublished`) rather than as a new dependency of any of
+   * `emitPostPublished`) rather than as a new dependency of any of
    * them, to stay off the runtime-complexity ratchet those files are already
-   * near. `emitLegacyPostPublished` fires once a post is confirmed published
+   * near. `emitPostPublished` fires once a post is confirmed published
    * by the provider on every platform and delivery path, so this is a
    * strictly better hook than any single caller alone.
    *
@@ -162,11 +162,11 @@ export class PublishEventWebhookService {
     });
   }
 
-  async emitLegacyPostFailed(input: PublishOutcomeInput): Promise<void> {
-    await this.emitLegacyPostOutcome(input, TargetExecutionState.FAILED);
+  async emitPostFailed(input: PublishOutcomeInput): Promise<void> {
+    await this.emitPostOutcome(input, TargetExecutionState.FAILED);
   }
 
-  private async emitLegacyPostOutcome(
+  private async emitPostOutcome(
     input: PublishOutcomeInput,
     status: TargetExecutionState.PUBLISHED | TargetExecutionState.FAILED,
   ): Promise<void> {

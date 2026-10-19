@@ -370,31 +370,6 @@ describe('ContentPreviewCard', () => {
     expect(screen.queryByText(/undefined/u)).not.toBeInTheDocument();
   });
 
-  it('repairs retired gallery CTAs from persisted image conversations', () => {
-    render(
-      <ContentPreviewCard
-        action={{
-          ctas: [
-            {
-              href: `/g/image/${IMAGE_ID}`,
-              label: 'View in gallery',
-            },
-          ],
-          assetId: IMAGE_ID,
-          id: 'legacy-image-output',
-          type: 'content_preview_card',
-        }}
-      />,
-    );
-
-    expect(
-      screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute(
-      'href',
-      `/test-org/test-brand/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=${IMAGE_ID}`,
-    );
-  });
-
   it('does not scope a server-scoped Library asset link twice', () => {
     render(
       <ContentPreviewCard

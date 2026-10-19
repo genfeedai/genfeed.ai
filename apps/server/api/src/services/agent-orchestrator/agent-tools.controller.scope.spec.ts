@@ -62,7 +62,7 @@ describe('AgentToolsController publishing scopes', () => {
             platforms: ['linkedin'],
           },
         },
-        apiKeyUser([ApiKeyScope.POSTS_CREATE]),
+        apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
         request,
       ),
     ).rejects.toMatchObject({
@@ -84,7 +84,7 @@ describe('AgentToolsController publishing scopes', () => {
         controller.execute(
           'create_post',
           { parameters },
-          apiKeyUser([ApiKeyScope.POSTS_CREATE]),
+          apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
           request,
         ),
       ).rejects.toMatchObject({
@@ -391,7 +391,7 @@ describe('AgentToolsController publishing scopes', () => {
           hostSupportsApproval: true,
         } as never,
       },
-      apiKeyUser([ApiKeyScope.POSTS_CREATE]),
+      apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
       request,
     );
     expect(executor.executeTool).toHaveBeenLastCalledWith(
@@ -413,7 +413,7 @@ describe('AgentToolsController publishing scopes', () => {
         parameters: { content: 'draft' },
         context: { approvedApprovalId: 'apr-1' },
       },
-      { ...apiKeyUser([ApiKeyScope.POSTS_CREATE]), isSuperAdmin: true },
+      { ...apiKeyUser([ApiKeyScope.POSTS_DRAFT]), isSuperAdmin: true },
       request,
     );
     expect(executor.executeTool).toHaveBeenLastCalledWith(
@@ -436,7 +436,7 @@ describe('AgentToolsController publishing scopes', () => {
           approvalReviewerAuthorized: true,
         } as never,
       },
-      { ...apiKeyUser([ApiKeyScope.POSTS_CREATE]), isSuperAdmin: true },
+      { ...apiKeyUser([ApiKeyScope.POSTS_DRAFT]), isSuperAdmin: true },
       { context: { isSuperAdmin: false } } as unknown as Request,
     );
     expect(executor.executeTool).toHaveBeenLastCalledWith(

@@ -29,20 +29,17 @@ const source = {
 
 const SHARED_CAPABILITIES = {
   cancel: {
-    cli: [".command('cancel')", "{ action: 'cancel' }"],
+    cli: [".command('cancel')", "action: 'cancel'"],
     mcp: ["name: 'control_scheduled_release'", "'cancel'"],
     rest: ["@Patch(':id')", "case 'cancel':"],
   },
   create: {
-    cli: [
-      ".command('bulk')",
-      "post<JsonApiCollectionResponse>('/schedules/bulk'",
-    ],
+    cli: [".command('bulk')", "post<JsonApiDocument>('/schedules/bulk'"],
     mcp: ["name: 'create_scheduled_release'"],
     rest: ['@Post()', 'async create('],
   },
   reschedule: {
-    cli: [".command('reschedule')", '{ scheduledDate }'],
+    cli: [".command('reschedule')", 'scheduledDate,'],
     mcp: ["name: 'update_scheduled_release'", 'scheduledDate:'],
     rest: ["@Patch(':id')", 'input.scheduledDate !== undefined'],
   },

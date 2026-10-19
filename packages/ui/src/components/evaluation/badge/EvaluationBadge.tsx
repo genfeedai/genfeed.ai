@@ -5,15 +5,15 @@ import type { EvaluationBadgeProps } from '@genfeedai/props/components/evaluatio
 
 const getScoreColor = (score: number) => {
   if (score >= 90) {
-    return 'bg-success text-success-content';
+    return 'bg-success text-success-foreground';
   }
   if (score >= 70) {
-    return 'bg-info text-info-content';
+    return 'bg-info text-info-foreground';
   }
   if (score >= 50) {
-    return 'bg-warning text-warning-content';
+    return 'bg-warning text-warning-foreground';
   }
-  return 'bg-error text-error-content';
+  return 'bg-error text-error-foreground';
 };
 
 const getScoreLabel = (score: number) => {
