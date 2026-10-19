@@ -225,23 +225,25 @@ export class AssetsController {
         },
         { isDeleted: true },
       );
-
-      await this.cacheService.invalidateByTags([
-        'brands',
-        'links',
-        'assets',
-        'public',
-      ]);
-
-      if (updateAssetDto.parentId) {
-        await this.cacheService.del(`brand:${updateAssetDto.parentId}`);
-      }
     }
 
     const updatedAsset = await this.assetsService.patch(
       validatedId,
       sanitizedUpdate,
     );
+
+    // After the patch, not before: the asset only resolves as the brand's
+    // logo or banner once it is written, and a public read between an early
+    // bust and the write re-caches the brand without it.
+    if (isSettingAsLogoOrBanner) {
+      await this.cacheService.invalidateByTags([
+        'brands',
+        'links',
+        'assets',
+        'public',
+      ]);
+      await this.cacheService.del(`brand:${updateAssetDto.parentId}`);
+    }
 
     const userId = user.userId ?? user.id;
     if (
