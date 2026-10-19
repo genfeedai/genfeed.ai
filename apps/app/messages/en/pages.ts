@@ -8,6 +8,7 @@ import adminFlags from './pages/adminFlags.json';
 import adminGenerations from './pages/adminGenerations.json';
 import adminModelPricing from './pages/adminModelPricing.json';
 import adminOrganizationReleases from './pages/adminOrganizationReleases.json';
+import adminOrganizations from './pages/adminOrganizations.json';
 import adminTemplates from './pages/adminTemplates.json';
 import adminTrainings from './pages/adminTrainings.json';
 import adminUsers from './pages/adminUsers.json';
@@ -79,6 +80,7 @@ const pages = {
   adminGenerations,
   adminModelPricing,
   adminOrganizationReleases,
+  adminOrganizations,
   adminTemplates,
   adminTrainings,
   adminUsers,

@@ -10,14 +10,16 @@ import AnalyticsOrganizationsList from '@protected/overview/analytics/organizati
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function AdminOrganizationsLandingContent() {
+  const translate = useTranslations('pages.adminOrganizations');
   const { setDateRange, triggerRefresh, isRefreshing, toolbarNode } =
     useAnalyticsContext();
 
   return (
     <AdminPageShell
-      title="Organizations"
+      title={translate('title')}
       icon={Building2}
       onRefresh={triggerRefresh}
       isRefreshing={isRefreshing}
