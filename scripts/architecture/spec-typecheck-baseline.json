@@ -833,46 +833,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "32afa7c62d4d54e33ac3",
-      "message": "Cannot find module '@pages/brands/components/system-prompt/BrandDetailSystemPrompt' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "375309ec7bd50b28e4ee",
-      "message": "Cannot find module '@pages/brands/components/overview/BrandDetailOverview' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "4bba9729b3104dd70bfa",
-      "message": "Cannot find module '@pages/brands/components/banner/BrandDetailBanner' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "f1e8e456b72122f6919c",
-      "message": "Cannot find module '@pages/brands/components/detail-sidebar/BrandDetailSidebar' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "b7f4765181dd6354f22f",
-      "message": "Parameter 'isPublic' implicitly has an 'any' type.",
-      "workspace": "agent"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
@@ -6977,14 +6937,6 @@
       "workspace": "services"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/services/ads/saved-ads.service.test.ts",
-      "fingerprint": "7880e317e74fedd59147",
-      "message": "Type 'MockHttpClient' is not assignable to type 'AxiosInstance & MockHttpClient'.   Type 'MockHttpClient' is missing the following properties from type 'AxiosInstance': create, defaults, interceptors, getUri, and 8 more.",
-      "workspace": "services"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "packages/services/ai/evaluations.service.test.ts",
@@ -8646,14 +8598,6 @@
       "file": "packages/ui/src/components/modals/actions/ModalActions.test.tsx",
       "fingerprint": "8ba10d9d5e38146a1d47",
       "message": "Property 'children' is missing in type '{}' but required in type 'ModalActionsProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/ModalBrand.test.tsx",
-      "fingerprint": "dd7d727f6d7ae0d8f434",
-      "message": "Type '\"brand\"' is not assignable to type 'Scope'. Did you mean 'Scope.BRAND'?",
       "workspace": "ui"
     },
     {
