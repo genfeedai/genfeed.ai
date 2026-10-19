@@ -87,6 +87,7 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
 import { logger } from '@services/core/logger.service';
+import type { AxiosRequestConfig } from 'axios';
 
 // Create a concrete implementation for testing
 class TestModel {
@@ -680,12 +681,12 @@ describe('BaseService', () => {
       let inFlight = 0;
       let peak = 0;
       get.mockImplementation(
-        async (_url: string, config: { params: { page: number } }) => {
+        async (_url: string, config?: AxiosRequestConfig) => {
           inFlight += 1;
           peak = Math.max(peak, inFlight);
           await Promise.resolve();
           inFlight -= 1;
-          const { page } = config.params;
+          const page = (config?.params as { page?: number } | undefined)?.page;
           return {
             data: {
               data: [{ id: `p${page}`, name: `row-p${page}` }],
