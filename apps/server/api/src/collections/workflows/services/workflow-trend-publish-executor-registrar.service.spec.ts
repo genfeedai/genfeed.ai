@@ -367,39 +367,33 @@ describe('WorkflowTrendPublishExecutorRegistrarService post caps (#7458)', () =>
   ];
 
   /**
-   * A database whose cap lock is a real mutex held until the transaction that
+   * A database whose cap lock is a try-lock held until the transaction that
    * took it finishes, and whose post count is the posts the service created.
    */
   function fixture(policy: IBrandPublishPolicy) {
     const events: string[] = [];
     const scheduled: string[] = [];
     let isLocked = false;
-    const waiters: Array<() => void> = [];
-    const acquire = async () => {
-      while (isLocked) await new Promise<void>((r) => waiters.push(r));
-      isLocked = true;
-    };
-    const release = () => {
-      isLocked = false;
-      waiters.shift()?.();
-    };
     const prisma = {
       $executeRaw: vi.fn().mockResolvedValue(1),
       $transaction: vi.fn(async (work: (tx: unknown) => Promise<unknown>) => {
         let hasLock = false;
         const tx = {
           $queryRaw: vi.fn(async () => {
-            await acquire();
+            if (isLocked) return [{ isLocked: false }];
+            isLocked = true;
             hasLock = true;
             events.push('lock');
-            return [];
+            return [{ isLocked: true }];
           }),
         };
         try {
           return await work(tx);
         } finally {
-          if (hasLock) release();
-          events.push('commit');
+          if (hasLock) {
+            isLocked = false;
+            events.push('commit');
+          }
         }
       }),
       brand: { findFirst: vi.fn().mockResolvedValue({ agentConfig: {} }) },

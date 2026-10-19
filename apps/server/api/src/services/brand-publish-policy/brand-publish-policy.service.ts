@@ -28,7 +28,11 @@ import {
   IngredientCategory,
   type Prisma,
 } from '@genfeedai/prisma';
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 type PolicyDb = Pick<
   Prisma.TransactionClient,
@@ -62,6 +66,8 @@ const POST_CAP_LOCK_TRANSACTION = {
   maxWait: 5000,
   timeout: 30000,
 } as const;
+const POST_CAP_LOCK_RETRY_MS = 100;
+const POST_CAP_LOCK_WAIT_MS = 20000;
 
 /** The cap locks the current async flow holds, so a nested check never waits on its own flow. */
 const heldPostCapLocks = new AsyncLocalStorage<ReadonlySet<string>>();
@@ -323,12 +329,31 @@ export class BrandPublishPolicyService {
       createDefaultBrandPublishPolicy();
     if (policy.maxPostsPerDay === null && policy.maxPostsPerWeek === null)
       return work(false);
-    return this.prisma.$transaction(async (tx) => {
-      await this.lockPostCaps(tx, scope.organizationId, scope.brandId);
-      return heldPostCapLocks.run(new Set([...(held ?? []), key]), () =>
-        work(true),
+    // A waiter polls for the lock rather than blocking on it, so it holds no
+    // pool connection while the holder's write needs one.
+    const deadline = Date.now() + POST_CAP_LOCK_WAIT_MS;
+    for (;;) {
+      const outcome = await this.prisma.$transaction(async (tx) => {
+        const [row] = await tx.$queryRaw<
+          { isLocked: boolean }[]
+        >`SELECT pg_try_advisory_xact_lock(hashtextextended(${key}, 0)) AS "isLocked"`;
+        if (!row?.isLocked) return null;
+        return {
+          value: await heldPostCapLocks.run(
+            new Set([...(held ?? []), key]),
+            () => work(true),
+          ),
+        };
+      }, POST_CAP_LOCK_TRANSACTION);
+      if (outcome) return outcome.value;
+      if (Date.now() >= deadline)
+        throw new ServiceUnavailableException(
+          'Another publish for this brand is still taking its post slot. Try again shortly.',
+        );
+      await new Promise((resolve) =>
+        setTimeout(resolve, POST_CAP_LOCK_RETRY_MS),
       );
-    }, POST_CAP_LOCK_TRANSACTION);
+    }
   }
 
   private async lockPostCaps(

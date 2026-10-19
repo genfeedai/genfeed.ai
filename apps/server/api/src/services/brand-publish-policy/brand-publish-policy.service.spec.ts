@@ -422,6 +422,7 @@ describe('BrandPublishPolicyService post cap lock (#7458)', () => {
   function makeCappedDb(policy: IBrandPublishPolicy = CAPPED) {
     const db = makeDb(policy);
     const tx = makeDb(policy);
+    tx.$queryRaw.mockResolvedValue([{ isLocked: true }]);
     db.$transaction.mockImplementation(
       async (work: (client: unknown) => Promise<unknown>) => work(tx),
     );
@@ -573,6 +574,21 @@ describe('BrandPublishPolicyService post cap lock (#7458)', () => {
     await service.withPostCapLock(SCOPE, async () => undefined);
 
     expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
+  });
+
+  it('waits for a held lock without keeping a transaction open', async () => {
+    const { db, tx } = makeCappedDb();
+    tx.$queryRaw.mockResolvedValueOnce([{ isLocked: false }]);
+    const work = vi.fn(async (isLocked: boolean) => isLocked);
+
+    expect(await makeService(db).withPostCapLock(SCOPE, work)).toBe(true);
+
+    expect(db.$transaction).toHaveBeenCalledTimes(2);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain(
+      'pg_try_advisory_xact_lock',
+    );
+    expect(work).toHaveBeenCalledTimes(1);
   });
 
   it('lets a failed write roll the lock transaction back', async () => {
