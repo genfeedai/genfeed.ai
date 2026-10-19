@@ -184,10 +184,13 @@ export class OrganizationsSettingsController {
           orgId === sessionOrganizationId
             ? await this.organizationSettingsService.ensureForOrganization(
                 orgId,
+                { includePaidHint: true },
               )
-            : await this.organizationSettingsService.findOne({
-                organizationId: orgId,
-              });
+            : await this.organizationSettingsService.findOne(
+                { organizationId: orgId },
+                [],
+                { includePaidHint: true },
+              );
         if (!data) {
           returnNotFound('Organization settings', orgId);
         }

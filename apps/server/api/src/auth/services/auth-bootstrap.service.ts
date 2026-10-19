@@ -290,9 +290,11 @@ export class AuthBootstrapService {
             )
           : null,
         hasValidOrganizationId
-          ? this.organizationSettingsService.findOne({
-              organizationId: organizationId,
-            })
+          ? this.organizationSettingsService.findOne(
+              { organizationId: organizationId },
+              [],
+              { includePaidHint: true },
+            )
           : null,
         organizationId
           ? this.creditsUtilsService.getOrganizationCreditsBalance(
