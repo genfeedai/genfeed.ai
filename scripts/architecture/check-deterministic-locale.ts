@@ -233,11 +233,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     4,
   ),
   legacyUiAllowance(
-    'packages/pages/analytics/posts-list/analytics-posts-list.tsx',
-    'to-locale-string',
-    2,
-  ),
-  legacyUiAllowance(
     'packages/pages/posts/detail/components/PostDetailCardBody.tsx',
     'to-locale-string',
     1,

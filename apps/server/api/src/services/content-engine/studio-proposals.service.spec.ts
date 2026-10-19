@@ -1,9 +1,9 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import {
   STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME,
   STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
 } from '@genfeedai/contracts/api-types/contracts';
-import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('StudioProposalsService', () => {

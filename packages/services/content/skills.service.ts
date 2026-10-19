@@ -412,7 +412,9 @@ export class SkillsService extends BaseService<
       {
         limit: query.limit,
         page: query.page,
-        ...(query.isDefault !== undefined ? { isDefault: query.isDefault } : {}),
+        ...(query.isDefault !== undefined
+          ? { isDefault: query.isDefault }
+          : {}),
         ...(query.modality ? { modality: query.modality } : {}),
         ...(query.search?.trim() ? { q: query.search.trim() } : {}),
         ...(query.source ? { source: query.source } : {}),

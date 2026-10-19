@@ -1,4 +1,5 @@
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
@@ -13,7 +14,7 @@ import {
   studioStoryboardProposalGenerationSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface StudioProposalsRequest {
   brandId: string;
@@ -67,7 +68,7 @@ export class StudioProposalsService {
       }),
       this.planPerformanceContextService.build({ brandId, organizationId }),
     ]);
-    if (!context) throw new NotFoundException('Brand not found');
+    if (!context) throw new NotFoundException('Brand');
 
     const count = request.count ?? STUDIO_PROPOSAL_DEFAULT_COUNT;
     const systemPrompt = this.agentContextAssemblyService.buildSystemPrompt(
