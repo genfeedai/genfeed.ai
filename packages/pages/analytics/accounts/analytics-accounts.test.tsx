@@ -1,6 +1,5 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
-  act,
   fireEvent,
   render,
   screen,
@@ -8,7 +7,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import {
   afterAll,
   beforeAll,
@@ -56,6 +55,37 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+  default: ({
+    facets,
+  }: {
+    facets: Array<{
+      key: string;
+      label: string;
+      onChange: (value: string) => void;
+      options: Array<{ label: string; value: string }>;
+      value: string;
+    }>;
+  }) => (
+    <div>
+      {facets.map((facet) => (
+        <select
+          aria-label={facet.label}
+          key={facet.key}
+          onChange={(event) => facet.onChange(event.target.value)}
+          value={facet.value}
+        >
+          {facet.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ))}
+    </div>
+  ),
+}));
+
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => ({
     dateRange: {},
@@ -64,6 +94,11 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     refreshTrigger: 0,
     triggerRefresh: vi.fn(),
   }),
+  useAnalyticsToolbar: (node: ReactNode) => {
+    useEffect(() => {
+      mocks.setToolbarNode(node);
+    }, [node]);
+  },
 }));
 
 const getService = async () => ({
@@ -348,10 +383,10 @@ describe('AnalyticsAccounts', () => {
         .filter(([node]) => node !== null)
         .at(-1)?.[0] as ReactNode;
     const toolbar = render(latestToolbar());
-    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
-    await user.keyboard('{ArrowDown}');
-    await screen.findByRole('option', { name: 'Posts' });
-    await user.keyboard('{End}{Enter}');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Rank by metric' }),
+      'Posts',
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),
@@ -359,10 +394,10 @@ describe('AnalyticsAccounts', () => {
     );
     expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
     toolbar.rerender(latestToolbar());
-    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
-    await user.keyboard('{ArrowDown}');
-    await screen.findByRole('option', { name: 'Followers' });
-    await user.keyboard('{Home}{ArrowDown}{Enter}');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Rank by metric' }),
+      'Followers',
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),

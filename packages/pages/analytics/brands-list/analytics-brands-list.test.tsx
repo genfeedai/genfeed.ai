@@ -9,7 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -102,6 +102,11 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     setToolbarNode: setToolbarNodeMock,
     triggerRefresh: triggerRefreshMock,
   }),
+  useAnalyticsToolbar: (node: ReactNode) => {
+    useEffect(() => {
+      setToolbarNodeMock(node);
+    }, [node]);
+  },
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
