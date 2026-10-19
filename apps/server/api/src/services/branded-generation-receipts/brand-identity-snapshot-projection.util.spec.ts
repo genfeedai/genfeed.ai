@@ -1,5 +1,6 @@
 import {
   assertBrandIdentityAssetsAvailable,
+  BrandIdentityIntegrityError,
   projectApprovedBrandIdentitySnapshot,
 } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -78,6 +79,9 @@ function rules(): BrandGenerationRulesV1 {
       },
     ],
   };
+}
+function storedContentOf(row: BrandOsRevision): Record<string, unknown> {
+  return row.content as Record<string, unknown>;
 }
 function revision(fields: Record<string, unknown> = {}): BrandOsRevision {
   const generationRules = rules();
@@ -274,7 +278,9 @@ describe('strict saved approved identity projection', () => {
     it('still requires the rules once a review hash was recorded', () => {
       expect(() =>
         projectApprovedBrandIdentitySnapshot(
-          rulesAbsent({ generationRulesReviewHash: `sha256:${'b'.repeat(64)}` }),
+          rulesAbsent({
+            generationRulesReviewHash: `sha256:${'b'.repeat(64)}`,
+          }),
           time,
         ),
       ).toThrow('brand_identity_integrity_failed');
@@ -287,6 +293,29 @@ describe('strict saved approved identity projection', () => {
         ),
       ).toThrow('brand_identity_integrity_failed');
     });
+  });
+  it.each([
+    [{ approvedById: null }, 'approval_invalid'],
+    [
+      { generationRulesReviewHash: `sha256:${'b'.repeat(64)}` },
+      'rules_hash_mismatch',
+    ],
+    [{ content: { fields: {} } }, 'content_schema_invalid'],
+    [
+      { content: { ...storedContentOf(revision()), brandId: 'other' } },
+      'content_scope_mismatch',
+    ],
+  ])('names the failed sub-check for %j', (patch, reason) => {
+    try {
+      projectApprovedBrandIdentitySnapshot(
+        { ...revision(), ...patch } as BrandOsRevision,
+        time,
+      );
+      throw new Error('expected integrity failure');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BrandIdentityIntegrityError);
+      expect((error as BrandIdentityIntegrityError).reason).toBe(reason);
+    }
   });
   it('accepts admitted font metadata without asserting rendering or changing the reviewed availability', () => {
     const snapshot = projectApprovedBrandIdentitySnapshot(revision(), time);

@@ -35,6 +35,39 @@ const savedContent = z
 const provisionalContent = savedContent.extend({
   generationRules: brandGenerationRulesV1Schema.optional(),
 });
+/**
+ * The stable 409 for an unreadable brand identity. `reason` names the failed
+ * sub-check (a lowercase diagnostic code kept on the receipt) and `detail` the
+ * first offending path; the API still answers with the one public code.
+ */
+export class BrandIdentityIntegrityError extends ConflictException {
+  constructor(
+    readonly reason: string,
+    readonly detail?: string,
+  ) {
+    super('brand_identity_integrity_failed');
+  }
+}
+
+function zodPath(error: z.ZodError): string {
+  return error.issues[0]?.path.join('.') ?? '';
+}
+
+function classifyIntegrityFailure(
+  error: unknown,
+  fallback: string,
+): BrandIdentityIntegrityError {
+  if (error instanceof BrandIdentityIntegrityError) return error;
+  if (error instanceof z.ZodError) {
+    const path = zodPath(error);
+    return new BrandIdentityIntegrityError(
+      path.startsWith('generationRules') ? 'rules_schema_invalid' : fallback,
+      path,
+    );
+  }
+  return new BrandIdentityIntegrityError(fallback);
+}
+
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 const DRAFT_FIELDS_EVIDENCE_ID = 'draft_fields';
 
@@ -122,7 +155,7 @@ export function projectApprovedBrandIdentitySnapshot(
       !(revision.approvedAt instanceof Date) ||
       !Number.isFinite(revision.approvedAt.getTime())
     )
-      throw new Error('Invalid approval');
+      throw new BrandIdentityIntegrityError('approval_invalid');
     // An approval saved without generation rules (brand-kit scans and imports
     // that predate rules) was never rules-reviewed and carries no review hash.
     // Its approved fields still define the brand, so it gets the same
@@ -136,7 +169,7 @@ export function projectApprovedBrandIdentitySnapshot(
       content.brandId !== revision.brandId ||
       content.organizationId !== revision.organizationId
     )
-      throw new Error('Invalid reviewed identity');
+      throw new BrandIdentityIntegrityError('content_scope_mismatch');
     if (content.generationRules === undefined) {
       return buildIdentitySnapshot(
         revision,
@@ -150,7 +183,7 @@ export function projectApprovedBrandIdentitySnapshot(
       hashBrandGenerationRulesReviewV1(content.generationRules) !==
       revision.generationRulesReviewHash
     )
-      throw new Error('Invalid reviewed identity');
+      throw new BrandIdentityIntegrityError('rules_hash_mismatch');
     return buildIdentitySnapshot(
       revision,
       content,
@@ -158,8 +191,8 @@ export function projectApprovedBrandIdentitySnapshot(
       'approved',
       resolvedAt,
     );
-  } catch {
-    throw new ConflictException('brand_identity_integrity_failed');
+  } catch (error) {
+    throw classifyIntegrityFailure(error, 'content_schema_invalid');
   }
 }
 
@@ -212,10 +245,16 @@ function buildIdentitySnapshot(
     diagnostics: [],
   };
   // Validate canonical bounds and types before hashing; never stringify/filter saved values.
-  const parsed = brandIdentitySnapshotV1Schema.parse({
+  const candidate = brandIdentitySnapshotV1Schema.safeParse({
     ...snapshot,
     contentHash: `sha256:${'0'.repeat(64)}`,
   });
+  if (!candidate.success)
+    throw new BrandIdentityIntegrityError(
+      'snapshot_schema_invalid',
+      zodPath(candidate.error),
+    );
+  const parsed = candidate.data;
   return { ...parsed, contentHash: hashBrandIdentitySnapshotV1(parsed) };
 }
 
@@ -230,13 +269,13 @@ export function projectProvisionalBrandIdentitySnapshot(
 ): BrandIdentitySnapshotV1 {
   try {
     if (revision.status !== BrandOsRevisionStatus.DRAFT || revision.isDeleted)
-      throw new Error('Invalid draft');
+      throw new BrandIdentityIntegrityError('draft_invalid');
     const content = provisionalContent.parse(revision.content);
     if (
       content.brandId !== revision.brandId ||
       content.organizationId !== revision.organizationId
     )
-      throw new Error('Invalid draft scope');
+      throw new BrandIdentityIntegrityError('content_scope_mismatch');
     return buildIdentitySnapshot(
       revision,
       content,
@@ -244,8 +283,8 @@ export function projectProvisionalBrandIdentitySnapshot(
       'provisional',
       resolvedAt,
     );
-  } catch {
-    throw new ConflictException('brand_identity_integrity_failed');
+  } catch (error) {
+    throw classifyIntegrityFailure(error, 'content_schema_invalid');
   }
 }
 
