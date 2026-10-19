@@ -3,14 +3,14 @@ import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isProtectedBootstrapBypassedMock = vi.fn();
-const loadProtectedBootstrapMock = vi.fn();
+const loadServerSuperAdminMock = vi.fn();
 const notFoundMock = vi.fn(() => {
   throw new Error('NEXT_NOT_FOUND');
 });
 
 vi.mock('@app-server/protected-bootstrap.server', () => ({
   isProtectedBootstrapBypassed: isProtectedBootstrapBypassedMock,
-  loadProtectedBootstrap: loadProtectedBootstrapMock,
+  loadServerSuperAdmin: loadServerSuperAdminMock,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -25,9 +25,8 @@ describe('app/(protected)/admin/layout.tsx', () => {
       'utf8',
     );
 
-    expect(source).toContain('loadProtectedBootstrap');
+    expect(source).toContain('loadServerSuperAdmin');
     expect(source).toContain('isProtectedBootstrapBypassed');
-    expect(source).toContain('bootstrap?.accessState?.isSuperAdmin');
     expect(source).toContain('notFound()');
 
     // Self-host / local Portless superadmins must reach admin too. The guard's
@@ -57,41 +56,28 @@ describe('AdminLayout authorization', () => {
     await expect(AdminLayout({ children })).resolves.toMatchObject({
       props: { children },
     });
-    expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
+    expect(loadServerSuperAdminMock).not.toHaveBeenCalled();
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 
   it('404s a non-superadmin when the Playwright bypass is off', async () => {
     isProtectedBootstrapBypassedMock.mockResolvedValue(false);
-    loadProtectedBootstrapMock.mockResolvedValue({
-      accessState: { isSuperAdmin: false },
-    });
+    loadServerSuperAdminMock.mockResolvedValue(false);
     const AdminLayout = (await import('./layout')).default;
 
     await expect(AdminLayout({ children })).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(loadProtectedBootstrapMock).toHaveBeenCalledTimes(1);
+    expect(loadServerSuperAdminMock).toHaveBeenCalledTimes(1);
     expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders admin children for a superadmin when the Playwright bypass is off', async () => {
     isProtectedBootstrapBypassedMock.mockResolvedValue(false);
-    loadProtectedBootstrapMock.mockResolvedValue({
-      accessState: { isSuperAdmin: true },
-    });
+    loadServerSuperAdminMock.mockResolvedValue(true);
     const AdminLayout = (await import('./layout')).default;
 
     await expect(AdminLayout({ children })).resolves.toMatchObject({
       props: { children },
     });
     expect(notFoundMock).not.toHaveBeenCalled();
-  });
-
-  it('404s when bootstrap is missing and the Playwright bypass is off', async () => {
-    isProtectedBootstrapBypassedMock.mockResolvedValue(false);
-    loadProtectedBootstrapMock.mockResolvedValue(null);
-    const AdminLayout = (await import('./layout')).default;
-
-    await expect(AdminLayout({ children })).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 });

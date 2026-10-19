@@ -803,6 +803,10 @@
         "fieldAriaLabel": "Home app",
         "label": "Home app"
       },
+      "rail": {
+        "description": "Your rail follows your organization's order until you arrange your own. Reset puts it back.",
+        "label": "Rail"
+      },
       "agentMode": {
         "description": "The default mode a new Agent thread starts in. Change it for one thread from the mode dropdown in the prompt bar.",
         "fieldAriaLabel": "Default agent mode",
