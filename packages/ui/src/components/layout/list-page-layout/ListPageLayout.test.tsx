@@ -3,6 +3,10 @@ import { render } from '@testing-library/react';
 import ListPageLayout from '@ui/layout/list-page-layout/ListPageLayout';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 describe('ListPageLayout', () => {
   const filters: IFiltersState = {
     favorite: '',

@@ -1,5 +1,6 @@
 import DeskFilterRail from '@pages/trends/desk/desk-filter-rail';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -29,30 +30,44 @@ function renderFilters() {
   return props;
 }
 
-describe('Discovery dropdown filters', () => {
-  it('offers each platform inside one dropdown and clears multiple filters atomically', async () => {
+async function openFacet(name: RegExp) {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: /^Filters/ }));
+  screen.getByRole('menuitem', { name }).focus();
+  await user.keyboard('{ArrowRight}');
+  return user;
+}
+
+describe('Discovery filter menu', () => {
+  it('offers each platform inside one nested menu and toggles one at a time', async () => {
     const props = renderFilters();
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Platforms' }), {
-      button: 0,
-      ctrlKey: false,
-    });
-    fireEvent.click(
+    const user = await openFacet(/^Platforms/);
+    await user.click(
       await screen.findByRole('menuitemcheckbox', { name: /instagram/ }),
     );
     expect(props.onTogglePlatform).toHaveBeenCalledWith('instagram');
-    fireEvent.click(
-      screen.getByRole('menuitemcheckbox', { name: 'All platforms' }),
-    );
-    expect(props.onClearPlatforms).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole('menuitemcheckbox', { name: /youtube/ }));
+    expect(props.onTogglePlatform).toHaveBeenCalledWith('youtube');
   });
-  it('exposes content type and sorting as dropdown controls', () => {
-    renderFilters();
+
+  it('clears the platform and content type filters together', async () => {
+    const props = renderFilters();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^Filters/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Clear filters' }));
+    expect(props.onClearPlatforms).toHaveBeenCalledOnce();
+    expect(props.onContentTypeChange).toHaveBeenCalledWith('all');
+  });
+
+  it('exposes content type and sorting as nested single choices', async () => {
+    const props = renderFilters();
+    const user = await openFacet(/^Content type/);
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Video' }),
+    );
+    expect(props.onContentTypeChange).toHaveBeenCalledWith('video');
     expect(
-      screen.queryByRole('combobox', { name: 'Source' }),
+      screen.queryByRole('combobox', { name: 'Sort' }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('combobox', { name: 'Content type' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument();
   });
 });

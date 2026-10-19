@@ -33,6 +33,11 @@ export interface FilterMenuSingleFacet extends FilterMenuFacetBase {
   selection: 'single';
   value: string;
   defaultValue?: string;
+  /**
+   * False for facets that order or combine results (sort, match any/all)
+   * rather than narrow them, so they never light up the active-filter badge.
+   */
+  isCounted?: boolean;
   onChange: (value: string) => void;
 }
 

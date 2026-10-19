@@ -44,7 +44,7 @@ function withCount(label: string, count: number | undefined): string {
 
 /**
  * One reading of the filter axes for both surfaces that show them: the
- * Filters popover (every choice) and the chip row (only what is applied).
+ * Filters menu (every choice) and the chip row (only what is applied).
  */
 export function useLibraryFilters({
   categories,

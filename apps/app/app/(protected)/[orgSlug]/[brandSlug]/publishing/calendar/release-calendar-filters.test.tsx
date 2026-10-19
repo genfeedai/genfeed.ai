@@ -33,7 +33,7 @@ describe('nested calendar filters', () => {
         ]}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Calendar filters' }));
+    await user.click(screen.getByRole('button', { name: /^Filters/ }));
     const status = screen.getByRole('menuitem', { name: /Status/ });
     status.focus();
     await user.keyboard('{ArrowRight}');
@@ -67,7 +67,7 @@ describe('nested calendar filters', () => {
       />,
     );
     expect(screen.getAllByRole('button')).toHaveLength(1);
-    expect(screen.getByRole('button')).toHaveTextContent('Filters (1)');
+    expect(screen.getByRole('button')).toHaveTextContent('Filters1');
     await user.click(screen.getByRole('button'));
     await user.click(screen.getByRole('menuitem', { name: 'Clear filters' }));
     expect(onChange).toHaveBeenCalledWith(EMPTY_RELEASE_CALENDAR_FILTERS);

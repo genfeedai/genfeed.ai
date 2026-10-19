@@ -1,15 +1,15 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import type {
+  ModalityFilterValue,
+  SourceFilterValue,
+  StageFilterValue,
+} from '@props/settings/skill-filters.props';
 import type { SkillFiltersProps } from '@props/settings/skills.props';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { Button } from '@ui/primitives/button';
 import { fieldControlClassName } from '@ui/primitives/field-control';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -34,6 +34,45 @@ export default function SkillFilters({
 }: SkillFiltersProps) {
   const translate = useTranslations('common.settings.skills');
 
+  const facets: FilterMenuFacet[] = [
+    {
+      defaultValue: 'all',
+      key: 'source',
+      label: translate('filters.source.menuLabel'),
+      onChange: (value) => onSourceFilterChange(value as SourceFilterValue),
+      options: SOURCE_FILTERS.map((filter) => ({
+        label: translate(`filters.source.${filter.labelKey}`),
+        value: filter.value,
+      })),
+      selection: 'single',
+      value: sourceFilter,
+    },
+    {
+      defaultValue: 'all',
+      key: 'modality',
+      label: translate('filters.modality.menuLabel'),
+      onChange: (value) => onModalityFilterChange(value as ModalityFilterValue),
+      options: MODALITY_FILTERS.map((filter) => ({
+        label: translate(`filters.modality.${filter.labelKey}`),
+        value: filter.value,
+      })),
+      selection: 'single',
+      value: modalityFilter,
+    },
+    {
+      defaultValue: 'all',
+      key: 'stage',
+      label: translate('filters.stage.menuLabel'),
+      onChange: (value) => onStageFilterChange(value as StageFilterValue),
+      options: STAGE_FILTERS.map((filter) => ({
+        label: translate(`filters.stage.${filter.labelKey}`),
+        value: filter.value,
+      })),
+      selection: 'single',
+      value: stageFilter,
+    },
+  ];
+
   return (
     <div className="flex flex-wrap items-center justify-end gap-2.5">
       <FormSearchbar
@@ -46,53 +85,20 @@ export default function SkillFilters({
         value={searchQuery}
       />
 
-      <Select onValueChange={onSourceFilterChange} value={sourceFilter}>
-        <SelectTrigger
-          aria-label={translate('filters.source.label')}
-          className="h-8 w-32"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {SOURCE_FILTERS.map((filter) => (
-            <SelectItem key={filter.value} value={filter.value}>
-              {translate(`filters.source.${filter.labelKey}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select onValueChange={onModalityFilterChange} value={modalityFilter}>
-        <SelectTrigger
-          aria-label={translate('filters.modality.label')}
-          className="h-8 w-32"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {MODALITY_FILTERS.map((filter) => (
-            <SelectItem key={filter.value} value={filter.value}>
-              {translate(`filters.modality.${filter.labelKey}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select onValueChange={onStageFilterChange} value={stageFilter}>
-        <SelectTrigger
-          aria-label={translate('filters.stage.label')}
-          className="h-8 w-32"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {STAGE_FILTERS.map((filter) => (
-            <SelectItem key={filter.value} value={filter.value}>
-              {translate(`filters.stage.${filter.labelKey}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterMenu
+        allLabel={translate('filters.all')}
+        clearLabel={translate('filters.clear')}
+        facets={facets}
+        getActiveCountLabel={(count) =>
+          translate('filters.activeCount', { count })
+        }
+        label={translate('filters.menu')}
+        onClear={() => {
+          onSourceFilterChange('all');
+          onModalityFilterChange('all');
+          onStageFilterChange('all');
+        }}
+      />
 
       <Button
         icon={<RefreshCw className="size-4" />}

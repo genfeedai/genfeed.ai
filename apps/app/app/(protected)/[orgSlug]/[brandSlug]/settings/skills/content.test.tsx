@@ -271,7 +271,7 @@ describe('BrandSettingsSkillsPage', () => {
     });
   });
 
-  it('filters skills by source using the subbar select', async () => {
+  it('offers the source filter in the subbar Filters menu', async () => {
     render(<BrandSettingsSkillsPage />);
 
     await waitFor(() => {
@@ -280,7 +280,7 @@ describe('BrandSettingsSkillsPage', () => {
     expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
 
     expect(
-      screen.getByRole('combobox', { name: /filter skills by source/i }),
+      screen.getByRole('button', { name: /^Filters/ }),
     ).toBeInTheDocument();
   });
 
@@ -334,10 +334,12 @@ describe('BrandSettingsSkillsPage', () => {
       render(<BrandSettingsSkillsPage />);
       expect(await screen.findByText('Video Text Skill')).toBeVisible();
 
+      await user.click(screen.getByRole('button', { name: /^Filters/ }));
+      screen.getByRole('menuitem', { name: /^Modality/ }).focus();
+      await user.keyboard('{ArrowRight}');
       await user.click(
-        screen.getByRole('combobox', { name: 'Filter skills by modality' }),
+        await screen.findByRole('menuitemradio', { name: filter }),
       );
-      await user.click(await screen.findByRole('option', { name: filter }));
 
       const catalog = within(screen.getByRole('table', { name: 'Catalog' }));
       for (const name of [

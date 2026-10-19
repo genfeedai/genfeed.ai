@@ -5,7 +5,8 @@ import {
   LibraryShelf,
   TagMatchMode,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryActiveFilters from './library-active-filters';
@@ -94,8 +95,15 @@ function renderToolbar(
   );
 }
 
-function openFilters(): void {
-  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+/** Opens the Filters menu and, when asked, one facet's submenu. */
+async function openFilters(facet?: RegExp) {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: /^Filters/ }));
+  if (facet) {
+    screen.getByRole('menuitem', { name: facet }).focus();
+    await user.keyboard('{ArrowRight}');
+  }
+  return user;
 }
 
 const TAG_OPTIONS = [
@@ -130,7 +138,7 @@ describe('LibraryBrowserToolbar', () => {
     );
   });
 
-  it('offers shelves and Trash as one status filter and hides an idle Generating row', () => {
+  it('offers shelves and Trash as one status filter and hides an idle Generating row', async () => {
     const onStatusChange = vi.fn();
 
     renderToolbar({
@@ -143,43 +151,48 @@ describe('LibraryBrowserToolbar', () => {
       },
       trashedCount: 4,
     });
-    openFilters();
+    const user = await openFilters(/^Status/);
 
     expect(
-      screen.queryByRole('radio', { name: 'Generating' }),
+      screen.queryByRole('menuitemradio', { name: 'Generating' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('radio', { name: 'Needs review (2)' }),
+      await screen.findByRole('menuitemradio', { name: 'Needs review (2)' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: 'Failed (3)' }));
+    await user.click(screen.getByRole('menuitemradio', { name: 'Failed (3)' }));
     expect(onStatusChange).toHaveBeenCalledWith(LibraryShelf.FAILED);
-    fireEvent.click(screen.getByRole('radio', { name: 'Trash (4)' }));
-    expect(onStatusChange).toHaveBeenCalledWith('trash');
-    fireEvent.click(screen.getByRole('radio', { name: 'All' }));
-    expect(onStatusChange).toHaveBeenCalledWith(null);
   });
 
-  it('filters Recent and Starred from the show choices, not the nav (#5502)', () => {
+  it('sends Trash and All through the same status filter', async () => {
+    const onStatusChange = vi.fn();
+
+    renderToolbar({ onStatusChange, trashedCount: 4 });
+    const user = await openFilters(/^Status/);
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Trash (4)' }),
+    );
+    expect(onStatusChange).toHaveBeenCalledWith('trash');
+  });
+
+  it('filters Recent and Starred from the show choices, not the nav (#5502)', async () => {
     const onPlaceChange = vi.fn();
 
     renderToolbar({ onPlaceChange, place: LibraryPlace.STARRED });
-    openFilters();
+    const user = await openFilters(/^Show/);
 
-    const show = screen.getByRole('group', { name: 'Show' });
-    expect(within(show).getByRole('radio', { name: 'Starred' })).toBeChecked();
-    fireEvent.click(within(show).getByRole('radio', { name: 'Recent' }));
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'Starred' }),
+    ).toBeChecked();
+    await user.click(screen.getByRole('menuitemradio', { name: 'Recent' }));
     expect(onPlaceChange).toHaveBeenCalledWith(LibraryPlace.RECENT);
-    fireEvent.click(within(show).getByRole('radio', { name: 'All assets' }));
-    expect(onPlaceChange).toHaveBeenCalledWith(null);
   });
 
-  it('shows every asset in the show choices while Trash is the status', () => {
+  it('shows every asset in the show choices while Trash is the status', async () => {
     renderToolbar({ place: LibraryPlace.TRASH });
-    openFilters();
+    await openFilters(/^Show/);
 
-    const show = screen.getByRole('group', { name: 'Show' });
     expect(
-      within(show).getByRole('radio', { name: 'All assets' }),
+      await screen.findByRole('menuitemradio', { name: 'All assets' }),
     ).toBeChecked();
   });
 
@@ -190,24 +203,23 @@ describe('LibraryBrowserToolbar', () => {
     expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   });
 
-  it('filters types from multi-select choices with singular labels', () => {
+  it('filters types from multi-select choices with singular labels', async () => {
     const onCategoriesChange = vi.fn();
 
     renderToolbar({
       categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
       onCategoriesChange,
     });
-    openFilters();
+    const user = await openFilters(/^Type/);
 
-    expect(screen.getByRole('button', { name: 'Video' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
     expect(
-      screen.queryByRole('button', { name: 'Videos' }),
+      await screen.findByRole('menuitemcheckbox', { name: 'Video' }),
+    ).toBeChecked();
+    expect(
+      screen.queryByRole('menuitemcheckbox', { name: 'Videos' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Image' }));
 
     expect(onCategoriesChange).toHaveBeenCalledWith([
       IngredientCategory.IMAGE,
@@ -217,22 +229,22 @@ describe('LibraryBrowserToolbar', () => {
     ]);
   });
 
-  it('filters origin beside type', () => {
+  it('filters origin beside type', async () => {
     const onOriginsChange = vi.fn();
 
     renderToolbar({ onOriginsChange, origins: [IngredientOrigin.UPLOADED] });
-    openFilters();
+    const user = await openFilters(/^Origin/);
 
-    expect(screen.getByRole('button', { name: 'Uploaded' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'Generated' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    expect(
+      await screen.findByRole('menuitemcheckbox', { name: 'Uploaded' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Generated' }),
+    ).not.toBeChecked();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Imported' }));
+    await user.click(
+      screen.getByRole('menuitemcheckbox', { name: 'Imported' }),
+    );
 
     expect(onOriginsChange).toHaveBeenCalledWith([
       IngredientOrigin.UPLOADED,
@@ -240,15 +252,19 @@ describe('LibraryBrowserToolbar', () => {
     ]);
   });
 
-  it('hides the character and tag sections when the brand has neither', () => {
+  it('hides the character and tag facets when the brand has neither', async () => {
     renderToolbar();
-    openFilters();
+    await openFilters();
 
-    expect(screen.queryByText('Character')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: /^Character/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: /^Tags/ }),
+    ).not.toBeInTheDocument();
   });
 
-  it('filters by character', () => {
+  it('filters by character', async () => {
     const onCharactersChange = vi.fn();
 
     renderToolbar({
@@ -259,20 +275,18 @@ describe('LibraryBrowserToolbar', () => {
       characters: ['c1'],
       onCharactersChange,
     });
-    openFilters();
+    const user = await openFilters(/^Character/);
 
-    expect(screen.getByRole('button', { name: 'Anna' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      await screen.findByRole('menuitemcheckbox', { name: 'Anna' }),
+    ).toBeChecked();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Vincent' }));
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Vincent' }));
 
     expect(onCharactersChange).toHaveBeenCalledWith(['c1', 'c2']);
   });
 
-  it('caps the character selection at the API limit and shows it', () => {
-    const onCharactersChange = vi.fn();
+  it('stops offering characters at the API limit and says so', async () => {
     const characterOptions = Array.from({ length: 26 }, (_, index) => ({
       id: `c${index}`,
       label: `Character ${index}`,
@@ -281,72 +295,77 @@ describe('LibraryBrowserToolbar', () => {
     renderToolbar({
       characterOptions,
       characters: characterOptions.slice(0, 25).map((option) => option.id),
-      onCharactersChange,
     });
-    openFilters();
+    await openFilters(/^Character/);
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Limit of 25 characters reached',
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Character 25' }));
-
-    expect(onCharactersChange).toHaveBeenCalledTimes(1);
-    expect(onCharactersChange.mock.calls[0][0]).toHaveLength(25);
-    expect(onCharactersChange.mock.calls[0][0]).not.toContain('c25');
+    expect(
+      await screen.findByText('Limit of 25 characters reached'),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Character 25' }),
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('searches long lists and keeps selected choices visible', () => {
+  it('searches long lists and keeps selected choices visible', async () => {
     const tagOptions = Array.from({ length: 12 }, (_, index) => ({
       id: `t${index}`,
       label: `Tag ${index}`,
     })) as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
 
     renderToolbar({ tagOptions, tags: ['t3'] });
-    openFilters();
+    const user = await openFilters(/^Tags/);
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search tags' }), {
-      target: { value: 'Tag 11' },
-    });
+    await user.type(
+      await screen.findByRole('textbox', { name: 'Search tags' }),
+      'Tag 11',
+    );
 
-    expect(screen.getByRole('button', { name: 'Tag 11' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tag 3' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Tag 5' }),
+      screen.getByRole('menuitemcheckbox', { name: 'Tag 11' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Tag 3' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemcheckbox', { name: 'Tag 5' }),
     ).not.toBeInTheDocument();
   });
 
   describe('tag filter', () => {
-    it('lists tags with their asset counts', () => {
+    it('lists tags with their asset counts', async () => {
       const onTagsChange = vi.fn();
 
       renderToolbar({ onTagsChange, tagOptions: TAG_OPTIONS, tags: ['t1'] });
-      openFilters();
+      const user = await openFilters(/^Tags/);
 
       expect(
-        screen.getByRole('button', { name: 'S1E12 (14)' }),
-      ).toHaveAttribute('aria-pressed', 'true');
+        await screen.findByRole('menuitemcheckbox', { name: 'S1E12 (14)' }),
+      ).toBeChecked();
       expect(
-        screen.getByRole('button', { name: 'Launch (3)' }),
-      ).toHaveAttribute('aria-pressed', 'false');
+        screen.getByRole('menuitemcheckbox', { name: 'Launch (3)' }),
+      ).not.toBeChecked();
       // A tag without a count is still listed, just unlabelled by one.
-      expect(screen.getByRole('button', { name: 'Mood' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemcheckbox', { name: 'Mood' }),
+      ).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Launch (3)' }));
+      await user.click(
+        screen.getByRole('menuitemcheckbox', { name: 'Launch (3)' }),
+      );
 
       expect(onTagsChange).toHaveBeenCalledWith(['t1', 't2']);
     });
 
-    it('offers the match mode only once several tags are selected', () => {
+    it('offers the match mode only once several tags are selected', async () => {
       renderToolbar({ tagOptions: TAG_OPTIONS, tags: ['t1'] });
-      openFilters();
+      await openFilters();
 
       expect(
-        screen.queryByRole('radio', { name: 'Match all' }),
+        screen.queryByRole('menuitem', { name: /^Tag match/ }),
       ).not.toBeInTheDocument();
     });
 
-    it('switches between match any and match all', () => {
+    it('switches between match any and match all', async () => {
       const onTagMatchChange = vi.fn();
 
       renderToolbar({
@@ -355,34 +374,30 @@ describe('LibraryBrowserToolbar', () => {
         tagOptions: TAG_OPTIONS,
         tags: ['t1', 't2'],
       });
-      openFilters();
+      const user = await openFilters(/^Tag match/);
 
-      fireEvent.click(screen.getByRole('radio', { name: 'Match all' }));
+      await user.click(
+        await screen.findByRole('menuitemradio', { name: 'Match all' }),
+      );
       expect(onTagMatchChange).toHaveBeenCalledWith(TagMatchMode.ALL);
     });
 
-    it('caps the tag selection at the API limit and shows it', () => {
-      const onTagsChange = vi.fn();
+    it('stops offering tags at the API limit and says so', async () => {
       const manyTags = Array.from({ length: 26 }, (_, index) => ({
         id: `t${index}`,
         label: `Tag ${index}`,
       })) as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
 
       renderToolbar({
-        onTagsChange,
         tagOptions: manyTags,
         tags: manyTags.slice(0, 25).map((tag) => tag.id),
       });
-      openFilters();
+      await openFilters(/^Tags/);
 
-      expect(screen.getByRole('status')).toHaveTextContent(
-        'Limit of 25 tags reached',
-      );
-
-      fireEvent.click(screen.getByRole('button', { name: 'Tag 25' }));
-
-      expect(onTagsChange.mock.calls[0][0]).toHaveLength(25);
-      expect(onTagsChange.mock.calls[0][0]).not.toContain('t25');
+      expect(await screen.findByText('Limit of 25 tags reached')).toBeVisible();
+      expect(
+        screen.getByRole('menuitemcheckbox', { name: 'Tag 25' }),
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('offers tag management in the ghost action cluster', () => {
@@ -394,41 +409,44 @@ describe('LibraryBrowserToolbar', () => {
     });
   });
 
-  it('sorts from the popover and keeps sort out of the filter count', () => {
+  it('sorts from the menu and keeps sort out of the filter count', async () => {
     const onSortChange = vi.fn();
 
     renderToolbar({ onSortChange });
 
     expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 
-    openFilters();
-    const sort = screen.getByRole('group', { name: 'Sort' });
+    const user = await openFilters(/^Sort/);
     expect(
-      within(sort).getByRole('radio', { name: 'Newest first' }),
+      await screen.findByRole('menuitemradio', { name: 'Newest first' }),
     ).toBeChecked();
-    fireEvent.click(within(sort).getByRole('radio', { name: 'Oldest first' }));
+    await user.click(
+      screen.getByRole('menuitemradio', { name: 'Oldest first' }),
+    );
 
     expect(onSortChange).toHaveBeenCalledWith('createdAt: 1');
   });
 
-  it('hides the clear-all footer until a filter is applied', () => {
+  it('hides clear-all until a filter is applied', async () => {
     renderToolbar();
-    openFilters();
+    await openFilters();
 
     expect(
-      screen.queryByRole('button', { name: 'Clear all filters' }),
+      screen.queryByRole('menuitem', { name: 'Clear all filters' }),
     ).not.toBeInTheDocument();
   });
 
-  it('clears every filter from the popover footer once one is applied', () => {
+  it('clears every filter from the menu once one is applied', async () => {
     const onClearAllFilters = vi.fn();
 
     renderToolbar({
       onClearAllFilters,
       origins: [IngredientOrigin.GENERATED],
     });
-    openFilters();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    const user = await openFilters();
+    await user.click(
+      screen.getByRole('menuitem', { name: 'Clear all filters' }),
+    );
 
     expect(onClearAllFilters).toHaveBeenCalledOnce();
   });

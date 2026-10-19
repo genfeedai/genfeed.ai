@@ -195,7 +195,7 @@
     "write": "Write",
     "today": "Today",
     "filters": "Filters",
-    "filtersWithCount": "Filters ({count})",
+    "activeFilterCount": "{count, plural, one {# active filter} other {# active filters}}",
     "noFilterOptions": "No options available",
     "clearFilters": "Clear filters",
     "newArticle": "New article"

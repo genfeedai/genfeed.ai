@@ -926,27 +926,31 @@
         "systemPromptTemplate": "Advanced: System Prompt Template"
       },
       "filters": {
+        "menu": "Filters",
+        "clear": "Clear filters",
+        "all": "All",
+        "activeCount": "{count, plural, one {# active filter} other {# active filters}}",
         "modality": {
+          "menuLabel": "Modality",
           "all": "All",
           "audio": "Audio",
           "image": "Image",
-          "label": "Filter skills by modality",
           "text": "Text",
           "video": "Video"
         },
         "source": {
+          "menuLabel": "Source",
           "all": "All",
           "builtIn": "Built-in",
           "custom": "Custom",
           "customized": "Customized",
-          "imported": "Imported",
-          "label": "Filter skills by source"
+          "imported": "Imported"
         },
         "stage": {
+          "menuLabel": "Stage",
           "all": "All",
           "analysis": "Analysis",
           "creation": "Creation",
-          "label": "Filter skills by workflow stage",
           "planning": "Planning",
           "publishing": "Publishing",
           "research": "Research",
@@ -2169,9 +2173,11 @@
     "desk": {
       "filters": {
         "source": "Source",
+        "menu": "Filters",
+        "clear": "Clear filters",
+        "all": "All",
+        "activeCount": "{count, plural, one {# active filter} other {# active filters}}",
         "platforms": "Platforms",
-        "allPlatforms": "All platforms",
-        "platformCount": "{count, plural, one {# platform} other {# platforms}}",
         "contentType": "Content type",
         "sort": "Sort",
         "types": {

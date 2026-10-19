@@ -61,7 +61,7 @@ export interface LibraryCharacterOption {
   label: string;
 }
 
-/** Everything the Filters popover and the active-filter chips read and write. */
+/** Everything the Filters menu and the active-filter chips read and write. */
 export interface LibraryFilterProps {
   categories: IngredientCategory[];
   /** Current place from the URL. Trash selects the Trash status option. */
@@ -108,7 +108,7 @@ export interface LibraryBrowserToolbarProps extends LibraryFilterProps {
   onUpload: () => void;
 }
 
-export interface LibraryFiltersPopoverProps extends LibraryFilterProps {
+export interface LibraryFiltersMenuProps extends LibraryFilterProps {
   sort: string;
   sortOptions: LibraryBrowserSortOption[];
   onSortChange: (sort: string) => void;
@@ -126,7 +126,7 @@ export interface LibraryFilterChoice {
   value: string;
 }
 
-/** Derived state shared by the Filters popover and the active-filter chips. */
+/** Derived state shared by the Filters menu and the active-filter chips. */
 export interface LibraryFilterModel {
   activeFilters: LibraryActiveFilter[];
   originChoices: LibraryFilterChoice[];

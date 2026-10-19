@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
-import LibraryFiltersPopover from './library-filters-popover';
+import LibraryFiltersMenu from './library-filters-menu';
 
 const GRID_VIEW_OPTION = {
   icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
@@ -59,7 +59,7 @@ const MODE_TO_VIEW_TYPE: Record<LibraryViewMode, ViewType> = {
 };
 
 /**
- * The Library's control plane: one Filters popover (status, show, type,
+ * The Library's control plane: one Filters menu (status, show, type,
  * origin, character, tags, sort) and the view toggle. Folder stays in the
  * sidebar. Applied filters render as chips in `LibraryActiveFilters`. Two
  * controls is what keeps this row, and the icon actions beside it, on one line.
@@ -89,7 +89,7 @@ export default function LibraryBrowserToolbar({
 
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <LibraryFiltersPopover {...filterProps} />
+      <LibraryFiltersMenu {...filterProps} />
 
       {!isRecoveryView ? (
         <ViewToggle

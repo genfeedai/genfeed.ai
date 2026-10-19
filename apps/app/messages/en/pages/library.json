@@ -43,6 +43,7 @@
       "statusTrash": "Trash",
       "startUnsortedReview": "Start Unsorted review with Agent",
       "tagLimit": "Limit of {count} tags reached",
+      "tagMatch": "Tag match",
       "tagMatchAria": "How the selected tags combine",
       "tags": "Tags",
       "type": "Type",

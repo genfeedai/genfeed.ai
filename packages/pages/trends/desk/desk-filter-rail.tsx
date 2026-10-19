@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { DiscoveryDeskContentTypeFilter } from '@pages/trends/desk/desk-state';
 import type {
@@ -8,21 +8,7 @@ import type {
   DiscoveryDeskSort,
 } from '@props/trends/discovery-desk.props';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
-import { Button } from '@ui/primitives/button';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { ChevronDown } from 'lucide-react';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
 
 const CONTENT_TYPE_OPTIONS: DiscoveryDeskContentTypeFilter[] = [
@@ -68,89 +54,69 @@ export default function DeskFilterRail({
       ...items.map((item) => item.platform),
     ]),
   ).sort();
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            ariaLabel={translate('filters.platforms')}
-            className="h-8 gap-2"
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            {activePlatforms.size === 1
-              ? Array.from(activePlatforms)[0]
-              : activePlatforms.size
-                ? translate('filters.platformCount', {
-                    count: activePlatforms.size,
-                  })
-                : translate('filters.allPlatforms')}
-            <ChevronDown className="size-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuCheckboxItem
-            checked={activePlatforms.size === 0}
-            onCheckedChange={onClearPlatforms}
-            onSelect={(event) => event.preventDefault()}
-          >
-            {translate('filters.allPlatforms')}
-          </DropdownMenuCheckboxItem>
-          {platforms.map((platform) => (
-            <DropdownMenuCheckboxItem
-              key={platform}
-              checked={activePlatforms.has(platform)}
-              onCheckedChange={() => onTogglePlatform(platform)}
-              onSelect={(event) => event.preventDefault()}
-            >
-              {getPlatformIcon(platform, 'size-4')}
-              <span className="capitalize">{platform}</span>
-              <span className="ml-auto text-foreground/55">
-                {items.filter((item) => item.platform === platform).length}
-              </span>
-            </DropdownMenuCheckboxItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Select
-        onValueChange={(value) =>
-          onContentTypeChange(value as DiscoveryDeskContentTypeFilter)
+  const facets: FilterMenuFacet[] = [
+    {
+      key: 'platforms',
+      label: translate('filters.platforms'),
+      // The menu reports the new set; the owner toggles one platform per click.
+      onChange: (values) => {
+        const changed = platforms.find(
+          (platform) =>
+            values.includes(platform) !== activePlatforms.has(platform),
+        );
+        if (changed) {
+          onTogglePlatform(changed);
         }
-        value={contentType}
-      >
-        <SelectTrigger
-          aria-label={translate('filters.contentType')}
-          className="h-8 w-32"
-        >
-          <SelectValue placeholder={translate('filters.contentType')} />
-        </SelectTrigger>
-        <SelectContent>
-          {CONTENT_TYPE_OPTIONS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {translate(`filters.types.${option}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      },
+      options: platforms.map((platform) => ({
+        icon: getPlatformIcon(platform, 'size-4'),
+        label: `${platform} (${items.filter((item) => item.platform === platform).length})`,
+        value: platform,
+      })),
+      selection: 'multiple',
+      values: Array.from(activePlatforms),
+    },
+    {
+      defaultValue: 'all',
+      key: 'content-type',
+      label: translate('filters.contentType'),
+      onChange: (value) =>
+        onContentTypeChange(value as DiscoveryDeskContentTypeFilter),
+      options: CONTENT_TYPE_OPTIONS.map((option) => ({
+        label: translate(`filters.types.${option}`),
+        value: option,
+      })),
+      selection: 'single',
+      value: contentType,
+    },
+    {
+      isCounted: false,
+      key: 'sort',
+      label: translate('filters.sort'),
+      onChange: (value) => onSort(value as DiscoveryDeskSort),
+      options: SORT_OPTIONS.map((option) => ({
+        label: translate(`filters.sortOptions.${option}`),
+        value: option,
+      })),
+      selection: 'single',
+      value: sort,
+    },
+  ];
 
-      <Select
-        onValueChange={(value) => onSort(value as DiscoveryDeskSort)}
-        value={sort}
-      >
-        <SelectTrigger
-          aria-label={translate('filters.sort')}
-          className="h-8 w-32"
-        >
-          <SelectValue placeholder={translate('filters.sort')} />
-        </SelectTrigger>
-        <SelectContent>
-          {SORT_OPTIONS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {translate(`filters.sortOptions.${option}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+  return (
+    <FilterMenu
+      align="start"
+      allLabel={translate('filters.all')}
+      clearLabel={translate('filters.clear')}
+      facets={facets}
+      getActiveCountLabel={(count) =>
+        translate('filters.activeCount', { count })
+      }
+      label={translate('filters.menu')}
+      onClear={() => {
+        onClearPlatforms();
+        onContentTypeChange('all');
+      }}
+    />
   );
 }

@@ -32,6 +32,9 @@ function getActiveCount(facet: FilterMenuFacet): number {
   if (facet.selection === 'multiple') {
     return facet.values.length;
   }
+  if (facet.isCounted === false) {
+    return 0;
+  }
   return facet.value && facet.value !== facet.defaultValue ? 1 : 0;
 }
 
@@ -62,16 +65,15 @@ function FilterMenuFacetItem({
         )
       : facet.options;
 
-  const activeCount = getActiveCount(facet);
   let summary = allLabel;
   if (facet.selection === 'single') {
-    summary =
-      activeCount > 0
-        ? (facet.options.find((option) => option.value === facet.value)
-            ?.label ?? allLabel)
-        : allLabel;
-  } else if (activeCount > 0) {
-    summary = String(activeCount);
+    if (facet.value && facet.value !== facet.defaultValue) {
+      summary =
+        facet.options.find((option) => option.value === facet.value)?.label ??
+        allLabel;
+    }
+  } else if (facet.values.length > 0) {
+    summary = String(facet.values.length);
   }
 
   const isLimitReached =

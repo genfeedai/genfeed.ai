@@ -1,29 +1,16 @@
 import {
-  ButtonSize,
-  ButtonVariant,
   type CredentialPlatform,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,
   ReleaseCalendarFiltersProps,
 } from '@props/publisher/release-calendar.props';
-import { Button } from '@ui/primitives/button';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
-import { ListFilter } from 'lucide-react';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -39,16 +26,6 @@ const STATUS_OPTIONS = Object.values(ReleaseStatus).map(toOption);
 const EXECUTION_STATE_OPTIONS =
   Object.values(TargetExecutionState).map(toOption);
 const SOURCE_OPTIONS = Object.values(ReleaseTargetSource).map(toOption);
-
-function hasAnyFilter(filters: CalendarFilters): boolean {
-  return (
-    filters.credentialId.length > 0 ||
-    filters.executionState.length > 0 ||
-    filters.platform.length > 0 ||
-    filters.source.length > 0 ||
-    filters.status.length > 0
-  );
-}
 
 export const EMPTY_RELEASE_CALENDAR_FILTERS: CalendarFilters = {
   credentialId: [],
@@ -92,91 +69,40 @@ export default function ReleaseCalendarFilters({
     }
   };
 
-  const facets: {
-    key: keyof CalendarFilters;
-    label: string;
-    options: ReleaseCalendarFilterOption[];
-  }[] = [
-    { key: 'status', label: 'Status', options: STATUS_OPTIONS },
-    { key: 'platform', label: 'Platform', options: platformOptions },
-    { key: 'credentialId', label: 'Channel', options: credentialOptions },
-    {
-      key: 'executionState',
-      label: 'Target state',
-      options: EXECUTION_STATE_OPTIONS,
-    },
-    { key: 'source', label: 'Source', options: SOURCE_OPTIONS },
-  ];
-  const selectedCount = Object.values(filters).reduce(
-    (count, values) => count + values.length,
-    0,
-  );
+  const facets: FilterMenuFacet[] = (
+    [
+      { key: 'status', label: 'Status', options: STATUS_OPTIONS },
+      { key: 'platform', label: 'Platform', options: platformOptions },
+      { key: 'credentialId', label: 'Channel', options: credentialOptions },
+      {
+        key: 'executionState',
+        label: 'Target state',
+        options: EXECUTION_STATE_OPTIONS,
+      },
+      { key: 'source', label: 'Source', options: SOURCE_OPTIONS },
+    ] satisfies {
+      key: keyof CalendarFilters;
+      label: string;
+      options: ReleaseCalendarFilterOption[];
+    }[]
+  ).map(({ key, label, options }) => ({
+    emptyLabel: translate('noFilterOptions'),
+    key,
+    label,
+    onChange: (values: string[]) => handleChange(key, values),
+    options,
+    selection: 'multiple',
+    values: filters[key],
+  }));
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          withWrapper={false}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          aria-label="Calendar filters"
-        >
-          <ListFilter className="size-3.5" />
-          {selectedCount > 0
-            ? translate('filtersWithCount', { count: selectedCount })
-            : translate('filters')}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        {facets.map(({ key, label, options }) => (
-          <DropdownMenuSub key={key}>
-            <DropdownMenuSubTrigger className="[&>svg]:ml-0">
-              {label}
-              <span className="ml-auto text-xs text-muted-foreground">
-                {filters[key].length || 'All'}
-              </span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="max-h-80 min-w-52 overflow-y-auto">
-              {options.length === 0 ? (
-                <DropdownMenuItem disabled>
-                  {translate('noFilterOptions')}
-                </DropdownMenuItem>
-              ) : (
-                options.map((option) => {
-                  const values: string[] = filters[key];
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={option.value}
-                      checked={values.includes(option.value)}
-                      onSelect={(event) => event.preventDefault()}
-                      onCheckedChange={(checked) =>
-                        handleChange(
-                          key,
-                          checked
-                            ? [...values, option.value]
-                            : values.filter((value) => value !== option.value),
-                        )
-                      }
-                    >
-                      {option.label}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })
-              )}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        ))}
-        {hasAnyFilter(filters) ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => onChange(EMPTY_RELEASE_CALENDAR_FILTERS)}
-            >
-              {translate('clearFilters')}
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <FilterMenu
+      allLabel="All"
+      clearLabel={translate('clearFilters')}
+      facets={facets}
+      getActiveCountLabel={(count) => translate('activeFilterCount', { count })}
+      label={translate('filters')}
+      onClear={() => onChange(EMPTY_RELEASE_CALENDAR_FILTERS)}
+    />
   );
 }

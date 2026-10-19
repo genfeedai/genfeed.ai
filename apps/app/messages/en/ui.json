@@ -674,5 +674,23 @@
     "placeholder": "A professional illustration showing…",
     "generate": "Generate",
     "generating": "Generating your illustration…"
+  },
+  "filtersButton": {
+    "menu": "Filters",
+    "clear": "Clear filters",
+    "all": "All",
+    "activeCount": "{count, plural, one {# active filter} other {# active filters}}",
+    "searchPlaceholder": "Search label, description, or tags",
+    "facets": {
+      "brand": "Brand",
+      "category": "Category",
+      "favorite": "Favorites",
+      "format": "Format",
+      "model": "Model",
+      "provider": "Provider",
+      "sort": "Sort",
+      "status": "Status",
+      "type": "Type"
+    }
   }
 }

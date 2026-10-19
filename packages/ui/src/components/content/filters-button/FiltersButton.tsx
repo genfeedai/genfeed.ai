@@ -1,14 +1,15 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ComponentSize } from '@genfeedai/contracts';
+import type { IFieldOption } from '@genfeedai/contracts/interfaces';
 import type { IFilters } from '@genfeedai/contracts/interfaces/utils/filters.interface';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
-import { Button } from '@ui/primitives/button';
-import { Funnel as Filter } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import FormSearchbar from '@ui/primitives/searchbar';
+import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
 
-import FiltersPanel from './FiltersPanel';
 import {
   DEFAULT_ACCOUNT_OPTIONS,
   DEFAULT_FAVORITE_OPTIONS,
@@ -22,6 +23,28 @@ import {
   DEFAULT_VISIBLE_FILTERS,
 } from './filters-button-options.constants';
 
+type FilterKey = Exclude<
+  keyof NonNullable<FiltersBarProps['visibleFilters']>,
+  'search'
+>;
+
+const EMPTY_FILTERS = {
+  brand: '',
+  category: '',
+  favorite: '',
+  format: '',
+  model: '',
+  provider: '',
+  sort: '',
+  status: [] as string[],
+  type: '',
+};
+
+/** The "All …" entry is the absence of a filter, not a choice to list. */
+function toChoices(options: readonly IFieldOption[]) {
+  return options.filter((option) => option.value !== '');
+}
+
 export default function FiltersButton({
   filters,
   onFiltersChange,
@@ -29,63 +52,7 @@ export default function FiltersButton({
   filterOptions = DEFAULT_FILTER_OPTIONS,
   visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null); // portal content
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const [portalCoords, setPortalCoords] = useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const insideDropdown = dropdownRef.current?.contains(target);
-      const insideTrigger = triggerRef.current?.contains(target);
-
-      // Check if click is inside a Radix portaled dropdown (ButtonDropdown or DropdownMultiSelect)
-      const insideChildDropdown = !!target.closest(
-        '[data-radix-popper-content-wrapper]',
-      );
-
-      if (!insideDropdown && !insideTrigger && !insideChildDropdown) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () =>
-        document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  // Position portal relative to trigger (align to right of trigger, open left)
-  useEffect(() => {
-    const updatePosition = () => {
-      if (!isOpen || !triggerRef.current) {
-        return;
-      }
-      const rect = triggerRef.current.getBoundingClientRect();
-      const desiredWidth = Math.min(640, Math.max(400, window.innerWidth - 24));
-      const left = Math.max(12, rect.right - desiredWidth);
-      const top = rect.bottom + 8;
-      setPortalCoords({ left, top, width: desiredWidth });
-    };
-
-    if (isOpen) {
-      updatePosition();
-      window.addEventListener('resize', updatePosition);
-      window.addEventListener('scroll', updatePosition, true);
-      return () => {
-        window.removeEventListener('resize', updatePosition);
-        window.removeEventListener('scroll', updatePosition, true);
-      };
-    }
-  }, [isOpen]);
-
+  const translate = useTranslations('ui.filtersButton');
   const notifyFilterChange = useCallback(
     (newFilters: typeof filters) => {
       const query: IFilters = {};
@@ -99,99 +66,86 @@ export default function FiltersButton({
     [onFiltersChange],
   );
 
-  const handleSearch = (value: string) => {
-    notifyFilterChange({ ...filters, search: value });
+  const optionsByKey: Record<FilterKey, readonly IFieldOption[]> = {
+    brand: filterOptions.brand || DEFAULT_ACCOUNT_OPTIONS,
+    category: filterOptions.category || [],
+    favorite: filterOptions.favorite || DEFAULT_FAVORITE_OPTIONS,
+    format: filterOptions.format || DEFAULT_FORMAT_OPTIONS,
+    model: filterOptions.model || DEFAULT_MODEL_OPTIONS,
+    provider: filterOptions.provider || DEFAULT_PROVIDER_OPTIONS,
+    sort: filterOptions.sort || DEFAULT_SORT_OPTIONS,
+    status: filterOptions.status || DEFAULT_STATUS_OPTIONS,
+    type: filterOptions.type || DEFAULT_TYPE_OPTIONS,
   };
 
-  const handleDropdownChange = (name: string, value: string | string[]) => {
-    notifyFilterChange({ ...filters, [name]: value });
-  };
+  const facets: FilterMenuFacet[] = [];
 
-  const handleClearFilters = () => {
-    const clearedFilters = {
-      brand: '',
-      category: '',
-      favorite: '',
-      format: '',
-      model: '',
-      provider: '',
-      search: '',
-      sort: '',
-      status: [] as string[],
-      type: '',
-    };
+  const statusValues =
+    typeof filters.status === 'string'
+      ? filters.status
+        ? [filters.status]
+        : []
+      : filters.status || [];
+  if (visibleFilters.status) {
+    facets.push({
+      key: 'status',
+      label: translate('facets.status'),
+      onChange: (values) => notifyFilterChange({ ...filters, status: values }),
+      options: toChoices(optionsByKey.status),
+      selection: 'multiple',
+      values: statusValues,
+    });
+  }
 
-    notifyFilterChange(clearedFilters);
-  };
-
-  const hasActiveFilters =
-    (Array.isArray(filters.status)
-      ? filters.status.length > 0
-      : filters.status) ||
-    filters.search ||
-    filters.format ||
-    filters.type ||
-    filters.provider ||
-    filters.model ||
-    filters.sort ||
-    filters.favorite ||
-    filters.brand ||
-    filters.category;
-
-  // Use custom options if provided, otherwise use defaults
-  const STATUS_OPTIONS = filterOptions.status || DEFAULT_STATUS_OPTIONS;
-  const FORMAT_OPTIONS = filterOptions.format || DEFAULT_FORMAT_OPTIONS;
-  const TYPE_OPTIONS = filterOptions.type || DEFAULT_TYPE_OPTIONS;
-  const PROVIDER_OPTIONS = filterOptions.provider || DEFAULT_PROVIDER_OPTIONS;
-  const MODEL_OPTIONS = filterOptions.model || DEFAULT_MODEL_OPTIONS;
-  const SORT_OPTIONS = filterOptions.sort || DEFAULT_SORT_OPTIONS;
-  const FAVORITE_OPTIONS = filterOptions.favorite || DEFAULT_FAVORITE_OPTIONS;
-  const ACCOUNT_OPTIONS = filterOptions.brand || DEFAULT_ACCOUNT_OPTIONS;
-  const CATEGORY_OPTIONS = filterOptions.category || [];
+  const singleKeys: Exclude<FilterKey, 'status'>[] = [
+    'format',
+    'type',
+    'provider',
+    'model',
+    'sort',
+    'favorite',
+    'brand',
+    'category',
+  ];
+  for (const key of singleKeys) {
+    const options = toChoices(optionsByKey[key]);
+    if (!visibleFilters[key] || options.length === 0) {
+      continue;
+    }
+    facets.push({
+      defaultValue: '',
+      key,
+      label: translate(`facets.${key}`),
+      onChange: (value) => notifyFilterChange({ ...filters, [key]: value }),
+      options,
+      selection: 'single',
+      value: filters[key] ?? '',
+    });
+  }
 
   return (
-    <div className={`relative ${className}`} ref={triggerRef}>
-      {/* Filter Button */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        variant={ButtonVariant.GHOST}
-        icon={<Filter className="size-4" />}
-        tooltip="Filters"
-      />
-
-      {/* Dropdown Panel (portal to body to avoid clipping/overflow) */}
-      {isOpen &&
-        portalCoords &&
-        createPortal(
-          <div
-            ref={dropdownRef}
-            className="fixed bg-secondary border border-white/[0.06] shadow-2xl z-[10000] p-6 pointer-events-auto"
-            style={{
-              left: portalCoords.left,
-              top: portalCoords.top,
-              width: portalCoords.width,
-            }}
-          >
-            <FiltersPanel
-              filters={filters}
-              hasActiveFilters={!!hasActiveFilters}
-              visibleFilters={visibleFilters}
-              statusOptions={STATUS_OPTIONS}
-              formatOptions={FORMAT_OPTIONS}
-              typeOptions={TYPE_OPTIONS}
-              providerOptions={PROVIDER_OPTIONS}
-              modelOptions={MODEL_OPTIONS}
-              sortOptions={SORT_OPTIONS}
-              favoriteOptions={FAVORITE_OPTIONS}
-              accountOptions={ACCOUNT_OPTIONS}
-              categoryOptions={CATEGORY_OPTIONS}
-              onSearchChange={handleSearch}
-              onDropdownChange={handleDropdownChange}
-              onClearFilters={handleClearFilters}
-            />
-          </div>,
-          document.body,
-        )}
+    <div className={`flex items-center gap-2 ${className}`}>
+      {visibleFilters.search ? (
+        <FormSearchbar
+          className="w-48"
+          onSearch={(value) =>
+            notifyFilterChange({ ...filters, search: value })
+          }
+          placeholder={translate('searchPlaceholder')}
+          size={ComponentSize.SM}
+          value={filters.search ?? ''}
+        />
+      ) : null}
+      {facets.length > 0 ? (
+        <FilterMenu
+          allLabel={translate('all')}
+          clearLabel={translate('clear')}
+          facets={facets}
+          getActiveCountLabel={(count) => translate('activeCount', { count })}
+          label={translate('menu')}
+          onClear={() => notifyFilterChange({ ...filters, ...EMPTY_FILTERS })}
+        />
+      ) : null}
     </div>
   );
 }
