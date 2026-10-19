@@ -109,13 +109,29 @@ function setup(initial: StoryboardNativeRunConfig = draftConfig()) {
       };
     }),
   };
-  const ingredients = new Map<string, { status: string }>();
+  const ingredients = new Map<
+    string,
+    { status: string; metadata?: Record<string, string> | null }
+  >();
   const prisma = {
     ingredient: {
       findFirst: vi.fn(async ({ where }: { where: { id: string } }) => {
         const row = ingredients.get(where.id);
-        return row ? { id: where.id, ...row, metadata: null } : null;
+        return row ? { id: where.id, metadata: null, ...row } : null;
       }),
+      updateMany: vi.fn(
+        async ({
+          where,
+          data,
+        }: {
+          where: { id: string };
+          data: { status: string };
+        }) => {
+          const row = ingredients.get(where.id);
+          if (row) row.status = data.status;
+          return { count: row ? 1 : 0 };
+        },
+      ),
     },
   };
   const estimate = {
@@ -176,6 +192,7 @@ function setup(initial: StoryboardNativeRunConfig = draftConfig()) {
   return {
     service,
     store,
+    prisma,
     images,
     credits,
     estimate,
@@ -477,5 +494,51 @@ describe('StoryboardStillsService reconcile', () => {
       state: 'failed',
       errorCode: 'STORYBOARD_STILL_NOT_DISPATCHED',
     });
+  });
+
+  it('fails a placeholder that never reached the provider even though its provider was recorded', async () => {
+    const context = setup();
+    await quoteAndGenerate(context, ['shot-1']);
+    context.ingredients.set('asset-1', {
+      status: 'PROCESSING',
+      metadata: { externalProvider: 'replicate' },
+    });
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+    expect(context.current().plan?.shots[0].stillFreshness).toBe('generating');
+    context.edit((config) => {
+      const stored = config as StoryboardNativeRunConfig & {
+        stillOperations: Array<Record<string, unknown>>;
+      };
+      stored.stillOperations[0].updatedAt = '2026-01-01T00:00:00.000Z';
+    });
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+    expect(context.ingredients.get('asset-1')?.status).toBe('FAILED');
+    expect(context.credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'res-1',
+    });
+    expect(context.current().stillOperations?.[0]).toMatchObject({
+      state: 'failed',
+      errorCode: 'STORYBOARD_STILL_GENERATION_FAILED',
+    });
+    expect(context.current().plan?.shots[0].stillFreshness).toBe('failed');
+  });
+
+  it('keeps a submitted still while the provider still owns it', async () => {
+    const context = setup();
+    await quoteAndGenerate(context, ['shot-1']);
+    context.ingredients.set('asset-1', {
+      status: 'PROCESSING',
+      metadata: { externalProvider: 'replicate', externalId: 'pred-1' },
+    });
+    context.edit((config) => {
+      const stored = config as StoryboardNativeRunConfig & {
+        stillOperations: Array<Record<string, unknown>>;
+      };
+      stored.stillOperations[0].updatedAt = '2026-01-01T00:00:00.000Z';
+    });
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+    expect(context.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(context.current().plan?.shots[0].stillFreshness).toBe('generating');
   });
 });

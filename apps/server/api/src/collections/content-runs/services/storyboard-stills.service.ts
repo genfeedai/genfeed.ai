@@ -390,8 +390,10 @@ export class StoryboardStillsService {
         hasPlaceholder: Boolean(placeholderId),
         error: error instanceof Error ? error.message : String(error),
       });
-      // With a placeholder, the image pipeline marked it failed and
-      // reconciliation refunds it; without one no provider was called.
+      // With a placeholder, the pipeline may have failed it (reconciliation
+      // then refunds it) or died before the provider call (reconciliation
+      // fails and refunds it once abandoned); without one no provider was
+      // called.
       if (!placeholderId) {
         const journaled = await this.findOperation(
           organizationId,
@@ -450,12 +452,23 @@ export class StoryboardStillsService {
         assetId: operation.assetId,
         billing: await this.settle(organizationId, brandId, operation),
       };
+    // The image pipeline records `externalProvider` before it calls the
+    // provider, so only a missing `externalId` proves nothing was submitted.
     const isUndispatched =
-      status === 'PROCESSING' &&
-      isAbandoned &&
-      !asset?.metadata?.externalId &&
-      !asset?.metadata?.externalProvider;
+      status === 'PROCESSING' && isAbandoned && !asset?.metadata?.externalId;
     if (status !== 'FAILED' && !isUndispatched) return undefined;
+    if (isUndispatched)
+      await this.prisma.ingredient.updateMany({
+        where: scopedWhere(organizationId, {
+          brandId,
+          id: operation.assetId,
+          status: 'PROCESSING' as const,
+        }),
+        data: {
+          generationError: 'Still was never submitted to the image provider',
+          status: 'FAILED' as const,
+        },
+      });
     await this.releaseHeld(organizationId, operation);
     return {
       state: 'failed',

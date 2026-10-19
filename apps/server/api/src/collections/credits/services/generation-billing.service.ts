@@ -189,8 +189,12 @@ export class GenerationBillingService {
       await this.byok.bindOutput(request, output, organizationId);
       return;
     }
+    // Only a completion-settled request holds a quote group (see
+    // `reserveGenerationRequestCredits`); a caller that settles its own hold
+    // keeps it whole, so there is no group to bind to.
     if (
-      config?.modelQuote &&
+      config?.settlement === 'completion' &&
+      config.modelQuote &&
       (config.amount ?? 0) > 0 &&
       !config.isByokBypass &&
       organizationId

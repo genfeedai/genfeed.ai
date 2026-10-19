@@ -215,6 +215,28 @@ describe('GenerationBillingService', () => {
       );
     });
 
+    it('leaves a self-settled hold whole instead of binding it to a quote group', async () => {
+      const billing = request({
+        modelQuote: { modelKey: 'm' } as never,
+        settlement: undefined,
+      });
+
+      await service.bindOutput(billing, { credits: 4, ingredientId: 'ing_1' });
+
+      expect(quoteGroups.bindOutput).not.toHaveBeenCalled();
+      expect(credits.bindReservationOutput).not.toHaveBeenCalled();
+      expect(billing.creditsConfig?.boundOutputCount).toBeUndefined();
+    });
+
+    it('binds a completion-settled quote to its quote group', async () => {
+      const billing = request({ modelQuote: { modelKey: 'm' } as never });
+
+      await service.bindOutput(billing, { credits: 4, ingredientId: 'ing_1' });
+
+      expect(quoteGroups.bindOutput).toHaveBeenCalledWith(billing, 'ing_1');
+      expect(billing.creditsConfig?.boundOutputCount).toBe(1);
+    });
+
     it('links BYOK usage without reserving platform credits', async () => {
       await service.bindOutput(request({ isByokBypass: true }), {
         credits: 4,
