@@ -35,9 +35,9 @@ function fakeDockerDirectory() {
     docker,
     [
       '#!/usr/bin/env bash',
-      'scheduler="${@: -1}"',
-      'for registered in ${REGISTERED}; do',
-      '  if [ "${registered}" = "${scheduler}" ]; then echo 1760000000000; exit 0; fi',
+      'for scheduler; do :; done',
+      'for registered in $REGISTERED; do',
+      '  if [ "$registered" = "$scheduler" ]; then echo 1760000000000; exit 0; fi',
       'done',
       'echo',
     ].join('\n'),
