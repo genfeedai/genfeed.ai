@@ -1,4 +1,7 @@
-import type { HeyGenAvatarEngine } from '@genfeedai/contracts/constants';
+import type {
+  AvatarVideoAspectRatio,
+  HeyGenAvatarEngine,
+} from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarRef,
   IBrandAgentConfig,
@@ -37,6 +40,8 @@ export interface AvatarVideoSubmissionHold {
 }
 
 export interface AvatarVideoJobInput {
+  /** Output format; the provider defaults to portrait when omitted. */
+  aspectRatio?: AvatarVideoAspectRatio;
   avatarRef?: HeyGenAvatarRef;
   voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId: string;

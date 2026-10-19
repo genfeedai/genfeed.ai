@@ -152,6 +152,18 @@ describe('HeygenAvatarProvider', () => {
       expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     });
 
+    it('renders in the requested format instead of forcing portrait', async () => {
+      await provider.generateVideo({ ...input, aspectRatio: '16:9' });
+      expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
+        'clip-result-1',
+        avatarRef,
+        { voiceId: 'voice-1', inputText: 'Create this clip' },
+        'byok-xyz',
+        '16:9',
+        'avatar_iv',
+      );
+    });
+
     it('funds a platform-paid trained look on the engine row it renders with, before submitting', async () => {
       const platform = {
         apiKey: 'platform-key',
@@ -240,6 +252,7 @@ describe('HeygenAvatarProvider', () => {
         'org-1',
         'user-1',
         'byok-xyz',
+        '9:16',
       );
       expect(heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
       expect(result.status).toBe('processing');

@@ -10,6 +10,17 @@ export const AGENT_IDENTITY_TOOLS: SourceTool[] = [
     name: 'generate_as_identity',
     parameters: {
       properties: {
+        aspectRatio: {
+          description:
+            'Explicit output format. Overrides the platform default: 9:16 portrait, 16:9 landscape, 1:1 square.',
+          enum: ['9:16', '16:9', '1:1'],
+          type: 'string',
+        },
+        platform: {
+          description:
+            'Where the video will be posted (for example tiktok, instagram reels, youtube shorts, twitter). Picks the format when aspectRatio is not set; defaults to portrait.',
+          type: 'string',
+        },
         text: {
           description: 'The text for the avatar to speak',
           type: 'string',

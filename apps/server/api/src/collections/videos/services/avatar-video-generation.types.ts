@@ -1,7 +1,6 @@
 import type { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import type { GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import type { VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import type {
   HeyGenAvatarCandidate,
@@ -10,7 +9,10 @@ import type {
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import type { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
-import type { HeyGenAvatarEngine } from '@genfeedai/contracts/constants';
+import type {
+  AvatarVideoAspectRatio,
+  HeyGenAvatarEngine,
+} from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarRef,
   ModelBillableQuoteSnapshot,

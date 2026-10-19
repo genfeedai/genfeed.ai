@@ -8,6 +8,7 @@ export * from './api.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
 export * from './app-display.constant';
+export * from './avatar-video-aspect-ratio.constant';
 export * from './brand-handle.constant';
 export * from './brand-vision-models.constant';
 export * from './carousel.constant';

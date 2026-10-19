@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
@@ -56,6 +55,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import {
+  type AvatarVideoAspectRatio,
   getEligibleHeyGenAvatarEngines,
   type HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';

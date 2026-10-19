@@ -1,6 +1,10 @@
 import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { RouterPriority } from '@genfeedai/contracts';
+import {
+  AVATAR_VIDEO_ASPECT_RATIOS,
+  type AvatarVideoAspectRatio,
+} from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -11,10 +15,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-
-export const AVATAR_VIDEO_ASPECT_RATIOS = ['9:16', '16:9', '1:1'] as const;
-export type AvatarVideoAspectRatio =
-  (typeof AVATAR_VIDEO_ASPECT_RATIOS)[number];
 
 export class CreateAvatarVideoDto {
   @IsOptional()

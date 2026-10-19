@@ -10,6 +10,7 @@ import { readHeygenVideoStatus } from '@api/services/integrations/heygen/heygen-
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  DEFAULT_AVATAR_VIDEO_ASPECT_RATIO,
   HEYGEN_AVATAR_ENGINE_MODEL_KEYS,
   type HeyGenAvatarEngine,
   MODEL_KEYS,
@@ -103,6 +104,8 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
       });
       if (persisted.count !== 1)
         throw new Error('Could not freeze avatar submission provenance.');
+      const aspectRatio =
+        input.aspectRatio ?? DEFAULT_AVATAR_VIDEO_ASPECT_RATIO;
       // The render engine is chosen here so pricing and dispatch cannot diverge.
       const engine: HeyGenAvatarEngine = 'avatar_iv';
       const hold = await input.fundSubmission?.({
@@ -125,6 +128,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
               input.organizationId,
               input.userId,
               connection.apiKey,
+              aspectRatio,
             )
           : await this.heygenService.generateNativeAvatarVideo(
               input.callbackId,
@@ -135,7 +139,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
               },
               { inputText: input.script, voiceId: voice.voiceId },
               connection.apiKey,
-              '9:16',
+              aspectRatio,
               engine,
             );
       } catch (error: unknown) {
