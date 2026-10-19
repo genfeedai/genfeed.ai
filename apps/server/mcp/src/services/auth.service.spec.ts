@@ -332,7 +332,7 @@ describe('AuthService (MCP)', () => {
       expect(result.isUnavailable).toBe(true);
     });
 
-    it('passes the upstream Retry-After through when whoami is rate limited', async () => {
+    it('reports a whoami 429 as rate limited, not as an outage, and passes Retry-After through', async () => {
       mockHttpService.get.mockReturnValue(
         throwError(() => ({
           response: { headers: { 'retry-after': '42' }, status: 429 },
@@ -340,7 +340,10 @@ describe('AuthService (MCP)', () => {
       );
 
       const result = await service.authenticateRequest(jwtToken);
-      expect(result.isUnavailable).toBe(true);
+      expect(result.valid).toBe(false);
+      expect(result.isRateLimited).toBe(true);
+      expect(result.isUnavailable).toBeUndefined();
+      expect(result.error).toContain('429');
       expect(result.retryAfterSeconds).toBe(42);
     });
 

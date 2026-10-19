@@ -80,6 +80,17 @@ export class McpAuthGuard implements CanActivate {
 
     const authResult = await this.authService.authenticateRequest(token);
 
+    if (authResult.isRateLimited) {
+      response.setHeader(
+        'Retry-After',
+        `${authResult.retryAfterSeconds ?? AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`,
+      );
+      throw new HttpException(
+        authResult.error || 'Rate limited by the Genfeed API',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     if (authResult.isUnavailable) {
       response.setHeader(
         'Retry-After',

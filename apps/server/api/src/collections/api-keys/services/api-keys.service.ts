@@ -78,6 +78,8 @@ export class ApiKeysService extends BaseService<
   UpdateApiKeyDto,
   Prisma.ApiKeyWhereInput
 > {
+  /** Per-minute ceiling for an MCP OAuth session whose key carries no limit. */
+  private static readonly MCP_OAUTH_SESSION_RATE_LIMIT = 120;
   private static readonly RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute sliding window
 
   /**
@@ -686,6 +688,11 @@ export class ApiKeysService extends BaseService<
    * current entitlement. `null` = no platform-enforced ceiling (Enterprise
    * custom); `0` = the tier has no API access at all.
    *
+   * MCP OAuth sessions are the exception to the `0` ceiling: the user granted
+   * them through the consent screen, and the API-access entitlement gates
+   * issuing `gf_` keys, not connecting an agent. A session on a tier with no
+   * API access keeps its own per-key limit instead of being denied outright.
+   *
    * In self-hosted / community / desktop deployments there are no tiers, so the
    * historical per-key limit is honored unchanged (a falsy per-key limit stays
    * "unlimited", matching the prior behavior).
@@ -698,7 +705,11 @@ export class ApiKeysService extends BaseService<
     }
 
     const tier = await this.resolveOrganizationTier(apiKey.organizationId);
-    return getApiRateLimitForTier(tier);
+    const tierLimit = getApiRateLimitForTier(tier);
+    if (tierLimit === 0 && this.isMcpOAuthSession(apiKey)) {
+      return apiKey.rateLimit || ApiKeysService.MCP_OAUTH_SESSION_RATE_LIMIT;
+    }
+    return tierLimit;
   }
 
   /**

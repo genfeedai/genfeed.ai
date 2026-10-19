@@ -175,6 +175,27 @@ describe('McpAuthGuard', () => {
       );
     });
 
+    it('answers 429 with Retry-After when the API rate limits the identity check', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockAuthService.extractBearerToken.mockReturnValue('good-token');
+      mockAuthService.authenticateRequest.mockResolvedValue({
+        error: 'Genfeed API refused this connection with 429',
+        isRateLimited: true,
+        retryAfterSeconds: 60,
+        valid: false,
+      });
+      const context = createMockExecutionContext('Bearer good-token');
+
+      await expect(guard.canActivate(context)).rejects.toMatchObject({
+        status: 429,
+      });
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', '60');
+      expect(mockResponse.setHeader).not.toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        expect.anything(),
+      );
+    });
+
     it('should allow access and attach context for valid token', async () => {
       mockReflector.getAllAndOverride.mockReturnValue(false);
       mockAuthService.extractBearerToken.mockReturnValue('valid-token');

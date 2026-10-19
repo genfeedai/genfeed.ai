@@ -34,6 +34,12 @@ export interface AuthResult {
    * user to authorize again.
    */
   isUnavailable?: boolean;
+  /**
+   * The API answered the identity check with 429: the caller is throttled, or
+   * its plan allows no API traffic. The token was never judged, and it is not
+   * an outage, so callers answer 429 rather than a 503 that reads as "retry".
+   */
+  isRateLimited?: boolean;
   /** Seconds the upstream asked callers to wait (e.g. its `Retry-After`). */
   retryAfterSeconds?: number;
 }
@@ -167,10 +173,24 @@ export class AuthService {
         return { error: 'Invalid bearer token', valid: false };
       }
 
-      this.logger.error('Authentication check error:', errorObj.message);
       const upstreamRetryAfter = Number(
         errorObj?.response?.headers?.['retry-after'],
       );
+      if (status === 429) {
+        this.logger.warn('Identity check was rate limited by the API');
+        return {
+          error:
+            'Genfeed API refused this connection with 429: the account is rate limited or its plan has no API access.',
+          isRateLimited: true,
+          retryAfterSeconds:
+            Number.isFinite(upstreamRetryAfter) && upstreamRetryAfter > 0
+              ? Math.ceil(upstreamRetryAfter)
+              : AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
+          valid: false,
+        };
+      }
+
+      this.logger.error('Authentication check error:', errorObj.message);
       return {
         error: 'Auth service temporarily unavailable',
         isUnavailable: true,
