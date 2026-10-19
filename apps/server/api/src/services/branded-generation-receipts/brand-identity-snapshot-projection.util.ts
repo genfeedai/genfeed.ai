@@ -123,12 +123,32 @@ export function projectApprovedBrandIdentitySnapshot(
       !Number.isFinite(revision.approvedAt.getTime())
     )
       throw new Error('Invalid approval');
-    const content = savedContent.parse(revision.content);
+    // An approval saved without generation rules (brand-kit scans and imports
+    // that predate rules) was never rules-reviewed and carries no review hash.
+    // Its approved fields still define the brand, so it gets the same
+    // non-blocking style rules a draft does instead of failing integrity.
+    const content = (
+      revision.generationRulesReviewHash === null
+        ? provisionalContent
+        : savedContent
+    ).parse(revision.content);
     if (
       content.brandId !== revision.brandId ||
-      content.organizationId !== revision.organizationId ||
+      content.organizationId !== revision.organizationId
+    )
+      throw new Error('Invalid reviewed identity');
+    if (content.generationRules === undefined) {
+      return buildIdentitySnapshot(
+        revision,
+        content,
+        synthesizeProvisionalRules(content.fields),
+        'approved',
+        resolvedAt,
+      );
+    }
+    if (
       hashBrandGenerationRulesReviewV1(content.generationRules) !==
-        revision.generationRulesReviewHash
+      revision.generationRulesReviewHash
     )
       throw new Error('Invalid reviewed identity');
     return buildIdentitySnapshot(

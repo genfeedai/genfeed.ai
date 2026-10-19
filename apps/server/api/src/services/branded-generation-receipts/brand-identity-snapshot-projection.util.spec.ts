@@ -240,6 +240,54 @@ describe('strict saved approved identity projection', () => {
       projectApprovedBrandIdentitySnapshot({ ...revision(), ...patch }, time),
     ).toThrow('brand_identity_integrity_failed');
   });
+  describe('an approval saved without generation rules', () => {
+    function rulesAbsent(
+      patch: Partial<BrandOsRevision> = {},
+    ): BrandOsRevision {
+      const base = revision({
+        primaryColor: { currentValue: '#aabbcc' },
+        fontFamily: { currentValue: 'Inter' },
+      });
+      const { generationRules: _omitted, ...content } = base.content as Record<
+        string,
+        unknown
+      >;
+      return {
+        ...base,
+        content: storedJson(content),
+        generationRulesReviewHash: null,
+        ...patch,
+      };
+    }
+    it('projects an approved snapshot with non-blocking rules from its fields', () => {
+      const snapshot = projectApprovedBrandIdentitySnapshot(
+        rulesAbsent(),
+        time,
+      );
+      expect(snapshot.approval).toBe('approved');
+      expect(snapshot.identity.name).toBe('  Café 東京  ');
+      expect(snapshot.generationRules.palette).toEqual([
+        expect.objectContaining({ color: '#AABBCC', required: false }),
+      ]);
+      expect(snapshot.generationRules.mandatory).toEqual([]);
+    });
+    it('still requires the rules once a review hash was recorded', () => {
+      expect(() =>
+        projectApprovedBrandIdentitySnapshot(
+          rulesAbsent({ generationRulesReviewHash: `sha256:${'b'.repeat(64)}` }),
+          time,
+        ),
+      ).toThrow('brand_identity_integrity_failed');
+    });
+    it('still requires a real approval', () => {
+      expect(() =>
+        projectApprovedBrandIdentitySnapshot(
+          rulesAbsent({ approvedById: null }),
+          time,
+        ),
+      ).toThrow('brand_identity_integrity_failed');
+    });
+  });
   it('accepts admitted font metadata without asserting rendering or changing the reviewed availability', () => {
     const snapshot = projectApprovedBrandIdentitySnapshot(revision(), time);
     expect(() =>
