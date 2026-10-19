@@ -11,8 +11,6 @@ import {
 } from '@api-test/helpers/tenant-read.fixture';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
-const PAGING = { limit: 20, page: 1 };
-
 describe('WatchlistsController tenant reads (#6176)', () => {
   const FIRST_PAGE = { limit: 20, page: 1 };
 

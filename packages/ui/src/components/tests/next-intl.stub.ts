@@ -797,15 +797,6 @@ const UI_TEST_MESSAGES = {
         'Enable a platform above to customise its title, description, and scheduling options.',
       settingsTitle: 'Platform-Specific Settings',
     },
-    channelDropdown: {
-      allChannels: 'All channels',
-      connectedAccounts: 'Connected accounts',
-      more: 'More',
-    },
-    promptBarBlacklist: {
-      avoid: 'Avoid',
-      chooseWhatToAvoid: 'Choose what to avoid',
-    },
     promptBarAssets: {
       editingTarget: 'Editing target',
       editingSource: 'Editing source',

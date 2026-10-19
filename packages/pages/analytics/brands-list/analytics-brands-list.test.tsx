@@ -9,7 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { type ReactNode, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();

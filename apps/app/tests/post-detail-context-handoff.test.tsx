@@ -126,7 +126,6 @@ function createHookData(
     handleQuickAction: vi.fn(),
     handleScheduleSave: vi.fn(),
     handlePublishNow: vi.fn(),
-    handleRetryPublish: vi.fn(),
     handlePublishViaTikTokApp: vi.fn(),
     handleRetryPublish: vi.fn(),
     handleSelectMedia: vi.fn(),

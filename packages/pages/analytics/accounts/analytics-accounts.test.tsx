@@ -7,7 +7,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { type ReactNode, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import {
   afterAll,
   beforeAll,
@@ -54,37 +54,6 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-
-vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
-  default: ({
-    facets,
-  }: {
-    facets: Array<{
-      key: string;
-      label: string;
-      onChange: (value: string) => void;
-      options: Array<{ label: string; value: string }>;
-      value: string;
-    }>;
-  }) => (
-    <div>
-      {facets.map((facet) => (
-        <select
-          aria-label={facet.label}
-          key={facet.key}
-          onChange={(event) => facet.onChange(event.target.value)}
-          value={facet.value}
-        >
-          {facet.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      ))}
-    </div>
-  ),
-}));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => ({

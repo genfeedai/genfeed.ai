@@ -43,7 +43,6 @@ function createMockContext(
     enhancePrompt: vi.fn(),
     filteredBlacklists: [],
     filteredCameraMovements: [],
-    filteredBlacklists: [],
     filteredCameras: [],
     filteredFontFamilies: [],
     filteredLenses: [],
