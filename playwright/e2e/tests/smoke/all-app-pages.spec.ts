@@ -187,6 +187,9 @@ const adminRouteBuckets: RouteBucket[] = [
   routeBucket('admin content', adminRoutes, (route) =>
     route.startsWith('/admin/content'),
   ),
+  routeBucket('admin economics', adminRoutes, (route) =>
+    route.startsWith('/admin/economics'),
+  ),
   routeBucket('admin flags', adminRoutes, (route) =>
     route.startsWith('/admin/flags'),
   ),
@@ -195,6 +198,9 @@ const adminRouteBuckets: RouteBucket[] = [
   ),
   routeBucket('admin organization overview', adminRoutes, (route) =>
     /^\/admin\/(organization|overview)(\/|$)/.test(route),
+  ),
+  routeBucket('admin settings', adminRoutes, (route) =>
+    route.startsWith('/admin/settings'),
   ),
 ];
 
