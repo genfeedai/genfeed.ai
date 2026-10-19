@@ -29,12 +29,7 @@ import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function AnalyticsOrganizationsList({
   basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,
