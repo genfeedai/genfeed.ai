@@ -191,4 +191,25 @@ describe('persisted Turbo project writes', () => {
     await act(async () => delayed.resolve(project('a', 'Stale')));
     expect(result.current.project?.name).toBe('Latest');
   });
+  it('polls only while the tab is visible', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const visibility = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('hidden');
+      renderHook(() => useTurboProject('a', 'brand-1'));
+      await vi.advanceTimersByTimeAsync(0);
+      const initialReads = mocks.get.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(mocks.get).toHaveBeenCalledTimes(initialReads);
+
+      visibility.mockReturnValue('visible');
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(mocks.get.mock.calls.length).toBeGreaterThan(initialReads);
+      visibility.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
