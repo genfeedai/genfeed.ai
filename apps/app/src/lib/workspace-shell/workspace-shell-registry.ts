@@ -257,6 +257,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/studio/editor/:id': 'Project',
 
   '/admin': 'Dashboard',
+  '/admin/administration/users/:id': 'User',
   '/admin/automation/models/:type': ':type Models',
   '/admin/automation/trainings/:id/images': 'Training Images',
   '/admin/automation/trainings/:id/sources': 'Training Sources',
@@ -1198,6 +1199,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/library/voices',
   '/admin/organization',
   '/admin/administration/users',
+  '/admin/administration/users/:id',
   '/admin/administration/warmup-accounts',
   '/admin/administration/roles',
   '/admin/administration/subscriptions',

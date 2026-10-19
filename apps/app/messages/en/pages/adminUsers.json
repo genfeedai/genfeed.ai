@@ -3,20 +3,48 @@
     "email": "Email",
     "joined": "Joined",
     "lastConnected": "Last connected",
-    "name": "Name",
-    "source": "Source"
+    "name": "Name"
   },
+  "copyEmail": "Copy {email}",
+  "copyEmailTooltip": "Copy email",
   "description": "Manage user accounts, roles, and permissions across the platform",
+  "detail": {
+    "copyId": "Copy user ID",
+    "email": "Email",
+    "handle": "Handle",
+    "id": "User ID",
+    "joined": "Joined",
+    "landingPath": "Landing page",
+    "lastConnected": "Last connected",
+    "name": "Name",
+    "onboardingCompleted": "Completed",
+    "onboardingDone": "Completed",
+    "onboardingPending": "In progress",
+    "onboardingStarted": "Started",
+    "onboardingStatus": "Status",
+    "onboardingSteps": "Steps completed",
+    "onboardingType": "Type",
+    "platformRole": "Platform role",
+    "referrer": "Referrer",
+    "roleSuperadmin": "Superadmin",
+    "roleUser": "User",
+    "sections": {
+      "access": "Access",
+      "onboarding": "Onboarding",
+      "profile": "Profile",
+      "signup": "Signup source"
+    },
+    "sourceCampaign": "Campaign source",
+    "sourceCampaignName": "Campaign",
+    "sourceContent": "Content",
+    "sourceMedium": "Medium"
+  },
   "empty": "No users found",
-  "totalLabel": "users",
   "impersonate": "Impersonate",
   "impersonateFailed": "Failed to impersonate user",
-  "never": "Never",
-  "noEmail": "No email",
-  "noName": "No name",
-  "source": {
-    "direct": "Direct",
-    "unknown": "Unknown"
-  },
-  "title": "Users"
+  "notFound": "User not found",
+  "openProfile": "Open full profile",
+  "sendEmail": "Email {email}",
+  "title": "Users",
+  "totalLabel": "users"
 }
