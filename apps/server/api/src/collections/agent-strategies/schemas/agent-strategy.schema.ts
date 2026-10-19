@@ -12,6 +12,8 @@ export interface AgentStrategyBudgetPolicy {
 export interface AgentStrategyContentMix {
   carouselPercent?: number;
   imagePercent?: number;
+  /** Share of X text slots written as threads; 25 when unset. */
+  threadPercent?: number;
   videoPercent?: number;
   [key: string]: unknown;
 }

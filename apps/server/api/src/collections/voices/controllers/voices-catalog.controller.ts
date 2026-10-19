@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImportVoicesDto } from '@api/collections/voices/dto/import-voices.dto';
 import { UpdateVoiceCatalogDto } from '@api/collections/voices/dto/update-voice-catalog.dto';
-import { VoicesCatalogQueryDto } from '@api/collections/voices/dto/voices-catalog-query.dto';
+import { VoiceCatalogQueryDto } from '@api/collections/voices/dto/voice-catalog-query.dto';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import {
   parseVoiceCatalogProvider,
@@ -12,7 +12,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -56,16 +55,17 @@ export class VoicesCatalogController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findCatalog(
     @Req() request: Request,
-    @Query() query: VoicesCatalogQueryDto,
+    @Query() query: VoiceCatalogQueryDto = new VoiceCatalogQueryDto(),
   ): Promise<JsonApiCollectionResponse> {
     try {
-      const { limit, page } = QueryDefaultsUtil.getPaginationDefaults(query);
-      const offset = (page - 1) * limit;
+      const page = query.page;
+      const limit = query.limit;
       const { docs: voices, totalDocs } =
         await this.externalVoiceCatalogService.findRange({
+          includeInactive: true,
           provider: parseVoiceCatalogProvider(query.provider),
           search: query.search,
-          skip: offset,
+          skip: (page - 1) * limit,
           take: limit,
         });
       const docs = voices.map(toVoiceCatalogWireFormat);
@@ -78,7 +78,7 @@ export class VoicesCatalogController {
         limit,
         nextPage: page < totalPages ? page + 1 : null,
         page,
-        pagingCounter: docs.length === 0 ? 0 : offset + 1,
+        pagingCounter: docs.length === 0 ? 0 : (page - 1) * limit + 1,
         prevPage: page > 1 ? page - 1 : null,
         totalDocs,
         totalPages,

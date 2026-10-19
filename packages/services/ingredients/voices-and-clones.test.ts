@@ -6,7 +6,6 @@ import {
   type MockHttpInstance,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
-import { PagesService } from '@services/content/pages.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,32 +36,9 @@ describe('VoicesService', () => {
 
       expect(http.get).toHaveBeenCalledWith('/catalog', {
         params: { search: 'ava' },
+        signal: undefined,
       });
-      expect(result).toEqual([{ id: 'voice_1', name: 'Ava' }]);
-    });
-
-    it('sends the page, forwards the signal and records the totals', async () => {
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
-      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
-      http.get.mockResolvedValue(
-        axiosResponse(
-          collectionDocument([{ id: 'voice_1', name: 'Ava' }], {
-            pagination: { limit: 15, page: 2, pages: 3, total: 40 },
-          }),
-        ),
-      );
-      const signal = new AbortController().signal;
-
-      await service.findCatalog({ limit: 15, page: 2 }, signal);
-
-      expect(http.get).toHaveBeenCalledWith('/catalog', {
-        params: { limit: 15, page: 2 },
-        signal,
-      });
-      expect(setCurrentPage).toHaveBeenCalledWith(2);
-      expect(setTotalPages).toHaveBeenCalledWith(3);
-      expect(setTotalDocs).toHaveBeenCalledWith(40);
+      expect(result.items).toEqual([{ id: 'voice_1', name: 'Ava' }]);
     });
 
     it('defaults to no filters', async () => {
@@ -70,7 +46,34 @@ describe('VoicesService', () => {
 
       await service.findCatalog();
 
-      expect(http.get).toHaveBeenCalledWith('/catalog', { params: {} });
+      expect(http.get).toHaveBeenCalledWith('/catalog', {
+        params: {},
+        signal: undefined,
+      });
+    });
+
+    it('requests a page and reports the server paging', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(
+          collectionDocument([{ id: 'voice_1', name: 'Ava' }], {
+            pagination: { limit: 15, page: 2, pages: 4, total: 52 },
+          }),
+        ),
+      );
+
+      const result = await service.findCatalog({ limit: 15, page: 2 });
+
+      expect(http.get).toHaveBeenCalledWith('/catalog', {
+        params: { limit: 15, page: 2 },
+        signal: undefined,
+      });
+      expect(result).toMatchObject({
+        hasNext: true,
+        hasPrevious: true,
+        page: 2,
+        total: 52,
+        totalPages: 4,
+      });
     });
   });
 

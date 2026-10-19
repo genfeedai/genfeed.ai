@@ -2,15 +2,15 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
-export class VoicesCatalogQueryDto extends BaseQueryDto {
+export class VoiceCatalogQueryDto extends BaseQueryDto {
   @ApiProperty({
-    description: 'Filter the catalog by voice provider',
+    description: 'Filter by catalog provider (e.g. elevenlabs, heygen)',
     required: false,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(64)
-  provider?: string;
+  @MaxLength(50)
+  readonly provider?: string;
 
   @ApiProperty({
     description: 'Search catalog voices by name',
@@ -19,5 +19,5 @@ export class VoicesCatalogQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
-  search?: string;
+  readonly search?: string;
 }

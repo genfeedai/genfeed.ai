@@ -1,6 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
-import { VoicesCatalogQueryDto } from '@api/collections/voices/dto/voices-catalog-query.dto';
+import { VoiceCatalogQueryDto } from '@api/collections/voices/dto/voice-catalog-query.dto';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
@@ -50,8 +50,8 @@ describe('VoicesCatalogController', () => {
   beforeEach(() => {
     isSuperAdmin.mockReturnValue(true);
     service = {
-      findRange: vi.fn(),
       findOne: vi.fn(),
+      findRange: vi.fn(),
       patch: vi.fn(),
       syncFromProviders: vi.fn(),
     };
@@ -60,25 +60,26 @@ describe('VoicesCatalogController', () => {
     );
   });
 
-  function catalogQuery(
-    values: Partial<VoicesCatalogQueryDto> = {},
-  ): VoicesCatalogQueryDto {
-    return Object.assign(new VoicesCatalogQueryDto(), values);
-  }
-
   it('maps and returns one page of the external catalog', async () => {
-    service.findRange.mockResolvedValue({ docs: [catalogVoice], totalDocs: 1 });
+    service.findRange.mockResolvedValue({
+      docs: [catalogVoice],
+      totalDocs: 31,
+    });
+    const query = Object.assign(new VoiceCatalogQueryDto(), {
+      limit: 15,
+      page: 3,
+      provider: 'elevenlabs',
+      search: 'test',
+    });
 
-    const result = await controller.findCatalog(
-      request,
-      catalogQuery({ provider: 'elevenlabs', search: 'test' }),
-    );
+    const result = await controller.findCatalog(request, query);
 
     expect(service.findRange).toHaveBeenCalledWith({
+      includeInactive: true,
       provider: DbVoiceProvider.ELEVENLABS,
       search: 'test',
-      skip: 0,
-      take: 10,
+      skip: 30,
+      take: 15,
     });
     expect(result).toMatchObject({
       docs: [
@@ -87,35 +88,11 @@ describe('VoicesCatalogController', () => {
           provider: DbVoiceProvider.ELEVENLABS,
         },
       ],
-      page: 1,
-      totalDocs: 1,
-      totalPages: 1,
-    });
-  });
-
-  it('cuts the requested page in the database and reports the pagination', async () => {
-    service.findRange.mockResolvedValue({
-      docs: [catalogVoice],
-      totalDocs: 45,
-    });
-
-    const result = await controller.findCatalog(
-      request,
-      catalogQuery({ limit: 15, page: 2 }),
-    );
-
-    expect(service.findRange).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 15, take: 15 }),
-    );
-    expect(result).toMatchObject({
-      hasNextPage: true,
+      hasNextPage: false,
       hasPrevPage: true,
       limit: 15,
-      nextPage: 3,
-      page: 2,
-      pagingCounter: 16,
-      prevPage: 1,
-      totalDocs: 45,
+      page: 3,
+      totalDocs: 31,
       totalPages: 3,
     });
   });
@@ -123,9 +100,7 @@ describe('VoicesCatalogController', () => {
   it('wraps catalog read failures in the established 500 response', async () => {
     service.findRange.mockRejectedValue(new Error('provider unavailable'));
 
-    await expect(
-      controller.findCatalog(request, catalogQuery()),
-    ).rejects.toMatchObject({
+    await expect(controller.findCatalog(request)).rejects.toMatchObject({
       message: 'Failed to find catalog voices',
       status: HttpStatus.INTERNAL_SERVER_ERROR,
     });

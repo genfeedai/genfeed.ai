@@ -1,49 +1,45 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonVariant,
-  ViewType,
-  type VoiceProvider,
-} from '@genfeedai/contracts';
+import type { VoiceProvider } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import type {
+  ProviderFilter,
+  VoiceCatalogToggleField,
   VoicesLibraryAction,
   VoicesLibraryState,
 } from '@props/admin/voices.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import CollectionView from '@ui/collection/CollectionView';
-import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button } from '@ui/primitives/button';
 import { Volume2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 
-import VoiceCatalogCard from './voice-catalog-card';
 import {
   VoicesCatalogFilters,
   VoicesCatalogSearch,
   VoicesSyncAllButton,
   VoicesSyncMenu,
 } from './voices-catalog-controls';
+import VoicesCatalogTable from './voices-catalog-table';
 
 const initialState: VoicesLibraryState = {
   voices: [],
   isLoading: true,
   isSyncingAll: false,
   syncingProvider: null,
-  search: '',
-  providerFilter: 'all',
   togglingKey: null,
 };
 
@@ -75,26 +71,21 @@ function voicesLibraryReducer(
       };
     case 'TOGGLE_END':
       return { ...state, togglingKey: null };
-    case 'SET_SEARCH':
-      return { ...state, search: action.search };
-    case 'SET_PROVIDER_FILTER':
-      return { ...state, providerFilter: action.providerFilter };
     default:
       return state;
   }
 }
 
-export default function VoicesLibraryPage() {
+function VoicesLibraryPageContent() {
   const t = useTranslations('pages.adminVoices');
-  const { view, setView } = useCollectionViewPreference({
-    surface: 'admin.library.voices',
-    defaultView: ViewType.LIST,
-  });
   const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('q') ?? '';
+  const providerFilter = (searchParams.get('provider') ??
+    'all') as ProviderFilter;
   const [hasError, setHasError] = useState(false);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getVoicesService = useAuthedService((token: string) =>
@@ -102,15 +93,20 @@ export default function VoicesLibraryPage() {
   );
 
   const [state, dispatch] = useReducer(voicesLibraryReducer, initialState);
-  const {
-    voices,
-    isLoading,
-    isSyncingAll,
-    syncingProvider,
-    search,
-    providerFilter,
-    togglingKey,
-  } = state;
+  const { voices, isLoading, isSyncingAll, syncingProvider, togglingKey } =
+    state;
+
+  const setParam = useCallback(
+    (name: string, value: string) => {
+      const next = new URLSearchParams(searchParamsString);
+      if (value) next.set(name, value);
+      else next.delete(name);
+      next.delete('page');
+      const query = next.toString();
+      replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, replace, searchParamsString],
+  );
 
   const loadVoices = useCallback(
     async (signal?: AbortSignal) => {
@@ -119,7 +115,7 @@ export default function VoicesLibraryPage() {
 
       try {
         const service = await getVoicesService();
-        const data = await service.findCatalog(
+        const result = await service.findCatalog(
           {
             limit: ITEMS_PER_PAGE,
             page: currentPage,
@@ -129,7 +125,7 @@ export default function VoicesLibraryPage() {
           signal,
         );
         if (signal?.aborted) return;
-        dispatch({ type: 'LOAD_SUCCESS', voices: data });
+        dispatch({ type: 'LOAD_SUCCESS', voices: result.items });
       } catch (error) {
         if (signal?.aborted) return;
         logger.error('GET /voices/catalog failed', error);
@@ -148,15 +144,6 @@ export default function VoicesLibraryPage() {
     });
     return () => controller.abort();
   }, [loadVoices]);
-
-  // A new search or provider starts over at page 1.
-  const resetPage = useCallback(() => {
-    const params = new URLSearchParams(searchParamsString);
-    if (!params.has('page')) return;
-    params.delete('page');
-    const query = params.toString();
-    replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, replace, searchParamsString]);
 
   const handleSync = useCallback(
     async (providers?: VoiceProvider[]) => {
@@ -183,7 +170,7 @@ export default function VoicesLibraryPage() {
   const handleToggle = useCallback(
     async (
       voice: ExternalVoice,
-      field: 'isActive' | 'isDefaultSelectable' | 'isFeatured',
+      field: VoiceCatalogToggleField,
       value: boolean,
     ) => {
       dispatch({ type: 'TOGGLE_START', key: `${voice.id}:${field}` });
@@ -214,21 +201,15 @@ export default function VoicesLibraryPage() {
       search={
         <VoicesCatalogSearch
           search={search}
-          onSearchChange={(s) => {
-            dispatch({ type: 'SET_SEARCH', search: s });
-            resetPage();
-          }}
+          onSearchChange={(value) => setParam('q', value.trim())}
         />
       }
       filters={
         <VoicesCatalogFilters
           providerFilter={providerFilter}
-          view={view}
-          onProviderFilterChange={(pf) => {
-            dispatch({ type: 'SET_PROVIDER_FILTER', providerFilter: pf });
-            resetPage();
-          }}
-          onViewChange={setView}
+          onProviderFilterChange={(value) =>
+            setParam('provider', value === 'all' ? '' : value)
+          }
         />
       }
       dropdowns={
@@ -246,52 +227,31 @@ export default function VoicesLibraryPage() {
         />
       }
     >
-      <WorkspaceSurface
-        framed={hasError || view === ViewType.LIST}
-        tone="muted"
-        data-testid="voices-library-results-surface"
-      >
-        {hasError ? (
-          <Alert type={AlertCategory.ERROR}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>{t('loadError')}</span>
-              <Button
-                label={t('retry')}
-                onClick={() => void loadVoices()}
-                variant={ButtonVariant.SECONDARY}
-              />
-            </div>
-          </Alert>
-        ) : (
-          <CollectionView
-            data-testid={view === ViewType.LIST ? 'voices-list' : 'voices-grid'}
-            view={view}
-            items={voices}
-            isLoading={isLoading}
-            maxColumns={3}
-            getItemKey={(voice) => voice.id}
-            emptyState={<CardEmptyContent label={t('empty')} />}
-            renderListItem={(voice) => (
-              <VoiceCatalogCard
-                isList
-                togglingKey={togglingKey}
-                voice={voice}
-                onToggle={handleToggle}
-              />
-            )}
-            renderGridItem={(voice) => (
-              <VoiceCatalogCard
-                togglingKey={togglingKey}
-                voice={voice}
-                onToggle={handleToggle}
-              />
-            )}
-          />
-        )}
-        <div className="mt-4">
-          <AutoPagination showTotal totalLabel={t('totalLabel')} />
-        </div>
-      </WorkspaceSurface>
+      <div className="grid gap-3" data-testid="voices-list">
+        <VoicesCatalogTable
+          error={
+            hasError
+              ? {
+                  onRetry: () => void loadVoices(),
+                  title: t('loadError'),
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          togglingKey={togglingKey}
+          voices={voices}
+          onToggle={handleToggle}
+        />
+        {hasError || voices.length === 0 ? null : <AutoPagination />}
+      </div>
     </AdminPageShell>
+  );
+}
+
+export default function VoicesLibraryPage() {
+  return (
+    <Suspense fallback={null}>
+      <VoicesLibraryPageContent />
+    </Suspense>
   );
 }

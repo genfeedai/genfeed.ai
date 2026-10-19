@@ -13,7 +13,7 @@
   "loadError": "Failed to load voice catalog",
   "retry": "Retry",
   "empty": "No voices found",
-  "searchPlaceholder": "Search by name or external ID",
+  "searchPlaceholder": "Search by name",
   "providerLabel": "Provider",
   "providerAll": "All providers",
   "providerElevenLabs": "ElevenLabs",
@@ -22,5 +22,15 @@
   "syncHeyGen": "Sync HeyGen",
   "syncProvider": "Sync provider",
   "syncAll": "Sync All",
-  "totalLabel": "voices"
+  "active": "Active",
+  "tableLabel": "Voice catalog",
+  "columns": {
+    "name": "Name",
+    "provider": "Provider",
+    "externalId": "External ID",
+    "language": "Language",
+    "status": "Status",
+    "preview": "Preview",
+    "actions": "Actions"
+  }
 }

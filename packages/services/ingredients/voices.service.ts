@@ -1,5 +1,8 @@
 import type { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
-import type { ElevenLabsAccountVoicePage } from '@genfeedai/contracts/interfaces';
+import type {
+  ElevenLabsAccountVoicePage,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -16,10 +19,10 @@ export interface CatalogSyncResult {
 }
 
 export interface CatalogFindParams {
-  limit?: number;
-  page?: number;
   provider?: VoiceProvider;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface AccountVoicesFindParams {
@@ -60,13 +63,13 @@ export class VoicesService extends IngredientsService<Voice> {
   }
 
   /**
-   * One page of the voice catalog. When `page` is sent, the page and totals
-   * are recorded in {@link PagesService} for `AutoPagination`.
+   * One page of the provider catalog, cut by the server. Also publishes the
+   * page counts to `PagesService`, which `AutoPagination` reads.
    */
   async findCatalog(
     params: CatalogFindParams = {},
     signal?: AbortSignal,
-  ): Promise<ExternalVoice[]> {
+  ): Promise<IPaginatedResponse<ExternalVoice>> {
     const query: Record<string, unknown> = {};
     if (params.provider) {
       query['provider'] = params.provider;
@@ -74,11 +77,11 @@ export class VoicesService extends IngredientsService<Voice> {
     if (params.search) {
       query['search'] = params.search;
     }
-    if (params.limit) {
-      query['limit'] = params.limit;
-    }
     if (params.page) {
       query['page'] = params.page;
+    }
+    if (params.limit) {
+      query['limit'] = params.limit;
     }
 
     return this.executeWithErrorHandling(
@@ -86,14 +89,24 @@ export class VoicesService extends IngredientsService<Voice> {
       this.instance
         .get<JsonApiResponseDocument>('/catalog', { params: query, signal })
         .then((res) => {
+          const items = this.extractCollection<ExternalVoice>(res.data);
           const pagination = res.data.links?.pagination;
-          if (params.page && pagination) {
-            PagesService.setCurrentPage(pagination.page);
-            PagesService.setTotalPages(pagination.pages);
-            PagesService.setTotalDocs(pagination.total ?? 0);
-          }
+          const page = pagination?.page ?? 1;
+          const total = pagination?.total ?? items.length;
+          const totalPages = Math.max(1, pagination?.pages ?? 1);
+          PagesService.setCurrentPage(page);
+          PagesService.setTotalPages(totalPages);
+          PagesService.setTotalDocs(total);
 
-          return this.extractCollection<ExternalVoice>(res.data);
+          return {
+            hasNext: page < totalPages,
+            hasPrevious: page > 1,
+            items,
+            page,
+            pageSize: pagination?.limit ?? items.length,
+            total,
+            totalPages,
+          };
         }),
     );
   }
