@@ -63,7 +63,13 @@ describe('BotActivitiesController', () => {
   describe('findAll', () => {
     it('should return paginated activities from the service', async () => {
       const mockActivities = [{ id: '1' }, { id: '2' }];
-      const mockResult = { activities: mockActivities, total: 2 };
+      const mockResult = {
+        docs: mockActivities,
+        limit: 10,
+        page: 1,
+        totalDocs: 2,
+        totalPages: 1,
+      };
       vi.mocked(botActivitiesService.findWithFilters).mockResolvedValue(
         mockResult as never,
       );
@@ -76,10 +82,7 @@ describe('BotActivitiesController', () => {
         'brand-123',
         query,
       );
-      expect(result).toEqual({
-        docs: mockActivities,
-        total: 2,
-      });
+      expect(result).toEqual(mockResult);
     });
   });
 

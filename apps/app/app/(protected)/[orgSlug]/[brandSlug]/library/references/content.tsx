@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -90,6 +91,9 @@ export default function LibraryCharactersPage(): ReactElement {
             setReferencesCharacterId(character.id)
           }
         />
+        {!isLoading && characters.length > 0 ? (
+          <AutoPagination showTotal totalLabel="characters" />
+        ) : null}
         <Link
           href={`${APP_ROUTES.SETTINGS.HELP}#characters`}
           className="text-sm text-muted-foreground underline underline-offset-4"

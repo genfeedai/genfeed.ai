@@ -1,3 +1,4 @@
+import { PageQueryDto } from '@api/helpers/dto/page-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   AdsChannel,
@@ -66,4 +67,11 @@ export class UnsaveSavedAdDto {
 
   @IsEntityId()
   readonly id!: string;
+}
+
+export class SavedAdsQueryDto extends PageQueryDto {
+  @IsOptional()
+  @IsEntityId()
+  @ApiPropertyOptional({ description: 'Brand whose saved ads to list' })
+  readonly brandId?: string;
 }

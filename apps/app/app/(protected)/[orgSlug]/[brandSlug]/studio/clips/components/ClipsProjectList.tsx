@@ -43,6 +43,7 @@ function updatedTime(project: ClipProjectSummary): number {
 
 export default function ClipsProjectList({
   isLoading,
+  isRecentVisible = true,
   projects,
   onRename,
   onDelete,
@@ -172,7 +173,7 @@ export default function ClipsProjectList({
 
   return (
     <div className="flex flex-col gap-8" data-testid="clips-project-list">
-      {!isLoading && (
+      {!isLoading && isRecentVisible && (
         <CollectionCarouselSection
           data-testid="clips-projects-recent"
           title={t('recent')}

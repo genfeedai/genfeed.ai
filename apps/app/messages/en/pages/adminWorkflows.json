@@ -50,5 +50,6 @@
   "listDescription": "Workflows saved in the active organization, including installed copies of the catalog recipes.",
   "listTitle": "Workflows in this organization",
   "title": "Workflows",
+  "totalLabel": "workflows",
   "untitled": "Untitled workflow"
 }

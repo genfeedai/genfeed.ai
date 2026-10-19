@@ -41,7 +41,7 @@ export class BotActivitiesService extends BaseService<BotActivity> {
     ).map((item) => new BotActivity(item));
     return {
       data,
-      total: (response.data?.meta?.total as number) || data.length,
+      total: response.data?.links?.pagination?.total ?? data.length,
     };
   }
 

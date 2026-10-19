@@ -146,11 +146,13 @@ export async function listOrganizationMemories(
   api: AgentBaseApiService,
   signal?: AbortSignal,
 ): Promise<AgentMemoryEntry[]> {
-  return api.fetchJson<AgentMemoryEntry[]>(
+  // The endpoint is paged; this reads its first page of memories.
+  const page = await api.fetchJson<{ docs: AgentMemoryEntry[] }>(
     `${api.config.baseUrl}/agent/memories/organization`,
     { signal },
     'Failed to list organization memories',
   );
+  return page.docs;
 }
 
 export async function archiveMemory(

@@ -19,6 +19,8 @@ export const workflowExecutionAttributes = createEntityAttributes([
   'error',
   'failure',
   'failureReason',
+  'failureResolvedAt',
+  'failureResolvedBy',
   'metadata',
   'result',
 ]);

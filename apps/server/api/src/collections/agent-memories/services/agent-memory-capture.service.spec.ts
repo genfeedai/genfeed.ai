@@ -43,7 +43,7 @@ describe('AgentMemoryCaptureService', () => {
     contextsService = {
       addEntry: vi.fn().mockResolvedValue(undefined),
       create: vi.fn().mockResolvedValue({ id: contextId }),
-      findAll: vi.fn().mockResolvedValue([]),
+      findAll: vi.fn().mockResolvedValue({ docs: [] }),
     };
     brandMemoryService = {
       addInsight: vi.fn().mockResolvedValue(undefined),
@@ -151,7 +151,7 @@ describe('AgentMemoryCaptureService', () => {
     });
 
     it('writes context memory when saveToContextMemory=true', async () => {
-      contextsService.findAll.mockResolvedValue([]);
+      contextsService.findAll.mockResolvedValue({ docs: [] });
 
       await service.capture(userId, orgId, {
         brandId,
@@ -173,7 +173,7 @@ describe('AgentMemoryCaptureService', () => {
         isDeleted: false,
         sourceBrandId: brandId,
       };
-      contextsService.findAll.mockResolvedValue([existingContext]);
+      contextsService.findAll.mockResolvedValue({ docs: [existingContext] });
 
       await service.capture(userId, orgId, {
         brandId,
@@ -182,6 +182,11 @@ describe('AgentMemoryCaptureService', () => {
         scope: KnowledgeMemoryScope.BRAND,
       });
 
+      expect(contextsService.findAll).toHaveBeenCalledWith(
+        orgId,
+        { category: 'content_library', isActive: true, sourceBrandId: brandId },
+        { limit: 1, page: 1 },
+      );
       expect(contextsService.create).not.toHaveBeenCalled();
       expect(contextsService.addEntry).toHaveBeenCalledWith(
         contextId,

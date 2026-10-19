@@ -155,6 +155,8 @@ export interface ClipsInputFormProps {
 
 export interface ClipsProjectListProps {
   isLoading: boolean;
+  /** Hide the "Recent" carousel, e.g. on server pages after the first. */
+  isRecentVisible?: boolean;
   projects: ClipProjectSummary[];
   onRename?: (id: string, name: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;

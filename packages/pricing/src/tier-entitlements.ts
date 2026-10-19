@@ -4,7 +4,7 @@
  *
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
- *   Pay As You Go (free)                   → FREE               → no API, solo, 1 org
+ *   Pay As You Go (free)                   → FREE               → API at 60/min, solo, 1 org
  *   Agencies                               → SCALE              → API, unlimited seats/orgs
  *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
@@ -77,12 +77,15 @@ export const FREE_SEAT_LIMIT = 1;
 /** Free single-organization workspace cap. */
 export const SINGLE_ORGANIZATION_LIMIT = 1;
 
+/** API ceiling for the free (Pay As You Go) tier, in requests per minute. */
+export const FREE_API_RATE_LIMIT = 60;
+
 /** Fixed API ceiling for the Agencies (Scale) tier. */
 export const SCALE_API_RATE_LIMIT = 600;
 
 /**
  * Exhaustive tier → cloud entitlement map. The free tier is a solo workspace
- * with no managed API access or BYOK; every tier has unlimited brands and
+ * with rate-limited API access (60/min) and no BYOK; every tier has unlimited brands and
  * channels so credits remain the output meter instead of account topology.
  * Multi-organization workflows start at Scale.
  */
@@ -91,8 +94,8 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
   TierPlanEntitlement
 > = {
   [SubscriptionTier.FREE]: {
-    apiAccess: false,
-    apiRateLimit: 0,
+    apiAccess: true,
+    apiRateLimit: FREE_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     byokAccess: false,
     channelLimit: PLAN_LIMIT_UNLIMITED,
@@ -164,8 +167,8 @@ export function getPlanEntitlementForTier(
 }
 
 /**
- * Resolve the API entitlement for a subscription tier. Unknown/empty tiers have
- * no API access.
+ * Resolve the API entitlement for a subscription tier. Unknown/empty tiers get
+ * the free tier's entitlement.
  */
 export function getApiEntitlementForTier(
   tier: string | null | undefined,

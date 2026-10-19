@@ -9,6 +9,10 @@ import { AgentMemoryCaptureService } from '@api/collections/agent-memories/servi
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -27,6 +31,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -138,10 +143,16 @@ export class AgentMemoriesController {
   @ApiOperation({
     summary: 'List brand and org-wide memory entries for the organization',
   })
-  async listOrganization(@CurrentUser() user: User) {
+  async listOrganization(
+    @CurrentUser() user: User,
+    @Query() query?: PaginationQueryDto,
+  ) {
     try {
+      // The page envelope is returned as-is (not JSON:API): each entry carries
+      // its author, which the memory serializer has no relationship for.
       return await this.memoriesService.listForOrganization(
         resolveTenantReadScope(user).organizationId,
+        resolvePageWindow(query),
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(

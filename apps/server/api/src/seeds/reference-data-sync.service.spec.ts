@@ -1,3 +1,4 @@
+import { FontFamilySeedService } from '@api/seeds/font-family-seed.service';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import { ReferenceDataSyncService } from '@api/seeds/reference-data-sync.service';
@@ -18,6 +19,7 @@ describe('ReferenceDataSyncService', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
+  let fontFamilies: { reconcileCatalog: ReturnType<typeof vi.fn> };
   let models: { reconcileCatalog: ReturnType<typeof vi.fn> };
   let skills: {
     backfillOrganizations: ReturnType<typeof vi.fn>;
@@ -30,6 +32,11 @@ describe('ReferenceDataSyncService', () => {
 
   beforeEach(() => {
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    fontFamilies = {
+      reconcileCatalog: vi
+        .fn()
+        .mockResolvedValue({ failed: [], unchanged: 8, written: 1 }),
+    };
     models = {
       reconcileCatalog: vi.fn().mockResolvedValue({ unchanged: 3, written: 1 }),
     };
@@ -53,6 +60,7 @@ describe('ReferenceDataSyncService', () => {
         .mockResolvedValue({ failed: [], unchanged: 10, written: 0 }),
     };
     service = new ReferenceDataSyncService(
+      fontFamilies as unknown as FontFamilySeedService,
       logger as unknown as LoggerService,
       models as unknown as ModelCatalogSeedService,
       platformTemplates as unknown as PlatformTemplateSeedService,
@@ -72,6 +80,10 @@ describe('ReferenceDataSyncService', () => {
     );
     expect(logger.log).toHaveBeenCalledWith(
       'reference-data platform-templates: written=1 unchanged=3 failed=0',
+      'ReferenceDataSyncService',
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      'reference-data font-families: written=1 unchanged=8 failed=0',
       'ReferenceDataSyncService',
     );
     expect(skills.backfillOrganizations).toHaveBeenCalledOnce();

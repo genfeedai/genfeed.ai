@@ -6,6 +6,10 @@ import { PrepareWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dt
 import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -23,6 +27,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -59,23 +64,12 @@ export class WarmupAccountsController {
 
   @Get()
   @ApiOperation({ summary: 'List warm-up accounts' })
-  async list(@Req() request: Request) {
+  async list(@Query() query: PaginationQueryDto, @Req() request: Request) {
     try {
       const accounts = await this.runAsPlatformAdmin(() =>
-        this.warmupAccountsService.list(),
+        this.warmupAccountsService.list(resolvePageWindow(query)),
       );
-      return serializeCollection(request, WarmupAccountSerializer, {
-        docs: accounts,
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: accounts.length,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: accounts.length,
-        totalPages: 1,
-      });
+      return serializeCollection(request, WarmupAccountSerializer, accounts);
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'listWarmups');
     }

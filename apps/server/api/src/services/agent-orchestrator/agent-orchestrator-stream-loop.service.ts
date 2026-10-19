@@ -30,6 +30,10 @@ import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import {
+  AGENT_WRAP_UP_INSTRUCTION,
+  isAgentWrapUpRound,
+} from '@api/services/agent-orchestrator/utils/agent-round-budget.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { readAgentRunPublicError } from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
@@ -283,6 +287,12 @@ export class AgentOrchestratorStreamLoopService {
         }
         round++;
 
+        const isWrapUpRound =
+          !terminalContent && isAgentWrapUpRound(round, AGENT_MAX_TOOL_ROUNDS);
+        if (isWrapUpRound) {
+          messages.push({ content: AGENT_WRAP_UP_INSTRUCTION, role: 'system' });
+        }
+
         const maximumRoundCredits =
           terminalContent || turnCost === 0
             ? 0
@@ -323,6 +333,7 @@ export class AgentOrchestratorStreamLoopService {
           prioritize: generationPriority,
           seedTitle: seedTitle ?? '',
           source,
+          toolChoice: isWrapUpRound ? 'none' : 'auto',
           tools,
           sessionId: threadId,
         });

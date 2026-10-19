@@ -11,11 +11,13 @@ import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-len
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalPost from '@ui/modals/content/post/ModalPost';
-import type { ReactNode } from 'react';
+import { type ReactNode, useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   createThread: vi.fn(),
+  ensureFromPost: vi.fn(),
+  publishTargetNow: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
   generateDraftText: vi.fn(),
@@ -54,6 +56,7 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', async () => {
         data: PostModalSchema,
       ) => Promise<unknown>;
     }) => {
+      const formRef = useRef<HTMLFormElement>(null);
       const form = useForm<PostModalSchema>({
         defaultValues,
         resolver: standardSchemaResolver(postModalSchema),
@@ -61,6 +64,7 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', async () => {
       });
       return {
         form,
+        formRef,
         closeModal: vi.fn(),
         isSubmitting: false,
         onSubmit: form.handleSubmit((data) =>
@@ -117,6 +121,8 @@ describe('ModalPost', () => {
     mocks.post.mockResolvedValue({ id: 'new-post' });
     mocks.patch.mockResolvedValue({ id: 'existing-post' });
     mocks.createThread.mockResolvedValue([{ id: 'thread-root' }]);
+    mocks.ensureFromPost.mockResolvedValue({ id: 'release-1' });
+    mocks.publishTargetNow.mockResolvedValue(undefined);
   });
   it('keeps a manually opened composer open when it mounts', () => {
     openModal(ModalEnum.POST_COMPOSE);
@@ -150,7 +156,7 @@ describe('ModalPost', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Generate draft' }));
     await screen.findByRole('link', { name: 'View receipt' });
-    await user.click(screen.getByRole('button', { name: 'Create Post' }));
+    await user.click(screen.getByRole('button', { name: 'Save draft' }));
     await waitFor(() =>
       expect(mocks.patch).toHaveBeenCalledWith(
         'generated-post',
@@ -166,7 +172,7 @@ describe('ModalPost', () => {
       screen.getByRole('textbox', { name: 'Post content' }),
       'A manual tweet',
     );
-    await user.click(screen.getByRole('button', { name: 'Create Post' }));
+    await user.click(screen.getByRole('button', { name: 'Save draft' }));
     await waitFor(() =>
       expect(mocks.post).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -313,7 +319,7 @@ describe('ModalPost', () => {
         screen.getByRole('button', { name: 'Acme on LinkedIn' }),
       );
       await writeCaption(user, 'Shipping today');
-      await user.click(screen.getByRole('button', { name: 'Create Post' }));
+      await user.click(screen.getByRole('button', { name: 'Save draft' }));
 
       await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(2));
       expect(mocks.post).toHaveBeenCalledWith(
@@ -332,12 +338,89 @@ describe('ModalPost', () => {
       );
     });
 
+    it('offers draft, publish now and schedule instead of date and lifecycle fields', async () => {
+      const user = userEvent.setup();
+      renderComposer();
+      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+
+      expect(screen.queryByText(/Scheduled Date/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Lifecycle')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Save draft' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Schedule' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Publish now' }),
+      ).toBeInTheDocument();
+    });
+
+    it('keeps publish and schedule unavailable without an account', async () => {
+      const user = userEvent.setup();
+      renderComposer();
+      await writeCaption(user, 'No account yet');
+
+      expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled();
+      expect(
+        screen.getByRole('button', { name: 'Publish now' }),
+      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Schedule' })).toBeDisabled();
+    });
+
+    it('saves a draft and publishes it right away', async () => {
+      const user = userEvent.setup();
+      renderComposer();
+      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await writeCaption(user, 'Ship it');
+      await user.click(screen.getByRole('button', { name: 'Publish now' }));
+
+      await waitFor(() =>
+        expect(mocks.publishTargetNow).toHaveBeenCalledWith(
+          'release-1',
+          'new-post',
+        ),
+      );
+      expect(mocks.ensureFromPost).toHaveBeenCalledWith('new-post');
+      expect(mocks.post).toHaveBeenCalledWith(
+        expect.objectContaining({ targetExecutionState: 'draft' }),
+      );
+    });
+
+    it('never publishes when saving a draft', async () => {
+      const user = userEvent.setup();
+      renderComposer();
+      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await writeCaption(user, 'Just a draft');
+      await user.click(screen.getByRole('button', { name: 'Save draft' }));
+
+      await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
+      expect(mocks.post).toHaveBeenCalledWith(
+        expect.objectContaining({ targetExecutionState: 'draft' }),
+      );
+      expect(mocks.publishTargetNow).not.toHaveBeenCalled();
+    });
+
+    it('asks for a date before scheduling', async () => {
+      const user = userEvent.setup();
+      renderComposer();
+      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await writeCaption(user, 'Later');
+      await user.click(screen.getByRole('button', { name: 'Schedule' }));
+
+      expect(screen.getByText('Publish at')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Schedule post' }),
+      ).toBeDisabled();
+      expect(mocks.post).not.toHaveBeenCalled();
+    });
+
     it('derives a long post for X from the length of the text', async () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
       await writeCaption(user, 'a'.repeat(400));
-      await user.click(screen.getByRole('button', { name: 'Create Post' }));
+      await user.click(screen.getByRole('button', { name: 'Save draft' }));
 
       await waitFor(() =>
         expect(mocks.post).toHaveBeenCalledWith(
@@ -357,9 +440,7 @@ describe('ModalPost', () => {
       await writeCaption(user, 'a'.repeat(25_001));
 
       expect(screen.getByText('25001 / 25000')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: 'Create Post' }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled();
     });
 
     it('splits the text into a thread through the existing thread path', async () => {
@@ -370,7 +451,7 @@ describe('ModalPost', () => {
       await user.click(
         screen.getByRole('switch', { name: 'Split into thread' }),
       );
-      await user.click(screen.getByRole('button', { name: 'Create Thread' }));
+      await user.click(screen.getByRole('button', { name: 'Save draft' }));
 
       await waitFor(() => expect(mocks.createThread).toHaveBeenCalledTimes(1));
       const { posts } = mocks.createThread.mock.calls[0][0] as {

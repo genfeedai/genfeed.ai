@@ -7,6 +7,7 @@ import {
   lockWarmup,
   reconcileWarmupWorkspace,
   warmupReadiness,
+  warmupReadinessBatch,
 } from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WarmupAccountStatus } from '@genfeedai/prisma';
@@ -23,6 +24,7 @@ vi.mock(
     lockWarmup: vi.fn(),
     reconcileWarmupWorkspace: vi.fn(),
     warmupReadiness: vi.fn(),
+    warmupReadinessBatch: vi.fn(),
   }),
 );
 
@@ -95,6 +97,7 @@ describe('AdminWarmupAccountsService', () => {
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
     warmupAccount: {
+      count: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
@@ -191,6 +194,7 @@ describe('AdminWarmupAccountsService', () => {
         callback(tx),
       ),
       warmupAccount: {
+        count: vi.fn().mockResolvedValue(0),
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn().mockResolvedValue(
@@ -544,5 +548,62 @@ describe('AdminWarmupAccountsService', () => {
       service.resendInvitation('warmup_1', 'operator_1'),
     ).rejects.toBeInstanceOf(GoneException);
     expect(prisma.warmupAccount.update).not.toHaveBeenCalled();
+  });
+
+  describe('list', () => {
+    it('pages in the database and batches readiness for the page only', async () => {
+      const rows = [
+        makeWarmupAccount({ id: 'warmup_3' }),
+        makeWarmupAccount({ id: 'warmup_2' }),
+      ];
+      prisma.warmupAccount.findMany.mockResolvedValue(rows);
+      prisma.warmupAccount.count.mockResolvedValue(7);
+      vi.mocked(warmupReadinessBatch).mockResolvedValue([
+        { availableCredits: 5, blockers: [], ready: true },
+        { availableCredits: 0, blockers: ['Archived'], ready: false },
+      ]);
+
+      const result = await service.list({ limit: 2, page: 2, skip: 2 });
+
+      expect(prisma.warmupAccount.findMany).toHaveBeenCalledWith({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: 2,
+        take: 2,
+        where: { isDeleted: false },
+      });
+      expect(prisma.warmupAccount.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
+      expect(warmupReadinessBatch).toHaveBeenCalledTimes(1);
+      expect(warmupReadinessBatch).toHaveBeenCalledWith(prisma, rows);
+      expect(warmupReadiness).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        hasNextPage: true,
+        hasPrevPage: true,
+        limit: 2,
+        page: 2,
+        totalDocs: 7,
+        totalPages: 4,
+      });
+      expect(result.docs.map((doc) => doc.id)).toEqual([
+        'warmup_3',
+        'warmup_2',
+      ]);
+      expect(result.docs[1]?.readiness).toEqual({
+        availableCredits: 0,
+        blockers: ['Archived'],
+        ready: false,
+      });
+    });
+
+    it('returns an empty page with zero totals', async () => {
+      vi.mocked(warmupReadinessBatch).mockResolvedValue([]);
+
+      const result = await service.list({ limit: 20, page: 1, skip: 0 });
+
+      expect(result.docs).toEqual([]);
+      expect(result.totalDocs).toBe(0);
+      expect(result.hasNextPage).toBe(false);
+    });
   });
 });

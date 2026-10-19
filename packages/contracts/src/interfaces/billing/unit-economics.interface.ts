@@ -5,10 +5,21 @@
  * revenue comes from `billing_revenue_events` (net of tax).
  */
 
+import type {
+  UnitEconomicsSortDirection,
+  UnitEconomicsSortKey,
+} from '../../constants/unit-economics.constant';
+import type { IPaginationParams } from '../core/common.interface';
+
 export interface IUnitEconomicsQuery {
   from?: string;
+  limit?: number;
   /** When set, the report drills into this organization's users. */
   organizationId?: string;
+  page?: number;
+  /** Defaults to provider cost, highest first. */
+  sortDirection?: UnitEconomicsSortDirection;
+  sortKey?: UnitEconomicsSortKey;
   to?: string;
 }
 
@@ -42,7 +53,11 @@ export interface IUnitEconomicsReport {
   /** Present on a per-user drill-down. */
   organizationId: string | null;
   organizationLabel: string | null;
+  /** Which page of rows this report carries, with the total row count. */
+  pagination: IPaginationParams;
+  /** One sorted page of rows. */
   rows: IUnitEconomicsRow[];
   to: string;
+  /** Summed across every row, not just this page. */
   totals: IUnitEconomicsMetrics;
 }

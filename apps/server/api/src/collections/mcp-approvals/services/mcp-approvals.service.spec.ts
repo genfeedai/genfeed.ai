@@ -697,26 +697,52 @@ describe('McpApprovalsService', () => {
   });
 
   describe('findByOrganization', () => {
-    it('queries with organizationId + isDeleted filter and desc ordering', async () => {
-      mcpApproval.findMany.mockResolvedValue([]);
+    it('pages in SQL with organizationId + isDeleted filter and desc ordering', async () => {
+      mcpApproval.findMany.mockResolvedValue([{ id: 'a-1' }]);
+      mcpApproval.count.mockResolvedValue(45);
+      const where = { organizationId: 'org-1', isDeleted: false };
 
-      await service.findByOrganization('org-1');
+      const result = await service.findByOrganization('org-1', {
+        limit: 20,
+        page: 3,
+      });
 
       expect(mcpApproval.findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org-1', isDeleted: false },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: 40,
+        take: 20,
+        where,
+      });
+      expect(mcpApproval.count).toHaveBeenCalledWith({ where });
+      expect(result).toMatchObject({
+        hasNextPage: false,
+        hasPrevPage: true,
+        limit: 20,
+        page: 3,
+        totalDocs: 45,
+        totalPages: 3,
       });
     });
 
-    it('includes status filter when provided', async () => {
+    it('includes status filter in the page and the total when provided', async () => {
       mcpApproval.findMany.mockResolvedValue([]);
+      mcpApproval.count.mockResolvedValue(0);
+      const where = {
+        organizationId: 'org-1',
+        isDeleted: false,
+        status: 'PENDING',
+      };
 
-      await service.findByOrganization('org-1', 'PENDING' as never);
-
-      expect(mcpApproval.findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org-1', isDeleted: false, status: 'PENDING' },
-        orderBy: { createdAt: 'desc' },
+      await service.findByOrganization('org-1', {
+        limit: 10,
+        page: 1,
+        status: 'PENDING' as never,
       });
+
+      expect(mcpApproval.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where }),
+      );
+      expect(mcpApproval.count).toHaveBeenCalledWith({ where });
     });
   });
   it.each([0, 1])(

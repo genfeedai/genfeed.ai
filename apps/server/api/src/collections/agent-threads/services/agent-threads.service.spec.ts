@@ -13,14 +13,19 @@ import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type AgentThreadDelegate = {
+  count: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
 
 type FindManyArgs = {
-  orderBy?: Record<string, unknown>;
+  orderBy?: Array<Record<string, unknown>>;
+  skip?: number;
+  take?: number;
   where?: Record<string, unknown>;
 };
+
+const FIRST_PAGE = { limit: 50, page: 1, skip: 0 };
 
 describe('AgentThreadsService Prisma row contract', () => {
   let brandDelegate: { findMany: ReturnType<typeof vi.fn> };
@@ -33,6 +38,7 @@ describe('AgentThreadsService Prisma row contract', () => {
   beforeEach(() => {
     brandDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     delegate = {
+      count: vi.fn().mockResolvedValue(0),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     };
@@ -76,6 +82,7 @@ describe('AgentThreadsService Prisma row contract', () => {
       AgentThreadStatus.ACTIVE,
       undefined,
       'onboarding',
+      FIRST_PAGE,
     );
 
     const call = delegate.findMany.mock.calls[0]?.[0] as FindManyArgs;
@@ -88,15 +95,77 @@ describe('AgentThreadsService Prisma row contract', () => {
         userId: 'user-1',
       }),
     );
-    expect(call.orderBy).toEqual({ updatedAt: 'desc' });
-    // No page cap: an onboarding thread must be findable regardless of how
-    // many newer standard threads sit in front of it.
-    expect(call).not.toHaveProperty('take');
-    expect(call).not.toHaveProperty('skip');
+    expect(call.orderBy).toEqual([{ updatedAt: 'desc' }, { id: 'desc' }]);
+    // The source filter runs in the database, so the newest onboarding thread
+    // is on page one however many newer standard threads exist.
+    expect(call.take).toBe(50);
+    expect(call.skip).toBe(0);
+  });
+
+  it('pages threads in the database and reports the total', async () => {
+    delegate.findMany.mockResolvedValue([
+      { id: 'thread-3', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+    delegate.count.mockResolvedValue(101);
+
+    const result = await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+      'brand-1',
+      undefined,
+      { limit: 50, page: 3, skip: 100 },
+    );
+
+    const call = delegate.findMany.mock.calls[0]?.[0] as FindManyArgs;
+    expect(call.skip).toBe(100);
+    expect(call.take).toBe(50);
+    expect(delegate.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    });
+    // Snapshots, executions and brand labels are only looked up for the page.
+    expect(snapshotDelegate.findMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ threadId: { in: ['thread-3'] } }),
+    });
+    expect(result).toMatchObject({
+      hasNextPage: false,
+      hasPrevPage: true,
+      limit: 50,
+      page: 3,
+      totalDocs: 101,
+      totalPages: 3,
+    });
+  });
+
+  it('does not load snapshots when the page is empty', async () => {
+    const result = await service.getUserThreads(
+      'user-1',
+      'org-1',
+      undefined,
+      undefined,
+      undefined,
+      FIRST_PAGE,
+    );
+
+    expect(result.docs).toEqual([]);
+    expect(snapshotDelegate.findMany).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('leaves the thread query unfiltered by source when source is omitted', async () => {
-    await service.getUserThreads('user-1', 'org-1', AgentThreadStatus.ACTIVE);
+    await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+      undefined,
+      undefined,
+      FIRST_PAGE,
+    );
 
     const call = delegate.findMany.mock.calls[0]?.[0] as FindManyArgs;
     expect(call.where).not.toHaveProperty('source');
@@ -170,6 +239,9 @@ describe('AgentThreadsService Prisma row contract', () => {
       'user-1',
       'org-1',
       AgentThreadStatus.ACTIVE,
+      undefined,
+      undefined,
+      FIRST_PAGE,
     );
 
     expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
@@ -181,13 +253,34 @@ describe('AgentThreadsService Prisma row contract', () => {
         }),
       }),
     );
-    expect(result[0]).toEqual(
+    expect(result.docs[0]).toEqual(
       expect.objectContaining({
         brandLabel: 'Curie',
         lastAssistantPreview: 'Three portraits are ready',
         lastGeneratedAssetUrl: 'https://cdn.test/portrait.png',
       }),
     );
+  });
+
+  it('looks executions up through the indexed jsonb thread path', async () => {
+    delegate.findMany.mockResolvedValue([
+      { id: 'thread-1', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([]);
+
+    await service.getUserThreads('user-1', 'org-1');
+
+    const [strings, ...values] = queryRaw.mock.calls[0] as [
+      TemplateStringsArray,
+      ...unknown[],
+    ];
+    const sql = strings.join('?');
+
+    // `workflow_executions_agent_thread_lookup_idx` indexes the `#>` jsonb
+    // path; a `->>` text predicate cannot use it and scans every execution.
+    expect(sql).toContain("execution.result #> '{metadata,threadId}'::text[]");
+    expect(sql).not.toMatch(/->> 'threadId' IN/);
+    expect(JSON.stringify(values)).toContain('thread-1');
   });
 
   it('falls back to the latest meaningful timeline response for list previews', async () => {
@@ -228,9 +321,12 @@ describe('AgentThreadsService Prisma row contract', () => {
       'user-1',
       'org-1',
       AgentThreadStatus.ACTIVE,
+      undefined,
+      undefined,
+      FIRST_PAGE,
     );
 
-    expect(result[0]).toEqual(
+    expect(result.docs[0]).toEqual(
       expect.objectContaining({
         lastActivityAt: '2026-08-19T12:00:00.000Z',
         lastAssistantPreview: 'Your publish-ready draft is complete.',
@@ -266,9 +362,12 @@ describe('AgentThreadsService Prisma row contract', () => {
       'user-1',
       'org-1',
       AgentThreadStatus.ACTIVE,
+      undefined,
+      undefined,
+      FIRST_PAGE,
     );
 
-    expect(result[0]).toEqual(
+    expect(result.docs[0]).toEqual(
       expect.objectContaining({
         runStatus: 'completed',
         runtimeState: 'completed',
@@ -308,7 +407,7 @@ describe('AgentThreadsService Prisma row contract', () => {
       },
     ]);
 
-    const runs = await service.listAgentRuns('user-1', 'org-1');
+    const runs = await service.listAgentRuns('user-1', 'org-1', undefined, 50);
 
     expect(runs).toEqual([
       expect.objectContaining({
@@ -319,6 +418,85 @@ describe('AgentThreadsService Prisma row contract', () => {
       }),
     ]);
   });
+  it('scans active threads in batches and stops once the limit is filled', async () => {
+    const batch = (prefix: string) =>
+      Array.from({ length: 50 }, (_, index) => ({
+        id: `${prefix}-${index}`,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }));
+    delegate.findMany
+      .mockResolvedValueOnce(batch('first'))
+      .mockResolvedValueOnce(batch('second'));
+    snapshotDelegate.findMany.mockImplementation(
+      async ({ where }: { where: { threadId: { in: string[] } } }) =>
+        where.threadId.in.map((threadId) => ({
+          data: { activeRun: { runId: `run-${threadId}`, status: 'running' } },
+          threadId,
+        })),
+    );
+
+    const runs = await service.listAgentRuns('user-1', 'org-1', undefined, 60);
+
+    expect(runs).toHaveLength(60);
+    expect(delegate.findMany).toHaveBeenCalledTimes(2);
+    expect(
+      (delegate.findMany.mock.calls[1]?.[0] as FindManyArgs | undefined)?.skip,
+    ).toBe(50);
+    expect(delegate.findMany.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: AgentThreadStatus.ACTIVE,
+          userId: 'user-1',
+        }),
+      }),
+    );
+    // Run rows need neither thumbnails nor every thread's brand name.
+    expect(ingredientDelegate.findMany).not.toHaveBeenCalled();
+  });
+
+  it('labels only the returned runs with their brand', async () => {
+    delegate.findMany.mockResolvedValue([
+      {
+        brandId: 'brand-curie',
+        id: 'thread-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      {
+        brandId: 'brand-idle',
+        id: 'thread-idle',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        data: { activeRun: { runId: 'run-1', status: 'running' } },
+        threadId: 'thread-1',
+      },
+      {
+        data: { activeRun: { runId: 'run-idle', status: 'completed' } },
+        threadId: 'thread-idle',
+      },
+    ]);
+    brandDelegate.findMany.mockResolvedValue([
+      { id: 'brand-curie', label: 'Curie' },
+    ]);
+
+    const runs = await service.listAgentRuns('user-1', 'org-1', undefined, 50);
+
+    expect(runs).toEqual([
+      expect.objectContaining({ brandId: 'brand-curie', brandLabel: 'Curie' }),
+    ]);
+    expect(brandDelegate.findMany).toHaveBeenCalledTimes(1);
+    expect(brandDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: ['brand-curie'] } }),
+      }),
+    );
+  });
+
   it('lists an accepted queued execution before a snapshot exists', async () => {
     delegate.findMany.mockResolvedValue([
       { id: 'thread-queued', organizationId: 'org-1', userId: 'user-1' },
@@ -331,7 +509,7 @@ describe('AgentThreadsService Prisma row contract', () => {
         createdAt: new Date(),
       },
     ]);
-    const runs = await service.listAgentRuns('user-1', 'org-1');
+    const runs = await service.listAgentRuns('user-1', 'org-1', undefined, 50);
     expect(runs).toEqual([
       expect.objectContaining({
         id: 'execution-new',
@@ -359,7 +537,7 @@ describe('AgentThreadsService Prisma row contract', () => {
         createdAt: new Date(),
       },
     ]);
-    const runs = await service.listAgentRuns('user-1', 'org-1');
+    const runs = await service.listAgentRuns('user-1', 'org-1', undefined, 50);
     expect(runs).toEqual([
       expect.objectContaining({ id: 'execution-new', runtimeState: 'running' }),
     ]);
@@ -394,8 +572,11 @@ describe('AgentThreadsService Prisma row contract', () => {
         'user-1',
         'org-1',
         AgentThreadStatus.ACTIVE,
+        undefined,
+        undefined,
+        FIRST_PAGE,
       );
-      expect(threads[0]).toMatchObject({
+      expect(threads.docs[0]).toMatchObject({
         runtimeState: status.toLowerCase(),
         pendingInputCount: 0,
         attentionState: null,

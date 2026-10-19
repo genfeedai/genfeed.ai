@@ -160,8 +160,9 @@ describe('AgentCampaignsService', () => {
 
     const result = await service.list({ status: 'active' });
 
+    // Without `page` the service walks every server page (findAllPages).
     expect(http.get).toHaveBeenCalledWith('', {
-      params: { status: 'active' },
+      params: { limit: 100, page: 1, status: 'active' },
       signal: undefined,
     });
     expect(result[0]).toBeInstanceOf(AgentCampaign);

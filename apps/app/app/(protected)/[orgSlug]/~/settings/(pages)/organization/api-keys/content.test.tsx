@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   act,
   fireEvent,
@@ -55,6 +56,7 @@ const mocks = vi.hoisted(() => ({
   cancelPendingRequests: vi.fn(),
   boundFactory: vi.fn(),
   findAllApiKeys: vi.fn(),
+  searchParams: new URLSearchParams(),
   getApiKeysService: vi.fn(),
   getByokAllProviders: vi.fn(),
   getOrganizationsService: vi.fn(),
@@ -109,6 +111,13 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 vi.mock('next/navigation', () => ({
   useParams: () => ({ orgSlug: mocks.routeSlug }),
+  usePathname: () => '/acme/~/settings/organization/api-keys',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => mocks.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 vi.mock(
   '@genfeedai/contexts/user/organization-context/organization-context',
@@ -346,6 +355,7 @@ describe('SettingsApiKeysPage', () => {
     mocks.organizationId = 'org-1';
     mocks.settingsSubscriptionTier = 'scale';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
+    mocks.searchParams = new URLSearchParams();
     mocks.findAllApiKeys.mockResolvedValue(productApiKeys());
     mocks.createApiKey.mockResolvedValue({
       id: 'key-2',
@@ -653,7 +663,21 @@ describe('SettingsApiKeysPage', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
     expect(mocks.findAllApiKeys).toHaveBeenCalledWith(
-      { limit: 100 },
+      { limit: ITEMS_PER_PAGE, page: 1 },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('requests the server page named in the URL', async () => {
+    mocks.searchParams = new URLSearchParams('page=3');
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    expect(mocks.findAllApiKeys).toHaveBeenCalledWith(
+      { limit: ITEMS_PER_PAGE, page: 3 },
       expect.any(AbortSignal),
     );
   });

@@ -972,6 +972,7 @@ describe('ModelsService', () => {
   });
   it.each([
     'valid',
+    'seeded-flat-row',
     'missing-contract',
     'wrong-version',
     'wrong-endpoint',
@@ -1001,7 +1002,9 @@ describe('ModelsService', () => {
           costPerUnit: null,
           minCost: null,
           providerCostUsd: null,
-          pricingType: 'conditional',
+          // A seeded row keeps its default pricing type; the reviewed rates
+          // still price it.
+          pricingType: caseName === 'seeded-flat-row' ? 'flat' : 'conditional',
           hasResolutionOptions: true,
           hasAudioToggle: caseName === 'missing-selector',
           providerInputSchema: contract.inputSchema,
@@ -1031,7 +1034,8 @@ describe('ModelsService', () => {
           cost: 0,
           providerCostUsd: null,
           isActive: false,
-          hasReviewedPricing: caseName === 'valid',
+          hasReviewedPricing:
+            caseName === 'valid' || caseName === 'seeded-flat-row',
         });
         expect(modelDelegate.findFirst).toHaveBeenCalledWith(
           expect.objectContaining({

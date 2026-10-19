@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -11,9 +12,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkflowsPage from './workflows-page';
 
 const mocks = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
   delete: vi.fn(),
+  findAll: vi.fn(),
   listSystemCatalog: vi.fn(),
-  findAllPages: vi.fn(),
   getters: new Map<string, () => Promise<unknown>>(),
   list: vi.fn(),
   openConfirmDelete: vi.fn(),
@@ -51,11 +53,21 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin/automation/workflows',
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => mocks.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
 vi.mock('@services/automation/workflows.service', () => ({
   WorkflowsService: {
     getInstance: () => ({
       delete: mocks.delete,
-      findAllPages: mocks.findAllPages,
+      findAll: mocks.findAll,
     }),
   },
 }));
@@ -208,14 +220,34 @@ async function renderLoadedPage() {
 describe('Admin workflows page Featured pins (#5511)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.searchParams = new URLSearchParams();
     mocks.getters.clear();
-    mocks.findAllPages.mockResolvedValue([
+    mocks.findAll.mockResolvedValue([
       TENANT_WORKFLOW,
       PINNED_WORKFLOW,
       SYSTEM_WORKFLOW,
     ]);
     mocks.list.mockResolvedValue(PINS);
     mocks.listSystemCatalog.mockResolvedValue(CATALOG);
+  });
+
+  it('requests the page from the URL with the page size and renders pagination', async () => {
+    mocks.searchParams = new URLSearchParams('page=2');
+
+    await renderLoadedPage();
+
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      {
+        includeSystem: true,
+        limit: ITEMS_PER_PAGE,
+        page: 2,
+        sort: 'createdAt: -1',
+      },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
   });
 
   it('lists the pins in order, including workflows from other organizations', async () => {

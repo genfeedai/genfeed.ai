@@ -28,8 +28,8 @@ import type {
   BrandDoc,
   DateRange,
   EngagementAggRow,
+  EntityRankRow,
   EntityStatsRow,
-  LeaderboardStats,
   OrganizationDoc,
   PaginationSlice,
   ResolvedBrandDisplay,
@@ -177,30 +177,138 @@ export class EntityLeaderboardService {
   }
 
   /**
-   * Load all entities of a type (no pagination) paired with their current and
-   * previous-period stats. Shared scaffolding for every leaderboard/stats path.
+   * Metric expression a leaderboard is ranked by, evaluated per entity over
+   * the requested window. Closed switch over the sort enum: nothing from the
+   * request is ever spliced into the SQL text.
    */
-  private async loadEntitiesWithStats<
+  private rankMetricSql(sort: LeaderboardSort): PrismaSql {
+    switch (SORT_FIELD_MAP[sort]) {
+      case 'totalViews':
+        return Prisma.sql`SUM("totalViews")`;
+      case 'totalPosts':
+        return Prisma.sql`COUNT(DISTINCT "postId")`;
+      default:
+        return Prisma.sql`SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves")`;
+    }
+  }
+
+  /** Case-insensitive "contains" pattern with LIKE wildcards escaped. */
+  private toContainsPattern(search: string): string {
+    return `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+  }
+
+  /**
+   * Rank one window of entity ids in the database.
+   *
+   * Entities LEFT JOIN a per-entity metric aggregate so entities with no
+   * analytics still rank (as zero). The ORDER BY is totalled with
+   * `createdAt`/`id` so paging is stable across requests, and LIMIT/OFFSET keep
+   * the result at one page — per-entity analytics lookups then run for those
+   * ids only instead of for the whole table.
+   */
+  private async rankEntityIds(
+    entityType: EntityType,
+    range: DateRange,
+    sort: LeaderboardSort,
+    window: { limit: number; offset: number },
+    filters: { organizationId?: string; search?: string },
+  ): Promise<string[]> {
+    const isOrganization = entityType === 'organization';
+    const entityTable = Prisma.raw(
+      isOrganization ? '"organizations"' : '"brands"',
+    );
+    const analyticsColumn = this.entityColumn(
+      isOrganization ? 'organizationId' : 'brandId',
+    );
+    const analyticsOrganizationFilter =
+      !isOrganization && filters.organizationId
+        ? Prisma.sql`AND "organizationId" = ${filters.organizationId}`
+        : Prisma.empty;
+    const entityOrganizationFilter =
+      !isOrganization && filters.organizationId
+        ? Prisma.sql`AND e."organizationId" = ${filters.organizationId}`
+        : Prisma.empty;
+    const searchFilter = filters.search
+      ? Prisma.sql`AND e."label" ILIKE ${this.toContainsPattern(filters.search)}`
+      : Prisma.empty;
+
+    const rows = await this.prisma.$queryRaw<EntityRankRow[]>`
+      SELECT e."id" AS entity_id
+      FROM ${entityTable} e
+      LEFT JOIN (
+        SELECT ${analyticsColumn} AS entity_id, ${this.rankMetricSql(sort)} AS metric
+        FROM "post_analytics"
+        WHERE "date" >= ${range.startDate}
+          AND "date" <= ${range.endDate}
+          ${analyticsOrganizationFilter}
+        GROUP BY ${analyticsColumn}
+      ) m ON m.entity_id = e."id"
+      WHERE e."isDeleted" = false
+        ${entityOrganizationFilter}
+        ${searchFilter}
+      ORDER BY COALESCE(m.metric, 0) DESC, e."createdAt" DESC, e."id" DESC
+      LIMIT ${window.limit} OFFSET ${window.offset}
+    `;
+
+    return rows.map((row) => row.entity_id);
+  }
+
+  /** Count live entities matching the same filters as `rankEntityIds`. */
+  private async countEntities(
+    entityType: EntityType,
+    filters: { organizationId?: string; search?: string },
+  ): Promise<number> {
+    const label = filters.search
+      ? { contains: filters.search, mode: 'insensitive' as const }
+      : undefined;
+
+    if (entityType === 'organization') {
+      return this.prisma.organization.count({
+        where: { isDeleted: false, label },
+      });
+    }
+
+    return this.prisma.brand.count({
+      where: {
+        isDeleted: false,
+        label,
+        organizationId: filters.organizationId,
+      },
+    });
+  }
+
+  /**
+   * Rank one window of entities in the database, hydrate just those rows and
+   * pair them with their current and previous-period stats, in rank order.
+   * Shared scaffolding for every leaderboard/stats path.
+   */
+  private async loadRankedEntitiesWithStats<
     TEntity extends OrganizationDoc | BrandDoc,
   >(
     entityType: EntityType,
     range: DateRange,
-    options: { organizationId?: string; includePlatforms?: boolean } = {},
+    sort: LeaderboardSort,
+    window: { limit: number; offset: number },
+    options: {
+      organizationId?: string;
+      includePlatforms?: boolean;
+      search?: string;
+    } = {},
   ): Promise<EntityStatsRow<TEntity>[]> {
     const includePlatforms = options.includePlatforms ?? false;
     const entityField: EntityField =
       entityType === 'organization' ? 'organizationId' : 'brandId';
 
-    const docs = await this.findEntities<TEntity>(
-      entityType,
-      options.organizationId,
-    );
-    if (docs.length === 0) {
+    const ids = await this.rankEntityIds(entityType, range, sort, window, {
+      organizationId: options.organizationId,
+      search: options.search,
+    });
+    if (ids.length === 0) {
       return [];
     }
 
-    const ids = docs.map((doc) => doc.id);
-    const [analyticsMap, previousEngagementMap] = await Promise.all([
+    const [docs, analyticsMap, previousEngagementMap] = await Promise.all([
+      this.findEntitiesByIds<TEntity>(entityType, ids, options.organizationId),
       this.getCurrentAnalytics(
         ids,
         range.startDate,
@@ -219,21 +327,30 @@ export class EntityLeaderboardService {
     const defaults = includePlatforms
       ? DEFAULT_BRAND_ANALYTICS
       : DEFAULT_ANALYTICS;
+    const docsById = new Map(docs.map((doc) => [doc.id, doc]));
 
-    return docs.map((entity) => ({
-      entity,
-      prevEngagement: previousEngagementMap.get(entity.id) ?? 0,
-      stats: analyticsMap.get(entity.id) ?? defaults,
-    }));
+    return ids.flatMap((id) => {
+      const entity = docsById.get(id);
+      return entity
+        ? [
+            {
+              entity,
+              prevEngagement: previousEngagementMap.get(id) ?? 0,
+              stats: analyticsMap.get(id) ?? defaults,
+            },
+          ]
+        : [];
+    });
   }
 
-  private async findEntities<TEntity extends OrganizationDoc | BrandDoc>(
+  private async findEntitiesByIds<TEntity extends OrganizationDoc | BrandDoc>(
     entityType: EntityType,
+    ids: string[],
     organizationId?: string,
   ): Promise<TEntity[]> {
     if (entityType === 'organization') {
       const result = await this.organizationsService.findAll(
-        { where: { isDeleted: false } },
+        { where: { id: { in: ids }, isDeleted: false } },
         { pagination: false },
       );
       return ((result as AggregatePaginateResult<OrganizationDoc>).docs ||
@@ -243,6 +360,7 @@ export class EntityLeaderboardService {
     const result = await this.brandsService.findAll(
       {
         where: {
+          id: { in: ids },
           isDeleted: false,
           ...(organizationId && { organizationId }),
         },
@@ -356,11 +474,17 @@ export class EntityLeaderboardService {
     );
   }
 
-  /** Count non-deleted brands grouped by organization */
-  private async countBrandsByOrganization(): Promise<Map<string, number>> {
+  /** Count non-deleted brands grouped by organization, for the given orgs */
+  private async countBrandsByOrganization(
+    organizationIds: string[],
+  ): Promise<Map<string, number>> {
+    if (organizationIds.length === 0) {
+      return new Map();
+    }
+
     const brandCountRows = await this.prisma.brand.groupBy({
       by: ['organizationId'],
-      where: { isDeleted: false },
+      where: { isDeleted: false, organizationId: { in: organizationIds } },
       _count: { id: true },
     });
     return new Map<string, number>(
@@ -368,44 +492,16 @@ export class EntityLeaderboardService {
     );
   }
 
-  /** Sort entities/stats descending by the metric mapped from the sort enum */
-  private sortByMetric<T>(items: T[], sort: LeaderboardSort): T[] {
-    const field = SORT_FIELD_MAP[sort];
-    return items.sort((a, b) => {
-      const aVal = (a as Record<string, number>)[field];
-      const bVal = (b as Record<string, number>)[field];
-      return bVal - aVal;
-    });
-  }
-
-  /**
-   * Sort raw stat rows descending by the metric mapped from the sort enum.
-   *
-   * Same ordering as `sortByMetric`, applied one step earlier — before the
-   * projection. Brand rows need their logos resolved, so they have to be ranked
-   * and sliced first: otherwise a platform-admin request resolves logos for
-   * every brand in the table and discards all but the page.
-   */
-  private sortRowsByMetric<TEntity>(
-    rows: EntityStatsRow<TEntity>[],
-    sort: LeaderboardSort,
-  ): EntityStatsRow<TEntity>[] {
-    const field = SORT_FIELD_MAP[sort];
-    return [...rows].sort((a, b) => b.stats[field] - a.stats[field]);
-  }
-
-  /** Slice an already-sorted list into a paginated payload */
+  /** Shape a database-paged result into the paginated payload */
   private buildPaginationSlice<TItem>(
-    items: TItem[],
+    data: TItem[],
+    total: number,
     page: number,
     limit: number,
   ): PaginationSlice<TItem> {
-    const total = items.length;
-    const totalPages = Math.ceil(total / limit);
-    const startIndex = (page - 1) * limit;
     return {
-      data: items.slice(startIndex, startIndex + limit),
-      pagination: { limit, page, total, totalPages },
+      data,
+      pagination: { limit, page, total, totalPages: Math.ceil(total / limit) },
     };
   }
 
@@ -421,40 +517,27 @@ export class EntityLeaderboardService {
     limit: number = 10,
   ): Promise<OrgLeaderboardItemEntity[]> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
-    const rows = await this.loadEntitiesWithStats<OrganizationDoc>(
+    const rows = await this.loadRankedEntitiesWithStats<OrganizationDoc>(
       'organization',
       range,
+      sort,
+      { limit, offset: 0 },
     );
 
-    const orgsWithStats: LeaderboardStats[] = rows.map(
-      ({ entity, prevEngagement, stats }) => ({
-        avgEngagementRate: stats.avgEngagementRate,
-        growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
-        id: entity.id,
-        logo: entity.authProviderLogoUrl ?? undefined,
-        name: entity.label || entity.name || 'Unknown',
-        totalEngagement: stats.totalEngagement,
-        totalPosts: stats.totalPosts,
-        totalViews: stats.totalViews,
-      }),
-    );
-
-    const ranked = this.sortByMetric(orgsWithStats, sort).slice(0, limit);
-
-    return ranked.map(
-      (item, index) =>
+    return rows.map(
+      ({ entity, prevEngagement, stats }, index) =>
         new OrgLeaderboardItemEntity({
-          avgEngagementRate: item.avgEngagementRate,
-          growth: item.growth,
+          avgEngagementRate: stats.avgEngagementRate,
+          growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           organization: {
-            id: item.id,
-            logo: item.logo,
-            name: item.name,
+            id: entity.id,
+            logo: entity.authProviderLogoUrl ?? undefined,
+            name: entity.label || entity.name || 'Unknown',
           },
           rank: index + 1,
-          totalEngagement: item.totalEngagement,
-          totalPosts: item.totalPosts,
-          totalViews: item.totalViews,
+          totalEngagement: stats.totalEngagement,
+          totalPosts: stats.totalPosts,
+          totalViews: stats.totalViews,
         }),
     );
   }
@@ -472,20 +555,20 @@ export class EntityLeaderboardService {
     organizationId?: string,
   ): Promise<BrandWithStatsEntity[]> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
-    const rows = await this.loadEntitiesWithStats<BrandDoc>('brand', range, {
-      includePlatforms: true,
-      organizationId,
-    });
-
-    // Rank and cut to the page before resolving display values, so the asset
-    // and organization reads cover only the rows that will actually be
-    // rendered.
-    const ranked = this.sortRowsByMetric(rows, sort).slice(0, limit);
+    // Ranked and cut to the page in the database, so the asset and
+    // organization reads below cover only the rows that will be rendered.
+    const rows = await this.loadRankedEntitiesWithStats<BrandDoc>(
+      'brand',
+      range,
+      sort,
+      { limit, offset: 0 },
+      { includePlatforms: true, organizationId },
+    );
     const displayByBrandId = await this.resolveBrandDisplay(
-      ranked.map(({ entity }) => entity),
+      rows.map(({ entity }) => entity),
     );
 
-    return ranked.map(({ entity, prevEngagement, stats }) =>
+    return rows.map(({ entity, prevEngagement, stats }) =>
       this.toBrandEntity(
         entity,
         stats,
@@ -507,14 +590,21 @@ export class EntityLeaderboardService {
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
   ): Promise<PaginatedOrgsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
-    const rows = await this.loadEntitiesWithStats<OrganizationDoc>(
-      'organization',
-      range,
+    const [rows, total] = await Promise.all([
+      this.loadRankedEntitiesWithStats<OrganizationDoc>(
+        'organization',
+        range,
+        sort,
+        { limit, offset: (page - 1) * limit },
+      ),
+      this.countEntities('organization', {}),
+    ]);
+
+    const brandCountMap = await this.countBrandsByOrganization(
+      rows.map(({ entity }) => entity.id),
     );
 
-    const brandCountMap = await this.countBrandsByOrganization();
-
-    const orgsWithStats = rows.map(
+    const data = rows.map(
       ({ entity, prevEngagement, stats }) =>
         new OrgWithStatsEntity({
           avgEngagementRate: stats.avgEngagementRate,
@@ -530,9 +620,8 @@ export class EntityLeaderboardService {
         }),
     );
 
-    const sorted = this.sortByMetric(orgsWithStats, sort);
     return new PaginatedOrgsResponse(
-      this.buildPaginationSlice(sorted, page, limit),
+      this.buildPaginationSlice(data, total, page, limit),
     );
   }
 
@@ -547,26 +636,29 @@ export class EntityLeaderboardService {
     limit: number = 20,
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
     organizationId?: string,
+    search?: string,
   ): Promise<PaginatedBrandsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
-    const rows = await this.loadEntitiesWithStats<BrandDoc>('brand', range, {
-      includePlatforms: true,
-      organizationId,
-    });
+    // The name search runs in the same query that ranks and pages, and in the
+    // count, so every page and the total reflect the same filtered set.
+    const needle = search?.trim() || undefined;
+    const [rows, total] = await Promise.all([
+      this.loadRankedEntitiesWithStats<BrandDoc>(
+        'brand',
+        range,
+        sort,
+        { limit, offset: (page - 1) * limit },
+        { includePlatforms: true, organizationId, search: needle },
+      ),
+      this.countEntities('brand', { organizationId, search: needle }),
+    ]);
 
-    // Paginate the raw rows first so the display reads cover one page, not the
-    // whole brand table.
-    const slice = this.buildPaginationSlice(
-      this.sortRowsByMetric(rows, sort),
-      page,
-      limit,
-    );
     const displayByBrandId = await this.resolveBrandDisplay(
-      slice.data.map(({ entity }) => entity),
+      rows.map(({ entity }) => entity),
     );
 
-    return new PaginatedBrandsResponse({
-      data: slice.data.map(({ entity, prevEngagement, stats }) =>
+    const slice = this.buildPaginationSlice(
+      rows.map(({ entity, prevEngagement, stats }) =>
         this.toBrandEntity(
           entity,
           stats,
@@ -574,8 +666,12 @@ export class EntityLeaderboardService {
           displayByBrandId.get(entity.id),
         ),
       ),
-      pagination: slice.pagination,
-    });
+      total,
+      page,
+      limit,
+    );
+
+    return new PaginatedBrandsResponse(slice);
   }
 
   /**

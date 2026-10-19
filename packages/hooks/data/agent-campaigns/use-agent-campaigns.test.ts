@@ -100,6 +100,27 @@ describe('useAgentCampaigns', () => {
     });
   });
 
+  it('requests a single server page when a page is given', async () => {
+    const { useAgentCampaigns } = await import('./use-agent-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+
+    const { result } = renderHook(
+      () => useAgentCampaigns({ limit: 15, page: 2 }),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(mockList).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      limit: 15,
+      page: 2,
+      status: undefined,
+    });
+  });
+
   it('returns campaigns data from service', async () => {
     const mockCampaigns = [
       { brandId: 'brand-1', id: 'campaign-1', name: 'Campaign 1' },

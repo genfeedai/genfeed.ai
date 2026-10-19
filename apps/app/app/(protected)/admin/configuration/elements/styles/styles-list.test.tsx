@@ -239,7 +239,7 @@ describe('StylesList', () => {
     await act(async () => {
       await onRefresh.mock.calls[0][0]();
     });
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith('Styles refreshed');
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Editorial' }));
     expect(mocks.openModal).toHaveBeenCalled();

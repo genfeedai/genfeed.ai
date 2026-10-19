@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
+import { TrackedLinksQueryDto } from '@api/collections/tracked-links/dto/tracked-links-query.dto';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -81,30 +82,25 @@ export class TrackedLinksController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getLinks(
     @Req() req: ExpressRequest,
-    @Query('contentId') contentId: string | undefined,
-    @Query('platform') platform: string | undefined,
-    @Query('campaignName') campaignName: string | undefined,
+    @Query() query: TrackedLinksQueryDto,
     @CurrentUser() user: User,
   ) {
     const readScope = resolveTenantReadScope(user);
     const organization = readScope.organizationId;
+    const paging = { limit: query.limit, page: query.page };
 
-    if (contentId) {
-      const docs = await this.trackedLinksService.getContentLinks(
-        contentId,
-        organization,
-      );
-      return serializeCollection(req, TrackedLinkSerializer, { docs });
-    }
-
-    const docs = await this.trackedLinksService.getOrganizationLinks(
-      organization,
-      {
-        campaignName,
-        platform,
-      },
-    );
-    return serializeCollection(req, TrackedLinkSerializer, { docs });
+    const result = query.contentId
+      ? await this.trackedLinksService.listContentLinks(
+          query.contentId,
+          organization,
+          paging,
+        )
+      : await this.trackedLinksService.listOrganizationLinks(
+          organization,
+          { campaignName: query.campaignName, platform: query.platform },
+          paging,
+        );
+    return serializeCollection(req, TrackedLinkSerializer, result);
   }
 
   /**

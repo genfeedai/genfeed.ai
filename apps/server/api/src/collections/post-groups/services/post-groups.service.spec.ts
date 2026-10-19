@@ -2,6 +2,7 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import { seedReleaseListReads } from '@api/collections/post-groups/services/post-group-release-list.testing';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -348,11 +349,14 @@ describe('PostGroupsService', () => {
   });
 
   it('projects legacy ungrouped targets without admitting orphaned grouped targets', async () => {
-    prisma.postGroup.findMany.mockResolvedValue([]);
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: null, id: 'legacy-target-1' }),
-      makeTarget({ groupId: 'deleted-group', id: 'orphan-target-1' }),
-    ]);
+    seedReleaseListReads(
+      prisma,
+      [],
+      [
+        makeTarget({ groupId: null, id: 'legacy-target-1' }),
+        makeTarget({ groupId: 'deleted-group', id: 'orphan-target-1' }),
+      ],
+    );
 
     await expect(
       service.list('org-1', { limit: 20, page: 1 }),
@@ -450,17 +454,20 @@ describe('PostGroupsService', () => {
   });
 
   it('treats a partially published release as posted and not as not-posted', async () => {
-    prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({
-        id: 'target-published',
-        targetExecutionState: TargetExecutionState.PUBLISHED,
-      }),
-      makeTarget({
-        id: 'target-failed',
-        targetExecutionState: TargetExecutionState.FAILED,
-      }),
-    ]);
+    seedReleaseListReads(
+      prisma,
+      [makeGroup()],
+      [
+        makeTarget({
+          id: 'target-published',
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        }),
+        makeTarget({
+          id: 'target-failed',
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      ],
+    );
 
     await expect(
       service.list('org-1', { publicationState: 'posted' }),
@@ -472,14 +479,17 @@ describe('PostGroupsService', () => {
 
   it('paginates equal sort values with the release id as a stable tie-breaker', async () => {
     const createdAt = new Date('2026-07-08T22:25:13.000Z');
-    prisma.postGroup.findMany.mockResolvedValue([
-      makeGroup({ createdAt, id: 'group-b' }),
-      makeGroup({ createdAt, id: 'group-a' }),
-    ]);
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: 'group-b', id: 'target-b' }),
-      makeTarget({ groupId: 'group-a', id: 'target-a' }),
-    ]);
+    seedReleaseListReads(
+      prisma,
+      [
+        makeGroup({ createdAt, id: 'group-b' }),
+        makeGroup({ createdAt, id: 'group-a' }),
+      ],
+      [
+        makeTarget({ groupId: 'group-b', id: 'target-b' }),
+        makeTarget({ groupId: 'group-a', id: 'target-a' }),
+      ],
+    );
 
     await expect(
       service.list('org-1', {

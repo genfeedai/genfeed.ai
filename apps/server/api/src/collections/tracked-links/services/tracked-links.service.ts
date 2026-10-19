@@ -4,9 +4,11 @@ import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
@@ -26,6 +28,7 @@ type TrackedLinkUpdatePayload = {
 };
 
 type TrackedLink = TrackedLinkDocument;
+type LinkPageOptions = { limit: number; page: number };
 type CountryCacheEntry = { country?: string; expiresAt: number };
 type ClickRateEntry = { count: number; resetAt: number };
 type ClickStatsRow = { totalClicks: bigint; uniqueClicks: bigint };
@@ -42,6 +45,8 @@ type ClickBreakdowns = {
 };
 type RequestHeaders = Record<string, string | string[] | undefined>;
 
+/** The CTA stats rollup reads at most this many of a content item's links. */
+const CONTENT_STATS_LINK_LIMIT = 500;
 const CLICK_RATE_LIMIT = 120;
 const CLICK_RATE_WINDOW_MS = 60_000;
 
@@ -377,43 +382,73 @@ export class TrackedLinksService {
   }
 
   /**
-   * Get all links for content
+   * Links for content, newest first, capped. Feeds the CTA stats rollup; the
+   * listing endpoint pages through {@link listContentLinks} instead.
    */
   async getContentLinks(
     contentId: string,
     organizationId: string,
   ): Promise<TrackedLink[]> {
-    const results = await this.prisma.trackedLink.findMany({
+    return this.prisma.trackedLink.findMany({
       orderBy: { createdAt: 'desc' },
+      take: CONTENT_STATS_LINK_LIMIT,
       where: scopedWhere(organizationId, { contentId }),
     });
-    return results;
   }
 
   /**
-   * Get all links for organization
+   * One page of the links for content
    */
-  async getOrganizationLinks(
+  listContentLinks(
+    contentId: string,
     organizationId: string,
-    filters?: {
+    paging: LinkPageOptions,
+  ): Promise<AggregatePaginateResult<TrackedLink>> {
+    return this.findLinkPage(organizationId, { contentId }, paging);
+  }
+
+  /**
+   * One page of the links for an organization
+   */
+  listOrganizationLinks(
+    organizationId: string,
+    filters: {
       platform?: string;
       campaignName?: string;
       isActive?: boolean;
     },
-  ): Promise<TrackedLink[]> {
-    const where = scopedWhere(organizationId, {
-      ...(filters?.campaignName ? { campaignName: filters.campaignName } : {}),
-      ...(filters?.isActive !== undefined
-        ? { isActive: filters.isActive }
-        : {}),
-      ...(filters?.platform ? { platform: filters.platform } : {}),
-    });
+    paging: LinkPageOptions,
+  ): Promise<AggregatePaginateResult<TrackedLink>> {
+    return this.findLinkPage(
+      organizationId,
+      {
+        ...(filters.campaignName ? { campaignName: filters.campaignName } : {}),
+        ...(filters.isActive !== undefined
+          ? { isActive: filters.isActive }
+          : {}),
+        ...(filters.platform ? { platform: filters.platform } : {}),
+      },
+      paging,
+    );
+  }
 
-    const results = await this.prisma.trackedLink.findMany({
-      orderBy: { createdAt: 'desc' },
-      where,
-    });
-    return results;
+  private async findLinkPage(
+    organizationId: string,
+    filters: Prisma.TrackedLinkWhereInput,
+    { limit, page }: LinkPageOptions,
+  ): Promise<AggregatePaginateResult<TrackedLink>> {
+    const where = scopedWhere(organizationId, filters);
+    const [docs, totalDocs] = await Promise.all([
+      this.prisma.trackedLink.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.trackedLink.count({ where }),
+    ]);
+
+    return buildPaginatedResult(docs, totalDocs, page, limit);
   }
 
   /**

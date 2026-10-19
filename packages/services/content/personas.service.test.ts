@@ -131,7 +131,7 @@ describe('PersonasService', () => {
   });
 
   it('maps availability fields onto character list items', async () => {
-    vi.spyOn(service, 'findAll').mockResolvedValue([
+    vi.spyOn(service, 'findAllPages').mockResolvedValue([
       new Persona({
         availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
         availableBrandCount: 3,
@@ -152,6 +152,31 @@ describe('PersonasService', () => {
         owningBrandName: 'Podcast',
       }),
     ]);
+  });
+
+  it('lists one server page of characters when a page is requested', async () => {
+    const findAll = vi
+      .spyOn(service, 'findAll')
+      .mockResolvedValue([new Persona({ id: 'p2', label: 'Ben' })]);
+    const findAllPages = vi.spyOn(service, 'findAllPages');
+    const signal = new AbortController().signal;
+
+    const result = await service.listCharacters({ limit: 15, page: 2 }, signal);
+
+    expect(findAll).toHaveBeenCalledWith({ limit: 15, page: 2 }, signal);
+    expect(findAllPages).not.toHaveBeenCalled();
+    expect(result).toEqual([expect.objectContaining({ id: 'p2' })]);
+  });
+
+  it('lists every character across pages when no page is requested', async () => {
+    const findAllPages = vi
+      .spyOn(service, 'findAllPages')
+      .mockResolvedValue([new Persona({ id: 'p3', label: 'Cy' })]);
+
+    const result = await service.listCharacters();
+
+    expect(findAllPages).toHaveBeenCalledWith({}, undefined);
+    expect(result).toEqual([expect.objectContaining({ id: 'p3' })]);
   });
 
   it('lists every character for an explicit brand', async () => {

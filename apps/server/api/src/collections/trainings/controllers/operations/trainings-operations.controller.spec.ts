@@ -11,7 +11,9 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { TrainingsOperationsController } from '@api/collections/trainings/controllers/operations/trainings-operations.controller';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -259,6 +261,34 @@ describe('TrainingsOperationsController', () => {
         metadataId: { in: ['metadata-1', 'metadata-2'] },
       });
       expect(ingredientQuery.where).not.toHaveProperty('metadata');
+    });
+  });
+  describe('getTrainingSources', () => {
+    it('pages the sources and hands the whole paginated result to the serializer', async () => {
+      const paginated = {
+        docs: mockSourceDocs.slice(0, 2),
+        limit: 2,
+        page: 3,
+        totalDocs: 10,
+        totalPages: 5,
+      };
+      mockServices.ingredientsService.findAll.mockResolvedValueOnce(paginated);
+
+      await controller.getTrainingSources(
+        {} as unknown as Request,
+        mockUser,
+        mockTraining.id,
+        Object.assign(new BaseQueryDto(), { limit: 2, page: 3 }),
+      );
+
+      expect(
+        mockServices.ingredientsService.findAll.mock.calls.at(-1)?.[1],
+      ).toMatchObject({ limit: 2, page: 3, pagination: true });
+      expect(serializeCollection).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.anything(),
+        paginated,
+      );
     });
   });
 });

@@ -26,11 +26,33 @@ describe('PostRetryService', () => {
   const postsService = {
     findOne: vi.fn(),
     patch: vi.fn(),
+    prisma: { post: { updateMany: vi.fn() } },
   };
   const service = new PostRetryService(postsService as unknown as PostsService);
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('re-arms thread children that failed only because their parent did', async () => {
+    postsService.findOne.mockResolvedValue(failedPost);
+    postsService.patch.mockResolvedValue(failedPost);
+
+    await service.retryPost(postId, organizationId);
+
+    expect(postsService.prisma.post.updateMany).toHaveBeenCalledWith({
+      data: {
+        targetError: expect.anything(),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      },
+      where: expect.objectContaining({
+        isDeleted: false,
+        organizationId,
+        parentId: postId,
+        targetError: { equals: 'parent_failed', path: ['code'] },
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
+    });
   });
 
   it('re-arms a failed post with a current retry date', async () => {

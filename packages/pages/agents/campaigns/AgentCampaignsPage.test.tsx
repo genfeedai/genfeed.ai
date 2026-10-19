@@ -1,3 +1,4 @@
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import AgentCampaignsPage from '@pages/agents/campaigns/AgentCampaignsPage';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -66,17 +67,32 @@ const mockCampaigns: AgentCampaign[] = [
   },
 ];
 
-const mockUseAgentCampaigns = vi.fn(() => ({
-  campaigns: mockCampaigns,
-  error: null as Error | null,
-  isLoading: false,
-  refresh: vi.fn(),
-}));
+const mockUseAgentCampaigns = vi.fn(
+  (_options?: { limit?: number; page?: number }) => ({
+    campaigns: mockCampaigns,
+    error: null as Error | null,
+    isLoading: false,
+    refresh: vi.fn(),
+  }),
+);
 
 const HOUR_MS = 60 * 60 * 1000;
 
+const mockNavigation = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
+}));
+
 vi.mock('@hooks/data/agent-campaigns/use-agent-campaigns', () => ({
-  useAgentCampaigns: () => mockUseAgentCampaigns(),
+  useAgentCampaigns: (options?: { limit?: number; page?: number }) =>
+    mockUseAgentCampaigns(options),
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => mockNavigation.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -146,6 +162,7 @@ describe('AgentCampaignsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    mockNavigation.searchParams = new URLSearchParams();
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: mockCampaigns,
       error: null,
@@ -324,6 +341,21 @@ describe('AgentCampaignsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('server-pages the All collection from the URL page', () => {
+    mockNavigation.searchParams = new URLSearchParams('page=3');
+
+    render(<AgentCampaignsPage />);
+
+    expect(mockUseAgentCampaigns).toHaveBeenCalledWith({
+      limit: ITEMS_PER_PAGE,
+      page: 3,
+    });
+    expect(mockUseAgentCampaigns).toHaveBeenCalledWith(undefined);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
   it('shows a load error with Retry instead of the empty state', () => {
     const refresh = vi.fn();
     mockUseAgentCampaigns.mockReturnValue({
@@ -346,7 +378,8 @@ describe('AgentCampaignsPage', () => {
     expect(within(all).queryByRole('radio', { name: 'Grid' })).toBeNull();
 
     fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
-    expect(refresh).toHaveBeenCalledTimes(1);
+    // Retry refetches both the paged list and the full set behind the strip.
+    expect(refresh).toHaveBeenCalledTimes(2);
   });
 
   it('recovers the collection after a successful retry', () => {

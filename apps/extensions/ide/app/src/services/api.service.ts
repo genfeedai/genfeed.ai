@@ -172,7 +172,7 @@ export class ApiService {
   async getContentTemplates(): Promise<PromptTemplate[]> {
     const contentTemplates = await this.request<
       ApiResponse<PromptTemplate[]> | PromptTemplate[]
-    >('GET', '/templates?purpose=prompt');
+    >('GET', '/templates?purpose=prompt&limit=100');
 
     return extractDataArray(contentTemplates);
   }

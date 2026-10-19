@@ -10,6 +10,10 @@ import {
   toCampaignTargetDataPayload,
 } from '@api/collections/campaign-targets/services/campaign-target-json.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  buildPaginatedResult,
+  type PaginatedResult,
+} from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -36,6 +40,12 @@ const DEFAULT_SCHEDULE_VERSION = 1;
 type CampaignTargetRow = {
   data?: unknown;
 } & Record<string, unknown>;
+
+export type CampaignTargetPageOptions = {
+  limit: number;
+  page: number;
+  status?: CampaignTargetStatus;
+};
 
 type DueTargetClaimOptions = {
   now?: Date;
@@ -320,18 +330,58 @@ export class CampaignTargetsService extends BaseService<
     return target ? this.normalizeDocument(target) : null;
   }
 
-  async findByCampaign(
+  /**
+   * One page of a campaign's targets, oldest first. `status` narrows the page
+   * and its total; the campaign-wide status breakdown is
+   * {@link countByCampaignStatus}.
+   */
+  async findPageByCampaign(
     campaignId: string,
     organizationId: string,
-  ): Promise<CampaignTargetDocument[]> {
-    const targets = await this.prisma.campaignTarget.findMany({
+    options: CampaignTargetPageOptions,
+  ): Promise<PaginatedResult<CampaignTargetDocument>> {
+    const { limit, page, status } = options;
+    const where = scopedWhere(organizationId, {
+      campaignId,
+      campaign: this.parentWhere(organizationId, false),
+      ...(status ? { status } : {}),
+    });
+
+    const [targets, totalDocs] = await Promise.all([
+      this.prisma.campaignTarget.findMany({
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.campaignTarget.count({ where }),
+    ]);
+
+    return buildPaginatedResult(
+      this.normalizeDocuments(targets),
+      totalDocs,
+      page,
+      limit,
+    );
+  }
+
+  /** Targets per status across the whole campaign, counted in the database. */
+  async countByCampaignStatus(
+    campaignId: string,
+    organizationId: string,
+  ): Promise<Partial<Record<CampaignTargetStatus, number>>> {
+    const groups = await this.prisma.campaignTarget.groupBy({
+      _count: { _all: true },
+      by: ['status'],
       where: scopedWhere(organizationId, {
         campaignId,
         campaign: this.parentWhere(organizationId, false),
       }),
     });
 
-    return this.normalizeDocuments(targets);
+    return Object.fromEntries(
+      groups.map((group) => [group.status, group._count._all]),
+    );
   }
 
   async findByCampaignAndStatus(

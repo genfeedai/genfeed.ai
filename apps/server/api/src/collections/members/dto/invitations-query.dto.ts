@@ -1,3 +1,4 @@
+import { PageQueryDto } from '@api/helpers/dto/page-query.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
@@ -12,7 +13,7 @@ export const INVITATION_STATUS_VALUES = [
 
 export type InvitationStatusFilter = (typeof INVITATION_STATUS_VALUES)[number];
 
-export class InvitationsQueryDto {
+export class InvitationsQueryDto extends PageQueryDto {
   @IsOptional()
   @IsString()
   @IsIn(INVITATION_STATUS_VALUES)

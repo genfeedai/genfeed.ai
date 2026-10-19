@@ -1,3 +1,4 @@
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useContentPlans } from '@hooks/data/content-plans/use-content-plans';
 import {
@@ -8,6 +9,7 @@ import type { GeneratePlanFormState } from '@props/automation/content-plans-sect
 import { ContentPlansService } from '@services/content/content-plans.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -17,9 +19,13 @@ export function useContentPlansSection() {
   const { brandId } = scope;
   const isFetchReady = isCollectionFetchReady(scope) && Boolean(brandId);
   const notificationsService = NotificationsService.getInstance();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { plans, isLoading, refresh } = useContentPlans({
     brandId,
     enabled: isFetchReady,
+    limit: ITEMS_PER_PAGE,
+    page: currentPage,
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);

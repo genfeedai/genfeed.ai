@@ -131,6 +131,15 @@ describe('FilesCaptionsService', () => {
 
       expect(filters[0]).toContain('montserrat-black.ttf');
     });
+
+    it('uses the requested Google font and ignores unknown keys', () => {
+      expect(service.getDrawtextFilters('poppins-bold', words)[0]).toContain(
+        'poppins-bold.ttf',
+      );
+      expect(service.getDrawtextFilters('../../x', words)[0]).toContain(
+        'montserrat-black.ttf',
+      );
+    });
   });
 
   describe('getOverlayDrawtextFilters', () => {

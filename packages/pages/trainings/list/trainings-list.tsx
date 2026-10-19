@@ -13,6 +13,7 @@ import { EmptyState } from '@ui/card/EmptyState';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Lock } from 'lucide-react';
 import Link from 'next/link';
@@ -134,6 +135,10 @@ export default function TrainingsList({
           ) : undefined
         }
       />
+
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="trainings" />
+      </div>
 
       <LazyModalTraining
         training={selectedTraining}

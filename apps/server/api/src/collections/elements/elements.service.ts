@@ -33,7 +33,6 @@ export class ElementsService {
    * Every element collection visible to the organization (#6038): active
    * platform defaults first in curated order, then the organization's own
    * elements. One query per type; each item says whether it is a default.
-   * Blacklists have no platform defaults and stay organization-only.
    */
   async findAllElements(organizationId: string | null | undefined) {
     const buildQuery = (): Record<string, unknown> => ({
@@ -70,17 +69,7 @@ export class ElementsService {
       findScoped(this.scenesService),
       findScoped(this.stylesService),
       findScoped(this.soundsService),
-      organizationId
-        ? this.blacklistsService
-            .findAll(
-              {
-                orderBy: { createdAt: -1, key: 1 },
-                where: { isDeleted: false, organizationId },
-              },
-              { pagination: false },
-            )
-            .then((result) => result.docs)
-        : Promise.resolve([]),
+      findScoped(this.blacklistsService),
       findScoped(this.lightingsService),
       findScoped(this.lensesService),
       findScoped(this.cameraMovementsService),

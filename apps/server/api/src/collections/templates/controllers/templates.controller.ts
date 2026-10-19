@@ -100,9 +100,7 @@ export class TemplatesController {
       filters,
     );
 
-    return serializeCollection(request, TemplateSerializer, {
-      docs: templates,
-    });
+    return serializeCollection(request, TemplateSerializer, templates);
   }
 
   /**

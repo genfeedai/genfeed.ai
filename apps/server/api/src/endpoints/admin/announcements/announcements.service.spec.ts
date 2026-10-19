@@ -308,38 +308,52 @@ describe('AdminAnnouncementsService', () => {
   });
 
   describe('getHistory', () => {
-    it('should return all announcements', async () => {
-      const mockAnnouncements = [mockAnnouncement];
-      announcementsCollectionService.getAll.mockResolvedValue(
-        mockAnnouncements as never,
-      );
+    const pageOf = (docs: unknown[], totalDocs = docs.length) => ({
+      docs,
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 20,
+      nextPage: null,
+      page: 1,
+      pagingCounter: 1,
+      prevPage: null,
+      totalDocs,
+      totalPages: 1,
+    });
 
-      const result = await service.getHistory();
+    it('returns the requested page with its total from the collection service', async () => {
+      const result = pageOf([mockAnnouncement], 31);
+      announcementsCollectionService.getAll.mockResolvedValue(result as never);
 
-      expect(announcementsCollectionService.getAll).toHaveBeenCalled();
-      expect(result).toBe(mockAnnouncements);
+      const history = await service.getHistory({ limit: 10, page: 2 });
+
+      expect(announcementsCollectionService.getAll).toHaveBeenCalledWith(2, 10);
+      expect(history).toBe(result);
     });
 
     it('reads the platform-wide history outside the superadmin tenant (CLOUD guard)', async () => {
       let wasCrossOrg = false;
       announcementsCollectionService.getAll.mockImplementation(async () => {
         wasCrossOrg = isCrossOrgUnsafe();
-        return [];
+        return pageOf([]) as never;
       });
 
       await runWithTenantContext({ organizationId }, () =>
-        service.getHistory(),
+        service.getHistory({ limit: 20, page: 1 }),
       );
 
       expect(wasCrossOrg).toBe(true);
     });
 
-    it('should return empty array when no announcements exist', async () => {
-      announcementsCollectionService.getAll.mockResolvedValue([]);
+    it('returns an empty page when no announcements exist', async () => {
+      announcementsCollectionService.getAll.mockResolvedValue(
+        pageOf([]) as never,
+      );
 
-      const result = await service.getHistory();
+      const result = await service.getHistory({ limit: 20, page: 1 });
 
-      expect(result).toEqual([]);
+      expect(result.docs).toEqual([]);
+      expect(result.totalDocs).toBe(0);
     });
   });
 });

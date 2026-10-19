@@ -86,6 +86,7 @@ export class AgentStrategyAutopilotPlanningService {
   async refreshOpportunities(
     strategy: AgentStrategyDocument,
     refreshTrends = false,
+    listLimit?: number,
   ): Promise<AgentStrategyOpportunityDocument[]> {
     await this.performanceService.reconcilePublications(strategy);
     const context = this.buildOpportunityContext(strategy);
@@ -97,6 +98,7 @@ export class AgentStrategyAutopilotPlanningService {
     return this.opportunitiesService.listOpenByStrategy(
       context.strategyId,
       context.strategyOrganizationId,
+      listLimit,
     );
   }
 

@@ -180,6 +180,33 @@ describe('publishing content library federation', () => {
     ).toEqual([]);
   });
 
+  it('filters by a connected account id', () => {
+    const items = createPublishingContentLibraryItems(collections).map(
+      (item, index) =>
+        index === 0
+          ? {
+              ...item,
+              accounts: [
+                {
+                  id: 'cred-1',
+                  label: '@genfeedai',
+                  platform: 'twitter',
+                },
+              ],
+            }
+          : item,
+    );
+
+    expect(
+      filterPublishingContentLibraryItems(items, {
+        channel: 'account:cred-1',
+        search: '',
+        status: [],
+        type: 'all',
+      }).map((item) => item.id),
+    ).toEqual([items[0]?.id]);
+  });
+
   it('tags only non-plain formats and leaves plain posts untagged', () => {
     const items = createPublishingContentLibraryItems({
       articles: collections.articles,

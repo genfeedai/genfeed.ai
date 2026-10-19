@@ -4,6 +4,7 @@ import {
   type PageScope,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { TableAction } from '@props/ui/display/table.props';
 import type { ReactNode } from 'react';
 
 export const ADMIN_MODEL_TYPE_TABS = [
@@ -36,8 +37,13 @@ export interface ModelsListProps {
   onPricingDetails?: (model: IModel) => void;
   renderExpandedRow?: (model: IModel) => ReactNode | undefined;
   renderToolbar?: (models: IModel[]) => ReactNode;
-  /** Admin only: a control beside a model's cost, e.g. "Fix pricing". */
-  renderCostAction?: (model: IModel) => ReactNode;
+  /** Admin only: row actions placed before edit and delete, e.g. "Fix pricing". */
+  rowActions?: TableAction<IModel>[];
+  /**
+   * Admin only: models that need an operator come first, ahead of the sort
+   * order, so required work is not buried on a later page.
+   */
+  isModelPinned?: (model: IModel) => boolean;
   beforeList?: ReactNode;
   onRefresh?: () => Promise<unknown>;
   scope?: PageScope;

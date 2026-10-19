@@ -9,6 +9,7 @@ import type {
   IViralHooksResult,
   IWinnerPost,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -60,6 +61,8 @@ export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
   organizationId?: string;
   page?: number;
   limit?: number;
+  /** Case-insensitive name search, applied by the API before paging. */
+  search?: string;
   sort?:
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.VIEWS
@@ -314,10 +317,21 @@ export class AnalyticsService extends HTTPBaseService {
    */
   public async getBrandsWithStats(
     params?: IAdminOrgsQueryParams,
+    signal?: AbortSignal,
   ): Promise<IPaginatedBrandsResponse> {
     return await this.instance
-      .get<JsonApiResponseDocument>('brands', { params })
-      .then((res) => deserializeResource<IPaginatedBrandsResponse>(res.data));
+      .get<JsonApiResponseDocument>('brands', { params, signal })
+      .then((res) => deserializeResource<IPaginatedBrandsResponse>(res.data))
+      .then((response) => {
+        // Feeds AutoPagination, which reads the totals from PagesService.
+        if (params?.page && response.pagination) {
+          PagesService.setCurrentPage(response.pagination.page);
+          PagesService.setTotalPages(response.pagination.totalPages);
+          PagesService.setTotalDocs(response.pagination.total);
+        }
+
+        return response;
+      });
   }
 
   /**

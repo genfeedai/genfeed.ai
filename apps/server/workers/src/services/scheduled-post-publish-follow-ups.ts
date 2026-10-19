@@ -3,10 +3,15 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import { type PublishResult, scopedWhere } from '@api/index';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  Platform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import * as Sentry from '@sentry/nestjs';
 import {
   getPublishErrorCode,
   getPublishErrorMessage,
@@ -51,6 +56,8 @@ export class ScheduledPostPublishFollowUps {
     publishedAt: Date,
     url: string,
   ): Promise<void> {
+    await this.reportSkippedThreadChildren(post, children, url);
+
     if (children.length === 0) {
       return;
     }
@@ -69,6 +76,64 @@ export class ScheduledPostPublishFollowUps {
       result,
       url,
     );
+  }
+
+  /**
+   * Only SCHEDULED replies are loaded for delivery. A reply in any other live
+   * state (typically FAILED when an earlier attempt failed the parent) would
+   * otherwise be dropped without a trace while the parent publishes.
+   */
+  private async reportSkippedThreadChildren(
+    post: PostEntity,
+    delivered: PostDocument[],
+    url: string,
+  ): Promise<void> {
+    const organizationId = readPostString(post, ['organizationId']);
+    if (!organizationId) {
+      return;
+    }
+
+    let skipped: Array<{ id: string; targetExecutionState: string }>;
+    try {
+      skipped = await this.prisma.post.findMany({
+        select: { id: true, targetExecutionState: true },
+        where: scopedWhere(organizationId, {
+          id: { notIn: delivered.map((child) => child.id.toString()) },
+          isDeleted: false,
+          parentId: post.id.toString(),
+          targetExecutionState: {
+            notIn: [
+              TargetExecutionState.PUBLISHED,
+              TargetExecutionState.CANCELLED,
+            ],
+          },
+        }),
+      });
+    } catch (error: unknown) {
+      // Reporting must never block delivering the replies that are due.
+      this.logger.warn(`${url} could not check for skipped thread replies`, {
+        error: getErrorMessage(error),
+        parentPostId: post.id.toString(),
+      });
+      return;
+    }
+    if (skipped.length === 0) {
+      return;
+    }
+
+    const details = {
+      childPostIds: skipped.map((child) => child.id),
+      parentPostId: post.id.toString(),
+      states: skipped.map((child) => child.targetExecutionState),
+    };
+    this.logger.error(
+      `${url} parent published but thread replies were not SCHEDULED and are skipped`,
+      details,
+    );
+    Sentry.captureMessage('Thread replies skipped after the parent published', {
+      extra: details,
+      level: 'error',
+    });
   }
 
   private async parkDelayedThreadChildren(

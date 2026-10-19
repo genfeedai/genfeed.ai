@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AttachMcpApprovalResultDto } from '@api/collections/mcp-approvals/dto/attach-mcp-approval-result.dto';
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
+import { McpApprovalsQueryDto } from '@api/collections/mcp-approvals/dto/mcp-approvals-query.dto';
 import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
@@ -13,6 +14,10 @@ import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenan
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { scopedWhere } from '@api/index';
+import {
+  type FrontendPagination,
+  transformPaginationFormat,
+} from '@api/shared/utils/pagination-transform/pagination-transform.util';
 import { MemberRole } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus } from '@genfeedai/prisma';
@@ -28,7 +33,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseEnumPipe,
   Post,
   Query,
   Req,
@@ -45,6 +49,11 @@ type McpApprovalResponse = {
   result: Record<string, unknown> | null;
   resolvedAt: Date | null;
   createdAt: Date;
+};
+
+type McpApprovalListResponse = {
+  data: McpApprovalResponse[];
+  links: FrontendPagination['links'];
 };
 
 @ApiTags('MCP Approvals')
@@ -96,13 +105,13 @@ export class McpApprovalsController {
   @ApiResponse({ description: 'Approvals returned', status: HttpStatus.OK })
   async findAll(
     @CurrentUser() user: User,
-    @Query('status', new ParseEnumPipe(McpApprovalStatus, { optional: true }))
-    status?: McpApprovalStatus,
-  ): Promise<{ data: McpApprovalResponse[] }> {
+    @Query() query: McpApprovalsQueryDto,
+  ): Promise<McpApprovalListResponse> {
     const readScope = resolveTenantReadScope(user);
     const organization = readScope.organizationId;
-    const list = await this.service.findByOrganization(organization, status);
-    return { data: list.map((a) => this.toResponse(a)) };
+    const list = await this.service.findByOrganization(organization, query);
+    const { links } = transformPaginationFormat(list);
+    return { data: list.docs.map((a) => this.toResponse(a)), links };
   }
 
   @TenantReadPolicy('selected')

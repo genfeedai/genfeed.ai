@@ -68,11 +68,18 @@ export class AgentCampaignsService extends BaseService<
     return BaseService.getDataServiceInstance(AgentCampaignsService, token);
   }
 
+  /**
+   * With `page`, returns that single server page (and records the totals for
+   * `<AutoPagination />`). Without it, returns every campaign across all pages.
+   */
   async list(params?: {
     brandId?: string;
+    limit?: number;
+    page?: number;
     status?: string;
   }): Promise<AgentCampaign[]> {
-    return this.findAll(params as Record<string, unknown>);
+    const query = (params ?? {}) as Record<string, unknown>;
+    return params?.page ? this.findAll(query) : this.findAllPages(query);
   }
 
   async getById(id: string): Promise<AgentCampaign> {

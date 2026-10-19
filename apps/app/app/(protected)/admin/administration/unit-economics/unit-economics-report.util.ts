@@ -1,12 +1,5 @@
-import type {
-  IUnitEconomicsReport,
-  IUnitEconomicsRow,
-} from '@genfeedai/contracts/interfaces';
-import type {
-  UnitEconomicsSortKey,
-  UnitEconomicsTableRow,
-} from '@props/admin/unit-economics.props';
-import type { TableSortDirection } from '@props/ui/display/table.props';
+import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
+import type { UnitEconomicsTableRow } from '@props/admin/unit-economics.props';
 
 export const UNIT_ECONOMICS_TOTAL_ROW_ID = '__total__';
 
@@ -50,38 +43,15 @@ export function buildUnitEconomicsRange(
   return { from: toDateOnly(from), to: toDateOnly(now) };
 }
 
-function compareRows(
-  left: IUnitEconomicsRow,
-  right: IUnitEconomicsRow,
-  key: UnitEconomicsSortKey,
-): number {
-  if (key === 'label') {
-    return left.label.localeCompare(right.label);
-  }
-  // A row without revenue has no margin %; it sorts below every real value.
-  const leftValue = left[key] ?? Number.NEGATIVE_INFINITY;
-  const rightValue = right[key] ?? Number.NEGATIVE_INFINITY;
-  return leftValue - rightValue;
-}
-
-/** Sorted rows with the totals row always last, whatever the sort. */
+/** The API's already-sorted page, with the report-wide totals row always last. */
 export function buildUnitEconomicsTableRows(
   report: IUnitEconomicsReport | undefined,
-  sortKey: UnitEconomicsSortKey,
-  sortDirection: TableSortDirection,
   totalLabel: string,
 ): UnitEconomicsTableRow[] {
   if (!report) {
     return [];
   }
-  const direction = sortDirection === 'asc' ? 1 : -1;
-  const rows = [...report.rows]
-    .sort(
-      (left, right) =>
-        direction * compareRows(left, right, sortKey) ||
-        left.label.localeCompare(right.label),
-    )
-    .map((row) => ({ ...row, isTotal: false }));
+  const rows = report.rows.map((row) => ({ ...row, isTotal: false }));
 
   if (rows.length === 0) {
     return rows;
