@@ -456,8 +456,7 @@
         "creating": "Creating...",
         "refreshAria": "Refresh Genfeed API keys",
         "revoke": "Revoke",
-        "rotate": "Rotate",
-        "upgrade": "Upgrade to {tier}"
+        "rotate": "Rotate"
       },
       "card": {
         "description": "Use these keys for CLI profiles, MCP servers, and unattended workflows.",
@@ -470,7 +469,6 @@
         "load": "Failed to load API keys",
         "loadDescription": "Failed to load API keys. You can still create a new key, or refresh the list.",
         "loadTitle": "Couldn't load API keys",
-        "paidPlanRequired": "API access is available on paid plans.",
         "revoke": "Failed to revoke API key",
         "rotate": "Failed to rotate API key"
       },
@@ -508,11 +506,7 @@
         "revoked": "API key revoked",
         "rotated": "API key rotated"
       },
-      "title": "API Keys",
-      "upgrade": {
-        "description": "API access is included on paid plans. Upgrade to {tier} to create Genfeed API keys for CLI, MCP, and unattended workflows.",
-        "label": "Unlock API keys with {tier}"
-      }
+      "title": "API Keys"
     },
     "brandMove": {
       "cancel": "Cancel",

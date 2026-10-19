@@ -16,28 +16,6 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({
-    orgHref: (path: string) =>
-      `/test-org/~${path.startsWith('/') ? path : `/${path}`}`,
-  }),
-}));
-
-vi.mock('next/link', () => ({
-  default: ({
-    children,
-    href,
-    ...props
-  }: {
-    children: ReactNode;
-    href: string;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 const mocks = vi.hoisted(() => ({
   authedServices: new WeakMap<
     (token: string) => unknown,
@@ -70,7 +48,6 @@ const mocks = vi.hoisted(() => ({
   revokeApiKey: vi.fn(),
   rotateApiKey: vi.fn(),
   saveByokProviderKey: vi.fn(),
-  settingsSubscriptionTier: 'scale',
   validateByokProviderKey: vi.fn(),
 }));
 
@@ -78,7 +55,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     isReady: mocks.isReady,
     organizationId: mocks.organizationId,
-    settings: { subscriptionTier: mocks.settingsSubscriptionTier },
   }),
 }));
 
@@ -183,7 +159,6 @@ vi.mock('lucide-react', () => ({
   ChevronDown: () => <span data-testid="hi-chevron-down" />,
   ChevronRight: () => <span data-testid="hi-chevron-right" />,
   Clipboard: () => <span data-testid="hi-clipboard-document" />,
-  Lock: () => <span data-testid="hi-lock-closed" />,
   Plus: () => <span data-testid="hi-plus" />,
   RefreshCw: () => <span data-testid="hi-arrow-path" />,
   Trash2: () => <span data-testid="hi-trash" />,
@@ -353,7 +328,6 @@ describe('SettingsApiKeysPage', () => {
     mocks.isReady = true;
     mocks.isSelfHosted = false;
     mocks.organizationId = 'org-1';
-    mocks.settingsSubscriptionTier = 'scale';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.searchParams = new URLSearchParams();
     mocks.findAllApiKeys.mockResolvedValue(productApiKeys());
@@ -830,28 +804,6 @@ describe('SettingsApiKeysPage', () => {
     expect(
       screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
     ).toBeEnabled();
-  });
-
-  it('locks the API keys page for free-tier organizations', async () => {
-    mocks.settingsSubscriptionTier = 'free';
-    render(<SettingsApiKeysPage />);
-
-    expect(
-      await screen.findByText('Unlock API keys with Agencies'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/API access is included on paid plans/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Upgrade to Agencies/i }),
-    ).toHaveAttribute(
-      'href',
-      expect.stringContaining('/settings/subscription'),
-    );
-    expect(
-      screen.queryByRole('button', { name: 'Create Key' }),
-    ).not.toBeInTheDocument();
-    expect(mocks.createApiKey).not.toHaveBeenCalled();
   });
 
   it('rotates and revokes Genfeed API keys', async () => {
