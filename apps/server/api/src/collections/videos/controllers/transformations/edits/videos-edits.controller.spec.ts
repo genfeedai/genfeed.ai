@@ -257,6 +257,48 @@ describe('VideosEditsController', () => {
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalled();
   });
 
+  describe('text overlay font', () => {
+    const overlayParams = () =>
+      mockServices.fileQueueService.processVideo.mock.calls.at(-1)?.[0].params;
+
+    beforeEach(() => {
+      mockServices.metadataService.findOne.mockResolvedValue({
+        height: 1080,
+        ingredient: videoId,
+        width: 1920,
+      });
+    });
+
+    it('should use the requested font and normalize it to its key', async () => {
+      mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+      await controller.addTextOverlay(mockRequest, mockUser, videoId, {
+        fontFamily: 'POPPINS_BOLD',
+        text: 'Hi',
+      });
+      expect(overlayParams()?.fontFamily).toBe('poppins-bold');
+    });
+
+    it('should fall back to the font picked in the prompt bar', async () => {
+      mockServices.videosService.findOne.mockResolvedValue({
+        ...mockVideo,
+        prompt: { fontFamily: 'bebas-neue' },
+      });
+      await controller.addTextOverlay(mockRequest, mockUser, videoId, {
+        text: 'Hi',
+      });
+      expect(overlayParams()?.fontFamily).toBe('bebas-neue');
+    });
+
+    it('should ignore unknown fonts', async () => {
+      mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+      await controller.addTextOverlay(mockRequest, mockUser, videoId, {
+        fontFamily: '../../etc/passwd',
+        text: 'Hi',
+      });
+      expect(overlayParams()).not.toHaveProperty('fontFamily');
+    });
+  });
+
   it('should throw BAD_REQUEST when text overlay has empty text', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     await expect(

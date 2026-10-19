@@ -20,10 +20,12 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
+  FONT_FAMILY_METADATA,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
+  resolveFontFamily,
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/contracts';
@@ -227,10 +229,13 @@ export class VideosEditsController {
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const video = await this.videosService.findOne({
-      id: videoId,
-      userId: user.userId ?? user.id,
-    });
+    const video = await this.videosService.findOne(
+      {
+        id: videoId,
+        userId: user.userId ?? user.id,
+      },
+      [{ path: 'prompt', select: ['fontFamily'] }],
+    );
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);
@@ -274,6 +279,15 @@ export class VideosEditsController {
           width: originalMetadata.width,
         });
 
+      // An explicit choice wins; otherwise the overlay uses the font picked in
+      // the prompt bar when the video was generated.
+      const promptFont = (
+        video as { prompt?: { fontFamily?: string | null } | null }
+      ).prompt?.fontFamily;
+      const overlayFont =
+        resolveFontFamily(createVideoDto.fontFamily) ??
+        resolveFontFamily(promptFont);
+
       const videoUrl = await this.processingVideoUrl(
         user.organizationId.toString(),
         videoId,
@@ -283,6 +297,9 @@ export class VideosEditsController {
           ingredientId: ingredientData.id.toString(),
           organizationId: user.organizationId,
           params: {
+            ...(overlayFont
+              ? { fontFamily: FONT_FAMILY_METADATA[overlayFont].key }
+              : {}),
             height: originalMetadata.height,
             inputPath: videoUrl,
             position: createVideoDto.position || 'top',

@@ -6,6 +6,8 @@ export interface IResizeBodyParams {
 export interface ITextOverlayBodyParams {
   text: string;
   position?: 'top' | 'center' | 'bottom';
+  /** Font key (`poppins-bold`) or `FontFamily` label. Defaults to the video's prompt font. */
+  fontFamily?: string;
 }
 
 export interface ITrimVideoBodyParams {

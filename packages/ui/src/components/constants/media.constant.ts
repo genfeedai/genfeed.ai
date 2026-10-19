@@ -11,7 +11,7 @@ export const MEDIA_TYPE_CONFIGS: Partial<
     buttons: {
       blacklist: true,
       camera: true,
-      fontFamily: false,
+      fontFamily: true,
       format: true,
       gallery: true,
       model: true,

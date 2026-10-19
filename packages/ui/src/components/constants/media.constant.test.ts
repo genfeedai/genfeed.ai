@@ -84,10 +84,10 @@ describe('media.constant', () => {
         ).toBe(true);
       });
 
-      it('should disable fontFamily for video', () => {
+      it('should enable fontFamily for video', () => {
         expect(
           MEDIA_TYPE_CONFIGS[IngredientCategory.VIDEO]?.buttons?.fontFamily,
-        ).toBe(false);
+        ).toBe(true);
       });
     });
 
