@@ -9,34 +9,41 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 export class WorkspaceInboxReadService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * `countOnly` is for the rail badge, which polls on every page and only reads
+   * `unreadCount`; the receipt list grows with every task the user has seen.
+   */
   async list(
     organizationId: string,
     userId: string,
+    options: { countOnly?: boolean } = {},
   ): Promise<IWorkspaceInboxReadState> {
-    const reads = await this.prisma.workspaceInboxRead.findMany({
-      where: scopedWhere(organizationId, {
-        userId,
-        task: {
-          organizationId,
-          isDeleted: false,
-          dismissedAt: null,
-          reviewState: { not: 'dismissed' },
-        },
-      }),
-      select: { taskId: true, seenUpdatedAt: true },
-    });
-    const [count] = await this.prisma.$queryRaw<
-      { unreadCount: number }[]
-    >(Prisma.sql`
-      SELECT COUNT(*)::int AS "unreadCount"
-      FROM tasks t
-      LEFT JOIN workspace_inbox_reads r
-        ON r."taskId" = t.id AND r."organizationId" = ${organizationId}
-        AND r."userId" = ${userId} AND r."isDeleted" = false
-      WHERE t."organizationId" = ${organizationId} AND t."isDeleted" = false
-        AND t."dismissedAt" IS NULL AND t."reviewState" <> 'dismissed'
-        AND (r."seenUpdatedAt" IS NULL OR r."seenUpdatedAt" < t."updatedAt")
-    `);
+    const [reads, [count]] = await Promise.all([
+      options.countOnly
+        ? Promise.resolve([])
+        : this.prisma.workspaceInboxRead.findMany({
+            where: scopedWhere(organizationId, {
+              userId,
+              task: {
+                organizationId,
+                isDeleted: false,
+                dismissedAt: null,
+                reviewState: { not: 'dismissed' },
+              },
+            }),
+            select: { taskId: true, seenUpdatedAt: true },
+          }),
+      this.prisma.$queryRaw<{ unreadCount: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS "unreadCount"
+        FROM tasks t
+        LEFT JOIN workspace_inbox_reads r
+          ON r."taskId" = t.id AND r."organizationId" = ${organizationId}
+          AND r."userId" = ${userId} AND r."isDeleted" = false
+        WHERE t."organizationId" = ${organizationId} AND t."isDeleted" = false
+          AND t."dismissedAt" IS NULL AND t."reviewState" <> 'dismissed'
+          AND (r."seenUpdatedAt" IS NULL OR r."seenUpdatedAt" < t."updatedAt")
+      `),
+    ]);
     return {
       id: organizationId,
       unreadCount: count?.unreadCount ?? 0,
