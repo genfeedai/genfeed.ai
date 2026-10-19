@@ -16,10 +16,10 @@ import { Users, VenetianMask } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useImpersonateUser } from './use-impersonate-user';
 import UserAvatar from './user-avatar';
-import UserDetailSheet from './user-detail-sheet';
+import UserDetailPanel from './user-detail-panel';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 import UserEmail from './user-email';
 
@@ -30,7 +30,6 @@ function formatUserDate(value: string | Date | null | undefined): string {
 export default function UsersList() {
   const translate = useTranslations('pages.adminUsers');
   const impersonateUser = useImpersonateUser();
-  const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -123,19 +122,25 @@ export default function UsersList() {
         columns={columns}
         actions={actions}
         getRowKey={(u) => u.id}
-        onRowClick={setSelectedUser}
+        rowSidebar={{
+          getId: (u) => u.id,
+          getSubtitle: (u) => u.email || undefined,
+          getTitle: (u) => getUserDisplayName(u) ?? EMPTY_VALUE,
+          kind: 'user',
+          render: (u) => (
+            <UserDetailPanel
+              user={u}
+              onImpersonate={(target) => {
+                void impersonateUser(target);
+              }}
+            />
+          ),
+        }}
         emptyLabel={translate('empty')}
       />
       <div className="mt-4">
         <AutoPagination showTotal totalLabel={translate('totalLabel')} />
       </div>
-      <UserDetailSheet
-        user={selectedUser}
-        onClose={() => setSelectedUser(null)}
-        onImpersonate={(u) => {
-          void impersonateUser(u);
-        }}
-      />
     </AdminPageShell>
   );
 }

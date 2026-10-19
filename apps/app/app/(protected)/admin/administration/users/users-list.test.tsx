@@ -3,7 +3,7 @@ import { PlatformRole } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import UsersList from './users-list';
 
@@ -95,7 +95,7 @@ vi.mock('@ui/display/table/Table', () => ({
     items,
     emptyLabel,
     getRowKey,
-    onRowClick,
+    rowSidebar,
   }: {
     actions: Array<{
       isVisible?: (item: IUser) => boolean;
@@ -110,8 +110,13 @@ vi.mock('@ui/display/table/Table', () => ({
     emptyLabel: string;
     getRowKey: (item: IUser, index: number) => string;
     items: IUser[];
-    onRowClick?: (item: IUser) => void;
+    rowSidebar?: {
+      getTitle: (item: IUser) => string;
+      kind: string;
+      render: (item: IUser) => ReactNode;
+    };
   }) => {
+    const [selected, setSelected] = useState<IUser | null>(null);
     if (items.length === 0) {
       return <div>{emptyLabel}</div>;
     }
@@ -125,7 +130,7 @@ vi.mock('@ui/display/table/Table', () => ({
             <button
               type="button"
               aria-label={`Open ${item.email}`}
-              onClick={() => onRowClick?.(item)}
+              onClick={() => setSelected(item)}
             >
               Row
             </button>
@@ -152,6 +157,11 @@ vi.mock('@ui/display/table/Table', () => ({
               ))}
           </div>
         ))}
+        {selected && rowSidebar ? (
+          <aside aria-label={rowSidebar.getTitle(selected)}>
+            {rowSidebar.render(selected)}
+          </aside>
+        ) : null}
       </div>
     );
   },
@@ -310,7 +320,7 @@ describe('UsersList', () => {
     ).toHaveAttribute('href', 'mailto:jane@example.com');
   });
 
-  it('copies the email without opening the row overlay', async () => {
+  it('copies the email without opening the row sidebar', async () => {
     render(<UsersList />);
 
     fireEvent.click(
@@ -322,15 +332,17 @@ describe('UsersList', () => {
     });
   });
 
-  it('opens a detail overlay when a row is clicked', () => {
+  it('opens the detail in the right sidebar when a row is clicked', () => {
     render(<UsersList />);
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Open jane@example.com' }),
     );
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('complementary', { name: 'Jane Doe' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open full profile' }),
     ).toHaveAttribute(
