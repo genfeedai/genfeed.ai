@@ -10,6 +10,7 @@ import type { Route, WebSocketRoute } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
+import { selectAdvancedModel } from '../../utils/generation-setup';
 
 const pixel = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=',
@@ -183,16 +184,7 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
     .getByTestId('studio-playground-prompt')
     .getByRole('textbox');
   await expect(editor).toBeVisible();
-  await page.getByRole('button', { name: /^Generation setup:/ }).click();
-  await page.getByRole('button', { name: 'Advanced', exact: true }).click();
-  await page
-    .getByRole('dialog')
-    .filter({
-      has: page.getByRole('button', { name: 'Advanced', exact: true }),
-    })
-    .getByRole('button', { name: 'Configure Model', exact: true })
-    .click();
-  await page.getByRole('option').filter({ hasText: 'FLUX.3' }).first().click();
+  await selectAdvancedModel(page, 'FLUX.3');
   await page.keyboard.press('Escape');
   const pending: number[] = [],
     sibling: number[] = [],

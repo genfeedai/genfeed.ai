@@ -6,7 +6,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 // #6775: the setup popover opens in Auto, which shows only the output-type
-// grid. Model, Output, Look and the rest (and `Configure Type`) are Advanced.
+// grid. Advanced adds the Brand and Presets rows and Reset all under the same
+// grid; Model, Output and Look are chips in the prompt bar, not popover rows.
 function setupDialog(page: Page): Locator {
   return page.getByRole('dialog').filter({
     has: page.getByRole('button', { name: 'Auto', exact: true }),
@@ -15,9 +16,17 @@ function setupDialog(page: Page): Locator {
 
 async function switchToAdvanced(page: Page): Promise<Locator> {
   const dialog = setupDialog(page);
-  await dialog.getByRole('button', { name: 'Advanced', exact: true }).click();
+  // Keyboard activation: the Advanced rows grow into the space under a resting
+  // pointer, and on hover-capable desktops that opens the Presets submenu, so
+  // the first Escape would close the submenu instead of the setup dialog.
+  const advanced = dialog.getByRole('button', {
+    name: 'Advanced',
+    exact: true,
+  });
+  await advanced.focus();
+  await advanced.press('Enter');
   await expect(
-    dialog.getByRole('button', { name: 'Configure Type', exact: true }),
+    dialog.getByRole('button', { name: 'Configure Brand', exact: true }),
   ).toBeVisible();
   return dialog;
 }
@@ -119,7 +128,7 @@ test.describe('200% browser zoom layout', () => {
         })
         .toBe(true);
       await expect(
-        dialog.getByRole('button', { name: 'Configure Type', exact: true }),
+        dialog.getByRole('button', { name: 'Configure Brand', exact: true }),
       ).toBeInViewport();
       await page.keyboard.press('Tab');
       await expect

@@ -9,6 +9,7 @@ import {
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
+import { selectAdvancedModel } from '../../utils/generation-setup';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 const sourceId = 'editing-source-e2e';
@@ -226,20 +227,7 @@ for (const { model, editing } of [
       .getByTestId('studio-playground-prompt')
       .getByRole('textbox');
     // Explicit model selection lives in Advanced; Auto delegates routing.
-    await page.getByRole('button', { name: /^Generation setup:/ }).click();
-    await page.getByRole('button', { name: 'Advanced', exact: true }).click();
-    await page
-      .getByRole('dialog')
-      .filter({
-        has: page.getByRole('button', { name: 'Advanced', exact: true }),
-      })
-      .getByRole('button', { name: 'Configure Model', exact: true })
-      .click();
-    await page
-      .getByRole('option')
-      .filter({ hasText: flux ? 'FLUX.3' : 'Ideogram' })
-      .first()
-      .click();
+    await selectAdvancedModel(page, flux ? 'FLUX.3' : 'Ideogram');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     await expect(
