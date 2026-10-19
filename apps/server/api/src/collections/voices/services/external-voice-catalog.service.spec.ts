@@ -67,11 +67,11 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
     prisma.externalVoice.findMany.mockResolvedValue([{ id: 'v1' }]);
     prisma.externalVoice.count.mockResolvedValue(250);
 
-    const page = await service.findPage({
-      limit: 100,
-      page: 3,
+    const range = await service.findRange({
       providers: [VoiceProvider.ELEVENLABS],
       search: 'ali',
+      skip: 200,
+      take: 100,
     });
 
     const where = {
@@ -86,6 +86,6 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
       where,
     });
     expect(prisma.externalVoice.count).toHaveBeenCalledWith({ where });
-    expect(page).toEqual({ docs: [{ id: 'v1' }], totalDocs: 250 });
+    expect(range).toEqual({ docs: [{ id: 'v1' }], totalDocs: 250 });
   });
 });

@@ -238,6 +238,26 @@ describe('Studio Voice identity options', () => {
     ).toBe(false);
   });
 
+  it('lists a voice once when the org copy and the catalogue entry share an id', () => {
+    mocks.catalogVoices = [
+      makeCatalogVoice('own-copy', VoiceProvider.ELEVENLABS, 'shared'),
+      makeCatalogVoice('catalogue-copy', VoiceProvider.ELEVENLABS, 'shared'),
+      makeCatalogVoice('other', VoiceProvider.ELEVENLABS),
+    ];
+
+    const { result } = renderHook(() =>
+      useStudioPlaygroundIdentities({ modelKey: 'auto', type: 'voice' }),
+    );
+
+    expect(
+      result.current.voiceOptions
+        .filter(
+          (option) => option.voiceRef?.provider === VoiceProvider.ELEVENLABS,
+        )
+        .map((option) => option.name),
+    ).toEqual(['own-copy', 'other']);
+  });
+
   it('only fetches the HeyGen source the active type needs', () => {
     renderHook(() => useStudioPlaygroundIdentities({ type: 'voice' }));
     expect(mocks.catalogOptions).toHaveBeenLastCalledWith({ isEnabled: false });

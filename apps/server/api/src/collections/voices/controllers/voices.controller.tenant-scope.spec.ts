@@ -29,7 +29,9 @@ describe('Voice library tenant reads (#6176)', () => {
         { provide: VoicesService, useValue: { findAll: mock } },
         {
           provide: ExternalVoiceCatalogService,
-          useValue: { findAll: vi.fn().mockResolvedValue([]) },
+          useValue: {
+            findRange: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+          },
         },
         { provide: VoiceCloneService, useValue: {} },
       ],

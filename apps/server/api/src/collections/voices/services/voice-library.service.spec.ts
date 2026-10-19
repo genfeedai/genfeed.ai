@@ -24,13 +24,13 @@ describe('VoiceLibraryService', () => {
     userId: 'canonical-user-1',
   } as User;
   let voicesService: { findAll: ReturnType<typeof vi.fn> };
-  let catalogService: { findPage: ReturnType<typeof vi.fn> };
+  let catalogService: { findRange: ReturnType<typeof vi.fn> };
   let service: VoiceLibraryService;
 
   beforeEach(async () => {
     voicesService = { findAll: vi.fn().mockResolvedValue({ docs: [] }) };
     catalogService = {
-      findPage: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+      findRange: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
     };
     const module = await Test.createTestingModule({
       providers: [
@@ -134,7 +134,7 @@ describe('VoiceLibraryService', () => {
   });
 
   it('falls back to the platform catalog when the org has no voice ingredients', async () => {
-    catalogService.findPage.mockResolvedValue({
+    catalogService.findRange.mockResolvedValue({
       docs: [
         {
           createdAt: new Date('2026-01-01'),
@@ -163,12 +163,12 @@ describe('VoiceLibraryService', () => {
       }),
     );
 
-    expect(catalogService.findPage).toHaveBeenCalledWith({
+    expect(catalogService.findRange).toHaveBeenCalledWith({
       isActive: true,
-      limit: 12,
-      page: 1,
       providers: expect.arrayContaining(['ELEVENLABS', 'HEYGEN']),
       search: undefined,
+      skip: 0,
+      take: 12,
     });
     expect(result.docs).toEqual([
       expect.objectContaining({
@@ -180,38 +180,81 @@ describe('VoiceLibraryService', () => {
     expect(result.totalDocs).toBe(1);
   });
 
-  it('does not read the catalog when the org already has cloned or catalog-linked voices', async () => {
+  const catalogRow = (id: string) => ({
+    createdAt: new Date('2026-01-01'),
+    externalId: id,
+    externalProvider: DbVoiceProvider.ELEVENLABS,
+    id,
+    isActive: true,
+    isDefaultSelectable: true,
+    isFeatured: false,
+    language: null,
+    name: id,
+    providerData: {},
+    sampleAudioUrl: null,
+    updatedAt: new Date('2026-01-02'),
+  });
+
+  it('lists the catalog after the org voices instead of hiding it', async () => {
     voicesService.findAll.mockResolvedValue({
       docs: [{ id: 'cloned-1', isCloned: true }],
       totalDocs: 1,
     });
+    catalogService.findRange.mockResolvedValue({
+      docs: [catalogRow('c-1'), catalogRow('c-2')],
+      totalDocs: 20,
+    });
 
     const result = await service.findAll(
       user,
-      tenantReadQuery(VoicesQueryDto, {}),
+      tenantReadQuery(VoicesQueryDto, { limit: 3, page: 1 }),
     );
 
-    expect(catalogService.findPage).not.toHaveBeenCalled();
-    expect(result.docs).toEqual([{ id: 'cloned-1', isCloned: true }]);
+    expect(catalogService.findRange).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 2 }),
+    );
+    expect(result.docs.map((doc) => doc.id)).toEqual([
+      'cloned-1',
+      'c-1',
+      'c-2',
+    ]);
+    expect(result).toMatchObject({
+      hasNextPage: true,
+      page: 1,
+      totalDocs: 21,
+      totalPages: 7,
+    });
   });
 
-  it('slices the catalog in the database and reports the real page count', async () => {
-    const row = (id: string) => ({
-      createdAt: new Date('2026-01-01'),
-      externalId: id,
-      externalProvider: DbVoiceProvider.ELEVENLABS,
-      id,
-      isActive: true,
-      isDefaultSelectable: true,
-      isFeatured: false,
-      language: null,
-      name: id,
-      providerData: {},
-      sampleAudioUrl: null,
-      updatedAt: new Date('2026-01-02'),
+  it('continues into the catalog once the org voices run out', async () => {
+    voicesService.findAll.mockResolvedValue({ docs: [], totalDocs: 1 });
+    catalogService.findRange.mockResolvedValue({
+      docs: [catalogRow('c-3'), catalogRow('c-4'), catalogRow('c-5')],
+      totalDocs: 20,
     });
-    catalogService.findPage.mockResolvedValue({
-      docs: [row('c-13'), row('c-14')],
+
+    const result = await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, { limit: 3, page: 2 }),
+    );
+
+    // Offset 3 into the combined list; one org voice came first.
+    expect(catalogService.findRange).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 2, take: 3 }),
+    );
+    expect(result).toMatchObject({
+      hasPrevPage: true,
+      page: 2,
+      pagingCounter: 4,
+      totalDocs: 21,
+    });
+    expect(result.docs).toHaveLength(3);
+  });
+
+  it('reports the last page without a next page', async () => {
+    voicesService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+    catalogService.findRange.mockResolvedValue({
+      docs: [catalogRow('c-13'), catalogRow('c-14')],
       totalDocs: 14,
     });
 
@@ -220,9 +263,8 @@ describe('VoiceLibraryService', () => {
       tenantReadQuery(VoicesQueryDto, { limit: 12, page: 2 }),
     );
 
-    expect(catalogService.findPage).toHaveBeenCalledTimes(1);
-    expect(catalogService.findPage).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: 12, page: 2 }),
+    expect(catalogService.findRange).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 12, take: 12 }),
     );
     expect(result).toMatchObject({
       hasNextPage: false,
@@ -232,22 +274,5 @@ describe('VoiceLibraryService', () => {
       totalDocs: 14,
       totalPages: 2,
     });
-    expect(result.docs).toHaveLength(2);
-  });
-
-  it('serves the last catalog page when the requested page is past the end', async () => {
-    catalogService.findPage
-      .mockResolvedValueOnce({ docs: [], totalDocs: 14 })
-      .mockResolvedValueOnce({ docs: [], totalDocs: 14 });
-
-    const result = await service.findAll(
-      user,
-      tenantReadQuery(VoicesQueryDto, { limit: 12, page: 9 }),
-    );
-
-    expect(catalogService.findPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ page: 2 }),
-    );
-    expect(result).toMatchObject({ page: 2, totalPages: 2 });
   });
 });

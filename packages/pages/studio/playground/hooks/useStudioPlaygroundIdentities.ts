@@ -105,6 +105,24 @@ function toSpeechVoiceOption(voice: HeyGenSpeechVoice): StudioIdentityOption {
   };
 }
 
+/**
+ * The voice list is the org's own voices followed by the platform catalogue,
+ * so a catalogue voice the org already holds appears twice. The org's copy
+ * comes first and wins.
+ */
+function dedupeByValue(
+  options: readonly StudioIdentityOption[],
+): StudioIdentityOption[] {
+  const seen = new Set<string>();
+  return options.filter((option) => {
+    if (seen.has(option.value)) {
+      return false;
+    }
+    seen.add(option.value);
+    return true;
+  });
+}
+
 export function useStudioPlaygroundIdentities({
   modelKey,
   type,
@@ -148,7 +166,7 @@ export function useStudioPlaygroundIdentities({
   const voiceOptions = useMemo<StudioIdentityOption[]>(() => {
     if (isVoiceType) {
       const speakingProvider = getVoiceSpeechModel(modelKey)?.voiceProvider;
-      return [
+      return dedupeByValue([
         ...voices
           .filter(
             (voice) =>
@@ -157,13 +175,13 @@ export function useStudioPlaygroundIdentities({
           )
           .map(toCatalogVoiceOption),
         ...heygenSpeech.voices.map(toSpeechVoiceOption),
-      ].filter(
+      ]).filter(
         (option) =>
           !speakingProvider || option.voiceRef?.provider === speakingProvider,
       );
     }
 
-    return [
+    return dedupeByValue([
       ...voices
         .filter(
           (voice) =>
@@ -178,7 +196,7 @@ export function useStudioPlaygroundIdentities({
         preview: voice.preview || undefined,
         voiceRef: heyGenDefaultVoice(voice),
       })),
-    ];
+    ]);
   }, [heygen.voices, heygenSpeech.voices, isVoiceType, modelKey, voices]);
   const identitySource = isVoiceType ? heygenSpeech : heygen;
   return {

@@ -110,11 +110,7 @@ export class VoiceLibraryService {
         options,
       );
 
-      if ((ingredientResult.docs?.length ?? 0) > 0) {
-        return ingredientResult;
-      }
-
-      return this.paginateCatalogVoices({
+      return await this.appendCatalogVoices(ingredientResult, {
         isActive: query.isActive,
         limit: options.limit,
         page: options.page,
@@ -132,47 +128,56 @@ export class VoiceLibraryService {
     }
   }
 
-  private async paginateCatalogVoices(params: {
-    isActive?: boolean;
-    limit: number;
-    page: number;
-    providers: ReturnType<typeof parseVoiceProviders>;
-    search?: string;
-  }): Promise<AggregatePaginateResult<IngredientDocument>> {
-    const fetchPage = (page: number) =>
-      this.externalVoiceCatalogService.findPage({
-        isActive: params.isActive,
-        limit: params.limit,
-        page,
-        providers: params.providers,
-        search: params.search,
-      });
-    const requestedPage = Math.max(params.page, 1);
-    let result = await fetchPage(requestedPage);
-    const lastPage = Math.max(1, Math.ceil(result.totalDocs / params.limit));
-    const page = Math.min(requestedPage, lastPage);
-    if (page !== requestedPage) {
-      // Past the last page: serve the last one rather than an empty page.
-      result = await fetchPage(page);
-    }
+  /**
+   * The picker lists the org's own voices (clones, imports) first and the
+   * platform catalogue after them, as one paginated list. The catalogue is
+   * not an ingredient, so its rows continue where the org's rows end rather
+   * than being merged into the ingredient query.
+   */
+  private async appendCatalogVoices(
+    ingredientResult: AggregatePaginateResult<IngredientDocument>,
+    params: {
+      isActive?: boolean;
+      limit: number;
+      page: number;
+      providers: ReturnType<typeof parseVoiceProviders>;
+      search?: string;
+    },
+  ): Promise<AggregatePaginateResult<IngredientDocument>> {
+    const orgDocs = ingredientResult.docs ?? [];
+    const orgTotal = ingredientResult.totalDocs ?? 0;
+    const page = Math.max(params.page, 1);
+    const offset = (page - 1) * params.limit;
 
-    const { totalDocs } = result;
-    const pageDocs = result.docs.map(
-      (voice) => toLibraryVoiceDocument(voice) as IngredientDocument,
-    );
-    const start = (page - 1) * params.limit;
+    const catalog = await this.externalVoiceCatalogService.findRange({
+      isActive: params.isActive,
+      providers: params.providers,
+      search: params.search,
+      skip: Math.max(0, offset - orgTotal),
+      take: params.limit - orgDocs.length,
+    });
+
+    const docs = [
+      ...orgDocs,
+      ...catalog.docs.map(
+        (voice) => toLibraryVoiceDocument(voice) as IngredientDocument,
+      ),
+    ];
+    const totalDocs = orgTotal + catalog.totalDocs;
+    const totalPages = Math.max(1, Math.ceil(totalDocs / params.limit));
 
     return {
-      docs: pageDocs,
-      hasNextPage: page < lastPage && totalDocs > 0,
+      ...ingredientResult,
+      docs,
+      hasNextPage: page < totalPages,
       hasPrevPage: page > 1,
       limit: params.limit,
-      nextPage: page < lastPage ? page + 1 : null,
+      nextPage: page < totalPages ? page + 1 : null,
       page,
-      pagingCounter: totalDocs === 0 ? 0 : start + 1,
+      pagingCounter: docs.length === 0 ? 0 : offset + 1,
       prevPage: page > 1 ? page - 1 : null,
       totalDocs,
-      totalPages: lastPage,
+      totalPages,
     };
   }
 

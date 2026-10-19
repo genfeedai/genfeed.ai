@@ -592,7 +592,7 @@ describe('Library asset lifecycle', () => {
         voicesService,
       ),
       new VoiceLibraryService(voicesService, {
-        findPage: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+        findRange: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
       } as unknown as ExternalVoiceCatalogService),
     );
     avatarsController = new AvatarsController(

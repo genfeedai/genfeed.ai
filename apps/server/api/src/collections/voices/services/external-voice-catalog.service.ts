@@ -14,13 +14,13 @@ export interface ExternalVoiceFindAllOptions {
   isActive?: boolean;
 }
 
-export interface ExternalVoiceFindPageOptions
+export interface ExternalVoiceFindRangeOptions
   extends ExternalVoiceFindAllOptions {
-  limit: number;
-  page: number;
+  skip: number;
+  take: number;
 }
 
-export interface ExternalVoicePage {
+export interface ExternalVoiceRange {
   docs: ExternalVoice[];
   totalDocs: number;
 }
@@ -72,20 +72,20 @@ export class ExternalVoiceCatalogService {
   }
 
   /**
-   * One page of the catalog, sliced in the database. The library picker walks
-   * the whole catalog page by page, so reading every row to slice a page in
+   * A slice of the catalog, cut in the database. The library picker walks the
+   * whole catalog page by page, so reading every row to slice a page in
    * memory made each request cost the full catalog.
    */
-  async findPage(
-    options: ExternalVoiceFindPageOptions,
-  ): Promise<ExternalVoicePage> {
-    const { limit, page, providers, ...filters } = options;
-    const where = this.buildWhere({ ...filters, providers });
+  async findRange(
+    options: ExternalVoiceFindRangeOptions,
+  ): Promise<ExternalVoiceRange> {
+    const { skip, take, ...filters } = options;
+    const where = this.buildWhere(filters);
     const [docs, totalDocs] = await Promise.all([
       this.prisma.externalVoice.findMany({
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
-        skip: (page - 1) * limit,
-        take: limit,
+        skip,
+        take,
         where,
       }),
       this.prisma.externalVoice.count({ where }),
