@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
   delete: vi.fn(),
   findAll: vi.fn(),
+  listSystemCatalog: vi.fn(),
   getters: new Map<string, () => Promise<unknown>>(),
   list: vi.fn(),
   openConfirmDelete: vi.fn(),
@@ -69,6 +70,12 @@ vi.mock('@services/automation/workflows.service', () => ({
       findAll: mocks.findAll,
     }),
   },
+}));
+
+vi.mock('@/features/workflows/services/workflow-api', () => ({
+  createWorkflowApiService: () => ({
+    listSystemCatalog: mocks.listSystemCatalog,
+  }),
 }));
 
 vi.mock('@services/admin/featured-workflows.service', () => ({
@@ -151,24 +158,58 @@ function featuredSection() {
   return screen.getByRole('region', { name: /^Featured/ });
 }
 
-function workflowCard(label: string) {
-  const card = screen
-    .getAllByTestId('admin-workflow-card')
-    .find((candidate) => within(candidate).queryByText(label));
-  if (!card) {
-    throw new Error(`${label} card not rendered`);
-  }
-  return card;
+function workflowsTable() {
+  return screen.getByRole('table', { name: 'Workflows in this organization' });
 }
 
-async function openActions(label: string) {
+function workflowRow(label: string) {
+  const row = within(workflowsTable())
+    .getAllByRole('row')
+    .find((candidate) => within(candidate).queryByText(label));
+  if (!row) {
+    throw new Error(`${label} row not rendered`);
+  }
+  return row;
+}
+
+const CATALOG = [
+  {
+    canonicalId: 'daily-trends-digest',
+    category: 'product',
+    changeSummary: '',
+    description: 'A digest of what is trending',
+    family: 'product',
+    installable: true,
+    installed: true,
+    installedWorkflowId: 'wf-system',
+    isScheduleEnabled: true,
+    label: 'Daily Trends Digest',
+    schedule: '0 8 * * *',
+    sourceIssue: 1,
+    version: 2,
+  },
+  {
+    canonicalId: 'ad-optimizer',
+    category: 'ads',
+    changeSummary: '',
+    description: 'Tunes ad spend',
+    family: 'ad-automation',
+    installable: true,
+    installed: false,
+    installedWorkflowId: null,
+    isScheduleEnabled: false,
+    label: 'Ad optimizer',
+    sourceIssue: 2,
+    version: 1,
+  },
+];
+
+async function clickRowAction(label: string, action: string) {
   const user = userEvent.setup();
-  const trigger = within(workflowCard(label)).getByRole('button', {
-    name: `Actions for ${label}`,
-  });
-  trigger.focus();
-  await user.keyboard('{Enter}');
-  return { menu: await screen.findByRole('menu'), user };
+  await user.click(
+    within(workflowRow(label)).getByRole('button', { name: action }),
+  );
+  return user;
 }
 
 async function renderLoadedPage() {
@@ -187,6 +228,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
       SYSTEM_WORKFLOW,
     ]);
     mocks.list.mockResolvedValue(PINS);
+    mocks.listSystemCatalog.mockResolvedValue(CATALOG);
   });
 
   it('requests the page from the URL with the page size and renders pagination', async () => {
@@ -222,10 +264,10 @@ describe('Admin workflows page Featured pins (#5511)', () => {
       within(rows[0] as HTMLElement).getByText('Position 1'),
     ).toBeVisible();
     expect(
-      within(workflowCard('Founder thread')).getByText('Featured'),
+      within(workflowRow('Founder thread')).getByText('Featured'),
     ).toBeInTheDocument();
     expect(
-      within(workflowCard('Launch thread')).queryByText('Featured'),
+      within(workflowRow('Launch thread')).queryByText('Featured'),
     ).not.toBeInTheDocument();
   });
 
@@ -245,10 +287,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     ]);
     await renderLoadedPage();
 
-    const { menu, user } = await openActions('Launch thread');
-    await user.click(
-      within(menu).getByRole('menuitem', { name: 'Pin to Featured' }),
-    );
+    await clickRowAction('Launch thread', 'Pin to Featured');
 
     await waitFor(() => {
       expect(
@@ -265,15 +304,16 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     mocks.unpin.mockResolvedValue([PINS[1]]);
     await renderLoadedPage();
 
-    const { menu, user } = await openActions('Founder thread');
     expect(
-      within(menu).queryByRole('menuitem', { name: 'Pin to Featured' }),
+      within(workflowRow('Founder thread')).queryByRole('button', {
+        name: 'Pin to Featured',
+      }),
     ).not.toBeInTheDocument();
-    await user.click(within(menu).getByRole('menuitem', { name: 'Unpin' }));
+    await clickRowAction('Founder thread', 'Unpin');
 
     await waitFor(() => {
       expect(
-        within(workflowCard('Founder thread')).queryByText('Featured'),
+        within(workflowRow('Founder thread')).queryByText('Featured'),
       ).not.toBeInTheDocument();
     });
     expect(mocks.unpin).toHaveBeenCalledWith('wf-pinned');
@@ -282,13 +322,13 @@ describe('Admin workflows page Featured pins (#5511)', () => {
   it('offers no pin action on a system workflow', async () => {
     await renderLoadedPage();
 
-    const { menu } = await openActions('Daily digest');
+    const row = workflowRow('Daily digest');
 
     expect(
-      within(menu).queryByRole('menuitem', { name: 'Pin to Featured' }),
+      within(row).queryByRole('button', { name: 'Pin to Featured' }),
     ).not.toBeInTheDocument();
     expect(
-      within(menu).getByRole('menuitem', { name: 'Delete' }),
+      within(row).getByRole('button', { name: 'Delete' }),
     ).toBeInTheDocument();
   });
 
@@ -378,5 +418,33 @@ describe('Admin workflows page Featured pins (#5511)', () => {
         within(featuredSection()).getAllByTestId('admin-featured-workflow-row'),
       ).toHaveLength(2);
     });
+  });
+
+  it('lists the system catalog with what this organization has installed', async () => {
+    await renderLoadedPage();
+
+    const table = screen.getByRole('table', {
+      name: 'System workflow catalog',
+    });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0] as HTMLElement).getByText('Installed')).toBeVisible();
+    expect(within(rows[0] as HTMLElement).getByText('v2')).toBeVisible();
+    expect(
+      within(rows[1] as HTMLElement).getByText('Not installed'),
+    ).toBeVisible();
+    expect(
+      within(rows[1] as HTMLElement).getByText('ad automation'),
+    ).toBeVisible();
+  });
+
+  it('keeps the workflows table when the catalog fails to load', async () => {
+    mocks.listSystemCatalog.mockRejectedValue(new Error('down'));
+    await renderLoadedPage();
+
+    expect(
+      screen.getByText('The system workflow catalog could not be loaded.'),
+    ).toBeVisible();
+    expect(workflowRow('Launch thread')).toBeVisible();
   });
 });
