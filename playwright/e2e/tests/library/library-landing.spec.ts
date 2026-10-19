@@ -70,7 +70,8 @@ test.describe('Library', () => {
     await expect(rail.getByText('Shelves')).toHaveCount(0);
     await expect(rail.getByRole('link', { name: 'Trash' })).toHaveCount(0);
     await expect(rail.getByRole('link', { name: 'Unsorted' })).toHaveCount(0);
-    // #6818: Status and Show stay on the assets page, inside Filters.
+    // Status and Show stay on the assets page, as facets of the Filters menu
+    // (#7567).
     const filters = authenticatedPage.getByRole('button', {
       name: 'Filters',
       exact: true,
@@ -78,10 +79,10 @@ test.describe('Library', () => {
     await expect(filters).toBeVisible();
     await filters.click();
     await expect(
-      authenticatedPage.getByRole('group', { name: 'Status', exact: true }),
+      authenticatedPage.getByRole('menuitem', { name: /^Status/ }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('group', { name: 'Show', exact: true }),
+      authenticatedPage.getByRole('menuitem', { name: /^Show/ }),
     ).toBeVisible();
   });
 

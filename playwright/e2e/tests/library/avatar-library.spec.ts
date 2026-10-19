@@ -6,6 +6,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { openFilterFacet } from '../../utils/filter-menu';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -84,13 +85,14 @@ test.describe('Avatar Library', () => {
       authenticatedPage.locator('tr', { hasText: 'Avatar Action Video' }),
     ).toBeVisible({ timeout: 30000 });
 
-    // Status reads /ingredients/summary (ILibrarySummary). #6818 moved it
-    // into the Filters popover as a radio group, off the toolbar combobox.
-    await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+    // Status reads /ingredients/summary (ILibrarySummary). It is a facet of
+    // the shared Filters menu (#7567): one radio row per shelf.
+    const status = await openFilterFacet(authenticatedPage, 'Status');
     await expect(
-      authenticatedPage
-        .getByRole('group', { name: 'Status', exact: true })
-        .getByRole('radio', { name: 'Needs review (2)', exact: true }),
+      status.getByRole('menuitemradio', {
+        name: 'Needs review (2)',
+        exact: true,
+      }),
     ).toBeVisible();
   });
 

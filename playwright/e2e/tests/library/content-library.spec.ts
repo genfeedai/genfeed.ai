@@ -5,6 +5,7 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { openFilterFacet } from '../../utils/filter-menu';
 
 /**
  * E2E Tests for Content Library
@@ -123,17 +124,14 @@ test.describe('Content Library', () => {
         .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
 
       // #5502: Recent and Starred are the asset browser's Show filter
-      // (the captions list has no such control). #6818 nests Show in Filters.
-      const filters = authenticatedPage.getByRole('button', {
-        name: /^Filters/,
-      });
-      await filters.click();
-      const show = authenticatedPage.getByRole('group', {
-        name: 'Show',
-        exact: true,
-      });
+      // (the captions list has no such control). Show is a facet of the
+      // shared Filters menu (#7567); choosing a radio row closes the menu, so
+      // each place reopens it.
       for (const place of ['Recent', 'Starred'] as const) {
-        await show.getByRole('radio', { name: place, exact: true }).click();
+        const show = await openFilterFacet(authenticatedPage, 'Show');
+        await show
+          .getByRole('menuitemradio', { name: place, exact: true })
+          .click();
         await expect
           .poll(() =>
             new URL(authenticatedPage.url()).searchParams.get('place'),
