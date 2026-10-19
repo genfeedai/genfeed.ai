@@ -1,5 +1,5 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import {
@@ -33,14 +33,49 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@contexts/analytics/analytics-context', () => ({
-  useAnalyticsContext: () => ({
-    dateRange: {},
-    filters: {},
-    setToolbarNode: mocks.setToolbarNode,
-    refreshTrigger: 0,
-    triggerRefresh: vi.fn(),
-  }),
+vi.mock('@contexts/analytics/analytics-context', async () => {
+  const { useEffect } = await import('react');
+  return {
+    useAnalyticsContext: () => ({
+      dateRange: {},
+      filters: {},
+      refreshTrigger: 0,
+      triggerRefresh: vi.fn(),
+    }),
+    useAnalyticsToolbar: (node: ReactNode) => {
+      useEffect(() => {
+        mocks.setToolbarNode(node);
+      }, [node]);
+    },
+  };
+});
+
+vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+  default: ({
+    facets,
+  }: {
+    facets: Array<{
+      label: string;
+      onChange: (value: string) => void;
+      options: Array<{ label: string; value: string }>;
+    }>;
+  }) => (
+    <div>
+      {facets.map((facet) => (
+        <div key={facet.label} role="group" aria-label={facet.label}>
+          {facet.options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => facet.onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  ),
 }));
 
 const getService = async () => ({
@@ -253,7 +288,7 @@ describe('AnalyticsAccounts', () => {
       .find((node) => node !== null);
     render(toolbar);
     expect(screen.getByLabelText('Search accounts')).toBeInTheDocument();
-    expect(screen.getByLabelText('Rank by metric')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Rank by' })).toBeInTheDocument();
     expect(screen.getByLabelText('Evaluation weeks')).toBeInTheDocument();
   });
 
@@ -294,10 +329,14 @@ describe('AnalyticsAccounts', () => {
         .filter(([node]) => node !== null)
         .at(-1)?.[0] as ReactNode;
     const toolbar = render(latestToolbar());
-    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
-    await user.keyboard('{ArrowDown}');
-    await screen.findByRole('option', { name: 'Posts' });
-    await user.keyboard('{End}{Enter}');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Rank by' })).getByRole(
+        'button',
+        {
+          name: 'Posts',
+        },
+      ),
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),
@@ -305,10 +344,14 @@ describe('AnalyticsAccounts', () => {
     );
     expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
     toolbar.rerender(latestToolbar());
-    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
-    await user.keyboard('{ArrowDown}');
-    await screen.findByRole('option', { name: 'Followers' });
-    await user.keyboard('{Home}{ArrowDown}{Enter}');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Rank by' })).getByRole(
+        'button',
+        {
+          name: 'Followers',
+        },
+      ),
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),

@@ -44,6 +44,33 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
+vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+  default: ({
+    facets,
+  }: {
+    facets: Array<{
+      label: string;
+      options: Array<{ label: string; value: string }>;
+      value: string;
+    }>;
+  }) => (
+    <div data-testid="filter-menu">
+      {facets.map((facet) => (
+        <div key={facet.label} role="group" aria-label={facet.label}>
+          {facet.options.map((option) => (
+            <span
+              key={option.value}
+              data-selected={option.value === facet.value}
+            >
+              {option.label}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
 vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
@@ -69,21 +96,18 @@ describe('AnalyticsPostsList', () => {
     });
   });
 
-  it('renders the consolidated filter controls with shared field styling', () => {
+  it('renders every filter through the shared filter menu', () => {
     renderPostsList();
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveAttribute('name', 'search');
     expect(searchInput).toHaveClass('border-border');
 
-    const triggers = screen.getAllByRole('combobox');
-    expect(triggers).toHaveLength(4);
-    for (const trigger of triggers) {
-      expect(trigger).toHaveClass('rounded-lg');
-      expect(trigger).toHaveClass('border-border');
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0);
+    expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
+    for (const name of ['Show posts', 'Rank by', 'Platform', 'Source']) {
+      expect(screen.getByRole('group', { name })).toBeInTheDocument();
     }
-
-    expect(screen.getByText('All')).toBeInTheDocument();
     expect(screen.queryByText('All Platforms')).not.toBeInTheDocument();
   });
 
@@ -94,8 +118,10 @@ describe('AnalyticsPostsList', () => {
       expect.objectContaining({ source: undefined }),
     );
     expect(
-      screen.getByRole('combobox', { name: 'Filter post analytics by source' }),
-    ).toHaveTextContent('All sources');
+      within(screen.getByRole('group', { name: 'Source' })).getByText(
+        'All sources',
+      ),
+    ).toHaveAttribute('data-selected', 'true');
     expect(screen.queryByText('Audience')).not.toBeInTheDocument();
   });
 
@@ -132,8 +158,10 @@ describe('AnalyticsPostsList', () => {
       expect.objectContaining({ source: 'extension' }),
     );
     expect(
-      screen.getByRole('combobox', { name: 'Filter post analytics by source' }),
-    ).toHaveTextContent('Extension');
+      within(screen.getByRole('group', { name: 'Source' })).getByText(
+        'Extension',
+      ),
+    ).toHaveAttribute('data-selected', 'true');
     expect(screen.getAllByText('Audience')).toHaveLength(2);
     expect(screen.getByText('Private')).toBeInTheDocument();
     expect(screen.getByText('Audience unavailable')).toBeInTheDocument();
@@ -146,9 +174,7 @@ describe('AnalyticsPostsList', () => {
       expect.objectContaining({ source: undefined }),
     );
     expect(
-      screen.queryByRole('combobox', {
-        name: 'Filter post analytics by source',
-      }),
+      screen.queryByRole('group', { name: 'Source' }),
     ).not.toBeInTheDocument();
   });
 
@@ -205,7 +231,7 @@ describe('AnalyticsPostsList', () => {
       screen.getByText('Comments 6.0× baseline (60 vs 10, 8 posts)'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('combobox', { name: 'Sort post analytics by metric' }),
+      screen.queryByRole('group', { name: 'Rank by' }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Launch reel'));
@@ -253,10 +279,7 @@ describe('AnalyticsPostsList', () => {
       screen.queryByRole('button', { name: 'Open In Agent' }),
     ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search posts...')).toHaveClass('h-8');
-    for (const trigger of screen.getAllByRole('combobox')) {
-      expect(trigger.className).toMatch(/\bw-(32|36)\b/);
-      expect(trigger).not.toHaveClass('w-full');
-    }
+    expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
   });
 
   it('does not add a filler sentence when a post is focused from the loop', () => {
