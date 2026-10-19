@@ -136,10 +136,6 @@ function ScenesListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'FETCH_SUCCESS', scenes: data });
         logger.info('GET /scenes success', data);
-
-        if (isRefreshRequest) {
-          notificationsService.success('Scenes refreshed');
-        }
       } catch (error) {
         logger.error('GET /scenes failed', error);
         notificationsService.error('Failed to load scenes');

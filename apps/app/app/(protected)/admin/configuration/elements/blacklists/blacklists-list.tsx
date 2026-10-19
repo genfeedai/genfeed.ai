@@ -186,10 +186,6 @@ function BlacklistsListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'FETCH_SUCCESS', blacklists: data });
 
-        if (isRefresh) {
-          notificationsService.success('Blacklists refreshed');
-        }
-
         logger.info('GET /blacklists success', data);
       } catch (error) {
         logger.error('GET /blacklists failed', error);

@@ -14,7 +14,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const SUPERADMIN: ContentScope = 'superadmin';
 const ORGANIZATION: ContentScope = 'organization';
@@ -140,15 +140,7 @@ export function useTagsList({
       scope === SUPERADMIN || (scope === ORGANIZATION && !!organizationId),
   });
 
-  const wasFetchingRef = useRef(false);
   const isRefreshing = isFetching;
-
-  useEffect(() => {
-    if (wasFetchingRef.current && !isFetching && !isLoading) {
-      notificationsService.success('Tags refreshed');
-    }
-    wasFetchingRef.current = isFetching;
-  }, [isFetching, isLoading, notificationsService]);
 
   useEffect(() => {
     if (tagsError) {

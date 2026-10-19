@@ -167,10 +167,6 @@ function StylesListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'SET_STYLES', payload: data });
 
-        if (isRefresh) {
-          notificationsService.success('Styles refreshed');
-        }
-
         logger.info('GET /styles success', data);
       } catch (error) {
         logger.error('GET /styles failed', error);

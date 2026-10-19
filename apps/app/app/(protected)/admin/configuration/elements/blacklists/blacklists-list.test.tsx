@@ -261,9 +261,7 @@ describe('BlacklistsList', () => {
       await onRefresh.mock.calls[0][0]();
     });
 
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-      'Blacklists refreshed',
-    );
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'isDefault-blacklist-1 unchecked' }),

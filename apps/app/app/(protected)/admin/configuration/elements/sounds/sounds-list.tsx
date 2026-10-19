@@ -130,10 +130,6 @@ function SoundsListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'FETCH_SUCCESS', sounds: data, isRefresh });
 
-        if (isRefresh) {
-          notificationsService.success('Sounds refreshed');
-        }
-
         logger.info('GET /sounds success', data);
       } catch (error) {
         logger.error('GET /sounds failed', error);

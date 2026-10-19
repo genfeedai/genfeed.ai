@@ -125,10 +125,6 @@ function MoodsListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'SET_MOODS', payload: data });
         logger.info('GET /moods success', data);
-
-        if (isRefreshRequest) {
-          notificationsService.success('Moods refreshed');
-        }
       } catch (error) {
         logger.error('GET /moods failed', error);
         notificationsService.error('Failed to load moods');

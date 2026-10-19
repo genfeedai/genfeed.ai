@@ -40,7 +40,7 @@ type VideoDetailWorkspacePanelProps = {
   evaluation: IEvaluation | undefined;
   isEvaluating: boolean;
   onEvaluate: () => Promise<void>;
-  onReload?: (skipNotification?: boolean) => Promise<void>;
+  onReload?: () => Promise<void>;
   updateMetadataHook: (
     field: string,
     value: string,
