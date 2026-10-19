@@ -145,7 +145,7 @@ Generate the per-workspace env files, start the databases, and apply
 migrations:
 
 ```bash
-bun run env:sync local --prune-legacy
+bun run env:sync local
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
 bun run --cwd packages/prisma db:migrate
 ```

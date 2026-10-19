@@ -158,7 +158,7 @@ responsible for the plan and attribution that apply to your deployment.
 Contributors use the repository root
 [`.env.example`](https://github.com/genfeedai/genfeed.ai/blob/master/.env.example)
 as the source-development template: copy it to `.env.local`, edit it, and run
-`bun run env:sync local --prune-legacy` to generate app and service environment
+`bun run env:sync local` to generate app and service environment
 files. Root `.env.local` is the source of truth; do not edit the generated files
 by hand or commit them. Do not copy keys between this template and the Community
 `.env`.

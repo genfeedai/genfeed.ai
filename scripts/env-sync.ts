@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import dotenv from 'dotenv';
 
 import {
@@ -8,14 +7,11 @@ import {
   GENERATED_ENV_HEADER,
   getCanonicalEnvPath,
   getSectionForKey,
-  LEGACY_ENV_HEADER,
   ROOT_ENV_SECTIONS,
 } from './env-spec';
 
 interface CliOptions {
-  importExisting: boolean;
   mode: EnvMode;
-  pruneLegacy: boolean;
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -25,15 +21,11 @@ function parseArgs(argv: string[]): CliOptions {
     modeArg !== 'staging' &&
     modeArg !== 'production'
   ) {
-    throw new Error(
-      'Usage: bun run env:sync <local|staging|production> [--import-existing] [--prune-legacy]',
-    );
+    throw new Error('Usage: bun run env:sync <local|staging|production>');
   }
 
   return {
-    importExisting: argv.includes('--import-existing'),
     mode: modeArg,
-    pruneLegacy: argv.includes('--prune-legacy'),
   };
 }
 
@@ -43,14 +35,6 @@ function parseEnvFile(filePath: string): Record<string, string> {
   }
 
   return dotenv.parse(fs.readFileSync(filePath));
-}
-
-function legacyFilesForTarget(targetPath: string, mode: EnvMode): string[] {
-  if (mode === 'local') {
-    return [path.join(targetPath, '.env'), path.join(targetPath, '.env.local')];
-  }
-
-  return [path.join(targetPath, `.env.${mode}`)];
 }
 
 interface EnvEntry {
@@ -104,18 +88,6 @@ function formatSectionedEnvFile(entries: EnvEntry[], header: string[]): string {
   }
 
   return `${lines.join('\n').trimEnd()}\n`;
-}
-
-function buildReverseMap(
-  mappedKeys: Record<string, string>,
-): Map<string, string> {
-  const reverseMap = new Map<string, string>();
-
-  for (const [canonicalKey, targetKey] of Object.entries(mappedKeys)) {
-    reverseMap.set(targetKey, canonicalKey);
-  }
-
-  return reverseMap;
 }
 
 function buildCanonicalEntries(canonical: Record<string, string>): EnvEntry[] {
@@ -174,56 +146,10 @@ function writeCanonicalEnvFile(
     canonicalPath,
     formatSectionedEnvFile(sortedEntries, [
       `# Canonical ${mode} env file.`,
-      '# Imported from legacy app/service env files.',
       '# Edit this file, then rerun `bun run env:sync` for the same mode.',
       '',
     ]),
   );
-}
-
-function mergeLegacyIntoCanonical(mode: EnvMode): {
-  canonical: Record<string, string>;
-  conflicts: string[];
-} {
-  const canonicalPath = getCanonicalEnvPath(mode);
-  const canonical = parseEnvFile(canonicalPath);
-  const conflicts = new Set<string>();
-
-  for (const target of ENV_TARGETS) {
-    const reverseMap = buildReverseMap(target.mappedKeys);
-
-    for (const legacyPath of legacyFilesForTarget(target.path, mode)) {
-      const parsed = parseEnvFile(legacyPath);
-
-      for (const [key, value] of Object.entries(parsed)) {
-        const canonicalKey =
-          reverseMap.get(key) ??
-          (target.sharedKeys.includes(key) || target.directKeys.includes(key)
-            ? key
-            : null);
-
-        if (!canonicalKey) {
-          continue;
-        }
-
-        const previousValue = canonical[canonicalKey];
-        if (
-          typeof previousValue === 'string' &&
-          previousValue.length > 0 &&
-          previousValue !== value
-        ) {
-          conflicts.add(canonicalKey);
-          continue;
-        }
-
-        canonical[canonicalKey] = value;
-      }
-    }
-  }
-
-  writeCanonicalEnvFile(mode, canonical);
-
-  return { canonical, conflicts: [...conflicts].sort() };
 }
 
 function syncTarget(
@@ -276,61 +202,23 @@ function syncTarget(
   return writtenFiles;
 }
 
-function pruneLegacyLocalFiles(): string[] {
-  const prunedFiles: string[] = [];
-
-  for (const target of ENV_TARGETS) {
-    if (!target.localLegacyFile || !fs.existsSync(target.localLegacyFile)) {
-      continue;
-    }
-
-    fs.writeFileSync(
-      target.localLegacyFile,
-      `${LEGACY_ENV_HEADER.join('\n').trimEnd()}\n`,
-    );
-    prunedFiles.push(target.localLegacyFile);
-  }
-
-  return prunedFiles;
-}
-
 function main() {
   const options = parseArgs(process.argv);
   const canonicalPath = getCanonicalEnvPath(options.mode);
+  const canonical = parseEnvFile(canonicalPath);
 
-  const importResult = options.importExisting
-    ? mergeLegacyIntoCanonical(options.mode)
-    : {
-        canonical: parseEnvFile(canonicalPath),
-        conflicts: [],
-      };
-
-  if (Object.keys(importResult.canonical).length === 0) {
+  if (Object.keys(canonical).length === 0) {
     throw new Error(
-      `Canonical env file ${canonicalPath} is missing or empty. Create it first or rerun with --import-existing.`,
+      `Canonical env file ${canonicalPath} is missing or empty. Create it first.`,
     );
   }
 
-  writeCanonicalEnvFile(options.mode, importResult.canonical);
-  const writtenFiles = syncTarget(options.mode, importResult.canonical);
-  const prunedFiles =
-    options.mode === 'local' && options.pruneLegacy
-      ? pruneLegacyLocalFiles()
-      : [];
+  writeCanonicalEnvFile(options.mode, canonical);
+  const writtenFiles = syncTarget(options.mode, canonical);
 
   console.log(
     `Synced ${writtenFiles.length} env files from ${canonicalPath} (${options.mode}).`,
   );
-
-  if (importResult.conflicts.length > 0) {
-    console.log(
-      `Skipped ${importResult.conflicts.length} conflicting canonical keys: ${importResult.conflicts.join(', ')}`,
-    );
-  }
-
-  if (prunedFiles.length > 0) {
-    console.log(`Pruned ${prunedFiles.length} legacy local .env files.`);
-  }
 }
 
 main();

@@ -119,10 +119,6 @@ function collectEnvFiles(envTemplates: string[]): string[] {
     files.add(target.generatedFileByMode.local);
     files.add(target.generatedFileByMode.staging);
     files.add(target.generatedFileByMode.production);
-
-    if (target.localLegacyFile) {
-      files.add(target.localLegacyFile);
-    }
   }
 
   return [...files].filter((filePath) =>
