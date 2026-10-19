@@ -1,51 +1,108 @@
 name: Notify release
 
-# The Release workflow publishes with GITHUB_TOKEN, and events raised by that
-# token never start other workflows, so `release: published` cannot be used.
-# Follow the completed Release run instead.
+# Production is live once Deploy hosted SaaS succeeds. The GitHub release is
+# still a draft then, and npm publish plus channel promotion are still running.
+# `release: published` never starts a workflow when Release publishes with
+# GITHUB_TOKEN, and waiting for that Release run to finish misses the deploy.
+# Release calls this workflow as soon as deploy-saas succeeds. Dispatch it
+# with a tag to send the same payload again.
 on:
-  workflow_run:
-    workflows: [Release]
-    types: [completed]
+  workflow_call:
+    inputs:
+      tag:
+        description: stable release tag (vX.Y.Z)
+        required: true
+        type: string
+      sha:
+        description: commit SHA deployed to production; resolved from the release when omitted
+        required: false
+        default: ""
+        type: string
+      trigger:
+        description: payload trigger (production-deploy from Release)
+        required: true
+        type: string
+    secrets:
+      RELEASE_WATCH_WEBHOOK_URL:
+        required: false
+      RELEASE_WATCH_WEBHOOK_AUTH:
+        required: false
+      QA_POST_DEPLOY_WEBHOOK_URL:
+        required: false
+      QA_POST_DEPLOY_WEBHOOK_AUTH:
+        required: false
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: stable release tag (vX.Y.Z)
+        required: true
+        type: string
+      sha:
+        description: commit SHA; resolved from the release when omitted
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: notify-release-${{ inputs.tag }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   notify:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # A webhook or script failure must not fail the Release run that called this.
+    continue-on-error: true
     steps:
       - name: Notify webhooks
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
-          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+          TRIGGER: ${{ inputs.trigger || 'workflow_dispatch' }}
           RELEASE_WATCH_URL: ${{ secrets.RELEASE_WATCH_WEBHOOK_URL }}
           RELEASE_WATCH_AUTH: ${{ secrets.RELEASE_WATCH_WEBHOOK_AUTH }}
           QA_URL: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_URL }}
           QA_AUTH: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_AUTH }}
         run: |
-          tag="${RUN_TITLE#Release }"
+          tag="$TAG"
           if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::warning::run title '$RUN_TITLE' does not name a stable release tag; nothing sent"
+            echo "::warning::tag is not a stable vX.Y.Z release; nothing sent"
             exit 0
           fi
-          if ! release=$(gh release view "$tag" --json isDraft,isPrerelease,url,publishedAt); then
+          if ! release=$(gh release view "$tag" --json isDraft,isPrerelease,url,publishedAt,targetCommitish); then
             echo "::warning::release $tag not found; nothing sent"
             exit 0
           fi
-          if [ "$(jq -r '.isDraft or .isPrerelease' <<<"$release")" = true ]; then
-            echo "skip: $tag is a draft or prerelease"
+          if [ "$(jq -r '.isPrerelease' <<<"$release")" = true ]; then
+            echo "skip: $tag is a prerelease"
             exit 0
           fi
-          sha=$(gh api "repos/${GH_REPO}/commits/${tag}" --jq .sha 2>/dev/null) || sha="$RUN_SHA"
+          sha="$SHA"
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            sha=$(gh api "repos/${GH_REPO}/commits/${tag}" --jq .sha 2>/dev/null || true)
+          fi
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            sha=$(jq -r '.targetCommitish // empty' <<<"$release")
+          fi
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::warning::could not resolve a commit SHA for $tag; nothing sent"
+            exit 0
+          fi
+          trigger="${TRIGGER:-workflow_dispatch}"
+          if [ "$trigger" != "production-deploy" ] && [ "$trigger" != "workflow_dispatch" ]; then
+            echo "::warning::unsupported notification trigger; nothing sent"
+            exit 0
+          fi
           payload=$(jq -n --arg repo "$GH_REPO" --arg tag "$tag" --arg sha "$sha" \
+            --arg trigger "$trigger" \
             --argjson release "$release" \
-            '{event:"release.published", repository:$repo, tag:$tag, sha:$sha, url:$release.url, published_at:$release.publishedAt}')
+            '{event:"release.published", repository:$repo, tag:$tag, sha:$sha, url:$release.url, published_at:$release.publishedAt, draft:$release.isDraft, trigger:$trigger}')
           send() {
             local url="$1" auth="$2" name="$3"
             if [ -z "$url" ]; then

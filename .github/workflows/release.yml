@@ -710,6 +710,30 @@ jobs:
       CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
       CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}
 
+  # Production is live once deploy-saas succeeds. Notify then, while npm
+  # publish and channel promotion are still running and the GitHub release
+  # is still a draft. This job does not gate publication.
+  notify-release:
+    name: Notify production deploy
+    needs:
+      - validate-release
+      - deploy-saas
+    if: |
+      !cancelled() &&
+      needs.deploy-saas.result == 'success'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/notify-release.yml
+    with:
+      sha: ${{ needs.validate-release.outputs.release_sha }}
+      tag: ${{ needs.validate-release.outputs.release_tag }}
+      trigger: production-deploy
+    secrets:
+      RELEASE_WATCH_WEBHOOK_URL: ${{ secrets.RELEASE_WATCH_WEBHOOK_URL }}
+      RELEASE_WATCH_WEBHOOK_AUTH: ${{ secrets.RELEASE_WATCH_WEBHOOK_AUTH }}
+      QA_POST_DEPLOY_WEBHOOK_URL: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_URL }}
+      QA_POST_DEPLOY_WEBHOOK_AUTH: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_AUTH }}
+
   promote-community:
     name: Promote Community release channels
     needs:

@@ -33,6 +33,12 @@ const publicDeployVercel = readFileSync(
   ),
   'utf8',
 );
+const notifyReleaseWorkflow = readFileSync(
+  fileURLToPath(
+    new URL('../../.github/workflows/notify-release.yml', import.meta.url),
+  ),
+  'utf8',
+);
 
 const FRONTEND_SECRETS = [
   'VERCEL_TOKEN',
@@ -576,4 +582,74 @@ test('blocks irreversible promotion until normal or recovered SaaS evidence is e
       `${jobId} must promote a recovery only from validated historical SaaS evidence`,
     );
   }
+});
+
+test('notifies release watch when production deploy succeeds, before npm and publication', () => {
+  const notify = jobBlock('notify-release');
+  assert.match(notify, /name: Notify production deploy/);
+  assert.match(
+    notify,
+    /uses: \.\/\.github\/workflows\/notify-release\.yml/,
+  );
+  assert.match(notify, /needs:[\s\S]*- validate-release[\s\S]*- deploy-saas/);
+  assert.match(notify, /needs\.deploy-saas\.result == 'success'/);
+  assert.match(
+    notify,
+    /tag: \$\{\{ needs\.validate-release\.outputs\.release_tag \}\}/,
+  );
+  assert.match(
+    notify,
+    /sha: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
+  );
+  assert.match(notify, /trigger: production-deploy/);
+  assert.match(notify, /permissions:\n {6}contents: read\n/);
+  assert.doesNotMatch(notify, /id-token:|packages:|issues:|actions:|pull-requests:/);
+  assert.doesNotMatch(notify, /publish-packages|promote-community|publish-release/);
+  assert.doesNotMatch(notify, /secrets:\s*inherit/);
+  assert.deepEqual(jobSecretMapping(notify), [
+    'RELEASE_WATCH_WEBHOOK_URL',
+    'RELEASE_WATCH_WEBHOOK_AUTH',
+    'QA_POST_DEPLOY_WEBHOOK_URL',
+    'QA_POST_DEPLOY_WEBHOOK_AUTH',
+  ]);
+
+  for (const jobId of [
+    'promote-community',
+    'publish-packages',
+    'publish-release',
+  ]) {
+    assert.doesNotMatch(
+      jobBlock(jobId),
+      /notify-release/,
+      `${jobId} must not wait for the release notification`,
+    );
+  }
+
+  const dispatch = notifyReleaseWorkflow.slice(
+    notifyReleaseWorkflow.indexOf('\n  workflow_dispatch:\n'),
+    notifyReleaseWorkflow.indexOf('\nconcurrency:\n'),
+  );
+  assert.match(dispatch, /tag:\n {8}description:[\s\S]*?\n {8}required: true/);
+  assert.match(dispatch, /sha:\n {8}description:[\s\S]*?\n {8}required: false/);
+  assert.doesNotMatch(dispatch, /^\s*trigger:/m);
+  assert.doesNotMatch(notifyReleaseWorkflow, /workflow_run:/);
+  assert.match(
+    notifyReleaseWorkflow,
+    /group: notify-release-\$\{\{ inputs\.tag \}\}/,
+  );
+  assert.match(notifyReleaseWorkflow, /cancel-in-progress: false/);
+  assert.match(notifyReleaseWorkflow, /permissions:\n  contents: read\n/);
+  assert.match(notifyReleaseWorkflow, /continue-on-error: true/);
+  assert.doesNotMatch(notifyReleaseWorkflow, /isDraft or \.isPrerelease/);
+  assert.match(notifyReleaseWorkflow, /\.isPrerelease/);
+  assert.match(
+    notifyReleaseWorkflow,
+    /draft:\$release\.isDraft, trigger:\$trigger/,
+  );
+  assert.match(notifyReleaseWorkflow, /event:"release\.published"/);
+  assert.match(notifyReleaseWorkflow, /args\+=\(-H "\$auth"\)/);
+  assert.match(
+    notifyReleaseWorkflow,
+    /echo "::warning::failed to notify \$name"/,
+  );
 });
