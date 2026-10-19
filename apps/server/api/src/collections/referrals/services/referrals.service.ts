@@ -65,8 +65,6 @@ type PurchaseReferralInput = {
   stripePaymentIntentId: string | null;
 };
 
-const LEGACY_PAYG_ACTIVITY_SOURCE = 'pay-as-you-go';
-
 function hasPrismaCode(error: unknown, code: string): boolean {
   return (
     typeof error === 'object' &&
@@ -278,9 +276,7 @@ export class ReferralsService {
               amount: { gt: 0 },
               isDeleted: false,
               organizationId: { in: targetOrganizationIds },
-              source: {
-                in: [ActivitySource.PAY_AS_YOU_GO, LEGACY_PAYG_ACTIVITY_SOURCE],
-              },
+              source: ActivitySource.PAY_AS_YOU_GO,
             },
           }),
           // tenant-scope-ignore: prior paid status follows linked organizations because subscription.billingAccountId is legacy-nullable
