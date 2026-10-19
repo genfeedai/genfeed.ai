@@ -4,9 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { PROTECTED_ROUTE_INVENTORY } from './workspace-shell-registry';
 
 const PROTECTED_APP_DIRECTORY = 'apps/app/app/(protected)';
-const INTENTIONAL_HARD_CUT_PREFIXES = [
-  '/:orgSlug/~/settings/organization',
-] as const;
 
 function findRepoRoot(startDirectory: string): string {
   let currentDirectory = startDirectory;
@@ -47,12 +44,7 @@ function toCanonicalPattern(appDirectory: string, pageFile: string): string {
 }
 
 function isIntentionalHardCut(pattern: string): boolean {
-  return (
-    pattern.includes('[[...segments]]') ||
-    INTENTIONAL_HARD_CUT_PREFIXES.some(
-      (prefix) => pattern === prefix || pattern.startsWith(`${prefix}/`),
-    )
-  );
+  return pattern.includes('[[...segments]]');
 }
 
 describe('workspace shell protected-route parity', () => {

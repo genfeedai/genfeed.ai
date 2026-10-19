@@ -107,9 +107,7 @@ export class SettingsPage {
     await this.open(orgSettingsRoute(APP_ROUTES.SETTINGS.CREDITS));
   }
 
-  // The organization settings home is /settings/general; the legacy
-  // /settings/organization path calls notFound()
-  // (LegacyOrganizationSettingsNotFound).
+  // The organization settings home is /settings/general.
   async goToOrganization(): Promise<void> {
     await this.open(orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL));
   }

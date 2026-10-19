@@ -386,12 +386,6 @@ describe('workspace shell trusted registry', () => {
     ).toBe(false);
   });
 
-  it('keeps the organization-settings hard-cut family outside the registry', () => {
-    expect(
-      resolveWorkspaceShellRoute('/acme/~/settings/organization'),
-    ).toBeNull();
-  });
-
   it('registers organization and brand Workspace overviews independently', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/~/workspace/overview'),

@@ -1259,9 +1259,8 @@ const ADMIN_ROUTE_REGISTRATIONS = [
 /**
  * Canonical application-owned inventory for the protected route patterns
  * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
- * its 206-route snapshot. The inventory hard cut
- * (`/:orgSlug/~/settings/organization/*`) is deliberately absent. Retired
- * `/automation/strategies` is a third hard cut: the `:agentId` pattern must not
+ * its 206-route snapshot. Retired
+ * `/automation/strategies` is a hard cut: the `:agentId` pattern must not
  * treat that slug as a live agent. Org Workspace lives at
  * `/:orgSlug/~/workspace/*`.
  */
