@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -39,6 +38,7 @@ import {
   resolveInlinePromptText,
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
+import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
@@ -47,10 +47,6 @@ import {
   isImageToVideoRequest,
   resolveGenerationDefaultModel,
 } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
-import {
-  buildReferenceImageUrl,
-  buildReferenceImageUrls,
-} from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
@@ -111,7 +107,7 @@ export function createMissingPromptIdException(): HttpException {
 @Injectable()
 export class VideoGenerationPreparationService {
   constructor(
-    private readonly assetsService: AssetsService,
+    private readonly referenceUrls: VideoReferenceUrlService,
     private readonly brandsService: BrandsService,
     private readonly configService: ConfigService,
     private readonly filesClientService: FilesClientService,
@@ -750,12 +746,8 @@ export class VideoGenerationPreparationService {
       referenceId: string,
       role: string,
     ): Promise<string> => {
-      const url = await buildReferenceImageUrl({
-        assetsService: this.assetsService,
-        configService: this.configService,
+      const url = await this.referenceUrls.resolveUrl({
         grantedOwners,
-        ingredientsService: this.ingredientsService,
-        loggerService: this.loggerService,
         organizationId,
         referenceId,
       });
@@ -891,24 +883,16 @@ export class VideoGenerationPreparationService {
   private async resolveReferenceUrls(
     resolved: ResolvedVideoGenerationRequest,
   ): Promise<{ endFrameUrl?: string; referenceImageUrls: string[] }> {
-    const referenceImageUrls = await buildReferenceImageUrls({
-      assetsService: this.assetsService,
-      configService: this.configService,
+    const referenceImageUrls = await this.referenceUrls.resolveUrls({
       grantedOwners: resolved.grantedAvatarOwners,
-      ingredientsService: this.ingredientsService,
-      loggerService: this.loggerService,
       organizationId: resolved.user.organizationId,
       referenceIds: resolved.referenceIds,
     });
     if (!resolved.createVideoDto.endFrame) {
       return { referenceImageUrls };
     }
-    const endFrameUrls = await buildReferenceImageUrls({
-      assetsService: this.assetsService,
-      configService: this.configService,
+    const endFrameUrls = await this.referenceUrls.resolveUrls({
       grantedOwners: resolved.grantedAvatarOwners,
-      ingredientsService: this.ingredientsService,
-      loggerService: this.loggerService,
       organizationId: resolved.user.organizationId,
       referenceIds: [resolved.createVideoDto.endFrame],
     });

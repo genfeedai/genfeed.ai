@@ -1,9 +1,15 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { AssetCategory, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+
+type ReferenceMediaIssuer = Pick<
+  AuthorizedMediaUrlService,
+  'issueServerAssetUrls' | 'issueServerPublish'
+>;
 
 /**
  * Builds a public reference image URL for a given reference id.
@@ -12,6 +18,8 @@ import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
  */
 export async function buildReferenceImageUrl(params: {
   assetsService: AssetsService;
+  /** Mints the execution URLs when authorized media delivery is enabled. */
+  authorizedMediaUrls?: ReferenceMediaIssuer;
   configService: ConfigService;
   /**
    * Reference images of characters granted to the caller (#6037), by the
@@ -26,12 +34,14 @@ export async function buildReferenceImageUrl(params: {
 }): Promise<string | null> {
   const {
     assetsService,
+    authorizedMediaUrls,
     configService,
     grantedOwners,
     ingredientsService,
     loggerService,
     referenceId,
   } = params;
+  const isAuthorizedDelivery = configService.isAuthorizedMediaDeliveryEnabled;
   const organizationId =
     grantedOwners?.get(referenceId) ?? params.organizationId;
 
@@ -48,6 +58,16 @@ export async function buildReferenceImageUrl(params: {
     });
 
     if (imageIngredient?.id) {
+      if (isAuthorizedDelivery) {
+        return (
+          (
+            await requireIssuer(authorizedMediaUrls).issueServerPublish(
+              organizationId,
+              [imageIngredient.id],
+            )
+          ).get(imageIngredient.id) ?? null
+        );
+      }
       return `${configService.ingredientsEndpoint}/images/${
         imageIngredient.id
       }`;
@@ -61,6 +81,15 @@ export async function buildReferenceImageUrl(params: {
     });
 
     if (videoIngredient?.id) {
+      // Video thumbnails have no stored key once delivery is authorized: new
+      // frames are random-keyed transient objects, and the ID-derived path
+      // would be an unsigned URL. Refuse the reference rather than leak one.
+      if (isAuthorizedDelivery) {
+        loggerService?.warn('Video reference has no authorized frame URL', {
+          reference: referenceId,
+        });
+        return null;
+      }
       return `${configService.ingredientsEndpoint}/thumbnails/${
         videoIngredient.id
       }`;
@@ -81,6 +110,16 @@ export async function buildReferenceImageUrl(params: {
       });
 
       if (asset?.id) {
+        if (isAuthorizedDelivery) {
+          return (
+            (
+              await requireIssuer(authorizedMediaUrls).issueServerAssetUrls(
+                organizationId,
+                [asset.id],
+              )
+            ).get(asset.id) ?? null
+          );
+        }
         return `${configService.cdnUrl}/${path}/${asset.id}`;
       }
     }
@@ -106,12 +145,20 @@ export async function buildReferenceImageUrl(params: {
   }
 }
 
+function requireIssuer(
+  issuer: ReferenceMediaIssuer | undefined,
+): ReferenceMediaIssuer {
+  if (!issuer) throw new Error('Authorized media issuer is unavailable');
+  return issuer;
+}
+
 /**
  * Builds an array of public reference image URLs for given reference ids.
  * Filters out invalid/null entries. Returns [] if none found.
  */
 export async function buildReferenceImageUrls(params: {
   assetsService: AssetsService;
+  authorizedMediaUrls?: ReferenceMediaIssuer;
   configService: ConfigService;
   grantedOwners?: ReadonlyMap<string, string>;
   ingredientsService: IngredientsService;
@@ -121,6 +168,7 @@ export async function buildReferenceImageUrls(params: {
 }): Promise<string[]> {
   const {
     assetsService,
+    authorizedMediaUrls,
     configService,
     grantedOwners,
     ingredientsService,
@@ -143,6 +191,7 @@ export async function buildReferenceImageUrls(params: {
 
       const lookup = buildReferenceImageUrl({
         assetsService,
+        authorizedMediaUrls,
         configService,
         grantedOwners,
         ingredientsService,
