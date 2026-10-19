@@ -96,10 +96,7 @@ a {
   }
 }
 
-/* Same elevation utilities as the app's composer and picker. */
-@utility shadow-composer {
-  box-shadow: var(--shadow-lg);
-}
+/* Same elevation utilities as the app's pickers and dialogs. */
 @utility shadow-border {
   box-shadow: var(--shadow-border);
 }

@@ -139,7 +139,7 @@ export default function StudioInterfacePreview({
               ))}
             </div>
 
-            <PromptBarComposer className="mt-3 border border-white/10 bg-black/60 shadow-xl">
+            <PromptBarComposer className="mt-3 border border-white/10 bg-black/60">
               <div className="min-h-11 px-2 py-1.5 text-xs leading-5 text-surface/75 sm:px-3 sm:text-sm">
                 Build a complete launch campaign from this product reference
               </div>

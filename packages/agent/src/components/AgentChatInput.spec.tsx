@@ -152,14 +152,14 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('uses the shared composer glass and elevation', () => {
+  it('uses the shared composer glass with no outer shadow', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
     expect(shell).toHaveClass('bg-background/70', 'backdrop-blur-xl');
     expect(shell).toHaveClass('border', 'border-border-strong/70');
-    expect(shell).toHaveClass('shadow-composer');
+    expect(shell.className).not.toMatch(/(^|\s)shadow-/);
   });
 
   it('renders the agent mode dropdown in the leading toolbar slot', () => {

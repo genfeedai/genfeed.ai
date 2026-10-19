@@ -361,7 +361,6 @@ describe('AgentChatMessage', () => {
     expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('shadow-border');
     expect(card).not.toHaveClass('rounded-xl');
-    expect(card).not.toHaveClass('shadow-composer');
     expect(surface).toContainElement(card);
     expect(surface?.parentElement).toHaveClass('sticky');
     expect(surface?.parentElement).toHaveClass('bg-background');

@@ -134,7 +134,7 @@ export default function ProductInterfacePreview({
             </div>
           </div>
 
-          <PromptBarComposer className="mt-3 border border-white/10 bg-black/55 shadow-xl">
+          <PromptBarComposer className="mt-3 border border-white/10 bg-black/55">
             <div className="flex min-h-12 items-center px-3 text-xs text-surface/55 sm:text-sm">
               Tell Genfeed what to do in {product.name}
             </div>

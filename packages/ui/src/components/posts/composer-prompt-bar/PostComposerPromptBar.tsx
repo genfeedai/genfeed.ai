@@ -263,7 +263,7 @@ export default function PostComposerPromptBar({
             ? translate('proposedThreadAria')
             : translate('rewriteAria')
         }
-        className="overflow-hidden rounded-lg border border-border-strong bg-card shadow-composer"
+        className="overflow-hidden rounded-lg border border-border-strong bg-card"
       >
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2 pl-3 pr-2">
           <p className="flex items-center gap-1.5 text-xs font-medium text-agent">

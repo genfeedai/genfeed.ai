@@ -1,9 +1,9 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HTMLAttributes, ReactNode } from 'react';
 
-/** Shared glass, border and elevation for Agent and Studio composers. */
+/** Shared glass and border for every composer. Flat on purpose: no outer shadow. */
 export const PROMPT_BAR_SURFACE_CLASS =
-  'overflow-hidden rounded-[var(--radius-workspace-composer)] border border-border-strong/70 shadow-composer bg-background/70 backdrop-blur-xl backdrop-saturate-150 transition-[background-color,box-shadow] focus-within:bg-background/80';
+  'overflow-hidden rounded-[var(--radius-workspace-composer)] border border-border-strong/70 bg-background/70 backdrop-blur-xl backdrop-saturate-150 transition-[background-color] focus-within:bg-background/80';
 
 export interface PromptBarShellProps extends HTMLAttributes<HTMLDivElement> {
   /**

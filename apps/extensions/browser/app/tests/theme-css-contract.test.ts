@@ -38,7 +38,7 @@ describe('browser extension theme CSS contract', () => {
         '.border-border',
         '.bg-elevated',
         '.z-50',
-        '.shadow-composer',
+        '.backdrop-blur-xl',
         '.aspect-square',
         String.raw`.focus\:bg-hover`,
         String.raw`.hover\:bg-hover`,

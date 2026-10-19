@@ -17,8 +17,8 @@ describe('PromptBarComposer', () => {
       'border-border-strong/70',
       'backdrop-blur-xl',
     );
-    expect(screen.getByTestId('prompt-bar-composer')).toHaveClass(
-      'shadow-composer',
+    expect(screen.getByTestId('prompt-bar-composer').className).not.toMatch(
+      /(^|\s)shadow-/,
     );
     expect(screen.getByText('References')).toBeInTheDocument();
     expect(screen.getByTestId('prompt-bar-body')).toHaveTextContent('Editor');

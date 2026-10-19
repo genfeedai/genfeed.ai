@@ -1,21 +1,21 @@
 ---
 name: composer outer shadow
-description: Docked prompt bar lifts with outer --shadow-lg only — never an inset or 1px ring hairline
+description: Prompt bars carry no shadow at all (no outer lift, no inset ring); the surface is glass fill + border + radius only
 type: feedback
-last_verified: 2026-09-04
+last_verified: 2026-10-19
 ---
 
-# Composer uses outer ambient shadow, not a boxed hairline
+# Composer has no shadow
 
-`shadow-composer` / `shadow-composer-strong` are **outer** `--shadow-lg` only.
-Do not stack `inset 0 0 0 1px` (or an outer 1px ring) on the docked prompt bar.
+Every prompt bar (Agent, Studio, Library, post composer, modals, extension) renders
+`PROMPT_BAR_SURFACE_CLASS` with no `shadow-*` utility. `shadow-composer` and
+`shadow-composer-strong` were deleted.
 
-**Why:** The inset `--border` hairline on the glass composer reads as a rounded
-slab around "Ask for help with…". Vincent asked for an outer lift, not a block.
+**Why:** Vincent called the outer `--shadow-lg` on the Library prompt bar
+"disgusting" (2026-10-19). It replaced an earlier inset hairline that read as a
+boxed slab, so neither ring nor lift belongs on the bar.
 
-**How to apply:** Keep the named utilities. Change their composition in
-`packages/styles/globals.css`, not a one-off class on `PROMPT_BAR_SURFACE_CLASS`
-— `scripts/check-composer-surface-styling.ts` already fails any call site that
-restates border/shadow/radius there, so this is only about what the shared
-constant itself should say. Cards, dropdowns, and dialogs still use inset
-hairlines. The composer is the exception, documented in `DESIGN.md`.
+**How to apply:** Do not add a shadow to the shared constant or at a call site;
+`scripts/check-composer-surface-styling.ts` already rejects `shadow-` on
+`PromptBarComposer`/`PromptBarShell` call sites. Cards, dropdowns and dialogs keep
+their inset hairlines.

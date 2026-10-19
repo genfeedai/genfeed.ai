@@ -71,7 +71,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_toolbar_ghost_icon_cluster](feedback_toolbar_ghost_icon_cluster.md) — toolbar icon actions are ghost, 14px, clustered at the far right
 - [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — prompt bar is opaque; dock uses a top-transparent / bottom-black gradient; do not slab the full stack
 - [feedback_studio_generate_agent_dock](feedback_studio_generate_agent_dock.md) — Studio generate floats the composer over the masonry like Agent; no inflow black slab; card click opens inspector
-- [feedback_composer_outer_shadow](feedback_composer_outer_shadow.md) — docked prompt bar lifts with outer --shadow-lg only; no inset or 1px ring hairline
+- [feedback_composer_outer_shadow](feedback_composer_outer_shadow.md) — prompt bars carry no shadow at all (outer lift removed 2026-10-19)
 - [feedback_onboarding_deliver_content_first](feedback_onboarding_deliver_content_first.md) — current onboarding direction: proactive image + tweet, user review, then optional publishing connection
 - [feedback_onboarding_brand_shared](feedback_onboarding_brand_shared.md) — `/onboarding/brand` is shared across Cloud and Desktop; Skip completes the gate, brand stays re-enterable
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org

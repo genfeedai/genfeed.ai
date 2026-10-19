@@ -662,7 +662,6 @@ at a fraction of the opacity. Values live in `packages/ui/src/core/elevation.ts`
 | `shadow-border-strong` | inset hairline, `border-strong`                   | hover and focus-within     |
 | `shadow-dropdown`      | inset hairline + `--shadow-md`                    | menus, popovers, selects   |
 | `shadow-dialog`        | inset hairline + `--shadow-lg`                    | dialogs, sheets            |
-| `shadow-composer`      | `--shadow-lg` (outer ambient, no hairline)        | the docked composer        |
 | `shadow-tooltip`       | `--shadow-tooltip` (ring + direct + ambient)      | tooltips                   |
 
 A card may carry a CSS `border` *or* an inset hairline; both are legal and they
@@ -670,9 +669,9 @@ render identically. The rule is that a raised surface must have **an edge and a
 plane shift** — a card that differs from the canvas by 1.09:1 and has no edge is
 invisible, which is exactly what the previous `#080808`-on-`#030303` card was.
 
-The docked composer is the exception: a 1px ring on the glass prompt bar reads as
-a slab on `#0A0A0A`. `shadow-composer` / `shadow-composer-strong` lift with
-`--shadow-lg` only — no inset or outer hairline.
+The docked composer is the exception: it carries no shadow at all. An outer lift
+or a 1px ring on the glass prompt bar reads as a muddy slab, so the bar separates
+by plane only (glass fill, border and radius from `PROMPT_BAR_SURFACE_CLASS`).
 
 Reserve plain `border` for structural dividers (the menu sidebar's right
 edge, the topbar's bottom edge, header separators) where there is no elevation
