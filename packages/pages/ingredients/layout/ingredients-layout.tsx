@@ -77,6 +77,7 @@ export default function IngredientsLayout({
     <IngredientsHeaderProvider value={headerContextValue}>
       <IngredientsProvider value={contextValue}>
         <Container
+          isTopbarPinned
           label={currentIngredient.label}
           description={description}
           icon={Image}
@@ -96,10 +97,14 @@ export default function IngredientsLayout({
                     ].find(
                       (value) =>
                         value === new URLSearchParams(search).get('assetType'),
-                    ) ?? 'videos',
+                    ) ?? 'ingredients',
                   ),
                   fullWidth: false,
                   tabs: [
+                    {
+                      href: typeHref('ingredients'),
+                      label: 'All',
+                    },
                     {
                       href: typeHref('videos'),
                       label: 'Videos',
