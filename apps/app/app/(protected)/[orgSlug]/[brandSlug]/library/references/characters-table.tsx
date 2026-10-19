@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryBrowserRoute,
@@ -11,11 +11,13 @@ import type { CharactersTableProps } from '@props/characters/characters-page.pro
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, Images, Plus, Share2, UserRound } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -181,6 +183,99 @@ export default function CharactersTable({
     ],
   );
 
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<BrandCharacterListItem>({
+        getBadges: (character) =>
+          character.isGranted ? (
+            <Badge icon={<Share2 />}>
+              {translate('grants.grantedByBadge', {
+                organization: character.grantedByOrganizationName ?? '',
+              })}
+            </Badge>
+          ) : character.isShared ? (
+            <Badge icon={<Share2 />}>
+              {translate('availability.sharedBadge', {
+                brand: character.owningBrandName ?? '',
+                count: character.availableBrandCount ?? 0,
+              })}
+            </Badge>
+          ) : null,
+        getFacts: (character) => [
+          {
+            id: 'references',
+            label: translate('references.column'),
+            value:
+              character.referenceIngredientIds.length === 0
+                ? translate('references.empty')
+                : character.referenceIngredientIds.length,
+          },
+          {
+            id: 'availability',
+            label: translate('availability.column'),
+            value:
+              character.isGranted || character.isShared
+                ? undefined
+                : translate('availability.modes.owningBrand.label'),
+          },
+        ],
+        getId: (character) => character.id,
+        getSubtitle: (character) =>
+          character.handle ? `@${character.handle}` : undefined,
+        getTitle: (character) => character.label,
+        kind: 'record',
+        renderExtra: (character) => (
+          <div className="flex flex-col items-start gap-2">
+            {!character.isGranted ? (
+              <Button
+                icon={<Images className="size-3.5" />}
+                label={translate('references.manageFor', {
+                  name: character.label,
+                })}
+                onClick={() => onManageReferences(character)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
+            {canManageSharing && !character.isGranted ? (
+              <Button
+                icon={<Share2 className="size-3.5" />}
+                label={translate('availability.manageFor', {
+                  name: character.label,
+                })}
+                onClick={() => onManageAvailability(character)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
+            <Button
+              asChild
+              icon={<FolderOpen className="size-3.5" />}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link
+                href={href(
+                  createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+                    characters: [character.id],
+                  }),
+                )}
+              >
+                {translate('list.viewInLibraryFor', { name: character.label })}
+              </Link>
+            </Button>
+          </div>
+        ),
+      }),
+    [
+      canManageSharing,
+      href,
+      onManageAvailability,
+      onManageReferences,
+      translate,
+    ],
+  );
+
   return (
     <AppTable<BrandCharacterListItem>
       actions={actions}
@@ -205,6 +300,7 @@ export default function CharactersTable({
       getRowKey={(character) => character.id}
       isLoading={isLoading}
       items={characters}
+      rowSidebar={rowSidebar}
     />
   );
 }

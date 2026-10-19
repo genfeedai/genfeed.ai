@@ -362,10 +362,7 @@
   },
   "insightListCard": {
     "title": "AI Insights",
-    "unreadCount": "{count, plural, one {# unread insight} other {# unread insights}}",
-    "allRead": "All insights read",
     "emptyTitle": "No insights yet",
-    "emptyDescription": "Insights are generated automatically as your content performance data comes in.",
     "confidence": "{value}% confidence",
     "dismissAriaLabel": "Dismiss insight"
   },
@@ -719,5 +716,131 @@
     "cellTitle": "{day}: {count, plural, one {# item} other {# items}}",
     "less": "Less",
     "more": "More"
+  },
+  "brandCreate": {
+    "title": "New brand",
+    "description": "Paste a website to autofill name and description, or enter details manually. Finish setup on the brand page after create.",
+    "website": {
+      "label": "Website",
+      "description": "We’ll scrape the public site for label, slug, and description.",
+      "placeholder": "https://example.com",
+      "load": "Load from site",
+      "loading": "Loading…"
+    },
+    "label": {
+      "label": "Label",
+      "placeholder": "Acme"
+    },
+    "slug": {
+      "label": "Slug",
+      "placeholder": "acme"
+    },
+    "descriptionField": {
+      "label": "Description",
+      "placeholder": "What this brand is about"
+    },
+    "cancel": "Cancel",
+    "submit": "Create brand",
+    "submitting": "Creating…"
+  },
+  "brandSidebar": {
+    "loading": "Loading brand…",
+    "unavailable": "Brand unavailable",
+    "public": "Public",
+    "private": "Private",
+    "connected": "{count} connected",
+    "openSettings": "Open settings"
+  },
+  "rowSidebar": {
+    "edit": "Edit",
+    "open": "Open",
+    "openNamed": "Open {name}",
+    "yes": "Yes",
+    "no": "No",
+    "inactive": "Inactive",
+    "unknown": "Unknown",
+    "notAvailable": "N/A",
+    "fields": {
+      "account": "Account",
+      "active": "Active",
+      "balance": "Balance",
+      "brand": "Brand",
+      "brands": "Brands",
+      "category": "Category",
+      "color": "Color",
+      "created": "Created",
+      "default": "Default",
+      "description": "Description",
+      "email": "Email",
+      "engagement": "Engagement",
+      "engagementRate": "Eng. Rate",
+      "format": "Format",
+      "growth": "Growth",
+      "handle": "Handle",
+      "health": "Health",
+      "joined": "Joined",
+      "key": "Key",
+      "language": "Language",
+      "members": "Members",
+      "model": "Model",
+      "models": "Models",
+      "organization": "Organization",
+      "platform": "Platform",
+      "platforms": "Platforms",
+      "posts": "Posts",
+      "provider": "Provider",
+      "rank": "Rank",
+      "role": "Role",
+      "sortOrder": "Sort order",
+      "tags": "Tags",
+      "tier": "Tier",
+      "type": "Type",
+      "user": "User",
+      "views": "Views"
+    },
+    "analytics": {
+      "growthVsLastPeriod": "{value} vs last period",
+      "manual": "Manual",
+      "openAccount": "Open account analytics",
+      "openBrand": "Open analytics",
+      "openOrganization": "Open organization analytics",
+      "brandCount": "{count, plural, one {# brand} other {# brands}}",
+      "rankLabel": "Rank {rank}"
+    },
+    "caption": {
+      "fallbackTitle": "Caption"
+    },
+    "creditUsage": {
+      "allotment": "Allotment",
+      "maxedOut": "Maxed out",
+      "underUsing": "Under-using",
+      "used": "Used"
+    },
+    "referral": {
+      "attempts": "Attempts",
+      "checkout": "Checkout",
+      "credits": "{count} credits",
+      "eligible": "Eligible",
+      "failureReason": "Failure reason",
+      "purchase": "Purchase",
+      "referredAccount": "Referred account",
+      "referrerAccount": "Referrer account",
+      "reward": "Reward",
+      "title": "Referral reward {id}"
+    },
+    "subscription": {
+      "customerId": "Customer ID",
+      "openOrganization": "Open organization",
+      "owner": "Owner",
+      "periodEnd": "Period end",
+      "usage": "Credits used"
+    },
+    "training": {
+      "baseModel": "Base model",
+      "generatedImages": "Generated images",
+      "sources": "Sources",
+      "steps": "Steps",
+      "triggerWord": "Trigger word"
+    }
   }
 }

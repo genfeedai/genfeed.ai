@@ -6,10 +6,34 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SubscriptionsList from './subscriptions-list';
 
+interface MockRowLink {
+  href: string;
+  label: string;
+}
+
+interface MockRowSidebar {
+  getTitle: (item: IOrganizationBilling) => string;
+  kind: string;
+  render: (item: IOrganizationBilling) => ReactNode;
+}
+
 const mocks = vi.hoisted(() => ({
   getAdminBilling: vi.fn(),
+  tableProps: {
+    current: undefined as
+      | {
+          getRowLink?: (item: unknown) => unknown;
+          rowSidebar?: unknown;
+        }
+      | undefined,
+  },
   useQuery: vi.fn(),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>
@@ -63,7 +87,9 @@ vi.mock('@ui/display/table/Table', () => ({
   default: ({
     columns,
     getRowKey,
+    getRowLink,
     items,
+    rowSidebar,
   }: {
     columns: Array<{
       header: string;
@@ -71,23 +97,28 @@ vi.mock('@ui/display/table/Table', () => ({
       render?: (item: IOrganizationBilling) => ReactNode;
     }>;
     getRowKey: (item: IOrganizationBilling) => string;
+    getRowLink?: (item: IOrganizationBilling) => MockRowLink;
     items: IOrganizationBilling[];
-  }) => (
-    <div>
-      {items.map((item) => (
-        <div key={getRowKey(item)}>
-          {columns.map((column) => (
-            <div
-              key={column.key}
-              data-testid={`${column.key}-${item.organizationId}`}
-            >
-              {column.render ? column.render(item) : null}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  ),
+    rowSidebar?: MockRowSidebar;
+  }) => {
+    mocks.tableProps.current = { getRowLink, rowSidebar };
+    return (
+      <div>
+        {items.map((item) => (
+          <div key={getRowKey(item)}>
+            {columns.map((column) => (
+              <div
+                key={column.key}
+                data-testid={`${column.key}-${item.organizationId}`}
+              >
+                {column.render ? column.render(item) : null}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@components/lazy/lazy-modal.admin', () => ({
@@ -134,6 +165,13 @@ function mockRows(rows: IOrganizationBilling[]) {
     isLoading: false,
     refetch: vi.fn(),
   }));
+}
+
+function getTableProps(): {
+  getRowLink?: (item: IOrganizationBilling) => MockRowLink;
+  rowSidebar?: MockRowSidebar;
+} {
+  return (mocks.tableProps.current ?? {}) as ReturnType<typeof getTableProps>;
 }
 
 describe('SubscriptionsList', () => {
@@ -184,6 +222,26 @@ describe('SubscriptionsList', () => {
     expect(screen.getByTestId('stripeCustomerId-org-2')).toHaveTextContent(
       'cus_123',
     );
+  });
+
+  it('links the organization name to its analytics page and summarises it in the sidebar', () => {
+    const billing = makeBilling({ stripeCustomerId: 'cus_123', tier: 'scale' });
+    mockRows([billing]);
+
+    render(<SubscriptionsList />);
+
+    const { getRowLink, rowSidebar } = getTableProps();
+    expect(getRowLink?.(billing)).toEqual({
+      href: '/admin/overview/analytics/organizations/org-1',
+      label: 'openNamed',
+    });
+    expect(rowSidebar?.kind).toBe('record');
+    expect(rowSidebar?.getTitle(billing)).toBe('Acme');
+
+    render(<>{rowSidebar?.render(billing)}</>);
+    const summary = screen.getByTestId('table-row-summary');
+    expect(summary).toHaveTextContent('owner@example.com');
+    expect(summary).toHaveTextContent('cus_123');
   });
 
   it('requests the page named in the URL', async () => {

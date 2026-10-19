@@ -8,6 +8,7 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   ImageTaskModel,
   ModelCategory,
@@ -16,6 +17,7 @@ import {
   VideoTaskModel,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -29,6 +31,8 @@ describe('StepExecutorService', () => {
     string,
     ReturnType<typeof vi.fn>
   >;
+  let mockConfigService: Record<string, unknown>;
+  let mockIssueExecutionUrls: ReturnType<typeof vi.fn>;
   let mockLoggerService: Record<string, ReturnType<typeof vi.fn>>;
   let mockReplicateService: Record<string, ReturnType<typeof vi.fn>>;
   let mockMusicGenerationService: Record<string, ReturnType<typeof vi.fn>>;
@@ -70,6 +74,13 @@ describe('StepExecutorService', () => {
       providerFor: vi.fn(),
     };
     mockLoggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    mockConfigService = {
+      apiUrl: 'https://api.example.com',
+      cdnUrl: 'https://cdn.example.com',
+      ingredientsEndpoint: 'https://cdn.example.com/ingredients',
+      isAuthorizedMediaDeliveryEnabled: false,
+    };
+    mockIssueExecutionUrls = vi.fn();
 
     service = new StepExecutorService(
       mockLoggerService as unknown as LoggerService,
@@ -81,6 +92,10 @@ describe('StepExecutorService', () => {
       mockMusicGenerationService as unknown as MusicGenerationService,
       mockMusicProviderRegistry as unknown as MusicGenerationProviderRegistryService,
       mockReplicateService as unknown as ReplicateService,
+      mockConfigService as unknown as ConfigService,
+      {
+        issueExecutionUrls: mockIssueExecutionUrls,
+      } as unknown as AuthorizedMediaUrlService,
     );
   });
 
@@ -138,6 +153,95 @@ describe('StepExecutorService', () => {
   });
 
   describe('image-to-video', () => {
+    describe('with authorized media delivery', () => {
+      beforeEach(() => {
+        mockConfigService.isAuthorizedMediaDeliveryEnabled = true;
+        mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
+          requestId: 'req-1',
+        });
+        mockHiggsFieldService.waitForVideoCompletion.mockResolvedValue({
+          videoUrl: 'https://hf.ai/video.mp4',
+        });
+      });
+
+      it('replaces a canonical internal source image with a grant minted for the run', async () => {
+        mockIssueExecutionUrls.mockResolvedValue(
+          new Map([['ing-1', 'https://cdn.example.com/grant']]),
+        );
+
+        await service.execute(
+          {
+            imageUrl: 'https://cdn.example.com/ingredients/images/ing-1',
+            model: VideoTaskModel.HIGGSFIELD,
+            type: 'image-to-video',
+          },
+          { ...baseContext, userId: 'user-1' },
+        );
+
+        expect(mockIssueExecutionUrls).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organizationId: 'org-123',
+            userId: 'user-1',
+          }),
+          ['ing-1'],
+        );
+        expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            imageUrl: 'https://cdn.example.com/grant',
+          }),
+        );
+      });
+
+      it('leaves an external source image alone', async () => {
+        await service.execute(
+          {
+            imageUrl: 'https://example.com/img.png',
+            model: VideoTaskModel.HIGGSFIELD,
+            type: 'image-to-video',
+          },
+          { ...baseContext, userId: 'user-1' },
+        );
+
+        expect(mockIssueExecutionUrls).not.toHaveBeenCalled();
+        expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith(
+          expect.objectContaining({ imageUrl: 'https://example.com/img.png' }),
+        );
+      });
+
+      it('fails the step when the source belongs to another organization', async () => {
+        mockIssueExecutionUrls.mockRejectedValue(
+          new Error('Media is unavailable'),
+        );
+
+        await expect(
+          service.execute(
+            {
+              imageUrl: 'https://cdn.example.com/ingredients/images/foreign',
+              model: VideoTaskModel.HIGGSFIELD,
+              type: 'image-to-video',
+            },
+            { ...baseContext, userId: 'user-1' },
+          ),
+        ).rejects.toThrow('Media is unavailable');
+        expect(
+          mockHiggsFieldService.generateImageToVideo,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('fails closed without a caller to scope the grant to', async () => {
+        await expect(
+          service.execute(
+            {
+              imageUrl: 'https://cdn.example.com/ingredients/images/ing-1',
+              model: VideoTaskModel.HIGGSFIELD,
+              type: 'image-to-video',
+            },
+            baseContext,
+          ),
+        ).rejects.toThrow('Authorized media delivery is unavailable');
+      });
+    });
+
     it('should route HIGGSFIELD to HiggsFieldService', async () => {
       mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
         requestId: 'req-1',

@@ -72,3 +72,28 @@ export function createLibraryAssetRoute(
   params.set(LIBRARY_ASSET_QUERY_KEY, assetId);
   return `${pathname}?${params.toString()}`;
 }
+
+/**
+ * Admin page of one ingredient. Only images and videos have one; every other
+ * category is inspected in the context sidebar alone, so it returns `undefined`.
+ */
+export function createAdminIngredientRoute(
+  category: unknown,
+  assetId: string,
+): string | undefined {
+  if (!assetId || typeof category !== 'string') {
+    return undefined;
+  }
+
+  const id = encodeURIComponent(assetId);
+  switch (category.toUpperCase()) {
+    case IngredientCategory.IMAGE:
+    case IngredientCategory.IMAGE_EDIT:
+      return `${APP_ROUTES.ADMIN.IMAGES}/${id}`;
+    case IngredientCategory.VIDEO:
+    case IngredientCategory.VIDEO_EDIT:
+      return `${APP_ROUTES.ADMIN.VIDEOS}/${id}`;
+    default:
+      return undefined;
+  }
+}

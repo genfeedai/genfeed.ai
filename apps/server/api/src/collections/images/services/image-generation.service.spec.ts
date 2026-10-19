@@ -568,6 +568,18 @@ describe('ImageGenerationService', () => {
     expect(replicateService.generateTextToImage).toHaveBeenCalled();
   });
 
+  it('forwards an agent-authored prompt to the enhancement receipt', async () => {
+    const { service, enhancementService } = createService();
+    await service.generateImage(
+      buildUser(),
+      baseDto({ text: 'A bicycle', promptAuthor: 'agent_edited' }),
+      buildRequest(),
+    );
+    expect(enhancementService.enhance).toHaveBeenCalledWith(
+      expect.objectContaining({ promptAuthor: 'agent_edited' }),
+    );
+  });
+
   it('rejects selected context in raw mode instead of silently changing the prompt', async () => {
     const { service, replicateService } = createService();
     await expect(

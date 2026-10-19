@@ -1,5 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/contracts';
+import { createAdminIngredientRoute } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import {
   createCacheKey,
@@ -8,11 +9,9 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
+import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { IngredientDetailProps } from '@props/content/ingredient.props';
-import {
-  useIngredientOverlay,
-  usePostModal,
-} from '@providers/global-modals/global-modals.provider';
+import { usePostModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -35,7 +34,7 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     [],
   );
   const { openPostBatchModal } = usePostModal();
-  const { openIngredientOverlay } = useIngredientOverlay();
+  const { openIngredientSidebar } = useIngredientSidebar();
 
   const getIngredientsService = useAuthedService((token) =>
     IngredientsService.getInstance(type, token),
@@ -100,8 +99,20 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
         await findChildIngredients(id, signal);
       }
     },
+    // A child with its own admin page opens it; any other category is
+    // inspected in the context sidebar.
     onSeeDetails: (detailIngredient: IIngredient) => {
-      openIngredientOverlay(detailIngredient);
+      const detailHref = createAdminIngredientRoute(
+        detailIngredient.category,
+        detailIngredient.id,
+      );
+
+      if (detailHref) {
+        router.push(detailHref);
+        return;
+      }
+
+      openIngredientSidebar(detailIngredient);
     },
     // One-off generation is Agent-first — the standalone Studio video prompt
     // bar is retired, so the reference is handed to a new Agent thread.

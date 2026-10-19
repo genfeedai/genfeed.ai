@@ -17,6 +17,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import AnalyticsTopAccounts from '@pages/analytics/accounts/analytics-top-accounts';
+import AnalyticsBrandSummary from '@pages/analytics/brands-list/analytics-brand-summary';
 import type {
   BrandPerformanceData,
   IBrandWithStats,
@@ -333,6 +334,18 @@ export default function AnalyticsOrganizationOverview({
             href: `${basePath}/brands/${brand.id}`,
             label: `Open ${brand.name} analytics`,
           })}
+          rowSidebar={{
+            getId: (brand) => brand.id,
+            getSubtitle: (brand) => brand.organizationName,
+            getTitle: (brand) => brand.name,
+            kind: 'brand',
+            render: (brand) => (
+              <AnalyticsBrandSummary
+                brand={brand}
+                openHref={`${basePath}/brands/${brand.id}`}
+              />
+            ),
+          }}
           columns={[
             {
               header: 'Brand',

@@ -1,7 +1,9 @@
 'use client';
 
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { resolveCapturedAudience } from '@pages/posts/list/captured-post.helpers';
 import type { AnalyticsPostCardProps } from '@props/analytics/analytics-posts-grid.props';
 import Card from '@ui/card/Card';
@@ -9,6 +11,7 @@ import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Copy, Play } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 
@@ -80,6 +83,7 @@ function AnalyticsPostCard({
   onSelectPost,
 }: AnalyticsPostCardProps) {
   const translate = useTranslations('pages.analytics.postCard');
+  const { href } = useOrgUrl();
   const translateSource = useTranslations('pages.analytics.sourceFilter');
   const translateAudience = useTranslations('pages.posts.list.captured');
   const audience = hasAudience
@@ -114,7 +118,13 @@ function AnalyticsPostCard({
       <div className="flex flex-col gap-3 p-4">
         <div className="min-w-0 text-left">
           <h3 className="line-clamp-2 min-h-[2lh] text-sm font-semibold leading-snug">
-            {item.label}
+            <Link
+              className="hover:underline"
+              href={href(getPublishingPostHref(item.postId))}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {item.label}
+            </Link>
           </h3>
           <p className="mt-1 truncate text-xs text-foreground/60">
             {item.brandName} · {item.platform}

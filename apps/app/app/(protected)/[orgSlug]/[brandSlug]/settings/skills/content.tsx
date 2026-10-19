@@ -8,11 +8,7 @@ import {
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import {
-  closeModal,
-  isModalOpen,
-  openModal,
-} from '@genfeedai/helpers/ui/modal/modal.helper';
+import { isModalOpen } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
@@ -52,7 +48,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import SkillDetailSheet from './skill-detail-sheet';
+import SkillDetailPanel from './skill-detail-panel';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 import SkillFilters from './skill-filters';
 import SkillImportForm, {
@@ -410,19 +406,13 @@ export default function BrandSettingsSkillsPage() {
 
   const refreshCatalog = useCallback(async () => {
     const lifecycle = lifecycleRef.current;
-    if (
-      lifecycle.selectedId ||
-      isModalOpen(ModalEnum.SKILL) ||
-      lifecycle.pendingId
-    )
-      return;
+    if (lifecycle.selectedId || lifecycle.pendingId) return;
     const wasImportSent = lifecycle.importSent;
     const epoch = ++lifecycle.epoch;
     const requestId = ++catalogRequestIdRef.current;
     lifecycle.pendingId = 0;
     lifecycle.selectedId = '';
     dispatch({ type: 'RESET', importLocked: wasImportSent });
-    closeModal(ModalEnum.SKILL);
     if (!isScopeMatch) return;
     const isCurrent = () =>
       lifecycleRef.current.isActive &&
@@ -462,7 +452,6 @@ export default function BrandSettingsSkillsPage() {
       lifecycleRef.current.pendingId = 0;
       versionsRequestRef.current.pendingId = 0;
       versionsRequestRef.current.operationId += 1;
-      closeModal(ModalEnum.SKILL);
     };
   }, [refreshCatalog]);
 
@@ -579,8 +568,7 @@ export default function BrandSettingsSkillsPage() {
         lifecycle.selectedId !== selectedSkill.id ||
         lifecycle.pendingId ||
         isPending ||
-        versionsRequestRef.current.pendingId ||
-        !isModalOpen(ModalEnum.SKILL)
+        versionsRequestRef.current.pendingId
       )
         return;
       const cursor = kind === 'older' ? state.versions.nextCursor : undefined;
@@ -602,8 +590,7 @@ export default function BrandSettingsSkillsPage() {
         lifecycleRef.current.scopeKey === scopeKey &&
         lifecycleRef.current.selectedId === selectedId &&
         versionsRequestRef.current.pendingId === operationId &&
-        !lifecycleRef.current.pendingId &&
-        isModalOpen(ModalEnum.SKILL);
+        !lifecycleRef.current.pendingId;
       dispatch({ type: 'VERSIONS_START', skillId: selectedId });
       try {
         const service = await acquireService(isCurrent);
@@ -753,7 +740,6 @@ export default function BrandSettingsSkillsPage() {
         lifecycleRef.current.pendingId = 0;
         lifecycleRef.current.selectedId = hydrated.id;
         lifecycleRef.current.epoch += 1;
-        openModal(ModalEnum.SKILL);
       } catch (failure) {
         if (!isCurrent()) return;
         const classified = classifySkillImportFailure(failure);
@@ -913,7 +899,6 @@ export default function BrandSettingsSkillsPage() {
       if (!operation.isCurrent()) return;
       dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
       dispatch({ type: 'CLEAR_SELECTED_SKILL' });
-      closeModal(ModalEnum.SKILL);
       operation.finish();
       lifecycleRef.current.selectedId = '';
       lifecycleRef.current.epoch += 1;
@@ -956,7 +941,6 @@ export default function BrandSettingsSkillsPage() {
       versionsRequestRef.current.pendingId = 0;
       versionsRequestRef.current.operationId += 1;
       dispatch({ type: 'SELECT_SKILL', id, draft: draftFromSkill(skill) });
-      openModal(ModalEnum.SKILL);
     },
     [isScopeMatch, scopeKey, skills],
   );
@@ -1138,7 +1122,7 @@ export default function BrandSettingsSkillsPage() {
         <AutoPagination showTotal totalLabel="skills" />
       </div>
 
-      <SkillDetailSheet
+      <SkillDetailPanel
         versions={{
           ...state.versions,
           isDisabled: isPending,

@@ -221,27 +221,38 @@ describe('ledger brand attribution', () => {
     expect(data).not.toHaveProperty('brandId');
   });
 
-  it('nets refunds against deductions in usage and excludes referral reversals', async () => {
-    const now = new Date();
-    const findMany = vi.fn().mockResolvedValue([
-      { amount: 10, category: 'deduct', createdAt: now, source: 'image' },
-      { amount: 4, category: 'refund', createdAt: now, source: 'image' },
-    ]);
-    const service = buildService({ creditTransaction: { findMany } });
+  it('aggregates usage in the database, netting refunds and excluding referral reversals', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([{ amount: 6, day: today }])
+      .mockResolvedValueOnce([
+        { amount: 6, amount7Days: 6, count: 2, source: 'image' },
+        { amount: 1, amount7Days: 0, count: 1, source: null },
+      ]);
+    const findMany = vi.fn();
+    const service = buildService({
+      $queryRaw: queryRaw,
+      creditTransaction: { findMany },
+    });
 
     const metrics = await service.getUsageMetrics('org');
 
+    expect(findMany).not.toHaveBeenCalled();
     expect(metrics.usage7Days).toBe(6);
-    expect(metrics.usage30Days).toBe(6);
+    expect(metrics.usage30Days).toBe(7);
     expect(metrics.breakdown).toEqual([
       { amount: 6, count: 2, source: 'image' },
+      { amount: 1, count: 1, source: 'Unknown' },
     ]);
-    const [{ where }] = findMany.mock.calls[0];
-    expect(where.category).toEqual({ in: ['deduct', 'refund'] });
-    expect(where.OR).toEqual([
-      { referenceType: null },
-      { referenceType: { not: 'referral-reward-reversal' } },
-    ]);
+    expect(metrics.dailySeries.at(-1)).toEqual({ amount: 6, date: today });
+    for (const [query] of queryRaw.mock.calls) {
+      expect(query.values).toContain('org');
+      expect(query.values).toContain('deduct');
+      expect(query.values).toContain('refund');
+      expect(query.values).toContain('referral-reward-reversal');
+      expect(query.sql).toContain('"isDeleted" = false');
+    }
   });
 
   it('matches a brand filter on the column or legacy metadata', async () => {

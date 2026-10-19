@@ -1,5 +1,6 @@
 import { getSafeExternalUrl } from '@genfeedai/helpers/media/social-media-source.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import TrendRowSummary from '@pages/trends/detail/trend-row-summary';
 import type { Props } from '@props/analytics/trending-topics-section.props';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
@@ -78,7 +79,37 @@ export default function TrendingTopicsSection({
           items={trendingTopics.slice(0, 20)}
           getRowKey={(item) => item.id}
           getRowLink={getRowLink}
+          rowSidebar={{
+            getId: (item) => item.id,
+            getSubtitle: (item) =>
+              platformConfigLookup[item.platform]?.label || item.platform,
+            getTitle: (item) => item.topic,
+            kind: 'trend',
+            render: (item) => {
+              const rowLink = getRowLink(item);
+              return (
+                <TrendRowSummary
+                  openHref={rowLink.href}
+                  openLabel={rowLink.label}
+                  platformLabel={
+                    platformConfigLookup[item.platform]?.label || item.platform
+                  }
+                  trend={item}
+                />
+              );
+            },
+          }}
           columns={[
+            {
+              className: 'min-w-48',
+              header: translate('columns.topic'),
+              key: 'topic',
+              render: (item) => (
+                <span className="font-semibold text-foreground">
+                  {item.topic}
+                </span>
+              ),
+            },
             {
               className: 'min-w-32',
               header: translate('columns.platform'),
@@ -100,16 +131,6 @@ export default function TrendingTopicsSection({
                   </div>
                 );
               },
-            },
-            {
-              className: 'min-w-48',
-              header: translate('columns.topic'),
-              key: 'topic',
-              render: (item) => (
-                <span className="font-semibold text-foreground">
-                  {item.topic}
-                </span>
-              ),
             },
             {
               className: 'min-w-24',

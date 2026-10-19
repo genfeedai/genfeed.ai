@@ -57,7 +57,7 @@ export function resolveModalCatalogScope(
   kind: GlobalModalKind,
   pathname: string | null,
 ): ModalCatalogScope | undefined {
-  if (kind === 'brand' || kind === 'ingredient' || kind === 'gallery') {
+  if (kind === 'brand' || kind === 'gallery') {
     return 'asset-modal';
   }
   if (kind !== 'confirm') return undefined;
@@ -92,6 +92,19 @@ export default function AppGlobalModalIntlBoundary({
     <Suspense fallback={null}>
       <Catalog>{children}</Catalog>
     </Suspense>
+  );
+}
+
+/**
+ * The bounded asset catalog (library inspector, tags, brand overview) for a
+ * host-owned panel that is not a global modal, such as the ingredient and
+ * brand panels in the right context sidebar. Loads only when it mounts.
+ */
+export function AppAssetCatalogBoundary({ children }: LayoutProps) {
+  return (
+    <AppGlobalModalIntlBoundary kind="gallery">
+      {children}
+    </AppGlobalModalIntlBoundary>
   );
 }
 

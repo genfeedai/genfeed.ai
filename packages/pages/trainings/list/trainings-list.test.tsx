@@ -1,11 +1,21 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import { PageScope, SubscriptionTier } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
 import TrainingsList from '@pages/trainings/list/trainings-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,6 +33,11 @@ const brandState = {
   organizationId: 'org-1',
   settings: { subscriptionTier: SubscriptionTier.SCALE },
 };
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => brandState,
@@ -102,7 +117,12 @@ function renderTrainingsList(scope: PageScope = PageScope.ORGANIZATION) {
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ContextSidebarProvider>
+          {children}
+          <ContextSidebarOutlet testId="rail" />
+        </ContextSidebarProvider>
+      </QueryClientProvider>
     );
   }
 
@@ -151,6 +171,40 @@ describe('TrainingsList', () => {
     expect(
       await screen.findByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+  });
+
+  it('links the admin name to the training page', async () => {
+    renderTrainingsList(PageScope.SUPERADMIN);
+
+    const nameLink = await screen.findByRole('link', {
+      name: 'Open Brand Style v1',
+    });
+    expect(nameLink).toHaveAttribute(
+      'href',
+      '/admin/automation/trainings/training-1/images',
+    );
+  });
+
+  it('opens a summary with an Edit action in the sidebar on row click', async () => {
+    renderTrainingsList();
+
+    fireEvent.click(await screen.findByText('Brand Style v1'));
+
+    expect(await screen.findByText('Trigger word')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('rail')).getByRole('button', { name: 'Edit' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not link the name in the organization scope', async () => {
+    renderTrainingsList();
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand Style v1')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole('link', { name: 'Open Brand Style v1' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the empty state when no trainings come back', async () => {

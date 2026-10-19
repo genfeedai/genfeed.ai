@@ -148,6 +148,83 @@ export class AuthorizedMediaUrlService {
     );
   }
 
+  /**
+   * Internal execution capability for ingredients a provider fetches for an
+   * organization's run: the organization's own media, plus the reference
+   * images of characters granted to the run's brand. Every id must resolve,
+   * so one foreign, deleted or revoked id fails the whole call and no URL
+   * for the others is returned either.
+   */
+  async issueExecutionUrls(
+    scope: MediaDeliveryScope,
+    ingredientIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    const unique = [...new Set(ingredientIds)];
+    const urls = new Map<string, string>();
+    if (unique.length === 0) return urls;
+    for (const source of await this.readSources(scope.organizationId, unique)) {
+      urls.set(
+        source.id,
+        this.grant(
+          source.id,
+          requireStoredMediaKey(source),
+          'original-download',
+        ).url as string,
+      );
+    }
+    const missing = unique.filter((id) => !urls.has(id));
+    if (missing.length > 0) {
+      for (const grant of await this.projectGrantedCharacterMedia(
+        scope,
+        missing,
+      )) {
+        if (grant.url) urls.set(grant.id, grant.url);
+      }
+    }
+    if (unique.some((id) => !urls.has(id))) {
+      throw new NotFoundException('Media is unavailable');
+    }
+    return urls;
+  }
+
+  /**
+   * Internal execution capability for brand assets (references, logos,
+   * banners) that a provider or renderer fetches. Like `issueServerPublish`
+   * it has no HTTP route; assets are read inside the organization and an id
+   * without a trusted stored key yields no URL.
+   */
+  async issueServerAssetUrls(
+    organizationId: string,
+    assetIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (!organizationId)
+      throw new ForbiddenException('An organization is required');
+    const urls = new Map<string, string>();
+    if (assetIds.length === 0) return urls;
+    const assets = await this.prisma.asset.findMany({
+      select: { id: true, cloudObjectKey: true },
+      where: {
+        id: { in: [...new Set(assetIds)].slice(0, 500) },
+        parentOrgId: organizationId,
+        isDeleted: false,
+      },
+    });
+    for (const asset of assets) {
+      const key = trustedAssetKey(asset.cloudObjectKey);
+      if (!key) continue;
+      try {
+        urls.set(
+          asset.id,
+          this.grant(asset.id, key, 'original-download').url as string,
+        );
+      } catch (error) {
+        // A signing outage is not an asset problem: fail the whole call.
+        if (error instanceof ServiceUnavailableException) throw error;
+      }
+    }
+    return urls;
+  }
+
   async issuePublicDerivative(
     scope: MediaDeliveryScope,
     ingredientId: string,
@@ -382,15 +459,8 @@ export class AuthorizedMediaUrlService {
       ) {
         return { assetId: asset.id, url: null };
       }
-      const key = asset.cloudObjectKey;
-      if (
-        /^https?:\/\//i.test(key) ||
-        key.startsWith('/') ||
-        key.includes('\\') ||
-        key
-          .split('/')
-          .some((segment) => !segment || segment === '.' || segment === '..')
-      ) {
+      const key = trustedAssetKey(asset.cloudObjectKey);
+      if (!key) {
         return { assetId: asset.id, url: null };
       }
       return {
@@ -556,4 +626,20 @@ export class AuthorizedMediaUrlService {
   ): MediaDeliveryGrant {
     return { expiresAt: null, id, purpose, state, url: null };
   }
+}
+
+/** Stored key of a brand asset, or null when it is not a plain relative object key. */
+function trustedAssetKey(key: string | null): string | null {
+  if (
+    !key ||
+    /^https?:\/\//i.test(key) ||
+    key.startsWith('/') ||
+    key.includes('\\') ||
+    key
+      .split('/')
+      .some((segment) => !segment || segment === '.' || segment === '..')
+  ) {
+    return null;
+  }
+  return key;
 }

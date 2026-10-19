@@ -11,11 +11,11 @@ import {
   IngredientCategory,
   type IngredientFormat,
   IngredientStatus,
-  ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  createAdminIngredientRoute,
   EMPTY_STATES,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
@@ -275,8 +275,11 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
  * back into the modal to find out what the provider actually said.
  */
 function IngredientLedgerAssetCell({
+  detailHref,
   ingredient,
 }: {
+  /** The asset's own page; the name links there while the row opens the sidebar. */
+  detailHref?: string;
   ingredient: IIngredient;
 }) {
   const grant = useAuthorizedMediaPreview(ingredient);
@@ -288,12 +291,23 @@ function IngredientLedgerAssetCell({
   return (
     <div className="flex w-40 min-w-0 max-w-40 items-center gap-2">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span
-          className="truncate text-sm font-medium"
-          title={label || undefined}
-        >
-          {label || 'Untitled asset'}
-        </span>
+        {detailHref ? (
+          <Link
+            className="truncate text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            href={detailHref}
+            prefetch={false}
+            title={label || undefined}
+          >
+            {label || 'Untitled asset'}
+          </Link>
+        ) : (
+          <span
+            className="truncate text-sm font-medium"
+            title={label || undefined}
+          >
+            {label || 'Untitled asset'}
+          </span>
+        )}
         {failureReason ? (
           <span
             className="truncate text-xs text-destructive"
@@ -354,11 +368,9 @@ export default function IngredientsListContent({
   onGenerateCaptions,
   onReverse,
   onMirror,
-  onSeeDetails,
   onUpdateParent,
   onRefresh,
   onPublishIngredient,
-  onOpenIngredientModal,
   onOpenLightbox,
   onClearFilters,
   onSetIngredients,
@@ -454,6 +466,12 @@ export default function IngredientsListContent({
     [onSetIngredients, publishedIngredient, setSelectedAsset],
   );
 
+  // Every scope inspects an asset in the context sidebar. Only the admin lists
+  // also link the name to the asset's admin page; only a workspace scope can
+  // start a storyboard from an asset.
+  const isAdminScope = scope === PageScope.SUPERADMIN;
+  const isWorkspaceScope = !isAdminScope;
+
   const columns = useMemo(
     () => [
       {
@@ -469,7 +487,14 @@ export default function IngredientsListContent({
         header: translate('browser.columns.asset'),
         key: 'metadataLabel',
         render: (ingredient: IIngredient) => (
-          <IngredientLedgerAssetCell ingredient={ingredient} />
+          <IngredientLedgerAssetCell
+            detailHref={
+              isAdminScope
+                ? createAdminIngredientRoute(ingredient.category, ingredient.id)
+                : undefined
+            }
+            ingredient={ingredient}
+          />
         ),
       },
       {
@@ -611,18 +636,7 @@ export default function IngredientsListContent({
         ),
       },
     ],
-    [translate, isActionsEnabled, handleReviewUpdated],
-  );
-
-  const openIngredientPreview = useCallback(
-    (ingredient: IIngredient) => {
-      const opened = onOpenLightbox(ingredient);
-
-      if (!opened) {
-        onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
-      }
-    },
-    [onOpenIngredientModal, onOpenLightbox],
+    [translate, isActionsEnabled, handleReviewUpdated, isAdminScope],
   );
 
   const revealInspector = useContextSidebar()?.reveal;
@@ -633,29 +647,16 @@ export default function IngredientsListContent({
     },
     [revealInspector, setSelectedAsset],
   );
-  // A brand and the organization (all brands) are the same Library workspace:
-  // selecting an asset opens the detail panel. Only superadmin keeps the
-  // modal/lightbox flow.
-  const isWorkspaceScope = scope !== PageScope.SUPERADMIN;
-  const handleSeeDetails = useCallback(
-    (ingredient: IIngredient) => {
-      if (isWorkspaceScope) {
-        inspectIngredient(ingredient);
-        return;
-      }
-      onSeeDetails(ingredient);
-    },
-    [inspectIngredient, isWorkspaceScope, onSeeDetails],
-  );
 
-  const handleMediaClick = useCallback(
+  // The lightbox is the full-size view; when it cannot open (an asset with no
+  // media to show) the sidebar still has the record.
+  const openIngredientPreview = useCallback(
     (ingredient: IIngredient) => {
-      if (!isWorkspaceScope) {
-        return;
+      if (!onOpenLightbox(ingredient)) {
+        inspectIngredient(ingredient);
       }
-      inspectIngredient(ingredient);
     },
-    [inspectIngredient, isWorkspaceScope],
+    [inspectIngredient, onOpenLightbox],
   );
 
   const handleToggleSelection = useCallback(
@@ -669,23 +670,11 @@ export default function IngredientsListContent({
     [onSelectionChange, selectedIngredientIds],
   );
 
-  const handleViewIngredient = useCallback(
-    (ingredient: IIngredient) => {
-      if (isWorkspaceScope) {
-        handleMediaClick(ingredient);
-        return;
-      }
-
-      onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
-    },
-    [handleMediaClick, isWorkspaceScope, onOpenIngredientModal],
-  );
-
   const tableActions = useMemo(
     () => [
       {
         icon: <Eye />,
-        onClick: handleViewIngredient,
+        onClick: inspectIngredient,
         tooltip: 'View',
       },
       {
@@ -711,7 +700,7 @@ export default function IngredientsListContent({
       },
     ],
     [
-      handleViewIngredient,
+      inspectIngredient,
       isActionsEnabled,
       onReprompt,
       translateRetry,
@@ -770,7 +759,7 @@ export default function IngredientsListContent({
           onSelectionChange={onSelectionChange}
           getItemId={(ingredient: IIngredient) => ingredient.id}
           actions={tableActions}
-          onRowClick={isWorkspaceScope ? handleMediaClick : undefined}
+          onRowClick={inspectIngredient}
           isHeaderPinned
           getGroupHeading={
             timeGroups
@@ -860,7 +849,7 @@ export default function IngredientsListContent({
               onGenerateCaptions={onGenerateCaptions}
               onReverse={onReverse}
               onMirror={onMirror}
-              onSeeDetails={handleSeeDetails}
+              onSeeDetails={inspectIngredient}
               onUpdateParent={onUpdateParent}
               onRefresh={onRefresh}
               onReviewUpdated={handleReviewUpdated}
@@ -876,7 +865,7 @@ export default function IngredientsListContent({
                 formatFilter ? (formatFilter as IngredientFormat) : undefined
               }
               onPublishIngredient={onPublishIngredient}
-              onClickIngredient={handleMediaClick}
+              onClickIngredient={inspectIngredient}
               onToggleSelection={handleToggleSelection}
               onScopeChange={onScopeChange}
               onConvertToVideo={onConvertToVideo}
@@ -902,7 +891,7 @@ export default function IngredientsListContent({
                 onSelectionChange={onSelectionChange}
                 getItemId={(ingredient: IIngredient) => ingredient.id}
                 actions={tableActions}
-                onRowClick={isWorkspaceScope ? handleMediaClick : undefined}
+                onRowClick={inspectIngredient}
               />
             </section>
           ) : null}
@@ -923,7 +912,7 @@ export default function IngredientsListContent({
         onSelectionChange={onSelectionChange}
         getItemId={(ingredient: IIngredient) => ingredient.id}
         actions={tableActions}
-        onRowClick={isWorkspaceScope ? handleMediaClick : undefined}
+        onRowClick={inspectIngredient}
       />
     );
   }, [
@@ -931,7 +920,7 @@ export default function IngredientsListContent({
     columns,
     filteredIngredients,
     formatFilter,
-    handleMediaClick,
+    inspectIngredient,
     handleToggleSelection,
     handleReviewUpdated,
     isActionsEnabled,
@@ -954,7 +943,6 @@ export default function IngredientsListContent({
     onReprompt,
     onReverse,
     onScopeChange,
-    handleSeeDetails,
     onSelectionChange,
     onSetIngredients,
     onUpdateParent,
@@ -962,7 +950,6 @@ export default function IngredientsListContent({
     onPublishIngredient,
     nonVisualIngredients,
     selectedIngredientIds,
-    isWorkspaceScope,
     singularType,
     tableActions,
     translate,

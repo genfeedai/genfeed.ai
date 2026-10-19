@@ -6,7 +6,6 @@ import type {
   IModel,
   IModelProviderContracts,
 } from '@genfeedai/contracts/interfaces';
-import { closeModal as closeModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import { Model } from '@genfeedai/models/ai/model.model';
@@ -16,21 +15,18 @@ import { useQuery } from '@tanstack/react-query';
 import Modal from '@ui/modals/modal/Modal';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
 import ModalModelFormContent from './ModalModelFormContent';
-import ModalModelViewContent from './ModalModelViewContent';
 
 export default function ModalModel({
   entity: model,
   onConfirm,
   onClose,
-  mode = 'edit',
 }: ModalModelProps) {
-  const isViewMode = mode === 'view';
   const { currentUser } = useCurrentUser();
   const getModelsService = useAuthedService((token: string) =>
     ModelsService.getInstance(token),
   );
   const providerContractsQuery = useQuery<IModelProviderContracts>({
-    enabled: !isViewMode && Boolean(model?.id),
+    enabled: Boolean(model?.id),
     queryFn: async ({ signal }) => {
       const service = await getModelsService();
       return service.getProviderContracts(model?.id ?? '', signal);
@@ -145,45 +141,24 @@ export default function ModalModel({
     }
   };
 
-  // Called when Close/Cancel button is clicked - initiates the close
-  const cancelModalModel = isViewMode
-    ? () => {
-        closeModalHelper(ModalEnum.MODEL);
-        onClose?.();
-      }
-    : () => closeModal(false);
-
-  // Determine modal title based on mode
-  // Use model for stable rendering during close animation
-  const modalTitle = isViewMode
-    ? model?.label || 'Model Details'
-    : model
-      ? 'Edit Model'
-      : 'Add Model';
+  const cancelModalModel = () => closeModal(false);
 
   return (
-    <Modal id={ModalEnum.MODEL} title={modalTitle}>
-      {isViewMode && model ? (
-        <ModalModelViewContent
-          model={model}
-          cancelModalModel={cancelModalModel}
-        />
-      ) : (
-        <ModalModelFormContent
-          form={form}
-          formRef={formRef}
-          onSubmit={onSubmit}
-          isSubmitting={isSubmitting}
-          updateModalModel={updateModalModel}
-          cancelModalModel={cancelModalModel}
-          model={model}
-          modelProviders={modelProviders}
-          modelCategories={modelCategories}
-          providerContracts={providerContractsQuery.data}
-          isProviderContractsError={providerContractsQuery.isError}
-          isProviderContractsLoading={providerContractsQuery.isLoading}
-        />
-      )}
+    <Modal id={ModalEnum.MODEL} title={model ? 'Edit Model' : 'Add Model'}>
+      <ModalModelFormContent
+        form={form}
+        formRef={formRef}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+        updateModalModel={updateModalModel}
+        cancelModalModel={cancelModalModel}
+        model={model}
+        modelProviders={modelProviders}
+        modelCategories={modelCategories}
+        providerContracts={providerContractsQuery.data}
+        isProviderContractsError={providerContractsQuery.isError}
+        isProviderContractsLoading={providerContractsQuery.isLoading}
+      />
     </Modal>
   );
 }

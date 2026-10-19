@@ -120,6 +120,46 @@ describe('AuthorizedMediaUrlService', () => {
     ]);
     expect(urls.buildUrl).not.toHaveBeenCalled();
   });
+  it('mints server asset URLs for the organization regardless of tier, only from plain stored keys', async () => {
+    const { service, prisma, urls } = await setup();
+    prisma.asset.findMany.mockResolvedValue([
+      { id: 'asset-1', cloudObjectKey: 'references/asset-1 ?#.png' },
+      { id: 'asset-2', cloudObjectKey: 'https://provider.test/original' },
+      { id: 'asset-3', cloudObjectKey: null },
+      { id: 'asset-4', cloudObjectKey: 'references/../escape' },
+    ] as never);
+    const result = await service.issueServerAssetUrls(organizationId, [
+      'asset-1',
+      'asset-2',
+      'asset-3',
+      'asset-4',
+    ]);
+    expect(prisma.asset.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: { in: ['asset-1', 'asset-2', 'asset-3', 'asset-4'] },
+          parentOrgId: organizationId,
+          isDeleted: false,
+        },
+      }),
+    );
+    expect([...result.keys()]).toEqual(['asset-1']);
+    expect(urls.buildUrl).toHaveBeenCalledTimes(1);
+    expect(urls.buildUrl).toHaveBeenCalledWith('references/asset-1 ?#.png');
+  });
+  it('mints no server asset URL without an organization or when signing is unavailable', async () => {
+    const { service, prisma, config } = await setup();
+    await expect(service.issueServerAssetUrls('', ['asset-1'])).rejects.toThrow(
+      'organization is required',
+    );
+    prisma.asset.findMany.mockResolvedValue([
+      { id: 'asset-1', cloudObjectKey: 'references/asset-1' },
+    ] as never);
+    config.isCdnSigningEnabled = false;
+    await expect(
+      service.issueServerAssetUrls(organizationId, ['asset-1']),
+    ).rejects.toThrow('signing is unavailable');
+  });
   it('keeps non-entitled asset originals unavailable without reading or signing their keys', async () => {
     const { service, prisma, urls } = await setup();
     expect(await service.projectAssets(scope, ['asset-1'])).toEqual([
@@ -229,6 +269,64 @@ describe('AuthorizedMediaUrlService', () => {
     await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
       'paid plan',
     );
+  });
+
+  it('mints execution URLs for the organization own media from the exact stored key, regardless of tier', async () => {
+    const { service, prisma, urls } = await setup();
+    const result = await service.issueExecutionUrls(scope, [
+      ingredientId,
+      ingredientId,
+    ]);
+    expect([...result.keys()]).toEqual([ingredientId]);
+    expect(urls.buildUrl).toHaveBeenCalledWith(source.s3Key);
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: [ingredientId] }, isDeleted: false, organizationId },
+      }),
+    );
+    expect(prisma.personaGrant.findMany).not.toHaveBeenCalled();
+  });
+
+  it('falls back to an actively granted character image and fails the whole call for any other id', async () => {
+    const { service, prisma, urls } = await setup();
+    const grantedId = testId('ingredient', 7);
+    const foreign = {
+      ...source,
+      id: grantedId,
+      organizationId: testId('org', 9),
+    };
+    prisma.ingredient.findMany.mockImplementation((async (args: {
+      where: { organizationId: string };
+    }) =>
+      args.where.organizationId === organizationId
+        ? [source]
+        : [foreign]) as never);
+    prisma.personaGrant.findMany.mockResolvedValue([
+      {
+        availabilityMode: 'ALL_BRANDS',
+        availableBrandIds: [],
+        ownerOrganizationId: foreign.organizationId,
+        persona: { avatarIngredientId: grantedId, references: [] },
+      },
+    ] as never);
+    const brandScope = { ...scope, brandId: testId('brand', 3) };
+
+    const result = await service.issueExecutionUrls(brandScope, [
+      ingredientId,
+      grantedId,
+    ]);
+    expect([...result.keys()].sort()).toEqual([ingredientId, grantedId].sort());
+
+    // A revoked grant leaves the id unresolved: no URL for any id is returned.
+    prisma.personaGrant.findMany.mockResolvedValue([]);
+    urls.buildUrl.mockClear();
+    await expect(
+      service.issueExecutionUrls(brandScope, [ingredientId, grantedId]),
+    ).rejects.toThrow('Media is unavailable');
+    // Without a brand there is no grant fallback at all.
+    await expect(
+      service.issueExecutionUrls(scope, [ingredientId, grantedId]),
+    ).rejects.toThrow('Media is unavailable');
   });
 
   it('preserves self-hosted unrestricted access and requires consent for public bytes', async () => {

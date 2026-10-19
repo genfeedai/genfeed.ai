@@ -3,6 +3,7 @@
 import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -311,8 +312,10 @@ function WorkspacePageContentContent({
         statusTranslate,
         statusLabels,
         inboxRead.isUnread,
+        (task) =>
+          href(`${APP_ROUTES.WORKSPACE.TASKS}/${task.identifier || task.id}`),
       ),
-    [translate, statusTranslate, statusLabels, inboxRead.isUnread],
+    [translate, statusTranslate, statusLabels, inboxRead.isUnread, href],
   );
   const inboxTableColumns = hasInboxPaths
     ? workspaceInboxTableColumns

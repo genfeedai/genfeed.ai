@@ -10,13 +10,16 @@ import {
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardAgentBriefs from '@pages/studio/storyboard/components/StoryboardAgentBriefs';
 import StoryboardPresetCards from '@pages/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
 import { STORYBOARD_PRESETS } from '@pages/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
+import { buildStoryboardAgentBrief } from '@pages/studio/storyboard/utils/storyboard-agent-brief';
 import { storyboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-plan';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
@@ -69,6 +72,9 @@ export default function StoryboardCreate() {
     'pages.studioStoryboard.workspace',
   );
   const translatePlan = useTranslations('pages.studioStoryboard.plan');
+  const translateAgentBriefs = useTranslations(
+    'pages.studioStoryboard.agentBriefs',
+  );
   const [selected, setSelected] = useState<{
     brandId: string;
     id: string;
@@ -128,6 +134,18 @@ export default function StoryboardCreate() {
     setBrief(preset.brief);
     setFormat(preset.format);
     setBudget(String(preset.runtimeBudgetSeconds));
+  }
+  function applyAgentBrief(proposal: StudioStoryboardProposal) {
+    const agentBrief = buildStoryboardAgentBrief(
+      proposal,
+      {
+        shotLine: (shot) => translateAgentBriefs('shotLine', shot),
+        shotsHeading: translateAgentBriefs('shotsHeading'),
+      },
+      MAX_BRIEF_LENGTH,
+    );
+    setBrief(agentBrief.brief);
+    setBudget(String(agentBrief.runtimeBudgetSeconds));
   }
   async function submit() {
     if (!valid || isCreating) return;
@@ -284,13 +302,20 @@ export default function StoryboardCreate() {
             {video?.title || translate('chooseOwnedVideo')}
           </p>
         ) : (
-          <StoryboardPresetCards
-            activePresetId={
-              STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
-            }
-            isDisabled={isCreating}
-            onSelect={applyPreset}
-          />
+          <>
+            <StoryboardAgentBriefs
+              brandId={brandId || undefined}
+              isDisabled={isCreating}
+              onSelect={applyAgentBrief}
+            />
+            <StoryboardPresetCards
+              activePresetId={
+                STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+              }
+              isDisabled={isCreating}
+              onSelect={applyPreset}
+            />
+          </>
         )}
       </div>
       <StoryboardReferencesPanel

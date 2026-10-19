@@ -50,7 +50,7 @@ describe('AdminPostsTable', () => {
     expect(screen.getByText('Scheduled')).toBeInTheDocument();
   });
 
-  it('opens the post detail on a row click instead of linking to the account', () => {
+  it('opens the sidebar on a row click and links the title to the admin detail page', () => {
     const onOpenPostDetail = vi.fn();
     render(
       <AdminPostsTable
@@ -59,14 +59,30 @@ describe('AdminPostsTable', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('Weekly product update'));
+    fireEvent.click(screen.getByText('Instagram'));
 
     expect(onOpenPostDetail).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-1' }),
     );
     expect(
-      screen.queryByRole('link', { name: /weekly product update/i }),
-    ).toBeNull();
+      screen.getByRole('link', { name: 'Weekly product update' }),
+    ).toHaveAttribute('href', '/admin/content/posts/post-1');
+  });
+
+  it('does not open the sidebar when the title link is clicked', () => {
+    const onOpenPostDetail = vi.fn();
+    render(
+      <AdminPostsTable
+        posts={[buildPost({ label: 'Weekly product update' })]}
+        onOpenPostDetail={onOpenPostDetail}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('link', { name: 'Weekly product update' }),
+    );
+
+    expect(onOpenPostDetail).not.toHaveBeenCalled();
   });
 
   it('links a posted row to the live post on its network', () => {

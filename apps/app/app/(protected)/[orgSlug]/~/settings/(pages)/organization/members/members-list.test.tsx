@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { MemberRole } from '@genfeedai/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MembersList from './members-list';
 
@@ -11,6 +17,7 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
+  isSidebarShown: false,
   findAll: vi.fn(),
   listInvitations: vi.fn(),
   resendInvitation: vi.fn(),
@@ -74,7 +81,11 @@ vi.mock('@ui/display/table/Table', () => ({
     isLoading,
     items,
     label,
+    rowSidebar,
   }: {
+    rowSidebar?: {
+      render: (item: Record<string, unknown>) => React.ReactNode;
+    };
     actions: Array<{
       isVisible?: (item: Record<string, unknown>) => boolean;
       onClick?: (item: Record<string, unknown>) => void;
@@ -101,6 +112,9 @@ vi.mock('@ui/display/table/Table', () => ({
       <div>
         {label ? <h3>{label}</h3> : null}
         <div>{items.length} members</div>
+        {rowSidebar && mocks.isSidebarShown ? (
+          <aside data-testid="row-sidebar">{rowSidebar.render(items[0])}</aside>
+        ) : null}
         {items.map((item, itemIndex) => (
           <div key={String(item.id ?? itemIndex)}>
             {columns.map((column) => (
@@ -196,6 +210,7 @@ function inviteButton(): HTMLElement {
 describe('MembersList seat limit', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isSidebarShown = false;
     mocks.findAll.mockResolvedValue([]);
     mocks.getMembersService.mockResolvedValue({
       findAll: mocks.findAll,
@@ -378,5 +393,16 @@ describe('MembersList seat limit', () => {
     await waitFor(() => {
       expect(mocks.resendInvitation).toHaveBeenCalledWith('inv_failed');
     });
+  });
+
+  it('summarizes a member in the row sidebar', async () => {
+    mocks.isSidebarShown = true;
+    renderMembers({ pageCount: 1, tier: 'scale' });
+
+    const sidebar = await screen.findByTestId('row-sidebar');
+
+    expect(within(sidebar).getByText('Email')).toBeVisible();
+    expect(within(sidebar).getByText('user-0@example.test')).toBeVisible();
+    expect(within(sidebar).getByText('Joined')).toBeVisible();
   });
 });

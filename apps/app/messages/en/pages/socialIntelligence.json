@@ -1,6 +1,5 @@
 {
   "currentWindow": "Current window",
-  "description": "Review attributable listening themes before creating downstream work.",
   "excludedSources": "Excluded / missing: {sources}",
   "includedSources": "Included: {sources}",
   "monitoredSources": "{count, plural, one {# monitored source} other {# monitored sources}}",

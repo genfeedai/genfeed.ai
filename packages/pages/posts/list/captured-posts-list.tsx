@@ -8,6 +8,7 @@ import {
   type TargetExecutionState,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
@@ -21,6 +22,7 @@ import { PostsService } from '@services/content/posts.service';
 import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
@@ -161,6 +163,55 @@ export default function CapturedPostsList({
     return () => setRefresh(() => () => {});
   }, [refetch, setRefresh]);
 
+  const getPostAnalyticsHref = (post: Post): string =>
+    activeHref(
+      `${APP_ROUTES.ANALYTICS.POSTS}?postId=${encodeURIComponent(post.id)}`,
+    );
+
+  const renderPostSummary = (post: Post) => {
+    const audience = resolveCapturedAudience(post.visibility);
+    return (
+      <TableRowSummary
+        badges={
+          <>
+            <Badge variant="secondary">{translate('sourceBadge')}</Badge>
+            <Badge
+              variant={audience === 'unavailable' ? 'outline' : 'secondary'}
+            >
+              {translate(`audience.${audience}`)}
+            </Badge>
+          </>
+        }
+        facts={[
+          {
+            id: 'platform',
+            label: translate('columns.platform'),
+            value: post.platform
+              ? getPostsPlatformLabel(post.platform)
+              : undefined,
+          },
+          {
+            id: 'published',
+            label: translate('columns.published'),
+            value: formatDateInTimezone(
+              post.publishedAt || post.publicationDate,
+              browserTimezone,
+              'short',
+            ),
+          },
+        ]}
+        openHref={getPostAnalyticsHref(post)}
+        openLabel={translate('openAnalytics', {
+          title: capturedPostTitle(post, translate('untitled')),
+        })}
+      >
+        <p className="whitespace-pre-wrap text-sm text-foreground/80">
+          {capturedPostSummary(post)}
+        </p>
+      </TableRowSummary>
+    );
+  };
+
   return (
     <div>
       <p className="mb-3 text-sm text-foreground/60">
@@ -221,15 +272,21 @@ export default function CapturedPostsList({
         }
         getRowKey={(post) => post.id}
         getRowLink={(post) => ({
-          href: activeHref(
-            `${APP_ROUTES.ANALYTICS.POSTS}?postId=${encodeURIComponent(post.id)}`,
-          ),
+          href: getPostAnalyticsHref(post),
           label: translate('openAnalytics', {
             title: capturedPostTitle(post, translate('untitled')),
           }),
         })}
         isLoading={isLoading}
         items={data.posts}
+        rowSidebar={{
+          getId: (post) => post.id,
+          getSubtitle: (post) =>
+            post.platform ? getPostsPlatformLabel(post.platform) : undefined,
+          getTitle: (post) => capturedPostTitle(post, translate('untitled')),
+          kind: 'post',
+          render: renderPostSummary,
+        }}
       />
       <div className="mt-4">
         <Pagination

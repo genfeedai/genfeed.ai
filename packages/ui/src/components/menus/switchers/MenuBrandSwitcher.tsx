@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useBrandCreateModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { createBrandAppRoute } from '@genfeedai/contracts/constants';
@@ -41,7 +41,7 @@ export default function MenuBrandSwitcher({
     UsersService.getInstance(token),
   );
 
-  const { openBrandOverlay } = useBrandOverlay();
+  const { openBrandCreateModal } = useBrandCreateModal();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
 
   const isUpdating = externalIsUpdating ?? isUpdatingBrand;
@@ -207,7 +207,7 @@ export default function MenuBrandSwitcher({
           footerActions={[
             {
               label: 'New Brand',
-              onAction: () => openBrandOverlay(null),
+              onAction: () => openBrandCreateModal(),
             },
           ]}
         />
@@ -263,7 +263,7 @@ export default function MenuBrandSwitcher({
       footerActions={[
         {
           label: 'New Brand',
-          onAction: () => openBrandOverlay(null),
+          onAction: () => openBrandCreateModal(),
         },
       ]}
     />

@@ -40,6 +40,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { buildPostsCardActions } from '@pages/posts/list/components/PostsCardActions';
 import { buildPostsTableActions } from '@pages/posts/list/components/PostsTableActions';
@@ -62,7 +63,6 @@ import {
 import type { ContentProps } from '@props/layout/content.props';
 import {
   useConfirmDeleteModal,
-  useIngredientOverlay,
   usePostRemixModal,
   usePostRepurposeModal,
 } from '@providers/global-modals/global-modals.provider';
@@ -174,7 +174,7 @@ export function usePostsList({
   const adminOrg = parsedSearchParams.get('organization') || '';
   const adminBrand = parsedSearchParams.get('brand') || '';
 
-  const { openIngredientOverlay } = useIngredientOverlay();
+  const { openIngredientSidebar } = useIngredientSidebar();
   const { openConfirmDelete } = useConfirmDeleteModal();
   const { openPostRemixModal } = usePostRemixModal();
   const { openPostRepurposeModal } = usePostRepurposeModal();
@@ -494,9 +494,9 @@ export function usePostsList({
         return;
       }
 
-      openIngredientOverlay(ingredient, () => findAllPosts());
+      openIngredientSidebar(ingredient);
     },
-    [findAllPosts, openIngredientOverlay],
+    [openIngredientSidebar],
   );
 
   const handleOpenPlatformUrl = useCallback((post: IPost) => {
@@ -587,8 +587,7 @@ export function usePostsList({
         browserTimezone,
         hasPublicPosts,
         onEvaluated: handlePostEvaluated,
-        onOpenIngredient: (ingredient) =>
-          openIngredientOverlay(ingredient, () => findAllPosts()),
+        onOpenIngredient: openIngredientSidebar,
         onStatusChanged: () => findAllPosts(),
         scope,
       }),
@@ -597,7 +596,7 @@ export function usePostsList({
       browserTimezone,
       scope,
       handlePostEvaluated,
-      openIngredientOverlay,
+      openIngredientSidebar,
       findAllPosts,
     ],
   );

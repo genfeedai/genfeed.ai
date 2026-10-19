@@ -184,6 +184,8 @@ export class AnalyticsResponseProjection {
         date: row.date as Date,
         description: row.description as string,
         engagementRate: Number(row.engagement_rate),
+        ingredientId:
+          typeof row.ingredient_id === 'string' ? row.ingredient_id : undefined,
         ingredientUrl: media.ingredientUrl,
         isVideo: media.isVideo,
         label: row.label as string,

@@ -81,7 +81,9 @@ describe('readonly paid module eligibility', () => {
     async (isGated) => {
       vi.mocked(hasOrganizationBilling).mockReturnValue(true);
       const { service, fresh, get } = create(isGated);
-      const result = await service.findOne({ organizationId: 'org-1' });
+      const result = await service.findOne({ organizationId: 'org-1' }, [], {
+        includePaidHint: true,
+      });
       expect(result?.hasPaidModuleSubscription).toBe(!isGated);
       expect(get).toHaveBeenCalledWith(OrganizationPaidAccessService, {
         strict: false,
@@ -95,7 +97,10 @@ describe('readonly paid module eligibility', () => {
     const { service, fresh, get } = create(false);
     const result = await runWithTenantContext(
       { organizationId: 'selected-other-org' },
-      () => service.findOne({ organizationId: 'org-1' }),
+      () =>
+        service.findOne({ organizationId: 'org-1' }, [], {
+          includePaidHint: true,
+        }),
     );
     expect(result?.hasPaidModuleSubscription).toBeNull();
     expect(fresh).not.toHaveBeenCalled();
@@ -105,7 +110,9 @@ describe('readonly paid module eligibility', () => {
   it('does not allow a forged row value to grant access when lookup fails', async () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
     const { service } = create(false, true);
-    const result = await service.findOne({ organizationId: 'org-1' });
+    const result = await service.findOne({ organizationId: 'org-1' }, [], {
+      includePaidHint: true,
+    });
     expect(result).toMatchObject({
       id: row.id,
       hasPaidModuleSubscription: null,
@@ -115,8 +122,11 @@ describe('readonly paid module eligibility', () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
     const { service } = create(undefined);
     expect(
-      (await service.findOne({ organizationId: 'org-1' }))
-        ?.hasPaidModuleSubscription,
+      (
+        await service.findOne({ organizationId: 'org-1' }, [], {
+          includePaidHint: true,
+        })
+      )?.hasPaidModuleSubscription,
     ).toBeNull();
   });
   it('rechecks a revoked paid grant on the next settings read', async () => {
@@ -124,12 +134,18 @@ describe('readonly paid module eligibility', () => {
     const { service, fresh } = create(false);
     fresh.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     expect(
-      (await service.findOne({ organizationId: 'org-1' }))
-        ?.hasPaidModuleSubscription,
+      (
+        await service.findOne({ organizationId: 'org-1' }, [], {
+          includePaidHint: true,
+        })
+      )?.hasPaidModuleSubscription,
     ).toBe(true);
     expect(
-      (await service.findOne({ organizationId: 'org-1' }))
-        ?.hasPaidModuleSubscription,
+      (
+        await service.findOne({ organizationId: 'org-1' }, [], {
+          includePaidHint: true,
+        })
+      )?.hasPaidModuleSubscription,
     ).toBe(false);
     expect(fresh).toHaveBeenCalledTimes(2);
   });
@@ -138,8 +154,11 @@ describe('readonly paid module eligibility', () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(false);
     const { service, fresh, get } = create(true);
     expect(
-      (await service.findOne({ organizationId: 'org-1' }))
-        ?.hasPaidModuleSubscription,
+      (
+        await service.findOne({ organizationId: 'org-1' }, [], {
+          includePaidHint: true,
+        })
+      )?.hasPaidModuleSubscription,
     ).toBe(true);
     expect(get).not.toHaveBeenCalled();
     expect(fresh).not.toHaveBeenCalled();

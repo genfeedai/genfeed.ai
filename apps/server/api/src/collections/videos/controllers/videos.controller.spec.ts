@@ -59,6 +59,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
+import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
@@ -539,6 +540,7 @@ describe('VideosController', () => {
           },
         },
         VideoGenerationPreparationService,
+        VideoReferenceUrlService,
         VideoGenerationProviderDispatchService,
         VideoGenerationService,
         {

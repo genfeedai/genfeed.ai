@@ -47,6 +47,7 @@
   },
   "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
   "reviewPolicy": "Every output enters manual Review. Nothing publishes or spends automatically.",
+  "subtitle": "Remix for {brand}",
   "references": {
     "empty": "No Library references yet.",
     "help": "Attach Library assets the remix should follow.",

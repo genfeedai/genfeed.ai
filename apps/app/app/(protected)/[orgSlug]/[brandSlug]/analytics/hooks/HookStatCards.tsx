@@ -33,14 +33,14 @@ export default function HookStatCards({
         isLoading={isLoading}
         label="Best Hook Avg Engagement"
         size="md"
-        value={bestHook ? formatCompactNumber(bestHook.avgEngagement) : 'N/A'}
+        value={bestHook ? formatCompactNumber(bestHook.avgEngagement) : '-'}
       />
       <MetricCard
         icon={Heart}
         isLoading={isLoading}
         label="Top Platform"
         size="md"
-        value={topPlatform ? topPlatform.platform.toUpperCase() : 'N/A'}
+        value={topPlatform ? topPlatform.platform.toUpperCase() : '-'}
       />
     </MetricCardGrid>
   );

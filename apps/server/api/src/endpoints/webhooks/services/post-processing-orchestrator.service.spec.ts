@@ -3,6 +3,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import type { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
+import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -70,6 +71,61 @@ describe('PostProcessingOrchestratorService', () => {
         'https://cdn.example.com/videos/ing-1',
         'video',
       );
+    });
+
+    it('sends a short-lived grant instead of the canonical URL once delivery is authorized', async () => {
+      const issueServerPublish = vi
+        .fn()
+        .mockResolvedValue(new Map([['ing-1', 'https://cdn.example.com/g']]));
+      const authorized = new PostProcessingOrchestratorService(
+        botCallbackResponder as unknown as BotCallbackResponderService,
+        {
+          ...configService,
+          isAuthorizedMediaDeliveryEnabled: true,
+        } as unknown as ConfigService,
+        organizationSettingsService as unknown as OrganizationSettingsService,
+        loggerService as unknown as LoggerService,
+        undefined,
+        { issueServerPublish } as unknown as AuthorizedMediaUrlService,
+      );
+
+      authorized.notifyBotGatewayIfNeeded(
+        'ing-1',
+        IngredientCategory.VIDEO,
+        'org-1',
+      );
+      await flushBackgroundWork();
+
+      expect(issueServerPublish).toHaveBeenCalledWith('org-1', ['ing-1']);
+      expect(botCallbackResponder.sendCompletionResponse).toHaveBeenCalledWith(
+        'ing-1',
+        'https://cdn.example.com/g',
+        'video',
+      );
+    });
+
+    it('sends nothing when delivery is authorized but no grant can be issued', async () => {
+      const authorized = new PostProcessingOrchestratorService(
+        botCallbackResponder as unknown as BotCallbackResponderService,
+        {
+          ...configService,
+          isAuthorizedMediaDeliveryEnabled: true,
+        } as unknown as ConfigService,
+        organizationSettingsService as unknown as OrganizationSettingsService,
+        loggerService as unknown as LoggerService,
+      );
+
+      authorized.notifyBotGatewayIfNeeded(
+        'ing-1',
+        IngredientCategory.VIDEO,
+        'org-1',
+      );
+      await flushBackgroundWork();
+
+      expect(
+        botCallbackResponder.sendCompletionResponse,
+      ).not.toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalled();
     });
 
     it('forwards failed generation details to the bot gateway', async () => {

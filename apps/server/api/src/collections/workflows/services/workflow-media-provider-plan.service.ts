@@ -32,6 +32,7 @@ import {
 } from '@api/services/generation-brief';
 import { resolvePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { authorizeProviderMediaInput } from '@api/services/media-urls/provider-media-input.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -220,6 +221,29 @@ export class WorkflowMediaProviderPlanService {
       }
     }
     return admission;
+  }
+
+  /**
+   * Replaces the internal media URLs of a prepared provider input with fresh
+   * grants, immediately before the provider call. Preparation keeps the stable
+   * canonical URL because the prepared input is hashed between quote and
+   * dispatch; a grant changes with its expiry. Unchanged when authorized
+   * delivery is off.
+   */
+  authorizeProviderInput<T>(
+    input: T,
+    scope: { brandId?: string; organizationId: string; userId: string },
+  ): Promise<T> {
+    if (!this.configService?.isAuthorizedMediaDeliveryEnabled) {
+      return Promise.resolve(input);
+    }
+    const issuer = this.mediaIssuer;
+    if (!issuer) throw new Error('Authorized media delivery is unavailable');
+    const config = this.configService;
+    return authorizeProviderMediaInput(input, {
+      issue: (ids) => issuer.issueExecutionUrls(scope, ids),
+      origins: [config.cdnUrl, config.ingredientsEndpoint, config.apiUrl],
+    });
   }
 
   private internalHosts(): Set<string> {
@@ -806,14 +830,17 @@ export class WorkflowMediaProviderPlanService {
         ) {
           if (!this.mediaIssuer)
             throw new Error('Authorized media delivery is unavailable');
-          const canonicalUrl = (
+          // Ownership is proven now; the prepared input keeps the stable
+          // canonical URL because it is hashed between quote and dispatch.
+          // `authorizeProviderInput` mints the grant just before the call.
+          const authorizedUrl = (
             await this.mediaIssuer.issueServerPublish(organizationId, [
               ingredientId,
             ])
           ).get(ingredientId);
-          if (!canonicalUrl)
+          if (!authorizedUrl)
             throw new Error('The reference video is unavailable');
-          providerUrl = canonicalUrl;
+          providerUrl = this.helper.buildVideoIngredientUrl(ingredientId);
         } else if (ingredientId && this.filesClientService) {
           providerUrl = await this.filesClientService.getPresignedDownloadUrl(
             ingredientId,

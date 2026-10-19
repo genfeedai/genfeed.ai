@@ -11,20 +11,25 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentProps } from '@props/layout/content.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
 
 const TRAINING_UPGRADE_TIER_LABEL = 'Agencies';
+
+function getTrainingHref(training: ITraining): string {
+  return `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${training.id}/images`;
+}
 
 /**
  * Trainings list body — table, filters, empty state, edit modal.
@@ -37,8 +42,10 @@ export default function TrainingsList({
 }: ContentProps & {
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
-  const router = useRouter();
   const { orgHref } = useOrgUrl();
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const trainingT = useTranslations('ui.rowSidebar.training');
   const { isReady, settings } = useBrand();
   const selfHostedDeployment = isSelfHostedDeployment();
   const canTrain =
@@ -74,16 +81,61 @@ export default function TrainingsList({
     () =>
       buildTrainingsTableActions({
         onEdit: openTrainingModal,
-        onView:
-          scope === PageScope.SUPERADMIN
-            ? (training: ITraining) =>
-                router.push(
-                  `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${training.id}/images`,
-                )
-            : undefined,
         onDelete: openDeleteConfirmation,
       }),
-    [openTrainingModal, openDeleteConfirmation, router, scope],
+    [openTrainingModal, openDeleteConfirmation],
+  );
+
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<ITraining>({
+        getBadges: (training) =>
+          training.status ? <Badge status={training.status} /> : null,
+        getFacts: (training) => [
+          {
+            id: 'trigger',
+            label: trainingT('triggerWord'),
+            value: training.trigger,
+          },
+          {
+            id: 'model',
+            label: trainingT('baseModel'),
+            value: training.model,
+          },
+          {
+            id: 'provider',
+            label: fieldsT('provider'),
+            value: training.provider,
+          },
+          { id: 'steps', label: trainingT('steps'), value: training.steps },
+          {
+            id: 'sources',
+            label: trainingT('sources'),
+            value: training.totalSources,
+          },
+          {
+            id: 'generated',
+            label: trainingT('generatedImages'),
+            value: training.totalGeneratedImages,
+          },
+          {
+            id: 'active',
+            label: fieldsT('active'),
+            value:
+              training.isActive === false
+                ? rowSidebarT('no')
+                : rowSidebarT('yes'),
+          },
+        ],
+        getId: (training) => training.id,
+        getOpenHref:
+          scope === PageScope.SUPERADMIN ? getTrainingHref : undefined,
+        getSubtitle: (training) => training.externalId,
+        getTitle: (training) => training.label,
+        kind: 'model',
+        onEdit: openTrainingModal,
+      }),
+    [openTrainingModal, scope, rowSidebarT, fieldsT, trainingT],
   );
 
   if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {
@@ -119,6 +171,15 @@ export default function TrainingsList({
         columns={columns}
         actions={actions}
         getRowKey={(training) => training.id}
+        getRowLink={
+          scope === PageScope.SUPERADMIN
+            ? (training) => ({
+                href: getTrainingHref(training),
+                label: rowSidebarT('openNamed', { name: training.label }),
+              })
+            : undefined
+        }
+        rowSidebar={rowSidebar}
         isLoading={isLoading}
         emptyLabel="No trainings found"
         emptyState={

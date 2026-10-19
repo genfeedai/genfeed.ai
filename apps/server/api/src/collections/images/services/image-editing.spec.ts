@@ -548,3 +548,92 @@ describe('FLUX.3 model-specific admission', () => {
     ).resolves.toHaveLength(1);
   });
 });
+
+describe('Image editing source URLs under authorized media delivery (#4895)', () => {
+  const grantedOwner = testId('edit', 6);
+  const issueServerPublish = vi.fn(
+    async (owner: string, ids: readonly string[]) =>
+      new Map(ids.map((id) => [id, `https://signed.test/${owner}/${id}`])),
+  );
+  const authorized = new ImageGenerationAdmissionService(
+    {} as never,
+    {
+      ingredientsEndpoint: 'https://cdn.example.com/ingredients',
+      isAuthorizedMediaDeliveryEnabled: true,
+    } as never,
+    {} as never,
+    { findOne } as never,
+    {} as never,
+    {} as never,
+    { resolveCharacterReferences } as never,
+    { issueServerPublish } as never,
+  );
+
+  beforeEach(() => {
+    issueServerPublish.mockClear();
+  });
+
+  it('mints source and mask URLs from stored keys, never from the ingredient id path', async () => {
+    const admitted = await authorized.admitImageEdit(
+      primary,
+      dto({ maskId: mask, references: [secondary] }),
+      organizationId,
+      brandId,
+    );
+    expect(admitted.sourceUrls).toEqual([
+      `https://signed.test/${organizationId}/${primary}`,
+      `https://signed.test/${organizationId}/${secondary}`,
+    ]);
+    expect(admitted.maskUrl).toBe(
+      `https://signed.test/${organizationId}/${mask}`,
+    );
+    expect(JSON.stringify(admitted.sourceUrls)).not.toContain('cdn.example');
+  });
+
+  it('mints a granted character avatar from its owning organization', async () => {
+    resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set([secondary]),
+      grantedAvatarOwners: new Map([[secondary, grantedOwner]]),
+      personaId: null,
+    });
+    findOne.mockImplementation(async (query: { id: string }) => ({
+      ...ready(query.id),
+      organizationId: query.id === secondary ? grantedOwner : organizationId,
+    }));
+    const admitted = await authorized.admitImageEdit(
+      primary,
+      dto({ references: [secondary] }),
+      organizationId,
+      brandId,
+    );
+    expect(admitted.sourceUrls).toEqual([
+      `https://signed.test/${organizationId}/${primary}`,
+      `https://signed.test/${grantedOwner}/${secondary}`,
+    ]);
+  });
+
+  it('fails closed when the issuer rejects a source', async () => {
+    issueServerPublish.mockRejectedValueOnce(new Error('unavailable'));
+    await expect(
+      authorized.admitImageEdit(primary, dto(), organizationId, brandId),
+    ).rejects.toThrow('unavailable');
+  });
+
+  it('fails closed without an issuer instead of falling back to the id path', async () => {
+    const withoutIssuer = new ImageGenerationAdmissionService(
+      {} as never,
+      {
+        ingredientsEndpoint: 'https://cdn.example.com/ingredients',
+        isAuthorizedMediaDeliveryEnabled: true,
+      } as never,
+      {} as never,
+      { findOne } as never,
+      {} as never,
+      {} as never,
+      { resolveCharacterReferences } as never,
+    );
+    await expect(
+      withoutIssuer.admitImageEdit(primary, dto(), organizationId, brandId),
+    ).rejects.toThrow('Authorized media issuer is unavailable');
+  });
+});

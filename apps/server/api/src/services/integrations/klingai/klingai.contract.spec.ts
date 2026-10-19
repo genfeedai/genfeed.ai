@@ -139,32 +139,6 @@ describe('KlingAIService (contract)', () => {
     });
   });
 
-  describe('generateImageToVideo — /videos/image2video contract', () => {
-    it('POSTs the image2video payload referencing the ingredients image url', async () => {
-      const id = await service.generateImageToVideo(
-        'animate this',
-        'parent-99',
-      );
-
-      expect(id).toBe('kling-req-1');
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://api.klingai.com/v1/videos/image2video',
-        {
-          callback_url: CALLBACK_URL,
-          duration: 5,
-          image: `${INGREDIENTS}/images/parent-99`,
-          model: 'kling-v2',
-          prompt: 'animate this',
-        },
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer jwt-token',
-          }),
-        }),
-      );
-    });
-  });
-
   describe('failure modes', () => {
     it('throws "KlingAI authorization failed" on a 401 response', async () => {
       // Failure fixture: KlingAI 401 unauthorized.

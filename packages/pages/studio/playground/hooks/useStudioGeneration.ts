@@ -12,6 +12,7 @@ import {
   MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
 } from '@genfeedai/contracts/constants';
 import type {
+  GenerationPromptAuthor,
   IModel,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
@@ -138,6 +139,8 @@ export interface StudioGenerationOptions {
   /** Explicit Knowledge pick from the Library picker; absent means Auto. */
   knowledge?: KnowledgeSelection;
   promptId?: string;
+  /** Set only when the prompt came from an agent proposal. */
+  promptAuthor?: GenerationPromptAuthor;
 }
 
 export interface StudioGenerationReferences {
@@ -961,6 +964,9 @@ export function useStudioGeneration({
                   : {}),
                 ...(options?.brandMode ? { brandMode: options.brandMode } : {}),
                 ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
+                ...(options?.promptAuthor
+                  ? { promptAuthor: options.promptAuthor }
+                  : {}),
               },
               promptData,
             );
@@ -1017,6 +1023,9 @@ export function useStudioGeneration({
                   : {}),
                 ...(options?.brandMode ? { brandMode: options.brandMode } : {}),
                 ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
+                ...(options?.promptAuthor
+                  ? { promptAuthor: options.promptAuthor }
+                  : {}),
               },
               videoPromptData,
             );
@@ -1134,6 +1143,10 @@ export function useStudioGeneration({
               ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
               ...(options?.originalText !== undefined
                 ? { originalText: options.originalText }
+                : {}),
+              // The raw retry sends the same prompt, so its author stays.
+              ...(options?.promptAuthor
+                ? { promptAuthor: options.promptAuthor }
                 : {}),
             }),
           );

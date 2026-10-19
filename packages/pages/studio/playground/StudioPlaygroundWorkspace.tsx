@@ -64,6 +64,7 @@ import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-prefer
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
+import StudioPlaygroundAgentProposals from '@pages/studio/playground/components/StudioPlaygroundAgentProposals';
 import StudioPlaygroundComposer from '@pages/studio/playground/components/StudioPlaygroundComposer';
 import StudioPlaygroundFocusedPreview from '@pages/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@pages/studio/playground/components/StudioPlaygroundInspector';
@@ -133,6 +134,10 @@ import {
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
 } from '@pages/studio/playground/utils/studio-playground-types';
+import {
+  resolveStudioPromptAuthor,
+  type StudioAgentPromptSeed,
+} from '@pages/studio/playground/utils/studio-prompt-author';
 import { resolveStudioReferencePreviewUrl } from '@pages/studio/playground/utils/studio-reference-preview';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -350,6 +355,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   latestPromptRef.current = prompt;
   const [documentSeed, setDocumentSeed] =
     useState<PromptEditorDocumentSeed | null>(null);
+  const [agentPromptSeed, setAgentPromptSeed] =
+    useState<StudioAgentPromptSeed | null>(null);
   const {
     cancelEnhance,
     enhancePrompt,
@@ -1159,6 +1166,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         );
       }
       setType(selection.type);
+      setAgentPromptSeed(
+        selection.agentPrompt
+          ? { text: selection.agentPrompt, type: selection.type }
+          : null,
+      );
       setDocumentSeed({
         content: selection.content,
         id: selection.seedId,
@@ -1340,6 +1352,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       notificationsService.warning(notice);
     }
     const submittedPrompt = prompt;
+    const promptAuthor = resolveStudioPromptAuthor(
+      agentPromptSeed,
+      prompt,
+      type,
+    );
     void submit(
       prepared.text,
       {
@@ -1349,6 +1366,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       {
         ...(previewOption ?? {}),
         originalText: prompt,
+        ...(promptAuthor ? { promptAuthor } : {}),
         ...(crunModel
           ? {
               ...(crunRequest ? { crunRequest } : {}),
@@ -1381,6 +1399,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       // moved on to the next prompt while this one was being sent.
       if (isAccepted && latestPromptRef.current === submittedPrompt) {
         setPrompt('');
+        setAgentPromptSeed(null);
         setContentReferences([]);
         restoredRolesRef.current.clear();
         setPendingRestoredUploadIds(null);
@@ -1389,6 +1408,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       }
     });
   }, [
+    agentPromptSeed,
     clearAttachments,
     type,
     isHandoffAccepted,
@@ -2675,14 +2695,21 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     </p>
                   ) : null}
                   {showEmptyStarterIdeas ? (
-                    <StudioPlaygroundStarterIdeas
-                      character={pickStarterCharacter(characterMentions)}
-                      offeringKind={starterOffering}
-                      onSelect={handleStarterIdea}
-                      productReference={pickStarterProductReference(
-                        selectedBrand?.references,
-                      )}
-                    />
+                    <>
+                      <StudioPlaygroundAgentProposals
+                        brandId={brandId || undefined}
+                        onSelect={handleStarterIdea}
+                        type={type}
+                      />
+                      <StudioPlaygroundStarterIdeas
+                        character={pickStarterCharacter(characterMentions)}
+                        offeringKind={starterOffering}
+                        onSelect={handleStarterIdea}
+                        productReference={pickStarterProductReference(
+                          selectedBrand?.references,
+                        )}
+                      />
+                    </>
                   ) : !galleryError || visibleJobs.length > 0 ? (
                     <StudioPlaygroundResults
                       assetActions={{

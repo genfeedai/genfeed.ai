@@ -29,7 +29,7 @@ import { Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import GenerationDetailSheet from './generation-detail-sheet';
+import GenerationDetailPanel from './generation-detail-panel';
 import GenerationFilterDropdown from './generation-filter-dropdown';
 import GenerationRow from './generation-row';
 import {
@@ -323,7 +323,7 @@ function GenerationsPageContent() {
           </>
         )}
       </div>
-      <GenerationDetailSheet
+      <GenerationDetailPanel
         generation={selected}
         onClose={() => setSelected(null)}
       />

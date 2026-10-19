@@ -12,6 +12,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
+import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
@@ -260,7 +261,12 @@ describe('VideoGenerationService', () => {
 
     const personas = personasServiceStub();
     const preparationService = new VideoGenerationPreparationService(
-      assetsService as never,
+      new VideoReferenceUrlService(
+        assetsService as never,
+        configService as never,
+        ingredientsService as never,
+        loggerService as never,
+      ),
       brandsService as never,
       configService as never,
       filesClientService as never,

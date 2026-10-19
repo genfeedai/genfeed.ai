@@ -7,11 +7,13 @@ import {
   sumEngagement,
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Post } from '@models/content/post.model';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import { logger } from '@services/core/logger.service';
@@ -33,6 +35,7 @@ import {
   Video,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -54,6 +57,7 @@ export default function AnalyticsPlatformDetail({
   basePath = '/analytics',
 }: AnalyticsPlatformDetailProps) {
   const router = useRouter();
+  const { href } = useOrgUrl();
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -253,9 +257,12 @@ export default function AnalyticsPlatformDetail({
                       </div>
                     )}
                     <div className="max-w-xs">
-                      <div className="font-medium line-clamp-2 text-sm">
+                      <Link
+                        className="block font-medium line-clamp-2 text-sm hover:underline"
+                        href={href(getPublishingPostHref(post.id))}
+                      >
                         {post.ingredients?.[0]?.metadataLabel || 'No caption'}
-                      </div>
+                      </Link>
                     </div>
                   </div>
                 ),

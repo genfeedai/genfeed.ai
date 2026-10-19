@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const usePatternContextMock = vi.fn();
+const useAnalyticsToolbarMock = vi.fn();
 const replaceMock = vi.fn();
 let searchParamsValue = '';
 
@@ -13,6 +14,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@genfeedai/contexts/analytics/analytics-context', () => ({
+  useAnalyticsToolbar: (...args: unknown[]) => useAnalyticsToolbarMock(...args),
   useOptionalAnalyticsContext: () => null,
 }));
 
@@ -57,6 +59,14 @@ describe('PatternLabPage', () => {
     expect(usePatternContextMock).toHaveBeenCalledWith(expect.anything(), 1);
     expect(screen.getAllByTestId('pattern-card')).toHaveLength(2);
     expect(screen.getByTestId('auto-pagination')).toHaveTextContent('patterns');
+  });
+
+  it('publishes the filters to the subbar instead of rendering them in the content', () => {
+    render(<PatternLabPage />);
+
+    expect(useAnalyticsToolbarMock).toHaveBeenCalledWith(expect.anything());
+    expect(screen.queryByText('Platform')).toBeNull();
+    expect(screen.queryByText('Performance Lab')).toBeNull();
   });
 
   it('requests the page named in the URL', () => {

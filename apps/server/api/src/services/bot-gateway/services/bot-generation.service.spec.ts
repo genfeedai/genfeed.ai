@@ -5,16 +5,11 @@ import {
   BOT_MEDIA_GENERATION_DISPATCHER,
   type BotMediaGenerationDispatcher,
 } from '@api/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
-import {
-  BotCommandType,
-  CredentialPlatform,
-  IngredientCategory,
-} from '@genfeedai/contracts';
+import { BotCommandType, CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IBotCallbackContext,
   IBotResolvedUser,
 } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { ServiceUnavailableException } from '@nestjs/common';
@@ -68,10 +63,6 @@ describe('BotGenerationService', () => {
       providers: [
         BotCallbackContextService,
         BotGenerationService,
-        {
-          provide: ConfigService,
-          useValue: { ingredientsEndpoint: 'https://cdn.genfeed.ai' },
-        },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         {
           provide: LoggerService,
@@ -156,7 +147,6 @@ describe('BotGenerationService', () => {
       providers: [
         BotCallbackContextService,
         BotGenerationService,
-        { provide: ConfigService, useValue: {} },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
         {
@@ -176,14 +166,5 @@ describe('BotGenerationService', () => {
         callbackContext,
       ),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
-  });
-
-  it('builds canonical ingredient URLs', () => {
-    expect(service.getIngredientUrl('image-1', IngredientCategory.IMAGE)).toBe(
-      'https://cdn.genfeed.ai/images/image-1',
-    );
-    expect(service.getIngredientUrl('video-1', IngredientCategory.VIDEO)).toBe(
-      'https://cdn.genfeed.ai/videos/video-1',
-    );
   });
 });

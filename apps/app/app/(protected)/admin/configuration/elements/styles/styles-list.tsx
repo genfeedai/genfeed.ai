@@ -20,6 +20,7 @@ import { StylesService } from '@services/elements/styles.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import Badge from '@ui/display/badge/Badge';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalStyle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -52,6 +53,7 @@ function StylesListContent({
   onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
 
   const getStylesService = useAuthedService(
@@ -230,6 +232,20 @@ function StylesListContent({
     }
   };
 
+  const rowSidebar = useElementRowSidebar<ElementStyle>({
+    getExtraFacts: (style) => [
+      {
+        id: 'models',
+        label: fieldsT('models'),
+        value: style.models?.join(', '),
+      },
+    ],
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openStyleModal(ModalEnum.STYLE, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementStyle>
@@ -238,6 +254,7 @@ function StylesListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No styles found"
       />
 

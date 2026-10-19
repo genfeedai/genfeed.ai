@@ -20,6 +20,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalScene } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -217,6 +218,13 @@ function ScenesListContent({
         ]
       : [];
 
+  const rowSidebar = useElementRowSidebar<ElementScene>({
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openSceneModal(ModalEnum.SCENE, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementScene>
@@ -225,6 +233,7 @@ function ScenesListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No scenes found"
       />
 

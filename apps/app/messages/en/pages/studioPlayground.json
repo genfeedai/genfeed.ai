@@ -35,6 +35,13 @@
   "endFrame": "End Frame",
   "emptyDescription": "Write a prompt below and everything you generate lands here.",
   "emptyTitle": "Nothing here yet",
+  "agentProposals": {
+    "apply": "Use draft: {title}",
+    "description": "Written by your agent from the brand kit and what has performed.",
+    "loading": "Your agent is drafting ideas for this brand.",
+    "needsBrandApproval": "Approve the brand kit so your agent can draft ideas for this brand.",
+    "title": "Agent drafts"
+  },
   "starterIdeas": {
     "apply": "Use {label}",
     "avatarIntro": {

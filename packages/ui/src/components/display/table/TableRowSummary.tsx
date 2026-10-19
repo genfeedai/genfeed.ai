@@ -10,6 +10,7 @@ import {
 } from '@ui/primitives/definition-list';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 /**
  * Body of a row's right-sidebar detail (`rowSidebar.render`) for records that
@@ -21,8 +22,9 @@ export default function TableRowSummary({
   children,
   facts = [],
   openHref,
-  openLabel = 'Open',
+  openLabel,
 }: TableRowSummaryProps) {
+  const t = useTranslations('ui.rowSidebar');
   const knownFacts = facts.filter(
     (fact) =>
       fact.value !== undefined &&
@@ -42,7 +44,7 @@ export default function TableRowSummary({
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
             >
-              <Link href={openHref}>{openLabel}</Link>
+              <Link href={openHref}>{openLabel ?? t('open')}</Link>
             </Button>
           ) : null}
         </div>

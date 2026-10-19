@@ -10,14 +10,18 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { CaptionsService } from '@services/content/captions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
 function CaptionsListContent() {
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -43,6 +47,23 @@ function CaptionsListContent() {
         caption.createdAt ? formatDate(caption.createdAt) : '-',
     },
   ];
+
+  const rowSidebar = createSummaryRowSidebar<Caption>({
+    getFacts: (caption) => [
+      { id: 'format', label: fieldsT('format'), value: caption.format },
+      { id: 'language', label: fieldsT('language'), value: caption.language },
+      {
+        id: 'created',
+        label: fieldsT('created'),
+        value: caption.createdAt ? formatDate(caption.createdAt) : undefined,
+      },
+    ],
+    getId: (caption) => caption.id,
+    getTitle: (caption) =>
+      [caption.format, caption.language].filter(Boolean).join(' · ') ||
+      rowSidebarT('caption.fallbackTitle'),
+    kind: 'record',
+  });
 
   const findAllCaptions = useCallback(async () => {
     setCaptions(null);
@@ -94,6 +115,7 @@ function CaptionsListContent() {
             actions={[]}
             isLoading={captions === null}
             getRowKey={(item) => item.id}
+            rowSidebar={rowSidebar}
             emptyLabel="No captions found"
           />
 

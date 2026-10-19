@@ -1,7 +1,7 @@
 'use client';
 
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -13,6 +13,7 @@ import { AgentMemoriesService } from '@services/automation/agent-memories.servic
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
@@ -172,6 +173,75 @@ export default function SettingsOrganizationMemoryPage() {
     },
   ];
 
+  const rowSidebar = createSummaryRowSidebar<OrgMemoryEntry>({
+    getBadges: (entry) => (
+      <>
+        <Badge variant="secondary">{scopeLabel(entry.scope)}</Badge>
+        {entry.promotedSkillId ? (
+          <Badge variant="success">{translate('status.promoted')}</Badge>
+        ) : (
+          <Badge variant="secondary">{translate('status.active')}</Badge>
+        )}
+      </>
+    ),
+    getFacts: (entry) => [
+      {
+        id: 'author',
+        label: translate('columns.author'),
+        value: authorLabel(entry),
+      },
+      {
+        id: 'created',
+        label: translate('columns.created'),
+        value: entry.createdAt ? formatDate(entry.createdAt) : undefined,
+      },
+    ],
+    getId: (entry) => entry.id,
+    getTitle: (entry) => entry.summary || entry.content || '-',
+    kind: 'record',
+    renderExtra: (entry) => (
+      <>
+        {entry.content && entry.content !== entry.summary ? (
+          <p className="whitespace-pre-wrap text-sm text-foreground/80">
+            {entry.content}
+          </p>
+        ) : null}
+        {canGovern ? (
+          <div className="flex flex-wrap gap-2">
+            {!entry.promotedSkillId ? (
+              <>
+                <Button
+                  icon={<Sparkles className="size-3.5" />}
+                  isDisabled={pendingId === entry.id}
+                  label={translate('actions.promote')}
+                  onClick={() => void runAction(entry, 'promote')}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+                <Button
+                  icon={<X className="size-3.5" />}
+                  isDisabled={pendingId === entry.id}
+                  label={translate('actions.reject')}
+                  onClick={() => void runAction(entry, 'reject')}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </>
+            ) : null}
+            <Button
+              icon={<Archive className="size-3.5" />}
+              isDisabled={pendingId === entry.id}
+              label={translate('actions.archive')}
+              onClick={() => void runAction(entry, 'archive')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+          </div>
+        ) : null}
+      </>
+    ),
+  });
+
   if (!isBillingEnabled) {
     return (
       <CardEmpty
@@ -238,6 +308,7 @@ export default function SettingsOrganizationMemoryPage() {
         isLoading={entries === null}
         items={entries ?? []}
         label={translate('table')}
+        rowSidebar={rowSidebar}
       />
       {entries && entries.length > 0 ? (
         <AutoPagination showTotal totalLabel="memories" />

@@ -233,6 +233,75 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     );
   });
 
+  it('mints fresh media grants for the run scope right before the Replicate call', async () => {
+    const createAndLinkProcessingOutput = vi.fn(
+      async (
+        args: Parameters<
+          WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+        >[0],
+      ) => {
+        await args.runProvider('ingredient-1', 'continuation-1');
+        return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
+      },
+    );
+    const helper = {
+      buildImageIngredientUrl: (id: string) => `https://api.test/images/${id}`,
+      createAndLinkProcessingOutput,
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const authorizeProviderInput = vi.fn(async () => ({
+      image: 'https://cdn.test/signed/source-1?Signature=fresh',
+    }));
+    const plan = {
+      authorizeProviderInput,
+      canPrepareImage: true,
+      prepareImage: vi.fn().mockResolvedValue({
+        actionId: 'imageGen',
+        input: { image: 'https://api.test/images/source-1' },
+        output: { brandId: 'brand-1' },
+        provider: 'replicate',
+      }),
+    } as unknown as WorkflowMediaProviderPlanService;
+    const replicateService = { runModel: vi.fn().mockResolvedValue('p-1') };
+    const engine = new WorkflowEngine();
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      plan,
+      undefined,
+      replicateService as never,
+    ).register(engine);
+
+    await getActionExecutor(engine, 'imageGen')?.(
+      {
+        config: { brandId: 'brand-1', model: QWEN_IMAGE_MODEL_KEY },
+        id: 'image-gen-1',
+        inputs: [],
+        label: 'Generate image',
+        type: 'imageGen',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
+      },
+    );
+
+    expect(authorizeProviderInput).toHaveBeenCalledWith(
+      { image: 'https://api.test/images/source-1' },
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(replicateService.runModel).toHaveBeenCalledWith(
+      QWEN_IMAGE_MODEL_KEY,
+      { image: 'https://cdn.test/signed/source-1?Signature=fresh' },
+      undefined,
+      'continuation-1',
+    );
+  });
+
   it('preserves compiled negative prompts and canonical provenance in the workflow result and persisted output', async () => {
     const createAndLinkProcessingOutput = vi.fn(
       async (

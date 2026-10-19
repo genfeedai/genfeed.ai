@@ -16,6 +16,8 @@ import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -23,8 +25,8 @@ import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useState } from 'react';
-
 import {
   PresetCategoryCell,
   PresetDefaultsCell,
@@ -40,6 +42,9 @@ function PresetsListContent({
   onRefreshingChange,
 }: IElementContentProps) {
   const { isSignedIn } = useAuthIdentity();
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const presetFieldsT = useTranslations('ui.presetFields');
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
@@ -216,6 +221,64 @@ function PresetsListContent({
         ]
       : [];
 
+  const rowSidebar = createSummaryRowSidebar<Preset>({
+    getBadges: (preset) => (
+      <>
+        <Badge variant="outline" className="uppercase">
+          {preset.category}
+        </Badge>
+        {preset.isActive ? null : (
+          <Badge variant="warning">{rowSidebarT('inactive')}</Badge>
+        )}
+      </>
+    ),
+    getFacts: (preset) => [
+      { id: 'key', label: presetFieldsT('key'), value: preset.key },
+      {
+        id: 'description',
+        label: presetFieldsT('description'),
+        value: preset.description,
+      },
+      { id: 'model', label: fieldsT('model'), value: preset.model },
+      { id: 'provider', label: fieldsT('provider'), value: preset.provider },
+      { id: 'platform', label: fieldsT('platform'), value: preset.platform },
+      {
+        id: 'aspectRatio',
+        label: presetFieldsT('aspectRatio'),
+        value: preset.aspectRatio,
+      },
+      {
+        id: 'duration',
+        label: presetFieldsT('duration'),
+        value: preset.duration,
+      },
+      { id: 'camera', label: presetFieldsT('camera'), value: preset.camera },
+      { id: 'lens', label: presetFieldsT('lens'), value: preset.lens },
+      {
+        id: 'lighting',
+        label: presetFieldsT('lighting'),
+        value: preset.lighting,
+      },
+      {
+        id: 'cameraMovement',
+        label: presetFieldsT('cameraMovement'),
+        value: preset.cameraMovement,
+      },
+      { id: 'mood', label: presetFieldsT('mood'), value: preset.mood },
+      { id: 'scene', label: presetFieldsT('scene'), value: preset.scene },
+      { id: 'style', label: presetFieldsT('style'), value: preset.style },
+      { id: 'prompt', label: presetFieldsT('prompt'), value: preset.prompt },
+    ],
+    getId: (preset) => preset.id,
+    getSubtitle: (preset) => preset.key,
+    getTitle: (preset) => preset.label,
+    kind: 'record',
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (preset) => openPresetModal(ModalEnum.PRESET, preset)
+        : undefined,
+  });
+
   return (
     <AdminPageShell
       title="Presets"
@@ -241,6 +304,7 @@ function PresetsListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No presets found"
       />
 

@@ -3,6 +3,7 @@ import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   formatToolData,
+  harnessReceiptText,
   readableLabel,
 } from '@mcp/shared/utils/tool-result-text.util';
 
@@ -34,8 +35,9 @@ function readableMediaResult(
   const message = artifact
     ? `${title}\nStatus: ${readableLabel(artifact.status.toLowerCase())}${artifact.url ? `\n[Open ${artifact.kind}](${artifact.url})` : ''}`
     : formatToolData(payload);
+  const receipt = harnessReceiptText(payload);
   result.content = [
-    { type: 'text', text: message },
+    { type: 'text', text: receipt ? `${message}\n\n${receipt}` : message },
     ...result.content.flatMap((part) =>
       part.type === 'text'
         ? []

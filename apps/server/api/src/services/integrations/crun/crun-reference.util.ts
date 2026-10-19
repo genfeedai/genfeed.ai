@@ -30,6 +30,11 @@ async function resolveReference(
   context: CrunReferenceContext,
   id: string,
 ): Promise<CrunResolvedReference | null> {
+  // The frozen quote hashes and stores the request input, so a reference URL
+  // must be stable. A signed URL expires and an ID-derived path is unsigned,
+  // so with authorized delivery on no reference can enter a quote until the
+  // quote carries stored keys and signs at dispatch.
+  if (context.config.isAuthorizedMediaDeliveryEnabled) return null;
   const {
     prisma,
     assets,
