@@ -1505,6 +1505,23 @@
         "off": "Auto-publish is off, so every draft waits for review.",
         "saved": "Auto-publish settings saved",
         "saveError": "Could not save auto-publish settings"
+      },
+      "opportunityPanel": {
+        "expectedTraffic": "Expected traffic",
+        "loading": "Loading",
+        "loadingOpportunities": "Loading opportunities...",
+        "loadingOpportunity": "Loading opportunity...",
+        "noOpenOpportunities": "No open opportunities on this page.",
+        "notRecorded": "Not recorded",
+        "openOpportunities": "Open opportunities",
+        "opportunity": "Opportunity",
+        "opportunityMeta": "{source} · priority {priority}",
+        "reason": "Reason",
+        "reviewContext": "Review context",
+        "reviewContextDescription": "Opened from the publishing inbox with agent opportunity context.",
+        "status": "Status",
+        "totalLabel": "opportunities",
+        "unavailable": "Unavailable"
       }
     },
     "organizationOverview": {

@@ -714,5 +714,10 @@
   "promptBarBlacklist": {
     "avoid": "Avoid",
     "chooseWhatToAvoid": "Choose what to avoid"
+  },
+  "creationHeatmap": {
+    "cellTitle": "{day}: {count, plural, one {# item} other {# items}}",
+    "less": "Less",
+    "more": "More"
   }
 }

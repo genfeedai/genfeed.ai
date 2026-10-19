@@ -175,17 +175,34 @@
     "window": "Window"
   },
   "accounts": {
+    "account": "Account",
+    "accounts": "Accounts",
+    "brand": "Brand",
     "errorTitle": "Account analytics error",
     "evaluation": "Evaluation",
+    "evaluationWeeks": "Evaluation weeks",
     "followers": "Followers",
+    "health": "Health",
+    "healthHealthy": "Healthy",
+    "healthInsufficientData": "Not enough data",
+    "healthManual": "Manual",
+    "healthUnderperforming": "Underperforming",
+    "healthWatch": "Watch",
     "loadError": "Account analytics could not be loaded.",
     "loading": "Loading account analytics…",
+    "metric": "Metric",
+    "noConnectedAccounts": "No connected accounts",
     "noTrend": "No trend data for this window",
+    "platform": "Platform",
     "posts": "Posts",
     "postsOverWeeks": "{posts, plural, one {# post} other {# posts}} over {weeks, plural, one {# week} other {# weeks}}",
+    "rankByMetric": "Rank by metric",
+    "saveEvaluation": "Save evaluation",
+    "searchAccounts": "Search accounts",
     "topAccounts": "Top accounts",
     "trend": "Trend",
-    "views": "Views"
+    "views": "Views",
+    "weeks": "Weeks"
   },
   "performanceDataset": {
     "coldStartHintLink": "Connect more accounts",
@@ -449,5 +466,11 @@
     "audience": "Audience",
     "aria": "Filter post analytics by source",
     "extension": "Extension"
+  },
+  "postCard": {
+    "engagement": "Engagement",
+    "engagementRate": "Eng. rate",
+    "loadingPost": "Loading post",
+    "views": "Views"
   }
 }
