@@ -1,11 +1,13 @@
 'use client';
 
+import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StreaksHeatmap from '@pages/streaks/streaks-heatmap';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
@@ -14,13 +16,7 @@ import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebr
 import { Button } from '@ui/primitives/button';
 import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-
-function formatDayKey(offsetFromEnd: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + offsetFromEnd);
-  return date.toISOString().slice(0, 10);
-}
+import { useEffect, useState } from 'react';
 
 function rewardLabel(milestone: IStreakMilestoneState): string {
   if (milestone.days === 7) {
@@ -37,7 +33,22 @@ function rewardLabel(milestone: IStreakMilestoneState): string {
 export default function StreaksPage() {
   const { href } = useOrgUrl();
   const { calendar, isLoading, streak } = useStreak();
+  const { setToolbarNode } = useAnalyticsContext();
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const createHref = href(APP_ROUTES.AGENT.NEW);
+
+  useEffect(() => {
+    setToolbarNode(
+      <Button asChild variant={ButtonVariant.DEFAULT}>
+        {/* One-off generation is Agent-first. */}
+        <Link href={createHref}>
+          <Sparkles className="size-4" />
+          Create content now
+        </Link>
+      </Button>,
+    );
+    return () => setToolbarNode(null);
+  }, [createHref, setToolbarNode]);
 
   useEffect(() => {
     const handleCelebration = (_event: Event) => {
@@ -55,11 +66,6 @@ export default function StreaksPage() {
         handleCelebration as EventListener,
       );
   }, []);
-
-  const heatmapDays = useMemo(
-    () => Array.from({ length: 90 }, (_, index) => formatDayKey(index - 89)),
-    [],
-  );
 
   const currentStreak = streak?.currentStreak ?? 0;
   const longestStreak = streak?.longestStreak ?? 0;
@@ -79,19 +85,9 @@ export default function StreaksPage() {
     <div className="flex w-full flex-col gap-6">
       <section className="relative overflow-hidden rounded-3xl bg-secondary p-6 shadow-border">
         <StreakCelebrationBurst isVisible={isCelebrating} />
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="sr-only">{heroTitle}</h1>
+        <h1 className="sr-only">{heroTitle}</h1>
 
-          <Button asChild variant={ButtonVariant.DEFAULT}>
-            {/* One-off generation is Agent-first. */}
-            <Link href={href(APP_ROUTES.AGENT.NEW)}>
-              <Sparkles className="size-4" />
-              Create content now
-            </Link>
-          </Button>
-        </div>
-
-        <MetricCardGrid className="mt-6" columns={4}>
+        <MetricCardGrid columns={4}>
           <MetricCard
             isLoading={isLoading}
             label="Current streak"
@@ -125,72 +121,18 @@ export default function StreaksPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="rounded-3xl bg-secondary p-5 shadow-border">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-                Last 90 days
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-foreground">
-                Creation heatmap
-              </h2>
-            </div>
-            <p className="text-sm text-foreground/60">
-              Darker cells mean more generated or published pieces.
-            </p>
-          </div>
-
-          {isLoading ? (
-            <div
-              className="grid grid-cols-9 gap-2 md:grid-cols-15 lg:grid-cols-18"
-              data-testid="streaks-heatmap-skeleton"
-            >
-              {heatmapDays.map((dayKey) => (
-                <div
-                  key={dayKey}
-                  className="aspect-square animate-pulse rounded bg-secondary"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-9 gap-2 md:grid-cols-15 lg:grid-cols-18">
-              {heatmapDays.map((dayKey) => {
-                const count = calendar[dayKey]?.count ?? 0;
-                const intensityClass =
-                  count >= 4
-                    ? 'bg-foreground/80'
-                    : count >= 2
-                      ? 'bg-foreground/45'
-                      : count >= 1
-                        ? 'bg-foreground/25'
-                        : 'bg-secondary';
-
-                return (
-                  <div
-                    key={dayKey}
-                    className={cn(
-                      'aspect-square rounded transition-colors',
-                      intensityClass,
-                    )}
-                    title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
-                  />
-                );
-              })}
-            </div>
-          )}
+        <div
+          aria-label="Creation heatmap, last 90 days"
+          className="rounded-3xl bg-secondary p-5 shadow-border"
+          role="group"
+        >
+          <StreaksHeatmap calendar={calendar} isLoading={isLoading} />
         </div>
 
         <div className="rounded-3xl bg-secondary p-5 shadow-border">
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Badge progress
-          </p>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">
-            Earned streak rewards
-          </h2>
-
           {isLoading ? (
             <div
-              className="mt-6 animate-pulse space-y-3"
+              className="animate-pulse space-y-3"
               data-testid="streaks-milestones-skeleton"
             >
               <div className="h-16 rounded-2xl bg-secondary" />
@@ -199,9 +141,9 @@ export default function StreaksPage() {
             </div>
           ) : (
             <>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {badgeMilestones.length > 0 ? (
-                  badgeMilestones.map((milestone) => (
+              {badgeMilestones.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {badgeMilestones.map((milestone) => (
                     <Badge
                       className="px-3 py-1 text-xs font-semibold"
                       key={milestone}
@@ -210,15 +152,11 @@ export default function StreaksPage() {
                       <Gift className="size-3.5" />
                       {milestone}-day badge
                     </Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-foreground/60">
-                    Badge milestones unlock at 30, 100, and 365 days.
-                  </span>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
 
-              <div className="mt-6 space-y-3">
+              <div className="space-y-3">
                 {milestoneStates.map((milestone) => (
                   <div
                     key={milestone.days}
