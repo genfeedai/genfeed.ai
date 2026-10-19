@@ -13,6 +13,7 @@ import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -37,6 +38,7 @@ import { Module } from '@nestjs/common';
     MetadataModule,
     MusicsModule,
     FilesClientModule,
+    MediaUrlsModule,
     SharedModule,
     WorkflowsCoreModule,
   ],
