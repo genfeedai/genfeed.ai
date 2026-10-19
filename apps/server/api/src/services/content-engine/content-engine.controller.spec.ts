@@ -9,6 +9,7 @@ import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/ten
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { getTenantContext } from '@libs/prisma/tenant-context';
@@ -130,6 +131,16 @@ describe('ContentEngineController', () => {
               isColdStart: true,
               patternCount: 0,
               sources: [],
+            }),
+          },
+        },
+        {
+          provide: StudioProposalsService,
+          useValue: {
+            propose: vi.fn().mockResolvedValue({
+              isBrandApproved: true,
+              proposals: [],
+              surface: 'image',
             }),
           },
         },

@@ -18,6 +18,8 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { GenerateStudioProposalsDto } from '@api/services/content-engine/dto/generate-studio-proposals.dto';
+import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import {
   ContentPlanItemSerializer,
@@ -46,6 +48,7 @@ export class ContentEngineController {
     private readonly contentPlansService: ContentPlansService,
     private readonly contentPlanItemsService: ContentPlanItemsService,
     private readonly contentPlanSeedsService: ContentPlanSeedsService,
+    private readonly studioProposalsService: StudioProposalsService,
     private readonly moduleRef: ModuleRef,
   ) {}
 
@@ -53,6 +56,24 @@ export class ContentEngineController {
   // runner lazily instead of creating a module cycle here.
   private get systemWorkflowRunner(): SystemWorkflowRunnerService {
     return this.moduleRef.get(SystemWorkflowRunnerService, { strict: false });
+  }
+
+  // ── Studio proposals ───────────────────────────────────────────────
+
+  /** Agent-written drafts Playground and Storyboard open on (#7341). */
+  @Post('studio-proposals')
+  async generateStudioProposals(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+    @Body() dto: GenerateStudioProposalsDto,
+  ) {
+    return this.studioProposalsService.propose({
+      brandId,
+      count: dto.count,
+      organizationId: user.organizationId,
+      surface: dto.surface,
+      userId: user.userId ?? user.id,
+    });
   }
 
   // ── Plans ──────────────────────────────────────────────────────────
