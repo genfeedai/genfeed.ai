@@ -35,19 +35,25 @@ describe('AI model selector SEO', () => {
       container.querySelector('script[type="application/ld+json"]')
         ?.textContent ?? '{}',
     );
-    expect(
-      schema['@graph'].map((item: { '@type': string }) => item['@type']),
-    ).toEqual(['WebApplication', 'FAQPage', 'BreadcrumbList']);
+    const types = schema['@graph'].map(
+      (item: { '@type': string }) => item['@type'],
+    );
+    expect(types).toEqual(['FAQPage', 'BreadcrumbList']);
+    expect(types).not.toContain('WebApplication');
+    const faq = schema['@graph'].find(
+      (item: { '@type': string }) => item['@type'] === 'FAQPage',
+    );
     for (const { question, answer } of MODEL_SELECTOR_FAQ) {
       expect(screen.getByText(question)).toBeInTheDocument();
       expect(screen.getByText(answer)).toBeInTheDocument();
-      expect(schema['@graph'][1].mainEntity).toContainEqual({
+      expect(faq.mainEntity).toContainEqual({
         '@type': 'Question',
         name: question,
         acceptedAnswer: { '@type': 'Answer', text: answer },
       });
     }
-    expect(schema['@graph'][0].offers.price).toBe('0');
+    expect(JSON.stringify(schema)).not.toContain('aggregateRating');
+    expect(JSON.stringify(schema)).not.toContain('"review"');
   });
   it('has a canonical, query-specific social metadata, and bounded route caching', async () => {
     const metadata = await generateMetadata(

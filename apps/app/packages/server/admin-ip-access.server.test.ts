@@ -1,7 +1,10 @@
 import { PlatformRole } from '@genfeedai/contracts';
 import type { AccessBootstrapState } from '@services/auth/auth.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveServerSuperAdmin } from './admin-ip-access.server';
+import {
+  resolveServerSuperAdmin,
+  resolveServerSuperAdminFromToken,
+} from './admin-ip-access.server';
 
 const headersMock = vi.hoisted(() => ({ value: new Headers() }));
 const deploymentMock = vi.hoisted(() => ({
@@ -202,5 +205,55 @@ describe('resolveServerSuperAdmin outside Vercel', () => {
         'x-forwarded-for': `${ALLOWLISTED_IP}, 198.51.100.9`,
       }),
     ).resolves.toBe(true);
+  });
+});
+
+describe('resolveServerSuperAdminFromToken', () => {
+  const tokenWith = (claims: Record<string, unknown>) =>
+    `header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
+
+  beforeEach(() => {
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+    headersMock.value = new Headers({ 'x-forwarded-for': '203.0.113.7' });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    headersMock.value = new Headers();
+    deploymentMock.isBetterAuthEnabled = true;
+    deploymentMock.isSelfHosted = false;
+  });
+
+  it('grants a token carrying the isSuperAdmin claim from an allowlisted IP', async () => {
+    await expect(
+      resolveServerSuperAdminFromToken(tokenWith({ isSuperAdmin: true })),
+    ).resolves.toBe(true);
+  });
+
+  it('denies a super-admin token from any other IP', async () => {
+    headersMock.value = new Headers({ 'x-forwarded-for': '198.51.100.9' });
+
+    await expect(
+      resolveServerSuperAdminFromToken(tokenWith({ isSuperAdmin: true })),
+    ).resolves.toBe(false);
+  });
+
+  it.each([
+    ['a false claim', tokenWith({ isSuperAdmin: false })],
+    ['a truthy non-boolean claim', tokenWith({ isSuperAdmin: 'true' })],
+    ['no claim', tokenWith({ sub: 'user' })],
+    ['a malformed payload', 'header.not-json.signature'],
+    ['a token without a payload', 'opaque'],
+    ['no token', ''],
+  ])('denies %s', async (_label, token) => {
+    await expect(resolveServerSuperAdminFromToken(token)).resolves.toBe(false);
+  });
+
+  it('lets the local admin through on an allowlisted IP without a token', async () => {
+    deploymentMock.isSelfHosted = true;
+    deploymentMock.isBetterAuthEnabled = false;
+
+    await expect(resolveServerSuperAdminFromToken('')).resolves.toBe(true);
   });
 });

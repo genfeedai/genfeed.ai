@@ -309,6 +309,47 @@ describe('AppRail', () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it('opens Admin through the external handler instead of navigating in place', () => {
+    const onOpenAdminExternally = vi.fn();
+    render(
+      <AppRail
+        currentPath="/acme/brand/workspace"
+        onOpenAdminExternally={onOpenAdminExternally}
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+
+    const notPrevented = fireEvent.click(
+      screen.getByTestId('app-rail-item-admin'),
+    );
+
+    expect(notPrevented).toBe(false);
+    expect(onOpenAdminExternally).toHaveBeenCalledWith(
+      '/admin/overview/dashboard',
+    );
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('leaves other apps navigating in place when Admin opens externally', () => {
+    const onOpenAdminExternally = vi.fn();
+    render(
+      <AppRail
+        currentPath="/acme/brand/workspace"
+        onOpenAdminExternally={onOpenAdminExternally}
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+
+    const notPrevented = fireEvent.click(
+      screen.getByTestId('app-rail-item-agent'),
+    );
+
+    expect(notPrevented).toBe(true);
+    expect(onOpenAdminExternally).not.toHaveBeenCalled();
+  });
+
   it('lists admin categories instead of the app loop in admin chrome', () => {
     render(
       <AppRail
