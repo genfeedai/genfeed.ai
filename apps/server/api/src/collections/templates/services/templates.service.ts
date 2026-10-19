@@ -253,23 +253,25 @@ export class TemplatesService {
     };
 
     // tenant-scope-ignore: organizationScope names the organization or the platform null with tenant proof; isDeleted is false
+    const resultsPromise = this.prisma.template.findMany({
+      include: { metadata: true },
+      // Popularity is `usageCount` (`rating` is not a stored column), so the
+      // ranking is a database order, stable across pages.
+      orderBy: isPopular
+        ? [
+            { usageCount: { nulls: 'last', sort: 'desc' } },
+            { createdAt: 'desc' },
+          ]
+        : { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      where: listWhere,
+    });
+    // tenant-scope-ignore: same scoped where as the page query above
+    const totalPromise = this.prisma.template.count({ where: listWhere });
     const [results, totalDocs] = await Promise.all([
-      this.prisma.template.findMany({
-        include: { metadata: true },
-        // Popularity is `usageCount` (`rating` is not a stored column), so the
-        // ranking is a database order, stable across pages.
-        orderBy: isPopular
-          ? [
-              { usageCount: { nulls: 'last', sort: 'desc' } },
-              { createdAt: 'desc' },
-            ]
-          : { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        where: listWhere,
-      }),
-      // tenant-scope-ignore: same scoped where as the page query above
-      this.prisma.template.count({ where: listWhere }),
+      resultsPromise,
+      totalPromise,
     ]);
 
     const totalPages = Math.ceil(totalDocs / limit);
