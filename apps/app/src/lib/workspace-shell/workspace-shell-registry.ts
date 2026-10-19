@@ -1174,6 +1174,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/folders',
   '/admin/images/:id',
   '/admin/videos/:id',
+  '/admin/automation/agents',
   '/admin/automation/bots',
   '/admin/automation/failures',
   '/admin/automation/models',

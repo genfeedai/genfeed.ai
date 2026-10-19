@@ -17,6 +17,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -74,7 +75,12 @@ export class AgentStrategiesController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
 
-    const organizationId = user.organizationId?.toString();
+    // A verified superadmin may name another organization (the admin Agents
+    // page); everyone else stays on their session organization.
+    const { organizationId } = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+    );
     if (!organizationId) {
       throw new UnauthorizedException('Organization not found');
     }

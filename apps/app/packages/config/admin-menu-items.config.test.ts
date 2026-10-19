@@ -45,6 +45,7 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(hrefs).toContain('/admin/administration/system-emails');
     expect(hrefs).toContain('/admin/overview/analytics/all');
     expect(hrefs).toContain('/admin/content/generations');
+    expect(hrefs).toContain('/admin/automation/agents');
   });
 
   it('lists prompts inside Generations instead of as their own page', () => {

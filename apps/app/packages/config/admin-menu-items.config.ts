@@ -10,6 +10,7 @@ import {
   BookmarkCheck,
   Bot,
   Box,
+  BrainCircuit,
   Building2,
   ChartPie,
   CircleDollarSign,
@@ -136,6 +137,15 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.TRAININGS],
     outline: GraduationCap,
     solid: GraduationCap,
+  },
+  {
+    group: 'AI & Automation',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.AUTOMATION.AGENTS,
+    label: 'Agents',
+    matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.AGENTS],
+    outline: BrainCircuit,
+    solid: BrainCircuit,
   },
   {
     group: 'AI & Automation',

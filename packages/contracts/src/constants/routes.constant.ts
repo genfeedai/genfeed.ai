@@ -25,6 +25,7 @@ export const APP_ROUTES = {
       WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
     AUTOMATION: {
+      AGENTS: '/admin/automation/agents',
       BOTS: '/admin/automation/bots',
       FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',

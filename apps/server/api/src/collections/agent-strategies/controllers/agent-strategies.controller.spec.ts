@@ -84,6 +84,56 @@ describe('AgentStrategiesController', () => {
       }),
     ).toThrow('Organization not found');
   });
+
+  it('lets a superadmin list another organization for the admin Agents page', () => {
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const query = controller.buildFindAllQuery(
+      { isSuperAdmin: true, organizationId: 'org-1' } as AuthenticatedUser,
+      {
+        brandId: 'brand-2',
+        isDeleted: false,
+        limit: 10,
+        organizationId: 'org-2',
+        page: 1,
+        sort: 'createdAt: -1',
+      },
+    );
+
+    expect(query.where).toMatchObject({
+      brandId: 'brand-2',
+      organizationId: 'org-2',
+    });
+  });
+
+  it('refuses a member naming another organization', () => {
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    expect(() =>
+      controller.buildFindAllQuery(
+        { organizationId: 'org-1' } as AuthenticatedUser,
+        {
+          isDeleted: false,
+          limit: 10,
+          organizationId: 'org-2',
+          page: 1,
+          sort: 'createdAt: -1',
+        },
+      ),
+    ).toThrow();
+  });
 });
 
 describe('AgentStrategiesController module ownership', () => {
