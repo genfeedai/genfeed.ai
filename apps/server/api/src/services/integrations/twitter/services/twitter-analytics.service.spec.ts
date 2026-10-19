@@ -245,6 +245,24 @@ describe('TwitterAnalyticsService', () => {
       expect(result.get('old')?.learningMetrics?.isPaid).toBeUndefined();
     });
 
+    it('treats null metric groups as absent, never as evidence', async () => {
+      mockUserClient([
+        {
+          data: [
+            tweet('t1', {
+              non_public_metrics: null,
+              organic_metrics: null,
+              promoted_metrics: null,
+            }),
+          ],
+        },
+      ]);
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      expect(result.get('t1')?.learningMetrics?.isPaid).toBeUndefined();
+    });
+
     it('never claims organic from the app bearer', async () => {
       bearerGet.mockResolvedValue({ data: [tweet('t1')] });
 

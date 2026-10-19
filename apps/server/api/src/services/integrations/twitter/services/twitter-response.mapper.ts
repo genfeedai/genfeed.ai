@@ -328,10 +328,9 @@ export class TwitterResponseMapper {
     }
 
     const hasPrivateMetrics =
-      tweet.non_public_metrics !== undefined ||
-      tweet.organic_metrics !== undefined;
+      tweet.non_public_metrics != null || tweet.organic_metrics != null;
     let isPaid: boolean | undefined;
-    if (tweet.promoted_metrics !== undefined) {
+    if (tweet.promoted_metrics != null) {
       isPaid = true;
     } else if (hasPrivateMetrics) {
       isPaid = false;
