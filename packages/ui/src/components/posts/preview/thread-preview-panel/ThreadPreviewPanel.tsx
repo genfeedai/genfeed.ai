@@ -81,6 +81,7 @@ function PostPreviewMedia({ ingredient }: { ingredient: IIngredient }) {
 function PostPreviewItem({
   content,
   media = [],
+  status,
   index,
   isLast,
 }: PostPreviewItemProps) {
@@ -110,6 +111,7 @@ function PostPreviewItem({
             <PostPreviewMedia key={ingredient.id} ingredient={ingredient} />
           ))}
           <div className="mt-2 flex items-center justify-end gap-2">
+            {status}
             <span
               className={`text-xs tabular-nums ${isOverLimit ? 'text-error font-medium' : 'text-foreground/50'}`}
             >
@@ -155,6 +157,7 @@ export default function ThreadPreviewPanel({
             id={post.id || `post-${index}`}
             content={post.content}
             media={post.media}
+            status={post.status}
             index={index}
             isLast={index === allPosts.length - 1}
           />
