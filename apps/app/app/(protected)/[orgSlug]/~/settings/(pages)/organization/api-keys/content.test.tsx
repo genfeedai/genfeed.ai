@@ -832,26 +832,16 @@ describe('SettingsApiKeysPage', () => {
     ).toBeEnabled();
   });
 
-  it('locks the API keys page for free-tier organizations', async () => {
+  it('lets free-tier organizations create API keys', async () => {
     mocks.settingsSubscriptionTier = 'free';
     render(<SettingsApiKeysPage />);
 
     expect(
-      await screen.findByText('Unlock API keys with Agencies'),
-    ).toBeInTheDocument();
+      await screen.findByRole('button', { name: 'Create Key' }),
+    ).toBeEnabled();
     expect(
-      screen.getByText(/API access is included on paid plans/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Upgrade to Agencies/i }),
-    ).toHaveAttribute(
-      'href',
-      expect.stringContaining('/settings/subscription'),
-    );
-    expect(
-      screen.queryByRole('button', { name: 'Create Key' }),
+      screen.queryByText('Unlock API keys with Agencies'),
     ).not.toBeInTheDocument();
-    expect(mocks.createApiKey).not.toHaveBeenCalled();
   });
 
   it('rotates and revokes Genfeed API keys', async () => {
