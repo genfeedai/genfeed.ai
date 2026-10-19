@@ -77,6 +77,10 @@ export const MARKETING_OG_CARDS: Record<string, MarketingOgDefinition> = {
     ...SOCIAL_OG_CARDS.default,
     headline: ['Choose your', 'AI model'],
   },
+  mcp: {
+    ...SOCIAL_OG_CARDS.default,
+    headline: ['Connect any', 'AI agent'],
+  },
   ...Object.fromEntries(
     Object.entries(EDITORIAL_OG_ARTWORKS).map(([id, card]) => [
       id,

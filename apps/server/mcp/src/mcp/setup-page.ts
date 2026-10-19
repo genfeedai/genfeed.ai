@@ -39,6 +39,12 @@ const DEFAULT_MCP_URL = 'https://mcp.genfeed.ai/mcp';
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const CONNECT_GENFEED_PATH = '/connect';
 const DOCS_GUIDE_PATH = '/api-reference/mcp';
+const SETUP_PAGE_TITLE = 'Genfeed MCP Server — connect any AI agent';
+const SETUP_PAGE_DESCRIPTION =
+  'Connect Claude, ChatGPT, Cursor, Gemini, Meta Muse, Grok Bot, and other AI agents to Genfeed over MCP with browser OAuth — no API key required.';
+// The website composes this card (apps/website marketing-og.data.ts); every
+// Genfeed surface shares its 1200x630 layout.
+const SETUP_PAGE_OG_IMAGE_PATH = '/og/mcp';
 
 function escapeHtml(value: string): string {
   return value
@@ -338,6 +344,10 @@ export function renderSetupPage(): string {
   const appUrl = getPublicAppUrl();
   const docsUrl = getPublicDocsUrl();
   const connectUrl = `${appUrl}${CONNECT_GENFEED_PATH}`;
+  const ogImageUrlSafe = escapeHtml(
+    `${getPublicWebsiteUrl()}${SETUP_PAGE_OG_IMAGE_PATH}`,
+  );
+  const mcpOriginSafe = escapeHtml(new URL(mcpUrl).origin);
   const docsGuideUrl = `${docsUrl}${DOCS_GUIDE_PATH}`;
   const oauthDocsUrl = `${docsGuideUrl}#connect-via-oauth`;
   const postHogSnippet = renderPostHogSnippet();
@@ -387,8 +397,23 @@ export function renderSetupPage(): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
-<meta name="description" content="Connect Claude, ChatGPT, Cursor, Gemini, Meta Muse, Grok Bot, and other AI agents to Genfeed over MCP with browser OAuth — no API key required." />
-<title>Genfeed MCP Server — connect any AI agent</title>
+<meta name="description" content="${SETUP_PAGE_DESCRIPTION}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Genfeed.ai" />
+<meta property="og:title" content="${SETUP_PAGE_TITLE}" />
+<meta property="og:description" content="${SETUP_PAGE_DESCRIPTION}" />
+<meta property="og:url" content="${mcpOriginSafe}" />
+<meta property="og:image" content="${ogImageUrlSafe}" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="${SETUP_PAGE_TITLE}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@genfeedai" />
+<meta name="twitter:title" content="${SETUP_PAGE_TITLE}" />
+<meta name="twitter:description" content="${SETUP_PAGE_DESCRIPTION}" />
+<meta name="twitter:image" content="${ogImageUrlSafe}" />
+<title>${SETUP_PAGE_TITLE}</title>
 <style>
 ${staticSurfaceFontCss}
 ${staticSurfaceCss}
