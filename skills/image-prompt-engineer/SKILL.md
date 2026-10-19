@@ -482,33 +482,32 @@ distorted product, incorrect proportions, floating objects, inconsistent shadows
 
 ## Output Format
 
-Always structure your prompt output as:
+Return the prompt itself and nothing else. The reply is sent to the image or video model as-is, so any recommendation, setting or note in it becomes part of the picture.
+
+Write one flowing prompt in this order, each part in full sentences:
+
+1. **Subject and environment** - core identity, age, expression, clothing, main action or object, then the setting or background.
+2. **Camera and composition** - shot type, camera angle, lens and aperture, camera movement (video only), framing and any negative space to keep.
+3. **Lighting and style** - lighting quality, then the medium or aesthetic.
+
+When something must be excluded, add one final line that starts with `Negative prompt:` followed by comma-separated artifacts and defects. Leave the line out when nothing needs excluding.
+
+Never include:
+
+- model names or model recommendations
+- aspect ratio, resolution, steps, guidance, sampler or other generation settings
+- headings, labels, markdown, notes or explanations
+
+**Example:**
 
 ```
-## Image Prompt
-
-**Recommended model:** [model name and why]
-**Aspect ratio:** [ratio] ([WxH pixels])
-**Style preset:** [preset name]
-
-### Prompt
-[The full optimized prompt text]
-
-### Negative prompt (if applicable)
-[Negative prompt for SD/MJ, or "Not needed for this model"]
-
-### Generation settings
-- Steps: [recommended]
-- CFG/Guidance: [recommended]
-- Sampler: [recommended if applicable]
-
-### Notes
-[Any specific guidance for generating this image]
+A close-up portrait of a thoughtful 30-year-old female architect with subtle freckles, wearing a minimalist black turtleneck, standing in a sunlit concrete loft. Eye-level medium close-up, 85mm lens, f/2.0, shallow depth of field. Soft morning side-light, natural skin texture, editorial photography.
+Negative prompt: blurry, distorted hands, extra fingers, plastic skin, oversaturated, watermark, text, logo, deformed face, low quality
 ```
 
 ## Genfeed Integration
 
-- Use `generate` with `type: image` and the recommended model key from the platform's available models
+- Use `generate` with `type: image` and a model key from the platform's available models
 - Reference model capabilities from MODEL_OUTPUT_CAPABILITIES for supported features
 - Aspect ratios should match platform constants from model-aspect-ratios
 - For PuLID workflows, ensure reference image is uploaded first via the asset pipeline
