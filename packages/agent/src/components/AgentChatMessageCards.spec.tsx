@@ -247,6 +247,7 @@ describe('ContentPreviewCard', () => {
             },
           ],
           id: 'publishing-ctas',
+          title: 'Publishing links',
           type: 'content_preview_card',
         }}
       />,
