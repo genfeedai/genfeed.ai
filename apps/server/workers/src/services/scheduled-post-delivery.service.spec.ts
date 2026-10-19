@@ -37,7 +37,10 @@ import { ScheduledPostFailureService } from '@workers/services/scheduled-post-fa
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 import { of } from 'rxjs';
 
-vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
 
 // The fence reads the database and the actor; its own spec covers that. Here it only
 // has to be asked at the right moment and to stop the provider call when it holds.
@@ -125,6 +128,7 @@ function createDeliveryMocks() {
       credential: { findMany: vi.fn() },
       post: {
         findFirst: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       postProviderPublishReceipt: {
@@ -2367,6 +2371,35 @@ describe('ScheduledPostDeliveryService', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it('reports replies that are not SCHEDULED when the parent publishes', async () => {
+    vi.mocked(Sentry.captureMessage).mockClear();
+    mocks.prisma.post.findMany.mockResolvedValue([
+      { id: 'reply-1', targetExecutionState: TargetExecutionState.FAILED },
+    ]);
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'tweet-1',
+        platform: CredentialPlatform.TWITTER,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      publishThreadChildren: vi.fn(),
+      supportsThreads: true,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('thread replies were not SCHEDULED'),
+      expect.objectContaining({
+        childPostIds: ['reply-1'],
+        states: [TargetExecutionState.FAILED],
+      }),
+    );
+    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1);
   });
 
   it('parks a delayed comment and publishes only the immediate ones', async () => {

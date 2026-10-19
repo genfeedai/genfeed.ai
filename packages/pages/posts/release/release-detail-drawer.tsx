@@ -343,7 +343,7 @@ export default function ReleaseDetailDrawer({
                   return (
                     <article
                       key={target.id}
-                      className="space-y-3 border border-border bg-card p-4"
+                      className="space-y-3 border-b border-border pb-4 last:border-b-0 last:pb-0"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-foreground">

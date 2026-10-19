@@ -20,6 +20,8 @@ export interface PostDetailNeedsYouProps {
   post: IPost;
   isPublished: boolean;
   onPublishNow?: () => void;
+  /** Re-arms a failed post; a failed post cannot be published again as new. */
+  onRetryPublish?: () => void;
   onReviewHref: string;
   className?: string;
 }
@@ -46,6 +48,7 @@ export default function PostDetailNeedsYou({
   post,
   isPublished,
   onPublishNow,
+  onRetryPublish,
   onReviewHref,
   className,
 }: PostDetailNeedsYouProps) {
@@ -81,9 +84,9 @@ export default function PostDetailNeedsYou({
   const items = useMemo<NeedsYouItem[]>(() => {
     const results: NeedsYouItem[] = [];
 
-    if (post.status === PostStatus.FAILED && onPublishNow) {
+    if (post.status === PostStatus.FAILED && onRetryPublish) {
       results.push({
-        action: { label: translate('failedAction'), onClick: onPublishNow },
+        action: { label: translate('failedAction'), onClick: onRetryPublish },
         detail: post.targetError?.message?.trim() || undefined,
         id: 'failed',
         message: translate('failedDescription'),
@@ -116,6 +119,7 @@ export default function PostDetailNeedsYou({
     isPublished,
     now,
     onPublishNow,
+    onRetryPublish,
     onReviewHref,
     post,
     scheduledAt,

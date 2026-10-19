@@ -101,6 +101,7 @@ export default function PostDetail({
     handleContentSave,
     handleScheduleSave,
     handlePublishNow,
+    handleRetryPublish,
     handlePublishViaTikTokApp,
     handleAddToThread,
     handleAddThreadPosts,
@@ -504,6 +505,7 @@ export default function PostDetail({
               className="mb-6"
               isPublished={isPublished}
               onPublishNow={publishNow}
+              onRetryPublish={handleRetryPublish}
               onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
               post={post}
             />

@@ -115,6 +115,7 @@ function buildHookData(overrides: Record<string, unknown> = {}) {
     handleQuickAction: vi.fn(),
     handleScheduleSave: vi.fn(),
     handlePublishNow: vi.fn(),
+    handleRetryPublish: vi.fn(),
     handlePublishViaTikTokApp: vi.fn(),
     handleSelectMedia: vi.fn(),
     handleToggleFirstComment: vi.fn(),
