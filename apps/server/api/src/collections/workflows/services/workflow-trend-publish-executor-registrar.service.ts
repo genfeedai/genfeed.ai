@@ -487,6 +487,51 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     );
   }
 
+  /**
+   * The accounts a publish node posts to. A brand may hold several accounts on
+   * one platform, so a publish node expands into one post per connected
+   * account. They share a groupId so downstream review and notifications still
+   * see a single batch.
+   */
+  private async resolvePublishTargets(
+    fanoutService: PostAccountFanoutService,
+    input: {
+      brandId: string;
+      caption: string;
+      category: PostCategory;
+      ingredients: string[];
+      isScheduling: boolean;
+      organizationId: string;
+      platforms: string[];
+      workflowId: string;
+    },
+  ) {
+    const resolvedTargets = await fanoutService.resolveTargets({
+      brandId: input.brandId,
+      caption: input.caption,
+      organizationId: input.organizationId,
+      platforms: input.platforms,
+    });
+    // Only filter when this run actually schedules the fan-out — a
+    // caption-only draft is fine to create on every platform, it's
+    // SCHEDULED that the channel contract rejects (#5193). Filtering
+    // before `create()` means a video-only platform in the fan-out is
+    // skipped instead of creating a post the choke point then rejects.
+    if (!input.isScheduling) return resolvedTargets;
+    const { eligible, skipped } = filterTargetsByMediaCapability(
+      resolvedTargets,
+      toValidationMediaFromIngredientIds(input.ingredients, input.category),
+    );
+    if (skipped.length > 0) {
+      this.loggerService.warn('Skipped publish node targets requiring media', {
+        logContext: this.logContext,
+        platforms: skipped.map((target) => target.platform),
+        workflowId: input.workflowId,
+      });
+    }
+    return eligible;
+  }
+
   private registerPublishExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
     const fanoutService = this.postAccountFanoutService;
@@ -538,41 +583,18 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           const postIds: string[] = [];
           const publishedPlatforms: SocialPlatform[] = [];
 
-          // A brand may hold several accounts on one platform, so a publish node
-          // expands into one post per connected account. They share a groupId so
-          // downstream review and notifications still see a single batch.
-          const resolvedTargets = await fanoutService.resolveTargets({
-            brandId,
-            caption,
-            organizationId,
-            platforms,
-          });
           const category =
             ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT;
-          // Only filter when this run actually schedules the fan-out — a
-          // caption-only draft is fine to create on every platform, it's
-          // SCHEDULED that the channel contract rejects (#5193). Filtering
-          // before `create()` means a video-only platform in the fan-out is
-          // skipped instead of creating a post the choke point then rejects.
-          const { eligible: targets, skipped } = scheduledSlot
-            ? filterTargetsByMediaCapability(
-                resolvedTargets,
-                toValidationMediaFromIngredientIds(ingredients, category),
-              )
-            : {
-                eligible: resolvedTargets,
-                skipped: [] as typeof resolvedTargets,
-              };
-          if (skipped.length > 0) {
-            this.loggerService.warn(
-              'Skipped publish node targets requiring media',
-              {
-                logContext: this.logContext,
-                platforms: skipped.map((target) => target.platform),
-                workflowId,
-              },
-            );
-          }
+          const targets = await this.resolvePublishTargets(fanoutService, {
+            brandId,
+            caption,
+            category,
+            ingredients,
+            isScheduling: Boolean(scheduledSlot),
+            organizationId,
+            platforms,
+            workflowId,
+          });
           const groupId = randomUUID();
 
           for (const target of targets) {
