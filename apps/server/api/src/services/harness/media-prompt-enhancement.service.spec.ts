@@ -464,6 +464,16 @@ describe('MediaPromptEnhancementService', () => {
       expect(packs.listLoadedPackVersions).not.toHaveBeenCalled();
     });
 
+    it('records an agent-authored prompt on the receipt', async () => {
+      const { service } = setup();
+      const receipt = await service.enhance({
+        ...input,
+        brandMode: 'raw',
+        promptAuthor: 'agent',
+      });
+      expect(receipt.promptAuthor).toBe('agent');
+    });
+
     it('rejects selected skills and Knowledge instead of silently dropping them', async () => {
       const { service } = setup();
       await expect(

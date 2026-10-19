@@ -25,6 +25,19 @@ export type GenerationBrandMode =
   | 'provisional_brand'
   | 'raw';
 
+/**
+ * Who wrote the prompt a generation started from (#7341), so the harness
+ * A/B (#4927) can compare agent and human prompts: `agent` is an agent
+ * proposal sent unchanged, `agent_edited` one the member changed first.
+ * Absent means the member wrote the prompt.
+ */
+export type GenerationPromptAuthor = 'agent' | 'agent_edited';
+
+export const GENERATION_PROMPT_AUTHORS: readonly GenerationPromptAuthor[] = [
+  'agent',
+  'agent_edited',
+];
+
 export interface GenerationHarnessReceipt {
   brandedGenerationReceiptId?: string;
   learningReceipt?: LearningGenerationReceipt;
@@ -41,6 +54,8 @@ export interface GenerationHarnessReceipt {
   status: 'applied' | 'skipped';
   /** Absent on receipts written before brand modes existed. */
   brandMode?: GenerationBrandMode;
+  /** Absent when the member wrote the prompt. */
+  promptAuthor?: GenerationPromptAuthor;
   /** The brand revision the enhancement was pinned to; never set in `raw` mode. */
   brandRevisionId?: string;
   brandRevisionVersion?: number;

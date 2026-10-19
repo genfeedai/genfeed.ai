@@ -849,6 +849,35 @@ describe('useStudioGeneration brand enhancement stop', () => {
     },
   );
 
+  it.each(['image', 'video'] as const)(
+    'sends an agent-authored %s prompt and keeps the author on the raw retry',
+    async (type) => {
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      post.mockRejectedValueOnce(brandEnhancementStop());
+      const { result } = renderStudioGeneration({ type });
+      await act(async () => {
+        await result.current.submit(
+          'Serum on wet stone',
+          {},
+          {
+            promptAuthor: 'agent',
+          },
+        );
+      });
+      expect(post.mock.calls[0]?.[0]).toMatchObject({
+        promptAuthor: 'agent',
+      });
+
+      await act(async () => {
+        await result.current.generateWithoutBrand(result.current.jobs[0]);
+      });
+      expect(post.mock.calls[1]?.[0]).toMatchObject({
+        brandMode: 'raw',
+        promptAuthor: 'agent',
+      });
+    },
+  );
+
   it('never lets a raw retry re-send itself after another brand stop', async () => {
     mockImagesPost.mockRejectedValue(brandEnhancementStop());
     const { result } = renderStudioGeneration();

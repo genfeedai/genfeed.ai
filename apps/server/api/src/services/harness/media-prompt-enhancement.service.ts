@@ -18,6 +18,7 @@ import type {
   BrandIdentitySnapshotV1,
   GenerationBrandMode,
   GenerationHarnessReceipt,
+  GenerationPromptAuthor,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import {
@@ -52,6 +53,8 @@ export interface MediaPromptEnhancementInput {
    * are always resolved here, never supplied by a caller.
    */
   brandMode?: 'raw';
+  /** Recorded on the receipt when the prompt came from an agent proposal. */
+  promptAuthor?: GenerationPromptAuthor;
   /** An explicit Knowledge pick; absent means automatic brand retrieval. */
   knowledgeSelection?: KnowledgeSelection;
 }
@@ -134,6 +137,7 @@ export class MediaPromptEnhancementService {
       enhancedPrompt: input.prompt,
       brandId: input.brandId,
       brandMode: 'raw',
+      ...(input.promptAuthor ? { promptAuthor: input.promptAuthor } : {}),
       status: 'skipped',
       source,
       appliedPacks: [],

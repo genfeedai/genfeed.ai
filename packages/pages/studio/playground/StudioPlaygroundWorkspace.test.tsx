@@ -286,6 +286,7 @@ vi.mock(
     default: (props: {
       brandId?: string;
       onSelect: (selection: {
+        agentPrompt: string;
         aspectRatio: string;
         content: { content: unknown[]; type: string };
         seedId: string;
@@ -299,6 +300,7 @@ vi.mock(
           type="button"
           onClick={() =>
             props.onSelect({
+              agentPrompt: 'Serum on wet stone.',
               aspectRatio: '9:16',
               content: { content: [], type: 'doc' },
               seedId: 'proposal:0:1',
@@ -1186,6 +1188,19 @@ describe('StudioPlaygroundWorkspace', () => {
       });
     },
   );
+  it.each([
+    ['Serum on wet stone.', 'agent'],
+    ['Serum on wet stone at dusk.', 'agent_edited'],
+  ])('records a prompt from an agent draft (%s) as %s', (submitted, author) => {
+    render(<StudioPlaygroundWorkspace />);
+    fireEvent.click(screen.getByRole('button', { name: 'Agent draft' }));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange(submitted));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledWith(submitted, expect.anything(), {
+      originalText: submitted,
+      promptAuthor: author,
+    });
+  });
   it.each(['music', 'avatar', 'voice'])(
     'visibly blocks skill selections for %s',
     (type) => {

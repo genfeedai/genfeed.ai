@@ -497,6 +497,9 @@ export class VideoGenerationPreparationService {
       ...(createVideoDto.brandMode
         ? { brandMode: createVideoDto.brandMode }
         : {}),
+      ...(createVideoDto.promptAuthor
+        ? { promptAuthor: createVideoDto.promptAuthor }
+        : {}),
       ...(createVideoDto.knowledge
         ? { knowledgeSelection: createVideoDto.knowledge }
         : {}),
