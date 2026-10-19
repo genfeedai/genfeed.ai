@@ -18,6 +18,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   getPublishingPostHref,
   getPublishingReleaseHref,
+  normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -43,7 +44,9 @@ import PublishingContentLibraryToolbar, {
   PublishingContentLibrarySearch,
 } from '@pages/posts/library/publishing-content-library-toolbar';
 import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
+import CapturedPostsList from '@pages/posts/list/captured-posts-list';
 import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
+import { parsePostsSource } from '@pages/posts/list/posts-list-query';
 import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
 import { isTargetBlockedByReadiness } from '@pages/posts/shared/release-status.helpers';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -132,6 +135,9 @@ export default function PublishingContentLibrary({
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
+  const source = parsePostsSource(parsedSearchParams.get('source'));
+  // The Extension source lists captured posts, not releases or articles.
+  const isCapturedView = source !== undefined && !isEmbeddedView;
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
@@ -160,7 +166,7 @@ export default function PublishingContentLibrary({
     isLoading,
     refetch,
   } = useQuery<PublishingContentCollections>({
-    enabled: isFetchReady,
+    enabled: isFetchReady && !isCapturedView,
     queryFn: async ({ signal }) => {
       if (!organizationId) {
         return EMPTY_COLLECTIONS;
@@ -305,6 +311,7 @@ export default function PublishingContentLibrary({
         | 'platform'
         | 'post'
         | 'search'
+        | 'source'
         | 'status'
         | 'type'
         | 'view'
@@ -610,11 +617,13 @@ export default function PublishingContentLibrary({
         channelOptions={channelOptions}
         channelValue={channel}
         searchValue={search}
+        sourceValue={source}
         statusOptions={statusOptions}
         statusValue={status}
         typeValue={type}
         onChannelChange={(value) => replaceQueryParam('platform', value)}
         onSearchChange={(value) => replaceQueryParam('search', value)}
+        onSourceChange={(value) => replaceQueryParam('source', value ?? '')}
         onStatusChange={(value) => replaceQueryParam('status', value)}
         onTypeChange={(value) => replaceQueryParam('type', value)}
       />,
@@ -632,6 +641,7 @@ export default function PublishingContentLibrary({
     search,
     setFiltersNode,
     setLeadingNode,
+    source,
     status,
     statusOptions,
     type,
@@ -702,19 +712,21 @@ export default function PublishingContentLibrary({
         ]}
       />,
     );
-    if (!isEmbeddedView)
+    // The embedded views and the captured list own the refresh action.
+    if (!isEmbeddedView && !isCapturedView)
       setRefresh(() => async () => {
         await refetch();
       });
     return () => {
       setViewToggleNode(null);
-      if (!isEmbeddedView) setRefresh(() => () => {});
+      if (!isEmbeddedView && !isCapturedView) setRefresh(() => () => {});
     };
   }, [
     approvals,
     calendar,
     isApprovals,
     isCalendar,
+    isCapturedView,
     isEmbeddedView,
     view,
     replaceQueryParam,
@@ -749,6 +761,19 @@ export default function PublishingContentLibrary({
 
   if (isCalendar) return <>{calendar}</>;
   if (isApprovals) return <>{approvals}</>;
+  if (isCapturedView) {
+    const capturedPlatform = normalizePostsPlatform(channel);
+    return (
+      <CapturedPostsList
+        currentPage={currentPage}
+        onPageChange={(page) => replaceQueryParam('page', String(page))}
+        platform={capturedPlatform === 'all' ? undefined : capturedPlatform}
+        scope={PageScope.PUBLISHING}
+        search={search}
+        sort="createdAt: -1"
+      />
+    );
+  }
 
   const renderPostCard = (item: PublishingContentLibraryItem) => (
     <div

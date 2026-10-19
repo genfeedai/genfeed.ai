@@ -3,6 +3,8 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { PublishingContentTypeFilter } from '@pages/posts/library/publishing-content-library.helpers';
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
+import PostsSourceSelect from '@pages/posts/list/components/PostsSourceSelect';
+import type { PostsSourceFilter } from '@pages/posts/list/posts-list-query';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -24,11 +26,13 @@ export interface PublishingContentLibraryToolbarProps {
   channelOptions: FilterOption[];
   channelValue: string;
   searchValue: string;
+  sourceValue?: PostsSourceFilter;
   statusOptions: FilterOption[];
   statusValue: string[];
   typeValue: PublishingContentTypeFilter;
   onChannelChange: (value: string) => void;
   onSearchChange: (value: string) => void;
+  onSourceChange: (value: PostsSourceFilter | undefined) => void;
   onStatusChange: (value: string[]) => void;
   onTypeChange: (value: PublishingContentTypeFilter) => void;
 }
@@ -58,11 +62,13 @@ export default function PublishingContentLibraryToolbar({
   channelOptions,
   channelValue,
   searchValue,
+  sourceValue,
   statusOptions,
   statusValue,
   typeValue,
   onChannelChange,
   onSearchChange,
+  onSourceChange,
   onStatusChange,
   onTypeChange,
 }: PublishingContentLibraryToolbarProps) {
@@ -121,6 +127,11 @@ export default function PublishingContentLibraryToolbar({
           ))}
         </SelectContent>
       </Select>
+
+      <PostsSourceSelect
+        onSourceChange={onSourceChange}
+        sourceValue={sourceValue}
+      />
 
       <DropdownMultiSelect
         variant={ButtonVariant.GHOST}

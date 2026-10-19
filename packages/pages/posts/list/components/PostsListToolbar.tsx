@@ -1,11 +1,10 @@
 'use client';
 
 import { ComponentSize, PostStatus } from '@genfeedai/contracts';
-import {
-  POSTS_SOURCE_EXTENSION,
-  type PostsSourceFilter,
-  type PublishingPostsView,
-  parsePostsSource,
+import PostsSourceSelect from '@pages/posts/list/components/PostsSourceSelect';
+import type {
+  PostsSourceFilter,
+  PublishingPostsView,
 } from '@pages/posts/list/posts-list-query';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -32,8 +31,6 @@ const PUBLISHING_VIEW_OPTIONS: {
   { messageKey: 'posted', value: 'posted' },
   { messageKey: 'failed', value: PostStatus.FAILED },
 ];
-
-const SOURCE_ALL = 'all';
 
 export interface PostsListToolbarProps {
   showSearch?: boolean;
@@ -114,25 +111,10 @@ export default function PostsListToolbar({
       ) : null}
 
       {onSourceChange ? (
-        <Select
-          value={sourceValue ?? SOURCE_ALL}
-          onValueChange={(value) => onSourceChange(parsePostsSource(value))}
-        >
-          <SelectTrigger
-            aria-label={translate('toolbar.sourceAria')}
-            className="w-36"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={SOURCE_ALL}>
-              {translate('toolbar.sourceAll')}
-            </SelectItem>
-            <SelectItem value={POSTS_SOURCE_EXTENSION}>
-              {translate('toolbar.sourceExtension')}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <PostsSourceSelect
+          onSourceChange={onSourceChange}
+          sourceValue={sourceValue}
+        />
       ) : null}
 
       <Select value={sortValue} onValueChange={onSortChange}>

@@ -19,6 +19,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   queryData: null as unknown,
+  queryOptions: [] as Array<{ enabled?: boolean }>,
   updateTarget: vi.fn(),
   retry: vi.fn(),
   refetch: vi.fn(),
@@ -107,14 +108,27 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
 
+vi.mock('@pages/posts/list/captured-posts-list', () => ({
+  default: (props: { platform?: string; search: string }) => (
+    <div
+      data-platform={props.platform ?? ''}
+      data-search={props.search}
+      data-testid="captured-posts-list"
+    />
+  ),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({
-    data: mocks.queryData,
-    error: null,
-    isFetching: false,
-    isLoading: false,
-    refetch: mocks.refetch,
-  }),
+  useQuery: (options: { enabled?: boolean }) => {
+    mocks.queryOptions.push(options);
+    return {
+      data: mocks.queryData,
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    };
+  },
 }));
 
 vi.mock('next/navigation', () => ({
@@ -131,6 +145,7 @@ describe('PublishingContentLibrary', () => {
     vi.clearAllMocks();
     mocks.queryData = collections;
     mocks.search = '';
+    mocks.queryOptions = [];
   });
 
   it('renders the federated rows and registers the filter toolbar', async () => {
@@ -148,6 +163,53 @@ describe('PublishingContentLibrary', () => {
     expect(screen.getByText('3 posts')).toBeVisible();
 
     await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
+  });
+
+  it('offers the Source filter on an empty workspace', async () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [],
+    };
+
+    render(<PublishingContentLibrary />);
+
+    await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
+    const filters = mocks.setFiltersNode.mock.calls
+      .map(([node]) => node)
+      .findLast(Boolean);
+    render(filters);
+
+    expect(
+      screen.getByRole('combobox', { name: 'toolbar.sourceAria' }),
+    ).toBeVisible();
+  });
+
+  it('lists captured posts instead of the library for the Extension source', () => {
+    mocks.search = 'source=extension&platform=twitter&search=launch';
+
+    render(<PublishingContentLibrary />);
+
+    const captured = screen.getByTestId('captured-posts-list');
+    expect(captured).toHaveAttribute('data-search', 'launch');
+    expect(captured).toHaveAttribute('data-platform', 'twitter');
+    expect(
+      screen.queryByRole('link', { name: 'Open Social launch copy' }),
+    ).not.toBeInTheDocument();
+    expect(mocks.queryOptions.every((options) => !options.enabled)).toBe(true);
+    expect(mocks.setRefresh).not.toHaveBeenCalled();
+  });
+
+  it('keeps the library for unknown source values', () => {
+    mocks.search = 'source=bogus';
+
+    render(<PublishingContentLibrary />);
+
+    expect(screen.queryByTestId('captured-posts-list')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open Social launch copy' }),
+    ).toBeVisible();
   });
 
   it('drops the Type column and tags only non-plain formats', () => {
