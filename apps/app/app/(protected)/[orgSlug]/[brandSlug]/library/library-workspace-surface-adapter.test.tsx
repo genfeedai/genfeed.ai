@@ -1,14 +1,10 @@
-import {
-  ContextSidebarOutlet,
-  ContextSidebarProvider,
-  useContextSidebar,
-} from '@contexts/ui/context-sidebar-context';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  register: vi.fn(),
+  selectedCanonicalAsset: null as null | { reference: { id: string } },
   selectedIngredient: null as null | { id: string; metadataLabel: string },
-  setSelectedAsset: vi.fn(),
 }));
 
 vi.mock('next-intl', () => ({
@@ -21,65 +17,46 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@contexts/ui/asset-selection.context', () => ({
   useAssetSelection: () => ({
-    selectedCanonicalAsset: null,
+    selectedCanonicalAsset: mocks.selectedCanonicalAsset,
     selectedIngredient: mocks.selectedIngredient,
-    setSelectedAsset: mocks.setSelectedAsset,
   }),
 }));
 
 vi.mock('@/components/workspace-shell/WorkspaceSurfaceAdapterContext', () => ({
-  useRegisterWorkspaceSurfaceAdapter: vi.fn(),
-}));
-
-vi.mock('@ui/ingredients/inspector/IngredientInspectorRail', () => ({
-  default: ({ ingredient }: { ingredient: { metadataLabel: string } }) => (
-    <div>Rail: {ingredient.metadataLabel}</div>
-  ),
+  useRegisterWorkspaceSurfaceAdapter: mocks.register,
 }));
 
 import LibraryWorkspaceSurfaceAdapter from './library-workspace-surface-adapter';
 
-function CloseControl() {
-  const contextSidebar = useContextSidebar();
-
-  return (
-    <button type="button" onClick={contextSidebar?.close}>
-      Close sidebar
-    </button>
-  );
-}
-
-function renderAdapter() {
-  return render(
-    <ContextSidebarProvider>
-      <CloseControl />
-      <ContextSidebarOutlet testId="context-sidebar-outlet" />
-      <LibraryWorkspaceSurfaceAdapter />
-    </ContextSidebarProvider>,
-  );
-}
-
 describe('LibraryWorkspaceSurfaceAdapter', () => {
   beforeEach(() => {
+    mocks.register.mockClear();
+    mocks.selectedCanonicalAsset = null;
     mocks.selectedIngredient = null;
-    mocks.setSelectedAsset.mockClear();
   });
 
-  it('renders nothing into the sidebar without a selected asset', () => {
-    renderAdapter();
+  it('registers the library surface without a selected asset', () => {
+    const { container } = render(<LibraryWorkspaceSurfaceAdapter />);
 
-    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+    expect(container).toBeEmptyDOMElement();
+    expect(mocks.register).toHaveBeenLastCalledWith({
+      contextLabel: 'surface',
+      references: [],
+      scope: { brandId: 'brand-1', organizationId: 'org-1' },
+      surfaceKey: 'library',
+    });
   });
 
-  it('renders the selected asset and clears the shared selection on close', () => {
+  it('hands the selected asset to the composer as a reference', () => {
     mocks.selectedIngredient = { id: 'asset-1', metadataLabel: 'Launch still' };
-    renderAdapter();
+    mocks.selectedCanonicalAsset = { reference: { id: 'asset-1' } };
+    render(<LibraryWorkspaceSurfaceAdapter />);
 
-    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
-      'Rail: Launch still',
+    expect(mocks.register).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        contextLabel: 'surface · Launch still',
+        references: [{ label: 'Launch still', reference: { id: 'asset-1' } }],
+      }),
     );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
-    expect(mocks.setSelectedAsset).toHaveBeenCalledWith(null);
   });
 });

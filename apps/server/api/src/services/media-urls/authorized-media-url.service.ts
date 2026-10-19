@@ -148,6 +148,44 @@ export class AuthorizedMediaUrlService {
     );
   }
 
+  /**
+   * Internal execution capability for brand assets (references, logos,
+   * banners) that a provider or renderer fetches. Like `issueServerPublish`
+   * it has no HTTP route; assets are read inside the organization and an id
+   * without a trusted stored key yields no URL.
+   */
+  async issueServerAssetUrls(
+    organizationId: string,
+    assetIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (!organizationId)
+      throw new ForbiddenException('An organization is required');
+    const urls = new Map<string, string>();
+    if (assetIds.length === 0) return urls;
+    const assets = await this.prisma.asset.findMany({
+      select: { id: true, cloudObjectKey: true },
+      where: {
+        id: { in: [...new Set(assetIds)].slice(0, 500) },
+        parentOrgId: organizationId,
+        isDeleted: false,
+      },
+    });
+    for (const asset of assets) {
+      const key = trustedAssetKey(asset.cloudObjectKey);
+      if (!key) continue;
+      try {
+        urls.set(
+          asset.id,
+          this.grant(asset.id, key, 'original-download').url as string,
+        );
+      } catch (error) {
+        // A signing outage is not an asset problem: fail the whole call.
+        if (error instanceof ServiceUnavailableException) throw error;
+      }
+    }
+    return urls;
+  }
+
   async issuePublicDerivative(
     scope: MediaDeliveryScope,
     ingredientId: string,
@@ -382,15 +420,8 @@ export class AuthorizedMediaUrlService {
       ) {
         return { assetId: asset.id, url: null };
       }
-      const key = asset.cloudObjectKey;
-      if (
-        /^https?:\/\//i.test(key) ||
-        key.startsWith('/') ||
-        key.includes('\\') ||
-        key
-          .split('/')
-          .some((segment) => !segment || segment === '.' || segment === '..')
-      ) {
+      const key = trustedAssetKey(asset.cloudObjectKey);
+      if (!key) {
         return { assetId: asset.id, url: null };
       }
       return {
@@ -556,4 +587,20 @@ export class AuthorizedMediaUrlService {
   ): MediaDeliveryGrant {
     return { expiresAt: null, id, purpose, state, url: null };
   }
+}
+
+/** Stored key of a brand asset, or null when it is not a plain relative object key. */
+function trustedAssetKey(key: string | null): string | null {
+  if (
+    !key ||
+    /^https?:\/\//i.test(key) ||
+    key.startsWith('/') ||
+    key.includes('\\') ||
+    key
+      .split('/')
+      .some((segment) => !segment || segment === '.' || segment === '..')
+  ) {
+    return null;
+  }
+  return key;
 }

@@ -35,10 +35,8 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
-  LazyBrandOverlay: () => null,
-  LazyIngredientOverlay: () => null,
+  LazyModalBrandCreate: () => null,
   LazyModalConfirm: () => null,
-  LazyModalCredential: () => null,
   LazyModalExport: () => null,
   LazyModalGallery: () => null,
   LazyModalGenerateIllustration: () => null,
@@ -48,7 +46,6 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalPostRepurpose: () => null,
   LazyModalPrompt: () => null,
   LazyModalUpload: () => null,
-  LazyPostMetadataOverlay: () => null,
 }));
 
 vi.mock('@ui/modals', () => ({

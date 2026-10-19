@@ -6,16 +6,10 @@ import {
   type Platform,
   type PostRepurposeMode,
 } from '@genfeedai/contracts';
-import type {
-  IBrand,
-  ICredential,
-  IIngredient,
-  IPost,
-} from '@genfeedai/contracts/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   GlobalModalGalleryConfig,
   GlobalModalIllustrationConfig,
@@ -66,21 +60,9 @@ export function useGlobalModalsState() {
     (GlobalModalGalleryConfig & { isOpen: boolean }) | null
   >(null);
 
-  const [ingredientOverlayData, setIngredientOverlayData] = useState<{
-    ingredient: IIngredient | null;
-    onConfirm?: () => void;
-  } | null>(null);
-  const [ingredientOverlayTrigger, setIngredientOverlayTrigger] = useState(0);
-
   const [exportConfig, setExportConfig] = useState<ModalExportProps | null>(
     null,
   );
-
-  const [credentialData, setCredentialData] = useState<{
-    credential: ICredential | null;
-    onConfirm: () => void;
-  } | null>(null);
-  const [credentialTrigger, setCredentialTrigger] = useState(0);
 
   const [promptConfig, setPromptConfig] = useState<{
     originalPrompt?: string;
@@ -94,17 +76,10 @@ export function useGlobalModalsState() {
   const [metadataConfig, setMetadataConfig] =
     useState<ModalMetadataProps | null>(null);
 
-  const [brandOverlayData, setBrandOverlayData] = useState<{
-    brand: IBrand | Brand | null;
-    onConfirm?: () => void;
-    initialView?: 'edit' | 'overview';
-  } | null>(null);
-  const [brandOverlayTrigger, setBrandOverlayTrigger] = useState(0);
-
-  const [postMetadataOverlayData, setPostMetadataOverlayData] = useState<{
-    post: IPost | null;
+  const [brandCreateData, setBrandCreateData] = useState<{
     onConfirm?: () => void;
   } | null>(null);
+  const [brandCreateTrigger, setBrandCreateTrigger] = useState(0);
 
   const [generateIllustrationConfig, setGenerateIllustrationConfig] =
     useState<GlobalModalIllustrationConfig | null>(null);
@@ -129,13 +104,10 @@ export function useGlobalModalsState() {
     confirmQueue.length > 0 ||
     uploadConfig != null ||
     galleryConfig != null ||
-    ingredientOverlayData?.ingredient != null ||
     exportConfig != null ||
-    credentialData != null ||
     promptConfig != null ||
     metadataConfig != null ||
-    brandOverlayData != null ||
-    postMetadataOverlayData?.post != null ||
+    brandCreateData != null ||
     generateIllustrationConfig != null ||
     postRemixData != null ||
     postRepurposeData != null;
@@ -197,18 +169,6 @@ export function useGlobalModalsState() {
     closeModal(ModalEnum.GALLERY);
   }, []);
 
-  const openIngredientOverlay = useCallback(
-    (ingredient: IIngredient | null, onConfirm?: () => void) => {
-      setIngredientOverlayData({ ingredient, onConfirm });
-      setIngredientOverlayTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeIngredientOverlay = useCallback(() => {
-    setIngredientOverlayData(null);
-  }, []);
-
   const openExport = useCallback((config: ModalExportProps) => {
     setExportConfig(config);
   }, []);
@@ -216,18 +176,6 @@ export function useGlobalModalsState() {
   const closeExport = useCallback(() => {
     setExportConfig(null);
     closeModal(ModalEnum.EXPORT);
-  }, []);
-
-  const openCredentialModal = useCallback(
-    (credential: ICredential | null, onConfirm: () => void) => {
-      setCredentialData({ credential, onConfirm });
-      setCredentialTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeCredentialModal = useCallback(() => {
-    setCredentialData(null);
   }, []);
 
   const openPromptModal = useCallback(
@@ -255,32 +203,13 @@ export function useGlobalModalsState() {
     closeModal(ModalEnum.METADATA);
   }, []);
 
-  const openBrandOverlay = useCallback(
-    (
-      brand: IBrand | Brand | null,
-      onConfirm?: () => void,
-      initialView: 'edit' | 'overview' = 'edit',
-    ) => {
-      setBrandOverlayData({ brand, initialView, onConfirm });
-      setBrandOverlayTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeBrandOverlay = useCallback(() => {
-    setBrandOverlayData(null);
+  const openBrandCreateModal = useCallback((onConfirm?: () => void) => {
+    setBrandCreateData({ onConfirm });
+    setBrandCreateTrigger((prev) => prev + 1);
   }, []);
 
-  const openPostMetadataOverlay = useCallback(
-    (post: IPost, onConfirm?: () => void) => {
-      setPostMetadataOverlayData({ onConfirm, post });
-    },
-    [],
-  );
-
-  const closePostMetadataOverlay = useCallback(() => {
-    setPostMetadataOverlayData(null);
-    closeModal(ModalEnum.POST_METADATA);
+  const closeBrandCreateModal = useCallback(() => {
+    setBrandCreateData(null);
   }, []);
 
   const openGenerateIllustration = useCallback(
@@ -328,8 +257,8 @@ export function useGlobalModalsState() {
     closeModal(ModalEnum.POST_REPURPOSE);
   }, []);
 
-  const handleBrandOverlayConfirm = useCallback(
-    async (_isRefreshing?: boolean, createdBrandId?: string) => {
+  const handleBrandCreateConfirm = useCallback(
+    async (createdBrandId?: string) => {
       if (createdBrandId) {
         try {
           const service = await getUsersService();
@@ -349,61 +278,50 @@ export function useGlobalModalsState() {
         await refreshBrands();
       }
 
-      brandOverlayData?.onConfirm?.();
+      brandCreateData?.onConfirm?.();
     },
-    [getUsersService, user, refreshBrands, brandOverlayData],
+    [getUsersService, user, refreshBrands, brandCreateData],
   );
 
   return {
     // context value fields
-    closeBrandOverlay,
+    closeBrandCreateModal,
     closeConfirm,
-    closeCredentialModal,
     closeExport,
     closeGallery,
     closeGenerateIllustration,
-    closeIngredientOverlay,
     closeMetadataModal,
-    closePostMetadataOverlay,
     closePostRemixModal,
     closePostRepurposeModal,
     closePromptModal,
     closeUpload,
     handlePostClose: closePublishModal,
-    openBrandOverlay,
+    openBrandCreateModal,
     openConfirm,
-    openCredentialModal,
     openExport,
     openGallery,
     openGenerateIllustration,
-    openIngredientOverlay,
     openMetadataModal,
     openPostBatchModal,
-    openPostMetadataOverlay,
     openPostRemixModal,
     openPostRepurposeModal,
     openPromptModal,
     openUpload,
     publishIngredient,
     // renderer-specific data
-    brandOverlayData,
-    brandOverlayTrigger,
+    brandCreateData,
+    brandCreateTrigger,
     closePublishModal,
     credentials,
-    credentialData,
-    credentialTrigger,
     currentConfirm,
     exportConfig,
     galleryConfig,
     generateIllustrationConfig,
     generateIllustrationTrigger,
-    handleBrandOverlayConfirm,
+    handleBrandCreateConfirm,
     hasOpenGlobalModal,
-    ingredientOverlayData,
-    ingredientOverlayTrigger,
     metadataConfig,
     openTrigger,
-    postMetadataOverlayData,
     postRemixData,
     postRemixTrigger,
     postRepurposeData,

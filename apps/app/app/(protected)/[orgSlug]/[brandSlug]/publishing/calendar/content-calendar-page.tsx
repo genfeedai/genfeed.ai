@@ -103,7 +103,7 @@ import {
   CALENDAR_SLOT_EVENT_COLOR,
   getContentCalendarEventColor,
 } from './calendar-item-color.helper';
-import CalendarSlotDrawer from './calendar-slot-drawer';
+import CalendarSlotPanel from './calendar-slot-panel';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
@@ -653,6 +653,8 @@ export default function ContentCalendarPage({
       }
 
       if (item.itemType === 'slot') {
+        // One selection owns the context sidebar at a time.
+        setSelectedReleaseId(null);
         setSelectedSlot(item.slot);
         return;
       }
@@ -668,6 +670,7 @@ export default function ContentCalendarPage({
       }
 
       setDrawerError(null);
+      setSelectedSlot(null);
       setSelectedReleaseId(item.release.id);
     },
     [confirmBulkGenerate, href, push],
@@ -1026,6 +1029,7 @@ export default function ContentCalendarPage({
             instant: start.toISOString(),
           });
           setSlots((current) => [...current, booked]);
+          setSelectedReleaseId(null);
           setSelectedSlot(booked);
         } catch (error) {
           notificationsService.error(mutationErrorMessage(error));
@@ -1287,7 +1291,7 @@ export default function ContentCalendarPage({
       {selectedRelease ? (
         <EvergreenSeriesControls groupId={selectedRelease.id} />
       ) : null}
-      <CalendarSlotDrawer
+      <CalendarSlotPanel
         isPending={isSlotPending}
         onCancel={handleCancelSlot}
         onClose={handleCloseSlot}

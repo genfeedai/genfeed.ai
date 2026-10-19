@@ -51,7 +51,6 @@ const {
   mockClearUpscaleConfirm,
   mockExecuteUpscale,
   mockOpenConfirm,
-  mockOpenIngredientOverlay,
   mockOpenModal,
   mockOpenPostBatchModal,
   mockOpenUpload,
@@ -66,7 +65,6 @@ const {
     handlePortrait: vi.fn(),
     handleReprompt: vi.fn(),
     handleReverse: vi.fn(),
-    handleSeeDetails: vi.fn(),
     handleUpdateParent: vi.fn(),
   },
   ingredientActionsState: {
@@ -87,7 +85,6 @@ const {
   mockClearUpscaleConfirm: vi.fn(),
   mockExecuteUpscale: vi.fn(),
   mockOpenConfirm: vi.fn(),
-  mockOpenIngredientOverlay: vi.fn(),
   mockOpenModal: vi.fn(),
   mockOpenPostBatchModal: vi.fn(),
   mockOpenUpload: vi.fn(),
@@ -173,9 +170,6 @@ vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
     useConfirmModal: vi.fn(() => ({ openConfirm: mockOpenConfirm })),
-    useIngredientOverlay: vi.fn(() => ({
-      openIngredientOverlay: mockOpenIngredientOverlay,
-    })),
     usePostModal: vi.fn(() => ({
       openPostBatchModal: mockOpenPostBatchModal,
     })),
@@ -753,14 +747,6 @@ describe('useIngredientsActions', () => {
     const ingredient = createIngredient();
 
     act(() => {
-      result.current.openIngredientModal(ModalEnum.INGREDIENT, ingredient);
-    });
-    expect(mockOpenIngredientOverlay).toHaveBeenCalledWith(
-      ingredient,
-      expect.any(Function),
-    );
-
-    act(() => {
       result.current.openIngredientModal(ModalEnum.POST_BATCH, ingredient);
     });
     expect(mockOpenPostBatchModal).toHaveBeenCalledWith(ingredient);
@@ -976,7 +962,6 @@ describe('useIngredientsActions', () => {
       await result.current.handleConvertToPortrait(ingredient);
       await result.current.handleGenerateCaptions(ingredient);
       await result.current.handleUpdateParent(ingredient, 'parent-1');
-      result.current.handleSeeDetails(ingredient);
       await result.current.handleRefresh(true);
     });
 
@@ -992,9 +977,6 @@ describe('useIngredientsActions', () => {
     expect(ingredientActionsHandlers.handleUpdateParent).toHaveBeenCalledWith(
       ingredient,
       'parent-1',
-    );
-    expect(ingredientActionsHandlers.handleSeeDetails).toHaveBeenCalledWith(
-      ingredient,
     );
     expect(mockFindAll).toHaveBeenCalledWith(true);
   });

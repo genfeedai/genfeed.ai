@@ -1,4 +1,8 @@
 import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
+import {
   fireEvent,
   render,
   screen,
@@ -188,14 +192,23 @@ describe('admin Generations page', () => {
     });
   });
 
-  it('opens the detail sheet with the prompts, harness and a collapsed long compiled prompt', async () => {
+  function renderWithSidebar() {
+    return render(
+      <ContextSidebarProvider>
+        <GenerationsPage />
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>,
+    );
+  }
+
+  it('opens the detail in the right sidebar with the prompts, harness and a collapsed long compiled prompt', async () => {
     mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
-    render(<GenerationsPage />);
+    renderWithSidebar();
     fireEvent.click(
       await screen.findByRole('button', { name: 'open ingredient-1' }),
     );
 
-    const sheet = await screen.findByRole('dialog');
+    const sheet = await screen.findByTestId('generation-detail-panel');
     expect(within(sheet).getByText('original prompt')).toBeVisible();
     expect(within(sheet).getByText('enhanced prompt')).toBeVisible();
     expect(within(sheet).getByText('Brand mode: strict')).toBeVisible();
@@ -206,7 +219,7 @@ describe('admin Generations page', () => {
     expect(await within(sheet).findByText(/compiled prompt$/)).toBeVisible();
   });
 
-  it('shows why a failed generation failed inside the sheet', async () => {
+  it('shows why a failed generation failed inside the sidebar', async () => {
     mocks.findAdminGenerationReviews.mockResolvedValueOnce([
       {
         ...generation,
@@ -214,7 +227,7 @@ describe('admin Generations page', () => {
         status: 'FAILED',
       },
     ]);
-    render(<GenerationsPage />);
+    renderWithSidebar();
     fireEvent.click(
       await screen.findByRole('button', { name: 'open ingredient-1' }),
     );

@@ -60,7 +60,7 @@ describe('video selection transport', () => {
     const unused = {} as never;
     const createMediaDocuments = vi.fn();
     const service = new VideoGenerationPreparationService(
-      unused,
+      { resolveUrls: vi.fn().mockResolvedValue([]) } as never,
       unused,
       unused,
       unused,

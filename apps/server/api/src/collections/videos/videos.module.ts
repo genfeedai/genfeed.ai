@@ -48,6 +48,7 @@ import { VideoGenerationPreparationService } from '@api/collections/videos/servi
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
+import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
@@ -176,6 +177,7 @@ import { Module } from '@nestjs/common';
     VideoGenerationService,
     VideoMergeOrchestrationService,
     VideoProvenanceService,
+    VideoReferenceUrlService,
   ],
 })
 export class VideosModule {}

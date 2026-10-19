@@ -8,6 +8,7 @@ const ORIGINAL_NAMES = [
   'about',
   'accountHistoryImport',
   'activities',
+  'adminAgents',
   'adminCreditHolds',
   'adminEconomics',
   'adminFlags',
@@ -76,7 +77,7 @@ const ORIGINAL_NAMES = [
 ];
 
 describe('page catalog partitions', () => {
-  it('preserves all 66 original namespaces and every partition in the aggregate', () => {
+  it('preserves every original namespace and every partition in the aggregate', () => {
     const directory = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       '../messages/en/pages',

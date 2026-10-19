@@ -25,9 +25,15 @@ vi.mock('next/navigation', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brand,
 }));
-vi.mock('@contexts/providers/global-modals/global-modals.provider', () => ({
-  useIngredientOverlay: () => ({ openIngredientOverlay: mocks.open }),
-}));
+vi.mock(
+  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  () => ({
+    useIngredientSidebar: () => ({
+      closeIngredientSidebar: vi.fn(),
+      openIngredientSidebar: mocks.open,
+    }),
+  }),
+);
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
@@ -53,7 +59,7 @@ describe('AssetDeepLink', () => {
     mocks.findOne.mockResolvedValue(ingredient);
   });
 
-  it('opens the exact asset in the current brand and aborts on unmount', async () => {
+  it('selects the exact asset into the sidebar in the current brand and aborts on unmount', async () => {
     const { unmount } = render(<AssetDeepLink />);
     await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
     expect(mocks.findOne).toHaveBeenCalledWith(

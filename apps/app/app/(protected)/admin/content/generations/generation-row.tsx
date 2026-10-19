@@ -9,7 +9,7 @@ import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import GenerationStatusBadge from './generation-status-badge';
 import GenerationThumbnail from './generation-thumbnail';
 
-/** A row opens the detail sheet; the prompt is clamped to two lines. */
+/** A row opens the detail in the right sidebar; the prompt is clamped to two lines. */
 export default function GenerationRow({
   generation,
   onOpen,

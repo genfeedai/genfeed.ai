@@ -7,7 +7,6 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
-  ModalEnum,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
@@ -16,7 +15,6 @@ import {
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
 import { hasCleanExportAccess } from '@genfeedai/pricing';
@@ -361,7 +359,6 @@ function IngredientQuickActionsContent(
             icon: <Pencil className="size-4" />,
             tooltip: translate('editImageDescription'),
             onClick: () => {
-              closeModal(ModalEnum.INGREDIENT);
               push(
                 href(
                   `${APP_ROUTES.STUDIO.PLAYGROUND}?editImage=${encodeURIComponent(selectedIngredient.id)}`,

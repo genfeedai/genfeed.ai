@@ -16,6 +16,8 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { resolveIngredientProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
@@ -32,7 +34,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const IMAGE_POPULATE = [
   PopulatePatterns.promptFull,
@@ -51,7 +53,35 @@ export class ImageGenerationAdmissionService {
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly personasService: PersonasService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  /**
+   * URLs a provider fetches the given images from. With authorized delivery on
+   * these are short-lived grants minted from the stored key; the owner is the
+   * granted character's organization for an admitted shared avatar, otherwise
+   * the request tenant.
+   */
+  private resolveSourceImageUrls(
+    organizationId: string,
+    ids: readonly string[],
+    grantedOwners?: ReadonlyMap<string, string>,
+  ): Promise<string[]> {
+    return Promise.all(
+      ids.map((id) =>
+        resolveIngredientProcessingUrl(
+          {
+            authorizedMediaUrls: this.authorizedMediaUrls,
+            configService: this.configService,
+          },
+          grantedOwners?.get(id) ?? organizationId,
+          id,
+          'images',
+        ),
+      ),
+    );
+  }
 
   /**
    * Character references in a generation request: rejects one the active
@@ -248,12 +278,16 @@ export class ImageGenerationAdmissionService {
     return {
       personaId,
       sourceIds,
-      sourceUrls: sourceIds.map(
-        (id) => `${this.configService.ingredientsEndpoint}/images/${id}`,
+      sourceUrls: await this.resolveSourceImageUrls(
+        organizationId,
+        sourceIds,
+        grantedAvatarOwners,
       ),
       ...(dto.maskId
         ? {
-            maskUrl: `${this.configService.ingredientsEndpoint}/images/${dto.maskId}`,
+            maskUrl: (
+              await this.resolveSourceImageUrls(organizationId, [dto.maskId])
+            )[0],
           }
         : {}),
       size,
@@ -371,8 +405,10 @@ export class ImageGenerationAdmissionService {
         );
       this.assertFlux3Source(image);
     }
-    return sourceIds.map(
-      (id) => `${this.configService.ingredientsEndpoint}/images/${id}`,
+    return this.resolveSourceImageUrls(
+      organizationId,
+      sourceIds,
+      grantedAvatarOwners,
     );
   }
 
@@ -426,6 +462,7 @@ export class ImageGenerationAdmissionService {
     return buildReferenceImageUrls({
       grantedOwners,
       assetsService: this.assetsService,
+      authorizedMediaUrls: this.authorizedMediaUrls,
       configService: this.configService,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,

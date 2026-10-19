@@ -2,9 +2,13 @@
 
 import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
-import { renderAppGlobalModal } from '@app-i18n/AppGlobalModalIntlBoundary';
+import {
+  AppAssetCatalogBoundary,
+  renderAppGlobalModal,
+} from '@app-i18n/AppGlobalModalIntlBoundary';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import { AgentDockProvider } from '@contexts/ui/agent-dock-context';
+import { useAssetSelection } from '@contexts/ui/asset-selection.context';
 import {
   BreadcrumbLeafProvider,
   useBreadcrumbLeaf,
@@ -35,6 +39,7 @@ import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBann
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
+import IngredientSidebarPanel from '@ui/ingredients/inspector/IngredientSidebarPanel';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
@@ -107,6 +112,22 @@ const LazyCommandPalette = dynamic(
     ),
   { ssr: false },
 );
+
+// Mounted only while an ingredient is selected, so the library catalog the
+// inspector needs loads on first use rather than on every protected page.
+function IngredientSidebar() {
+  const { selectedIngredient } = useAssetSelection();
+
+  if (!selectedIngredient) {
+    return null;
+  }
+
+  return (
+    <AppAssetCatalogBoundary>
+      <IngredientSidebarPanel />
+    </AppAssetCatalogBoundary>
+  );
+}
 
 function AdminAppProtectedTopbar(props: TopbarProps) {
   return <AppProtectedTopbar {...props} chrome="admin" currentApp="admin" />;
@@ -559,6 +580,7 @@ function AppLayoutWithDynamicMenu({
   const mainLayout = (
     <AgentDockProvider>
       <ContextSidebarProvider>
+        <IngredientSidebar />
         <AppLayout
           bannerComponent={shellBanner}
           breadcrumb={layoutBreadcrumb}

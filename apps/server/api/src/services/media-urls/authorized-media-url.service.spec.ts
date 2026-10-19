@@ -120,6 +120,46 @@ describe('AuthorizedMediaUrlService', () => {
     ]);
     expect(urls.buildUrl).not.toHaveBeenCalled();
   });
+  it('mints server asset URLs for the organization regardless of tier, only from plain stored keys', async () => {
+    const { service, prisma, urls } = await setup();
+    prisma.asset.findMany.mockResolvedValue([
+      { id: 'asset-1', cloudObjectKey: 'references/asset-1 ?#.png' },
+      { id: 'asset-2', cloudObjectKey: 'https://provider.test/original' },
+      { id: 'asset-3', cloudObjectKey: null },
+      { id: 'asset-4', cloudObjectKey: 'references/../escape' },
+    ] as never);
+    const result = await service.issueServerAssetUrls(organizationId, [
+      'asset-1',
+      'asset-2',
+      'asset-3',
+      'asset-4',
+    ]);
+    expect(prisma.asset.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: { in: ['asset-1', 'asset-2', 'asset-3', 'asset-4'] },
+          parentOrgId: organizationId,
+          isDeleted: false,
+        },
+      }),
+    );
+    expect([...result.keys()]).toEqual(['asset-1']);
+    expect(urls.buildUrl).toHaveBeenCalledTimes(1);
+    expect(urls.buildUrl).toHaveBeenCalledWith('references/asset-1 ?#.png');
+  });
+  it('mints no server asset URL without an organization or when signing is unavailable', async () => {
+    const { service, prisma, config } = await setup();
+    await expect(service.issueServerAssetUrls('', ['asset-1'])).rejects.toThrow(
+      'organization is required',
+    );
+    prisma.asset.findMany.mockResolvedValue([
+      { id: 'asset-1', cloudObjectKey: 'references/asset-1' },
+    ] as never);
+    config.isCdnSigningEnabled = false;
+    await expect(
+      service.issueServerAssetUrls(organizationId, ['asset-1']),
+    ).rejects.toThrow('signing is unavailable');
+  });
   it('keeps non-entitled asset originals unavailable without reading or signing their keys', async () => {
     const { service, prisma, urls } = await setup();
     expect(await service.projectAssets(scope, ['asset-1'])).toEqual([

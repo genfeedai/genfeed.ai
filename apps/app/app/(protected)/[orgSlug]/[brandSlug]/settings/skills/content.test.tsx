@@ -16,6 +16,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import {
   afterEach,
   beforeAll,
@@ -26,6 +27,34 @@ import {
   vi,
 } from 'vitest';
 import BrandSettingsSkillsPage from './content';
+
+const sidebar = vi.hoisted(() => ({ onClose: null as (() => void) | null }));
+
+// The sidebar's own portal is covered by skill-detail-panel.test.tsx; here the
+// panel renders in place and `closeSidebar` stands in for its close control.
+vi.mock('@contexts/ui/context-sidebar-context', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@contexts/ui/context-sidebar-context')
+  >()),
+  ContextSidebarPanel: ({
+    children,
+    onClose,
+    selection,
+  }: {
+    children: ReactNode;
+    onClose?: () => void;
+    selection: { id: string } | null;
+  }) => {
+    sidebar.onClose = selection ? (onClose ?? null) : null;
+    return selection ? (
+      <aside data-testid="context-sidebar">{children}</aside>
+    ) : null;
+  },
+}));
+
+function closeSidebar(): void {
+  sidebar.onClose?.();
+}
 
 const pushMock = vi.fn();
 const getTokenMock = vi.fn();
@@ -168,7 +197,7 @@ describe('BrandSettingsSkillsPage', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
   afterEach(() => {
-    closeModal(ModalEnum.SKILL);
+    sidebar.onClose = null;
   });
 
   beforeEach(() => {
@@ -447,7 +476,7 @@ describe('BrandSettingsSkillsPage', () => {
         'The fork was created, but its details could not be loaded. Refresh the catalog.',
       ),
     ).toBeVisible();
-    const dialog = screen.getByRole('dialog');
+    const dialog = screen.getByTestId('context-sidebar');
     expect(within(dialog).getByRole('alert')).toHaveTextContent(
       'The fork was created, but its details could not be loaded. Refresh the catalog.',
     );
@@ -821,7 +850,7 @@ describe('BrandSettingsSkillsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import skill' }));
     await screen.findByRole('textbox', { name: 'Name' });
     await act(async () => {
-      closeModal(ModalEnum.SKILL);
+      closeSidebar();
     });
     expect(
       screen.getByRole('button', { name: 'Import package' }),
@@ -1139,7 +1168,7 @@ describe('BrandSettingsSkillsPage', () => {
         ).not.toBeInTheDocument();
         if (phase === 'create') expect(getSkillMock).not.toHaveBeenCalled();
         view.unmount();
-        closeModal(ModalEnum.SKILL);
+        closeSidebar();
       }
     },
   );
@@ -1281,7 +1310,7 @@ describe('BrandSettingsSkillsPage', () => {
     );
     if (change === 'close' || change === 'selection') {
       await act(async () => {
-        closeModal(ModalEnum.SKILL);
+        closeSidebar();
       });
       if (change === 'selection')
         fireEvent.click(screen.getByText('Second imported personal skill'));
@@ -1336,7 +1365,7 @@ describe('BrandSettingsSkillsPage', () => {
         );
       if (change === 'close' || change === 'selection') {
         await act(async () => {
-          closeModal(ModalEnum.SKILL);
+          closeSidebar();
         });
         if (change === 'selection')
           fireEvent.click(screen.getByText('Second imported personal skill'));
