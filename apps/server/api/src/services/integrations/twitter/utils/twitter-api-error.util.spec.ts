@@ -4,11 +4,13 @@ import {
   getTwitterRetryAfterMs,
   isTwitterAuthorizationError,
   isTwitterClientAuthError,
+  isTwitterCreditsDepletedError,
   isTwitterOAuthCodeError,
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
   mapTwitterApiError,
   X_CREDENTIAL_ERROR,
+  X_CREDITS_DEPLETED_ERROR,
   X_RATE_LIMIT_ERROR,
   X_TIER_LIMITATION_ERROR,
 } from './twitter-api-error.util';
@@ -149,15 +151,28 @@ describe('mapTwitterApiError', () => {
 
 describe('describeTwitterPublishError', () => {
   it('appends the detail X sent when the SDK message omits it', () => {
-    const error = Object.assign(new Error('Request failed with code 402'), {
-      data: {
-        detail: 'Your account does not have any credits.',
-        title: 'CreditsDepleted',
-      },
+    const error = Object.assign(new Error('Request failed with code 403'), {
+      data: { detail: 'Duplicate content.', title: 'Forbidden' },
     });
 
     expect(describeTwitterPublishError(error)).toBe(
-      'Request failed with code 402 - Your account does not have any credits.',
+      'Request failed with code 403 - Duplicate content.',
+    );
+  });
+
+  it('names an out-of-credits X account', () => {
+    const error = Object.assign(new Error('Request failed with code 402'), {
+      code: 402,
+      data: {
+        detail: 'Your account does not have any credits.',
+        title: 'CreditsDepleted',
+        type: 'https://api.x.com/2/problems/credits-depleted',
+      },
+    });
+
+    expect(isTwitterCreditsDepletedError(error)).toBe(true);
+    expect(describeTwitterPublishError(error)).toBe(
+      `${X_CREDITS_DEPLETED_ERROR} (Request failed with code 402 - Your account does not have any credits.)`,
     );
   });
 

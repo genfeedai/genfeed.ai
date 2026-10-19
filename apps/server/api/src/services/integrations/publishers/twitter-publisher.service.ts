@@ -19,7 +19,11 @@ import {
   TwitterService,
 } from '@api/services/integrations/twitter/services/twitter.service';
 import { downloadTwitterMedia } from '@api/services/integrations/twitter/services/twitter-media-download.util';
-import { describeTwitterPublishError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import {
+  describeTwitterPublishError,
+  isTwitterCreditsDepletedError,
+  X_CREDITS_DEPLETED_CODE,
+} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   requireRelationId,
@@ -205,7 +209,9 @@ export class TwitterPublisherService extends BasePublisherService {
       // Keep the provider's own code and fields so retry classification is
       // unchanged; only the message gains the reason X returned.
       throw Object.assign(new Error(message, { cause: error }), {
-        code: (error as { code?: unknown }).code,
+        code: isTwitterCreditsDepletedError(error)
+          ? X_CREDITS_DEPLETED_CODE
+          : (error as { code?: unknown }).code,
         isRetryable: (error as { isRetryable?: unknown }).isRetryable,
         rateLimit: (error as { rateLimit?: unknown }).rateLimit,
       });

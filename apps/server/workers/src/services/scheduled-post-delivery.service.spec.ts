@@ -31,10 +31,13 @@ import {
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ForbiddenException } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 import { of } from 'rxjs';
+
+vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 
 // The fence reads the database and the actor; its own spec covers that. Here it only
 // has to be asked at the right moment and to stop the provider call when it holds.
@@ -829,6 +832,43 @@ describe('ScheduledPostDeliveryService', () => {
       expect.any(String),
       expect.anything(),
     );
+  });
+
+  it('reports a terminal provider failure to Sentry with its error code', async () => {
+    vi.mocked(Sentry.captureException).mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockRejectedValue(
+        Object.assign(new Error('X API credits depleted.'), {
+          code: 'x_credits_depleted',
+        }),
+      ),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'X API credits depleted.' }),
+      expect.objectContaining({
+        fingerprint: ['scheduled-post-publish-failed', 'x_credits_depleted'],
+        tags: expect.objectContaining({
+          'publish.error_code': 'x_credits_depleted',
+        }),
+      }),
+    );
+  });
+
+  it('does not report a retryable provider failure to Sentry', async () => {
+    vi.mocked(Sentry.captureException).mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
   it('releases the attempt when the provider rejects the publish', async () => {

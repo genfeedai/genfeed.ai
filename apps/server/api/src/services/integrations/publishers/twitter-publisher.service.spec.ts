@@ -688,6 +688,25 @@ describe('TwitterPublisherService', () => {
         });
       });
 
+      it('reports an out-of-credits X account as x_credits_depleted', async () => {
+        const context = createPublishContext(mockTextPost);
+        const error = Object.assign(new Error('Request failed with code 402'), {
+          code: 402,
+          data: { detail: 'No credits.', title: 'CreditsDepleted' },
+        });
+
+        credentialsService.findOne.mockResolvedValue({
+          ...mockCredential,
+          accessToken: 'encrypted-token',
+        } as unknown as CredentialDocument);
+        mockTweet.mockRejectedValue(error);
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          code: 'x_credits_depleted',
+          message: expect.stringContaining('X API credits depleted'),
+        });
+      });
+
       it('should return failed result when externalId is null', async () => {
         const context = createPublishContext(mockImagePost);
 
