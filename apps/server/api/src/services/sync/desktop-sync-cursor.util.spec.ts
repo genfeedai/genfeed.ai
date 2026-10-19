@@ -39,18 +39,11 @@ describe('desktop-sync-cursor.util', () => {
       expect(decodeManifestCursor('')).toEqual({});
     });
 
-    it('maps a legacy plain-ISO cursor onto every collection without an id', () => {
-      const legacy = '2026-05-01T09:00:00.000Z';
-
-      expect(decodeManifestCursor(legacy)).toEqual({
-        assets: { updatedAt: legacy },
-        brands: { updatedAt: legacy },
-        ingredients: { updatedAt: legacy },
-      });
-    });
-
     it('rejects malformed cursors with a 400', () => {
       expect(() => decodeManifestCursor('9999-99-99Tnot-a-date')).toThrow(
+        BadRequestException,
+      );
+      expect(() => decodeManifestCursor('2026-05-01T09:00:00.000Z')).toThrow(
         BadRequestException,
       );
       expect(() => decodeManifestCursor('!!not-base64url!!')).toThrow(
@@ -78,12 +71,6 @@ describe('desktop-sync-cursor.util', () => {
       );
     });
 
-    it('accepts a legacy plain-ISO cursor without an id', () => {
-      expect(decodeThreadCursor('2026-05-01T09:00:00.000Z')).toEqual({
-        updatedAt: '2026-05-01T09:00:00.000Z',
-      });
-    });
-
     it('returns undefined when no cursor is provided', () => {
       expect(decodeThreadCursor(undefined)).toBeUndefined();
       expect(decodeThreadCursor('')).toBeUndefined();
@@ -99,14 +86,6 @@ describe('desktop-sync-cursor.util', () => {
   describe('buildCursorWhere', () => {
     it('returns no filter without a position', () => {
       expect(buildCursorWhere(undefined)).toEqual({});
-    });
-
-    it('falls back to a strict updatedAt bound for legacy positions', () => {
-      expect(
-        buildCursorWhere({ updatedAt: '2026-05-01T09:00:00.000Z' }),
-      ).toEqual({
-        updatedAt: { gt: new Date('2026-05-01T09:00:00.000Z') },
-      });
     });
 
     it('tie-breaks equal updatedAt rows by id for composite positions', () => {
