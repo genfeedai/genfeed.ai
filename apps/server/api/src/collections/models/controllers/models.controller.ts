@@ -303,30 +303,18 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
-    // Retired rows resolve to their successor at dispatch, so a customer who
-    // picks one is quoted a different model than the row they chose. Only a
-    // platform superadmin reviews them.
+    // Superadmin-only rows: retired ones dispatch to their successor, and
+    // unpriceable ones (red in the admin pricing panel) cannot be quoted.
     if (!isSuperAdmin) {
-      const existingAnd = Array.isArray(where.AND) ? where.AND : [];
-      where.AND = [
-        ...existingAnd,
-        { lifecycle: { not: ModelLifecycle.RETIRED } },
-      ];
-    }
-
-    // Models that cannot be priced (red in the admin pricing panel) are not
-    // offered to anyone but a platform superadmin.
-    if (!isSuperAdmin) {
-      // Classify exactly the rows this list can return: platform rows plus
-      // the effective read tenant's own.
       const unpriceableIds = await findUnpriceableModelIds(
         this.modelsService.prisma,
         unpriceableModelsScope(tenant.organizationId ?? undefined),
       );
-      if (unpriceableIds.length > 0) {
-        const existingAnd = Array.isArray(where.AND) ? where.AND : [];
-        where.AND = [...existingAnd, { id: { notIn: unpriceableIds } }];
-      }
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : []),
+        { lifecycle: { not: ModelLifecycle.RETIRED } },
+        ...(unpriceableIds.length ? [{ id: { notIn: unpriceableIds } }] : []),
+      ];
     }
 
     if (tenant.organizationId) {

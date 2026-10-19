@@ -182,14 +182,18 @@ export default function GenerationSetupModelSection({
               <Button
                 aria-expanded={isLegacyVisible}
                 className="flex min-h-7 w-full items-center justify-between rounded-sm px-1.5 py-0.5 text-xs text-muted-foreground"
-                aria-label={`${isLegacyVisible ? 'Hide' : 'Show'} legacy models (${legacyOptions.length})`}
+                aria-label={translate(
+                  isLegacyVisible ? 'hideLegacyModels' : 'showLegacyModels',
+                )}
                 onClick={() => setIsLegacyOpen((current) => !current)}
                 size={ButtonSize.SM}
                 textTransform="none"
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               >
-                <span>{legacyOptions.length} legacy models</span>
+                <span>
+                  {translate('legacyModels', { count: legacyOptions.length })}
+                </span>
                 <ChevronRight
                   className={cn(
                     'size-3.5 shrink-0 transition-transform',
