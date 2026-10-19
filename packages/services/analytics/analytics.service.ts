@@ -1,5 +1,6 @@
 import type { AnalyticsMetric } from '@genfeedai/contracts';
 import type {
+  IAccountAnalyticsList,
   IAnalytics,
   IBrandWithStats,
   IOrgLeaderboardItem,
@@ -58,6 +59,8 @@ export interface ILeaderboardQueryParams extends IAnalyticsDateRange {
 }
 
 export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
+  /** Narrows the list to one brand; omit to list every brand in scope. */
+  brandId?: string;
   organizationId?: string;
   page?: number;
   limit?: number;
@@ -210,10 +213,22 @@ export class AnalyticsService extends HTTPBaseService {
       .then((res) => deserializeResource<unknown>(res.data));
   }
 
-  public async getAccountAnalytics(query?: IQueryParams): Promise<unknown> {
+  public async getAccountAnalytics(
+    query?: IQueryParams,
+  ): Promise<IAccountAnalyticsList> {
     return await this.instance
       .get<JsonApiResponseDocument>('accounts', { params: query })
-      .then((res) => deserializeResource<unknown>(res.data));
+      .then((res) => deserializeResource<IAccountAnalyticsList>(res.data))
+      .then((response) => {
+        // Feeds AutoPagination, which reads the totals from PagesService.
+        if (query?.page && typeof response?.totalPages === 'number') {
+          PagesService.setCurrentPage(response.page);
+          PagesService.setTotalPages(response.totalPages);
+          PagesService.setTotalDocs(response.total);
+        }
+
+        return response;
+      });
   }
 
   public async getTopAccounts(query?: IQueryParams): Promise<unknown> {

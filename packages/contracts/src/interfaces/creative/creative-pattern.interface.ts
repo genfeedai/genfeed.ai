@@ -13,6 +13,7 @@ export interface ICreativePatternExample {
 }
 
 export interface ICreativePattern {
+  id?: string;
   patternType: PatternType;
   label: string;
   description: string;

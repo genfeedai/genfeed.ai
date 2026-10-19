@@ -5,18 +5,11 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
 import { useSidebarProgressPreference } from '@hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
 import type { SettingsProgressPageProps } from '@props/settings/settings-progress-page.props';
-import { useMemo } from 'react';
 import SettingsProgressChecklistCard from './settings-progress-checklist-card';
 import SettingsProgressHeatmapCard from './settings-progress-heatmap-card';
 import SettingsProgressOverviewCard from './settings-progress-overview-card';
 import SettingsProgressRewardsCard from './settings-progress-rewards-card';
 import SettingsProgressSidebarCard from './settings-progress-sidebar-card';
-
-function formatDayKey(offsetFromEnd: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + offsetFromEnd);
-  return date.toISOString().slice(0, 10);
-}
 
 export default function SettingsProgressPage({
   showOverviewCard = true,
@@ -25,11 +18,6 @@ export default function SettingsProgressPage({
   const { orgHref } = useOrgUrl();
   const { calendar, isLoading, streak } = useStreak();
   const { isSaving, isVisible, setVisibility } = useSidebarProgressPreference();
-
-  const heatmapDays = useMemo(
-    () => Array.from({ length: 90 }, (_, index) => formatDayKey(index - 89)),
-    [],
-  );
 
   const currentStreak = streak?.currentStreak ?? 0;
   const longestStreak = streak?.longestStreak ?? 0;
@@ -72,10 +60,7 @@ export default function SettingsProgressPage({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-        <SettingsProgressHeatmapCard
-          calendar={calendar}
-          heatmapDays={heatmapDays}
-        />
+        <SettingsProgressHeatmapCard calendar={calendar} />
         <SettingsProgressRewardsCard
           badgeMilestones={badgeMilestones}
           milestoneStates={milestoneStates}

@@ -1,3 +1,4 @@
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -15,6 +16,10 @@ import AnalyticsAccounts from './analytics-accounts';
 const requestState = vi.hoisted(() => ({
   accounts: [] as Array<Record<string, unknown>>,
   listError: false,
+}));
+const scopeState = vi.hoisted(() => ({
+  brandId: 'brand-1' as string | undefined,
+  pageScope: 'brand' as 'brand' | 'org',
 }));
 const mocks = vi.hoisted(() => ({
   getAccountAnalytics: vi.fn(),
@@ -64,11 +69,29 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isCollectionFetchReady: () => true,
   useCollectionScope: () => ({
-    brandId: 'brand-1',
+    brandId: scopeState.brandId,
     isReady: true,
     organizationId: 'org-1',
-    pageScope: 'org',
+    pageScope: scopeState.pageScope,
   }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brands: [] }),
+}));
+
+// The router is stable across renders in Next; a fresh object per render would
+// change the fetch callback and refetch forever.
+const router = vi.hoisted(() => ({ replace: vi.fn() }));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/moonrise/analytics/accounts',
+  useRouter: () => router,
+  useSearchParams: () => new URLSearchParams('page=1'),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 describe('AnalyticsAccounts', () => {
@@ -102,6 +125,90 @@ describe('AnalyticsAccounts', () => {
     vi.clearAllMocks();
     requestState.accounts = [];
     requestState.listError = false;
+    scopeState.brandId = 'brand-1';
+    scopeState.pageScope = 'brand';
+  });
+
+  function account(overrides: Record<string, unknown> = {}) {
+    return {
+      evaluation: null,
+      identity: {
+        brandId: 'brand-2',
+        brandLabel: 'Moonrise',
+        credentialId: 'credential-1',
+        externalAvatar: null,
+        externalHandle: 'acme',
+        externalName: 'Acme Social',
+        isConnected: true,
+        label: 'Acme Social',
+        platform: 'instagram',
+      },
+      metrics: [],
+      publishedPosts: 3,
+      ...overrides,
+    };
+  }
+
+  it('scopes the account list to the selected brand and hides the redundant Brand column', async () => {
+    requestState.accounts = [account()];
+
+    render(<AnalyticsAccounts />);
+
+    await screen.findByText('Acme Social');
+    expect(mocks.getAccountAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
+    );
+    expect(mocks.getFleetEvaluationPolicy).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+    expect(
+      screen.queryByRole('columnheader', { name: 'Brand' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Moonrise')).not.toBeInTheDocument();
+  });
+
+  it('lists every brand and shows the Brand column on the org route', async () => {
+    scopeState.brandId = undefined;
+    scopeState.pageScope = 'org';
+    requestState.accounts = [account()];
+
+    render(<AnalyticsAccounts />);
+
+    await screen.findByText('Moonrise');
+    expect(
+      screen.getByRole('columnheader', { name: 'Brand' }),
+    ).toBeInTheDocument();
+    expect(mocks.getAccountAnalytics.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ brandId: undefined, organizationId: 'org-1' }),
+    );
+  });
+
+  it('pages server-side and renders the shared pagination', async () => {
+    requestState.accounts = [account()];
+
+    render(<AnalyticsAccounts />);
+
+    await screen.findByText('Acme Social');
+    expect(mocks.getAccountAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 1 }),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows health as a badge and a dash for unavailable metrics', async () => {
+    requestState.accounts = [
+      account({
+        evaluation: { evidence: {}, state: 'healthy' },
+      }),
+    ];
+
+    render(<AnalyticsAccounts />);
+
+    expect(await screen.findByText('Healthy')).toBeInTheDocument();
+    expect(screen.queryByText('Unavailable')).not.toBeInTheDocument();
+    expect(screen.getAllByText('-').length).toBeGreaterThan(0);
   });
 
   it('renders one empty state without a redundant accounts section', async () => {

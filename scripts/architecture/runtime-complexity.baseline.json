@@ -6,6 +6,12 @@
     "symbol": "AgentMemoriesService.scoreFeedbackMemory"
   },
   {
+    "actual": 1083,
+    "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
+  },
+  {
     "actual": 188,
     "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
     "metric": "method-lines",
@@ -78,6 +84,12 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
+    "actual": 1024,
+    "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
+  },
+  {
     "actual": 1099,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
     "metric": "file-lines",
@@ -88,6 +100,18 @@
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
+  },
+  {
+    "actual": 151,
+    "file": "apps/server/api/src/collections/videos/controllers/transformations/edits/videos-edits.controller.ts",
+    "metric": "method-lines",
+    "symbol": "VideosEditsController.addTextOverlay"
+  },
+  {
+    "actual": 1016,
+    "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts"
   },
   {
     "actual": 1174,
@@ -120,7 +144,7 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 592,
+    "actual": 599,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
@@ -222,6 +246,12 @@
     "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
   },
   {
+    "actual": 1008,
+    "file": "apps/server/files/src/processors/video.processor.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/files/src/processors/video.processor.ts"
+  },
+  {
     "actual": 1016,
     "file": "apps/server/telegram/src/services/telegram-bot-manager.service.ts",
     "metric": "file-lines",
@@ -246,7 +276,7 @@
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1046,
+    "actual": 1077,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"

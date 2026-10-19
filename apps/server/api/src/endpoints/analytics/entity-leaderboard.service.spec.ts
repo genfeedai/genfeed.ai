@@ -747,6 +747,41 @@ describe('EntityLeaderboardService', () => {
       });
     });
 
+    it('narrows ranking and count to the selected brand within the organization', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows('brand-1')]);
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [{ id: 'brand-1', label: 'Brand 1', organizationId: 'org-1' }],
+      });
+      mockPrismaService.brand.count.mockResolvedValue(1);
+
+      const result = await service.getBrandsWithStats(
+        undefined,
+        undefined,
+        1,
+        20,
+        LeaderboardSort.ENGAGEMENT,
+        'org-1',
+        undefined,
+        'brand-1',
+      );
+
+      expect(capturedQueries[0].sql).toContain('e."id" = ?');
+      expect(capturedQueries[0].sql).toContain('e."organizationId" = ?');
+      expect(capturedQueries[0].values).toContain('brand-1');
+      expect(mockPrismaService.brand.count).toHaveBeenCalledWith({
+        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      });
+      expect(result.pagination.total).toBe(1);
+    });
+
+    it('does not filter by brand when none is selected', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getBrandsWithStats(undefined, undefined, 1, 20);
+
+      expect(capturedQueries[0].sql).not.toContain('e."id" = ?');
+    });
+
     it('should scope ranking, count and hydration to the given organizationId', async () => {
       const orgId = 'org-stats-scoped';
       const capturedQueries = captureQueryRawCalls([rankRows('brand-1')]);

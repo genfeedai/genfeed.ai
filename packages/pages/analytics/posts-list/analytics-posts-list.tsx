@@ -3,24 +3,25 @@
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import {
   AnalyticsMetric,
+  ButtonSize,
   ButtonVariant,
+  ComponentSize,
   PageScope,
 } from '@genfeedai/contracts';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winner-posts';
+import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
+import AnalyticsPostsGrid from '@pages/analytics/posts-list/analytics-posts-grid';
 import AnalyticsWinnersTable from '@pages/analytics/posts-list/analytics-winners-table';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
-import { resolveCapturedAudience } from '@pages/posts/list/captured-post.helpers';
 import {
   POSTS_SOURCE_EXTENSION,
   parsePostsSource,
 } from '@pages/posts/list/posts-list-query';
-import type { TableColumn } from '@props/ui/display/table.props';
-import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Badge from '@ui/display/badge/Badge';
-import Table from '@ui/display/table/Table';
+import type { AnalyticsPostGridItem } from '@props/analytics/analytics-posts-grid.props';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -30,7 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -41,17 +41,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-
-interface PostsListItem {
-  postId: string;
-  label: string;
-  platform: string;
-  brandName: string;
-  totalViews: number;
-  totalEngagement: number;
-  engagementRate: number;
-  visibility?: string | null;
-}
 
 const METRIC_OPTIONS: Array<{
   label: string;
@@ -79,6 +68,7 @@ type PlatformFilterValue = (typeof PLATFORM_OPTIONS)[number]['value'];
 const SHOW_ALL = 'all';
 const SHOW_WINNERS = 'winners';
 const SOURCE_ALL = 'all';
+const POSTS_PAGE_SIZE = 12;
 
 const renderPlatformOption = (
   option: (typeof PLATFORM_OPTIONS)[number],
@@ -99,7 +89,7 @@ const renderPlatformOption = (
 };
 
 export default function AnalyticsPostsList() {
-  const { push, replace } = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
@@ -123,7 +113,6 @@ export default function AnalyticsPostsList() {
   const source = isWinnersView ? undefined : parsePostsSource(filters.source);
   const translateWinners = useTranslations('pages.analytics.winners');
   const translateSource = useTranslations('pages.analytics.sourceFilter');
-  const translateAudience = useTranslations('pages.posts.list.captured');
 
   useEffect(() => {
     setLocalFocusedPostId(urlFocusedPostId || null);
@@ -157,38 +146,42 @@ export default function AnalyticsPostsList() {
     platform: platform === 'all' ? undefined : platform,
   });
 
-  const items: PostsListItem[] = useMemo(
-    () =>
-      topPosts.reduce<PostsListItem[]>((acc, post) => {
-        const label =
-          post.label || stripHtmlToPlainText(post.description) || '';
-        const normalizedSearch = search.trim().toLowerCase();
-        if (
-          normalizedSearch &&
-          post.postId !== normalizedSearch &&
-          !label.toLowerCase().includes(normalizedSearch) &&
-          !(post.brandName || '').toLowerCase().includes(normalizedSearch) &&
-          !post.platform.toLowerCase().includes(normalizedSearch)
-        ) {
-          return acc;
-        }
-        acc.push({
-          brandName: post.brandName || 'Unknown brand',
-          engagementRate: post.engagementRate || 0,
-          label:
-            post.label ||
-            stripHtmlToPlainText(post.description) ||
-            'Untitled Post',
-          platform: post.platform,
-          postId: post.postId,
-          totalEngagement: post.totalEngagement || 0,
-          totalViews: post.totalViews || 0,
-          visibility: post.visibility,
-        });
+  const rankedItems: AnalyticsPostGridItem[] = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return topPosts.reduce<AnalyticsPostGridItem[]>((acc, post, index) => {
+      const label = post.label || stripHtmlToPlainText(post.description);
+      if (
+        normalizedSearch &&
+        post.postId !== normalizedSearch &&
+        !label.toLowerCase().includes(normalizedSearch) &&
+        !(post.brandName || '').toLowerCase().includes(normalizedSearch) &&
+        !post.platform.toLowerCase().includes(normalizedSearch)
+      ) {
         return acc;
-      }, []),
-    [search, topPosts],
-  );
+      }
+      acc.push({
+        brandName: post.brandName || 'Unknown brand',
+        engagementRate: post.engagementRate || 0,
+        ingredientUrl: post.ingredientUrl,
+        isVideo: post.isVideo,
+        label: label || 'Untitled Post',
+        platform: post.platform,
+        postId: post.postId,
+        // Rank is the post's place in the sorted response, not in the search.
+        rank: index + 1,
+        thumbnailUrl: post.thumbnailUrl,
+        totalEngagement: post.totalEngagement || 0,
+        totalViews: post.totalViews || 0,
+        visibility: post.visibility,
+      });
+      return acc;
+    }, []);
+  }, [search, topPosts]);
+
+  const pagination = useClientPagination(rankedItems, {
+    pageSize: POSTS_PAGE_SIZE,
+    resetKey: [search, metric, platform, source ?? SOURCE_ALL].join('|'),
+  });
 
   const selectedPlatformOption = useMemo(
     () =>
@@ -197,109 +190,26 @@ export default function AnalyticsPostsList() {
     [platform],
   );
 
-  const columns: TableColumn<PostsListItem>[] = useMemo(
-    () => [
-      {
-        header: 'Post',
-        key: 'label',
-        render: (item) => (
-          <div className="flex flex-col">
-            <span className="font-medium line-clamp-1">{item.label}</span>
-            <span className="text-xs text-foreground/60">
-              {item.brandName} · {item.platform}
-            </span>
-          </div>
-        ),
-      },
-      {
-        className: 'text-right',
-        header: (
-          <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
-        ),
-        key: 'totalViews',
-        render: (item) => (
-          <span className="font-mono">{item.totalViews.toLocaleString()}</span>
-        ),
-      },
-      {
-        className: 'text-right',
-        header: (
-          <AnalyticsMetricLabel metric="engagement">
-            Engagement
-          </AnalyticsMetricLabel>
-        ),
-        key: 'totalEngagement',
-        render: (item) => (
-          <span className="font-mono">
-            {item.totalEngagement.toLocaleString()}
-          </span>
-        ),
-      },
-      {
-        className: 'text-right',
-        header: (
-          <AnalyticsMetricLabel metric="engagementRate">
-            Eng. Rate
-          </AnalyticsMetricLabel>
-        ),
-        key: 'engagementRate',
-        render: (item) => (
-          <span className="font-mono">{item.engagementRate.toFixed(2)}%</span>
-        ),
-      },
-      ...(source
-        ? [
-            {
-              header: translateSource('audience'),
-              key: 'visibility',
-              render: (item: PostsListItem) => {
-                const audience = resolveCapturedAudience(item.visibility);
-                return (
-                  <Badge
-                    variant={
-                      audience === 'unavailable' ? 'outline' : 'secondary'
-                    }
-                  >
-                    {translateAudience(`audience.${audience}`)}
-                  </Badge>
-                );
-              },
-            },
-          ]
-        : []),
-    ],
-    [source, translateAudience, translateSource],
-  );
-
+  // One dense row, like the other subbars: the shared layout puts Refresh and
+  // Export before these filters and the date range after them.
   const toolbar = useMemo(
     () => (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {focusedPostId ? (
           <Button
             label="Clear Focus"
+            size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             onClick={() => setFocusedPost()}
           />
         ) : null}
-        <Button
-          label="Open In Agent"
-          variant={ButtonVariant.SECONDARY}
-          onClick={() =>
-            push(
-              buildAgentPromptHref(
-                focusedPostId
-                  ? `Review the analytics for post ${focusedPostId} and tell me the best next step in the loop.`
-                  : 'Review my top posts and tell me what I should remix or repeat next.',
-              ),
-            )
-          }
-        />
         <FormSearchbar
           ariaLabel="Search posts"
           placeholder="Search posts..."
           value={search}
-          onChange={(event) => setFilter('query', event.target.value)}
-          className="w-full sm:w-64"
+          onSearch={(value) => setFilter('query', value)}
+          size={ComponentSize.SM}
+          className="w-48"
         />
 
         <Select
@@ -313,7 +223,7 @@ export default function AnalyticsPostsList() {
         >
           <SelectTrigger
             aria-label={translateWinners('showLabel')}
-            className="w-full sm:w-36"
+            className="w-32"
           >
             <SelectValue />
           </SelectTrigger>
@@ -334,7 +244,7 @@ export default function AnalyticsPostsList() {
           >
             <SelectTrigger
               aria-label="Sort post analytics by metric"
-              className="w-full sm:w-36"
+              className="w-32"
             >
               <SelectValue placeholder="Metric" />
             </SelectTrigger>
@@ -356,7 +266,7 @@ export default function AnalyticsPostsList() {
         >
           <SelectTrigger
             aria-label="Filter post analytics by platform"
-            className="w-full sm:w-36"
+            className="w-32"
           >
             {renderPlatformOption(selectedPlatformOption)}
           </SelectTrigger>
@@ -378,7 +288,7 @@ export default function AnalyticsPostsList() {
           >
             <SelectTrigger
               aria-label={translateSource('aria')}
-              className="w-full sm:w-40"
+              className="w-36"
             >
               <SelectValue />
             </SelectTrigger>
@@ -403,7 +313,6 @@ export default function AnalyticsPostsList() {
       selectedPlatformOption,
       setFocusedPost,
       setFilter,
-      push,
       source,
       translateSource,
       translateWinners,
@@ -417,13 +326,6 @@ export default function AnalyticsPostsList() {
 
   return (
     <>
-      {focusedPostId ? (
-        <p className="mb-4 text-sm text-primary">
-          Focused on a single post from the loop. Open the post detail to remix,
-          or ask the agent for the next step.
-        </p>
-      ) : null}
-
       {isWinnersView ? (
         <AnalyticsWinnersTable
           winners={winnerPosts.winners}
@@ -434,23 +336,30 @@ export default function AnalyticsPostsList() {
           onSelectPost={setFocusedPost}
         />
       ) : (
-        <Table<PostsListItem>
-          label="Top Posts"
-          items={items}
-          isLoading={isLoading}
-          error={
-            error
-              ? {
-                  title: 'Post analytics could not be loaded.',
-                  onRetry: () => refetch(),
-                }
-              : undefined
-          }
-          columns={columns}
-          emptyLabel="No posts found for this period"
-          getRowKey={(item) => item.postId}
-          onRowClick={(item) => setFocusedPost(item.postId)}
-        />
+        <div className="flex flex-col gap-4">
+          <AnalyticsPostsGrid
+            items={pagination.pageItems}
+            isLoading={isLoading}
+            error={
+              error
+                ? {
+                    title: 'Post analytics could not be loaded.',
+                    onRetry: () => refetch(),
+                  }
+                : undefined
+            }
+            emptyLabel="No posts found for this period"
+            hasAudience={Boolean(source)}
+            onSelectPost={setFocusedPost}
+          />
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={isLoading ? undefined : pagination.totalItems}
+            totalLabel="posts"
+            onPageChange={pagination.goToPage}
+          />
+        </div>
       )}
 
       <PostDetailPanel

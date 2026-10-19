@@ -12,7 +12,6 @@ import type {
   UpdateChannelTargetInput,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
-  IChannelTarget,
   IPublishApproval,
   IReleaseGroup,
   PostGroupCreateProvenance,
@@ -162,56 +161,13 @@ export type ReleaseGroupListQuery = {
   statuses?: ReleaseStatus[];
 };
 
-/**
- * The few release/target columns the list filters and sorts read. The list
- * derives these from slim rows, pages, and only then hydrates the full release
- * for the rows on the requested page.
- */
-export type ReleaseListTargetFacts = Pick<
-  SchedulerPostTarget,
-  | 'agentContextSource'
-  | 'agentStrategyId'
-  | 'agentThreadId'
-  | 'category'
-  | 'credentialId'
-  | 'id'
-  | 'platform'
-  | 'scheduledDate'
-  | 'targetExecutionState'
-  | 'workflowExecutionId'
->;
-
-export type ReleaseListGroupFacts = Pick<
-  SchedulerPostGroup,
-  | 'baseContent'
-  | 'campaignId'
-  | 'createdAt'
-  | 'id'
-  | 'scheduledAt'
-  | 'title'
-  | 'updatedAt'
->;
-
-export type ReleaseListProjection = Pick<
-  IReleaseGroup,
-  | 'baseContent'
-  | 'campaignId'
-  | 'createdAt'
-  | 'id'
-  | 'scheduledAt'
-  | 'status'
-  | 'title'
-  | 'updatedAt'
-> & {
-  targets?: Pick<
-    IChannelTarget,
-    | 'category'
-    | 'credentialId'
-    | 'executionState'
-    | 'platform'
-    | 'scheduledAt'
-    | 'source'
-  >[];
+/** One row of the release-list page query: a release id and its kind. */
+export type ReleaseListPageRow = {
+  id: string;
+  /** True for a legacy group-less post listed as its own one-target release. */
+  isSynthetic: boolean;
+  /** Total matching releases (a bigint from Postgres counts). */
+  totalDocs: bigint | number;
 };
 
 export type ReleaseGroupListResult = {

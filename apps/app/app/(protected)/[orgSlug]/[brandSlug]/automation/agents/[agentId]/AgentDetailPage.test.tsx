@@ -1,4 +1,5 @@
 import { AgentAutonomyMode } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import AgentDetailPage from './AgentDetailPage';
@@ -6,6 +7,8 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useQueryMock = vi.fn();
+const searchState = vi.hoisted(() => ({ page: null as string | null }));
+const listOpportunities = vi.hoisted(() => vi.fn());
 
 vi.mock('next/dynamic', () => ({
   default: () => () => <div>Agent Run Content Grid</div>,
@@ -42,7 +45,24 @@ vi.mock('../open-content-agent-conversation', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () => async () => ({ listOpportunities }),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: ({
+    showTotal,
+    totalLabel,
+  }: {
+    showTotal?: boolean;
+    totalLabel?: string;
+  }) => (
+    <div
+      data-show-total={String(showTotal)}
+      data-testid="opportunities-pagination"
+    >
+      {totalLabel}
+    </div>
+  ),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -111,7 +131,12 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/org-one/brand-one/automation/agents/strategy-1',
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => ({
-    get: (key: string) => (key === 'opportunity' ? 'opp-1' : null),
+    get: (key: string) =>
+      key === 'opportunity'
+        ? 'opp-1'
+        : key === 'page'
+          ? searchState.page
+          : null,
   }),
 }));
 
@@ -253,6 +278,7 @@ function mockQueries(overrides: {
 describe('AgentDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchState.page = null;
     mockQueries({});
   });
 
@@ -325,11 +351,49 @@ describe('AgentDetailPage', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
     expect(screen.getByText('Review context')).toBeInTheDocument();
-    expect(screen.getByText('AI launch hooks')).toBeInTheDocument();
+    // Once as the requested opportunity, once as a row of the open list.
+    expect(screen.getAllByText('AI launch hooks')).toHaveLength(2);
     expect(
       screen.getByText('Trend watcher matched a current platform trend.'),
     ).toBeInTheDocument();
     expect(screen.getByText('89')).toBeInTheDocument();
+  });
+
+  it('lists the open opportunities with a server-side pager', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(screen.getByTestId('agent-opportunity-opp-1')).toHaveTextContent(
+      'AI launch hooks',
+    );
+    const pager = screen.getByTestId('opportunities-pagination');
+    expect(pager).toHaveTextContent('opportunities');
+    expect(pager).toHaveAttribute('data-show-total', 'true');
+  });
+
+  it('fetches the page named by ?page= with a cancellable request', async () => {
+    searchState.page = '3';
+    listOpportunities.mockResolvedValue([]);
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    const options = useQueryMock.mock.calls
+      .map(
+        ([args]) =>
+          args as {
+            queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
+            queryKey: unknown[];
+          },
+      )
+      .find(({ queryKey }) => queryKey[0] === 'agent-opportunities');
+    expect(options?.queryKey).toContain(3);
+
+    const { signal } = new AbortController();
+    await options?.queryFn({ signal });
+
+    expect(listOpportunities).toHaveBeenCalledWith(
+      'strategy-1',
+      { limit: ITEMS_PER_PAGE, page: 3 },
+      signal,
+    );
   });
 
   it('shows the known facts on one line, omitting the unknown brand', () => {

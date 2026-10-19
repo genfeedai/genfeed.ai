@@ -1,5 +1,6 @@
 'use client';
 
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ICreativePattern } from '@genfeedai/contracts/interfaces';
 import type { PatternLabFilters } from '@genfeedai/props/analytics/performance-lab.props';
 import { CreativePatternsService } from '@genfeedai/services/analytics/creative-patterns.service';
@@ -14,8 +15,14 @@ export interface UsePatternContextReturn {
   error: string | null;
 }
 
+/**
+ * Loads one server-side page of creative patterns. The page totals are
+ * published to PagesService by the service, so render `<AutoPagination />`
+ * next to the list to page through it.
+ */
 export function usePatternContext(
   filters?: PatternLabFilters,
+  page: number = 1,
 ): UsePatternContextReturn {
   const { brandId } = useCollectionScope();
   const getCreativePatternsService = useAuthedService((token: string) =>
@@ -40,6 +47,7 @@ export function usePatternContext(
             platform: filters?.platform,
             scope: filters?.scope,
           },
+          { limit: ITEMS_PER_PAGE, page },
           controller.signal,
         ),
       )
@@ -76,6 +84,7 @@ export function usePatternContext(
     filters?.patternType,
     filters?.scope,
     getCreativePatternsService,
+    page,
   ]);
 
   return { error, isLoading, patterns };

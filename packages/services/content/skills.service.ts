@@ -137,6 +137,18 @@ export interface ListSkillsOptions {
   surface?: SkillSurface;
 }
 
+export interface ListSkillsPageQuery {
+  /** Only skills the runtime injects while a brand has no explicit selection. */
+  isDefault?: boolean;
+  limit: number;
+  modality?: string;
+  page: number;
+  /** Case-insensitive match over name and description. */
+  search?: string;
+  source?: string;
+  stage?: string;
+}
+
 export interface SkillCustomizeInput {
   description?: string;
   name?: string;
@@ -375,9 +387,40 @@ export class SkillsService extends BaseService<
     return BaseService.getDataServiceInstance(SkillsService, token);
   }
 
-  async listSkills(options: ListSkillsOptions = {}): Promise<Skill[]> {
+  /** Every visible skill, walking all server pages (pickers and caches). */
+  async listSkills(
+    options: ListSkillsOptions & { isDefault?: boolean } = {},
+    signal?: AbortSignal,
+  ): Promise<Skill[]> {
+    return this.findAllPages(
+      {
+        ...(options.isDefault !== undefined
+          ? { isDefault: options.isDefault }
+          : {}),
+        ...(options.surface ? { surface: options.surface } : {}),
+      },
+      signal,
+    );
+  }
+
+  /** One server page of the catalog; records the totals for `<AutoPagination />`. */
+  async listSkillsPage(
+    query: ListSkillsPageQuery,
+    signal?: AbortSignal,
+  ): Promise<Skill[]> {
     return this.findAll(
-      options.surface ? { surface: options.surface } : undefined,
+      {
+        limit: query.limit,
+        page: query.page,
+        ...(query.isDefault !== undefined
+          ? { isDefault: query.isDefault }
+          : {}),
+        ...(query.modality ? { modality: query.modality } : {}),
+        ...(query.search?.trim() ? { q: query.search.trim() } : {}),
+        ...(query.source ? { source: query.source } : {}),
+        ...(query.stage ? { stage: query.stage } : {}),
+      },
+      signal,
     );
   }
 

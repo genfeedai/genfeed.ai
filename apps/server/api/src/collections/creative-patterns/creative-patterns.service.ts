@@ -2,20 +2,44 @@ import type {
   CreativePattern,
   CreativePatternDocument,
 } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
+import {
+  buildPaginatedResult,
+  type PaginatedResult,
+} from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 /**
- * `avgPerformanceScore` and `validUntil` live in the `data` JSON column, which
- * Prisma cannot order or range-filter on, so ranking happens over a bounded
- * window of the organization's freshest patterns rather than every row.
+ * `avgPerformanceScore` lives in the `data` JSON column, which Prisma cannot
+ * order on, so score ranking (`findTopForBrand`, `findRanked`) happens over a
+ * bounded window of the organization's freshest patterns rather than every
+ * row. The paginated list (`findAll`) never ranks: it filters, orders, counts
+ * and slices in the database.
  */
 const PATTERN_CANDIDATE_LIMIT = 500;
-const DEFAULT_PATTERN_LIST_LIMIT = 100;
+const DEFAULT_RANKED_PATTERN_LIMIT = 100;
 const DEFAULT_TOP_PATTERN_LIMIT = 10;
+
+export interface CreativePatternListFilters {
+  organizationId: string;
+  brandId?: string;
+  patternType?: PatternType;
+  platform?: string;
+  scope?: string;
+}
+
+export interface CreativePatternRankedFilters
+  extends CreativePatternListFilters {
+  limit?: number;
+}
+
+export interface CreativePatternPageWindow {
+  limit: number;
+  page: number;
+}
 
 @Injectable()
 export class CreativePatternsService {
@@ -190,16 +214,13 @@ export class CreativePatternsService {
       .slice(0, limit);
   }
 
-  async findAll(filters: {
-    organizationId: string;
-    brandId?: string;
-    limit?: number;
-    patternType?: PatternType;
-    platform?: string;
-    scope?: string;
-    top?: boolean;
-  }): Promise<CreativePatternDocument[]> {
-    const now = new Date();
+  /**
+   * Row-level filters over the `data` JSON column, shared by the paginated
+   * list and the ranked window so both agree on what a visible pattern is.
+   */
+  private buildDataFilters(
+    filters: Omit<CreativePatternListFilters, 'organizationId'>,
+  ): Prisma.CreativePatternWhereInput[] {
     const dataFilters: Prisma.CreativePatternWhereInput[] = [];
     if (filters.platform) {
       dataFilters.push({
@@ -215,14 +236,68 @@ export class CreativePatternsService {
       dataFilters.push({
         data: { equals: filters.scope, path: ['scope'] },
       });
-    } else if (filters.top) {
-      dataFilters.push({
-        OR: [
-          { data: { equals: 'public', path: ['scope'] } },
-          { data: { equals: 'private', path: ['scope'] } },
-        ],
-      });
     }
+
+    return dataFilters;
+  }
+
+  /**
+   * Patterns without a `validUntil` never expire. Expiry is stored as an ISO
+   * string, which orders chronologically, so the cut-off is a database filter.
+   */
+  private buildNotExpiredFilter(now: Date): Prisma.CreativePatternWhereInput {
+    return {
+      OR: [
+        { data: { equals: Prisma.AnyNull, path: ['validUntil'] } },
+        { data: { gte: now.toISOString(), path: ['validUntil'] } },
+      ],
+    };
+  }
+
+  /**
+   * One page of the organization's unexpired patterns, freshest first. The
+   * filter, order, count and skip/take all run in the database.
+   */
+  async findAll(
+    filters: CreativePatternListFilters,
+    { limit, page }: CreativePatternPageWindow,
+  ): Promise<PaginatedResult<CreativePatternDocument>> {
+    const where = scopedWhere(filters.organizationId, {
+      AND: [
+        ...this.buildDataFilters(filters),
+        this.buildNotExpiredFilter(new Date()),
+      ],
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
+    });
+
+    const [records, totalDocs] = await Promise.all([
+      this.prisma.creativePattern.findMany({
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.creativePattern.count({ where }),
+    ]);
+
+    return buildPaginatedResult(
+      records.map((record) => this.normalizeRecord(record)),
+      totalDocs,
+      page,
+      limit,
+    );
+  }
+
+  /**
+   * Top patterns by `avgPerformanceScore`. This is a ranking, not a list: the
+   * score is only in the `data` JSON, so it ranks the freshest
+   * {@link PATTERN_CANDIDATE_LIMIT} rows in memory and is not paginated.
+   */
+  async findRanked(
+    filters: CreativePatternRankedFilters,
+  ): Promise<CreativePatternDocument[]> {
+    const now = new Date();
+    const dataFilters = this.buildDataFilters(filters);
     const patterns = await this.prisma.creativePattern.findMany({
       orderBy: { updatedAt: 'desc' },
       take: PATTERN_CANDIDATE_LIMIT,
@@ -232,30 +307,23 @@ export class CreativePatternsService {
       }),
     });
 
-    const filtered = patterns
+    return patterns
       .map((record) => this.normalizeRecord(record))
       .filter((record) => {
         const validUntil = this.readDate(record.validUntil);
-        if (validUntil && validUntil < now) {
-          return false;
-        }
-
-        return true;
+        return !validUntil || validUntil >= now;
       })
       .sort((a, b) => {
         const aScore = this.readNumber(a.avgPerformanceScore) ?? 0;
         const bScore = this.readNumber(b.avgPerformanceScore) ?? 0;
         return bScore - aScore;
-      });
-
-    return filtered.slice(
-      0,
-      filters.top
-        ? (filters.limit ?? DEFAULT_TOP_PATTERN_LIMIT)
-        : Math.min(
-            filters.limit ?? DEFAULT_PATTERN_LIST_LIMIT,
-            DEFAULT_PATTERN_LIST_LIMIT,
-          ),
-    );
+      })
+      .slice(
+        0,
+        Math.min(
+          filters.limit ?? DEFAULT_RANKED_PATTERN_LIMIT,
+          DEFAULT_RANKED_PATTERN_LIMIT,
+        ),
+      );
   }
 }

@@ -105,6 +105,69 @@ describe('AgentStrategiesController', () => {
     });
   });
 
+  it('serializes one page of opportunities with pagination links', async () => {
+    const listStrategyOpportunities = vi.fn().mockResolvedValue({
+      docs: [
+        {
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+          id: 'opportunity-16',
+          organizationId: 'org-1',
+          priorityScore: 42,
+          sourceType: 'trend',
+          status: 'queued',
+          strategyId: 'strategy-1',
+          topic: 'AI hooks',
+          updatedAt: new Date('2026-01-01T00:00:00Z'),
+        },
+      ],
+      hasNextPage: true,
+      hasPrevPage: true,
+      limit: 15,
+      nextPage: 3,
+      page: 2,
+      pagingCounter: 16,
+      prevPage: 1,
+      totalDocs: 40,
+      totalPages: 3,
+    });
+    const controller = new AgentStrategiesController(
+      {} as never,
+      { listStrategyOpportunities } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const query = { limit: 15, page: 2 };
+
+    const result = await controller.listOpportunities(
+      {
+        originalUrl: '/agent-strategies/strategy-1/opportunities?page=2',
+      } as never,
+      'strategy-1',
+      { organizationId: 'org-1' } as AuthenticatedUser,
+      query,
+    );
+
+    expect(listStrategyOpportunities).toHaveBeenCalledWith(
+      'strategy-1',
+      'org-1',
+      query,
+    );
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]).toMatchObject({
+      attributes: { priorityScore: 42, topic: 'AI hooks' },
+      id: 'opportunity-16',
+      type: 'agent-strategy-opportunity',
+    });
+    const links = result.links as { pagination?: Record<string, unknown> };
+    expect(links.pagination).toMatchObject({
+      limit: 15,
+      page: 2,
+      pages: 3,
+      total: 40,
+    });
+  });
+
   it('fails closed when the authenticated organization is missing', () => {
     const controller = new AgentStrategiesController(
       {} as never,

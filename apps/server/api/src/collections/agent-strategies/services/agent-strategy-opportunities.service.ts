@@ -4,6 +4,10 @@ import type {
   AgentStrategyOpportunitySourceType,
   AgentStrategyOpportunityStatus,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
+import {
+  buildPaginatedResult,
+  type PaginatedResult,
+} from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
@@ -27,6 +31,15 @@ type CreateOpportunityInput = {
   decisionReason?: string;
   metadata?: Record<string, unknown>;
 };
+
+/** Statuses that still await execution; the autopilot and the list endpoint both read these. */
+const OPEN_OPPORTUNITY_STATUSES: AgentStrategyOpportunityStatus[] = [
+  'approved',
+  'generating',
+  'held',
+  'queued',
+  'revising',
+];
 
 @Injectable()
 export class AgentStrategyOpportunitiesService {
@@ -82,8 +95,6 @@ export class AgentStrategyOpportunitiesService {
     organizationId: string,
     options: {
       includeDeleted?: boolean;
-      /** Newest-first row cap applied in the query. */
-      limit?: number;
       statuses?: AgentStrategyOpportunityStatus[];
     } = {},
   ): Promise<AgentStrategyOpportunityDocument[]> {
@@ -99,7 +110,6 @@ export class AgentStrategyOpportunitiesService {
         ...(statusFilters?.length ? { OR: statusFilters } : {}),
       },
       orderBy: { createdAt: 'desc' },
-      ...(options.limit ? { take: options.limit } : {}),
     });
 
     return records
@@ -118,12 +128,83 @@ export class AgentStrategyOpportunitiesService {
   listOpenByStrategy(
     strategyId: string,
     organizationId: string,
-    limit?: number,
   ): Promise<AgentStrategyOpportunityDocument[]> {
     return this.listByStrategy(strategyId, organizationId, {
-      limit,
-      statuses: ['approved', 'generating', 'held', 'queued', 'revising'],
+      statuses: OPEN_OPPORTUNITY_STATUSES,
     });
+  }
+
+  /**
+   * One page of the strategy's open opportunities, highest `priorityScore`
+   * first (newest, then id, break ties). The score lives in the `data` JSON
+   * column, which Prisma cannot `orderBy`, so the page of ids is ranked and
+   * windowed in SQL (`LIMIT`/`OFFSET`) and only that page of rows is hydrated.
+   * A missing or non-numeric score ranks as 0, matching the autopilot's
+   * in-memory ordering.
+   */
+  async listOpenPageByStrategy(
+    strategyId: string,
+    organizationId: string,
+    paging: { limit: number; page: number },
+  ): Promise<PaginatedResult<AgentStrategyOpportunityDocument>> {
+    const { limit, page } = paging;
+    const where = scopedWhere(organizationId, {
+      OR: OPEN_OPPORTUNITY_STATUSES.map((status) => ({
+        data: { equals: status, path: ['status'] },
+      })),
+      strategyId,
+    });
+
+    const [rankedIds, totalDocs] = await Promise.all([
+      // sql-risk-audit: ignore raw-sql-review -- Tenant, strategy and soft-delete filters are in the WHERE clause, the read is bounded by LIMIT, and Prisma cannot ORDER BY a JSON path.
+      this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT "id"
+        FROM "agent_strategy_opportunities"
+        WHERE "organizationId" = ${organizationId}
+          AND "strategyId" = ${strategyId}
+          AND "isDeleted" = false
+          AND ("data" ->> 'status') = ANY(${OPEN_OPPORTUNITY_STATUSES}::text[])
+        ORDER BY
+          COALESCE(
+            CASE
+              WHEN jsonb_typeof("data" -> 'priorityScore') = 'number'
+                THEN ("data" ->> 'priorityScore')::double precision
+            END,
+            0
+          ) DESC,
+          "createdAt" DESC,
+          "id" ASC
+        LIMIT ${limit}
+        OFFSET ${(page - 1) * limit}
+      `),
+      this.prisma.agentStrategyOpportunity.count({ where }),
+    ]);
+
+    const ids = rankedIds.map((row) => row.id);
+    const records = ids.length
+      ? await this.prisma.agentStrategyOpportunity.findMany({
+          take: ids.length,
+          where: scopedWhere(organizationId, { id: { in: ids } }),
+        })
+      : [];
+    const positionById = new Map(ids.map((id, index) => [id, index]));
+
+    return buildPaginatedResult(
+      records
+        .sort(
+          (left, right) =>
+            (positionById.get(left.id) ?? 0) -
+            (positionById.get(right.id) ?? 0),
+        )
+        .map((record) =>
+          this.normalizeOpportunity(
+            record as unknown as Record<string, unknown>,
+          ),
+        ),
+      totalDocs,
+      page,
+      limit,
+    );
   }
 
   async createIfMissing(

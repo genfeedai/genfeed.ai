@@ -28,9 +28,9 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
       }
       right={
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {toolbarNode}
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <AnalyticsScopedExportButton />
+          {toolbarNode}
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

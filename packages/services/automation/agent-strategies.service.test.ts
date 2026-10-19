@@ -10,6 +10,7 @@ import {
   AgentStrategiesService,
   AgentStrategy,
 } from '@services/automation/agent-strategies.service';
+import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentStrategiesService', () => {
@@ -164,14 +165,51 @@ describe('AgentStrategiesService', () => {
     expect(result).toEqual(binding);
   });
 
-  it('listOpportunities GETs the raw opportunities payload', async () => {
-    const opportunities = [{ id: 'opp_1', topic: 'AI' }];
-    http.get.mockResolvedValue(axiosResponse(opportunities));
+  it('listOpportunities GETs one page, deserializes it and publishes the totals', async () => {
+    PagesService.setCurrentPage(1);
+    PagesService.setTotalPages(1);
+    PagesService.setTotalDocs(0);
+    const controller = new AbortController();
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([{ id: 'opp_16', topic: 'AI' }], {
+          pagination: { limit: 15, page: 2, pages: 3, total: 40 },
+          type: 'agent-strategy-opportunity',
+        }),
+      ),
+    );
 
-    const result = await service.listOpportunities(strategyId);
+    const result = await service.listOpportunities(
+      strategyId,
+      { limit: 15, page: 2 },
+      controller.signal,
+    );
 
-    expect(http.get).toHaveBeenCalledWith(`/${strategyId}/opportunities`);
-    expect(result).toEqual(opportunities);
+    expect(http.get).toHaveBeenCalledWith(`/${strategyId}/opportunities`, {
+      params: { limit: 15, page: 2 },
+      signal: controller.signal,
+    });
+    expect(result).toEqual([
+      expect.objectContaining({ id: 'opp_16', topic: 'AI' }),
+    ]);
+    expect(PagesService.getCurrentPage()).toBe(2);
+    expect(PagesService.getTotalPages()).toBe(3);
+    expect(PagesService.getTotalDocs()).toBe(40);
+  });
+
+  it('listOpportunities without a page leaves the shared totals alone', async () => {
+    PagesService.setTotalPages(7);
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([{ id: 'opp_1' }], {
+          pagination: { limit: 20, page: 1, pages: 1, total: 1 },
+        }),
+      ),
+    );
+
+    await service.listOpportunities(strategyId);
+
+    expect(PagesService.getTotalPages()).toBe(7);
   });
 
   it('listReports GETs one page of the report history', async () => {

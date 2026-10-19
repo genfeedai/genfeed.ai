@@ -1,13 +1,22 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getBrandEntityId } from '@contexts/user/brand-context/brand-context.helpers';
+import {
+  AccountEvaluationState,
+  AnalyticsMetric,
+  ButtonVariant,
+  formatPlatformLabel,
+} from '@genfeedai/contracts';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalytics,
+  IAccountAnalyticsIdentity,
   IAccountAnalyticsList,
   IFleetEvaluationPolicy,
 } from '@genfeedai/contracts/interfaces';
+import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -15,11 +24,15 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import AccountCell from '@pages/brands/components/integrations/AccountCell';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import Badge from '@ui/display/badge/Badge';
+import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -30,8 +43,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+const HEALTH_BADGES: Record<
+  AccountEvaluationState,
+  { label: string; variant: 'success' | 'warning' | 'error' | 'secondary' }
+> = {
+  [AccountEvaluationState.HEALTHY]: { label: 'Healthy', variant: 'success' },
+  [AccountEvaluationState.INSUFFICIENT_DATA]: {
+    label: 'Not enough data',
+    variant: 'secondary',
+  },
+  [AccountEvaluationState.UNDERPERFORMING]: {
+    label: 'Underperforming',
+    variant: 'error',
+  },
+  [AccountEvaluationState.WATCH]: { label: 'Watch', variant: 'warning' },
+};
+
+const MANUAL_HEALTH_BADGE = {
+  label: 'Manual',
+  variant: 'secondary',
+} as const;
+
+function toConnection(
+  identity: IAccountAnalyticsIdentity,
+): BrandDetailSocialConnection {
+  return {
+    avatarUrl: identity.externalAvatar,
+    credentialId: identity.credentialId,
+    handle: identity.externalHandle,
+    isConnected: identity.isConnected,
+    label: identity.label,
+    name: identity.externalName,
+    platform: identity.platform,
+  };
+}
 
 function metricLabel(
   account: IAccountAnalytics,
@@ -39,7 +88,7 @@ function metricLabel(
 ): string {
   const value = account.metrics.find((item) => item.metric === metric);
   if (value?.availability !== 'observed' || value.change === null) {
-    return 'Unavailable';
+    return '-';
   }
   return formatCompactNumberIntl(value.change);
 }
@@ -49,6 +98,12 @@ export default function AnalyticsAccounts() {
   const scope = useCollectionScope();
   const { brandId, organizationId } = scope;
   const isFetchReady = isCollectionFetchReady(scope);
+  const { brands } = useBrand();
+  const pathname = usePathname();
+  const { replace } = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { dateRange, setToolbarNode, refreshTrigger, triggerRefresh } =
     useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
@@ -61,6 +116,27 @@ export default function AnalyticsAccounts() {
   const [windowWeeks, setWindowWeeks] = useState('4');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // `/:org/:brand/...` lists that brand's accounts only; `/:org/~/...` lists
+  // every brand's, so only then does the Brand column say anything.
+  const isBrandColumnVisible = !brandId;
+  const brandLogoById = useMemo(
+    () =>
+      new Map(brands.map((brand) => [getBrandEntityId(brand), brand.logoUrl])),
+    [brands],
+  );
+
+  // A new search or ranking can leave the URL page past the last page of the
+  // new result set, so every change starts over at page 1.
+  const resetPage = useCallback(() => {
+    const params = new URLSearchParams(searchParamsString);
+    if (!params.has('page')) {
+      return;
+    }
+    params.delete('page');
+    const query = params.toString();
+    replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, replace, searchParamsString]);
 
   const load = useCallback(
     async (signal: AbortSignal) => {
@@ -79,17 +155,23 @@ export default function AnalyticsAccounts() {
           service.getAccountAnalytics({
             brandId: brandId || undefined,
             endDate,
+            limit: ITEMS_PER_PAGE,
             metric,
             organizationId,
+            page: currentPage,
             search: search || undefined,
             startDate,
-          }) as Promise<IAccountAnalyticsList>,
+          }),
           service.getFleetEvaluationPolicy({
             brandId: brandId || undefined,
             organizationId,
           }) as Promise<IFleetEvaluationPolicy>,
         ]);
         if (signal.aborted) {
+          return;
+        }
+        if (currentPage > 1 && currentPage > accounts.totalPages) {
+          resetPage();
           return;
         }
         setList(accounts);
@@ -110,12 +192,14 @@ export default function AnalyticsAccounts() {
     },
     [
       brandId,
+      currentPage,
       dateRange.endDate,
       dateRange.startDate,
       getService,
       isFetchReady,
       metric,
       organizationId,
+      resetPage,
       search,
       translate,
     ],
@@ -139,12 +223,18 @@ export default function AnalyticsAccounts() {
           ariaLabel="Search accounts"
           className="w-full sm:w-44"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            resetPage();
+          }}
           placeholder="Search accounts"
         />
         <Select
           value={metric}
-          onValueChange={(value) => setMetric(value as AnalyticsMetric)}
+          onValueChange={(value) => {
+            setMetric(value as AnalyticsMetric);
+            resetPage();
+          }}
         >
           <SelectTrigger aria-label="Rank by metric" className="h-9 w-32">
             <SelectValue placeholder="Metric" />
@@ -200,6 +290,7 @@ export default function AnalyticsAccounts() {
       metric,
       organizationId,
       policy,
+      resetPage,
       search,
       translate,
       windowWeeks,
@@ -219,21 +310,38 @@ export default function AnalyticsAccounts() {
       {
         key: 'account',
         header: 'Account',
-        render: (row) =>
-          row.identity.label ||
-          row.identity.externalHandle ||
-          row.identity.externalName ||
-          row.identity.credentialId,
+        render: (row) => (
+          <AccountCell connection={toConnection(row.identity)} />
+        ),
       },
-      {
-        key: 'brand',
-        header: 'Brand',
-        render: (row) => row.identity.brandLabel,
-      },
+      ...(isBrandColumnVisible
+        ? [
+            {
+              key: 'brand',
+              header: 'Brand',
+              render: (row: IAccountAnalytics) =>
+                row.identity.brandLabel ? (
+                  <span className="flex min-w-0 items-center gap-2">
+                    <BrandAvatar
+                      logoUrl={brandLogoById.get(row.identity.brandId)}
+                      name={row.identity.brandLabel}
+                      size="sm"
+                    />
+                    <span className="truncate text-sm">
+                      {row.identity.brandLabel}
+                    </span>
+                  </span>
+                ) : (
+                  '-'
+                ),
+            },
+          ]
+        : []),
       {
         key: 'platform',
         header: 'Platform',
-        render: (row) => row.identity.platform,
+        render: (row) =>
+          formatPlatformLabel(row.identity.platform) ?? row.identity.platform,
       },
       {
         key: 'posts',
@@ -252,24 +360,35 @@ export default function AnalyticsAccounts() {
       {
         key: 'health',
         header: 'Health',
-        render: (row) => row.evaluation?.state ?? 'Manual',
+        render: (row) => {
+          const badge =
+            (row.evaluation && HEALTH_BADGES[row.evaluation.state]) ||
+            MANUAL_HEALTH_BADGE;
+          return <Badge variant={badge.variant}>{badge.label}</Badge>;
+        },
       },
     ],
-    [metric],
+    [brandLogoById, isBrandColumnVisible, metric],
   );
 
   return (
-    <Table
-      error={error ? { title: error, onRetry: triggerRefresh } : undefined}
-      columns={columns}
-      emptyLabel="No connected accounts"
-      getRowKey={(row) => row.identity.credentialId}
-      getRowLink={(row) => ({
-        href: `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`,
-        label: row.identity.label || row.identity.externalHandle || 'Account',
-      })}
-      isLoading={isLoading}
-      items={list?.accounts ?? []}
-    />
+    <>
+      <Table
+        ariaLabel="Accounts"
+        error={error ? { title: error, onRetry: triggerRefresh } : undefined}
+        columns={columns}
+        emptyLabel="No connected accounts"
+        getRowKey={(row) => row.identity.credentialId}
+        getRowLink={(row) => ({
+          href: `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`,
+          label: row.identity.label || row.identity.externalHandle || 'Account',
+        })}
+        isLoading={isLoading}
+        items={list?.accounts ?? []}
+      />
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="accounts" />
+      </div>
+    </>
   );
 }

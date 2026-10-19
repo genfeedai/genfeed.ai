@@ -30,6 +30,7 @@ import BrandSettingsSkillsPage from './content';
 const pushMock = vi.fn();
 const getTokenMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
+const listSkillsPageMock = vi.fn();
 const listSkillsMock = vi.fn();
 const forkSkillMock = vi.fn();
 const importSkillMock = vi.fn();
@@ -79,12 +80,17 @@ vi.mock(
   }),
 );
 
+const replaceMock = vi.fn();
+const searchParamsMock = new URLSearchParams();
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useParams: () => routeParamsMock,
   useRouter: () => ({
     push: pushMock,
+    replace: replaceMock,
   }),
+  useSearchParams: () => searchParamsMock,
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -146,6 +152,7 @@ vi.mock('@services/content/skills.service', async () => {
           exportSkill: exportSkillMock,
           archiveSkill: archiveSkillMock,
           listSkills: listSkillsMock,
+          listSkillsPage: listSkillsPageMock,
           updateSkill: updateSkillMock,
         };
       },
@@ -187,7 +194,8 @@ describe('BrandSettingsSkillsPage', () => {
     brandContextMock.brandId = 'brand-1';
     getTokenMock.mockResolvedValue('authProvider-token');
     resolveAuthTokenMock.mockResolvedValue('api-token');
-    listSkillsMock.mockResolvedValue([
+    listSkillsMock.mockResolvedValue([]);
+    listSkillsPageMock.mockResolvedValue([
       {
         channels: ['youtube', 'linkedin'],
         defaultInstructions: 'Base instructions',
@@ -239,7 +247,7 @@ describe('BrandSettingsSkillsPage', () => {
     render(<BrandSettingsSkillsPage />);
 
     await waitFor(() => {
-      expect(listSkillsMock).toHaveBeenCalledTimes(1);
+      expect(listSkillsPageMock).toHaveBeenCalledTimes(1);
     });
 
     expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
@@ -275,7 +283,7 @@ describe('BrandSettingsSkillsPage', () => {
     render(<BrandSettingsSkillsPage />);
 
     await waitFor(() => {
-      expect(listSkillsMock).toHaveBeenCalledTimes(1);
+      expect(listSkillsPageMock).toHaveBeenCalledTimes(1);
     });
     expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
 
@@ -285,54 +293,15 @@ describe('BrandSettingsSkillsPage', () => {
   });
 
   it.each([
-    { filter: 'Image', expected: ['Legacy Multi Skill', 'Image Skill'] },
-    { filter: 'Video', expected: ['Video Text Skill', 'Legacy Multi Skill'] },
-    { filter: 'Text', expected: ['Video Text Skill', 'Legacy Multi Skill'] },
-    {
-      filter: 'All',
-      expected: ['Video Text Skill', 'Legacy Multi Skill', 'Image Skill'],
-    },
+    { expected: 'image', filter: 'Image' },
+    { expected: 'video', filter: 'Video' },
+    { expected: 'text', filter: 'Text' },
   ])(
-    'matches declared capabilities for the $filter modality filter',
-    async ({ filter, expected }) => {
+    'asks the server for the $filter modality filter',
+    async ({ expected, filter }) => {
       const user = userEvent.setup();
-      listSkillsMock.mockResolvedValue([
-        {
-          id: 'video-text',
-          name: 'Video Text Skill',
-          description: 'Video and text',
-          slug: 'video-text',
-          source: 'built_in',
-          modalities: ['multi', 'video', 'text'],
-          workflowStage: 'creation',
-          isBuiltIn: true,
-          isEnabled: true,
-        },
-        {
-          id: 'legacy-multi',
-          name: 'Legacy Multi Skill',
-          description: 'Generic legacy skill',
-          slug: 'legacy-multi',
-          source: 'built_in',
-          modalities: ['multi'],
-          workflowStage: 'creation',
-          isBuiltIn: true,
-          isEnabled: true,
-        },
-        {
-          id: 'image',
-          name: 'Image Skill',
-          description: 'Image only',
-          slug: 'image',
-          source: 'built_in',
-          modalities: ['image'],
-          workflowStage: 'creation',
-          isBuiltIn: true,
-          isEnabled: true,
-        },
-      ]);
       render(<BrandSettingsSkillsPage />);
-      expect(await screen.findByText('Video Text Skill')).toBeVisible();
+      expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
 
       await user.click(screen.getByRole('button', { name: /^Filters/ }));
       screen.getByRole('menuitem', { name: /^Modality/ }).focus();
@@ -341,18 +310,12 @@ describe('BrandSettingsSkillsPage', () => {
         await screen.findByRole('menuitemradio', { name: filter }),
       );
 
-      const catalog = within(screen.getByRole('table', { name: 'Catalog' }));
-      for (const name of [
-        'Video Text Skill',
-        'Legacy Multi Skill',
-        'Image Skill',
-      ]) {
-        if (expected.includes(name)) {
-          expect(catalog.getByText(name)).toBeVisible();
-        } else {
-          expect(catalog.queryByText(name)).not.toBeInTheDocument();
-        }
-      }
+      await waitFor(() =>
+        expect(listSkillsPageMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ modality: expected, page: 1 }),
+          expect.any(AbortSignal),
+        ),
+      );
       expect(toggleSkillMock).not.toHaveBeenCalled();
       expect(setUseDefaultsMock).not.toHaveBeenCalled();
     },
@@ -366,7 +329,7 @@ describe('BrandSettingsSkillsPage', () => {
     ).toBeVisible();
 
     let rejectNextCatalog: ((reason?: unknown) => void) | undefined;
-    listSkillsMock.mockReturnValueOnce(
+    listSkillsPageMock.mockReturnValueOnce(
       new Promise((_resolve, reject) => {
         rejectNextCatalog = reject;
       }),
@@ -386,7 +349,7 @@ describe('BrandSettingsSkillsPage', () => {
     rerender(<BrandSettingsSkillsPage />);
 
     await waitFor(() => {
-      expect(listSkillsMock).toHaveBeenCalledTimes(2);
+      expect(listSkillsPageMock).toHaveBeenCalledTimes(2);
       expect(screen.queryAllByText('YouTube Script Setup')).toHaveLength(0);
     });
 
@@ -413,7 +376,7 @@ describe('BrandSettingsSkillsPage', () => {
       workflowStage: 'creation',
       slug: 'personal',
     };
-    listSkillsMock.mockResolvedValue([personal]);
+    listSkillsPageMock.mockResolvedValue([personal]);
     getSkillMock.mockResolvedValue({ ...personal, name: ' Personal ' });
     let resolveSave: ((value: unknown) => void) | undefined;
     updateSkillMock.mockReturnValue(
@@ -506,7 +469,7 @@ describe('BrandSettingsSkillsPage', () => {
     authIdentityMock.sessionId = 'session-2';
     rerender(<BrandSettingsSkillsPage />);
     resolveToken?.('old-token');
-    await waitFor(() => expect(listSkillsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(2));
     expect(forkSkillMock).not.toHaveBeenCalled();
     expect(
       screen.queryByRole('textbox', { name: 'Name' }),
@@ -531,7 +494,7 @@ describe('BrandSettingsSkillsPage', () => {
         source: 'custom',
       };
       const second = { ...first, id: 'second', name: 'Second', slug: 'second' };
-      listSkillsMock.mockResolvedValue([first, second]);
+      listSkillsPageMock.mockResolvedValue([first, second]);
       render(<BrandSettingsSkillsPage />);
       fireEvent.click(await screen.findByText('First'));
       if (operation === 'save')
@@ -579,7 +542,7 @@ describe('BrandSettingsSkillsPage', () => {
       slug: 'exportable',
       source: 'custom',
     };
-    listSkillsMock.mockResolvedValue([editable]);
+    listSkillsPageMock.mockResolvedValue([editable]);
     let resolveExport: ((value: unknown) => void) | undefined;
     exportSkillMock.mockReturnValue(
       new Promise((resolve) => {
@@ -606,7 +569,7 @@ describe('BrandSettingsSkillsPage', () => {
   it.each([false, undefined])(
     'fails closed for organization edit capability %s',
     async (canEdit) => {
-      listSkillsMock.mockResolvedValue([
+      listSkillsPageMock.mockResolvedValue([
         {
           id: 'denied',
           name: 'Denied',
@@ -646,7 +609,7 @@ describe('BrandSettingsSkillsPage', () => {
         slug: 'editable',
         source: 'custom',
       };
-      listSkillsMock.mockResolvedValue([editable]);
+      listSkillsPageMock.mockResolvedValue([editable]);
       let resolveMutation: ((value: unknown) => void) | undefined;
       const pending = new Promise((resolve) => {
         resolveMutation = resolve;
@@ -669,7 +632,7 @@ describe('BrandSettingsSkillsPage', () => {
           operation === 'save' ? updateSkillMock : forkSkillMock,
         ).toHaveBeenCalledTimes(1),
       );
-      listSkillsMock.mockResolvedValue([]);
+      listSkillsPageMock.mockResolvedValue([]);
       Object.assign(routeParamsMock, {
         brandSlug: 'beta-brand',
         orgSlug: 'beta-org',
@@ -696,17 +659,17 @@ describe('BrandSettingsSkillsPage', () => {
   );
   it('ignores a delayed catalog from the previous authenticated session', async () => {
     let resolveCatalog: ((value: unknown) => void) | undefined;
-    listSkillsMock.mockReturnValueOnce(
+    listSkillsPageMock.mockReturnValueOnce(
       new Promise((resolve) => {
         resolveCatalog = resolve;
       }),
     );
     const { rerender } = render(<BrandSettingsSkillsPage />);
-    await waitFor(() => expect(listSkillsMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(1));
     authIdentityMock.sessionId = 'replacement-session';
-    listSkillsMock.mockResolvedValue([]);
+    listSkillsPageMock.mockResolvedValue([]);
     rerender(<BrandSettingsSkillsPage />);
-    await waitFor(() => expect(listSkillsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(2));
     await act(async () => {
       resolveCatalog?.([
         {
@@ -891,7 +854,7 @@ describe('BrandSettingsSkillsPage', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Refresh imported skills' }),
     );
-    await waitFor(() => expect(listSkillsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(2));
     await prepareImport();
     importSkillMock.mockResolvedValue(importedFixture());
     getSkillMock.mockResolvedValue(importedFixture());
@@ -918,7 +881,7 @@ describe('BrandSettingsSkillsPage', () => {
       fireEvent.click(
         screen.getByRole('button', { name: 'Refresh imported skills' }),
       );
-      await waitFor(() => expect(listSkillsMock).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(2));
       expect(importSkillMock).toHaveBeenCalledTimes(1);
       expect(
         screen.queryByText('RAW_PRIVATE_DEBUG_FAILURE'),
@@ -935,7 +898,7 @@ describe('BrandSettingsSkillsPage', () => {
     await screen.findByText(
       'The import could not be confirmed. Refresh the catalog before importing again.',
     );
-    listSkillsMock.mockRejectedValueOnce(new Error('Failed refresh'));
+    listSkillsPageMock.mockRejectedValueOnce(new Error('Failed refresh'));
     fireEvent.click(
       screen.getByRole('button', { name: 'Refresh imported skills' }),
     );
@@ -954,7 +917,7 @@ describe('BrandSettingsSkillsPage', () => {
         screen.getByRole('button', { name: 'Import package' }),
       ).toBeEnabled(),
     );
-    expect(listSkillsMock).toHaveBeenCalledTimes(3);
+    expect(listSkillsPageMock).toHaveBeenCalledTimes(3);
     expect(importSkillMock).toHaveBeenCalledTimes(1);
     await prepareImport();
     importSkillMock.mockResolvedValueOnce(importedFixture());
@@ -1107,7 +1070,7 @@ describe('BrandSettingsSkillsPage', () => {
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     await screen.findByRole('textbox', { name: 'Name' });
     fireEvent.click(refresh);
-    expect(listSkillsMock).toHaveBeenCalledTimes(1);
+    expect(listSkillsPageMock).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue(
       'Imported personal skill',
     );
@@ -1194,7 +1157,7 @@ describe('BrandSettingsSkillsPage', () => {
     };
   }
   async function openVersionSkill() {
-    listSkillsMock.mockResolvedValue([
+    listSkillsPageMock.mockResolvedValue([
       importedFixture(),
       importedFixture({
         id: 'import-2',

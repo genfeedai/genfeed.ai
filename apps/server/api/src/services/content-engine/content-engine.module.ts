@@ -13,6 +13,7 @@ import { ContentExecutionService } from '@api/services/content-engine/content-ex
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
+import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { PatternMatcherModule } from '@api/services/pattern-matcher/pattern-matcher.module';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
     ContentExecutionService,
     ContentPlanSeedsService,
     PlanPerformanceContextService,
+    StudioProposalsService,
   ],
 })
 export class ContentEngineModule {}

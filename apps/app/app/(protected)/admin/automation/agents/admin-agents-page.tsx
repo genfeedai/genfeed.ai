@@ -19,63 +19,74 @@ import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { formatDistanceToNow } from 'date-fns';
 import { BrainCircuit } from 'lucide-react';
-import { useEffect } from 'react';
-
-const AGENT_COLUMNS: TableColumn<AgentStrategy>[] = [
-  {
-    header: 'Agent',
-    key: 'label',
-    subtext: (strategy) => strategy.agentType,
-  },
-  {
-    header: 'Brand',
-    key: 'brand',
-    render: (strategy) => strategy.brand?.label ?? '—',
-  },
-  {
-    header: 'Platforms',
-    key: 'platforms',
-    render: (strategy) => strategy.platforms?.join(', ') || '—',
-  },
-  {
-    header: 'Status',
-    key: 'isActive',
-    render: (strategy) => (
-      <Badge variant={strategy.isActive ? 'success' : 'secondary'}>
-        {strategy.isActive ? 'Active' : 'Paused'}
-      </Badge>
-    ),
-  },
-  {
-    header: 'Publishing',
-    key: 'autonomyMode',
-    render: (strategy) =>
-      strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH ? (
-        <Badge variant="success">Auto-publish</Badge>
-      ) : (
-        <Badge variant="outline">Review first</Badge>
-      ),
-  },
-  {
-    header: 'Last run',
-    key: 'lastRunAt',
-    render: (strategy) =>
-      strategy.lastRunAt
-        ? formatDistanceToNow(new Date(strategy.lastRunAt), {
-            addSuffix: true,
-          })
-        : 'Never',
-  },
-];
+import { useTranslations } from 'next-intl';
+import { useEffect, useMemo } from 'react';
 
 /**
  * Every organization's agents, the ones that generate and publish on their
  * own. Without an organization filter it lists the operator's own org.
  */
 export default function AdminAgentsPage() {
+  const translate = useTranslations('pages.adminAgents');
   const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
   const { brand, organization } = useAdminOrgBrandParams();
+
+  const columns = useMemo<TableColumn<AgentStrategy>[]>(
+    () => [
+      {
+        header: translate('columns.agent'),
+        key: 'label',
+        subtext: (strategy) => strategy.agentType,
+      },
+      {
+        header: translate('columns.brand'),
+        key: 'brand',
+        render: (strategy) => strategy.brand?.label ?? '—',
+      },
+      {
+        header: translate('columns.platforms'),
+        key: 'platforms',
+        render: (strategy) => strategy.platforms?.join(', ') || '—',
+      },
+      {
+        header: translate('columns.status'),
+        key: 'isActive',
+        render: (strategy) => (
+          <Badge variant={strategy.isActive ? 'success' : 'secondary'}>
+            {strategy.isActive
+              ? translate('status.active')
+              : translate('status.paused')}
+          </Badge>
+        ),
+      },
+      {
+        header: translate('columns.publishing'),
+        key: 'autonomyMode',
+        render: (strategy) =>
+          strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH ? (
+            <Badge variant="success">
+              {translate('publishing.autoPublish')}
+            </Badge>
+          ) : (
+            <Badge variant="outline">
+              {translate('publishing.reviewFirst')}
+            </Badge>
+          ),
+      },
+      {
+        header: translate('columns.lastRun'),
+        key: 'lastRunAt',
+        render: (strategy) =>
+          strategy.lastRunAt
+            ? formatDistanceToNow(new Date(strategy.lastRunAt), {
+                addSuffix: true,
+              })
+            : translate('never'),
+      },
+    ],
+    [translate],
+  );
 
   const getAgentStrategiesService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
@@ -103,13 +114,13 @@ export default function AdminAgentsPage() {
   useEffect(() => {
     if (error) {
       logger.error('GET /agent-strategies failed', error);
-      notificationsService.error('Failed to load agents');
+      notificationsService.error(translate('loadError'));
     }
-  }, [error, notificationsService]);
+  }, [error, notificationsService, translate]);
 
   return (
     <AdminPageShell
-      title="Agents"
+      title={translate('title')}
       icon={BrainCircuit}
       onRefresh={() => {
         void refetch();
@@ -119,10 +130,10 @@ export default function AdminAgentsPage() {
     >
       <AppTable<AgentStrategy>
         items={strategies}
-        columns={AGENT_COLUMNS}
+        columns={columns}
         isLoading={isLoading}
         getRowKey={(strategy) => strategy.id}
-        emptyLabel="No agents found"
+        emptyLabel={translate('empty')}
       />
     </AdminPageShell>
   );

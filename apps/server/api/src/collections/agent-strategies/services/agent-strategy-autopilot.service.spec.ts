@@ -91,6 +91,7 @@ describe('AgentStrategyAutopilotService', () => {
       expireStaleOpportunities: vi.fn().mockResolvedValue(0),
       listByStrategy: vi.fn().mockResolvedValue([]),
       listOpenByStrategy: vi.fn(),
+      listOpenPageByStrategy: vi.fn(),
       updateStatus: vi.fn().mockResolvedValue(undefined),
     };
     const reportsService = {
@@ -331,6 +332,74 @@ describe('AgentStrategyAutopilotService', () => {
       }),
     );
   }
+
+  describe('listStrategyOpportunities', () => {
+    const page = {
+      docs: [{ id: 'opportunity-11' }],
+      hasNextPage: false,
+      hasPrevPage: true,
+      limit: 10,
+      nextPage: null,
+      page: 2,
+      pagingCounter: 11,
+      prevPage: 1,
+      totalDocs: 11,
+      totalPages: 2,
+    };
+
+    it('refreshes first, then reads one database page of the open rows', async () => {
+      const deps = createService();
+      deps.opportunitiesService.listOpenPageByStrategy.mockResolvedValue(page);
+      const collect = vi
+        .spyOn(deps.planningService, 'collectOpportunities')
+        .mockResolvedValue(undefined);
+
+      const result = await deps.service.listStrategyOpportunities(
+        strategyId,
+        organizationId,
+        { limit: 10, page: 2 },
+      );
+
+      expect(result).toBe(page);
+      expect(collect).toHaveBeenCalledWith(baseStrategy);
+      expect(
+        deps.opportunitiesService.listOpenPageByStrategy,
+      ).toHaveBeenCalledWith(strategyId, organizationId, {
+        limit: 10,
+        page: 2,
+      });
+      expect(collect.mock.invocationCallOrder[0]).toBeLessThan(
+        deps.opportunitiesService.listOpenPageByStrategy.mock
+          .invocationCallOrder[0],
+      );
+      expect(
+        deps.opportunitiesService.listOpenByStrategy,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('defaults to the first bounded page and caps an oversized limit', async () => {
+      const deps = createService();
+      deps.opportunitiesService.listOpenPageByStrategy.mockResolvedValue(page);
+      vi.spyOn(deps.planningService, 'collectOpportunities').mockResolvedValue(
+        undefined,
+      );
+
+      await deps.service.listStrategyOpportunities(strategyId, organizationId);
+      await deps.service.listStrategyOpportunities(strategyId, organizationId, {
+        limit: 5_000,
+        page: 3,
+      });
+
+      expect(
+        deps.opportunitiesService.listOpenPageByStrategy.mock.calls.map(
+          ([, , paging]) => paging,
+        ),
+      ).toEqual([
+        { limit: 20, page: 1 },
+        { limit: 100, page: 3 },
+      ]);
+    });
+  });
 
   it.each([
     ['an Expert Path brand', applyExpertPublishApprovalDefault(undefined)],

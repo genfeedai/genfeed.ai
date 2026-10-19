@@ -6,7 +6,7 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
-import { seedReleaseListReads } from '@api/collections/post-groups/services/post-group-release-list.testing';
+import { seedReleaseListPage } from '@api/collections/post-groups/services/post-group-release-list.testing';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -17,7 +17,6 @@ import {
   PostVisibility,
   ReleaseAttachmentKind,
   ReleaseStatus,
-  ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/contracts';
@@ -281,20 +280,15 @@ describe('PostGroupPersistenceService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  function seedReleases(
-    groups: SchedulerPostGroup[],
-    targets: SchedulerPostTarget[],
-  ): void {
-    seedReleaseListReads(prisma, groups, targets);
+  function releaseListStatements(): { sql: string; values: unknown[] }[] {
+    return prisma.$queryRaw.mock.calls
+      .map(([statement]) => statement as { sql: string; values: unknown[] })
+      .filter((statement) => statement.sql.includes('release_rows'));
   }
 
-  const julyWindow = {
-    endDate: new Date('2026-07-27T00:00:00.000Z'),
-    startDate: new Date('2026-07-20T00:00:00.000Z'),
-  };
-
-  it('lists active organization releases that intersect the window and bounds the reads to it', async () => {
-    seedReleases(
+  it('lists one page of releases from a single SQL statement and hydrates only that page', async () => {
+    seedReleaseListPage(
+      prisma,
       [makeGroup({ id: 'group-target', scheduledAt: null })],
       [
         makeTarget({
@@ -303,90 +297,22 @@ describe('PostGroupPersistenceService', () => {
           targetExecutionState: TargetExecutionState.FAILED,
         }),
       ],
+      [{ id: 'group-target' }],
     );
 
-    const window = {
-      gte: new Date('2026-07-20T00:00:00.000Z'),
-      lte: new Date('2026-07-27T00:00:00.000Z'),
-    };
     const result = await service.listReleaseGroups({
       brandId: 'brand-1',
-      ...julyWindow,
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
       organizationId: 'org-1',
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
       statuses: [ReleaseStatus.SCHEDULED, ReleaseStatus.FAILED],
     });
 
-    // Window prefilter: id-only reads bounded by the schedule window.
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith({
-      select: { id: true },
-      where: {
-        brandId: 'brand-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-        scheduledAt: window,
-      },
-    });
-    expect(prisma.post.findMany).toHaveBeenCalledWith({
-      select: { groupId: true },
-      where: {
-        brandId: 'brand-1',
-        credentialId: { not: null },
-        groupId: { not: null },
-        isDeleted: false,
-        organizationId: 'org-1',
-        parentId: null,
-        platform: { not: null },
-        scheduledDate: window,
-      },
-    });
-    // The ranking reads are slim and only touch releases in the window.
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith({
-      select: {
-        baseContent: true,
-        campaignId: true,
-        createdAt: true,
-        id: true,
-        scheduledAt: true,
-        title: true,
-        updatedAt: true,
-      },
-      where: {
-        brandId: 'brand-1',
-        id: { in: ['group-target'] },
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
-    expect(prisma.post.findMany).toHaveBeenCalledWith({
-      select: expect.not.objectContaining({
-        tags: expect.anything(),
-        targetSettings: expect.anything(),
-      }),
-      where: {
-        brandId: 'brand-1',
-        credentialId: { not: null },
-        groupId: { in: ['group-target'] },
-        isDeleted: false,
-        organizationId: 'org-1',
-        parentId: null,
-        platform: { not: null },
-      },
-    });
-    // Legacy ungrouped posts are bounded by the same window.
-    expect(prisma.post.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          brandId: 'brand-1',
-          credentialId: { not: null },
-          groupId: null,
-          isDeleted: false,
-          organizationId: 'org-1',
-          parentId: null,
-          platform: { not: null },
-          scheduledDate: window,
-        },
-      }),
-    );
+    // Filtering, ranking and paging happen in the one statement; the service
+    // no longer reads slim group or post rows for the whole history.
+    expect(releaseListStatements()).toHaveLength(1);
+    expect(prisma.postGroup.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.post.findMany).toHaveBeenCalledTimes(1);
     // Full rows (tags, settings, media) are hydrated for the page only.
     expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -441,21 +367,21 @@ describe('PostGroupPersistenceService', () => {
       totalDocs: 1,
       totalPages: 1,
     });
-    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('returns one page of the ranking with totals and hydrates only that page', async () => {
-    const groups = ['a', 'b', 'c', 'd', 'e'].map((suffix, index) =>
-      makeGroup({
-        // Newest first: e, d, c, b, a.
-        createdAt: new Date(`2026-07-1${index}T10:00:00.000Z`),
-        id: `group-${suffix}`,
-      }),
+  it('turns the requested page into a SQL limit and offset and reports the SQL total', async () => {
+    const groups = ['c', 'b'].map((suffix) =>
+      makeGroup({ id: `group-${suffix}` }),
     );
-    const targets = groups.map((group) =>
-      makeTarget({ groupId: group.id, id: `target-${group.id}` }),
+    seedReleaseListPage(
+      prisma,
+      groups,
+      groups.map((group) =>
+        makeTarget({ groupId: group.id, id: `target-${group.id}` }),
+      ),
+      [{ id: 'group-c' }, { id: 'group-b' }],
+      5,
     );
-    seedReleases(groups, targets);
 
     const result = await service.listReleaseGroups({
       limit: 2,
@@ -463,6 +389,7 @@ describe('PostGroupPersistenceService', () => {
       page: 2,
     });
 
+    expect(releaseListStatements()[0]?.values.slice(-2)).toEqual([2, 2]);
     expect(result.docs.map((release) => release.id)).toEqual([
       'group-c',
       'group-b',
@@ -478,7 +405,7 @@ describe('PostGroupPersistenceService', () => {
       totalDocs: 5,
       totalPages: 3,
     });
-    // Hydration is scoped to the two releases on the page.
+    // Hydration is scoped to the two releases on the page, in SQL order.
     expect(prisma.postGroup.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -489,33 +416,49 @@ describe('PostGroupPersistenceService', () => {
   });
 
   it('defaults an unpaged list to the first page instead of every release', async () => {
-    const groups = Array.from({ length: 25 }, (_, index) =>
-      makeGroup({
-        createdAt: new Date(Date.UTC(2026, 0, index + 1)),
-        id: `group-${String(index).padStart(2, '0')}`,
-      }),
-    );
-    seedReleases(
-      groups,
-      groups.map((group) =>
-        makeTarget({ groupId: group.id, id: `target-${group.id}` }),
-      ),
-    );
+    seedReleaseListPage(prisma, [], [], []);
 
-    const result = await service.listReleaseGroups({ organizationId: 'org-1' });
+    await service.listReleaseGroups({ organizationId: 'org-1' });
 
-    expect(result.docs).toHaveLength(20);
-    expect(result).toMatchObject({
-      hasNextPage: true,
-      limit: 20,
-      page: 1,
-      totalDocs: 25,
-      totalPages: 2,
-    });
+    expect(releaseListStatements()[0]?.values.slice(-2)).toEqual([20, 0]);
   });
 
-  it('lists a group-less post as a one-target release and hydrates it by id', async () => {
-    seedReleases(
+  it('reports no releases without a count when the first page is empty', async () => {
+    seedReleaseListPage(prisma, [], [], []);
+
+    await expect(
+      service.listReleaseGroups({ organizationId: 'org-1' }),
+    ).resolves.toMatchObject({ docs: [], totalDocs: 0, totalPages: 0 });
+    expect(prisma.postGroup.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.findMany).not.toHaveBeenCalled();
+    expect(releaseListStatements()).toHaveLength(1);
+  });
+
+  it('counts separately when the requested page is past the last release', async () => {
+    prisma.$queryRaw.mockImplementation(async (statement: { sql: string }) =>
+      statement.sql.includes('LIMIT') ? [] : [{ totalDocs: 7n }],
+    );
+
+    const result = await service.listReleaseGroups({
+      limit: 5,
+      organizationId: 'org-1',
+      page: 9,
+    });
+
+    expect(result).toMatchObject({
+      docs: [],
+      hasNextPage: false,
+      hasPrevPage: true,
+      page: 9,
+      totalDocs: 7,
+      totalPages: 2,
+    });
+    expect(releaseListStatements()).toHaveLength(2);
+  });
+
+  it('hydrates a group-less post by id as a one-target release', async () => {
+    seedReleaseListPage(
+      prisma,
       [],
       [
         {
@@ -526,16 +469,18 @@ describe('PostGroupPersistenceService', () => {
           userId: 'user-1',
         },
       ],
+      [{ id: 'legacy-post', isSynthetic: true }],
     );
 
     const result = await service.listReleaseGroups({
       organizationId: 'org-1',
-      search: 'legacy',
     });
 
     expect(result.docs).toEqual([
       expect.objectContaining({ id: 'legacy-post', title: 'Legacy body' }),
     ]);
+    expect(prisma.postGroup.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.findMany).toHaveBeenCalledTimes(1);
     expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -546,214 +491,45 @@ describe('PostGroupPersistenceService', () => {
     );
   });
 
-  it('sorts releases by earliest effective schedule and uses the id as a stable tie-breaker', async () => {
-    seedReleases(
+  it('keeps the SQL ranking order when hydration returns rows in another order', async () => {
+    seedReleaseListPage(
+      prisma,
+      [makeGroup({ id: 'group-a' }), makeGroup({ id: 'group-b' })],
       [
-        makeGroup({
-          id: 'group-b',
-          scheduledAt: new Date('2026-07-20T10:00:00.000Z'),
-        }),
-        makeGroup({
-          id: 'group-target',
-          scheduledAt: new Date('2026-07-20T12:00:00.000Z'),
-        }),
-        makeGroup({
-          id: 'group-a',
-          scheduledAt: new Date('2026-07-20T10:00:00.000Z'),
-        }),
+        makeTarget({ groupId: 'group-a', id: 'target-a' }),
+        makeTarget({ groupId: 'group-b', id: 'target-b' }),
       ],
-      [
-        makeTarget({
-          groupId: 'group-target',
-          id: 'target-early',
-          scheduledDate: new Date('2026-07-20T09:00:00.000Z'),
-        }),
-        makeTarget({
-          groupId: 'group-a',
-          id: 'target-a',
-          scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
-        }),
-        makeTarget({
-          groupId: 'group-b',
-          id: 'target-b',
-          scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
-        }),
-      ],
+      [{ id: 'group-b' }, { id: 'group-a' }],
     );
 
     const result = await service.listReleaseGroups({
-      ...julyWindow,
       organizationId: 'org-1',
     });
 
     expect(result.docs.map((release) => release.id)).toEqual([
-      'group-target',
-      'group-a',
       'group-b',
+      'group-a',
     ]);
   });
 
-  it('filters calendar reads by derived target status instead of persisted group status', async () => {
-    seedReleases(
-      [makeGroup({ status: ReleaseStatus.SCHEDULED })],
-      [makeTarget({ targetExecutionState: TargetExecutionState.FAILED })],
-    );
-
-    await expect(
-      service.listReleaseGroups({
-        ...julyWindow,
-        organizationId: 'org-1',
-        statuses: [ReleaseStatus.SCHEDULED],
-      }),
-    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
-
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.not.objectContaining({ status: expect.anything() }),
-      }),
-    );
-  });
-
-  it('narrows the calendar to releases owning a target that matches the platform, credential, and execution-state filters', async () => {
-    seedReleases(
-      [makeGroup({ id: 'group-target' })],
-      [
-        makeTarget({
-          groupId: 'group-target',
-          platform: CredentialPlatform.INSTAGRAM,
-          targetExecutionState: TargetExecutionState.FAILED,
-        }),
-      ],
+  it('skips a ranked release that disappeared before hydration', async () => {
+    seedReleaseListPage(
+      prisma,
+      [makeGroup({ id: 'group-a' })],
+      [makeTarget({ groupId: 'group-a', id: 'target-a' })],
+      [{ id: 'group-gone' }, { id: 'group-a' }],
     );
 
     const result = await service.listReleaseGroups({
-      brandId: 'brand-1',
-      credentialIds: ['credential-1'],
-      ...julyWindow,
-      executionStates: [TargetExecutionState.FAILED],
-      organizationId: 'org-1',
-      platforms: [CredentialPlatform.INSTAGRAM],
-    });
-
-    expect(result.docs).toEqual([
-      expect.objectContaining({ id: 'group-target' }),
-    ]);
-  });
-
-  it('narrows the calendar to releases belonging to one Publish content campaign', async () => {
-    seedReleases(
-      [
-        makeGroup({ campaignId: 'cmp_spring', id: 'group-campaign' }),
-        makeGroup({ id: 'group-unassigned' }),
-      ],
-      [
-        makeTarget({ groupId: 'group-campaign', id: 'campaign-target' }),
-        makeTarget({ groupId: 'group-unassigned', id: 'unassigned-target' }),
-      ],
-    );
-
-    const result = await service.listReleaseGroups({
-      campaignId: 'cmp_spring',
-      ...julyWindow,
       organizationId: 'org-1',
     });
 
-    expect(result.docs.map((release) => release.id)).toEqual([
-      'group-campaign',
-    ]);
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ campaignId: 'cmp_spring' }),
-      }),
-    );
-  });
-
-  it('filters the canonical projection by derived manual and workflow provenance', async () => {
-    seedReleases(
-      [
-        makeGroup({ id: 'group-agent' }),
-        makeGroup({ id: 'group-manual' }),
-        makeGroup({ id: 'group-workflow' }),
-      ],
-      [
-        makeTarget({
-          agentThreadId: 'thread-1',
-          groupId: 'group-agent',
-          id: 'agent',
-        }),
-        makeTarget({ groupId: 'group-manual', id: 'manual' }),
-        makeTarget({
-          groupId: 'group-workflow',
-          id: 'workflow',
-          workflowExecutionId: 'execution-1',
-        }),
-      ],
-    );
-
-    const result = await service.listReleaseGroups({
-      ...julyWindow,
-      organizationId: 'org-1',
-      sources: [ReleaseTargetSource.MANUAL, ReleaseTargetSource.WORKFLOW],
-    });
-
-    expect(result.docs.map((release) => release.id)).toEqual([
-      'group-manual',
-      'group-workflow',
-    ]);
-  });
-
-  it('excludes workflow-executed targets from the agent source filter', async () => {
-    seedReleases(
-      [makeGroup({ id: 'group-target' })],
-      [
-        makeTarget({
-          groupId: 'group-target',
-          workflowExecutionId: 'execution-1',
-        }),
-      ],
-    );
-
-    const result = await service.listReleaseGroups({
-      ...julyWindow,
-      organizationId: 'org-1',
-      sources: [ReleaseTargetSource.AGENT],
-    });
-
-    expect(result).toMatchObject({ docs: [], totalDocs: 0 });
-  });
-
-  it('returns an empty page when no target matches the filters', async () => {
-    seedReleases(
-      [makeGroup({ id: 'group-target' })],
-      [makeTarget({ groupId: 'group-target' })],
-    );
-
-    await expect(
-      service.listReleaseGroups({
-        ...julyWindow,
-        organizationId: 'org-1',
-        platforms: [CredentialPlatform.TIKTOK],
-      }),
-    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
-  });
-
-  it('returns all projected releases when no target filter is requested', async () => {
-    seedReleases([makeGroup()], [makeTarget()]);
-
-    const result = await service.listReleaseGroups({
-      ...julyWindow,
-      organizationId: 'org-1',
-      statuses: [ReleaseStatus.SCHEDULED],
-    });
-
-    expect(result.docs).toEqual([expect.objectContaining({ id: 'group-1' })]);
-    // One id-only window prefilter, one slim ranking read, one page hydration.
-    expect(prisma.postGroup.findMany).toHaveBeenCalledTimes(3);
-    expect(prisma.post.findMany).toHaveBeenCalledTimes(4);
+    expect(result.docs.map((release) => release.id)).toEqual(['group-a']);
   });
 
   it('projects firstTagColor from the first target post tags', async () => {
-    seedReleases(
+    seedReleaseListPage(
+      prisma,
       [makeGroup()],
       [
         makeTarget({
@@ -768,57 +544,12 @@ describe('PostGroupPersistenceService', () => {
           ],
         }),
       ],
+      [{ id: 'group-1' }],
     );
 
     const result = await service.listReleaseGroups({ organizationId: 'org-1' });
 
     expect(result.docs[0]?.firstTagColor).toBe('#ef4444');
-  });
-
-  it('skips the window prefilter and ranks unwindowed lists from one slim read per table', async () => {
-    seedReleases([makeGroup()], [makeTarget()]);
-
-    const result = await service.listReleaseGroups({ organizationId: 'org-1' });
-
-    expect(result.docs).toEqual([expect.objectContaining({ id: 'group-1' })]);
-    // Ranking read + page hydration for groups; grouped, ungrouped and
-    // hydration reads for posts. No id-only window reads.
-    expect(prisma.postGroup.findMany).toHaveBeenCalledTimes(2);
-    expect(prisma.post.findMany).toHaveBeenCalledTimes(3);
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { isDeleted: false, organizationId: 'org-1' },
-      }),
-    );
-    expect(prisma.post.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          credentialId: { not: null },
-          groupId: { not: null },
-          isDeleted: false,
-          organizationId: 'org-1',
-          parentId: null,
-          platform: { not: null },
-        },
-      }),
-    );
-  });
-
-  it('ignores legacy posts without a channel identity', async () => {
-    seedReleases(
-      [],
-      [
-        {
-          ...makeTarget({ groupId: null, id: 'legacy-post' }),
-          platform: null,
-        } as unknown as SchedulerPostTarget,
-      ],
-    );
-
-    await expect(
-      service.listReleaseGroups({ organizationId: 'org-1' }),
-    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
-    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it.each([

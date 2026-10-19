@@ -5,12 +5,16 @@ import type {
   WinnerSignalEvidence,
 } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
 import type { AnalyticsWinnersTableProps } from '@props/analytics/analytics-winners-table.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+
+const WINNERS_PAGE_SIZE = 12;
 
 function formatSignalValue(evidence: WinnerSignalEvidence, value: number) {
   return evidence.signal === 'engagementRate'
@@ -47,6 +51,11 @@ export default function AnalyticsWinnersTable({
     () => winners.filter((winner) => matchesSearch(winner, search)),
     [search, winners],
   );
+
+  const pagination = useClientPagination(items, {
+    pageSize: WINNERS_PAGE_SIZE,
+    resetKey: search,
+  });
 
   const columns: TableColumn<IWinnerPost>[] = useMemo(
     () => [
@@ -100,15 +109,26 @@ export default function AnalyticsWinnersTable({
   );
 
   return (
-    <Table<IWinnerPost>
-      label={translate('tableLabel')}
-      items={items}
-      isLoading={isLoading}
-      error={hasError ? { title: translate('loadError'), onRetry } : undefined}
-      columns={columns}
-      emptyLabel={translate('empty')}
-      getRowKey={(winner) => `${winner.postId}:${winner.platform}`}
-      onRowClick={(winner) => onSelectPost(winner.postId)}
-    />
+    <div className="flex flex-col gap-4">
+      <Table<IWinnerPost>
+        label={translate('tableLabel')}
+        items={pagination.pageItems}
+        isLoading={isLoading}
+        error={
+          hasError ? { title: translate('loadError'), onRetry } : undefined
+        }
+        columns={columns}
+        emptyLabel={translate('empty')}
+        getRowKey={(winner) => `${winner.postId}:${winner.platform}`}
+        onRowClick={(winner) => onSelectPost(winner.postId)}
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={isLoading ? undefined : pagination.totalItems}
+        totalLabel="winners"
+        onPageChange={pagination.goToPage}
+      />
+    </div>
   );
 }

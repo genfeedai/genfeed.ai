@@ -136,7 +136,7 @@ describe('Analytics split-controller HTTP contract', () => {
     [
       'getBrandsWithStats',
       ['analytics', 'brands'],
-      'analytics:brands:customer:org-1:2025-01-01:2025-01-31:2:25:views',
+      'analytics:brands:customer:org-1:2025-01-01:2025-01-31:2:25:views:all',
       { id: 'user-1', organizationId: 'org-1' },
     ],
   ] as const)(
@@ -193,6 +193,26 @@ describe('Analytics split-controller HTTP contract', () => {
     const unsearched = cache.keyGenerator({ query: {}, user });
 
     expect(searched).toBe(`${unsearched}:acme`);
+  });
+
+  it('keys brand analytics cache entries by the selected brand', () => {
+    const handler = Reflect.get(
+      AnalyticsAdminController.prototype,
+      'getBrandsWithStats',
+    ) as object;
+    const cache = Reflect.getMetadata('cache', handler) as {
+      keyGenerator: (request: {
+        query: Record<string, string>;
+        user: { id: string; organizationId: string };
+      }) => string;
+    };
+    const user = { id: 'user-1', organizationId: 'org-1' };
+
+    const scoped = cache.keyGenerator({ query: { brandId: 'brand-1' }, user });
+    const unscoped = cache.keyGenerator({ query: {}, user });
+
+    expect(scoped).not.toBe(unscoped);
+    expect(scoped).toContain('brand-1');
   });
 
   it('isolates superadmin brand cache entries from customer keys', () => {
