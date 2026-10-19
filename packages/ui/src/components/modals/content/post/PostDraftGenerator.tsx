@@ -18,8 +18,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /** A stopped branded generation says what to fix instead of a generic retry. */
 function failureMessageKey(
   error: unknown,
-): 'failed' | 'failedBrandAssets' | 'failedBrandIdentity' {
+):
+  | 'failed'
+  | 'failedBrandAssets'
+  | 'failedBrandIdentity'
+  | 'failedReferencePost' {
   const code = getJsonApiErrorMember(error)?.code;
+  if (code === 'reference_post_unavailable') return 'failedReferencePost';
   if (code === 'brand_identity_integrity_failed') return 'failedBrandIdentity';
   if (code === 'brand_identity_asset_unavailable') return 'failedBrandAssets';
   return 'failed';

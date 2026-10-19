@@ -153,6 +153,22 @@ describe('PostDraftGenerator', () => {
     );
     expect(screen.getByText(/provisional style/)).toBeInTheDocument();
   });
+  it('tells the user to paste the text when a linked X post cannot be read', async () => {
+    mocks.generateDraftText.mockRejectedValueOnce({
+      errors: [{ code: 'reference_post_unavailable', status: '422' }],
+    });
+    const user = userEvent.setup();
+    render(
+      <PostDraftGenerator platform={Platform.TWITTER} onGenerate={vi.fn()} />,
+    );
+    await user.type(screen.getByRole('textbox'), 'Remix');
+    await user.click(screen.getByRole('button', { name: 'Generate draft' }));
+    await waitFor(() =>
+      expect(mocks.error).toHaveBeenCalledWith(
+        expect.stringContaining('Paste its text'),
+      ),
+    );
+  });
   it('tells the user to re-approve the brand kit when its identity cannot be read', async () => {
     mocks.generateDraftText.mockRejectedValueOnce({
       errors: [{ code: 'brand_identity_integrity_failed', status: '409' }],
