@@ -4225,14 +4225,6 @@
       "workspace": "app"
     },
     {
-      "code": 5097,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/RunHistoryList.test.tsx",
-      "fingerprint": "e091d4d07b708959fc1d",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
-      "workspace": "app"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/captions/captions-list.test.tsx",
@@ -6758,14 +6750,6 @@
       "file": "packages/pages/posts/[id]/ingredient-posts.test.tsx",
       "fingerprint": "28279d5feda70e99c2d1",
       "message": "Type '{ id: string; page: number; ingredient: Ingredient & { totalPosts?: number | undefined; totalViews?: number | undefined; }; posts: never[]; }' is not assignable to type 'IntrinsicAttributes & IngredientPostsProps'.   Property 'page' does not exist on type 'IntrinsicAttributes & IngredientPostsProps'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "packages/pages/posts/detail/PostDetailOverlay.test.tsx",
-      "fingerprint": "b81d976ea37715e543ee",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
       "workspace": "pages"
     },
     {

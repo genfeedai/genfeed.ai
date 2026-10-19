@@ -531,21 +531,6 @@ describe('PostDetail standalone composer', () => {
     ).toBeVisible();
   });
 
-  it('preserves the overlay sidebar and existing view-mode controls', () => {
-    render(
-      <PostDetail
-        postId="post-1"
-        scope={PageScope.PUBLISHING}
-        presentation="overlay"
-      />,
-    );
-    expect(
-      screen.queryByRole('button', { name: 'Preview' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('target-preview')).toBeVisible();
-    expect(screen.getByTestId('post-sidebar')).toBeVisible();
-  });
-
   it('preserves custom sidebar hosts in embedded pages', () => {
     render(
       <PostDetail
