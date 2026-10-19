@@ -22,7 +22,9 @@ describe('BrandDetailLatestArticles', () => {
       slug: `article-${n}`,
     }));
     const { getByText } = render(
-      <BrandDetailLatestArticles articles={articles as unknown as IArticle[]} />,
+      <BrandDetailLatestArticles
+        articles={articles as unknown as IArticle[]}
+      />,
     );
 
     const grid = getByText('Article 1').closest('.grid');
