@@ -5,7 +5,6 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { PlatformRole } from '@genfeedai/contracts';
-import { normalizeRailAppOrder } from '@genfeedai/contracts/constants';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
@@ -39,7 +38,7 @@ function AppProtectedRailContent({
 }: AppProtectedRailProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { brandId, brands, selectedBrand, settings } = useBrand();
+  const { brandId, brands, selectedBrand } = useBrand();
   const { installedAppIds, moduleAccess, modulePreferences } =
     useAvailableRailApps();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
@@ -96,12 +95,6 @@ function AppProtectedRailContent({
     setRailAppOrder,
     togglePin,
   } = useRailPreferencesContext();
-  // A member's own order wins; until they set one, the rail follows the
-  // organization's default. Resetting clears theirs and lands back on it.
-  const effectiveRailAppOrder =
-    railAppOrder.length > 0
-      ? railAppOrder
-      : normalizeRailAppOrder(settings?.defaultRailOrder);
   const preservedTaskSearch = pickOperatorTaskContextSearchParams(
     new URLSearchParams(searchParams.toString()),
   ).toString();
@@ -168,7 +161,7 @@ function AppProtectedRailContent({
       onTogglePin={togglePin}
       orgSlug={effectiveOrgSlug}
       pinnedAppIds={pinnedAppIds}
-      railAppOrder={effectiveRailAppOrder}
+      railAppOrder={railAppOrder}
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
       showAdmin={isAdminChrome || isSuperAdmin || isAdminInBrowser}
