@@ -236,6 +236,11 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     return resolved;
   }
 
+  /** Forgets a run's thread after a post to it failed, so the next one re-resolves it. */
+  evictStoryboardThread(runId: string): void {
+    this.storyboardThreads.delete(runId);
+  }
+
   private async resolveStoryboardThread(input: {
     runId: string;
     title: string;

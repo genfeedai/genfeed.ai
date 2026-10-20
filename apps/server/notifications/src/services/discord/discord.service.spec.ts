@@ -41,6 +41,7 @@ describe('DiscordService', () => {
     getIngredientsWebhook: vi.fn(),
     getModelsWebhook: vi.fn(),
     getPostsWebhook: vi.fn(),
+    evictStoryboardThread: vi.fn(),
     getStoryboardThread: vi.fn(),
     getUsersWebhook: vi.fn(),
   };
@@ -258,6 +259,33 @@ describe('DiscordService', () => {
 
       const payload = mockSend.mock.calls[0][0] as WebhookMessageCreateOptions;
       expect(payload.threadId).toBeUndefined();
+    });
+
+    it('drops a dead thread and posts to the channel instead', async () => {
+      mockDiscordBotService.getIngredientsWebhook.mockResolvedValue(
+        mockWebhookClient,
+      );
+      mockDiscordBotService.getStoryboardThread.mockResolvedValue('gone');
+      mockSend
+        .mockRejectedValueOnce(new Error('Unknown Channel'))
+        .mockResolvedValue(undefined);
+      const { service } = await createService();
+
+      await expect(
+        service.sendIngredientNotification(
+          IngredientCategory.IMAGE,
+          'https://cdn/img.png',
+          { id: 'ing-1' },
+          storyboard,
+        ),
+      ).resolves.toBe(true);
+
+      expect(mockDiscordBotService.evictStoryboardThread).toHaveBeenCalledWith(
+        'run-1',
+      );
+      expect(mockSend).toHaveBeenCalledTimes(2);
+      expect(mockSend.mock.calls[0][0].threadId).toBe('gone');
+      expect(mockSend.mock.calls[1][0].threadId).toBeUndefined();
     });
 
     it('never opens a thread for an ordinary generation', async () => {

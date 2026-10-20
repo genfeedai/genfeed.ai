@@ -311,6 +311,16 @@ describe('DiscordBotService', () => {
       expect(setArchived).toHaveBeenCalledWith(false);
     });
 
+    it('opens a fresh thread after the cached one is evicted', async () => {
+      const { channel } = makeChannel([]);
+
+      await service.getStoryboardThread(input);
+      service.evictStoryboardThread(input.runId);
+      await service.getStoryboardThread(input);
+
+      expect(channel.send).toHaveBeenCalledTimes(2);
+    });
+
     it('resolves null so the caller posts to the channel when it cannot', async () => {
       mockClient.channels.fetch.mockRejectedValue(new Error('Missing Access'));
 

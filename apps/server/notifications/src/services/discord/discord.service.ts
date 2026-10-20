@@ -209,7 +209,7 @@ export class DiscordService {
 
         // A storyboard's stills share one thread; without one they fall back
         // to the channel like any other generation.
-        const threadId = storyboard
+        let threadId = storyboard
           ? ((await this.discordBotService.getStoryboardThread({
               layoutUrl,
               runId: storyboard.runId,
@@ -217,12 +217,37 @@ export class DiscordService {
             })) ?? undefined)
           : undefined;
 
+        // The cached thread can be deleted or locked after it was opened:
+        // drop it so the next still opens a fresh one, and post this one to
+        // the channel instead of failing the delivery.
+        const send = async (
+          payload: WebhookMessageCreateOptions,
+        ): Promise<void> => {
+          if (!threadId || !storyboard) {
+            await webhookClient.send(payload);
+            return;
+          }
+          try {
+            await webhookClient.send({ ...payload, threadId });
+          } catch (error: unknown) {
+            this.loggerService.warn(
+              `${url} thread post failed; posting to the channel`,
+              {
+                error: error instanceof Error ? error.message : String(error),
+                runId: storyboard.runId,
+              },
+            );
+            this.discordBotService.evictStoryboardThread(storyboard.runId);
+            threadId = undefined;
+            await webhookClient.send(payload);
+          }
+        };
+
         // A separate video URL message lets Discord embed the video before its details.
         if (category === IngredientCategory.VIDEO) {
-          await webhookClient.send({
+          await send({
             avatarURL: avatarUrl,
             content: cdnUrl,
-            threadId,
             username: 'Genfeed.ai',
           });
         }
@@ -230,7 +255,6 @@ export class DiscordService {
         const messagePayload: WebhookMessageCreateOptions = {
           avatarURL: avatarUrl,
           embeds: [embed],
-          threadId,
           username: 'Genfeed.ai',
         };
 
@@ -241,7 +265,7 @@ export class DiscordService {
           messagePayload.components = [actionRow];
         }
 
-        await webhookClient.send(messagePayload);
+        await send(messagePayload);
 
         this.loggerService.log(`${url} succeeded`, {
           category,
