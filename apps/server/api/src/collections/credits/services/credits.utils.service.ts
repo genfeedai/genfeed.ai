@@ -1,5 +1,6 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { publishAvailableBalance } from '@api/collections/credits/services/credit-balance-event.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -8,7 +9,10 @@ import {
   type CreditReservationAdmission,
   CreditReservationService,
 } from '@api/collections/credits/services/credit-reservation.service';
-import { creditTransactionOptions } from '@api/collections/credits/services/credit-transaction-options';
+import {
+  BALANCE_TX_OPTIONS,
+  creditTransactionOptions,
+} from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -95,15 +99,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly freeTrialService: FreeTrialService,
   ) {}
 
-  /**
-   * Serializable isolation is required for the read-modify-write balance
-   * cores: at the default ReadCommitted level two concurrent transactions can
-   * both read the same balance and double-spend.
-   */
-  private static readonly BALANCE_TX_OPTIONS = {
-    isolationLevel: 'Serializable',
-  } as const;
-
   private async markOrganizationAsHavingCredits(
     organizationId: string,
   ): Promise<void> {
@@ -180,7 +175,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
               },
               tx,
             ),
-          CreditsUtilsService.BALANCE_TX_OPTIONS,
+          BALANCE_TX_OPTIONS,
         );
 
       if (!wasApplied) {
@@ -459,8 +454,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     const reservation = admission
       ? await this.creditReservationService.reserve(request, admission)
       : await this.creditReservationService.reserve(request);
-    // A hold lowers the spendable balance at once, so open tabs follow it.
-    await this.publishAvailableBalance(input.organizationId);
+    await this.publishBalance(input.organizationId);
     return reservation;
   }
 
@@ -468,10 +462,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     input: ISettleCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
     const snapshot = await this.creditReservationService.settle(input);
-    await this.publishAvailableBalance(
-      input.organizationId,
-      snapshot.available,
-    );
+    await this.publishBalance(input.organizationId, snapshot.available);
     return snapshot;
   }
 
@@ -479,34 +470,17 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
     const snapshot = await this.creditReservationService.release(input);
-    await this.publishAvailableBalance(
-      input.organizationId,
-      snapshot.available,
-    );
+    await this.publishBalance(input.organizationId, snapshot.available);
     return snapshot;
   }
 
-  /**
-   * Tells every open tab the new spendable balance after a hold moves. Runs
-   * after the wallet transaction commits and never fails the billing step: the
-   * balance chip also refetches on focus, so a missed event is only late.
-   */
-  private async publishAvailableBalance(
-    organizationId: string,
-    available?: number,
-  ): Promise<void> {
-    try {
-      const balance =
-        available ?? (await this.getOrganizationCreditsBalance(organizationId));
-      await this.websocketService.emit(`/credits/${organizationId}`, {
-        balance,
-      });
-    } catch (error: unknown) {
-      this.loggerService.warn(
-        `${this.constructorName} failed to publish wallet balance`,
-        { error, organizationId },
-      );
-    }
+  private publishBalance(organizationId: string, available?: number) {
+    return publishAvailableBalance(
+      this.websocketService,
+      this.loggerService,
+      organizationId,
+      available ?? (() => this.getOrganizationCreditsBalance(organizationId)),
+    );
   }
 
   async bindReservationOutput(
@@ -565,7 +539,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
               },
               tx,
             ),
-          CreditsUtilsService.BALANCE_TX_OPTIONS,
+          BALANCE_TX_OPTIONS,
         );
 
       await this.publishCreditAddition(organizationId, creditsToAdd, {
@@ -771,7 +745,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       const { currentBalance, newBalance, wasApplied } =
         await this.transactionUtil.runInTransaction(
           (tx) => refundCore(tx),
-          CreditsUtilsService.BALANCE_TX_OPTIONS,
+          BALANCE_TX_OPTIONS,
         );
 
       if (!wasApplied) return;
@@ -989,7 +963,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       const currentBalance = await this.transactionUtil.runInTransaction(
         (tx) => resetCore(tx),
-        CreditsUtilsService.BALANCE_TX_OPTIONS,
+        BALANCE_TX_OPTIONS,
       );
 
       if (newCreditAmount > 0) {
