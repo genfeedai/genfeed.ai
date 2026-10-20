@@ -55,7 +55,7 @@ describe('WorkspacePanelTabs', () => {
     const agentTab = screen.getByRole('tab', { name: 'Agent' });
     const detailsTab = screen.getByRole('tab', { name: 'Details' });
 
-    expect(agentTab).toHaveAttribute('aria-controls', 'workspace-agent-dock');
+    expect(agentTab).toHaveAttribute('aria-controls', 'workspace-agent-panel');
     expect(detailsTab).toHaveAttribute(
       'aria-controls',
       'workspace-details-panel',

@@ -16,7 +16,7 @@ const TAB_CLASS_NAME =
 
 // The panels the tabs control: the dock section and the details wrapper.
 const TAB_PANEL_IDS: Record<WorkspacePanelTab, string> = {
-  agent: 'workspace-agent-dock',
+  agent: 'workspace-agent-panel',
   details: 'workspace-details-panel',
 };
 

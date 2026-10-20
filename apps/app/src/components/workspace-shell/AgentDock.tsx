@@ -303,16 +303,25 @@ export default function AgentDock({
   return (
     <>
       {body}
-      <section
-        aria-label={translate('label')}
+      {/* The Agent tab controls this wrapper; the named region stays inside
+          it for assistive tech and the dock's tests. */}
+      <div
+        aria-labelledby="workspace-panel-tab-agent"
         className="flex min-h-0 flex-1 flex-col"
-        data-testid="agent-dock"
         hidden={!isPresented}
-        id="workspace-agent-dock"
-        onKeyDown={handleKeyDown}
+        id="workspace-agent-panel"
+        role="tabpanel"
       >
-        {bodyNode ? <AgentDockBodyOutlet body={bodyNode} /> : null}
-      </section>
+        <section
+          aria-label={translate('label')}
+          className="flex min-h-0 flex-1 flex-col"
+          data-testid="agent-dock"
+          id="workspace-agent-dock"
+          onKeyDown={handleKeyDown}
+        >
+          {bodyNode ? <AgentDockBodyOutlet body={bodyNode} /> : null}
+        </section>
+      </div>
     </>
   );
 }
