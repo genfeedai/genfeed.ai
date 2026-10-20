@@ -241,9 +241,22 @@ export function AgentChatContainerThreadView({
       ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
-      <div ref={scrollContainerRef} className={AGENT_CONVERSATION_SCROLL_CLASS}>
+      <div
+        ref={scrollContainerRef}
+        className={cn(
+          AGENT_CONVERSATION_SCROLL_CLASS,
+          // A short transcript must not drag the composer up with it: the
+          // footer takes the remaining height (mt-auto) so it rests on the
+          // bottom edge.
+          hasColumnFooter && 'flex flex-col',
+        )}
+      >
         <div
-          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'space-y-1 pt-4')}
+          className={cn(
+            AGENT_CONVERSATION_TRACK_CLASS,
+            'space-y-1 pt-4',
+            hasColumnFooter && 'shrink-0',
+          )}
           data-composer-padding={String(composerTranscriptPaddingPx)}
           style={{ paddingBottom: composerTranscriptPaddingPx }}
         >
@@ -297,7 +310,7 @@ export function AgentChatContainerThreadView({
         {hasColumnFooter ? (
           <div
             className={cn(
-              'z-20',
+              'z-20 mt-auto shrink-0',
               hasContentBehindComposer && 'sticky bottom-0 bg-background',
             )}
             data-composer-overlap={hasContentBehindComposer ? 'true' : 'false'}
