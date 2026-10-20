@@ -11,6 +11,9 @@ export interface TabItem {
   badge?: ReactNode;
   isDisabled?: boolean;
   testId?: string;
+  /** Adds a close control beside the tab; `closeLabel` names it. */
+  onClose?: () => void;
+  closeLabel?: string;
 }
 
 export interface RouteTabItem extends NavigationTab {

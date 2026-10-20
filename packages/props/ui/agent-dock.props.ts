@@ -53,6 +53,8 @@ export interface AgentDockThreadOption {
 export interface AgentDockThreadMenuProps {
   readonly activeThreadId?: string | null;
   readonly isThreadListLoading?: boolean;
+  /** Renders the picker as a history icon, for a strip that already names chats. */
+  readonly isTriggerIconOnly?: boolean;
   readonly onNewThread?: () => void;
   readonly onSelectThread?: (threadId: string) => void;
   readonly threadTitle?: string | null;

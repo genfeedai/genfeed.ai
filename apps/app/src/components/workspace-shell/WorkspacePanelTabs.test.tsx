@@ -4,11 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import WorkspacePanelTabs from './WorkspacePanelTabs';
 
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/moonrise/workspace',
-  useSearchParams: () => new URLSearchParams(),
-}));
-
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../tests/next-intl.stub'
@@ -16,16 +11,27 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/moonrise/workspace',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 function renderTabs(overrides: Partial<WorkspacePanelTabsProps> = {}) {
   const props: WorkspacePanelTabsProps = {
+    activeChatId: 'thread-1',
     activeTab: 'agent',
-    hasAgent: true,
+    chatTabs: [
+      { id: 'thread-1', title: 'Spring launch plan' },
+      { id: 'thread-2', title: 'Caption ideas' },
+    ],
     hasDetails: true,
     onClose: vi.fn(),
+    onCloseChat: vi.fn(),
     onNewThread: vi.fn(),
     onOpenFullPage: vi.fn(),
+    onSelectChat: vi.fn(),
     onSelectTab: vi.fn(),
-    threadMenu: { threadTitle: 'Spring launch plan' },
+    threadMenu: {},
     ...overrides,
   };
 
@@ -33,52 +39,93 @@ function renderTabs(overrides: Partial<WorkspacePanelTabsProps> = {}) {
 }
 
 describe('WorkspacePanelTabs', () => {
-  it('lists the agent and details tabs and marks the active one', () => {
-    renderTabs({ activeTab: 'details' });
+  it('lists every open chat and Details, and marks the one in front', () => {
+    renderTabs();
 
     expect(screen.getByRole('tablist', { name: 'Panel tabs' })).toBeVisible();
-    expect(screen.getByRole('tab', { name: 'Agent' })).toHaveAttribute(
+    expect(
+      screen.getByRole('tab', { name: 'Spring launch plan' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Caption ideas' })).toHaveAttribute(
       'aria-selected',
       'false',
     );
     expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute(
       'aria-selected',
-      'true',
+      'false',
     );
   });
 
-  it('selects a tab on press', () => {
+  it('puts Details in front when it is the active tab', () => {
+    renderTabs({ activeTab: 'details' });
+
+    expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.getByRole('tab', { name: 'Spring launch plan' }),
+    ).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('selects a chat or Details on press', () => {
     const { props } = renderTabs();
 
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Details' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Caption ideas' }));
+    expect(props.onSelectChat).toHaveBeenCalledWith('thread-2');
 
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Details' }));
     expect(props.onSelectTab).toHaveBeenCalledWith('details');
   });
 
-  it('only lists the tabs the shell can show', () => {
-    renderTabs({ hasAgent: false, activeTab: 'details' });
+  it('closes a chat from its own control without selecting it', () => {
+    const { props } = renderTabs();
 
-    expect(screen.queryByRole('tab', { name: 'Agent' })).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close Caption ideas' }),
+    );
+
+    expect(props.onCloseChat).toHaveBeenCalledWith('thread-2');
+    expect(props.onSelectChat).not.toHaveBeenCalled();
+  });
+
+  it('offers no close control while the only chat is unsaved', () => {
+    renderTabs({
+      activeChatId: 'new',
+      chatTabs: [{ id: 'new', title: 'New chat' }],
+      hasDetails: false,
+      onCloseChat: undefined,
+    });
+
+    expect(screen.getByRole('tab', { name: 'New chat' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.queryByRole('button', { name: /^Close New chat/ }),
+    ).toBeNull();
+  });
+
+  it('only lists Details when the shell hosts no agent', () => {
+    renderTabs({ activeTab: 'details', chatTabs: [] });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
     expect(screen.getByRole('tab', { name: 'Details' })).toBeVisible();
     expect(screen.queryByTestId('workspace-panel-new-thread')).toBeNull();
   });
 
-  it('shows the thread menu, new thread and full page controls on the agent tab', () => {
+  it('starts a chat and opens the full page from the agent controls', () => {
     const { props } = renderTabs();
 
-    expect(screen.getByTestId('agent-dock-thread-title')).toHaveTextContent(
-      'Spring launch plan',
-    );
     fireEvent.click(screen.getByRole('button', { name: 'New thread' }));
     expect(props.onNewThread).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
     expect(props.onOpenFullPage).toHaveBeenCalledTimes(1);
   });
 
-  it('hides the agent controls while Details is in front, and still closes the panel', () => {
+  it('hides the full page control while Details is in front, and still closes the panel', () => {
     const { props } = renderTabs({ activeTab: 'details' });
 
-    expect(screen.queryByTestId('agent-dock-thread-title')).toBeNull();
     expect(screen.queryByTestId('workspace-panel-full-page')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
     expect(props.onClose).toHaveBeenCalledTimes(1);

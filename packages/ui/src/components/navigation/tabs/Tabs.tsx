@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
@@ -10,6 +11,7 @@ import type {
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { Button } from '@ui/primitives/button';
 import {
   TabsList,
   TabsContent as TabsPanel,
@@ -20,6 +22,7 @@ import {
   getTabsListClassName,
   getTabsTriggerClassName,
 } from '@ui/primitives/tabs.styles';
+import { X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -328,18 +331,25 @@ function TabsContent({
           const triggerContent = (
             <span className={cn('flex items-center gap-2', 'capitalize')}>
               {Icon && <Icon className="text-lg" />}
-              {tabItem.label as ReactNode}
+              {tabItem.onClose ? (
+                <span className="max-w-[9rem] truncate">{tabItem.label}</span>
+              ) : (
+                (tabItem.label as ReactNode)
+              )}
               {tab.badge}
             </span>
           );
 
-          return (
+          const trigger = (
             <TabsTrigger
               key={key}
               value={value}
               data-testid={tabItem.testId}
               disabled={tab.isDisabled}
-              className={cn(tab.isDisabled && 'opacity-50 cursor-not-allowed')}
+              className={cn(
+                tab.isDisabled && 'opacity-50 cursor-not-allowed',
+                tabItem.onClose && 'pr-7',
+              )}
               onClick={(event) => {
                 if (stopClickPropagation) {
                   event.stopPropagation();
@@ -348,6 +358,34 @@ function TabsContent({
             >
               {triggerContent}
             </TabsTrigger>
+          );
+
+          if (!tabItem.onClose) {
+            return trigger;
+          }
+
+          return (
+            <span
+              key={key}
+              className="relative inline-flex h-full shrink-0 items-center"
+            >
+              {trigger}
+              <Button
+                ariaLabel={tabItem.closeLabel}
+                className="absolute right-0.5 size-5 rounded-sm p-0"
+                data-testid={
+                  tabItem.testId ? `${tabItem.testId}-close` : undefined
+                }
+                icon={<X className="size-3" />}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  tabItem.onClose?.();
+                }}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </span>
           );
         })}
       </TabsList>

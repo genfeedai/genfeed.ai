@@ -103,7 +103,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
-import { useAgentDockThreads } from './use-agent-dock-threads';
+import {
+  NEW_CHAT_TAB_ID,
+  useAgentDockThreads,
+} from './use-agent-dock-threads';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import {
@@ -689,6 +692,22 @@ function UniversalWorkspaceShellContent({
     [activeContextSidebar, isInspectorOpen, openAgentDock],
   );
 
+  const selectDockThread = dockThreads.selectThread;
+  const handleSelectChat = useCallback(
+    (chatId: string) => {
+      openAgentDock?.();
+      setPanelTabPreference('agent');
+      if (chatId !== NEW_CHAT_TAB_ID) {
+        void selectDockThread(chatId);
+      }
+    },
+    [openAgentDock, selectDockThread],
+  );
+  // The lone unsaved chat has nothing to close; any other chat can go.
+  const hasClosableChat =
+    dockThreads.chatTabs.length > 1 ||
+    dockThreads.chatTabs[0]?.id !== NEW_CHAT_TAB_ID;
+
   const handleClosePanel = useCallback(() => {
     closeAgentDock?.();
     if (isInspectorOpen) {
@@ -1216,12 +1235,17 @@ function UniversalWorkspaceShellContent({
               }}
             >
               <WorkspacePanelTabs
+                activeChatId={dockThreads.activeThreadId ?? NEW_CHAT_TAB_ID}
                 activeTab={activePanelTab}
-                hasAgent={isAgentDockHost}
+                chatTabs={isAgentDockHost ? dockThreads.chatTabs : []}
                 hasDetails={Boolean(activeContextSidebar)}
                 onClose={handleClosePanel}
+                onCloseChat={
+                  hasClosableChat ? dockThreads.closeChatTab : undefined
+                }
                 onNewThread={dockThreads.startThread}
                 onOpenFullPage={handleOpenFullConversation}
+                onSelectChat={handleSelectChat}
                 onSelectTab={handleSelectPanelTab}
                 threadMenu={{
                   activeThreadId: dockThreads.activeThreadId,

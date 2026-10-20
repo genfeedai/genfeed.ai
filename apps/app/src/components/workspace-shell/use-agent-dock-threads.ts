@@ -7,10 +7,14 @@ import {
 } from '@genfeedai/agent';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { AgentDockThreadOption } from '@props/ui/agent-dock.props';
+import type { WorkspacePanelChatTab } from '@props/ui/workspace-panel.props';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const THREAD_LIST_LIMIT = 30;
+
+/** The unsaved chat that has no thread yet. */
+export const NEW_CHAT_TAB_ID = 'new';
 
 function isListedThread(thread: AgentThread): boolean {
   return !thread.status || thread.status === AgentThreadStatus.ACTIVE;
@@ -50,6 +54,7 @@ export function useAgentDockThreads(
   const translate = useTranslations('common.agentDock');
   const [isThreadListLoading, setIsThreadListLoading] = useState(false);
   const requestSerial = useRef(0);
+  const [openThreadIds, setOpenThreadIds] = useState<readonly string[]>([]);
 
   useEffect(() => {
     if (!isEnabled || typeof apiService.getThreads !== 'function') {
@@ -93,6 +98,29 @@ export function useAgentDockThreads(
         title: thread.title?.trim() || translate('untitledThread'),
       }));
   }, [threads, translate]);
+
+  // A chat opened from anywhere (the history menu, a first message that
+  // creates its thread) gets a tab and keeps it until it is closed.
+  useEffect(() => {
+    if (!activeThreadId) {
+      return;
+    }
+    setOpenThreadIds((current) =>
+      current.includes(activeThreadId) ? current : [...current, activeThreadId],
+    );
+  }, [activeThreadId]);
+
+  const chatTabs = useMemo<readonly WorkspacePanelChatTab[]>(() => {
+    const tabs = openThreadIds.map((id) => ({
+      id,
+      title:
+        threads.find((thread) => thread.id === id)?.title?.trim() ||
+        translate('untitledThread'),
+    }));
+    return activeThreadId
+      ? tabs
+      : [...tabs, { id: NEW_CHAT_TAB_ID, title: translate('newChat') }];
+  }, [activeThreadId, openThreadIds, threads, translate]);
 
   const selectThread = useCallback(
     async (threadId: string) => {
@@ -157,8 +185,37 @@ export function useAgentDockThreads(
     resetActiveConversationState();
   }, [cacheConversation, resetActiveConversationState, setActiveThread]);
 
+  const closeChatTab = useCallback(
+    (tabId: string) => {
+      if (tabId === NEW_CHAT_TAB_ID) {
+        const lastOpenId = openThreadIds[openThreadIds.length - 1];
+        if (lastOpenId) {
+          void selectThread(lastOpenId);
+        }
+        return;
+      }
+
+      const index = openThreadIds.indexOf(tabId);
+      const remaining = openThreadIds.filter((id) => id !== tabId);
+      setOpenThreadIds(remaining);
+      if (useAgentChatStore.getState().activeThreadId !== tabId) {
+        return;
+      }
+
+      const nextId = remaining[Math.min(index, remaining.length - 1)];
+      if (nextId) {
+        void selectThread(nextId);
+      } else {
+        startThread();
+      }
+    },
+    [openThreadIds, selectThread, startThread],
+  );
+
   return {
     activeThreadId,
+    chatTabs,
+    closeChatTab,
     isThreadListLoading,
     selectThread,
     startThread,

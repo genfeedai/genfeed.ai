@@ -1101,6 +1101,7 @@
     "close": "Close agent",
     "description": "Chat with the agent without leaving this page.",
     "label": "Agent",
+    "newChat": "New chat",
     "newThread": "New thread",
     "noThreads": "No threads yet",
     "open": "Open agent",
@@ -1127,6 +1128,7 @@
   "sidePanel": {
     "agent": "Agent",
     "close": "Close panel",
+    "closeChat": "Close {title}",
     "details": "Details",
     "label": "Side panel",
     "newThread": "New thread",

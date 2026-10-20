@@ -11,13 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { Check, ChevronDown, SquarePen } from 'lucide-react';
+import { Check, ChevronDown, History, SquarePen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /** The thread picker of the agent panel: current thread, switch, or start one. */
 export default function AgentDockThreadMenu({
   activeThreadId,
   isThreadListLoading = false,
+  isTriggerIconOnly = false,
   onNewThread,
   onSelectThread,
   threadTitle,
@@ -32,17 +33,28 @@ export default function AgentDockThreadMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          className="h-6 min-w-0 max-w-[14rem] px-1.5 text-xs font-normal text-muted-foreground"
-          data-testid="agent-dock-thread-title"
-          size={ButtonSize.SM}
-          textTransform="none"
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        >
-          <span className="truncate">{selectedThreadLabel}</span>
-          <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
-        </Button>
+        {isTriggerIconOnly ? (
+          <Button
+            ariaLabel={translate('threads')}
+            data-testid="agent-dock-thread-history"
+            icon={<History className="size-4" />}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        ) : (
+          <Button
+            className="h-6 min-w-0 max-w-[14rem] px-1.5 text-xs font-normal text-muted-foreground"
+            data-testid="agent-dock-thread-title"
+            size={ButtonSize.SM}
+            textTransform="none"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <span className="truncate">{selectedThreadLabel}</span>
+            <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
