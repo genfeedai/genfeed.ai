@@ -110,6 +110,27 @@ describe('AuthFormLayout', () => {
     expect(screen.getByText('Sign in to Genfeed')).toBeInTheDocument();
   });
 
+  it('should render the description full width below a heading icon row', () => {
+    render(
+      <AuthFormLayout
+        description={<p>We sent a link to you@example.com</p>}
+        headingIcon={<span data-testid="icon" />}
+        logoSize="compact"
+        title="Check your email"
+      >
+        <div>Content</div>
+      </AuthFormLayout>,
+    );
+
+    const heading = screen.getByRole('heading', { name: 'Check your email' });
+    const row = heading.parentElement?.parentElement as HTMLElement;
+    const description = screen.getByText('We sent a link to you@example.com');
+
+    expect(row).toContainElement(screen.getByTestId('icon'));
+    expect(row).not.toContainElement(description);
+    expect(row.parentElement).toContainElement(description);
+  });
+
   it('should wrap compact auth forms in an elevated card', () => {
     render(
       <AuthFormLayout logoSize="compact">

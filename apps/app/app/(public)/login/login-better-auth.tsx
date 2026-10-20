@@ -535,13 +535,13 @@ export default function LoginBetterAuth({
       <AuthFormLayout
         description={
           <>
-            {translate('loginForm.sentLinkTo')}{' '}
-            <strong className="block break-all font-medium text-foreground">
-              {email}
-            </strong>{' '}
-            <span className="mt-2 block">
-              {translate('loginForm.clickEmailLink')}
-            </span>
+            <p>
+              {translate('loginForm.sentLinkTo')}{' '}
+              <strong className="break-all font-medium text-foreground">
+                {email}
+              </strong>
+            </p>
+            <p>{translate('loginForm.clickEmailLink')}</p>
           </>
         }
         logoSize="compact"

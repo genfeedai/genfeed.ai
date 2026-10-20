@@ -36,28 +36,40 @@ export default function AuthFormLayout({
           bodyClassName="gap-0 p-6 sm:p-10"
         >
           {title ? (
-            <div
-              className={`mb-8 flex ${headingIcon ? 'items-start gap-4' : 'items-center gap-5'}`}
-            >
-              {headingIcon ??
-                (logoUrl && (
-                  <Image
-                    src={logoUrl}
-                    className="shrink-0 object-contain dark:invert"
-                    alt={EnvironmentService.LOGO_ALT}
-                    width={logoDimension}
-                    height={logoDimension}
-                    priority
-                  />
-                ))}
-              <div className="min-w-0">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                  {title}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {description}
-                </p>
+            <div className="mb-8">
+              <div
+                className={`flex items-center ${headingIcon ? 'gap-4' : 'gap-5'}`}
+              >
+                {headingIcon ??
+                  (logoUrl && (
+                    <Image
+                      src={logoUrl}
+                      className="shrink-0 object-contain dark:invert"
+                      alt={EnvironmentService.LOGO_ALT}
+                      width={logoDimension}
+                      height={logoDimension}
+                      priority
+                    />
+                  ))}
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                    {title}
+                  </h1>
+                  {headingIcon ? null : (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {description}
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {/* With a heading icon the description runs full width under the
+                  heading row, so it lines up with the card edge and actions. */}
+              {headingIcon ? (
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                  {description}
+                </div>
+              ) : null}
             </div>
           ) : (
             logoUrl && (
