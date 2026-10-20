@@ -1007,11 +1007,9 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-transition-duration',
       `${isInspectorResizing ? 0 : SIDEBAR_TRANSITION_DURATION_MS}ms`,
     );
-    // Open, the panel attaches to the rounded block. The panel's left border
-    // is the divider; this flag squares that block's right corners. The panel
-    // runs the full window height, so the topbar also stops at its edge.
+    // Open, the panel attaches to the page block. The panel's left border is
+    // the divider; this flag makes the block flush with the panel.
     layoutRoot.dataset.inspectorOpen = String(isPanelOpen);
-    layoutRoot.dataset.workspacePanel = 'true';
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
@@ -1019,7 +1017,6 @@ function UniversalWorkspaceShellContent({
         '--workspace-inspector-transition-duration',
       );
       delete layoutRoot.dataset.inspectorOpen;
-      delete layoutRoot.dataset.workspacePanel;
     };
   }, [inspectorRailWidth, isInspectorResizing, isPanelOpen]);
 
@@ -1171,8 +1168,8 @@ function UniversalWorkspaceShellContent({
             </section>
           </div>
 
-          {/* The side panel runs the full window height and clips its
-              fixed-width contents as it closes. */}
+          {/* The side panel starts under the topbar, level with the page
+              block, and clips its fixed-width contents as it closes. */}
           <aside
             // Nothing open: the empty, zero-width column is not a landmark.
             aria-hidden={isPanelOpen ? undefined : true}
@@ -1190,7 +1187,7 @@ function UniversalWorkspaceShellContent({
               bottom: 0,
               minWidth: inspectorRailWidth,
               right: 0,
-              top: 'var(--desktop-titlebar-height)',
+              top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
               transition: isInspectorResizing
                 ? 'none'
                 : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,

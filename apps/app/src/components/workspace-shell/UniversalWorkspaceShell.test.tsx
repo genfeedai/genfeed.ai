@@ -755,19 +755,18 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: attached to the rounded block. The panel's left border is the
-    // divider; the panel runs the full window height beside the topbar.
+    // Open: attached to the page block. The panel's left border is the
+    // divider; the panel starts under the full-width topbar.
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('400px');
-    expect(layoutRoot).toHaveAttribute('data-workspace-panel', 'true');
     expect(aside).toHaveClass('bg-card', 'border-l', 'border-border-strong');
     expect(aside).not.toHaveClass('rounded-r-lg', 'border-y', 'border-r');
     expect(aside).toHaveStyle({
       bottom: '0px',
       right: '0px',
-      top: 'var(--desktop-titlebar-height)',
+      top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
       width: '400px',
     });
     expect(aside).toHaveAttribute('data-motion', 'layout');

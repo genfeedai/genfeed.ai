@@ -220,16 +220,14 @@ export default function AppLayout({
               className={cn(
                 'fixed top-0 right-0 left-0 z-50 h-[var(--shell-topbar-height)] border-b border-border',
                 hasChrome
-                  ? // The side panel runs the full window height: the topbar ends
-                    // at its left edge instead of spanning above it.
-                    'bg-gray-100 md:static md:z-auto md:shrink-0 md:border-b-0 xl:[[data-workspace-panel=true]_&]:mr-[var(--workspace-inspector-width,0px)]'
+                  ? // The topbar spans the full width; the side panel starts
+                    // under it, level with the page block.
+                    'bg-gray-100 md:static md:z-auto md:shrink-0 md:border-b-0'
                   : 'bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
               )}
               style={{
                 top: 'var(--desktop-titlebar-height)',
-                transition: hasChrome
-                  ? `margin-right var(--workspace-inspector-transition-duration, ${SIDEBAR_TRANSITION_DURATION_MS}ms) ${SIDEBAR_TRANSITION_EASING}`
-                  : sidebarOffsetTransition,
+                transition: hasChrome ? undefined : sidebarOffsetTransition,
               }}
             >
               {isDesktop && hasChrome ? (
