@@ -20,7 +20,6 @@ import {
 } from '@/lib/onboarding/onboarding-access.util';
 
 const PLAN_SLUG_PRICE_IDS = {
-  agencies: 'price_scale_monthly',
   scale: 'price_scale_monthly',
 } as const;
 
@@ -108,7 +107,7 @@ describe('isFreePlanHandoff / hasPaidPlanIntent (genfeedai/genfeed.ai#5311)', ()
   });
 
   it('counts a real paid plan as intent on both sides of the funnel', () => {
-    for (const plan of ['price_123', 'agencies', 'scale']) {
+    for (const plan of ['price_123', 'scale']) {
       expect(isFreePlanHandoff(plan)).toBe(false);
       expect(hasPaidPlanIntent(plan)).toBe(true);
     }
@@ -140,13 +139,9 @@ describe('buildGenfeedCloudSignupUrl', () => {
 });
 
 describe('resolveSelectedPlanParam', () => {
-  it('resolves the Scale slug, and its former name, to the configured price id', () => {
-    // The pricing card links to `/sign-up?plan=scale` (older links used
-    // `plan=agencies`); the checkout DTO only accepts `price_...`, so the
-    // slug must resolve before handoff.
-    expect(resolveSelectedPlanParam('agencies', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_scale_monthly',
-    );
+  it('resolves the Scale slug to the configured price id', () => {
+    // The pricing card links to `/sign-up?plan=scale`; the checkout DTO only
+    // accepts `price_...`, so the slug must resolve before handoff.
     expect(resolveSelectedPlanParam('scale', PLAN_SLUG_PRICE_IDS)).toBe(
       'price_scale_monthly',
     );
@@ -179,7 +174,7 @@ describe('persistOnboardingHandoffParams', () => {
     const storedValues = new Map<string, string>();
 
     persistOnboardingHandoffParams(
-      '?plan=agencies',
+      '?plan=scale',
       {
         setItem: (key, value) => {
           storedValues.set(key, value);

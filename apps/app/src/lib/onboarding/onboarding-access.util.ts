@@ -164,8 +164,6 @@ export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
   const { scale } = EnvironmentService.plans;
 
   return {
-    // Slug from the former plan name: links in the wild still resolve.
-    agencies: scale,
     scale,
   };
 }
