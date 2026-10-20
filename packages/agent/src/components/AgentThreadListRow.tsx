@@ -30,7 +30,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement, RefObject } from 'react';
 import {
-  formatRelativeTime,
   getThreadStatusMeta,
   resolveThreadListPreview,
 } from './agent-thread-list.helpers';
@@ -68,8 +67,9 @@ interface AgentThreadListRowProps {
 }
 
 /**
- * Dense title+preview+time, square active border, and an 8px status
- * dot with an accessible name when the thread is running, waiting, or failed.
+ * Dense title+preview, square active border, and an 8px status dot in the
+ * trailing slot (swapped for the actions menu on hover) with an accessible
+ * name when the thread is running, waiting, or failed.
  * Archived rows use semantic surface and foreground tokens so the title stays
  * above WCAG AA without opacity stacking dimming every descendant.
  */
@@ -155,18 +155,10 @@ export function AgentThreadListRow({
     isLocallyBusy: threadUiBusyById[conv.id] === true,
   });
 
-  const relativeTime = formatRelativeTime(
-    conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,
-  );
   const isMenuOpen = openMenuThreadId === conv.id;
   const shouldShowActions = renamingThreadId === conv.id || isMenuOpen;
   const preview = resolveThreadListPreview(conv);
   const threadTitle = conv.title || 'Untitled';
-  const activityIndicator = statusMeta ? (
-    <ThreadActivityIndicator statusMeta={statusMeta} />
-  ) : (
-    <span aria-hidden="true" className="size-2 shrink-0" />
-  );
 
   return (
     <div
@@ -241,7 +233,6 @@ export function AgentThreadListRow({
         >
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
-              {activityIndicator}
               {conv.source === 'proactive' && (
                 <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-2xs text-muted-foreground">
                   {translate('agent')}
@@ -265,7 +256,7 @@ export function AgentThreadListRow({
               </span>
             </div>
             {preview ? (
-              <div className="mt-0.5 min-w-0 truncate pl-3.5 text-2xs text-foreground/38">
+              <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">
                 {preview}
               </div>
             ) : null}
@@ -274,14 +265,14 @@ export function AgentThreadListRow({
       )}
 
       <div className="pointer-events-none absolute right-1 top-1 size-7 shrink-0">
-        {relativeTime ? (
+        {statusMeta ? (
           <span
             className={cn(
-              'absolute inset-0 flex items-center justify-center text-2xs tabular-nums text-foreground/36 transition-opacity',
+              'absolute inset-0 flex items-center justify-center transition-opacity',
               shouldShowActions ? 'opacity-0' : hoverConcealClassName(),
             )}
           >
-            {relativeTime}
+            <ThreadActivityIndicator statusMeta={statusMeta} />
           </span>
         ) : null}
         <DropdownMenu

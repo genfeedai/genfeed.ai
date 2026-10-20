@@ -525,13 +525,15 @@ describe('AgentThreadList', () => {
     expect(apiService.getMessages).not.toHaveBeenCalled();
   });
 
-  it('uses one trailing slot for the timestamp and thread actions', async () => {
+  it('uses one trailing slot for the status dot and thread actions, with no timestamp', async () => {
     const tenDaysAgo = new Date(
       Date.now() - 10 * 24 * 60 * 60 * 1000,
     ).toISOString();
     const thread = createThread('conv-1', 'Aligned thread', {
+      attentionState: 'running',
       lastActivityAt: tenDaysAgo,
-    });
+      runStatus: 'running',
+    } as Partial<AgentThread>);
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
       unarchiveThread: vi.fn(),
@@ -539,13 +541,15 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const timestamp = await screen.findByText('10d');
+    const dot = await screen.findByRole('status', { name: 'Running' });
+    const slot = dot.parentElement;
     const actions = screen.getByRole('button', {
       name: 'Thread actions for Aligned thread',
     });
 
-    expect(timestamp.parentElement).toBe(actions.parentElement);
-    expect(timestamp).toHaveClass(
+    expect(screen.queryByText('10d')).not.toBeInTheDocument();
+    expect(slot?.parentElement).toBe(actions.parentElement);
+    expect(slot).toHaveClass(
       'opacity-0',
       '[@media(hover:hover)]:opacity-100',
       '[@media(hover:hover)]:group-hover:opacity-0',
@@ -564,7 +568,7 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByRole('menuitem', { name: 'Pin conversation' }),
     ).toBeInTheDocument();
-    expect(timestamp).toHaveClass('opacity-0');
+    expect(slot).toHaveClass('opacity-0');
     expect(actions).toHaveClass('opacity-100');
   });
 
@@ -739,15 +743,11 @@ describe('AgentThreadList', () => {
 
     const title = await screen.findByText('Compact row');
     expect(title).toBeInTheDocument();
-    expect(title.parentElement?.firstElementChild).toHaveClass(
-      'size-2',
-      'shrink-0',
+    // The title leads the row; the status dot lives in the trailing slot.
+    expect(title.parentElement?.firstElementChild).toBe(title);
+    expect(screen.getByText('Three portraits are ready')).not.toHaveClass(
+      'pl-3.5',
     );
-    expect(title.parentElement?.firstElementChild).toHaveAttribute(
-      'aria-hidden',
-      'true',
-    );
-    expect(screen.getByText('Three portraits are ready')).toHaveClass('pl-3.5');
     expect(screen.getByText('Three portraits are ready')).toBeInTheDocument();
     expect(
       screen.queryByRole('img', {
@@ -1076,10 +1076,11 @@ describe('AgentThreadList', () => {
     const title = screen.getByText('Failed thread');
     expect(failed).toHaveClass('rounded-full', 'size-2', 'bg-destructive');
     expect(failed.querySelector('svg')).not.toBeInTheDocument();
+    // The dot trails the title.
     expect(
       Boolean(
         failed.compareDocumentPosition(title) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
+          Node.DOCUMENT_POSITION_PRECEDING,
       ),
     ).toBe(true);
   });
