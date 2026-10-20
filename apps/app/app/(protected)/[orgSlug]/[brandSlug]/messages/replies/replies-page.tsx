@@ -42,6 +42,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import RepliesReplyComposer from './replies-reply-composer';
 import RepliesWarmupQueue from './replies-warmup-queue';
+import RepliesWarmupTargets from './replies-warmup-targets';
 
 const REPLIES_DESCRIPTION =
   'Answer people who comment on your posts. Draft replies in your brand voice, or turn on auto-replies for new comments.';
@@ -388,6 +389,9 @@ export default function RepliesPage() {
       </Card>
 
       {inboxPlatform === Platform.TWITTER ? <RepliesWarmupQueue /> : null}
+      {inboxPlatform === Platform.TWITTER && brandId ? (
+        <RepliesWarmupTargets brandId={brandId} />
+      ) : null}
 
       {isLoading ? (
         <Loading />

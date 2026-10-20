@@ -219,3 +219,21 @@ export interface IAssistedReplyOpenResult {
   intentUrl: string;
   targetUrl: string;
 }
+
+/** An X account worth answering, found by searching the brand's niche. */
+export interface IReplyTargetSuggestion {
+  displayName?: string;
+  /** Likes, reposts, replies and quotes across the matched posts. */
+  engagement: number;
+  followersCount: number;
+  matchedPosts: number;
+  samplePostId: string;
+  samplePostText: string;
+  username: string;
+}
+
+export interface IReplyTargetAddResult {
+  botConfigId: string;
+  monitoredAccountId: string;
+  username: string;
+}

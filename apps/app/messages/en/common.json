@@ -1637,6 +1637,22 @@
         "dismissed": "Draft dismissed",
         "loadFailed": "Could not load the warm-up queue",
         "actionFailed": "That did not go through"
+      },
+      "targets": {
+        "title": "Find accounts to reply to",
+        "description": "Describe your niche and Genfeed suggests active X accounts of a useful size. Monitored accounts get a reply draft in the queue above whenever they post.",
+        "queryLabel": "Your niche",
+        "queryPlaceholder": "indie hackers shipping SaaS",
+        "search": "Find accounts",
+        "searching": "Searching X",
+        "empty": "No matching accounts yet. Try a broader niche.",
+        "followers": "{count} followers",
+        "matchedPosts": "{count} matching posts",
+        "monitor": "Monitor",
+        "monitoring": "Monitoring",
+        "added": "Now monitoring @{username}",
+        "searchFailed": "Could not search X right now",
+        "addFailed": "Could not monitor that account"
       }
     },
     "workflowBinding": {

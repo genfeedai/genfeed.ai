@@ -1,5 +1,9 @@
 import type { Platform } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type {
+  IReplyTargetAddResult,
+  IReplyTargetSuggestion,
+} from '@genfeedai/contracts/interfaces';
 import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
 import {
   BaseService,
@@ -54,6 +58,35 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
       replyText: string;
       dmText?: string;
     }>(`/${id}/test`, { author, content });
+    return response.data;
+  }
+
+  /**
+   * X accounts in the brand's niche worth replying to for warm-up. Read only.
+   */
+  async discoverWarmupTargets(params: {
+    brandId: string;
+    maxResults?: number;
+    query: string;
+  }): Promise<IReplyTargetSuggestion[]> {
+    const response = await this.instance.post<IReplyTargetSuggestion[]>(
+      'warmup/discover-targets',
+      params,
+    );
+    return response.data;
+  }
+
+  /**
+   * Monitor an X account for warm-up reply drafts.
+   */
+  async addWarmupTarget(params: {
+    brandId: string;
+    username: string;
+  }): Promise<IReplyTargetAddResult> {
+    const response = await this.instance.post<IReplyTargetAddResult>(
+      'warmup/targets',
+      params,
+    );
     return response.data;
   }
 
