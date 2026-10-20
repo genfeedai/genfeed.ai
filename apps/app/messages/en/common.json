@@ -1109,8 +1109,6 @@
     "threads": "Threads",
     "threadsLoading": "Loading threads",
     "untitledThread": "Untitled",
-    "pagePrompt": "Work with this page",
-    "resize": "Resize agent",
     "title": "Agent",
     "unavailable": "Agent is the main view here"
   },
@@ -1125,6 +1123,15 @@
     "resize": "Resize details",
     "workflow": "Workflow",
     "workflowRun": "Workflow run"
+  },
+  "sidePanel": {
+    "agent": "Agent",
+    "close": "Close panel",
+    "details": "Details",
+    "label": "Side panel",
+    "newThread": "New thread",
+    "openFullPage": "Open full page",
+    "tabs": "Panel tabs"
   },
   "desktop": {
     "generationCost": {

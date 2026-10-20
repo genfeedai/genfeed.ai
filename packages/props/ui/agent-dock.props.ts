@@ -27,7 +27,6 @@ export interface AgentDockContextValue {
    */
   readonly attachContent: (reference: AgentDockContentReference) => boolean;
   readonly close: () => void;
-  readonly height: number;
   /** The shell hosts a dock on this route (never on `/agent`). */
   readonly isAvailable: boolean;
   readonly isOpen: boolean;
@@ -35,14 +34,12 @@ export interface AgentDockContextValue {
   readonly registerAttachHandler: (
     handler: AgentDockAttachHandler,
   ) => () => void;
-  readonly setHeight: (height: number) => void;
   readonly setIsAvailable: (isAvailable: boolean) => void;
   readonly toggle: () => void;
 }
 
 /** What the dock remembers per viewer: whether it is open, and its height. */
 export interface AgentDockPersistedState {
-  readonly height: number;
   readonly isOpen: boolean;
 }
 
@@ -52,15 +49,19 @@ export interface AgentDockThreadOption {
   readonly title: string;
 }
 
-export interface AgentDockHeaderProps {
+/** Thread picker shared by the panel tabs and the compact sheet header. */
+export interface AgentDockThreadMenuProps {
   readonly activeThreadId?: string | null;
   readonly isThreadListLoading?: boolean;
-  readonly onClose: () => void;
   readonly onNewThread?: () => void;
-  readonly onOpenFullPage: () => void;
   readonly onSelectThread?: (threadId: string) => void;
   readonly threadTitle?: string | null;
   readonly threads?: readonly AgentDockThreadOption[];
+}
+
+export interface AgentDockHeaderProps extends AgentDockThreadMenuProps {
+  readonly onClose: () => void;
+  readonly onOpenFullPage: () => void;
   readonly title: ReactNode;
 }
 
@@ -73,46 +74,20 @@ export interface AgentDockProviderProps {
   readonly children: ReactNode;
 }
 
-export type AgentDockChrome = 'split' | 'bubble';
-
-export interface AgentDockSuggestedAction {
-  readonly description?: string;
-  readonly icon?: ReactNode;
-  readonly id?: string;
-  readonly label: string;
-  readonly prompt: string;
-}
-
-export interface AgentDockProps {
+export interface AgentDockProps extends AgentDockThreadMenuProps {
   /** The conversation; `null` until the dock has been opened once. */
   readonly children: ReactNode;
-  /**
-   * `split` is the bottom panel. `bubble` hides that panel and presents a
-   * chat bubble (with radial page shortcuts) that opens a floating overlay.
-   * Defaults to `split` so existing dock tests keep their original chrome.
-   */
-  readonly chrome?: AgentDockChrome;
   /** Receives the composer slot; `undefined` while an overlay owns the composer. */
   readonly composerSlotRef?: (element: HTMLElement | null) => void;
   readonly dock: AgentDockContextValue;
   /**
-   * Studio/edit surfaces already own a major prompt bar, so the closed bubble
-   * stays a single control there. Other pages fan their shortcuts off it.
+   * Whether the agent is the front tab of the side panel. A hidden agent tab
+   * stays mounted so drafts and streams survive a switch to Details.
    */
-  readonly hasMajorPromptBar?: boolean;
-  /** Below `xl` the dock renders as a bottom sheet. */
+  readonly isTabActive?: boolean;
+  /** Below `xl` the panel renders as a bottom sheet. */
   readonly isCompact: boolean;
-  readonly onNewThread?: () => void;
   readonly onOpenFullPage: () => void;
-  /** Opens a saved thread inside the dock without leaving the page. */
-  readonly onSelectThread?: (threadId: string) => void;
-  /** Seeds the overlay composer from a radial shortcut, then opens it. */
-  readonly onSelectSuggestedAction?: (prompt: string) => void;
   /** Organization and brand scope for the conversation, plus page context chips. */
   readonly scopeControls?: ReactNode;
-  readonly suggestedActions?: readonly AgentDockSuggestedAction[];
-  readonly activeThreadId?: string | null;
-  readonly isThreadListLoading?: boolean;
-  readonly threadTitle?: string | null;
-  readonly threads?: readonly AgentDockThreadOption[];
 }

@@ -18,23 +18,7 @@ import {
 } from 'react';
 
 export const AGENT_DOCK_STORAGE_KEY = 'genfeed:agent-dock:v1';
-export const AGENT_DOCK_DEFAULT_HEIGHT = 320;
-export const AGENT_DOCK_MIN_HEIGHT = 200;
-export const AGENT_DOCK_MAX_HEIGHT = 640;
-/**
- * Flip to `true` to restore the bottom split dock on product routes.
- * The dock component, tests, and attach/⌘J plumbing stay mounted either way.
- */
-export const AGENT_DOCK_CHROME_VISIBLE = false;
-
 const AgentDockContext = createContext<AgentDockContextValue | null>(null);
-
-export function clampAgentDockHeight(height: number): number {
-  return Math.min(
-    AGENT_DOCK_MAX_HEIGHT,
-    Math.max(AGENT_DOCK_MIN_HEIGHT, Math.round(height)),
-  );
-}
 
 function readAgentDockPersistedState(): AgentDockPersistedState | null {
   if (typeof window === 'undefined') {
@@ -52,14 +36,8 @@ function readAgentDockPersistedState(): AgentDockPersistedState | null {
       return null;
     }
 
-    const { height, isOpen } = parsed as Record<string, unknown>;
-    return {
-      height:
-        typeof height === 'number' && Number.isFinite(height)
-          ? clampAgentDockHeight(height)
-          : AGENT_DOCK_DEFAULT_HEIGHT,
-      isOpen: isOpen === true,
-    };
+    const { isOpen } = parsed as Record<string, unknown>;
+    return { isOpen: isOpen === true };
   } catch {
     return null;
   }
@@ -73,7 +51,7 @@ function persistAgentDockState(state: AgentDockPersistedState): void {
   try {
     window.localStorage.setItem(AGENT_DOCK_STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // Storage can be blocked (private windows); the dock still works per tab.
+    // Storage can be blocked (private windows); the panel still works per tab.
   }
 }
 
@@ -87,14 +65,13 @@ function isAgentDockShortcut(event: KeyboardEvent): boolean {
 }
 
 /**
- * The agent's bottom dock on product routes. Sits above the topbar and the
+ * The agent's right-hand panel on product routes. Sits above the topbar and the
  * workspace shell so the topbar toggle, ⌘J and the shell share one state. The
  * shell reports whether it can host the dock (never on `/agent`) and registers
  * how pages attach records to the dock's composer.
  */
 export function AgentDockProvider({ children }: AgentDockProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [height, setHeightState] = useState(AGENT_DOCK_DEFAULT_HEIGHT);
   const [isAvailable, setIsAvailable] = useState(false);
   const [hasRestored, setHasRestored] = useState(false);
   const attachHandlerRef = useRef<AgentDockAttachHandler | null>(null);
@@ -103,26 +80,20 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
   useEffect(() => {
     const persisted = readAgentDockPersistedState();
     if (persisted) {
-      // Hidden chrome is a bubble/overlay: do not reopen a leftover split
-      // session on every product page.
-      setIsOpen(AGENT_DOCK_CHROME_VISIBLE ? persisted.isOpen : false);
-      setHeightState(persisted.height);
+      setIsOpen(persisted.isOpen);
     }
     setHasRestored(true);
   }, []);
 
   useEffect(() => {
     if (hasRestored) {
-      persistAgentDockState({ height, isOpen });
+      persistAgentDockState({ isOpen });
     }
-  }, [hasRestored, height, isOpen]);
+  }, [hasRestored, isOpen]);
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
   const toggle = useCallback(() => setIsOpen((current) => !current), []);
-  const setHeight = useCallback((nextHeight: number) => {
-    setHeightState(clampAgentDockHeight(nextHeight));
-  }, []);
 
   const registerAttachHandler = useCallback(
     (handler: AgentDockAttachHandler) => {
@@ -173,24 +144,20 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
     () => ({
       attachContent,
       close,
-      height,
       isAvailable,
       isOpen,
       open,
       registerAttachHandler,
-      setHeight,
       setIsAvailable,
       toggle,
     }),
     [
       attachContent,
       close,
-      height,
       isAvailable,
       isOpen,
       open,
       registerAttachHandler,
-      setHeight,
       toggle,
     ],
   );

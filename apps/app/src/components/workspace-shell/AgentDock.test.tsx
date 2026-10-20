@@ -1,14 +1,9 @@
-import {
-  AGENT_DOCK_MAX_HEIGHT,
-  AGENT_DOCK_MIN_HEIGHT,
-} from '@contexts/ui/agent-dock-context';
 import type { AgentDockContextValue } from '@genfeedai/props/ui/agent-dock.props';
 import {
   act,
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from '@testing-library/react';
 import { useEffect, useState } from 'react';
@@ -28,12 +23,10 @@ function buildDock(
   return {
     attachContent: vi.fn(() => true),
     close: vi.fn(),
-    height: 320,
     isAvailable: true,
     isOpen: true,
     open: vi.fn(),
     registerAttachHandler: vi.fn(() => () => undefined),
-    setHeight: vi.fn(),
     setIsAvailable: vi.fn(),
     toggle: vi.fn(),
     ...overrides,
@@ -94,15 +87,11 @@ function renderStateful(dock: AgentDockContextValue, isCompact: boolean) {
 }
 
 describe('AgentDock', () => {
-  it('shows the conversation in a labelled region while open', () => {
+  it('shows the conversation in a labelled panel region while open', () => {
     const { composerSlotRef } = renderDock(buildDock());
 
     const region = screen.getByRole('region', { name: 'Agent' });
-    expect(region).toHaveStyle({ height: '320px' });
     expect(region).toHaveTextContent('Conversation transcript');
-    expect(screen.getByTestId('agent-dock-thread-title')).toHaveTextContent(
-      'Spring launch plan',
-    );
     expect(composerSlotRef).toHaveBeenCalledWith(
       screen.getByTestId('agent-dock-composer-slot'),
     );
@@ -120,9 +109,12 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(screen.getByTestId('agent-dock-scope')).toHaveTextContent(
-      'Acme · Moonrise',
-    );
+    const scope = screen.getByTestId('agent-dock-scope');
+    expect(scope).toHaveTextContent('Acme · Moonrise');
+    expect(
+      scope.compareDocumentPosition(screen.getByText('Conversation transcript')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('stays mounted but hidden while closed', () => {
@@ -133,18 +125,24 @@ describe('AgentDock', () => {
     expect(screen.getByText('Conversation transcript')).toBeInTheDocument();
   });
 
-  it('opens the full conversation and closes from its header', () => {
-    const dock = buildDock();
-    const { onOpenFullPage } = renderDock(dock);
+  it('stays mounted but hidden while the Details tab is in front', () => {
+    render(
+      <AgentDock
+        dock={buildDock()}
+        isCompact={false}
+        isTabActive={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
-    expect(onOpenFullPage).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close agent' }));
-    expect(dock.close).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+    expect(screen.getByTestId('agent-dock')).not.toBeVisible();
+    expect(screen.getByText('Conversation transcript')).toBeInTheDocument();
   });
 
-  it('closes on Escape inside the dock and returns focus', () => {
+  it('closes on Escape inside the panel and returns focus', () => {
     const opener = document.createElement('button');
     document.body.append(opener);
     opener.focus();
@@ -172,108 +170,6 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('returns keyboard focus to the page bubble after the overlay closes', async () => {
-    const dock = buildDock({ isOpen: false });
-    const view = render(
-      <AgentDock
-        chrome="bubble"
-        dock={dock}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <div contentEditable suppressContentEditableWarning>
-          composer
-        </div>
-      </AgentDock>,
-    );
-    const launcher = screen.getByTestId('agent-conversation-bubble');
-    launcher.focus();
-    fireEvent.click(launcher);
-    expect(dock.open).toHaveBeenCalledTimes(1);
-
-    view.rerender(
-      <AgentDock
-        chrome="bubble"
-        dock={{ ...dock, isOpen: true }}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <div contentEditable suppressContentEditableWarning>
-          composer
-        </div>
-      </AgentDock>,
-    );
-    screen.getByText('composer').focus();
-    view.rerender(
-      <AgentDock
-        chrome="bubble"
-        dock={{ ...dock, isOpen: false }}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <div contentEditable suppressContentEditableWarning>
-          composer
-        </div>
-      </AgentDock>,
-    );
-
-    await waitFor(() =>
-      expect(document.activeElement).toBe(
-        screen.getByTestId('agent-conversation-bubble'),
-      ),
-    );
-  });
-
-  it('returns keyboard focus to the page control on prompt-bar pages after the overlay closes', async () => {
-    const dock = buildDock({ isOpen: false });
-    const opener = document.createElement('button');
-    document.body.append(opener);
-    const view = render(
-      <AgentDock
-        chrome="bubble"
-        dock={dock}
-        hasMajorPromptBar
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <div contentEditable suppressContentEditableWarning>
-          composer
-        </div>
-      </AgentDock>,
-    );
-    opener.focus();
-    view.rerender(
-      <AgentDock
-        chrome="bubble"
-        dock={{ ...dock, isOpen: true }}
-        hasMajorPromptBar
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <div contentEditable suppressContentEditableWarning>
-          composer
-        </div>
-      </AgentDock>,
-    );
-    screen.getByText('composer').focus();
-    view.rerender(
-      <AgentDock
-        chrome="bubble"
-        dock={{ ...dock, isOpen: false }}
-        hasMajorPromptBar
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <div contentEditable suppressContentEditableWarning>
-          composer
-        </div>
-      </AgentDock>,
-    );
-
-    await waitFor(() => expect(document.activeElement).toBe(opener));
-    opener.remove();
-  });
-
   it('moves focus into the composer when it opens', () => {
     vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
     try {
@@ -288,31 +184,16 @@ describe('AgentDock', () => {
     }
   });
 
-  it('resizes from the keyboard within its bounds', () => {
-    const dock = buildDock();
-    renderDock(dock);
-
-    const handle = screen.getByRole('separator', { name: 'Resize agent' });
-    expect(handle).toHaveAttribute('aria-valuenow', '320');
-    expect(handle).toHaveAttribute('aria-orientation', 'horizontal');
-
-    fireEvent.keyDown(handle, { key: 'ArrowUp' });
-    expect(dock.setHeight).toHaveBeenLastCalledWith(336);
-    fireEvent.keyDown(handle, { key: 'ArrowDown', shiftKey: true });
-    expect(dock.setHeight).toHaveBeenLastCalledWith(272);
-    fireEvent.keyDown(handle, { key: 'Home' });
-    expect(dock.setHeight).toHaveBeenLastCalledWith(AGENT_DOCK_MAX_HEIGHT);
-    fireEvent.keyDown(handle, { key: 'End' });
-    expect(dock.setHeight).toHaveBeenLastCalledWith(AGENT_DOCK_MIN_HEIGHT);
-  });
-
   it('renders as a bottom sheet below xl', () => {
     const dock = buildDock();
-    renderDock(dock, { isCompact: true });
+    const { onOpenFullPage } = renderDock(dock, { isCompact: true });
 
     const sheet = screen.getByRole('dialog', { name: 'Agent' });
     expect(sheet).toHaveTextContent('Conversation transcript');
     expect(screen.queryByRole('separator')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
+    expect(onOpenFullPage).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Close agent' }));
     expect(dock.close).toHaveBeenCalled();
@@ -343,7 +224,33 @@ describe('AgentDock', () => {
     ).toBeInTheDocument();
   });
 
-  it('returns focus when something outside the dock closes it', () => {
+  it('keeps the conversation mounted while another tab is in front', () => {
+    lifecycle.mounts = 0;
+    lifecycle.unmounts = 0;
+    const dock = buildDock({ isOpen: true });
+    const view = render(renderStateful(dock, false));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft: empty' }));
+    view.rerender(
+      <AgentDock
+        dock={dock}
+        isCompact={false}
+        isTabActive={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <StatefulConversation />
+      </AgentDock>,
+    );
+    view.rerender(renderStateful(dock, false));
+
+    expect(lifecycle.mounts).toBe(1);
+    expect(lifecycle.unmounts).toBe(0);
+    expect(
+      screen.getByRole('button', { name: 'Draft: half-written' }),
+    ).toBeInTheDocument();
+  });
+
+  it('returns focus when something outside the panel closes it', () => {
     const opener = document.createElement('button');
     document.body.append(opener);
     opener.focus();
@@ -351,21 +258,21 @@ describe('AgentDock', () => {
     const view = render(renderStateful(dock, false));
 
     screen.getByRole('button', { name: 'Draft: empty' }).focus();
-    // ⌘J and the topbar close through the provider, not the dock's controls.
+    // ⌘J and the topbar close through the provider, not the panel's controls.
     view.rerender(renderStateful({ ...dock, isOpen: false }, false));
 
     expect(document.activeElement).toBe(opener);
     opener.remove();
   });
 
-  it('switches threads and starts a new one from the header menu', async () => {
+  it('switches threads and starts a new one from the sheet header menu', async () => {
     const onNewThread = vi.fn();
     const onSelectThread = vi.fn();
     render(
       <AgentDock
         activeThreadId="thread-1"
         dock={buildDock()}
-        isCompact={false}
+        isCompact
         onNewThread={onNewThread}
         onOpenFullPage={vi.fn()}
         onSelectThread={onSelectThread}
@@ -397,192 +304,6 @@ describe('AgentDock', () => {
       }),
     );
     expect(onSelectThread).toHaveBeenCalledWith('thread-2');
-  });
-
-  it('shows a chat bubble and radial shortcuts while bubble chrome is closed', () => {
-    const onSelectSuggestedAction = vi.fn();
-    render(
-      <AgentDock
-        chrome="bubble"
-        dock={buildDock({ isOpen: false })}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-        onSelectSuggestedAction={onSelectSuggestedAction}
-        suggestedActions={[
-          {
-            id: 'summarize',
-            label: 'Summarize',
-            prompt: 'Summarize this page',
-          },
-        ]}
-      >
-        <p>Conversation transcript</p>
-      </AgentDock>,
-    );
-
-    expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
-    expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-    const shortcut = screen.getByTestId('agent-conversation-radial');
-    expect(shortcut).toHaveAttribute('tabindex', '-1');
-    expect(shortcut.parentElement).toHaveAttribute('inert');
-    expect(shortcut.parentElement).toHaveClass('opacity-0');
-    expect(shortcut.parentElement).toHaveClass('pointer-events-none');
-    fireEvent.pointerEnter(screen.getByTestId('agent-conversation-bubble'));
-    expect(shortcut.parentElement).toHaveClass('opacity-100');
-    expect(shortcut).toHaveAttribute('tabindex', '0');
-    expect(shortcut.parentElement).not.toHaveAttribute('inert');
-    expect(shortcut.parentElement).not.toHaveClass('pointer-events-none');
-    expect(shortcut).toHaveTextContent('Summarize');
-    fireEvent.click(shortcut);
-    expect(onSelectSuggestedAction).toHaveBeenCalledWith('Summarize this page');
-    expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
-    expect(
-      screen.queryByRole('separator', { name: 'Resize agent' }),
-    ).toBeNull();
-  });
-
-  it('hides the chat bubble on major prompt-bar pages and preserves explicitly opened conversations', async () => {
-    const dock = buildDock({ isOpen: false, open: vi.fn() });
-    const { rerender } = render(
-      <AgentDock
-        chrome="bubble"
-        dock={dock}
-        hasMajorPromptBar
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <p>Conversation transcript</p>
-      </AgentDock>,
-    );
-
-    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
-    expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-
-    rerender(
-      <AgentDock
-        chrome="bubble"
-        dock={{ ...dock, isOpen: true }}
-        hasMajorPromptBar
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <p>Conversation transcript</p>
-      </AgentDock>,
-    );
-
-    const overlay = screen.getByRole('region', { name: 'Agent' });
-    expect(overlay).toHaveAttribute('data-chrome', 'bubble');
-    expect(overlay).toHaveAttribute('data-morph', 'from');
-    expect(overlay).toHaveStyle({ transformOrigin: 'bottom right' });
-    expect(overlay.style.transform).toBe('translateY(18px) scale(0.9)');
-    expect(overlay).toHaveTextContent('Conversation transcript');
-    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
-
-    await waitFor(() => expect(overlay).toHaveAttribute('data-morph', 'open'));
-    const openOverlay = screen.getByRole('region', { name: 'Agent' });
-    expect(openOverlay).toHaveAttribute('data-morph', 'open');
-    expect(openOverlay.style.transform).toBe('translateY(0) scale(1)');
-    expect(
-      screen.queryByRole('separator', { name: 'Resize agent' }),
-    ).toBeNull();
-  });
-
-  it('keeps the launcher available as a close toggle while the conversation is open', () => {
-    const dock = buildDock();
-    render(
-      <AgentDock
-        chrome="bubble"
-        dock={dock}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-        suggestedActions={[
-          { label: 'Configure', prompt: 'Configure this page' },
-        ]}
-      >
-        <p>Conversation transcript</p>
-      </AgentDock>,
-    );
-
-    const launcher = screen.getByTestId('agent-conversation-bubble');
-    expect(launcher).toHaveAttribute('aria-expanded', 'true');
-    expect(launcher).toHaveAccessibleName('Close agent');
-    expect(launcher).toHaveAttribute('aria-controls', 'workspace-agent-dock');
-    expect(launcher.closest('[inert]')).toBeNull();
-    fireEvent.pointerEnter(launcher);
-    expect(screen.getByTestId('agent-conversation-radial')).toHaveAttribute(
-      'tabindex',
-      '-1',
-    );
-    fireEvent.click(launcher);
-    expect(dock.close).toHaveBeenCalledTimes(1);
-  });
-
-  it('cancels a pending close when the conversation is reopened', async () => {
-    const dock = buildDock();
-    const view = (isOpen: boolean) => (
-      <AgentDock
-        chrome="bubble"
-        dock={{ ...dock, isOpen }}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-      >
-        <StatefulConversation />
-      </AgentDock>
-    );
-    const { rerender } = render(view(true));
-    fireEvent.click(screen.getByRole('button', { name: 'Draft: empty' }));
-    rerender(view(false));
-    expect(screen.getByTestId('agent-dock')).toHaveAttribute('inert');
-    expect(screen.getByTestId('agent-dock')).toHaveAttribute(
-      'data-morph',
-      'from',
-    );
-    rerender(view(true));
-    await waitFor(() =>
-      expect(screen.getByTestId('agent-dock')).toHaveAttribute(
-        'data-morph',
-        'open',
-      ),
-    );
-    // Longer than the close fallback: a stale timer must not hide the reopened panel.
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-    });
-    expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Draft: half-written' }),
-    ).toBeVisible();
-  });
-
-  it('closes immediately when reduced motion is requested', () => {
-    const originalMatchMedia = window.matchMedia;
-    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
-    try {
-      const dock = buildDock();
-      const view = (isOpen: boolean) => (
-        <AgentDock
-          chrome="bubble"
-          dock={{ ...dock, isOpen }}
-          isCompact={false}
-          onOpenFullPage={vi.fn()}
-        >
-          <p>Conversation transcript</p>
-        </AgentDock>
-      );
-      const { rerender } = render(view(true));
-      rerender(view(false));
-      expect(screen.getByTestId('agent-dock')).toHaveAttribute('hidden');
-      expect(screen.getByTestId('agent-dock')).toHaveAttribute(
-        'data-morph',
-        'closed',
-      );
-      expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
-        'aria-expanded',
-        'false',
-      );
-    } finally {
-      window.matchMedia = originalMatchMedia;
-    }
   });
 
   it('keeps focus in the conversation when it moves across the breakpoint', () => {

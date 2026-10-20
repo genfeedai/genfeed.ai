@@ -5,7 +5,7 @@ vi.mock('@/components/shell/GenerationToasts', () => ({
   default: () => null,
 }));
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import {
   type ButtonHTMLAttributes,
   cloneElement,
@@ -531,16 +531,34 @@ describe('AppProtectedTopbar', () => {
     expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
   });
 
-  it('hides the agent dock toggle while split chrome is hidden', () => {
+  it('toggles the agent panel from the topbar', () => {
     const toggle = vi.fn();
     agentDockState.value = { isAvailable: true, isOpen: false, toggle };
 
     render(<AppProtectedTopbar />);
 
-    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
+    const button = screen.getByTestId('topbar-agent-dock-toggle');
+    expect(button).toHaveAccessibleName('Open agent');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(toggle).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the agent dock toggle hidden when the dock is unavailable', () => {
+  it('shows the agent panel toggle as open while the panel is open', () => {
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: true,
+      toggle: vi.fn(),
+    };
+
+    render(<AppProtectedTopbar />);
+
+    const button = screen.getByTestId('topbar-agent-dock-toggle');
+    expect(button).toHaveAccessibleName('Close agent');
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('disables the agent panel toggle when the dock is unavailable', () => {
     agentDockState.value = {
       isAvailable: false,
       isOpen: false,
@@ -549,6 +567,6 @@ describe('AppProtectedTopbar', () => {
 
     render(<AppProtectedTopbar />);
 
-    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
+    expect(screen.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
   });
 });

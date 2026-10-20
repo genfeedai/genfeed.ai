@@ -96,7 +96,7 @@ test.describe('Context sidebar — selection driven', () => {
 
     await expect(
       authenticatedPage.getByRole('complementary', {
-        name: 'Selection details',
+        name: 'Side panel',
       }),
     ).toHaveCount(0);
     await expect(
@@ -120,7 +120,7 @@ test.describe('Context sidebar — selection driven', () => {
     await openStudioList(authenticatedPage);
 
     const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Selection details',
+      name: 'Side panel',
     });
     await expect(contextSidebar).toHaveCount(0);
 
@@ -191,7 +191,7 @@ test.describe('Context sidebar — selection driven', () => {
     const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
     await card.getByText(ASSET_PROMPT).click();
     const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Selection details',
+      name: 'Side panel',
     });
     await expect(
       contextSidebar.getByTestId('studio-playground-inspector'),
@@ -249,7 +249,7 @@ test.describe('Context sidebar — selection driven', () => {
       'masonry-ingredient-ingredient-image-1',
     );
     const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Selection details',
+      name: 'Side panel',
     });
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
     await expect(contextSidebar).toHaveCount(0);

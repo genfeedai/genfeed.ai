@@ -1,10 +1,7 @@
 'use client';
 
 import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
-import {
-  AGENT_DOCK_CHROME_VISIBLE,
-  useAgentDock,
-} from '@contexts/ui/agent-dock-context';
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
@@ -15,7 +12,7 @@ import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import { Menu, PanelBottomClose, PanelBottomOpen, X } from 'lucide-react';
+import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, Suspense, useId } from 'react';
@@ -210,11 +207,10 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
-          {/* Account chrome only. The details toggle lives on the page
-              sub-nav: it opens the inspector inside the content. The
-              agent-dock toggle uses the unavailable frame, but page-bubble
-              chrome leaves it unmounted. */}
-          {agentDock && AGENT_DOCK_CHROME_VISIBLE ? (
+          {/* Account chrome only. The agent toggle opens the right-hand side
+              panel (⌘J); it uses the unavailable frame on `/agent`, where the
+              conversation is the page. */}
+          {agentDock ? (
             <UnavailableToggleFrame
               className="inline-flex"
               isUnavailable={!agentDock.isAvailable}
@@ -244,9 +240,9 @@ function AppProtectedTopbarContent({
                 onClick={agentDock.toggle}
               >
                 {agentDock.isAvailable && agentDock.isOpen ? (
-                  <PanelBottomClose className="size-4" />
+                  <PanelRightClose className="size-4" />
                 ) : (
-                  <PanelBottomOpen className="size-4" />
+                  <PanelRightOpen className="size-4" />
                 )}
               </Button>
             </UnavailableToggleFrame>

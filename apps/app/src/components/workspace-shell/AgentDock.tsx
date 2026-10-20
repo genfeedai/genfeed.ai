@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AGENT_DOCK_MAX_HEIGHT,
-  AGENT_DOCK_MIN_HEIGHT,
-} from '@contexts/ui/agent-dock-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   AgentDockBodyOutletProps,
   AgentDockHeaderProps,
@@ -18,20 +13,10 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
-import { Check, ChevronDown, Maximize2, SquarePen, X } from 'lucide-react';
+import { Maximize2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  type TransitionEvent as ReactTransitionEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -39,21 +24,8 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import AgentConversationBubble from './AgentConversationBubble';
+import AgentDockThreadMenu from './AgentDockThreadMenu';
 
-const BUBBLE_CLOSE_MS = 180;
-type BubbleMorph = 'closed' | 'from' | 'open';
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
-
-const RESIZE_STEP = 16;
-const RESIZE_STEP_LARGE = 48;
 const BODY_CLASS_NAME = 'flex min-h-0 flex-1 flex-col';
 
 function focusComposer(container: HTMLElement | null): void {
@@ -73,14 +45,6 @@ function isPersistedReturnFocus(
   );
 }
 
-function resolveLauncherControl(host: HTMLElement | null): HTMLElement | null {
-  if (!host?.isConnected) {
-    return null;
-  }
-
-  return host.querySelector('button') ?? host;
-}
-
 function AgentDockHeader({
   activeThreadId,
   isThreadListLoading = false,
@@ -94,78 +58,20 @@ function AgentDockHeader({
 }: AgentDockHeaderProps) {
   const translate = useTranslations('common.agentDock');
   const hasThreadMenu = Boolean(onNewThread && onSelectThread);
-  const selectedThreadLabel =
-    threadTitle ||
-    threads.find((thread) => thread.id === activeThreadId)?.title ||
-    translate('untitledThread');
 
   return (
     <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
       <div className="flex min-w-0 items-center gap-2">
         {title}
         {hasThreadMenu ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="h-6 min-w-0 max-w-[14rem] px-1.5 text-xs font-normal text-muted-foreground"
-                data-testid="agent-dock-thread-title"
-                size={ButtonSize.SM}
-                textTransform="none"
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              >
-                <span className="truncate">{selectedThreadLabel}</span>
-                <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="max-h-72 w-64 overflow-y-auto"
-            >
-              <DropdownMenuItem
-                data-testid="agent-dock-new-thread"
-                onSelect={() => onNewThread?.()}
-              >
-                <SquarePen aria-hidden="true" className="size-4 shrink-0" />
-                {translate('newThread')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {isThreadListLoading ? (
-                <DropdownMenuLabel>
-                  {translate('threadsLoading')}
-                </DropdownMenuLabel>
-              ) : threads.length === 0 ? (
-                <DropdownMenuLabel>{translate('noThreads')}</DropdownMenuLabel>
-              ) : (
-                threads.map((thread) => {
-                  const isCurrent = thread.id === activeThreadId;
-
-                  return (
-                    <DropdownMenuItem
-                      data-testid={`agent-dock-thread-${thread.id}`}
-                      key={thread.id}
-                      onSelect={() => onSelectThread?.(thread.id)}
-                    >
-                      <span className="min-w-0 flex-1 truncate">
-                        {thread.title}
-                      </span>
-                      {isCurrent ? (
-                        <Check
-                          aria-hidden="true"
-                          className="size-3.5 shrink-0"
-                        />
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className="size-3.5 shrink-0"
-                        />
-                      )}
-                    </DropdownMenuItem>
-                  );
-                })
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <AgentDockThreadMenu
+            activeThreadId={activeThreadId}
+            isThreadListLoading={isThreadListLoading}
+            onNewThread={onNewThread}
+            onSelectThread={onSelectThread}
+            threadTitle={threadTitle}
+            threads={threads}
+          />
         ) : threadTitle ? (
           <p
             className="truncate text-xs text-muted-foreground"
@@ -200,7 +106,7 @@ function AgentDockHeader({
 }
 
 // The element focused inside a body node while it moves between hosts (the
-// section and the sheet swap at the breakpoint): detaching drops browser focus.
+// panel and the sheet swap at the breakpoint): detaching drops browser focus.
 const focusedDescendantByBody = new WeakMap<HTMLElement, HTMLElement>();
 
 /** Hosts the dock's one body node, wherever the dock is presented. */
@@ -238,38 +144,33 @@ function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
 }
 
 /**
- * The agent conversation on product routes. Closed, it is a chat bubble with
- * the page's shortcuts fanned beside it. The topbar toggle and ⌘J open it,
- * Esc inside it closes it. Below `xl` the open conversation is a bottom sheet.
+ * The agent conversation on product routes. At `xl` and up it is a tab of the
+ * shell's right-hand side panel (the shell owns the tab strip and the panel
+ * chrome); below `xl` it is a bottom sheet. The topbar toggle and ⌘J open it,
+ * Esc inside it closes it.
  *
  * The conversation renders once, into a body node owned by the dock, and the
- * section or the sheet only hosts that node. Closing the sheet or crossing the
- * breakpoint therefore never remounts the conversation, so uploads, streams
- * and drafts survive.
+ * panel or the sheet only hosts that node. Closing the sheet, switching to the
+ * Details tab, or crossing the breakpoint therefore never remounts the
+ * conversation, so uploads, streams and drafts survive.
  */
 export default function AgentDock({
   children,
-  chrome = 'split',
   composerSlotRef,
   dock,
-  hasMajorPromptBar = false,
   isCompact,
+  isTabActive = true,
   activeThreadId,
   isThreadListLoading = false,
   onNewThread,
   onOpenFullPage,
-  onSelectSuggestedAction,
   onSelectThread,
   scopeControls,
-  suggestedActions,
   threadTitle,
   threads,
 }: AgentDockProps) {
   const translate = useTranslations('common.agentDock');
-  const [region, setRegion] = useState<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const launcherHostRef = useRef<HTMLElement | null>(null);
-  const shouldReturnToLauncherRef = useRef(false);
   const [bodyNode] = useState<HTMLElement | null>(() => {
     if (typeof document === 'undefined') {
       return null;
@@ -278,9 +179,9 @@ export default function AgentDock({
     node.className = BODY_CLASS_NAME;
     return node;
   });
-  const [renderedHeight, setRenderedHeight] = useState<number | null>(null);
-  // The dock's chrome (header, resize handle) and its body, in either
-  // presentation.
+  const { close, isOpen } = dock;
+  const isPresented = isOpen && (isCompact || isTabActive);
+  // The panel and the sheet chrome around the body.
   const isInsideDock = useCallback(
     (element: Element) =>
       Boolean(
@@ -288,84 +189,11 @@ export default function AgentDock({
       ),
     [bodyNode],
   );
-  const { close, height, isOpen, open, setHeight } = dock;
-  const isBubbleChrome = chrome === 'bubble';
-  const bindLauncher = useCallback((node: HTMLDivElement | null) => {
-    launcherHostRef.current = node;
-  }, []);
-  const handleLauncherOpen = useCallback(() => {
-    shouldReturnToLauncherRef.current = true;
-    if (isOpen) {
-      close();
-    } else {
-      open();
-    }
-  }, [close, isOpen, open]);
-  // Keep the conversation mounted through a short fade/scale from the launcher.
-  // Uniform scaling preserves text proportions throughout the transition.
-  const [bubbleMorph, setBubbleMorph] = useState<BubbleMorph>(
-    isOpen ? 'open' : 'closed',
-  );
-  useLayoutEffect(() => {
-    if (!isBubbleChrome || isCompact) {
-      return;
-    }
-    if (prefersReducedMotion()) {
-      setBubbleMorph(isOpen ? 'open' : 'closed');
-      return;
-    }
-    if (isOpen) {
-      setBubbleMorph((current) => (current === 'open' ? current : 'from'));
-      let nextFrame = 0;
-      const frame = window.requestAnimationFrame(() => {
-        nextFrame = window.requestAnimationFrame(() => setBubbleMorph('open'));
-      });
-      return () => {
-        window.cancelAnimationFrame(frame);
-        window.cancelAnimationFrame(nextFrame);
-      };
-    }
-    setBubbleMorph((current) => (current === 'closed' ? current : 'from'));
-  }, [isBubbleChrome, isCompact, isOpen]);
-  useEffect(() => {
-    if (!isBubbleChrome || isOpen || bubbleMorph !== 'from') {
-      return;
-    }
-    const timeout = window.setTimeout(() => {
-      setBubbleMorph('closed');
-    }, BUBBLE_CLOSE_MS + 40);
-    return () => window.clearTimeout(timeout);
-  }, [bubbleMorph, isBubbleChrome, isOpen]);
-  const handleBubbleMorphEnd = (event: ReactTransitionEvent<HTMLElement>) => {
-    if (
-      event.target !== event.currentTarget ||
-      event.propertyName !== 'transform' ||
-      isOpen
-    ) {
-      return;
-    }
-    setBubbleMorph('closed');
-  };
-  // Pages with their own prompt bar do not need a second floating launcher.
-  const closedLauncher =
-    isBubbleChrome && !hasMajorPromptBar ? (
-      <div ref={bindLauncher}>
-        <AgentConversationBubble
-          isDismissed={isCompact && isOpen}
-          isOpen={isOpen}
-          onOpen={handleLauncherOpen}
-          onSelectSuggestedAction={onSelectSuggestedAction}
-          suggestedActions={suggestedActions}
-        />
-      </div>
-    ) : null;
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.
-  // Restore focus once the closing morph makes the launcher available again.
   useEffect(() => {
-    if (!isOpen) {
-      if (isBubbleChrome && !isCompact && bubbleMorph !== 'closed') return;
+    if (!isPresented) {
       const returnFocus = returnFocusRef.current;
       returnFocusRef.current = null;
       const activeElement = document.activeElement;
@@ -373,15 +201,9 @@ export default function AgentDock({
         !activeElement ||
         activeElement === document.body ||
         isInsideDock(activeElement);
-      const launcher = shouldReturnToLauncherRef.current
-        ? resolveLauncherControl(launcherHostRef.current)
-        : null;
-      shouldReturnToLauncherRef.current = false;
-      const target = shouldRestore
-        ? (launcher ??
-          (isPersistedReturnFocus(returnFocus) ? returnFocus : null))
-        : null;
-      target?.focus({ preventScroll: true });
+      if (shouldRestore && isPersistedReturnFocus(returnFocus)) {
+        returnFocus.focus({ preventScroll: true });
+      }
       return;
     }
 
@@ -394,26 +216,7 @@ export default function AgentDock({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [bodyNode, bubbleMorph, isBubbleChrome, isCompact, isInsideDock, isOpen]);
-
-  // Short windows cap the dock below its stored height; resizing works from
-  // what is actually on screen.
-  useEffect(() => {
-    if (!region || typeof ResizeObserver === 'undefined') {
-      return;
-    }
-
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry && entry.contentRect.height > 0) {
-        setRenderedHeight(Math.round(entry.contentRect.height));
-      }
-    });
-    observer.observe(region);
-    return () => observer.disconnect();
-  }, [region]);
-
-  const effectiveHeight =
-    renderedHeight !== null ? Math.min(height, renderedHeight) : height;
+  }, [bodyNode, isInsideDock, isPresented]);
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -425,53 +228,6 @@ export default function AgentDock({
       close();
     },
     [close],
-  );
-
-  const handleResizeStart = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      const handle = event.currentTarget;
-      const pointerId = event.pointerId;
-      const startY = event.clientY;
-      const startHeight = effectiveHeight;
-      handle.setPointerCapture?.(pointerId);
-
-      const handleMove = (moveEvent: PointerEvent) => {
-        setHeight(startHeight + startY - moveEvent.clientY);
-      };
-      const handleEnd = () => {
-        handle.releasePointerCapture?.(pointerId);
-        handle.removeEventListener('pointermove', handleMove);
-        handle.removeEventListener('pointerup', handleEnd);
-        handle.removeEventListener('pointercancel', handleEnd);
-      };
-
-      handle.addEventListener('pointermove', handleMove);
-      handle.addEventListener('pointerup', handleEnd);
-      handle.addEventListener('pointercancel', handleEnd);
-    },
-    [effectiveHeight, setHeight],
-  );
-
-  const handleResizeKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-      const step = event.shiftKey ? RESIZE_STEP_LARGE : RESIZE_STEP;
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setHeight(effectiveHeight + step);
-      } else if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setHeight(effectiveHeight - step);
-      } else if (event.key === 'Home') {
-        event.preventDefault();
-        setHeight(AGENT_DOCK_MAX_HEIGHT);
-      } else if (event.key === 'End') {
-        event.preventDefault();
-        setHeight(AGENT_DOCK_MIN_HEIGHT);
-      }
-    },
-    [effectiveHeight, setHeight],
   );
 
   const body = bodyNode
@@ -486,7 +242,7 @@ export default function AgentDock({
             {scopeControls}
           </div>
           {/* The transcript shrinks and scrolls. The composer keeps its own
-              height so the overlay's max height cannot slice the prompt. */}
+              height so the panel's height cannot slice the prompt. */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {children}
           </div>
@@ -504,7 +260,6 @@ export default function AgentDock({
     return (
       <>
         {body}
-        {closedLauncher}
         <Drawer
           open={isOpen}
           onOpenChange={(isDrawerOpen: boolean) => {
@@ -517,7 +272,6 @@ export default function AgentDock({
         >
           <DrawerContent
             className="h-[85dvh] rounded-t-[var(--radius-workspace-overlay)]"
-            data-chrome={chrome}
             data-testid="agent-dock"
             id="workspace-agent-dock"
           >
@@ -549,81 +303,15 @@ export default function AgentDock({
   return (
     <>
       {body}
-      {closedLauncher}
       <section
         aria-label={translate('label')}
-        aria-hidden={isBubbleChrome && !isOpen}
-        className={cn(
-          'flex flex-col bg-background',
-          isBubbleChrome
-            ? 'absolute right-5 z-30 h-[min(35rem,calc(100dvh-8rem))] w-[min(26rem,calc(100%-2.5rem))] origin-bottom-right overflow-hidden rounded-[var(--radius-workspace-overlay)] border border-border shadow-xl transition-[transform,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none'
-            : 'relative shrink-0 border-t border-border',
-          isBubbleChrome &&
-            (hasMajorPromptBar
-              ? 'bottom-5 max-h-[calc(100%-2.5rem)]'
-              : 'bottom-[5.25rem] max-h-[calc(100%-6.5rem)]'),
-          isBubbleChrome && (isOpen ? 'duration-[320ms]' : 'duration-[180ms]'),
-          isBubbleChrome &&
-            (bubbleMorph === 'open' ? 'opacity-100' : 'opacity-0'),
-        )}
-        data-chrome={chrome}
-        data-morph={isBubbleChrome ? bubbleMorph : undefined}
+        className="flex min-h-0 flex-1 flex-col"
         data-testid="agent-dock"
-        hidden={isBubbleChrome ? bubbleMorph === 'closed' : !isOpen}
+        hidden={!isPresented}
         id="workspace-agent-dock"
-        inert={isBubbleChrome && !isOpen}
         onKeyDown={handleKeyDown}
-        onTransitionEnd={isBubbleChrome ? handleBubbleMorphEnd : undefined}
-        ref={setRegion}
-        // Short windows and half-height panels: the canvas keeps at least
-        // 40% of the column, whatever height was stored.
-        style={
-          isBubbleChrome
-            ? {
-                transform:
-                  bubbleMorph === 'open'
-                    ? 'translateY(0) scale(1)'
-                    : isOpen
-                      ? 'translateY(18px) scale(0.9)'
-                      : 'translateY(14px) scale(0.94)',
-                transformOrigin: 'bottom right',
-              }
-            : { height, maxHeight: '60%' }
-        }
       >
-        {isBubbleChrome ? null : (
-          <Button
-            aria-orientation="horizontal"
-            aria-valuemax={AGENT_DOCK_MAX_HEIGHT}
-            aria-valuemin={AGENT_DOCK_MIN_HEIGHT}
-            aria-valuenow={effectiveHeight}
-            ariaLabel={translate('resize')}
-            className="absolute inset-x-0 top-0 z-10 h-1.5 -translate-y-1/2 cursor-row-resize"
-            onKeyDown={handleResizeKeyDown}
-            onPointerDown={handleResizeStart}
-            role="separator"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          />
-        )}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <AgentDockHeader
-            activeThreadId={activeThreadId}
-            isThreadListLoading={isThreadListLoading}
-            onClose={close}
-            onNewThread={onNewThread}
-            onOpenFullPage={onOpenFullPage}
-            onSelectThread={onSelectThread}
-            threadTitle={threadTitle}
-            threads={threads}
-            title={
-              <p className="text-sm font-medium text-foreground">
-                {translate('title')}
-              </p>
-            }
-          />
-          {bodyNode ? <AgentDockBodyOutlet body={bodyNode} /> : null}
-        </div>
+        {bodyNode ? <AgentDockBodyOutlet body={bodyNode} /> : null}
       </section>
     </>
   );

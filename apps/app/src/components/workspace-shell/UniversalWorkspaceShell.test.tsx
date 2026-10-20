@@ -597,7 +597,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).not.toHaveAttribute('inert');
     expect(aside).not.toHaveAttribute('aria-hidden');
     const sidebar = screen.getByRole('complementary', {
-      name: 'Selection details',
+      name: 'Side panel',
     });
     expect(
       within(sidebar).getByTestId('context-sidebar-title'),
@@ -713,14 +713,14 @@ describe('UniversalWorkspaceShell', () => {
 
     const inspectorContent = screen.getByTestId('workspace-inspector-content');
     expect(inspectorContent).toHaveStyle({
-      minWidth: '320px',
-      width: '320px',
+      minWidth: '400px',
+      width: '400px',
     });
     expect(
       screen.getByRole('separator', { name: 'Resize details' }),
-    ).toHaveAttribute('aria-valuenow', '320');
+    ).toHaveAttribute('aria-valuenow', '400');
     expect(container.querySelector('#workspace-context-inspector')).toHaveStyle(
-      { width: '320px' },
+      { width: '400px' },
     );
   });
 
@@ -755,23 +755,20 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: attached to the rounded block. The block's right border is the
-    // divider; the inspector finishes the outer right radius.
+    // Open: attached to the rounded block. The panel's left border is the
+    // divider; the panel runs the full window height beside the topbar.
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
-    ).toBe('320px');
-    expect(aside).toHaveClass(
-      'rounded-r-lg',
-      'border-y',
-      'border-r',
-      'border-border',
-    );
-    expect(aside).not.toHaveClass('rounded-lg', 'border-l');
+    ).toBe('400px');
+    expect(layoutRoot).toHaveAttribute('data-workspace-panel', 'true');
+    expect(aside).toHaveClass('bg-card', 'border-l', 'border-border-strong');
+    expect(aside).not.toHaveClass('rounded-r-lg', 'border-y', 'border-r');
     expect(aside).toHaveStyle({
+      bottom: '0px',
       right: '0px',
-      top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
-      width: '320px',
+      top: 'var(--desktop-titlebar-height)',
+      width: '400px',
     });
     expect(aside).toHaveAttribute('data-motion', 'layout');
     expect((aside as HTMLElement).style.transition).toBe(
@@ -783,7 +780,7 @@ describe('UniversalWorkspaceShell', () => {
       { clientX: 500 },
     );
     fireEvent.mouseMove(window, { clientX: 460 });
-    expect(aside).toHaveStyle({ width: '360px', transition: 'none' });
+    expect(aside).toHaveStyle({ width: '440px', transition: 'none' });
     expect(
       layoutRoot.style.getPropertyValue(
         '--workspace-inspector-transition-duration',
@@ -802,7 +799,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('0px');
-    expect(aside).not.toHaveClass('border-r');
+    expect(aside).not.toHaveClass('border-l');
     expect(aside).toHaveStyle({
       minWidth: '0px',
       width: '0px',
@@ -810,7 +807,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).toHaveAttribute('inert');
     expect((aside as HTMLElement).style.transform).toBe('');
     expect(screen.getByTestId('workspace-inspector-content')).toHaveStyle({
-      width: '360px',
+      width: '440px',
       opacity: '0',
     });
   });
@@ -1481,32 +1478,29 @@ describe('UniversalWorkspaceShell', () => {
       window.localStorage.removeItem(AGENT_DOCK_STORAGE_KEY);
     });
 
-    it('hosts a closed dock on product routes and mounts the conversation on first open', async () => {
+    it('hosts a closed panel on product routes and mounts the conversation on first open', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
-      renderWithDock();
+      const { container } = renderWithDock();
 
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
-      expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+      expect(
+        container.querySelector('#workspace-context-inspector'),
+      ).toHaveAttribute('inert');
       expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
       expect(screen.queryByTestId('dock-conversation')).toBeNull();
 
       act(() => dock?.open());
 
       const region = screen.getByRole('region', { name: 'Agent' });
-      expect(region).toHaveAttribute('data-chrome', 'bubble');
       expect(
         await within(region).findByTestId('dock-conversation'),
       ).toBeVisible();
-      expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
-        'tabindex',
-        '0',
-      );
       expect(
-        screen.getByTestId('agent-conversation-bubble').closest('[inert]'),
-      ).toBeNull();
-      expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
-        'aria-expanded',
+        container.querySelector('#workspace-context-inspector'),
+      ).not.toHaveAttribute('inert');
+      expect(screen.getByTestId('workspace-panel-tab-agent')).toHaveAttribute(
+        'aria-selected',
         'true',
       );
       expect(
@@ -1519,22 +1513,77 @@ describe('UniversalWorkspaceShell', () => {
       // Closing keeps the conversation mounted so drafts and runs survive.
       act(() => dock?.close());
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
-      await waitFor(() =>
-        expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible(),
-      );
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
-    it.each([
-      '/acme/moonrise/studio/playground',
-      '/acme/moonrise/studio/clips/new',
-    ])('hides the chat bubble on prompt-bar page %s', async (pathname) => {
-      navigation.pathname = pathname;
-      renderWithDock();
+    it('shares the panel between the agent and the selection details as tabs', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
 
+      function SelectionSurface() {
+        return (
+          <ContextSidebarPanel
+            onClose={() => {}}
+            selection={{
+              id: 'asset-1',
+              kind: 'asset',
+              origin: 'user',
+              title: 'Image',
+            }}
+          >
+            <p>Asset detail</p>
+          </ContextSidebarPanel>
+        );
+      }
+
+      render(
+        <ContextSidebarProvider>
+          <AgentDockProvider>
+            <UniversalWorkspaceShell agentApiService={agentApiService}>
+              <DockProbe />
+              <SelectionSurface />
+            </UniversalWorkspaceShell>
+          </AgentDockProvider>
+        </ContextSidebarProvider>,
+      );
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
-      expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
-      expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+
+      // A selection brings the Details tab forward while the agent is closed.
+      expect(screen.getByTestId('workspace-panel-tab-details')).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByText('Asset detail')).toBeVisible();
+
+      // Opening the agent brings the conversation forward; Details stays.
+      act(() => dock?.open());
+      const region = screen.getByRole('region', { name: 'Agent' });
+      expect(
+        await within(region).findByTestId('dock-conversation'),
+      ).toBeVisible();
+      expect(screen.getByTestId('workspace-panel-tab-agent')).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+
+      fireEvent.click(screen.getByTestId('workspace-panel-tab-details'));
+      expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+      expect(screen.getByText('Asset detail')).toBeVisible();
+      // The conversation stays mounted behind the Details tab.
+      expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('workspace-panel-tab-agent'));
+      expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
+    });
+
+    it('closes the agent from the panel header', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      act(() => dock?.open());
+
+      fireEvent.click(screen.getByTestId('workspace-panel-close'));
+
+      expect(dock?.isOpen).toBe(false);
     });
 
     it('renders scope notices in the dock without the scope switchers', async () => {
@@ -1552,7 +1601,7 @@ describe('UniversalWorkspaceShell', () => {
     it('never hosts the dock on the conversation route and closes it there', async () => {
       window.localStorage.setItem(
         AGENT_DOCK_STORAGE_KEY,
-        JSON.stringify({ height: 320, isOpen: true }),
+        JSON.stringify({ isOpen: true }),
       );
       navigation.pathname = '/acme/~/agent/thread-1';
       renderWithDock();

@@ -72,7 +72,7 @@ test.describe('Workflow Execution Runs', () => {
         .first()
         .click({ position: { x: 4, y: 4 } });
       const sidebar = authenticatedPage.getByRole('complementary', {
-        name: 'Selection details',
+        name: 'Side panel',
       });
       await expect(
         sidebar.getByRole('link', { exact: true, name: 'View Details' }),

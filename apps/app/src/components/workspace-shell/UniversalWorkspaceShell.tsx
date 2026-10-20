@@ -1,10 +1,7 @@
 'use client';
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
-import {
-  AGENT_DOCK_CHROME_VISIBLE,
-  useAgentDock,
-} from '@contexts/ui/agent-dock-context';
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -32,6 +29,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { WorkspacePanelTab } from '@props/ui/workspace-panel.props';
 import {
   InspectorToggleFallback,
   InspectorToggleHost,
@@ -105,7 +103,6 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
-import { isMajorPromptBarHost } from './is-major-prompt-bar-host';
 import { useAgentDockThreads } from './use-agent-dock-threads';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
@@ -114,6 +111,7 @@ import {
   WorkspaceContextSidebarRail,
 } from './WorkspaceContextSidebar';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
+import WorkspacePanelTabs from './WorkspacePanelTabs';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
   useActiveWorkspaceSurfaceAdapter,
@@ -136,9 +134,9 @@ const ConversationDockPanel = dynamic(loadConversationDockPanel, {
 
 const DOCK_PANEL_PREFETCH_TIMEOUT_MS = 8000;
 
-const INSPECTOR_DEFAULT_WIDTH = 320;
-const INSPECTOR_MIN_WIDTH = 256;
-const INSPECTOR_MAX_WIDTH = 480;
+const INSPECTOR_DEFAULT_WIDTH = 400;
+const INSPECTOR_MIN_WIDTH = 320;
+const INSPECTOR_MAX_WIDTH = 560;
 // Zero, not a rail stub: collapsed means gone, exactly like the left navigation
 // sidebar. The only toggle then lives in the topbar.
 const INSPECTOR_COLLAPSED_WIDTH = 0;
@@ -186,7 +184,6 @@ function UniversalWorkspaceShellContent({
   const threads = useAgentChatStore((state) => state.threads);
   const updateThread = useAgentChatStore((state) => state.updateThread);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
-  const pageContext = useAgentChatStore((state) => state.pageContext);
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const activeSurfacePresentationAdapter =
     useActiveWorkspaceSurfacePresentationAdapter();
@@ -194,10 +191,12 @@ function UniversalWorkspaceShellContent({
     () => normalizeProtectedPathname(rawPathname),
     [rawPathname],
   );
-  // The right column is the context sidebar: it shows the current selection
-  // and stays closed while nothing is selected.
+  // The right column is the side panel: the agent and the page's current
+  // selection (Details) are its tabs. Details stays closed while nothing is
+  // selected; the agent opens from the topbar toggle or ⌘J.
   const contextSidebar = useContextSidebar();
   const translateContextSidebar = useTranslations('common.contextSidebar');
+  const translateSidePanel = useTranslations('common.sidePanel');
   const activeContextSidebar = contextSidebar?.selection
     ? contextSidebar
     : null;
@@ -641,13 +640,58 @@ function UniversalWorkspaceShellContent({
   // on the way back until the operator reopens it.
   const isAgentDockHost = Boolean(agentDock) && !isAgentRoute;
   const dockThreads = useAgentDockThreads(agentApiService, isAgentDockHost);
-  const hasMajorPromptBar = isMajorPromptBarHost(normalizedPathname);
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;
   const openAgentDock = agentDock?.open;
   const isAgentDockOpen = agentDock?.isOpen ?? false;
   const registerAgentDockAttachHandler = agentDock?.registerAttachHandler;
   const [hasOpenedAgentDock, setHasOpenedAgentDock] = useState(false);
+  // Below `xl` the agent is a bottom sheet, so only the rail counts here.
+  const isAgentPanelOpen =
+    isAgentDockHost && isAgentDockOpen && !isCompactViewport;
+  const isPanelOpen = isInspectorOpen || isAgentPanelOpen;
+  const [panelTabPreference, setPanelTabPreference] =
+    useState<WorkspacePanelTab>('agent');
+  const activePanelTab: WorkspacePanelTab =
+    isAgentPanelOpen && isInspectorOpen
+      ? panelTabPreference
+      : isInspectorOpen
+        ? 'details'
+        : 'agent';
+  const selectionKey = activeContextSidebar?.selection
+    ? `${activeContextSidebar.selection.kind}:${activeContextSidebar.selection.id}`
+    : null;
+
+  // A new selection brings the Details tab forward; opening the agent brings
+  // the conversation forward.
+  useEffect(() => {
+    if (selectionKey && isInspectorOpen) {
+      setPanelTabPreference('details');
+    }
+  }, [isInspectorOpen, selectionKey]);
+
+  useEffect(() => {
+    if (isAgentDockOpen) {
+      setPanelTabPreference('agent');
+    }
+  }, [isAgentDockOpen]);
+
+  const handleSelectPanelTab = useCallback(
+    (tab: WorkspacePanelTab) => {
+      if (tab === 'agent') {
+        openAgentDock?.();
+      }
+      setPanelTabPreference(tab);
+    },
+    [openAgentDock],
+  );
+
+  const handleClosePanel = useCallback(() => {
+    closeAgentDock?.();
+    if (isInspectorOpen) {
+      activeContextSidebar?.close();
+    }
+  }, [activeContextSidebar, closeAgentDock, isInspectorOpen]);
 
   useEffect(() => {
     if (!setIsAgentDockAvailable) {
@@ -915,7 +959,7 @@ function UniversalWorkspaceShellContent({
   // reserved offset. A concrete number here is what keeps the topbar's right edge
   // flush against the rail's left edge with no seam.
   const expandedInspectorWidth = inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH;
-  const inspectorRailWidth = isInspectorOpen
+  const inspectorRailWidth = isPanelOpen
     ? expandedInspectorWidth
     : INSPECTOR_COLLAPSED_WIDTH;
 
@@ -944,9 +988,11 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-transition-duration',
       `${isInspectorResizing ? 0 : SIDEBAR_TRANSITION_DURATION_MS}ms`,
     );
-    // Open, the inspector attaches to the rounded block. The block's right
-    // border is the divider; this flag squares that block's right corners.
-    layoutRoot.dataset.inspectorOpen = String(isInspectorOpen);
+    // Open, the panel attaches to the rounded block. The panel's left border
+    // is the divider; this flag squares that block's right corners. The panel
+    // runs the full window height, so the topbar also stops at its edge.
+    layoutRoot.dataset.inspectorOpen = String(isPanelOpen);
+    layoutRoot.dataset.workspacePanel = 'true';
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
@@ -954,8 +1000,9 @@ function UniversalWorkspaceShellContent({
         '--workspace-inspector-transition-duration',
       );
       delete layoutRoot.dataset.inspectorOpen;
+      delete layoutRoot.dataset.workspacePanel;
     };
-  }, [inspectorRailWidth, isInspectorOpen, isInspectorResizing]);
+  }, [inspectorRailWidth, isInspectorResizing, isPanelOpen]);
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -1103,75 +1150,35 @@ function UniversalWorkspaceShellContent({
                 </WorkspaceShellActionsProvider>
               </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
-
-            {isAgentDockHost && agentDock ? (
-              <AgentDock
-                chrome={AGENT_DOCK_CHROME_VISIBLE ? 'split' : 'bubble'}
-                composerSlotRef={
-                  state === 'overlay' ? undefined : setComposerPortalTarget
-                }
-                dock={agentDock}
-                hasMajorPromptBar={hasMajorPromptBar}
-                isCompact={isCompactViewport}
-                activeThreadId={dockThreads.activeThreadId}
-                isThreadListLoading={dockThreads.isThreadListLoading}
-                onNewThread={dockThreads.startThread}
-                onOpenFullPage={handleOpenFullConversation}
-                onSelectThread={(threadId) => {
-                  void dockThreads.selectThread(threadId);
-                }}
-                onSelectSuggestedAction={(prompt) => {
-                  seedComposer(prompt, effectiveThreadId ?? activeThreadId);
-                  openAgentDock?.();
-                }}
-                // Organization and brand are switched from the shell chrome;
-                // the dock only surfaces scope notices and page context.
-                scopeControls={
-                  <>
-                    {conversationScope.scopeStatus}
-                    {composerScopeControls}
-                    {effectiveSurfaceAdapter?.composerContext}
-                  </>
-                }
-                suggestedActions={pageContext?.suggestedActions}
-                threadTitle={activeThread?.title}
-                threads={dockThreads.threads}
-              >
-                {hasOpenedAgentDock ? (
-                  <ConversationDockPanel apiService={agentApiService} />
-                ) : null}
-              </AgentDock>
-            ) : null}
           </div>
 
-          {/* Match the left sidebar: clip fixed-width contents as the rail closes. */}
+          {/* The side panel runs the full window height and clips its
+              fixed-width contents as it closes. */}
           <aside
-            // Nothing selected: the empty, zero-width column is not a
-            // landmark.
-            aria-hidden={activeContextSidebar ? undefined : true}
-            aria-label={translateContextSidebar('label')}
+            // Nothing open: the empty, zero-width column is not a landmark.
+            aria-hidden={isPanelOpen ? undefined : true}
+            aria-label={translateSidePanel('label')}
             className={cn(
-              'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
-              // The block's right border is the shared divider. The inspector
-              // finishes the top, right, and bottom edges and the outer radius.
-              isInspectorOpen && 'border-y border-r border-border',
+              'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-card xl:flex',
+              // The panel's left border is the divider with the page block.
+              isPanelOpen && 'border-l border-border-strong',
             )}
             id="workspace-context-inspector"
             data-motion="layout"
-            inert={!isInspectorOpen}
+            inert={!isPanelOpen}
             ref={inspectorRef}
             style={{
-              bottom: 'var(--shell-inset, 0px)',
+              bottom: 0,
               minWidth: inspectorRailWidth,
               right: 0,
-              top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
+              top: 'var(--desktop-titlebar-height)',
               transition: isInspectorResizing
                 ? 'none'
                 : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
               width: inspectorRailWidth,
             }}
           >
-            {isInspectorOpen ? (
+            {isPanelOpen ? (
               <Button
                 aria-orientation="vertical"
                 aria-valuemax={INSPECTOR_MAX_WIDTH}
@@ -1186,29 +1193,80 @@ function UniversalWorkspaceShellContent({
                 withWrapper={false}
               />
             ) : null}
-            {/* Keep the contents at their expanded width while the outer rail
+            {/* Keep the contents at their expanded width while the outer panel
                   clips them during open/close. Measuring the conversation at
-                  every intermediate width makes its tabs, empty state, and
-                  composer visibly collapse before growing back. The inner shell
-                  also remains mounted through collapse so drafts and active runs
-                  survive. Only presentation portals are gated while hidden. */}
+                  every intermediate width makes its empty state and composer
+                  visibly collapse before growing back. Both tabs also stay
+                  mounted, so drafts and active runs survive a tab switch. Only
+                  presentation portals are gated while hidden. */}
             <div
               className="absolute inset-y-0 right-0 flex min-h-0 flex-col"
               data-testid="workspace-inspector-content"
               data-motion="layout"
               style={{
                 minWidth: expandedInspectorWidth,
-                opacity: isInspectorOpen ? 1 : 0,
+                opacity: isPanelOpen ? 1 : 0,
                 transition: isInspectorResizing
                   ? 'none'
                   : `opacity ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
                 width: expandedInspectorWidth,
               }}
             >
+              <WorkspacePanelTabs
+                activeTab={activePanelTab}
+                hasAgent={isAgentDockHost}
+                hasDetails={Boolean(activeContextSidebar)}
+                onClose={handleClosePanel}
+                onNewThread={dockThreads.startThread}
+                onOpenFullPage={handleOpenFullConversation}
+                onSelectTab={handleSelectPanelTab}
+                threadMenu={{
+                  activeThreadId: dockThreads.activeThreadId,
+                  isThreadListLoading: dockThreads.isThreadListLoading,
+                  onNewThread: dockThreads.startThread,
+                  onSelectThread: (threadId) => {
+                    void dockThreads.selectThread(threadId);
+                  },
+                  threadTitle: activeThread?.title,
+                  threads: dockThreads.threads,
+                }}
+              />
+              {isAgentDockHost && agentDock ? (
+                <AgentDock
+                  composerSlotRef={
+                    state === 'overlay' ? undefined : setComposerPortalTarget
+                  }
+                  dock={agentDock}
+                  isCompact={isCompactViewport}
+                  isTabActive={activePanelTab === 'agent'}
+                  activeThreadId={dockThreads.activeThreadId}
+                  isThreadListLoading={dockThreads.isThreadListLoading}
+                  onNewThread={dockThreads.startThread}
+                  onOpenFullPage={handleOpenFullConversation}
+                  onSelectThread={(threadId) => {
+                    void dockThreads.selectThread(threadId);
+                  }}
+                  // Organization and brand are switched from the shell chrome;
+                  // the panel only surfaces scope notices and page context.
+                  scopeControls={
+                    <>
+                      {conversationScope.scopeStatus}
+                      {composerScopeControls}
+                      {effectiveSurfaceAdapter?.composerContext}
+                    </>
+                  }
+                  threadTitle={activeThread?.title}
+                  threads={dockThreads.threads}
+                >
+                  {hasOpenedAgentDock ? (
+                    <ConversationDockPanel apiService={agentApiService} />
+                  ) : null}
+                </AgentDock>
+              ) : null}
               {contextSidebar ? (
                 <div
                   className="flex min-h-0 flex-1 flex-col"
-                  hidden={!activeContextSidebar}
+                  hidden={!activeContextSidebar || activePanelTab !== 'details'}
                 >
                   <WorkspaceContextSidebarRail
                     contextSidebar={contextSidebar}

@@ -169,7 +169,7 @@ test.describe('Workspace — deep interactions', () => {
       .click({ position: { x: 4, y: 4 } });
     // The selected task opens the context sidebar; closing it deselects.
     const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Selection details',
+      name: 'Side panel',
     });
     await expect(contextSidebar).toBeVisible();
     await expect(
