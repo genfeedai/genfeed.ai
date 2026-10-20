@@ -224,7 +224,7 @@ describe('TrainingsList', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Unlock trainings with Agencies/i),
+        screen.getByText(/Unlock trainings with Scale/i),
       ).toBeInTheDocument();
     });
     expect(screen.queryByText('Brand Style v1')).not.toBeInTheDocument();

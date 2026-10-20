@@ -73,7 +73,7 @@ export interface McpToolFailureSignals {
 }
 
 const PLAN_MESSAGE =
-  /organization billing|subscription billing is not enabled|active subscription is required|paid plans?|plan limit|plan required|upgrade to (?:agencies|enterprise|pro|scale)\b/i;
+  /organization billing|subscription billing is not enabled|active subscription is required|paid plans?|plan limit|plan required|upgrade to (?:scale|enterprise|pro)\b/i;
 const CREDIT_MESSAGE = /insufficient credits|not enough credits/i;
 const RATE_MESSAGE = /rate limit|too many requests/i;
 const AUTH_MESSAGE =

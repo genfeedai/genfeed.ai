@@ -696,9 +696,9 @@
     },
     "integrations": {
       "byokUpgrade": {
-        "action": "Upgrade to Agencies",
-        "description": "Upgrade to Agencies to run generations on your own provider keys with no credit charge and no usage fee.",
-        "title": "Bring your own keys is included with Agencies"
+        "action": "Upgrade to Scale",
+        "description": "Upgrade to Scale to run generations on your own provider keys with no credit charge and no usage fee.",
+        "title": "Bring your own keys is included with Scale"
       }
     },
     "memory": {

@@ -140,9 +140,10 @@ describe('buildGenfeedCloudSignupUrl', () => {
 });
 
 describe('resolveSelectedPlanParam', () => {
-  it('resolves the website Agencies slug to the configured Scale price id', () => {
-    // The Agencies card links to `/sign-up?plan=agencies`; the checkout DTO
-    // only accepts `price_...`, so the slug must resolve before handoff.
+  it('resolves the Scale slug, and its former name, to the configured price id', () => {
+    // The pricing card links to `/sign-up?plan=scale` (older links used
+    // `plan=agencies`); the checkout DTO only accepts `price_...`, so the
+    // slug must resolve before handoff.
     expect(resolveSelectedPlanParam('agencies', PLAN_SLUG_PRICE_IDS)).toBe(
       'price_scale_monthly',
     );
@@ -152,7 +153,7 @@ describe('resolveSelectedPlanParam', () => {
   });
 
   it('resolves slugs case-insensitively and after trimming', () => {
-    expect(resolveSelectedPlanParam('  Agencies  ', PLAN_SLUG_PRICE_IDS)).toBe(
+    expect(resolveSelectedPlanParam('  Scale  ', PLAN_SLUG_PRICE_IDS)).toBe(
       'price_scale_monthly',
     );
   });

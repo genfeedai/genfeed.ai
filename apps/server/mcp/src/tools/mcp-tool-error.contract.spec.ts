@@ -59,14 +59,14 @@ describe('MCP tool error contract', () => {
       classifyMcpToolFailure({
         domainCode: 'PLAN_LIMIT_EXCEEDED',
         message:
-          'API access is available on paid plans. Upgrade to Agencies to create and use API keys.',
+          'API access is available on paid plans. Upgrade to Scale to create and use API keys.',
         status: 403,
         title: 'API access requires a paid plan',
       }),
     ).toEqual({
       code: 'plan_required',
       message:
-        'API access is available on paid plans. Upgrade to Agencies to create and use API keys.',
+        'API access is available on paid plans. Upgrade to Scale to create and use API keys.',
       nextStepUrl: appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION),
     });
 
@@ -88,7 +88,7 @@ describe('MCP tool error contract', () => {
     ).toBe(appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION));
   });
 
-  it.each(['Agencies', 'Enterprise', 'Pro', 'Scale'])(
+  it.each(['Scale', 'Enterprise', 'Pro'])(
     'recognizes upgrade messages for %s',
     (plan) => {
       expect(
@@ -190,7 +190,7 @@ describe('MCP tool error contract', () => {
     {
       status: 403,
       title: 'Plan required',
-      detail: 'Upgrade to Agencies',
+      detail: 'Upgrade to Scale',
       code: 'plan_required',
       route: APP_ROUTES.SETTINGS.SUBSCRIPTION,
     },

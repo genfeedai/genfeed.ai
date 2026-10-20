@@ -12,12 +12,12 @@ import { buildDoneForYouJsonLd } from '@web-components/landing/service-offering-
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 // @genfeedai/pricing is the contract: PAYG is one seat, every paid tier has
-// unlimited seats, and Agencies adds client workspaces. page.spec.tsx pins
+// unlimited seats, and Scale adds client workspaces. page.spec.tsx pins
 // this wording and its length: a 205-character description was truncated in
 // search results and flagged "Meta description too long" by the 2026-08-19
 // site audit.
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Pricing: PAYG, Agencies and Done for you',
+  'Pricing: PAYG, Scale and Done for you',
   `${PLAN_COPY.payg.name} credits; ${PLAN_COPY.scale.name} with unlimited seats, client workspaces and higher API limits. ${serviceOffering.name} ${serviceOffering.priceLabel.toLowerCase()}. Book a call.`,
   '/pricing',
 );

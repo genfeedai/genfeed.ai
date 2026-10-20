@@ -328,7 +328,7 @@ describe('SummaryContent behavior', () => {
     render(<SummaryContent />);
 
     expect(await screen.findByText('Your plan')).toBeInTheDocument();
-    expect(await screen.findByText('Agencies')).toBeInTheDocument();
+    expect(await screen.findByText('Scale')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
     // The saved access choice (cloud) is flagged as current.

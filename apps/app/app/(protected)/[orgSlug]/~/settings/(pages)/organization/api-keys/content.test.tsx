@@ -772,7 +772,7 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
   });
 
-  it('enables Create Key when the Agencies org has no keys', async () => {
+  it('enables Create Key when the Scale org has no keys', async () => {
     mocks.findAllApiKeys.mockResolvedValue([]);
     render(<SettingsApiKeysPage />);
 

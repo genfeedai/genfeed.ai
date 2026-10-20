@@ -102,7 +102,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
     expect(vercel).toContain(
       `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY)=/`,
     );
-    expect(vercel).toContain('Production Agencies checkout is not configured.');
+    expect(vercel).toContain('Production Scale checkout is not configured.');
     expect(vercel).toContain(
       `printf '%s' "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY" | grep -Eq '^price_[A-Za-z0-9]+$'`,
     );
