@@ -70,7 +70,7 @@ test.describe('Workflows', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await toggle.click();
     const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Selection details',
+      name: 'Side panel',
     });
     await expect(contextSidebar).toBeVisible();
     await expect(

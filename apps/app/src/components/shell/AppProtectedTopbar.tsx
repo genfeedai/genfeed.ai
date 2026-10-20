@@ -205,7 +205,12 @@ function AppProtectedTopbarContent({
           </div>
           {!isAdminChrome ? <GenerationToasts /> : null}
 
-          {!isAdminChrome ? <CloudSyncIndicator /> : null}
+          {/* Status only: it yields its slot to the agent toggle on phones. */}
+          {!isAdminChrome ? (
+            <span className="hidden sm:contents">
+              <CloudSyncIndicator />
+            </span>
+          ) : null}
 
           {/* Account chrome only. The agent toggle opens the right-hand side
               panel (⌘J); it uses the unavailable frame on `/agent`, where the
