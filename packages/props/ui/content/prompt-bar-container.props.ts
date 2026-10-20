@@ -17,18 +17,6 @@ export interface PromptBarContainerProps {
   topContent?: ReactNode;
 
   /**
-   * Whether to render a fading scrim above the prompt bar surface so
-   * scrolled content eases into the fixed composer instead of hard-cutting.
-   * @default false
-   */
-  showTopFade?: boolean;
-
-  /**
-   * Optional className override for the top fade scrim.
-   */
-  topFadeClassName?: string;
-
-  /**
    * Additional className for customization
    */
   className?: string;

@@ -19,6 +19,12 @@ import {
  * A call site may still position, size or tint its composer, and may square one
  * edge for adjacency (`rounded-t-none`). It may not restate the surface itself,
  * so border/shadow/radius/backdrop belong to the shared constant only.
+ *
+ * The owners themselves are checked too: a prompt bar is flat. The "remove the
+ * shadow" fix of 2026-10-19 only dropped `shadow-composer` from the surface and
+ * left the container's top-fade gradient (`showTopFade`) in place, so the
+ * storyboard bar still read as shadowed. No shadow, gradient or fade may be
+ * (re)introduced on the composer container or surface.
  */
 
 const logger = {
@@ -53,6 +59,22 @@ const SURFACE_COMPONENTS = new Set(['PromptBarComposer', 'PromptBarShell']);
  */
 const FORBIDDEN_CLASS_PATTERN =
   /(^|[\s!])!?(border(?![a-z])|border-[a-z0-9[]|shadow-|rounded-(?!\w{1,2}-none(?:$|\s))|backdrop-blur|backdrop-saturate)/;
+
+/** Files that own the composer container and surface. */
+const FLAT_OWNER_GLOBS = [
+  'packages/ui/src/components/layout/prompt-bar-container/*.tsx',
+  'packages/ui/src/components/prompt-bars/components/shell/*.tsx',
+];
+
+const FLAT_OWNER_EXCLUDE_GLOBS = ['**/*.test.*', '**/*.spec.*'];
+
+/** Shadow, gradient and scrim utilities a flat composer owner may not use. */
+const FLAT_FORBIDDEN_CLASS_PATTERN =
+  /(^|[\s:!])!?(shadow-|bg-gradient|bg-linear|bg-radial|from-|via-|drop-shadow)/;
+
+/** The removed top-fade API must not come back anywhere in product source. */
+const REMOVED_FADE_PATTERN =
+  /showTopFade|topFadeClassName|data-composer-top-fade/;
 
 interface IViolation {
   file: string;
@@ -128,12 +150,79 @@ function findViolations(file: string): IViolation[] {
   return violations;
 }
 
+function findFlatOwnerViolations(file: string): IViolation[] {
+  const source = parseSourceFile(
+    file,
+    readFileSync(file, 'utf8'),
+    true,
+    scriptKindFor(file),
+  );
+  const violations: IViolation[] = [];
+
+  const visit = (node: ts.Node): void => {
+    const literals: string[] = [];
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      literals.push(node.text);
+    }
+    if (ts.isTemplateExpression(node)) {
+      literals.push(
+        node.head.text,
+        ...node.templateSpans.map((span) => span.literal.text),
+      );
+    }
+    for (const literal of literals) {
+      if (
+        literal
+          .split(/\s+/)
+          .some((token) => FLAT_FORBIDDEN_CLASS_PATTERN.test(token))
+      ) {
+        violations.push({
+          component: 'composer owner',
+          file,
+          line:
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
+          snippet: literal.trim().slice(0, 80),
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+  return violations;
+}
+
+function findRemovedFadeUsages(file: string): IViolation[] {
+  const lines = readFileSync(file, 'utf8').split('\n');
+  return lines.flatMap((line, index) =>
+    REMOVED_FADE_PATTERN.test(line)
+      ? [
+          {
+            component: 'removed top fade',
+            file,
+            line: index + 1,
+            snippet: line.trim().slice(0, 80),
+          },
+        ]
+      : [],
+  );
+}
+
 const files = globSync(INCLUDE_GLOBS, { ignore: EXCLUDE_GLOBS, nodir: true });
-const violations = files.flatMap(findViolations);
+const ownerFiles = globSync(FLAT_OWNER_GLOBS, {
+  ignore: FLAT_OWNER_EXCLUDE_GLOBS,
+  nodir: true,
+});
+const violations = [
+  ...files.flatMap(findViolations),
+  ...ownerFiles.flatMap(findFlatOwnerViolations),
+  ...files.flatMap(findRemovedFadeUsages),
+];
 
 if (violations.length > 0) {
   logger.error(
-    `Found ${violations.length} composer surface override(s). The surface is defined once, in PROMPT_BAR_SURFACE_CLASS:`,
+    `Found ${violations.length} composer surface violation(s). The surface is defined once, in PROMPT_BAR_SURFACE_CLASS, and prompt bars carry no shadow, gradient or fade:`,
   );
   for (const violation of violations) {
     logger.error(
@@ -146,4 +235,4 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-logger.log('No composer surface overrides found.');
+logger.log('No composer surface violations found.');

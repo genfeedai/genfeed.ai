@@ -136,26 +136,24 @@ describe('PromptBarContainer', () => {
     ).toBeNull();
   });
 
-  it('should render an optional top fade scrim when requested', () => {
+  it('never paints a fade, gradient or shadow around the prompt bar', () => {
     const { container } = render(
-      <PromptBarContainer showTopFade>
+      <PromptBarContainer topContent={<div>banner</div>}>
         <div>content</div>
       </PromptBarContainer>,
     );
 
-    const fade = container.querySelector('[data-composer-top-fade]');
-    expect(fade).toBeInTheDocument();
-    expect(fade?.className).toContain('bottom-full');
-    expect(fade?.className).toContain('bg-gradient-to-t');
-    expect(fade?.className).toContain('from-background');
-    expect(fade?.className).toContain('to-transparent');
-    expect(fade?.className).not.toContain('h-28');
-    expect(fade?.className).not.toContain('via-background/55');
+    expect(container.querySelector('[data-composer-top-fade]')).toBeNull();
+    for (const element of container.querySelectorAll('*')) {
+      expect(element.className).not.toMatch(
+        /bg-gradient|shadow-|from-background/,
+      );
+    }
   });
 
   it('does not paint a dark block below the prompt', () => {
     const { container } = render(
-      <PromptBarContainer showTopFade>
+      <PromptBarContainer>
         <div>content</div>
       </PromptBarContainer>,
     );

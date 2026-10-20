@@ -69,7 +69,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_model_picker_family_rows](feedback_model_picker_family_rows.md) — model picker is one flat ranked list: filter pills, capability icons, hover spec
 - [feedback_arrays_only_mutation_apis](feedback_arrays_only_mutation_apis.md) — public mutations take arrays; no singular+plural twins or T | T[] overloads
 - [feedback_toolbar_ghost_icon_cluster](feedback_toolbar_ghost_icon_cluster.md) — toolbar icon actions are ghost, 14px, clustered at the far right
-- [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — prompt bar is opaque; dock uses a top-transparent / bottom-black gradient; do not slab the full stack
+- [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — prompt bar is opaque; no fade, gradient or shadow above or around it; do not slab the full stack
 - [feedback_studio_generate_agent_dock](feedback_studio_generate_agent_dock.md) — Studio generate floats the composer over the masonry like Agent; no inflow black slab; card click opens inspector
 - [feedback_composer_outer_shadow](feedback_composer_outer_shadow.md) — prompt bars carry no shadow at all (outer lift removed 2026-10-19)
 - [feedback_onboarding_deliver_content_first](feedback_onboarding_deliver_content_first.md) — current onboarding direction: proactive image + tweet, user review, then optional publishing connection
