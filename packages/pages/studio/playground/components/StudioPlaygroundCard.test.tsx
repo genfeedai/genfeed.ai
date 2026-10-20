@@ -994,4 +994,58 @@ describe('brand enhancement stop', () => {
       expect(screen.queryByText('Approved brand')).not.toBeInTheDocument();
     },
   );
+
+  it('marks a ready video tile as video, with its duration when known', () => {
+    const { container, rerender } = render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          ingredient: {
+            id: 'ingredient-1',
+            metadata: { duration: 5 },
+          } as never,
+          type: 'video',
+          url: 'https://cdn.example.com/video.mp4',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.getByText('Video')).toHaveClass('sr-only');
+    expect(screen.getByText('0:05')).toBeInTheDocument();
+
+    rerender(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={generatedJob}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.queryByText('Video')).not.toBeInTheDocument();
+    expect(container.querySelector('.lucide-film')).toBeNull();
+  });
+
+  it('marks a ready video tile without a duration', () => {
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          type: 'avatar',
+          url: 'https://cdn.example.com/video.mp4',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.getByText('Video')).toHaveClass('sr-only');
+  });
 });

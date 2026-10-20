@@ -243,6 +243,7 @@
   "viewGrid": "Grid",
   "viewList": "List",
   "makeClips": "Make clips",
+  "videoBadge": "Video",
   "brandEnhancement": {
     "failed": "Brand enhancement failed. Nothing was generated and no credits were used.",
     "generateWithoutBrand": "Generate without brand",
