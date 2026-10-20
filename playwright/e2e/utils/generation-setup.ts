@@ -1,31 +1,19 @@
-import { expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 /**
  * Pick a model in Advanced mode. Auto delegates routing, so an explicit model
- * needs Advanced. The setup popover only lists the type tiles, Brand and
- * Presets; Model, Output and Look are chips in the prompt bar
+ * needs Advanced. The Auto/Advanced switch is an icon pair at the start of the
+ * prompt bar; Model, Output, Look, Brand and Presets are chips
  * (`GenerationSetupSectionChips`), each opening only its own section.
  */
 export async function selectAdvancedModel(
   page: Page,
   modelLabel: string,
 ): Promise<void> {
-  const setupTrigger = page.getByRole('button', {
-    name: /^Generation setup:/,
-  });
-  await setupTrigger.click();
-  await page.getByRole('button', { name: 'Advanced', exact: true }).click();
-  // A resting pointer can open the Presets submenu next to Advanced, so the
-  // first Escape may only close that submenu. Keep pressing until the popover
-  // itself is closed.
-  await expect(async () => {
-    if ((await setupTrigger.getAttribute('aria-expanded')) !== 'false') {
-      await page.keyboard.press('Escape');
-    }
-    await expect(setupTrigger).toHaveAttribute('aria-expanded', 'false', {
-      timeout: 500,
-    });
-  }).toPass({ timeout: 10_000 });
+  await page
+    .getByRole('group', { name: 'Setup mode' })
+    .getByRole('button', { name: 'Advanced', exact: true })
+    .click();
 
   await page
     .getByTestId('generation-setup-section-chips')

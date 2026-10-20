@@ -12,7 +12,7 @@ vi.mock('next-intl', async () => {
 
 function buildProps(
   overrides: Partial<GenerationSetupTypeBarProps> = {},
-  type: 'image' | 'image-edit' | 'music' = 'image',
+  type: 'image' | 'image-edit' | 'music' | 'video' = 'image',
 ): GenerationSetupTypeBarProps {
   return {
     setup: {
@@ -91,6 +91,23 @@ describe('GenerationSetupTypeBar', () => {
       <GenerationSetupTypeBar {...buildProps({ imageEditing }, 'music')} />,
     );
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+
+  it('shows Edit on Video too, switched off until video editing exists', () => {
+    const onChange = vi.fn();
+    render(
+      <GenerationSetupTypeBar
+        {...buildProps(
+          { imageEditing: { isEnabled: false, onChange } },
+          'video',
+        )}
+      />,
+    );
+
+    const edit = screen.getByRole('button', { name: 'Edit' });
+    expect(edit).toBeDisabled();
+    fireEvent.click(edit);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('switches between Auto and Advanced without changing layout', () => {

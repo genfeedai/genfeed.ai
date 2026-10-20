@@ -31,6 +31,9 @@ export default function GenerationSetupTypeBar({
   const isEditing = imageEditing?.isEnabled === true;
   const isImageActive =
     setup.values.type === 'image' || setup.values.type === 'image-edit';
+  // Edit is a mode of Image and Video. Video has no edit flow in Studio yet,
+  // so its switch shows but stays off.
+  const isVideoActive = setup.values.type === 'video';
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -67,17 +70,28 @@ export default function GenerationSetupTypeBar({
         })}
       </div>
 
-      {imageEditing && isImageActive ? (
+      {imageEditing && (isImageActive || isVideoActive) ? (
         <Button
           ariaLabel={translate('modeEdit')}
-          aria-pressed={isEditing}
-          className={cn('size-8 shrink-0 p-0', isEditing && 'text-primary')}
-          isDisabled={isDisabled}
+          aria-pressed={isImageActive && isEditing}
+          className={cn(
+            'size-8 shrink-0 p-0',
+            isImageActive && isEditing && 'text-primary',
+          )}
+          isDisabled={isDisabled || isVideoActive}
           onClick={() => imageEditing.onChange(!isEditing)}
           size={ButtonSize.ICON}
-          tooltip={translate('modeEdit')}
+          tooltip={
+            isVideoActive
+              ? translate('modeEditVideoSoon')
+              : translate('modeEdit')
+          }
           tooltipPosition="top"
-          variant={isEditing ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
+          variant={
+            isImageActive && isEditing
+              ? ButtonVariant.SECONDARY
+              : ButtonVariant.GHOST
+          }
           withWrapper={false}
         >
           <Pencil aria-hidden="true" className={SHELL_ICON_CLASS} />

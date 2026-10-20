@@ -26,6 +26,13 @@ import type { Request } from 'express';
 const brandId = testId('brand');
 const organizationId = testId('org');
 const userId = testId('user');
+// Storyboard sketch stills belong to the storyboard layout, never the Library.
+const STORYBOARD_STILL_EXCLUSION = {
+  OR: [
+    { sourceActionId: null },
+    { NOT: { sourceActionId: { startsWith: 'storyboard-still-' } } },
+  ],
+};
 
 /** Flatten the `AND` array the controller builds so branches can be asserted. */
 function andBranches(aggregate: unknown): Record<string, unknown>[] {
@@ -734,7 +741,7 @@ describe('IngredientsController — Library axes', () => {
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
-        { brandId },
+        { AND: [STORYBOARD_STILL_EXCLUSION], brandId },
       );
     });
 
@@ -749,7 +756,10 @@ describe('IngredientsController — Library axes', () => {
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
-        { OR: [{ brandId: { in: [brandId] } }, { brandId: null }] },
+        {
+          AND: [STORYBOARD_STILL_EXCLUSION],
+          OR: [{ brandId: { in: [brandId] } }, { brandId: null }],
+        },
       );
     });
 
@@ -762,7 +772,7 @@ describe('IngredientsController — Library axes', () => {
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
-        {},
+        { AND: [STORYBOARD_STILL_EXCLUSION] },
       );
     });
 
@@ -791,7 +801,7 @@ describe('IngredientsController — Library axes', () => {
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
-        { brandId: otherBrandId },
+        { AND: [STORYBOARD_STILL_EXCLUSION], brandId: otherBrandId },
       );
     });
   });

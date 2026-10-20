@@ -298,6 +298,7 @@ const UI_TEST_MESSAGES = {
       autoModeTooltip: 'Auto: Genfeed picks the model and settings',
       advancedModeTooltip: 'Advanced: choose the model and settings',
       modeEdit: 'Edit',
+      modeEditVideoSoon: 'Video editing is coming soon',
       resetToAgent: 'Reset {field}',
       setupMode: 'Setup mode',
       brand: 'Brand',
