@@ -129,10 +129,10 @@ export default function MenuBrandSwitcher({
         <Image
           src={selectedBrand.logoUrl}
           alt={selectedBrand.label ?? 'Brand'}
-          width={24}
-          height={24}
+          width={20}
+          height={20}
           className="size-full object-cover object-center"
-          sizes="24px"
+          sizes="20px"
         />
       </div>
     ) : (

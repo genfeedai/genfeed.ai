@@ -138,10 +138,10 @@ export default function OrganizationSwitcher({
                 <Image
                   src={activeOrg.logoUrl}
                   alt={displayLabel}
-                  width={24}
-                  height={24}
+                  width={20}
+                  height={20}
                   className="size-full object-cover object-center"
-                  sizes="24px"
+                  sizes="20px"
                 />
               ) : (
                 displayLabel.charAt(0).toUpperCase()
