@@ -9,7 +9,7 @@ export default function OverviewActivitiesPage() {
   return (
     <Suspense fallback={null}>
       <LocalizedActivitiesList
-        scope={PageScope.ORGANIZATION}
+        scope={PageScope.BRAND}
         isStatsEnabled
         isFiltersEnabled
       />

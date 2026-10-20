@@ -21,6 +21,7 @@ import {
   type TopPostData,
   useTopPosts,
 } from '@hooks/data/analytics/use-top-posts/use-top-posts';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { User } from '@models/auth/user.model';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
@@ -82,6 +83,7 @@ export function useAnalyticsOverview({
     UsersService.getInstance(token),
   );
   const { brandSlug, href, orgHref } = useOrgUrl();
+  const { brandId } = useCollectionScope();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange.startDate ?? undefined,
@@ -110,7 +112,7 @@ export function useAnalyticsOverview({
     useHealthChecks();
 
   const {
-    brandsLeaderboard,
+    brandsLeaderboard: orgBrandsLeaderboard,
     fetchLeaderboards,
     isLeaderboardLoading,
     isLeaderboardUsingCache,
@@ -124,6 +126,11 @@ export function useAnalyticsOverview({
     revalidateOnMount: false,
     scope,
   });
+  // A brand page never ranks the organization's other brands.
+  const brandsLeaderboard = useMemo(
+    () => (scope === PageScope.BRAND ? [] : orgBrandsLeaderboard),
+    [orgBrandsLeaderboard, scope],
+  );
 
   const {
     fetchTimeseries,
@@ -145,6 +152,7 @@ export function useAnalyticsOverview({
     isUsingCache: isTopPostsUsingCache,
     topPosts,
   } = useTopPosts({
+    brandId: scope === PageScope.BRAND ? brandId : undefined,
     initialCachedAt: initialCachedAt || null,
     initialData: initialTopPosts,
     limit: 10,

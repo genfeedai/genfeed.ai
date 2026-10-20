@@ -40,6 +40,15 @@ vi.mock('next/link', () => ({
 
 const mockRoute = vi.hoisted(() => ({ brandSlug: 'brand-x' }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({
+    brandId: 'brand_1',
+    isReady: true,
+    organizationId: 'org_1',
+    pageScope: 'brand',
+  }),
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     brandSlug: mockRoute.brandSlug,
@@ -369,6 +378,25 @@ describe('AnalyticsOverview', () => {
     );
     expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
       expect.objectContaining({ initialData: undefined }),
+    );
+  });
+
+  it('scopes top posts to the selected brand on a brand page', () => {
+    renderToStaticMarkup(<AnalyticsOverview scope={PageScope.BRAND} />);
+
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand_1' }),
+    );
+    expect(mockDataHookOptions.topPosts).not.toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: undefined }),
+    );
+  });
+
+  it('keeps top posts organization-wide outside brand scope', () => {
+    renderOverview();
+
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: undefined }),
     );
   });
 
