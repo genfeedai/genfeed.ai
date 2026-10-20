@@ -28,9 +28,15 @@ const OVERVIEW_ROUTE = brandPath(APP_ROUTES.ANALYTICS.OVERVIEW);
 
 // `GET /organizations/:id/analytics` (`AnalyticSerializer` over
 // `AnalyticsAggregationService.getOverviewMetrics` + the connected-credential
-// count) — the overview KPI source.
+// count) — the KPI source of the organization-wide overview (`/:org/~/…`).
 const ORGANIZATION_ANALYTICS = createPlaywrightApiRoutePattern(
   'organizations/[^/]+/analytics\\?',
+);
+// `GET /brands/:id/analytics` — the same payload narrowed to one brand. A brand
+// overview (`/:org/:brand/analytics/overview`) is brand-scoped since
+// genfeedai/genfeed.ai#7669, so this is its KPI source.
+const BRAND_ANALYTICS = createPlaywrightApiRoutePattern(
+  'brands/[^/]+/analytics\\?',
 );
 // `GET /analytics/timeseries` (`AnalyticsTimeseriesWithPlatformsSerializer`
 // over `AnalyticsService.getTimeSeriesData`) — the chart source.
@@ -94,15 +100,21 @@ const TIMESERIES: ITimeSeriesApiDataPoint[] = [
   },
 ];
 
-async function mockOverviewData(page: Page): Promise<string[]> {
+async function mockOverviewData(
+  page: Page,
+  kpiEndpoint: RegExp = BRAND_ANALYTICS,
+): Promise<string[]> {
   const kpiRequests: string[] = [];
-  await page.route(ORGANIZATION_ANALYTICS, async (route) => {
+  await page.route(kpiEndpoint, async (route) => {
     kpiRequests.push(route.request().url());
     await route.fulfill({
       body: JSON.stringify({
         data: {
           attributes: ORGANIZATION_METRICS,
-          id: 'mock-org-id-e2e-test',
+          id:
+            kpiEndpoint === BRAND_ANALYTICS
+              ? 'brand-1'
+              : 'mock-org-id-e2e-test',
           type: 'analytic',
         },
       }),
@@ -225,8 +237,8 @@ test.describe('Analytics Overview', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const kpiRequests: string[] = [];
-      // A valid org with nothing connected or published yet.
-      await authenticatedPage.route(ORGANIZATION_ANALYTICS, async (route) => {
+      // A valid brand with nothing connected or published yet.
+      await authenticatedPage.route(BRAND_ANALYTICS, async (route) => {
         kpiRequests.push(route.request().url());
         await route.fulfill({
           body: JSON.stringify({
@@ -241,7 +253,7 @@ test.describe('Analytics Overview', () => {
                 totalViews: 0,
                 viewsGrowth: 0,
               } satisfies Partial<IAnalytics>,
-              id: 'mock-org-id-e2e-test',
+              id: 'brand-1',
               type: 'analytic',
             },
           }),
@@ -409,7 +421,7 @@ test.describe('Analytics Overview', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const route = orgPath(APP_ROUTES.ANALYTICS.OVERVIEW);
-      await mockOverviewData(authenticatedPage);
+      await mockOverviewData(authenticatedPage, ORGANIZATION_ANALYTICS);
       await mockOrganizationOverviewData(authenticatedPage);
 
       await authenticatedPage.goto(route);

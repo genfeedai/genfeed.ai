@@ -41,16 +41,20 @@ describe('BrandsRelationshipsController', () => {
   const mockServices = {
     analyticsAggregationService: {
       getOverviewMetrics: vi.fn().mockResolvedValue({
-        totalPosts: 0,
-        totalViews: 0,
-        viewsGrowth: 0,
+        activePlatforms: ['instagram'],
+        avgEngagementRate: 5,
+        engagementGrowth: 3,
+        totalEngagement: 40,
+        totalPosts: 4,
+        totalViews: 800,
+        viewsGrowth: 12,
       }),
     },
     brandsService: {
       findOne: vi.fn().mockResolvedValue(mockBrand),
     },
     credentialsService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      countConnected: vi.fn().mockResolvedValue(2),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     request: {
@@ -109,8 +113,21 @@ describe('BrandsRelationshipsController', () => {
 
       expect(
         mockServices.analyticsAggregationService.getOverviewMetrics,
-      ).toHaveBeenCalled();
-      expect(result).toBeDefined();
+      ).toHaveBeenCalledWith(organizationId, brandId, undefined, undefined);
+      expect(
+        mockServices.credentialsService.countConnected,
+      ).toHaveBeenCalledWith(organizationId, brandId);
+      // The brand overview reads the same KPI payload as the organization one.
+      expect(result).toEqual({
+        activePlatforms: ['instagram'],
+        avgEngagementRate: 5,
+        engagementGrowth: 3,
+        totalCredentialsConnected: 2,
+        totalEngagement: 40,
+        totalPosts: 4,
+        totalViews: 800,
+        viewsGrowth: 12,
+      });
     });
   });
 });
