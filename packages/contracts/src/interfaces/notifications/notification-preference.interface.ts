@@ -11,12 +11,14 @@ export const PRODUCT_EMAIL_TOPICS = [
 ] as const;
 export type ProductEmailTopic = (typeof PRODUCT_EMAIL_TOPICS)[number];
 export const SOCIAL_REPLY_NOTIFICATION_TOPIC = 'social.reply' as const;
+export const BREAKOUT_REMIX_NOTIFICATION_TOPIC = 'breakout.remix' as const;
 /** In-app alert topics raised by the activity alert policy (#5197). */
 export const ALERT_ONLY_NOTIFICATION_TOPICS = [
   'publishing.status',
   'integration.status',
   'approval.requests',
   'trends.summary',
+  BREAKOUT_REMIX_NOTIFICATION_TOPIC,
   'operator.alerts',
 ] as const;
 export const NOTIFICATION_TOPICS = [

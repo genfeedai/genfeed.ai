@@ -91,6 +91,7 @@ export type ActivityMessageId =
   | 'activity.review.requested'
   | 'activity.report.delivered'
   | 'activity.trends.ready'
+  | 'activity.breakout.remix_offered'
   | 'activity.approval.requested'
   | 'activity.fallback';
 
@@ -189,6 +190,7 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.WORKFLOW_REVIEW_REQUESTED]: 'activity.review.requested',
   [ActivityKey.WORKFLOW_REPORT_DELIVERED]: 'activity.report.delivered',
   [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
+  [ActivityKey.BREAKOUT_REMIX_OFFERED]: 'activity.breakout.remix_offered',
   [ActivityKey.MCP_APPROVAL_REQUESTED]: 'activity.approval.requested',
   // Audit rows keep their humanized fallback label.
   [ActivityKey.POST_LIFECYCLE_TRANSITION]: 'activity.fallback',
@@ -875,6 +877,9 @@ export function formatActivityMessage(
 
     case 'activity.trends.ready':
       return 'Trend summary ready';
+
+    case 'activity.breakout.remix_offered':
+      return 'A post is breaking out. Remix it';
 
     case 'activity.approval.requested':
       return 'Tool approval needed';

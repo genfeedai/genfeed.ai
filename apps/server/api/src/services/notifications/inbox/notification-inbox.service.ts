@@ -9,6 +9,7 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
+  BREAKOUT_REMIX_NOTIFICATION_TOPIC,
   getActivityAlertPolicy,
   type INotificationInboxActivity,
   type INotificationInboxItem,
@@ -193,11 +194,44 @@ function readSocialReplyPayload(
   };
 }
 
+type BreakoutRemixInboxPayload = {
+  brandId: string;
+  /** Query that opens the remix for the post the offer is about. */
+  remixQuery: string;
+};
+
+function readBreakoutRemixPayload(
+  topic: string,
+  payload: Prisma.JsonValue,
+): BreakoutRemixInboxPayload | null {
+  if (
+    topic !== BREAKOUT_REMIX_NOTIFICATION_TOPIC ||
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    payload.kind !== 'breakout_remix_offer' ||
+    payload.version !== 1 ||
+    typeof payload.brandId !== 'string'
+  ) {
+    return null;
+  }
+  const postId = typeof payload.postId === 'string' ? payload.postId : null;
+  const sourcePostId =
+    typeof payload.sourcePostId === 'string' ? payload.sourcePostId : null;
+  const remixQuery = postId
+    ? `remixPostId=${encodeURIComponent(postId.slice(0, 200))}`
+    : sourcePostId
+      ? `remixSourcePostId=${encodeURIComponent(sourcePostId.slice(0, 200))}`
+      : null;
+  return remixQuery ? { brandId: payload.brandId, remixQuery } : null;
+}
+
 /**
- * Brand slugs for `social.reply` rows, limited to brands the member may open.
+ * Brand slugs for `social.reply` and breakout-offer rows, limited to brands the
+ * member may open.
  * A brand outside that set still lists the item, just without a link.
  */
-async function loadSocialReplyBrandSlugs(input: {
+async function loadInboxBrandSlugs(input: {
   member: { brands: Array<{ id: string }>; role: { key: string } };
   organizationId: string;
   page: Array<{ event: { payload: Prisma.JsonValue }; topic: string }>;
@@ -207,7 +241,9 @@ async function loadSocialReplyBrandSlugs(input: {
   const brandIds = [
     ...new Set(
       page.flatMap((row) => {
-        const payload = readSocialReplyPayload(row.topic, row.event.payload);
+        const payload =
+          readSocialReplyPayload(row.topic, row.event.payload) ??
+          readBreakoutRemixPayload(row.topic, row.event.payload);
         return payload ? [payload.brandId] : [];
       }),
     ),
@@ -354,7 +390,7 @@ export class NotificationInboxService {
       userId,
     });
 
-    const socialReplyBrandSlugs = await loadSocialReplyBrandSlugs({
+    const inboxBrandSlugs = await loadInboxBrandSlugs({
       member,
       organizationId,
       page,
@@ -364,7 +400,7 @@ export class NotificationInboxService {
     const docs = page.map((row) => {
       const socialReply = readSocialReplyPayload(row.topic, row.event.payload);
       if (socialReply) {
-        const brandSlug = socialReplyBrandSlugs.get(socialReply.brandId);
+        const brandSlug = inboxBrandSlugs.get(socialReply.brandId);
         return {
           id: row.id,
           topic: row.topic,
@@ -389,6 +425,32 @@ export class NotificationInboxService {
             accountHandle: socialReply.accountHandle,
             replyCount: socialReply.replyCount,
           },
+        };
+      }
+      const breakoutRemix = readBreakoutRemixPayload(
+        row.topic,
+        row.event.payload,
+      );
+      if (breakoutRemix) {
+        const brandSlug = inboxBrandSlugs.get(breakoutRemix.brandId);
+        return {
+          id: row.id,
+          topic: row.topic,
+          occurredAt: row.occurredAt,
+          readAt: row.readAt,
+          outcome: 'completed' as const,
+          severity:
+            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+          activity: readInboxActivity(organizationId, row.activity),
+          sourceHref: brandSlug
+            ? inboxSourceHref(
+                member.organization.slug,
+                brandSlug,
+                `${APP_ROUTES.ANALYTICS.POSTS}?${breakoutRemix.remixQuery}`,
+              )
+            : null,
+          sourceLabel: null,
+          failure: null,
         };
       }
       const source = sources.get(row.event.sourceId);
