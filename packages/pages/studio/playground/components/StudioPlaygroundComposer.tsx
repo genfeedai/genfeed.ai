@@ -32,6 +32,7 @@ import type {
 import type {
   StudioGenerationCostEstimate,
   StudioPlaygroundReferenceRole,
+  StudioPlaygroundSettings,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
@@ -89,6 +90,7 @@ import {
   resolveStudioPlaygroundCapabilities,
 } from '@pages/studio/playground/utils/studio-playground-types';
 import { buildStudioPresetCommands } from '@pages/studio/playground/utils/studio-prompt-commands';
+import { buildVideoDraftSettings } from '@pages/studio/playground/utils/studio-video-draft';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupResetButton from '@ui/dropdowns/generation-setup/GenerationSetupResetButton';
@@ -415,11 +417,18 @@ export default function StudioPlaygroundComposer({
       : costPromptData.duration;
   // The request for the model Studio submits, or for the one Auto was priced
   // at (`pinnedModelKey`), which is submitted with that model's controls.
-  const buildQuoteRequest = (pinnedModelKey?: string) => {
-    const quoteSettings = pinnedModelKey
-      ? pinStudioSettingsToModel(displaySettings, pinnedModelKey)
-      : displaySettings;
-    const quoteData = pinnedModelKey
+  // A draft (`draftOverride`) is quoted for the cheap settings it submits.
+  const buildQuoteRequest = (
+    pinnedModelKey?: string,
+    draftOverride?: StudioPlaygroundSettings,
+  ) => {
+    const quoteSettings =
+      draftOverride ??
+      (pinnedModelKey
+        ? pinStudioSettingsToModel(displaySettings, pinnedModelKey)
+        : displaySettings);
+    const isOverridden = Boolean(pinnedModelKey || draftOverride);
+    const quoteData = isOverridden
       ? buildStudioPromptData({
           brandId: '',
           promptText: '',
@@ -429,7 +438,7 @@ export default function StudioPlaygroundComposer({
       : costPromptData;
     return buildStudioGenerationQuoteRequest({
       aspectRatio: quoteSettings.aspectRatio,
-      duration: pinnedModelKey ? quoteData.duration : quoteDuration,
+      duration: isOverridden ? quoteData.duration : quoteDuration,
       editSize: hasEditMask ? 'source' : quoteSettings.editSize,
       referenceUrls: attachedAssets
         .filter(
@@ -443,7 +452,7 @@ export default function StudioPlaygroundComposer({
         ),
       height: quoteData.height,
       isAudioEnabled: quoteSettings.isAudioEnabled,
-      modelKey: pinnedModelKey ?? quoteModelKey,
+      modelKey: draftOverride?.modelKey ?? pinnedModelKey ?? quoteModelKey,
       outputs: quoteData.outputs,
       resolution: quoteData.resolution,
       type,
@@ -454,6 +463,30 @@ export default function StudioPlaygroundComposer({
   const serverEstimate = useStudioGenerationEstimate(
     isServerPricedModel ? buildQuoteRequest() : null,
   );
+  // Video only: the cheap preview of the chosen model, priced by the same
+  // server quote, so a first look costs a fraction of the full render.
+  const draftSettings =
+    type === 'video' && isServerPricedModel
+      ? buildVideoDraftSettings(displaySettings, models)
+      : null;
+  const draftEstimate = useStudioGenerationEstimate(
+    draftSettings ? buildQuoteRequest(undefined, draftSettings) : null,
+  );
+  const guardedDraftSubmit = () => {
+    if (!draftSettings || isSubmitBlocked || !canSubmitStudioGeneration())
+      return;
+    confirmSpend(
+      {
+        models,
+        source: {
+          autoRequest: null,
+          buildRequest: () => buildQuoteRequest(undefined, draftSettings),
+          kind: 'server',
+        },
+      },
+      (options) => onSubmitRef.current({ ...options, isDraft: true }),
+    );
+  };
   // An avatar is quoted for the body Generate submits (script, identity and
   // the resolved engine); until all three exist there is nothing to price.
   const avatarScript = resolveStudioAvatarScript(settings.speech, prompt);
@@ -1377,6 +1410,23 @@ export default function StudioPlaygroundComposer({
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               />
+            ) : null}
+
+            {draftSettings && draftEstimate.status === 'estimated' ? (
+              <Button
+                ariaLabel={translate('videoDraft.ariaLabel')}
+                isDisabled={Boolean(isSubmitBlocked)}
+                onClick={guardedDraftSubmit}
+                size={ButtonSize.SM}
+                textTransform="none"
+                tooltip={translate('videoDraft.tooltip')}
+                tooltipPosition="top"
+                variant={ButtonVariant.SECONDARY}
+              >
+                {translate('videoDraft.label', {
+                  credits: draftEstimate.credits ?? 0,
+                })}
+              </Button>
             ) : null}
 
             <PromptBarSubmitSlot

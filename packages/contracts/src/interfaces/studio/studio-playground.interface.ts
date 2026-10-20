@@ -378,6 +378,11 @@ export type StudioGenerateDraftSaveStatus =
  * admission charges; `unavailableReason` is that quote's code when it declined.
  */
 export interface StudioSubmitOptions {
+  /**
+   * Submit the cheap preview of a video instead of the full render: the
+   * model's draft sibling, lowest resolution, shortest length and no audio.
+   */
+  isDraft?: boolean;
   /** The model an Auto choice was priced at; submitted instead of routing again. */
   pinnedModelKey?: string;
 }

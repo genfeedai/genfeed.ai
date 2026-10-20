@@ -2103,7 +2103,7 @@ describe('StudioPlaygroundComposer', () => {
     );
 
     expect(screen.getByText('~125')).toBeVisible();
-    expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+    expect(estimateMocks.resolve).toHaveBeenCalledWith(
       expect.objectContaining({
         category: 'video',
         modelKey: model.key,
@@ -2491,6 +2491,102 @@ describe('StudioPlaygroundComposer', () => {
       expect(baseProps.onSubmit).toHaveBeenCalledWith(undefined);
     });
 
+    describe('video draft', () => {
+      const veo = {
+        category: ModelCategory.VIDEO,
+        cost: 100,
+        durations: [4, 6, 8],
+        isActive: true,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+        label: 'Veo 3.1',
+        lifecycle: ModelLifecycle.AVAILABLE,
+        provider: ModelProvider.REPLICATE,
+      };
+      const veoFast = {
+        ...veo,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+        label: 'Veo 3.1 Fast',
+      };
+      const videoSettings = {
+        ...settings,
+        duration: 8,
+        isAudioEnabled: true,
+        modelKey: veo.key,
+        resolution: '1080p',
+      };
+
+      it('prices the cheap draft and submits it flagged after the spend is confirmed', async () => {
+        estimateMocks.resolve.mockImplementation(
+          (request: { modelKey?: string }) => ({
+            credits: request.modelKey === veoFast.key ? 50 : 134,
+            status: 'estimated',
+          }),
+        );
+        spendMocks.estimateGenerationCredits.mockResolvedValue({
+          credits: 50,
+          isAvailable: true,
+          modelKey: veoFast.key,
+        });
+        render(
+          <StudioPlaygroundComposer
+            {...baseProps}
+            models={[veo, veoFast] as never}
+            prompt="A cinematic reveal"
+            settings={videoSettings}
+            type="video"
+          />,
+        );
+
+        expect(estimateMocks.resolve).toHaveBeenCalledWith(
+          expect.objectContaining({
+            duration: 4,
+            isAudioEnabled: false,
+            modelKey: veoFast.key,
+            outputs: 1,
+          }),
+        );
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Generate a cheap video draft' }),
+        );
+
+        await waitFor(() => expect(spendMocks.openConfirm).toHaveBeenCalled());
+        expect(spendMocks.estimateGenerationCredits).toHaveBeenCalledWith(
+          expect.objectContaining({
+            duration: 4,
+            isAudioEnabled: false,
+            modelKey: veoFast.key,
+          }),
+          expect.any(AbortSignal),
+        );
+        expect(baseProps.onSubmit).not.toHaveBeenCalled();
+
+        act(() => spendMocks.openConfirm.mock.calls[0][0].onConfirm());
+        expect(baseProps.onSubmit).toHaveBeenCalledWith({ isDraft: true });
+      });
+
+      it('offers no draft when the cheaper sibling is not on offer', () => {
+        estimateMocks.resolve.mockReturnValue({
+          credits: 134,
+          status: 'estimated',
+        });
+        render(
+          <StudioPlaygroundComposer
+            {...baseProps}
+            models={[veo] as never}
+            prompt="A cinematic reveal"
+            settings={videoSettings}
+            type="video"
+          />,
+        );
+
+        expect(
+          screen.queryByRole('button', {
+            name: 'Generate a cheap video draft',
+          }),
+        ).toBeNull();
+      });
+    });
+
     it('prices Auto at the model it routes to and submits that model pinned', async () => {
       spendMocks.estimateGenerationCredits.mockResolvedValue({
         credits: 8,
@@ -2631,7 +2727,7 @@ describe('StudioPlaygroundComposer', () => {
         type="video"
       />,
     );
-    expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+    expect(estimateMocks.resolve).toHaveBeenCalledWith(
       expect.objectContaining({ duration: 5, isAudioEnabled: true }),
     );
   });

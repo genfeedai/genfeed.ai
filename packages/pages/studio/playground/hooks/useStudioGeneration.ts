@@ -70,6 +70,7 @@ import {
 } from '@pages/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import { readStudioReferencePreviewUrl } from '@pages/studio/playground/utils/studio-reference-preview';
+import { buildVideoDraftSettings } from '@pages/studio/playground/utils/studio-video-draft';
 import {
   resolveSpeakingVoiceProvider,
   resolveSpeechVoiceProvider,
@@ -145,6 +146,8 @@ export interface StudioGenerationOptions {
   promptAuthor?: GenerationPromptAuthor;
   /** The model an Auto choice was priced at; submitted instead of routing again. */
   pinnedModelKey?: string;
+  /** Submit the video's cheap draft settings instead of the real ones. */
+  isDraft?: boolean;
 }
 
 export interface StudioGenerationReferences {
@@ -720,9 +723,19 @@ export function useStudioGeneration({
         models.some((model) => model.key === options.pinnedModelKey)
           ? options.pinnedModelKey
           : undefined;
-      const activeSettings = pinnedModelKey
-        ? pinStudioSettingsToModel(settings, pinnedModelKey)
-        : settings;
+      const draftSettings =
+        options?.isDraft && type === 'video'
+          ? buildVideoDraftSettings(settings, models)
+          : null;
+      if (options?.isDraft && !draftSettings) {
+        notificationsService.error('A draft is not available for this model');
+        return false;
+      }
+      const activeSettings =
+        draftSettings ??
+        (pinnedModelKey
+          ? pinStudioSettingsToModel(settings, pinnedModelKey)
+          : settings);
       const referencePreviewUrl = readStudioReferencePreviewUrl(
         options?.referencePreviewUrl,
       );

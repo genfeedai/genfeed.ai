@@ -112,8 +112,8 @@ import {
 } from '@pages/studio/playground/utils/studio-playground-settings';
 import { useStudioGeneration } from './useStudioGeneration';
 
-function makeModel(key: string): IModel {
-  return { isActive: true, key, label: key } as IModel;
+function makeModel(key: string, overrides: Partial<IModel> = {}): IModel {
+  return { isActive: true, key, label: key, ...overrides } as IModel;
 }
 
 function renderStudioGeneration(
@@ -1773,6 +1773,54 @@ describe('pinned Auto submission', () => {
     expect(mockImagesPost.mock.calls[1]?.[0]).toMatchObject({
       autoSelectModel: true,
     });
+  });
+});
+
+describe('video draft submission', () => {
+  const full = 'google/veo-3.1';
+  const fast = 'google/veo-3.1-fast';
+  const videoSettings = {
+    ...getDefaultStudioPlaygroundSettings('video'),
+    duration: 8,
+    isAudioEnabled: true,
+    modelKey: full,
+    outputs: 2,
+  };
+
+  it('submits the cheap draft of the chosen model, not the real settings', async () => {
+    mockVideosPost.mockResolvedValue({ pendingIngredientIds: ['draft'] });
+    const { result } = renderStudioGeneration({
+      type: 'video',
+      models: [
+        makeModel(full, { durations: [4, 6, 8] }),
+        makeModel(fast, { durations: [4, 6, 8] }),
+      ],
+      settings: videoSettings,
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('A reveal', {}, { isDraft: true }),
+      ).toBe(true);
+    });
+    expect(mockVideosPost.mock.calls[0]?.[0]).toMatchObject({
+      duration: 4,
+      isAudioEnabled: false,
+      model: fast,
+    });
+  });
+
+  it('refuses a draft it cannot price rather than charging the full render', async () => {
+    const { result } = renderStudioGeneration({
+      type: 'video',
+      models: [makeModel(full, { durations: [4, 6, 8] })],
+      settings: videoSettings,
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('A reveal', {}, { isDraft: true }),
+      ).toBe(false);
+    });
+    expect(mockVideosPost).not.toHaveBeenCalled();
   });
 });
 
