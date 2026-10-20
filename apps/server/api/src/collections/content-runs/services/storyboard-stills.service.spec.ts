@@ -498,6 +498,38 @@ describe('StoryboardStillsService reconcile', () => {
     });
   });
 
+  it('settles the still that rendered and refunds the one that failed in the same run (#7500)', async () => {
+    const context = setup();
+    await quoteAndGenerate(context, ['shot-1', 'shot-2']);
+    context.ingredients.set('asset-1', { status: 'GENERATED' });
+    context.ingredients.set('asset-2', { status: 'FAILED' });
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+
+    expect(context.credits.settleReservation).toHaveBeenCalledTimes(1);
+    expect(context.credits.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationId: 'res-1', actualAmount: 4 }),
+    );
+    expect(context.credits.releaseReservation).toHaveBeenCalledTimes(1);
+    expect(context.credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'res-2',
+    });
+    const config = context.current();
+    expect(config.plan?.shots[0]).toMatchObject({
+      stillAssetId: 'asset-1',
+      stillFreshness: 'fresh',
+    });
+    expect(config.plan?.shots[1]).toMatchObject({
+      stillAssetId: 'old-still',
+      stillFreshness: 'failed',
+    });
+    expect(config.stillOperations).toEqual([
+      expect.objectContaining({ billing: 'settled', state: 'ready' }),
+      expect.objectContaining({ billing: 'released', state: 'failed' }),
+    ]);
+  });
+
   it('attaches a still as stale when the action changed while it rendered', async () => {
     const context = setup();
     await quoteAndGenerate(context, ['shot-1']);
