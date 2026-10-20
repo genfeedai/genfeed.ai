@@ -33,14 +33,9 @@ function createService(agentConfig: Record<string, unknown> | null = {}) {
       ),
     updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
   };
-  const prisma = { agentThread: { findFirst: vi.fn() } };
   return {
     brandsService,
-    prisma,
-    service: new AgentBrandContextAskService(
-      brandsService as never,
-      prisma as never,
-    ),
+    service: new AgentBrandContextAskService(brandsService as never),
   };
 }
 
@@ -172,34 +167,21 @@ describe('AgentBrandContextAskService.recordAsk', () => {
 });
 
 describe('AgentBrandContextAskService.resolveSaveMode', () => {
-  it('keeps threadless and onboarding-thread saves on the onboarding contract', async () => {
-    const { service, prisma } = createService();
-    await expect(
+  it('keeps threadless saves on the onboarding contract', () => {
+    const { service } = createService();
+    expect(
       service.resolveSaveMode({ organizationId: 'org-1', userId: 'user-1' }),
-    ).resolves.toBe('onboarding');
-    expect(prisma.agentThread.findFirst).not.toHaveBeenCalled();
-    prisma.agentThread.findFirst.mockResolvedValue({ source: 'onboarding' });
-    await expect(
+    ).toBe('onboarding');
+  });
+
+  it('treats any thread as in-flow', () => {
+    const { service } = createService();
+    expect(
       service.resolveSaveMode({
         organizationId: 'org-1',
         threadId: 'thread-1',
         userId: 'user-1',
       }),
-    ).resolves.toBe('onboarding');
+    ).toBe('in_flow');
   });
-
-  it.each([{ source: 'agent' }, { source: null }, null])(
-    'treats any other thread as in-flow: %j',
-    async (thread) => {
-      const { service, prisma } = createService();
-      prisma.agentThread.findFirst.mockResolvedValue(thread);
-      await expect(
-        service.resolveSaveMode({
-          organizationId: 'org-1',
-          threadId: 'thread-1',
-          userId: 'user-1',
-        }),
-      ).resolves.toBe('in_flow');
-    },
-  );
 });

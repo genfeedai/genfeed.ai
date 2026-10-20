@@ -162,24 +162,28 @@ describe('AdminFlagsPage (#5468)', () => {
     ).toHaveAttribute('aria-checked', 'false');
   });
 
-  it('groups each module with its own surfaces and features in one card', async () => {
+  it('gives each app its own card, with its features inside', async () => {
     render(<AdminFlagsPage />);
 
     const studioSwitch = await screen.findByRole('switch', { name: 'Studio' });
-    const studioCard = studioSwitch.closest(CARD);
-    expect(studioCard).toHaveAttribute('data-testid', 'flag-card-studio');
-    for (const name of [
-      'Motion',
-      'Storyboard',
-      'Clips',
-      'Turbo',
-      'Turbo ideas',
-      'Editor',
+    expect(studioSwitch.closest(CARD)).toHaveAttribute(
+      'data-testid',
+      'flag-card-studio',
+    );
+    for (const [name, key] of [
+      ['Motion', 'motion'],
+      ['Storyboard', 'storyboard'],
+      ['Clips', 'clips'],
+      ['Turbo', 'turbo'],
+      ['Editor', 'editor'],
     ]) {
-      expect(screen.getByRole('switch', { name }).closest(CARD)).toBe(
-        studioCard,
-      );
+      expect(
+        screen.getByRole('switch', { name }).closest(CARD),
+      ).toHaveAttribute('data-testid', `flag-card-${key}`);
     }
+    expect(
+      screen.getByRole('switch', { name: 'Turbo ideas' }).closest(CARD),
+    ).toHaveAttribute('data-testid', 'flag-card-turbo');
     expect(
       screen.getByRole('switch', { name: 'Library canvas' }).closest(CARD),
     ).toHaveAttribute('data-testid', 'flag-card-library');
@@ -189,7 +193,7 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('names the switched-off flag that keeps a nested row off', async () => {
-    mocks.getSettings.mockResolvedValue({ flags: { studio_turbo: false } });
+    mocks.getSettings.mockResolvedValue({ flags: { turbo: false } });
     render(<AdminFlagsPage />);
 
     const turboIdeas = await screen.findByRole('switch', {
@@ -197,12 +201,12 @@ describe('AdminFlagsPage (#5468)', () => {
     });
     expect(turboIdeas).toBeDisabled();
     expect(turboIdeas.getAttribute('aria-description')).toContain(
-      'Needs Turbo. Off while Turbo is off.',
+      'Off while Turbo is off.',
     );
     expect(screen.getByRole('switch', { name: 'Motion' })).toBeEnabled();
   });
 
-  it('lists every Studio surface as its own switch', async () => {
+  it('lists every Studio app as its own switch', async () => {
     render(<AdminFlagsPage />);
 
     for (const name of ['Motion', 'Storyboard', 'Clips', 'Turbo', 'Editor']) {
@@ -212,17 +216,20 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('disables nested switches while their parent is off', async () => {
     mocks.getSettings.mockResolvedValue({
-      flags: { studio: false, studio_motion: true },
+      flags: { library: false, library_canvas: true },
     });
     render(<AdminFlagsPage />);
 
-    const motion = await screen.findByRole('switch', { name: 'Motion' });
-    expect(motion).toBeDisabled();
-    expect(motion).toHaveAttribute('aria-checked', 'true');
-    expect(motion.getAttribute('aria-description')).toContain(
-      'Off while Studio is off.',
+    const canvas = await screen.findByRole('switch', {
+      name: 'Library canvas',
+    });
+    expect(canvas).toBeDisabled();
+    expect(canvas).toHaveAttribute('aria-checked', 'true');
+    expect(canvas.getAttribute('aria-description')).toContain(
+      'Off while Library is off.',
     );
-    expect(screen.getByRole('switch', { name: 'Turbo ideas' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Turbo ideas' })).toBeEnabled();
+    expect(screen.getByRole('switch', { name: 'Motion' })).toBeEnabled();
     expect(screen.getByRole('switch', { name: 'Agent' })).toBeEnabled();
   });
 

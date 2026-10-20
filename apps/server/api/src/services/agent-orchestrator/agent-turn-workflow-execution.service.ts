@@ -547,7 +547,6 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
             await this.agentChatModelRegistry.getDefaultModelKey(),
           model,
           prompt: request.content,
-          source: request.source,
         }),
         ...(request.transferId
           ? {

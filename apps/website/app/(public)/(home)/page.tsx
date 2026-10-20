@@ -1,4 +1,6 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
+import { buildSoftwareApplicationJsonLd } from '@data/software-jsonld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import HomeContent from '@public/(home)/home-content';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -35,5 +37,12 @@ export async function generateMetadata(
 }
 
 export default function HomePage() {
-  return <HomeContent />;
+  return (
+    <>
+      <script type="application/ld+json">
+        {stringifyJsonLd(buildSoftwareApplicationJsonLd(metadata.description))}
+      </script>
+      <HomeContent />
+    </>
+  );
 }

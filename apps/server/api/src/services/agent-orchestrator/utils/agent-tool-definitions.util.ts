@@ -116,52 +116,21 @@ export const CLOUD_ONLY_TOOLS: CuratedActionName[] = [
   'present_payment_options',
 ];
 
-/**
- * Monthly content batches are a managed-orchestration upsell rather than a
- * capability gap, so they are withheld from self-hosted onboarding only —
- * a self-hosted operator can still reach the tool from a normal agent turn.
- */
-export const CLOUD_ONLY_ONBOARDING_TOOLS: CuratedActionName[] = [
-  ...CLOUD_ONLY_TOOLS,
-  'generate_monthly_content',
-];
-
 export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = [
   'complete_brand_onboarding_step',
   'scan_brand_url',
 ];
 
-/**
- * Tools every onboarding turn gets. `save_onboarding_answers` also runs in
- * normal turns to save an in-flow brand context answer, where its handler
- * only accepts fields that conversation asked and grants no credits.
- */
-export const ONBOARDING_TOOLS: CuratedActionName[] = [
-  ...ONBOARDING_ONLY_TOOLS,
-  'save_onboarding_answers',
-];
-
-export function resolveBlockedTools(options: {
-  source?: string;
-}): CuratedActionName[] | undefined {
-  const blocked =
-    options.source === 'onboarding' ? [] : [...ONBOARDING_ONLY_TOOLS];
-  if (isSelfHostedDeployment())
-    blocked.push(
-      ...(options.source === 'onboarding'
-        ? CLOUD_ONLY_ONBOARDING_TOOLS
-        : CLOUD_ONLY_TOOLS),
-    );
+export function resolveBlockedTools(): CuratedActionName[] | undefined {
+  const blocked = [...ONBOARDING_ONLY_TOOLS];
+  if (isSelfHostedDeployment()) blocked.push(...CLOUD_ONLY_TOOLS);
   return blocked.length ? blocked : undefined;
 }
 
 export function buildToolDefinitions(
   allowedTools?: CuratedActionName[],
   blockedTools?: CuratedActionName[],
-  source?: string,
 ): OpenRouterTool[] {
-  if (source === 'onboarding' && allowedTools)
-    allowedTools = [...new Set([...allowedTools, ...ONBOARDING_TOOLS])];
   const all = getToolDefinitions();
   const allowed = allowedTools
     ? all.filter((t) => allowedTools.includes(t.name as CuratedActionName))
@@ -242,7 +211,6 @@ export function buildAgentChatCompletionParams(params: {
     isWebSearchNeeded: params.isWebSearchNeeded,
     model: params.model,
     prompt: params.prompt,
-    source: params.source,
   });
   const routingPlugins = resolveAgentRoutingPlugins(routingPolicy) ?? [];
   const isGatewayAutoRouted =

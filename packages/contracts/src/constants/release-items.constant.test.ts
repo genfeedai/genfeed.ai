@@ -20,7 +20,7 @@ describe('release items', () => {
 
   it('defaults every release to preview-only, unlike module flags', () => {
     expect(DEFAULT_PLATFORM_FLAGS.release_motion).toBe(false);
-    expect(DEFAULT_PLATFORM_FLAGS.studio_motion).toBe(true);
+    expect(DEFAULT_PLATFORM_FLAGS.motion).toBe(true);
     const parsed = parsePlatformFlags({
       release_turbo: true,
       release_clips: 'yes',

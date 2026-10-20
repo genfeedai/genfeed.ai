@@ -5,8 +5,6 @@ import { AGENT_JAILBREAK_HARDENING } from '@api/services/agent-orchestrator/cons
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AGENT_SCOPE_GUARDRAIL } from '@api/services/agent-orchestrator/constants/agent-scope-guardrail.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
-import { COMMUNITY_ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/community-onboarding-system-prompt.constant';
-import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type {
   AgentChatAttachment,
   AgentChatContext,
@@ -23,10 +21,6 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const ONBOARDING_REQUEST: AgentChatRequest = {
-  content: 'Start onboarding',
-  source: 'onboarding',
-};
 const DEFAULT_REQUEST: AgentChatRequest = {
   content: 'Plan next week of posts',
 };
@@ -41,7 +35,6 @@ const modelAccess = {
 };
 
 function createService(options?: {
-  accountType?: string;
   brandContext?: { defaultModel?: string } | null;
   initialBrandId?: string;
   builtSystemPrompt?: string;
@@ -78,13 +71,6 @@ function createService(options?: {
     } as never,
     { findOneById: vi.fn() } as never,
     modelAccess as never,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    {
-      findOne: vi.fn().mockResolvedValue({ accountType: options?.accountType }),
-    } as never,
   );
 }
 
@@ -147,7 +133,6 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
   it.each([
     [{ source: 'agent' as const }, true],
     [{}, true],
-    [{ source: 'onboarding' as const }, false],
     [{ source: 'proactive' as const }, false],
     [{ agentType: AgentType.BRAND_INTERVIEW }, false],
   ])(
@@ -198,50 +183,6 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
       );
     },
   );
-});
-
-describe('AgentOrchestratorContextService onboarding prompt selection', () => {
-  it('grounds onboarding in the already selected brand context and ID', async () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-    const result = await createService({
-      brandContext: {},
-      initialBrandId: 'brand-1',
-    }).resolveSystemPromptAndModel(ONBOARDING_REQUEST, CONTEXT);
-    expect(result.systemPrompt).toContain(
-      `assembled:${ONBOARDING_SYSTEM_PROMPT}`,
-    );
-    expect(result.systemPrompt).toContain('Current brand ID: brand-1');
-    expectSharedScopeGuardrail(result.systemPrompt);
-  });
-
-  it('uses the Community prompt for self-hosted onboarding', async () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
-
-    const result = await createService().resolveSystemPromptAndModel(
-      ONBOARDING_REQUEST,
-      CONTEXT,
-    );
-
-    expect(result.systemPrompt).toEqual(
-      expect.stringContaining(COMMUNITY_ONBOARDING_SYSTEM_PROMPT),
-    );
-    expectSharedScopeGuardrail(result.systemPrompt);
-  });
-
-  it('keeps the cloud onboarding prompt for SaaS', async () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-
-    const result = await createService().resolveSystemPromptAndModel(
-      ONBOARDING_REQUEST,
-      CONTEXT,
-    );
-
-    expect(result.systemPrompt).toEqual(
-      expect.stringContaining(ONBOARDING_SYSTEM_PROMPT),
-    );
-    expectSharedScopeGuardrail(result.systemPrompt);
-  });
 });
 
 describe('AgentOrchestratorContextService resolveSystemPromptAndModel scope guardrail', () => {
@@ -531,10 +472,6 @@ describe('AgentOrchestratorContextService prompt-injection fencing', () => {
 
 describe('AgentOrchestratorContextService jailbreak hardening', () => {
   it('composes jailbreak language onto every resolve path', async () => {
-    const onboarding = await createService().resolveSystemPromptAndModel(
-      ONBOARDING_REQUEST,
-      CONTEXT,
-    );
     const brandInterview = await createService().resolveSystemPromptAndModel(
       { agentType: AgentType.BRAND_INTERVIEW, content: 'Start interview' },
       CONTEXT,
@@ -562,7 +499,6 @@ describe('AgentOrchestratorContextService jailbreak hardening', () => {
       CONTEXT,
     );
 
-    expect(onboarding.systemPrompt).toContain(AGENT_JAILBREAK_HARDENING);
     expect(brandInterview.systemPrompt).toBe(
       composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT),
     );
@@ -765,31 +701,5 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
 
     expect(registry.resolveModelKey).toHaveBeenCalledWith('strategy-model');
     expect(registry.resolveOverrideModelKey).not.toHaveBeenCalled();
-  });
-});
-
-describe('Expert onboarding prompt', () => {
-  it.each(['true', 'false'])(
-    'uses persisted account type on cloud=%s',
-    async (cloud) => {
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', cloud);
-      const result = await createService({
-        accountType: 'EXPERT',
-      }).resolveSystemPromptAndModel(ONBOARDING_REQUEST, CONTEXT);
-      expect(result.systemPrompt).toContain('Account type: EXPERT');
-      expect(result.systemPrompt).toContain(
-        'call complete_brand_onboarding_step',
-      );
-      expect(result.systemPrompt).toContain('single Continue button');
-    },
-  );
-  it('does not override the ordinary onboarding handoff', async () => {
-    const result = await createService({
-      accountType: 'CREATOR',
-    }).resolveSystemPromptAndModel(ONBOARDING_REQUEST, CONTEXT);
-    expect(result.systemPrompt).not.toContain('Account type: EXPERT');
-    expect(result.systemPrompt).toContain(
-      'Go to my workspace calls complete_onboarding',
-    );
   });
 });

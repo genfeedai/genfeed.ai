@@ -47,7 +47,6 @@ export function buildAgentSyncResponseMetadata(
       defaultModelKey: params.defaultModelKey,
       model: params.model,
       prompt: params.request.content,
-      source: params.request.source,
     }),
     ...buildResolvedModelMetadata(params.model, params.actualModels),
     isFallbackContent: params.isFallbackContent,

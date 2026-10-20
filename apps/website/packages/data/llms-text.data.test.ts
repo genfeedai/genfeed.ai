@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { BEST_LISTS } from './best-lists.data';
 import { competitors } from './competitors.data';
 import {
   buildLlmsFull,
@@ -34,6 +35,15 @@ describe('llm discovery index', () => {
     expect(occurrences(index, '](https://genfeed.ai/vs):')).toBe(1);
     for (const competitor of competitors) {
       const url = `https://genfeed.ai/vs/${competitor.slug}`;
+      expect(occurrences(index, `](${url}):`)).toBe(1);
+      expect(occurrences(full, `URL: ${url}\n`)).toBe(1);
+    }
+  });
+
+  it('lists every best-of guide once in both LLM files', () => {
+    expect(occurrences(index, '](https://genfeed.ai/best):')).toBe(1);
+    for (const list of BEST_LISTS) {
+      const url = `https://genfeed.ai/best/${list.slug}`;
       expect(occurrences(index, `](${url}):`)).toBe(1);
       expect(occurrences(full, `URL: ${url}\n`)).toBe(1);
     }

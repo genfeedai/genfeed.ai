@@ -60,14 +60,6 @@ describe('resolveAgentRoutingPolicy', () => {
         prompt: 'latest news today',
       }),
     ).toEqual({ reason: 'default' });
-    expect(
-      resolveAgentRoutingPolicy({
-        ...base,
-        isWebSearchNeeded: true,
-        prompt: 'latest news today',
-        source: 'onboarding',
-      }),
-    ).toEqual({ reason: 'default' });
   });
 });
 

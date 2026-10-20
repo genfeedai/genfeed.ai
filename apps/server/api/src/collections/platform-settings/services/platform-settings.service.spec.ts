@@ -518,18 +518,12 @@ describe('PlatformSettingsService', () => {
       );
       expect(values).toEqual(['{"studio":false}', 'ps-1']);
       expect(patch).not.toHaveBeenCalled();
-      // The API reads the flags in effect: Studio off turns its surfaces off.
+      // The API reads the flags in effect; Studio off leaves the other apps on.
       await expect(service.getFeatureSettings()).resolves.toMatchObject({
         flags: {
           ...DEFAULT_PLATFORM_FLAGS,
           analytics: false,
-          turbo_ideas: false,
           studio: false,
-          studio_turbo: false,
-          studio_clips: false,
-          studio_editor: false,
-          studio_motion: false,
-          studio_storyboard: false,
         },
       });
     });

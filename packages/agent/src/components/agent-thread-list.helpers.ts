@@ -193,35 +193,6 @@ export function groupAgentThreads(
   return groups;
 }
 
-export function formatRelativeTime(timestamp?: string): string | null {
-  if (!timestamp) {
-    return null;
-  }
-
-  const value = new Date(timestamp).getTime();
-  if (Number.isNaN(value)) {
-    return null;
-  }
-
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - value) / 1000));
-
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s`;
-  }
-
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m`;
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h`;
-  }
-
-  return `${Math.floor(diffHours / 24)}d`;
-}
-
 export function getThreadStatusMeta(
   thread: AgentThread,
   options?: ThreadActivityContext,

@@ -187,14 +187,14 @@ export class AgentChatBodyDto {
   })
   agentMode?: AgentThreadMode;
 
-  @IsIn(['agent', 'proactive', 'onboarding'])
+  @IsIn(['agent', 'proactive'])
   @IsOptional()
   @ApiProperty({
     description: 'Origin of the turn',
-    enum: ['agent', 'proactive', 'onboarding'],
+    enum: ['agent', 'proactive'],
     required: false,
   })
-  source?: 'agent' | 'proactive' | 'onboarding';
+  source?: 'agent' | 'proactive';
 
   @IsBoolean()
   @IsOptional()

@@ -85,6 +85,43 @@ export default function ComparisonPage({
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
+        <h2 className="text-3xl font-semibold mb-6 text-center">
+          Which one fits your work
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card label={`Choose ${competitor.name} when`}>
+            <p className="text-sm">{competitor.whenToUseCompetitor}.</p>
+            <p className="text-sm gen-text-muted mt-3">
+              Built for: {competitor.targetAudience}
+            </p>
+            <p className="text-sm gen-text-muted mt-1">
+              Pricing: {competitor.pricing}
+            </p>
+          </Card>
+          <Card label="Choose Genfeed when">
+            <p className="text-sm">{competitor.whenToUseGenFeed}.</p>
+            <p className="text-sm gen-text-muted mt-3">
+              Free to start, pay per output, or self-host the open-source
+              Community build under AGPL-3.0.
+            </p>
+          </Card>
+        </div>
+      </section>
+
+      <section className="max-w-4xl mx-auto pb-20">
+        <Card label={`What ${competitor.name} does well`}>
+          <ul className="space-y-2 text-left">
+            {competitor.strengths.map((strength: string) => (
+              <li key={strength} className="flex items-start gap-2">
+                <Check className="size-4 text-success mt-1 flex-shrink-0" />
+                <span className="text-sm">{strength}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </section>
+
+      <section className="max-w-4xl mx-auto pb-20">
         <Card label="Why Genfeed" bodyClassName="text-center">
           <ul className="space-y-2 mb-6 text-left max-w-md mx-auto">
             {competitor.genfeedAdvantages.map((advantage: string) => (

@@ -45,7 +45,7 @@ export const RETIRED_BATCH_NAMES: ReadonlyArray<{
     pattern: /\b(?:generate_content_batch|batch_approve_reject)\b/gu,
     replacement: 'generate_turbo_content / review_turbo_items',
   },
-  { pattern: /\bstudio_batch\b/gu, replacement: 'studio_turbo' },
+  { pattern: /\bstudio_batch\b/gu, replacement: 'turbo' },
   { pattern: /\b(?:studioBatch|StudioBatch)\w*/gu, replacement: 'studioTurbo' },
   { pattern: /\/studio\/batch\b/gu, replacement: '/studio/turbo' },
   {

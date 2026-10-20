@@ -36,7 +36,7 @@ import type { Request, Response } from 'express';
 
 @ApiTags('visual-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio_motion')
+@FeatureFlag('motion')
 @OrganizationModule('motion')
 @Controller('visual-projects')
 @UseGuards(RolesGuard)

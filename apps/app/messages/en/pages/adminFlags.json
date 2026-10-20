@@ -1,10 +1,10 @@
 {
   "title": "Flags",
-  "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection. Releases decide which cloud organizations see each module or page.",
+  "description": "Switch product modules, apps and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection. Releases decide which cloud organizations see each module or page.",
   "sections": {
     "modules": {
       "title": "Modules",
-      "description": "Each card is one module in the app rail. Its switch gates the whole module; the rows inside switch its surfaces and features one by one."
+      "description": "Each card is one module in the app rail. Its switch gates the whole module; the rows inside switch its features one by one."
     },
     "platform": {
       "title": "Platform",
@@ -22,21 +22,21 @@
     },
     "studio": {
       "label": "Studio",
-      "description": "Generate and every Studio surface below. Off hides the whole module."
+      "description": "Generate (Playground), where a prompt becomes an image or video. Each other app has its own switch."
     },
-    "studio_motion": {
+    "motion": {
       "label": "Motion",
       "description": "Animated visuals authored as React code from a prompt and rendered in the isolated visual-code renderer. Needs that renderer deployed."
     },
-    "studio_storyboard": {
+    "storyboard": {
       "label": "Storyboard",
       "description": "Multi-scene storyboard runs with characters and per-scene generation."
     },
-    "studio_clips": {
+    "clips": {
       "label": "Clips",
       "description": "Long-form video ingestion, highlight detection and short clip generation."
     },
-    "studio_turbo": {
+    "turbo": {
       "label": "Turbo",
       "description": "Turbo projects that produce many review drafts at once."
     },
@@ -44,9 +44,9 @@
       "label": "Turbo ideas",
       "description": "Turbo idea projects: turn brand data into a set of content ideas."
     },
-    "studio_editor": {
+    "editor": {
       "label": "Editor",
-      "description": "The Remotion timeline editor other Studio surfaces hand finished video to."
+      "description": "The Remotion timeline editor other apps hand finished video to."
     },
     "library": {
       "label": "Library",

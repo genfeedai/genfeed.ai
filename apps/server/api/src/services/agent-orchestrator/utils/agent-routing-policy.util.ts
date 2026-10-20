@@ -1,4 +1,3 @@
-import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { OpenRouterPlugin } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type {
   AgentAutoRoutingMetadata,
@@ -45,12 +44,8 @@ export function resolveAgentRoutingPolicy(params: {
   isWebSearchNeeded?: boolean;
   model: string;
   prompt: string;
-  source?: AgentChatRequest['source'];
 }): AgentRoutingPolicy {
-  if (
-    params.model !== params.defaultModelKey ||
-    params.source === 'onboarding'
-  ) {
+  if (params.model !== params.defaultModelKey) {
     return { reason: 'default' };
   }
 
@@ -89,7 +84,6 @@ export function buildAgentRoutingMetadata(params: {
   defaultModelKey: string;
   model: string;
   prompt: string;
-  source?: AgentChatRequest['source'];
 }): Partial<
   AgentAutoRoutingMetadata & {
     routingPolicy: AgentRoutingPolicyReason;
@@ -101,7 +95,6 @@ export function buildAgentRoutingMetadata(params: {
     isWebSearchNeeded: params.autoRouting?.isWebSearchNeeded,
     model: params.model,
     prompt: params.prompt,
-    source: params.source,
   });
   const autoRouting = params.autoRouting;
   // `routedModelKey` is the key the round ran on. A shadow turn dispatched

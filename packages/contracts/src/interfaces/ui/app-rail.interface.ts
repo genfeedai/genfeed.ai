@@ -1,7 +1,4 @@
-import type {
-  AppRailFeatureFlagKey,
-  PlatformStudioFlagKey,
-} from '../../constants/feature-flags.constant';
+import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
 import type { IconComponent } from '../../types/icon';
 import type { AppContext } from './menu-config.interface';
@@ -31,8 +28,6 @@ export interface AppRailItemConfig {
   group: 'daily' | 'app' | 'admin' | 'admin-category' | 'admin-exit';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
-  /** Platform switch for one Studio surface, under the `studio` module flag. */
-  surfaceFlagKey?: PlatformStudioFlagKey;
   organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
   /** Admin menu `group` whose items this category icon opens in the sidebar. */

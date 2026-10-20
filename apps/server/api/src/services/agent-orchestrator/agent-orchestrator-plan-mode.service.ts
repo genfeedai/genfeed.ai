@@ -293,7 +293,6 @@ export class AgentOrchestratorPlanModeService {
         defaultModelKey: input.defaultModelKey,
         model: params.model,
         prompt: params.request.content,
-        source: params.request.source,
       }),
       ...buildResolvedModelMetadata(params.model, [input.resolvedModel]),
       proposedPlan: plan,
@@ -405,7 +404,6 @@ export class AgentOrchestratorPlanModeService {
       isWebSearchNeeded: params.autoRouting?.isWebSearchNeeded,
       model: params.model,
       prompt: params.prompt,
-      source: params.source,
     });
     const routingPlugins = resolveAgentRoutingPlugins(routingPolicy) ?? [];
     const isGatewayAutoRouted =

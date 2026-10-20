@@ -23,7 +23,7 @@ export const ORGANIZATION_MODULES = {
     label: 'Storyboard',
     isDefaultEnabled: true,
     requiresSubscription: false,
-    platformFlagKey: 'studio_storyboard',
+    platformFlagKey: 'storyboard',
   },
   publishing: {
     label: 'Publishing',
@@ -41,25 +41,25 @@ export const ORGANIZATION_MODULES = {
     label: 'Motion',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    platformFlagKey: 'studio_motion',
+    platformFlagKey: 'motion',
   },
   clips: {
     label: 'Clips',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    platformFlagKey: 'studio_clips',
+    platformFlagKey: 'clips',
   },
   turbo: {
     label: 'Turbo',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    platformFlagKey: 'studio_turbo',
+    platformFlagKey: 'turbo',
   },
   editor: {
     label: 'Editor',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    platformFlagKey: 'studio_editor',
+    platformFlagKey: 'editor',
   },
   automation: {
     label: 'Automation',

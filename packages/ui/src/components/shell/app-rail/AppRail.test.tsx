@@ -28,11 +28,11 @@ const featureFlags = vi.hoisted(() => ({
   publishing: true,
   discovery: true,
   studio: true,
-  studio_turbo: true,
-  studio_clips: true,
-  studio_editor: true,
-  studio_motion: true,
-  studio_storyboard: true,
+  turbo: true,
+  clips: true,
+  editor: true,
+  motion: true,
+  storyboard: true,
 }));
 
 vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
@@ -140,6 +140,11 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
       automation: 'automation',
       discovery: 'discovery',
       studio: 'studio',
+      storyboard: 'storyboard',
+      turbo: 'turbo',
+      motion: 'motion',
+      clips: 'clips',
+      editor: 'editor',
       library: 'library',
       publishing: 'publishing',
       analytics: 'analytics',
@@ -966,6 +971,11 @@ describe('AppRail', () => {
 
   it('shows no pins divider when no pinned app is available', () => {
     featureFlags.studio = false;
+    featureFlags.storyboard = false;
+    featureFlags.turbo = false;
+    featureFlags.motion = false;
+    featureFlags.clips = false;
+    featureFlags.editor = false;
     featureFlags.automation = false;
     featureFlags.messages = false;
     featureFlags.discovery = false;
@@ -978,29 +988,23 @@ describe('AppRail', () => {
     expect(renderedLauncherAppIds()).toEqual([]);
     expect(screen.getByRole('link', { name: 'Analytics' })).toBeInTheDocument();
   });
-  it('hides every Studio app when the studio module is switched off', () => {
+  it('hides only Playground when the studio module is switched off', () => {
     featureFlags.studio = false;
 
     render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
 
-    for (const label of [
-      'Playground',
-      'Storyboard',
-      'Turbo',
-      'Motion',
-      'Clips',
-      'Editor',
-    ]) {
-      expect(
-        screen.queryByRole('link', { name: label }),
-      ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Playground' }),
+    ).not.toBeInTheDocument();
+    for (const label of ['Storyboard', 'Turbo', 'Motion', 'Clips', 'Editor']) {
+      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Messages' })).toBeInTheDocument();
   });
 
-  it('hides one Studio app when its surface switch is off', () => {
-    featureFlags.studio_clips = false;
+  it('hides one app when its own module switch is off', () => {
+    featureFlags.clips = false;
 
     render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
 

@@ -13,6 +13,7 @@ import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
+import { isAppRailPathEnabled } from '@ui/shell/app-rail/app-rail.registry';
 import {
   AlertTriangle,
   CircleCheck,
@@ -23,7 +24,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { isStudioSurfaceEnabled } from '@/lib/platform-flags/studio-surface-flags';
 import {
   useAdvancedTools,
   useLibrarySnapshotLinks,
@@ -54,7 +54,7 @@ export function WorkspaceOverviewSidebar({
   const availableAdvancedTools = advancedTools.filter(
     (tool) =>
       !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT) ||
-      (isStudioEnabled && isStudioSurfaceEnabled(tool.href, flags)),
+      (isStudioEnabled && isAppRailPathEnabled(tool.href, flags)),
   );
   const taskStreamContent =
     isTasksLoading && inProgressTasks.length === 0 ? (

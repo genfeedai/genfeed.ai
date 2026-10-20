@@ -6,7 +6,7 @@
     "symbol": "AgentMemoriesService.scoreFeedbackMemory"
   },
   {
-    "actual": 1083,
+    "actual": 1081,
     "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
@@ -144,7 +144,7 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 599,
+    "actual": 597,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"

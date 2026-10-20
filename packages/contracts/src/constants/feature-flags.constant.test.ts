@@ -7,7 +7,6 @@ import {
   PLATFORM_FLAG_KEYS,
   PLATFORM_FLAG_PARENTS,
   PLATFORM_MODULE_FLAG_KEYS,
-  PLATFORM_STUDIO_FLAG_KEYS,
   parsePlatformFlags,
   resolvePlatformFlags,
 } from './feature-flags.constant';
@@ -53,11 +52,13 @@ describe('platform flags (#5468)', () => {
     }
   });
 
-  it('nests every Studio surface under the studio module', () => {
-    expect(getPlatformFlagChildren('studio')).toEqual([
-      ...PLATFORM_STUDIO_FLAG_KEYS,
-    ]);
-    expect(getPlatformFlagChildren('studio_turbo')).toEqual(['turbo_ideas']);
+  it('gives each Studio app its own module flag, not nested under studio', () => {
+    for (const key of ['storyboard', 'turbo', 'motion', 'clips', 'editor']) {
+      expect(PLATFORM_MODULE_FLAG_KEYS).toContain(key);
+      expect(PLATFORM_FLAG_PARENTS).not.toHaveProperty(key);
+    }
+    expect(getPlatformFlagChildren('studio')).toEqual([]);
+    expect(getPlatformFlagChildren('turbo')).toEqual(['turbo_ideas']);
     expect(getPlatformFlagChildren('agent')).toEqual([]);
   });
 
@@ -70,24 +71,21 @@ describe('platform flags (#5468)', () => {
 
   it('turns a nested flag off while any flag above it is off', () => {
     const flags = resolvePlatformFlags(
-      parsePlatformFlags({ studio: false, studio_motion: true }),
+      parsePlatformFlags({ library: false, turbo: true }),
     );
 
-    expect(flags.studio).toBe(false);
-    expect(flags.studio_motion).toBe(false);
-    expect(flags.studio_turbo).toBe(false);
-    expect(flags.turbo_ideas).toBe(false);
-    expect(flags.library_canvas).toBe(true);
+    expect(flags.library).toBe(false);
+    expect(flags.library_canvas).toBe(false);
+    expect(flags.turbo).toBe(true);
+    expect(flags.turbo_ideas).toBe(true);
   });
 
   it('keeps a parent on when only a nested flag is off', () => {
-    const flags = resolvePlatformFlags(
-      parsePlatformFlags({ studio_turbo: false }),
-    );
+    const flags = resolvePlatformFlags(parsePlatformFlags({ turbo: false }));
 
     expect(flags.studio).toBe(true);
-    expect(flags.studio_motion).toBe(true);
-    expect(flags.studio_turbo).toBe(false);
+    expect(flags.motion).toBe(true);
+    expect(flags.turbo).toBe(false);
     expect(flags.turbo_ideas).toBe(false);
   });
 

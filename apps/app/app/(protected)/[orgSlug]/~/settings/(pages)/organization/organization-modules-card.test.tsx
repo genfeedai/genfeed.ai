@@ -169,7 +169,7 @@ describe('OrganizationModulesCard', () => {
   });
 
   it('does not list modules switched off for the platform', () => {
-    mocks.flags = { ...RELEASED_FLAGS, studio_turbo: false, discovery: false };
+    mocks.flags = { ...RELEASED_FLAGS, turbo: false, discovery: false };
     render(<OrganizationModulesCard />);
     expect(
       screen.queryByRole('switch', { name: 'Turbo' }),

@@ -41,7 +41,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio_clips')
+@FeatureFlag('clips')
 @OrganizationModule('clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)

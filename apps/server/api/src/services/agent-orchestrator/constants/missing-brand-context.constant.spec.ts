@@ -7,7 +7,6 @@ import {
   MISSING_BRAND_CONTEXT_HEADER,
 } from '@api/services/agent-orchestrator/constants/missing-brand-context.constant';
 import { ONBOARDING_BUTTON_CARDS } from '@api/services/agent-orchestrator/constants/onboarding-conversation-flow.constant';
-import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type { IOnboardingScanSuggestions } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
@@ -131,9 +130,6 @@ describe('shared missing brand context rule', () => {
   it('lives in the shared identity rule the orchestrator prompt carries', () => {
     expect(AGENT_ORCHESTRATOR_SYSTEM_PROMPT).toContain(
       GENFEED_AGENT_BRAND_QUESTION_RULE,
-    );
-    expect(ONBOARDING_SYSTEM_PROMPT).not.toContain(
-      'Missing Brand Context" section',
     );
   });
 

@@ -525,13 +525,11 @@ describe('AgentThreadList', () => {
     expect(apiService.getMessages).not.toHaveBeenCalled();
   });
 
-  it('uses one trailing slot for the timestamp and thread actions', async () => {
-    const tenDaysAgo = new Date(
-      Date.now() - 10 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+  it('swaps the status dot for the thread actions in one trailing slot', async () => {
     const thread = createThread('conv-1', 'Aligned thread', {
-      lastActivityAt: tenDaysAgo,
-    });
+      attentionState: 'running',
+      runStatus: 'running',
+    } as Partial<AgentThread>);
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
       unarchiveThread: vi.fn(),
@@ -539,13 +537,15 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const timestamp = await screen.findByText('10d');
+    const status = await screen.findByRole('status', { name: 'Running' });
+    const dotSlot = status.parentElement;
     const actions = screen.getByRole('button', {
       name: 'Thread actions for Aligned thread',
     });
 
-    expect(timestamp.parentElement).toBe(actions.parentElement);
-    expect(timestamp).toHaveClass(
+    expect(dotSlot?.parentElement).toBe(actions.parentElement);
+    expect(screen.queryByText('10d')).toBeNull();
+    expect(dotSlot).toHaveClass(
       'opacity-0',
       '[@media(hover:hover)]:opacity-100',
       '[@media(hover:hover)]:group-hover:opacity-0',
@@ -564,7 +564,7 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByRole('menuitem', { name: 'Pin conversation' }),
     ).toBeInTheDocument();
-    expect(timestamp).toHaveClass('opacity-0');
+    expect(dotSlot).toHaveClass('opacity-0');
     expect(actions).toHaveClass('opacity-100');
   });
 
@@ -739,15 +739,10 @@ describe('AgentThreadList', () => {
 
     const title = await screen.findByText('Compact row');
     expect(title).toBeInTheDocument();
-    expect(title.parentElement?.firstElementChild).toHaveClass(
-      'size-2',
-      'shrink-0',
+    expect(title.parentElement?.firstElementChild).toBe(title);
+    expect(screen.getByText('Three portraits are ready')).not.toHaveClass(
+      'pl-3.5',
     );
-    expect(title.parentElement?.firstElementChild).toHaveAttribute(
-      'aria-hidden',
-      'true',
-    );
-    expect(screen.getByText('Three portraits are ready')).toHaveClass('pl-3.5');
     expect(screen.getByText('Three portraits are ready')).toBeInTheDocument();
     expect(
       screen.queryByRole('img', {
@@ -1079,7 +1074,7 @@ describe('AgentThreadList', () => {
     expect(
       Boolean(
         failed.compareDocumentPosition(title) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
+          Node.DOCUMENT_POSITION_PRECEDING,
       ),
     ).toBe(true);
   });
