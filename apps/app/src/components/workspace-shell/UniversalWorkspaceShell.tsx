@@ -111,9 +111,7 @@ import {
   WorkspaceContextSidebarRail,
 } from './WorkspaceContextSidebar';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
-import WorkspacePanelTabs, {
-  WORKSPACE_PANEL_TAB_IDS,
-} from './WorkspacePanelTabs';
+import WorkspacePanelTabs from './WorkspacePanelTabs';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
   useActiveWorkspaceSurfaceAdapter,
@@ -1270,7 +1268,7 @@ function UniversalWorkspaceShellContent({
               ) : null}
               {contextSidebar ? (
                 <div
-                  aria-labelledby={WORKSPACE_PANEL_TAB_IDS.details}
+                  aria-label={translateSidePanel('details')}
                   className="flex min-h-0 flex-1 flex-col"
                   hidden={!activeContextSidebar || activePanelTab !== 'details'}
                   id="workspace-details-panel"

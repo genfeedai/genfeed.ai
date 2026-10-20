@@ -10,6 +10,7 @@ export interface TabItem {
   icon?: IconComponent;
   badge?: ReactNode;
   isDisabled?: boolean;
+  testId?: string;
 }
 
 export interface RouteTabItem extends NavigationTab {

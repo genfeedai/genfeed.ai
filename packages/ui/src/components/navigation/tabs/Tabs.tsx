@@ -337,6 +337,7 @@ function TabsContent({
             <TabsTrigger
               key={key}
               value={value}
+              data-testid={tabItem.testId}
               disabled={tab.isDisabled}
               className={cn(tab.isDisabled && 'opacity-50 cursor-not-allowed')}
               onClick={(event) => {

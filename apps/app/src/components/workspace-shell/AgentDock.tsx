@@ -303,10 +303,9 @@ export default function AgentDock({
   return (
     <>
       {body}
-      {/* The Agent tab controls this wrapper; the named region stays inside
-          it for assistive tech and the dock's tests. */}
+      {/* The Agent tab's panel; the named region stays inside it. */}
       <div
-        aria-labelledby="workspace-panel-tab-agent"
+        aria-label={translate('label')}
         className="flex min-h-0 flex-1 flex-col"
         hidden={!isPresented}
         id="workspace-agent-panel"
