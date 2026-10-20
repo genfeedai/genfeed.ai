@@ -103,10 +103,7 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
-import {
-  NEW_CHAT_TAB_ID,
-  useAgentDockThreads,
-} from './use-agent-dock-threads';
+import { NEW_CHAT_TAB_ID, useAgentDockThreads } from './use-agent-dock-threads';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import {

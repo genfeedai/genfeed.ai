@@ -5,10 +5,7 @@ import {
 } from '@genfeedai/agent';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  NEW_CHAT_TAB_ID,
-  useAgentDockThreads,
-} from './use-agent-dock-threads';
+import { NEW_CHAT_TAB_ID, useAgentDockThreads } from './use-agent-dock-threads';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
