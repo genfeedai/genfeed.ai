@@ -5441,6 +5441,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'defaultAvatarIngredientId',
       'defaultAvatarPhotoUrl',
       'defaultAvatarRef',
+      'defaultHomeAppId',
       'defaultImageModel',
       'defaultImageToVideoModel',
       'defaultLocale',
@@ -5496,7 +5497,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'webhookEndpoint',
       'webhookSecret',
     ],
-    listFields: ['enabledModelIds', 'releasedItemIds', 'webhookEventTypes'],
+    listFields: [
+      'defaultRailOrder',
+      'enabledModelIds',
+      'releasedItemIds',
+      'webhookEventTypes',
+    ],
     enumFields: {
       agentReplyStyle: { enumType: 'AgentReplyStyle', isRequired: true },
     },
