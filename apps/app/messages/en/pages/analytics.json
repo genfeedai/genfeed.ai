@@ -439,6 +439,7 @@
     "empty": "No winners in this period. A post wins when a metric beats its account's usual result and there are enough mature posts to compare.",
     "evidence": "{signal} {ratio}× baseline ({value} vs {baseline}, {sampleSize} posts)",
     "loadError": "Winners could not be loaded.",
+    "remix": "Remix this winner",
     "showLabel": "Show posts",
     "signals": {
       "comments": "Comments",

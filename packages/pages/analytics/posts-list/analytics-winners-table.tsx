@@ -6,11 +6,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AnalyticsWinnersTableProps } from '@props/analytics/analytics-winners-table.props';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -46,6 +48,7 @@ export default function AnalyticsWinnersTable({
   onSelectPost,
 }: AnalyticsWinnersTableProps) {
   const translate = useTranslations('pages.analytics.winners');
+  const remix = useOptionalDiscoveryRemix();
 
   const items = useMemo(
     () => winners.filter((winner) => matchesSearch(winner, search)),
@@ -108,12 +111,26 @@ export default function AnalyticsWinnersTable({
     [translate],
   );
 
+  const actions = useMemo<TableAction<IWinnerPost>[]>(
+    () => [
+      {
+        icon: <Sparkles aria-hidden="true" />,
+        isVisible: () => Boolean(remix),
+        onClick: (winner) =>
+          void remix?.openRemix({ kind: 'owned_post', postId: winner.postId }),
+        tooltip: translate('remix'),
+      },
+    ],
+    [remix, translate],
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <Table<IWinnerPost>
         label={translate('tableLabel')}
         items={pagination.pageItems}
         isLoading={isLoading}
+        actions={actions}
         error={
           hasError ? { title: translate('loadError'), onRetry } : undefined
         }
