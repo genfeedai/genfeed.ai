@@ -253,6 +253,30 @@ jobs:
             exit 1
           fi
 
+          # A failed earlier dispatch leaves an unpublished draft pinned to the
+          # SHA it ran on, and a plain re-dispatch used to fail on it until
+          # someone deleted it by hand. A draft that was never published, has
+          # no git tag and targets another SHA carries no evidence this run can
+          # reuse, so replace it. Recovery and repair modes keep their own
+          # evidence-bound handling below.
+          if [ -n "${release_json}" ] && \
+             [ "${REPAIR_MODE}" != 'true' ] && \
+             [ "${RECOVERY_MODE}" != 'true' ] && \
+             [ "$(jq -r '.draft' <<<"${release_json}")" = 'true' ] && \
+             [ "$(jq -r '.published_at // ""' <<<"${release_json}")" = '' ] && \
+             [ "$(jq -r '.target_commitish // ""' <<<"${release_json}")" != "${release_sha}" ] && \
+             ! git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
+            stale_draft_id="$(jq -r '.id' <<<"${release_json}")"
+            stale_draft_target="$(jq -r '.target_commitish // ""' <<<"${release_json}")"
+            [[ "${stale_draft_id}" =~ ^[0-9]+$ ]] || {
+              echo "::error::Stale draft ${release_tag} has no numeric release ID."
+              exit 1
+            }
+            echo "Deleting stale unpublished draft ${release_tag} (release ${stale_draft_id}) targeting ${stale_draft_target}; recreating it at ${release_sha}."
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${stale_draft_id}"
+            release_json=""
+          fi
+
           if [ -n "${release_json}" ]; then
             if [ "${REPAIR_MODE}" = 'true' ]; then
               if [ "$(jq -r '.draft' <<<"${release_json}")" != 'true' ]; then
