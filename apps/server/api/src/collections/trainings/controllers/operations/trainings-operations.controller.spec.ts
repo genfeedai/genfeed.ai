@@ -18,6 +18,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('TrainingsOperationsController', () => {
   let controller: TrainingsOperationsController;

@@ -6,6 +6,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath, currentRoute } from '../../utils/app-chrome';
+import { openFilterFacet } from '../../utils/filter-menu';
 
 /**
  * E2E Tests for Library Media Types
@@ -93,14 +94,12 @@ test.describe('Library Media Types', () => {
       await expect
         .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.MUSIC));
-      // Music and audio share one Audio type. #6818 keeps that choice, pressed,
-      // inside Filters instead of a toolbar chip.
-      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+      // Music and audio share one Audio type, checked in the Type facet of
+      // the shared Filters menu (#7567).
+      const type = await openFilterFacet(authenticatedPage, 'Type');
       await expect(
-        authenticatedPage
-          .getByRole('group', { name: 'Type', exact: true })
-          .getByRole('button', { name: 'Audio', exact: true }),
-      ).toHaveAttribute('aria-pressed', 'true');
+        type.getByRole('menuitemcheckbox', { name: 'Audio', exact: true }),
+      ).toBeChecked();
     });
 
     test('should show music tracks or empty state', async ({

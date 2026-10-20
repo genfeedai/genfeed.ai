@@ -6,7 +6,7 @@ import {
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
-import type { Page, Route } from '@playwright/test';
+import type { Locator, Page, Route } from '@playwright/test';
 import { mockReviewQueue } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 
@@ -228,6 +228,14 @@ async function openTikTokTrendFeed(page: Page): Promise<void> {
 }
 
 /**
+ * The remix brief is a panel in the shell's right context sidebar (#7584), not
+ * an overlay, so it is addressed by its own test id rather than a dialog role.
+ */
+function remixBriefPanel(page: Page): Locator {
+  return page.getByTestId('remix-brief-panel');
+}
+
+/**
  * The remix brief inspector prepares a run but never generates until the
  * concept is complete (#5113: "save an editable concept before generation").
  * The create path always seeds a complete concept from the source pattern
@@ -235,10 +243,10 @@ async function openTikTokTrendFeed(page: Page): Promise<void> {
  * opens — assert the seed actually prefilled the form, then choose Generate.
  */
 async function generateFromSeededConcept(page: Page): Promise<void> {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByLabel('Angle')).toHaveValue(SEEDED_STRUCTURE);
-  await expect(dialog.getByLabel('Hook')).toHaveValue(SEEDED_HOOK);
-  const generateButton = dialog.getByRole('button', { name: 'Generate' });
+  const brief = remixBriefPanel(page);
+  await expect(brief.getByLabel('Angle')).toHaveValue(SEEDED_STRUCTURE);
+  await expect(brief.getByLabel('Hook')).toHaveValue(SEEDED_HOOK);
+  const generateButton = brief.getByRole('button', { name: 'Generate' });
   await expect(generateButton).toBeEnabled();
   await generateButton.click();
 }
@@ -251,17 +259,17 @@ async function generateFromSeededConcept(page: Page): Promise<void> {
  * which would be a strict-mode violation once two scenes are on screen.
  */
 async function editRemixConceptAndGenerate(page: Page): Promise<void> {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('button', { name: 'Generate' })).toBeVisible();
-  await dialog
+  const brief = remixBriefPanel(page);
+  await expect(brief.getByRole('button', { name: 'Generate' })).toBeVisible();
+  await brief
     .getByLabel('Angle')
     .fill('Lead with the proof, then hand off to Northstar.');
-  await dialog.getByRole('button', { name: 'Add scene' }).click();
-  await dialog
+  await brief.getByRole('button', { name: 'Add scene' }).click();
+  await brief
     .getByLabel('Visual intent')
     .last()
     .fill('Open on the outcome, then show the proof point.');
-  await dialog.getByRole('button', { name: 'Generate' }).click();
+  await brief.getByRole('button', { name: 'Generate' }).click();
 }
 
 async function routeRemixRun(

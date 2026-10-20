@@ -2,6 +2,8 @@
 
 import '@testing-library/jest-dom/vitest';
 import { TurboRunItemStatus } from '@genfeedai/contracts';
+import { OrganizationsService } from '@services/organization/organizations.service';
+import { BrandsService } from '@services/social/brands.service';
 import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,7 +33,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('token'),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -80,6 +83,10 @@ vi.mock('@services/turbo/turbo-runs.service', () => ({
 
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: { getInstance: vi.fn() },
+}));
+
+vi.mock('@services/organization/organizations.service', () => ({
+  OrganizationsService: { getInstance: vi.fn() },
 }));
 
 vi.mock('@services/organization/credentials.service', () => ({
@@ -437,5 +444,68 @@ describe('PublishingOverviewPage', () => {
     expect(screen.getByTestId('blocked-targets')).toHaveTextContent('1');
     expect(screen.getByTestId('cadence-gaps')).toHaveTextContent('1');
     expect(screen.getByTestId('account-health')).toHaveTextContent('1');
+  });
+  describe('publication totals', () => {
+    function readTotalQuery(key: string) {
+      const query = mocks.queryOptions.find(
+        ({ queryKey }) => queryKey[0] === key,
+      ) as
+        | (MockQueryOptions & {
+            queryFn: () => Promise<number>;
+          })
+        | undefined;
+      if (!query) throw new Error(`No query ${key}`);
+      return query;
+    }
+
+    it('counts not-posted and posted from the Posts list endpoint, so drafts without a destination account are included', async () => {
+      const findBrandPostsPage = vi
+        .fn()
+        .mockImplementation(async (_brandId, query) => ({
+          total: query.publicationState === 'not-posted' ? 3 : 7,
+        }));
+      vi.mocked(BrandsService.getInstance).mockReturnValue({
+        findBrandPostsPage,
+      } as never);
+
+      render(<PublishingOverviewPage />);
+
+      await expect(
+        readTotalQuery('publish-overview-not-posted-total').queryFn(),
+      ).resolves.toBe(3);
+      await expect(
+        readTotalQuery('publish-overview-published-total').queryFn(),
+      ).resolves.toBe(7);
+      expect(findBrandPostsPage).toHaveBeenCalledWith('brand-1', {
+        limit: 1,
+        page: 1,
+        publicationState: 'not-posted',
+      });
+      expect(findBrandPostsPage).toHaveBeenCalledWith('brand-1', {
+        limit: 1,
+        page: 1,
+        publicationState: 'posted',
+      });
+    });
+
+    it('counts organization-wide when no brand is selected', async () => {
+      mocks.brandId = undefined;
+      mocks.pageScope = 'org';
+      const findOrganizationPostsPage = vi.fn().mockResolvedValue({ total: 5 });
+      vi.mocked(OrganizationsService.getInstance).mockReturnValue({
+        findOrganizationPostsPage,
+      } as never);
+
+      render(<PublishingOverviewPage />);
+
+      await expect(
+        readTotalQuery('publish-overview-not-posted-total').queryFn(),
+      ).resolves.toBe(5);
+      expect(findOrganizationPostsPage).toHaveBeenCalledWith('org-1', {
+        limit: 1,
+        page: 1,
+        publicationState: 'not-posted',
+      });
+    });
   });
 });

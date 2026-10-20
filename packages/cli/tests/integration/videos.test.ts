@@ -1,6 +1,6 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
+import type { JsonApiDocument } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';
 import type { CreateVideoRequest } from '../../src/api/videos';
 import { createTestClient, hasCredentials, testConfig } from './setup';
@@ -43,7 +43,7 @@ describe.skipIf(!hasCredentials)('integration/videos', () => {
   });
 
   it('GET /videos/:id flattens correctly when video exists', async () => {
-    const ingredientsResponse = await client<JsonApiCollectionResponse>(
+    const ingredientsResponse = await client<JsonApiDocument>(
       `/organizations/${orgId}/ingredients?limit=1&category=video`,
       { method: 'GET' }
     );
@@ -56,7 +56,7 @@ describe.skipIf(!hasCredentials)('integration/videos', () => {
     const videoId = ingredients[0].id;
 
     try {
-      const response = await client<JsonApiSingleResponse>(`/videos/${videoId}`, {
+      const response = await client<JsonApiDocument>(`/videos/${videoId}`, {
         method: 'GET',
       });
 

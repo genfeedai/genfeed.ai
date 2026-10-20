@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => ({
   tableProps: {
     current: undefined as
       | {
-          getRowLink?: (item: unknown) => unknown;
+          getRowLink?: (item: never) => unknown;
           rowSidebar?: unknown;
         }
       | undefined,

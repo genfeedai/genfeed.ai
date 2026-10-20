@@ -11,7 +11,6 @@ import type {
   GeneratedImage,
   GeneratedVideo,
   ImageGenerationPayload,
-  ImagePreset,
   PromptTemplate,
 } from '@/types';
 
@@ -89,27 +88,10 @@ export class ApiService {
     return result.data;
   }
 
-  async getGeneratedImages(limit = 20): Promise<GeneratedImage[]> {
-    const result = await this.request<ApiResponse<GeneratedImage[]>>(
-      'GET',
-      `/images?latest=true&limit=${limit}`,
-    );
-    return result.data;
-  }
-
   async getImageById(id: string): Promise<GeneratedImage> {
     const result = await this.request<ApiResponse<GeneratedImage>>(
       'GET',
       `/images/${id}`,
-    );
-    return result.data;
-  }
-
-  // Video Generation
-  async getGeneratedVideos(limit = 20): Promise<GeneratedVideo[]> {
-    const result = await this.request<ApiResponse<GeneratedVideo[]>>(
-      'GET',
-      `/videos?latest=true&limit=${limit}`,
     );
     return result.data;
   }
@@ -120,42 +102,6 @@ export class ApiService {
       `/videos/${id}`,
     );
     return result.data;
-  }
-
-  // Presets Management
-  async getPresets(): Promise<ImagePreset[]> {
-    const result = await this.request<ApiResponse<ImagePreset[]>>(
-      'GET',
-      '/presets',
-    );
-    return result.data;
-  }
-
-  async createPreset(
-    preset: Omit<ImagePreset, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<ImagePreset> {
-    const result = await this.request<ApiResponse<ImagePreset>>(
-      'POST',
-      '/presets',
-      preset,
-    );
-    return result.data;
-  }
-
-  async updatePreset(
-    id: string,
-    preset: Partial<ImagePreset>,
-  ): Promise<ImagePreset> {
-    const result = await this.request<ApiResponse<ImagePreset>>(
-      'PATCH',
-      `/presets/${id}`,
-      preset,
-    );
-    return result.data;
-  }
-
-  async deletePreset(id: string): Promise<void> {
-    await this.request<void>('DELETE', `/presets/${id}`);
   }
 
   // Models

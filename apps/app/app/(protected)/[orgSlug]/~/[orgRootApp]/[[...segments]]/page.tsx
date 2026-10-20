@@ -41,7 +41,6 @@ import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
 import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
-import PublishingContentPage from '../../../[brandSlug]/publishing/content/page';
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
 import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
@@ -67,16 +66,6 @@ const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
   playground: APP_ROUTES.STUDIO.PLAYGROUND,
   storyboard: APP_ROUTES.STUDIO.STORYBOARD,
   turbo: APP_ROUTES.STUDIO.TURBO,
-};
-
-const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
-  avatar: 'avatars',
-  gif: 'gifs',
-  image: 'images',
-  musics: 'music',
-  moodboard: 'assets',
-  video: 'videos',
-  voice: 'voices',
 };
 
 function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
@@ -272,7 +261,7 @@ export default async function OrgRootAppPage({
   const { orgRootApp, orgSlug, segments } = await params;
 
   // Org Workspace is a static `~/workspace/*` tree. The catch-all must not
-  // own those destinations (legacy hard-cut used to 404 them here).
+  // own those destinations.
   if (orgRootApp === 'workspace') {
     notFound();
   }
@@ -291,23 +280,8 @@ export default async function OrgRootAppPage({
       );
     }
 
-    if (segments[0] === 'ingredients') {
-      redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.ASSETS));
-    }
-
     if (segments[0] === 'overview' && segments.length === 1) {
       return <LibraryOverview scope={PageScope.ORGANIZATION} />;
-    }
-
-    const canonicalSegment = ORG_LIBRARY_CANONICAL_SEGMENT[segments[0]];
-
-    if (canonicalSegment) {
-      redirect(
-        createOrganizationAppRoute(
-          orgSlug,
-          `${APP_ROUTES.LIBRARY.ROOT}/${canonicalSegment}`,
-        ),
-      );
     }
 
     if (segments[0] === 'voices') {
@@ -388,12 +362,11 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'overview') {
-      const overviewPage = await PublishingOverviewRoute({
-        params: Promise.resolve({ brandSlug: '~', orgSlug }),
-        searchParams: searchParams ?? Promise.resolve({}),
-      });
-
-      return <PublishingLayoutContent>{overviewPage}</PublishingLayoutContent>;
+      return (
+        <PublishingLayoutContent>
+          <PublishingOverviewRoute />
+        </PublishingLayoutContent>
+      );
     }
 
     if (publishingSegments.length === 1 && section === 'posts') {
@@ -404,15 +377,6 @@ export default async function OrgRootAppPage({
       });
 
       return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
-    }
-
-    if (publishingSegments.length === 1 && section === 'content') {
-      // Legacy content route redirects to the posts list.
-      await PublishingContentPage({
-        params: Promise.resolve({ brandSlug: '~', orgSlug }),
-        searchParams: searchParams ?? Promise.resolve({}),
-      });
-      return null;
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

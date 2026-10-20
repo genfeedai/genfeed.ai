@@ -8,15 +8,12 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
-  APP_ROUTES,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import { hasApiAccess } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   AuthorizedApiKeysContentProps,
   ProductApiKeyForm,
@@ -28,7 +25,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -37,13 +33,11 @@ import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
 import {
   Clipboard,
-  Lock,
   Plus,
   RefreshCw,
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -112,8 +106,6 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
   return apiKey.key ?? apiKey.token;
 }
 
-const API_ACCESS_UPGRADE_TIER_LABEL = 'Agencies';
-
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady } = useBrand();
   const {
@@ -158,13 +150,9 @@ function AuthorizedApiKeysContent({
   isKeylessSelfHosted,
 }: AuthorizedApiKeysContentProps) {
   const translate = useTranslations('common.settings.apiKeys');
-  const { isReady, settings } = useBrand();
-  const { orgHref } = useOrgUrl();
+  const { isReady } = useBrand();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const selfHostedDeployment = isSelfHostedDeployment();
-  const hasProductApiAccess =
-    selfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
   const defaultKeyName = translate('fields.keyNamePlaceholder');
   const loadErrorMessage = translate('errors.load');
 
@@ -341,13 +329,6 @@ function AuthorizedApiKeysContent({
   const handleCreateProductKey = async () => {
     const isCurrent = currentOperation();
     if (!isCurrent()) return;
-    if (!hasProductApiAccess) {
-      NotificationsService.getInstance().error(
-        translate('errors.paidPlanRequired'),
-      );
-      return;
-    }
-
     const label = productForm.label.trim() || defaultKeyName;
     if (productForm.selectedScopes.length === 0) {
       return;
@@ -456,32 +437,6 @@ function AuthorizedApiKeysContent({
       if (isCurrent()) setMutatingProductKeyId(null);
     }
   };
-
-  if (isReady && !hasProductApiAccess) {
-    return (
-      <div className="space-y-4 pb-10">
-        <h1 className="sr-only">{translate('title')}</h1>
-        <CardEmpty
-          actions={
-            <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
-              <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-                {translate('actions.upgrade', {
-                  tier: API_ACCESS_UPGRADE_TIER_LABEL,
-                })}
-              </Link>
-            </Button>
-          }
-          description={translate('upgrade.description', {
-            tier: API_ACCESS_UPGRADE_TIER_LABEL,
-          })}
-          icon={Lock}
-          label={translate('upgrade.label', {
-            tier: API_ACCESS_UPGRADE_TIER_LABEL,
-          })}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4 pb-10">
@@ -670,9 +625,7 @@ function AuthorizedApiKeysContent({
             <Button
               onClick={handleCreateProductKey}
               isDisabled={
-                isCreatingProductKey ||
-                !hasProductApiAccess ||
-                productForm.selectedScopes.length === 0
+                isCreatingProductKey || productForm.selectedScopes.length === 0
               }
             >
               <Plus className="size-4" />

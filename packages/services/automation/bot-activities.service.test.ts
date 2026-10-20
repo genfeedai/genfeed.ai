@@ -253,4 +253,51 @@ describe('BotActivitiesService', () => {
       });
     });
   });
+
+  describe('reply queue', () => {
+    it('lists drafts waiting for approval', async () => {
+      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
+
+      await service.findAwaitingApproval({ limit: 10 });
+
+      expect(mockInstance.get).toHaveBeenCalledWith('', {
+        params: { limit: 10, status: 'awaiting_approval' },
+      });
+    });
+
+    it('reads the queue usage', async () => {
+      const usage = { dailyCap: 8, postedToday: 2, remainingToday: 6 };
+      mockInstance.get.mockResolvedValue({ data: usage });
+
+      await expect(service.getReplyQueueUsage()).resolves.toEqual(usage);
+      expect(mockInstance.get).toHaveBeenCalledWith('/reply-queue/usage');
+    });
+
+    it('opens an edited draft in X', async () => {
+      const result = { intentUrl: 'https://x.com/intent/post', targetUrl: 'u' };
+      mockInstance.post.mockResolvedValue({ data: result });
+
+      await expect(
+        service.openReplyQueueItem('activity-1', 'Sharp take.'),
+      ).resolves.toEqual(result);
+      expect(mockInstance.post).toHaveBeenCalledWith(
+        '/activity-1/reply-queue/open',
+        { replyText: 'Sharp take.' },
+      );
+    });
+
+    it('confirms a reply was posted and dismisses a draft', async () => {
+      mockInstance.post.mockResolvedValue({ data: { postedToday: 3 } });
+
+      await service.confirmReplyQueueItemPosted('activity-1');
+      await service.dismissReplyQueueItem('activity-2');
+
+      expect(mockInstance.post).toHaveBeenCalledWith(
+        '/activity-1/reply-queue/posted',
+      );
+      expect(mockInstance.post).toHaveBeenCalledWith(
+        '/activity-2/reply-queue/dismiss',
+      );
+    });
+  });
 });

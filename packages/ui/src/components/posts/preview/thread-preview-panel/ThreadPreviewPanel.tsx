@@ -113,7 +113,7 @@ function PostPreviewItem({
           <div className="mt-2 flex items-center justify-end gap-2">
             {status}
             <span
-              className={`text-xs tabular-nums ${isOverLimit ? 'text-error font-medium' : 'text-foreground/50'}`}
+              className={`text-xs tabular-nums ${isOverLimit ? 'text-destructive font-medium' : 'text-foreground/50'}`}
             >
               {charCount}/{TWITTER_CHAR_LIMIT}
             </span>

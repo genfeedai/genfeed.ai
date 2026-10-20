@@ -154,7 +154,7 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
       const webhookPost = buildYoutubeWebhookPostSnapshot(data, patchedPost);
 
       if (PUBLISHED_STATUSES.includes(status)) {
-        void this.publishEventWebhookService.emitLegacyPostPublished({
+        void this.publishEventWebhookService.emitPostPublished({
           externalProviderId: result?.externalId ?? null,
           occurredAt: parseCompletionTimestamp(data.timestamp),
           platform: 'youtube',
@@ -163,7 +163,7 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
           url: result?.videoUrl ?? null,
         });
       } else if (status === 'failed') {
-        void this.publishEventWebhookService.emitLegacyPostFailed({
+        void this.publishEventWebhookService.emitPostFailed({
           errorMessage: error || 'YouTube upload failed',
           occurredAt: parseCompletionTimestamp(data.timestamp),
           platform: 'youtube',

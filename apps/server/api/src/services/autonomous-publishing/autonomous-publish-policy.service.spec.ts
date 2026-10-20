@@ -1,5 +1,11 @@
-import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import {
+  AutonomousPublishPolicyService,
+  type ResolvedAutonomousPostPolicy,
+} from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import type { BrandPublishPolicyService } from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentAutonomyMode,
   AgentPublishDecision,
@@ -534,5 +540,104 @@ describe('AutonomousPublishPolicyService', () => {
         expect.objectContaining({ rule: 'policy_judge_unavailable' }),
       ]);
     });
+  });
+});
+
+describe('AutonomousPublishPolicyService post caps (#7458)', () => {
+  const SCOPE = { brandId: 'brand-1', organizationId: 'org-1' };
+  const resolved = (
+    decision: AgentPublishDecision,
+    reason = 'ok',
+  ): ResolvedAutonomousPostPolicy => ({
+    autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+    result: { decision, reason } as ResolvedAutonomousPostPolicy['result'],
+    reviewTimeoutHours: 24,
+  });
+
+  function makeService(isLocked: boolean) {
+    const withPostCapLock = vi.fn(
+      async (_scope: unknown, work: (isLocked: boolean) => Promise<unknown>) =>
+        work(isLocked),
+    );
+    const service = new AutonomousPublishPolicyService(
+      {} as unknown as PrismaService,
+      { recordInTransaction: vi.fn() } as unknown as ActivityRecorderService,
+      undefined,
+      { withPostCapLock } as unknown as BrandPublishPolicyService,
+    );
+    return { service, withPostCapLock };
+  }
+
+  it('evaluates again under the lock and schedules before the lock is released', async () => {
+    const { service, withPostCapLock } = makeService(true);
+    const preview = resolved(AgentPublishDecision.PERMITTED, 'preview');
+    const locked = resolved(AgentPublishDecision.PERMITTED, 'locked');
+    const evaluate = vi.fn(async () => locked);
+    const schedule = vi.fn(async () => 'scheduled-post');
+
+    const result = await service.scheduleWithinPostCaps(
+      SCOPE,
+      preview,
+      evaluate,
+      schedule,
+    );
+
+    expect(result).toEqual({ policy: locked, scheduled: 'scheduled-post' });
+    expect(withPostCapLock).toHaveBeenCalledWith(SCOPE, expect.any(Function));
+    expect(evaluate.mock.invocationCallOrder[0]).toBeLessThan(
+      schedule.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('writes nothing when the locked evaluation finds the caps reached', async () => {
+    const { service } = makeService(true);
+    const denied = resolved(AgentPublishDecision.DENIED, 'weekly_cap');
+    const schedule = vi.fn(async () => 'scheduled-post');
+
+    const result = await service.scheduleWithinPostCaps(
+      SCOPE,
+      resolved(AgentPublishDecision.PERMITTED),
+      async () => denied,
+      schedule,
+    );
+
+    expect(result).toEqual({ policy: denied });
+    expect(schedule).not.toHaveBeenCalled();
+  });
+
+  it('keeps the first evaluation when the brand has no caps to lock', async () => {
+    const { service } = makeService(false);
+    const preview = resolved(AgentPublishDecision.PERMITTED, 'preview');
+    const evaluate = vi.fn();
+
+    const result = await service.scheduleWithinPostCaps(
+      SCOPE,
+      preview,
+      evaluate,
+      async () => 'scheduled-post',
+    );
+
+    expect(result).toEqual({ policy: preview, scheduled: 'scheduled-post' });
+    expect(evaluate).not.toHaveBeenCalled();
+  });
+
+  it('does not take the lock for a draft the first evaluation denied', async () => {
+    const { service, withPostCapLock } = makeService(true);
+    const preview = resolved(
+      AgentPublishDecision.DENIED,
+      'brand_requires_approval',
+    );
+    const schedule = vi.fn();
+
+    const result = await service.scheduleWithinPostCaps(
+      SCOPE,
+      preview,
+      vi.fn(),
+      schedule,
+    );
+
+    expect(result).toEqual({ policy: preview });
+    expect(withPostCapLock).not.toHaveBeenCalled();
+    expect(schedule).not.toHaveBeenCalled();
   });
 });

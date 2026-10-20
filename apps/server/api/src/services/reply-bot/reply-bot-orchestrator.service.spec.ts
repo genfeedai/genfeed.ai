@@ -24,6 +24,14 @@ import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 
+vi.mock('@api/services/campaign/reply-bot-credential.util', () => ({
+  toReplyBotCredentialData: vi.fn(() => ({
+    accessToken: 'token',
+    platform: 'twitter',
+    username: 'genfeed',
+  })),
+}));
+
 describe('ReplyBotOrchestratorService workflow boundary', () => {
   const workflowRunner = {
     registerAction: vi.fn(),
@@ -34,13 +42,18 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
     queueSystemWorkflow: vi.fn(),
   };
   const replyBotConfigsService = { findOneById: vi.fn() };
-  const rateLimitService = { checkRateLimit: vi.fn() };
+  const rateLimitService = {
+    checkRateLimit: vi.fn(),
+    incrementCounter: vi.fn(),
+  };
   const botActivitiesService = {
     create: vi.fn(),
     findIntentReviewHold: vi.fn(),
     updateStatus: vi.fn(),
   };
   const processedTweetsService = { markAsProcessed: vi.fn() };
+  const botActionExecutorService = { postReply: vi.fn() };
+  const credentialsService = { findOne: vi.fn() };
   const replyIntentClassifierService = { classify: vi.fn() };
   let service: ReplyBotOrchestratorService;
 
@@ -88,14 +101,17 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
         { provide: LoggerService, useValue: { error: vi.fn() } },
         { provide: SocialMonitorService, useValue: {} },
         { provide: ReplyGenerationService, useValue: {} },
-        { provide: BotActionExecutorService, useValue: {} },
+        {
+          provide: BotActionExecutorService,
+          useValue: botActionExecutorService,
+        },
         { provide: RateLimitService, useValue: rateLimitService },
         { provide: ReplyCandidatePrefilterService, useValue: {} },
         { provide: ReplyBotConfigsService, useValue: replyBotConfigsService },
         { provide: MonitoredAccountsService, useValue: {} },
         { provide: BotActivitiesService, useValue: botActivitiesService },
         { provide: ProcessedTweetsService, useValue: processedTweetsService },
-        { provide: CredentialsService, useValue: {} },
+        { provide: CredentialsService, useValue: credentialsService },
         { provide: SystemWorkflowRunnerService, useValue: workflowRunner },
         { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
         { provide: AuthorReplyLoopService, useValue: {} },
@@ -108,6 +124,96 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
     service = module.get(ReplyBotOrchestratorService);
     vi.clearAllMocks();
     botActivitiesService.findIntentReviewHold.mockResolvedValue(null);
+  });
+
+  describe('X replies to accounts that never contacted the brand', () => {
+    const DRAFTED_STATE = {
+      ...CONTENT_REQUEST,
+      activityId: 'activity-1',
+      dmDelayMs: 0,
+      dmItems: [],
+      replySent: false,
+      replyText: 'Sharp take, the weekly cadence matters most.',
+      skipped: false,
+    };
+
+    function action(actionId: string) {
+      service.onModuleInit();
+      return workflowRunner.registerAction.mock.calls.find(
+        ([id]) => id === actionId,
+      )?.[1] as (request: {
+        input: Record<string, unknown>;
+      }) => Promise<Record<string, unknown>>;
+    }
+
+    beforeEach(() => {
+      credentialsService.findOne.mockResolvedValue({ id: 'credential-1' });
+    });
+
+    it('drafts an account-monitor reply instead of posting it', async () => {
+      replyBotConfigsService.findOneById.mockResolvedValue({
+        id: 'bot-1',
+        type: ReplyBotType.ACCOUNT_MONITOR,
+        userId: 'user-1',
+      });
+
+      const state = await action(REPLY_BOT_ACTION_IDS.SEND_REPLY)({
+        input: { state: DRAFTED_STATE },
+      });
+
+      expect(botActionExecutorService.postReply).not.toHaveBeenCalled();
+      expect(state).toMatchObject({ isAwaitingApproval: true });
+    });
+
+    it('files the draft for approval and closes the target out', async () => {
+      replyBotConfigsService.findOneById.mockResolvedValue({
+        id: 'bot-1',
+        type: ReplyBotType.ACCOUNT_MONITOR,
+        userId: 'user-1',
+      });
+      const result = await action(REPLY_BOT_ACTION_IDS.FINALIZE_CONTENT)({
+        input: { state: { ...DRAFTED_STATE, isAwaitingApproval: true } },
+      });
+
+      expect(botActivitiesService.updateStatus).toHaveBeenCalledWith(
+        'activity-1',
+        'org-1',
+        {
+          draftReplyText: DRAFTED_STATE.replyText,
+          status: BotActivityStatus.AWAITING_APPROVAL,
+        },
+      );
+      expect(processedTweetsService.markAsProcessed).toHaveBeenCalledWith(
+        'comment-1',
+        'org-1',
+        ReplyBotType.ACCOUNT_MONITOR,
+        'bot-1',
+      );
+      expect(result).toEqual({
+        dmSent: false,
+        replySent: false,
+        skipped: false,
+      });
+    });
+
+    it('still posts when someone mentioned the brand', async () => {
+      replyBotConfigsService.findOneById.mockResolvedValue({
+        id: 'bot-1',
+        type: ReplyBotType.REPLY_GUY,
+        userId: 'user-1',
+      });
+      botActionExecutorService.postReply.mockResolvedValue({
+        contentId: 'reply-1',
+        success: true,
+      });
+
+      const state = await action(REPLY_BOT_ACTION_IDS.SEND_REPLY)({
+        input: { state: DRAFTED_STATE },
+      });
+
+      expect(botActionExecutorService.postReply).toHaveBeenCalledTimes(1);
+      expect(state).toMatchObject({ replySent: true });
+    });
   });
 
   describe('comment intent gate', () => {

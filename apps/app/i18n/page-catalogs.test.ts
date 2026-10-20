@@ -15,6 +15,7 @@ const ORIGINAL_NAMES = [
   'adminGenerations',
   'adminModelPricing',
   'adminOrganizationReleases',
+  'adminOrganizations',
   'adminTemplates',
   'adminTrainings',
   'adminUsers',

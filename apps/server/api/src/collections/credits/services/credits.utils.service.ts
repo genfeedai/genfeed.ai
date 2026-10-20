@@ -1,5 +1,6 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { publishAvailableBalance } from '@api/collections/credits/services/credit-balance-event.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -8,7 +9,10 @@ import {
   type CreditReservationAdmission,
   CreditReservationService,
 } from '@api/collections/credits/services/credit-reservation.service';
-import { creditTransactionOptions } from '@api/collections/credits/services/credit-transaction-options';
+import {
+  BALANCE_TX_OPTIONS,
+  creditTransactionOptions,
+} from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -95,15 +99,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly freeTrialService: FreeTrialService,
   ) {}
 
-  /**
-   * Serializable isolation is required for the read-modify-write balance
-   * cores: at the default ReadCommitted level two concurrent transactions can
-   * both read the same balance and double-spend.
-   */
-  private static readonly BALANCE_TX_OPTIONS = {
-    isolationLevel: 'Serializable',
-  } as const;
-
   private async markOrganizationAsHavingCredits(
     organizationId: string,
   ): Promise<void> {
@@ -180,7 +175,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
               },
               tx,
             ),
-          CreditsUtilsService.BALANCE_TX_OPTIONS,
+          BALANCE_TX_OPTIONS,
         );
 
       if (!wasApplied) {
@@ -456,21 +451,36 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       ...input,
       billingAccountId: account.id,
     };
-    return admission
-      ? this.creditReservationService.reserve(request, admission)
-      : this.creditReservationService.reserve(request);
+    const reservation = admission
+      ? await this.creditReservationService.reserve(request, admission)
+      : await this.creditReservationService.reserve(request);
+    await this.publishBalance(input.organizationId);
+    return reservation;
   }
 
   async settleReservation(
     input: ISettleCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
-    return this.creditReservationService.settle(input);
+    const snapshot = await this.creditReservationService.settle(input);
+    await this.publishBalance(input.organizationId, snapshot.available);
+    return snapshot;
   }
 
   async releaseReservation(
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
-    return this.creditReservationService.release(input);
+    const snapshot = await this.creditReservationService.release(input);
+    await this.publishBalance(input.organizationId, snapshot.available);
+    return snapshot;
+  }
+
+  private publishBalance(organizationId: string, available?: number) {
+    return publishAvailableBalance(
+      this.websocketService,
+      this.loggerService,
+      organizationId,
+      available ?? (() => this.getOrganizationCreditsBalance(organizationId)),
+    );
   }
 
   async bindReservationOutput(
@@ -529,7 +539,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
               },
               tx,
             ),
-          CreditsUtilsService.BALANCE_TX_OPTIONS,
+          BALANCE_TX_OPTIONS,
         );
 
       await this.publishCreditAddition(organizationId, creditsToAdd, {
@@ -735,7 +745,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       const { currentBalance, newBalance, wasApplied } =
         await this.transactionUtil.runInTransaction(
           (tx) => refundCore(tx),
-          CreditsUtilsService.BALANCE_TX_OPTIONS,
+          BALANCE_TX_OPTIONS,
         );
 
       if (!wasApplied) return;
@@ -953,7 +963,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       const currentBalance = await this.transactionUtil.runInTransaction(
         (tx) => resetCore(tx),
-        CreditsUtilsService.BALANCE_TX_OPTIONS,
+        BALANCE_TX_OPTIONS,
       );
 
       if (newCreditAmount > 0) {

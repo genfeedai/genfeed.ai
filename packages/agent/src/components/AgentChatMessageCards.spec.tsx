@@ -235,6 +235,36 @@ describe('ContentPreviewCard', () => {
     );
   });
 
+  it('scopes canonical Publishing CTAs to the active org and brand', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          ctas: [
+            { href: '/publishing/posts', label: 'Open Posts' },
+            {
+              href: '/publishing/posts?publicationState=posted',
+              label: 'Open Published',
+            },
+          ],
+          id: 'publishing-ctas',
+          title: 'Publishing links',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Open Posts' })).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/publishing/posts',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Open Published' }),
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/publishing/posts?publicationState=posted',
+    );
+  });
+
   it('shows a terminal generation failure instead of an empty result card', async () => {
     const getGeneratedAsset = vi.fn().mockResolvedValue({
       id: 'image-failed',
@@ -368,31 +398,6 @@ describe('ContentPreviewCard', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/undefined/u)).not.toBeInTheDocument();
-  });
-
-  it('repairs retired gallery CTAs from persisted image conversations', () => {
-    render(
-      <ContentPreviewCard
-        action={{
-          ctas: [
-            {
-              href: `/g/image/${IMAGE_ID}`,
-              label: 'View in gallery',
-            },
-          ],
-          assetId: IMAGE_ID,
-          id: 'legacy-image-output',
-          type: 'content_preview_card',
-        }}
-      />,
-    );
-
-    expect(
-      screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute(
-      'href',
-      `/test-org/test-brand/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=${IMAGE_ID}`,
-    );
   });
 
   it('does not scope a server-scoped Library asset link twice', () => {

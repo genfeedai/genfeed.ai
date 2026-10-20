@@ -1,5 +1,7 @@
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  DEFAULT_IMAGE_EDIT_MODEL_KEY,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
   imageEditEntryForAsset,
@@ -27,7 +29,7 @@ describe('resolveImageEditEntry', () => {
       patch: {
         ...editFields,
         aspectRatio: '16:9',
-        modelKey: AUTO_MODEL_OPTION_VALUE,
+        modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
       },
       replacedModelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
     });
@@ -62,7 +64,7 @@ describe('resolveImageEditEntry', () => {
     expect(entry.droppedAspectRatio).toBe('2.39:1');
     expect(entry.patch.aspectRatio).toBe('auto');
     expect(entry.patch.aspectRatio).not.toBe('1:1');
-    expect(entry.patch.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
+    expect(entry.patch.modelKey).toBe(DEFAULT_IMAGE_EDIT_MODEL_KEY);
     expect(entry.replacedModelKey).toBe(
       MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
     );
@@ -163,7 +165,7 @@ describe('imageEditEntryForAsset', () => {
       droppedAspectRatio: null,
       patch: {
         aspectRatio: '16:9',
-        modelKey: AUTO_MODEL_OPTION_VALUE,
+        modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
       },
       replacedModelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
     });

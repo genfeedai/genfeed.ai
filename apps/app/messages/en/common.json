@@ -164,6 +164,7 @@
       "selectAccount": {
         "alreadyConnected": "Already connected",
         "back": "Go back",
+        "cancel": "Cancel",
         "confirm": "Use this account",
         "confirmError": "Failed to connect this account. Please try again.",
         "confirming": "Connecting…",
@@ -456,8 +457,7 @@
         "creating": "Creating...",
         "refreshAria": "Refresh Genfeed API keys",
         "revoke": "Revoke",
-        "rotate": "Rotate",
-        "upgrade": "Upgrade to {tier}"
+        "rotate": "Rotate"
       },
       "card": {
         "description": "Use these keys for CLI profiles, MCP servers, and unattended workflows.",
@@ -470,7 +470,6 @@
         "load": "Failed to load API keys",
         "loadDescription": "Failed to load API keys. You can still create a new key, or refresh the list.",
         "loadTitle": "Couldn't load API keys",
-        "paidPlanRequired": "API access is available on paid plans.",
         "revoke": "Failed to revoke API key",
         "rotate": "Failed to rotate API key"
       },
@@ -508,11 +507,7 @@
         "revoked": "API key revoked",
         "rotated": "API key rotated"
       },
-      "title": "API Keys",
-      "upgrade": {
-        "description": "API access is included on paid plans. Upgrade to {tier} to create Genfeed API keys for CLI, MCP, and unattended workflows.",
-        "label": "Unlock API keys with {tier}"
-      }
+      "title": "API Keys"
     },
     "brandMove": {
       "cancel": "Cancel",
@@ -702,9 +697,9 @@
     },
     "integrations": {
       "byokUpgrade": {
-        "action": "Upgrade to Agencies",
-        "description": "Upgrade to Agencies to run generations on your own provider keys with no credit charge and no usage fee.",
-        "title": "Bring your own keys is included with Agencies"
+        "action": "Upgrade to Scale",
+        "description": "Upgrade to Scale to run generations on your own provider keys with no credit charge and no usage fee.",
+        "title": "Bring your own keys is included with Scale"
       }
     },
     "memory": {
@@ -1020,29 +1015,13 @@
         "action": "Book a call"
       }
     },
-    "organizationRailDefaults": {
-      "title": "Rail defaults",
-      "description": "The rail order and home app your members start from. Members can still choose their own.",
-      "loading": "Loading rail defaults…",
-      "saving": "Saving rail defaults…",
-      "saved": "Rail defaults saved.",
-      "saveFailed": "Could not save rail defaults. Try again.",
-      "savedRefreshFailed": "Rail defaults were saved. Reload to see the latest values.",
-      "homeTitle": "Home app",
-      "homeDescription": "The app members land on after signing in, unless they pick their own.",
-      "homeDefault": "Default ({app})",
-      "orderTitle": "Rail order",
-      "orderDescription": "The order of the rail for members who have not arranged their own.",
-      "moveUp": "Move {app} up",
-      "moveDown": "Move {app} down",
-      "reset": "Reset to standard order",
-      "help": "An app a member cannot open is skipped, so hiding a module never strands anyone on a missing page."
-    },
     "organizationModules": {
       "title": "Modules",
       "description": "Choose which apps your organization's members see.",
       "adminOnly": "Only owners and admins can change module settings.",
       "paidPlan": "Paid plan",
+      "subscriptionRequired": "Needs a monthly subscription. It stays out of the rail until you subscribe.",
+      "subscriptionAction": "Subscribe",
       "shown": "Shown",
       "hidden": "Hidden",
       "loading": "Loading module settings…",
@@ -1625,6 +1604,23 @@
           "default": "Default",
           "spam": "Spam (skip auto)"
         }
+      },
+      "queue": {
+        "title": "Warm-up replies",
+        "description": "Replies drafted for accounts you follow. Open each one in X and post it yourself so a new account grows with real conversation.",
+        "usage": "{posted} of {cap} posted in the last 24 hours",
+        "nextAllowed": "Next reply allowed after {time}",
+        "empty": "No drafts waiting. New drafts appear when the account monitor finds a post to answer.",
+        "replyLabel": "Reply to @{author}",
+        "characters": "{count} / {max}",
+        "openInX": "Open in X",
+        "markPosted": "I posted it",
+        "dismiss": "Dismiss",
+        "opened": "Opened in X. Post it there, then confirm here.",
+        "posted": "Counted. Nice one.",
+        "dismissed": "Draft dismissed",
+        "loadFailed": "Could not load the warm-up queue",
+        "actionFailed": "That did not go through"
       }
     },
     "workflowBinding": {

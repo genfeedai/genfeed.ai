@@ -2,7 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 
 /**
  * Every platform a connect card offers, lowercased and de-duplicated.
- * Collapsed cards carry `platforms`; a legacy single card carries `platform`.
+ * Collapsed cards carry `platforms`; a single card carries `platform`.
  */
 export function collectConnectPlatforms(action: AgentUiAction): string[] {
   const candidates = action.platforms?.length
@@ -25,8 +25,8 @@ export function collectConnectPlatforms(action: AgentUiAction): string[] {
  * `oauth_connect_card` per probe — six stacked cards for a single question.
  * Collapse them into one picker card at the position of the first card.
  *
- * Applied server-side in `AgentCompletionCardBuilderService` for newly stored
- * turns, and here for streamed turns plus transcripts stored before that fix.
+ * Applied server-side in `AgentCompletionCardBuilderService` for stored
+ * turns, and here for streamed turns.
  */
 export function collapseOAuthConnectCards(
   uiActions: AgentUiAction[],

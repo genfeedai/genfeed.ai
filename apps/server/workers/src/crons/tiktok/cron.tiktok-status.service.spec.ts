@@ -58,8 +58,8 @@ function createHarness() {
     queueSystemWorkflow: vi.fn().mockResolvedValue(undefined),
   };
   const publishEventWebhookService = {
-    emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
-    emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
+    emitPostFailed: vi.fn().mockResolvedValue(undefined),
+    emitPostPublished: vi.fn().mockResolvedValue(undefined),
   };
   const schedulerPublishStateService = { transitionPost: vi.fn() };
   const scheduledPostWorkflowService = {
@@ -213,7 +213,7 @@ describe('CronTiktokStatusService', () => {
       harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
     ).toHaveBeenCalledWith(post);
     expect(
-      harness.publishEventWebhookService.emitLegacyPostPublished,
+      harness.publishEventWebhookService.emitPostPublished,
     ).toHaveBeenCalledOnce();
   });
 
@@ -244,10 +244,10 @@ describe('CronTiktokStatusService', () => {
       harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
     ).not.toHaveBeenCalled();
     expect(
-      harness.publishEventWebhookService.emitLegacyPostFailed,
+      harness.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledOnce();
     expect(
-      harness.publishEventWebhookService.emitLegacyPostPublished,
+      harness.publishEventWebhookService.emitPostPublished,
     ).not.toHaveBeenCalled();
   });
 
@@ -315,7 +315,7 @@ describe('CronTiktokStatusService', () => {
       harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
     ).toHaveBeenCalledTimes(2);
     expect(
-      harness.publishEventWebhookService.emitLegacyPostPublished,
+      harness.publishEventWebhookService.emitPostPublished,
     ).toHaveBeenCalledTimes(1);
     expect(harness.workflowQueue.queueSystemWorkflow).toHaveBeenCalledOnce();
   });
@@ -333,9 +333,7 @@ it('queues only committed TikTok confirmation and preserves success after queue 
     new Error('Redis unavailable'),
   );
   await reconcile(h.registeredActions);
-  expect(
-    h.publishEventWebhookService.emitLegacyPostPublished,
-  ).toHaveBeenCalledOnce();
+  expect(h.publishEventWebhookService.emitPostPublished).toHaveBeenCalledOnce();
   expect(
     h.scheduledPostWorkflowService.processPendingPublishedFinalization,
   ).toHaveBeenCalledOnce();

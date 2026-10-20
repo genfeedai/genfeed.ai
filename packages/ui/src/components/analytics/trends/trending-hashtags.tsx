@@ -192,7 +192,7 @@ export function TrendingHashtags({
                       hashtag.growthRate > 0
                         ? 'text-success'
                         : hashtag.growthRate < 0
-                          ? 'text-error'
+                          ? 'text-destructive'
                           : ''
                     }`}
                   >

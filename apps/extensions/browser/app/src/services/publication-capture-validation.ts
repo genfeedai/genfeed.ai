@@ -217,8 +217,6 @@ function parseSurface(
   documentUrl: string,
   baselineIds: string[],
 ): PublicationCaptureSurface | null {
-  if (value === undefined)
-    return publicationCaptureHomeUrl(documentUrl) ? { kind: 'x-home' } : null;
   const v = publicationCaptureRecord(value);
   if (!v) return null;
   if (v.kind === 'linkedin-post' || v.kind === 'linkedin-comment') {

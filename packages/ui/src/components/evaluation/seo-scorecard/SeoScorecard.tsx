@@ -86,7 +86,7 @@ function getScoreTone(score: number): string {
   if (score >= 50) {
     return 'text-warning';
   }
-  return 'text-error';
+  return 'text-destructive';
 }
 
 function getCheckState(check: SeoCheck): CheckState {

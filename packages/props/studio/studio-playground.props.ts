@@ -7,12 +7,14 @@ import type {
   IStudioLook,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import type { AgentGenerationQuoteRequest } from '@genfeedai/contracts/interfaces/ai/agent-generation-quote.interface';
 import type {
   StudioGenerationCostEstimate,
   StudioPlaygroundJob,
   StudioPlaygroundReferenceRole,
   StudioPlaygroundSettings,
   StudioPlaygroundType,
+  StudioSubmitOptions,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { CharacterMentionSubmitResult } from '@genfeedai/helpers/content/character-mention.util';
 import type { MasonryTransformActions } from '@genfeedai/props/content/masonry.props';
@@ -109,7 +111,7 @@ export interface StudioPlaygroundComposerProps {
   onSettingsChange: (patch: Partial<StudioPlaygroundSettings>) => void;
   onStartListening: () => void;
   onStopListening: () => void;
-  onSubmit: () => void;
+  onSubmit: (options?: StudioSubmitOptions) => void;
   onTypeChange: (type: StudioPlaygroundType) => void;
   onUndoEnhancePrompt?: () => void;
   prompt: string;
@@ -119,6 +121,37 @@ export interface StudioPlaygroundComposerProps {
   /** Org Voice Control is on and the browser can record; the composer decides placement. */
   isVoiceInputAvailable: boolean;
   type: StudioPlaygroundType;
+}
+
+/**
+ * What a Studio submit is priced from. A server-priced generation names the
+ * request for the model it submits, or an Auto request plus a builder for the
+ * model that request resolves to; a quote that exists already (Crun, avatar)
+ * is passed as is; a type with no price (voice) submits without one.
+ */
+export type StudioSpendSource =
+  | { kind: 'unpriced' }
+  | {
+      kind: 'known';
+      credits: number;
+      /** The render uses the organization's own key, so no credits are held. */
+      isByok?: boolean;
+      /** Revalidates the quote just before the confirmed submit. */
+      isStillCurrent?: () => boolean;
+    }
+  | {
+      kind: 'server';
+      /** Auto: the server picks the model; null when a model is chosen. */
+      autoRequest: AgentGenerationQuoteRequest | null;
+      /** The request for the chosen model, or for one Auto resolved to. */
+      buildRequest: (
+        modelKey: string | undefined,
+      ) => AgentGenerationQuoteRequest | null;
+    };
+
+export interface StudioSpendConfirmationInput {
+  models: readonly IModel[];
+  source: StudioSpendSource;
 }
 
 export interface StudioTypeDropdownProps {

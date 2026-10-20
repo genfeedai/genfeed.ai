@@ -360,11 +360,7 @@ describe('PostGroupsController', () => {
         API_KEY_SCOPES_KEY,
         PostGroupsController.prototype.create,
       ),
-    ).toEqual([
-      ApiKeyScope.POSTS_DRAFT,
-      ApiKeyScope.POSTS_CREATE,
-      ApiKeyScope.POSTS_SCHEDULE,
-    ]);
+    ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE]);
     expect(
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
@@ -372,7 +368,6 @@ describe('PostGroupsController', () => {
       ),
     ).toEqual([
       ApiKeyScope.POSTS_DRAFT,
-      ApiKeyScope.POSTS_CREATE,
       ApiKeyScope.POSTS_SCHEDULE,
       ApiKeyScope.POSTS_PUBLISH,
     ]);

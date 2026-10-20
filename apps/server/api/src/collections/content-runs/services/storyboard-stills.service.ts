@@ -37,6 +37,7 @@ import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/sto
 import {
   generateStoryboardStillsSchema,
   quoteStoryboardStillsSchema,
+  STORYBOARD_STILL_SOURCE_ACTION_PREFIX,
   type StoryboardStillQuote,
   storyboardStillQuoteSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
@@ -311,7 +312,7 @@ export class StoryboardStillsService {
     runId: string,
     operation: StillOperation,
   ): Promise<void> {
-    const sourceActionId = `storyboard-still-${runId}-${operation.operationId}`;
+    const sourceActionId = `${STORYBOARD_STILL_SOURCE_ACTION_PREFIX}${runId}-${operation.operationId}`;
     const user: AuthenticatedUser = {
       id: operation.actorUserId,
       userId: operation.actorUserId,

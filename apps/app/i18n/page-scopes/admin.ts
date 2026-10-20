@@ -6,6 +6,7 @@ import adminFlags from '../../messages/en/pages/adminFlags.json';
 import adminGenerations from '../../messages/en/pages/adminGenerations.json';
 import adminModelPricing from '../../messages/en/pages/adminModelPricing.json';
 import adminOrganizationReleases from '../../messages/en/pages/adminOrganizationReleases.json';
+import adminOrganizations from '../../messages/en/pages/adminOrganizations.json';
 import adminTemplates from '../../messages/en/pages/adminTemplates.json';
 import adminTrainings from '../../messages/en/pages/adminTrainings.json';
 import adminUsers from '../../messages/en/pages/adminUsers.json';
@@ -36,6 +37,7 @@ const messages = {
   warmupAccounts,
   agentFailures,
   adminOrganizationReleases,
+  adminOrganizations,
   adminFlags,
   platformSettings,
   adminAgents,

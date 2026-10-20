@@ -1,11 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import {
   mockActiveSubscription,
   mockAvatarIngredientActions,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { openFilterFacet } from '../../utils/filter-menu';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -37,7 +38,12 @@ async function gotoAvatarLibrary(page: Page): Promise<void> {
   await expect(page).toHaveURL(/library\/assets\?categories=AVATAR/);
 }
 
-async function openAvatarRow(page: Page, label: string): Promise<void> {
+/**
+ * A row click opens the asset in the shell's right context sidebar (#7589);
+ * the Library has no per-asset page to follow (only the admin lists link the
+ * name to one). Returns the sidebar's "Asset details" panel.
+ */
+async function openAvatarRow(page: Page, label: string): Promise<Locator> {
   const row = page.locator('tr', { hasText: label });
   await expect(row).toBeVisible({ timeout: 30000 });
   await row.click();
@@ -48,17 +54,7 @@ async function openAvatarRow(page: Page, label: string): Promise<void> {
   await expect(
     inspector.getByRole('heading', { name: label, exact: true }),
   ).toBeVisible();
-  await inspector
-    .getByRole('button', { name: 'View full details', exact: true })
-    .click();
-
-  // The details panel (IngredientTabsInfo) is open once its label field shows
-  // this ingredient's metadata label — the positive signal the absence checks
-  // below depend on.
-  await expect(
-    page.getByRole('textbox', { name: 'Label', exact: true }),
-  ).toBeVisible();
-  await expect(page.locator('input[name="label"]')).toHaveValue(label);
+  return inspector;
 }
 
 test.describe('Avatar Library', () => {
@@ -84,45 +80,57 @@ test.describe('Avatar Library', () => {
       authenticatedPage.locator('tr', { hasText: 'Avatar Action Video' }),
     ).toBeVisible({ timeout: 30000 });
 
-    // Status reads /ingredients/summary (ILibrarySummary). #6818 moved it
-    // into the Filters popover as a radio group, off the toolbar combobox.
-    await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+    // Status reads /ingredients/summary (ILibrarySummary). It is a facet of
+    // the shared Filters menu (#7567): one radio row per shelf.
+    const status = await openFilterFacet(authenticatedPage, 'Status');
     await expect(
-      authenticatedPage
-        .getByRole('group', { name: 'Status', exact: true })
-        .getByRole('radio', { name: 'Needs review (2)', exact: true }),
+      status.getByRole('menuitemradio', {
+        name: 'Needs review (2)',
+        exact: true,
+      }),
     ).toBeVisible();
   });
 
-  test('opens avatar source details with default-avatar actions', async ({
+  // Choosing the organization and brand default avatar moved out of the asset
+  // details (#7584) to the organization and brand identity settings, which
+  // list only avatar source images (settings/organization-identity.spec.ts).
+  // The Library keeps the asset side of that flow: each avatar opens in the
+  // sidebar and offers no default-avatar actions of its own.
+  test('opens avatar source details in the right sidebar', async ({
     authenticatedPage,
   }) => {
     await gotoAvatarLibrary(authenticatedPage);
     await useListView(authenticatedPage);
 
-    await openAvatarRow(authenticatedPage, 'Avatar Action Source');
+    const inspector = await openAvatarRow(
+      authenticatedPage,
+      'Avatar Action Source',
+    );
 
     await expect(
-      authenticatedPage.getByTestId('ingredient-set-org-avatar'),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('ingredient-set-brand-avatar'),
-    ).toBeVisible();
-  });
-
-  test('hides default-avatar actions for avatar video variants', async ({
-    authenticatedPage,
-  }) => {
-    await gotoAvatarLibrary(authenticatedPage);
-    await useListView(authenticatedPage);
-
-    await openAvatarRow(authenticatedPage, 'Avatar Action Video');
-
-    await expect(
-      authenticatedPage.getByTestId('ingredient-set-org-avatar'),
+      inspector.getByTestId('ingredient-set-org-avatar'),
     ).toHaveCount(0);
     await expect(
-      authenticatedPage.getByTestId('ingredient-set-brand-avatar'),
+      inspector.getByTestId('ingredient-set-brand-avatar'),
+    ).toHaveCount(0);
+  });
+
+  test('opens avatar video variant details in the right sidebar', async ({
+    authenticatedPage,
+  }) => {
+    await gotoAvatarLibrary(authenticatedPage);
+    await useListView(authenticatedPage);
+
+    const inspector = await openAvatarRow(
+      authenticatedPage,
+      'Avatar Action Video',
+    );
+
+    await expect(
+      inspector.getByTestId('ingredient-set-org-avatar'),
+    ).toHaveCount(0);
+    await expect(
+      inspector.getByTestId('ingredient-set-brand-avatar'),
     ).toHaveCount(0);
   });
 });

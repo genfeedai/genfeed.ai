@@ -1,4 +1,5 @@
 import { expect, test } from '../../fixtures/auth.fixture';
+import { AnalyticsPage } from '../../pages/analytics.page';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
 const BRAND = '/test-org/brand-1';
@@ -7,10 +8,12 @@ test.describe('Analytics — Outliers → Hooks → Remix', () => {
   test.setTimeout(60_000);
 
   test('renders the Outliers surface', async ({ authenticatedPage }) => {
+    const analyticsPage = new AnalyticsPage(authenticatedPage);
     await assertRouteRenders(authenticatedPage, `${BRAND}/analytics/outliers`);
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Outliers', exact: true }),
-    ).toBeVisible();
+    // The breadcrumb is the page title; the outlier posts table is the
+    // page's own content, so an empty shell still fails.
+    await expect(analyticsPage.breadcrumbLeaf('Outliers')).toBeVisible();
+    await expect(analyticsPage.sectionHeading('Outlier posts')).toBeVisible();
   });
 
   test('walks Outliers into Hooks and Remix', async ({ authenticatedPage }) => {

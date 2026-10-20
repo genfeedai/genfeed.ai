@@ -210,7 +210,7 @@ export class CronYoutubeStatusService implements OnModuleInit {
           transitioned &&
           Object.values(PostVisibility).includes(targetStatus)
         ) {
-          void this.publishEventWebhookService.emitLegacyPostPublished({
+          void this.publishEventWebhookService.emitPostPublished({
             externalProviderId: post.externalId,
             platform: CredentialPlatform.YOUTUBE,
             post,

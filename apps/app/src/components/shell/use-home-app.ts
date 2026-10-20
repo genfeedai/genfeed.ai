@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   DEFAULT_HOME_APP_ID,
   resolveHomeAppId,
@@ -18,13 +17,12 @@ import { useAvailableRailApps } from '@/components/shell/use-available-rail-apps
 const HOME_APP_RESOLUTION_TIMEOUT_MS = 2_000;
 
 /**
- * The app this member lands on: their own choice, else the organization's,
- * else Workspace, skipping a choice they cannot open right now. `isResolved`
+ * The app this member lands on: their own choice, else Workspace, skipping
+ * a choice they cannot open right now. `isResolved`
  * is false while that answer is still loading, so a redirect can wait for it
  * instead of flashing Workspace first.
  */
 export function useHomeApp() {
-  const { settings } = useBrand();
   const { homeAppId: userHomeAppId, isLoaded } = useRailPreferencesContext();
   const { apps, isReady } = useAvailableRailApps();
   const [hasTimedOut, setHasTimedOut] = useState(false);
@@ -39,7 +37,6 @@ export function useHomeApp() {
 
   const appId = resolveHomeAppId({
     availableAppIds: apps.map((app) => app.id),
-    organizationHomeAppId: settings?.defaultHomeAppId,
     userHomeAppId,
   });
   const isResolved = (isReady && isLoaded) || hasTimedOut;

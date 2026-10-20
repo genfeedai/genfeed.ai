@@ -13,7 +13,7 @@ export const serviceOffering = {
   description:
     'Our team plans, produces, and publishes your content and tests it against your best ads. You approve what goes out.',
   includes: [
-    'Everything in Agencies',
+    'Everything in Scale',
     'Our team runs production and publishing',
     'Usage billed at cost',
     'Fee only on winning creatives',

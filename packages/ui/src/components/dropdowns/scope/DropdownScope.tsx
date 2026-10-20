@@ -23,7 +23,7 @@ const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
 };
 
 const VARIANT_COLORS: Record<string, string> = {
-  error: 'bg-error/20 text-error',
+  error: 'bg-destructive/20 text-destructive',
   info: 'bg-info/20 text-info',
   warning: 'bg-warning/20 text-warning',
 };

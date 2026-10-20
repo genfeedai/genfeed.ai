@@ -316,7 +316,7 @@ export default function AnalyticsBrandsList({
                     brand.growth > 0
                       ? 'text-success'
                       : brand.growth < 0
-                        ? 'text-error'
+                        ? 'text-destructive'
                         : ''
                   }`}
                 >

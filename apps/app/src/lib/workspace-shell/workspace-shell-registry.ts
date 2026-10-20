@@ -204,7 +204,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/edit': 'Edit',
   '/:orgSlug/~/publishing/posts': 'Posts',
   '/:orgSlug/~/publishing/posts/:id': 'Content',
-  '/:orgSlug/~/publishing/content': 'Content',
   '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
   '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',
   '/:orgSlug/:brandSlug/automation/campaigns/:id': 'Program',
@@ -749,7 +748,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/publishing/overview',
       '/:orgSlug/~/publishing/posts',
       '/:orgSlug/~/publishing/posts/:id',
-      '/:orgSlug/~/publishing/content',
       '/:orgSlug/~/publishing/campaigns',
       '/:orgSlug/~/publishing/campaigns/new',
       '/:orgSlug/~/publishing/campaigns/compare',
@@ -984,7 +982,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing/overview',
       '/:orgSlug/:brandSlug/publishing/posts',
       '/:orgSlug/:brandSlug/publishing/posts/:id',
-      '/:orgSlug/:brandSlug/publishing/content',
       '/:orgSlug/:brandSlug/publishing/campaigns',
       '/:orgSlug/:brandSlug/publishing/campaigns/new',
       '/:orgSlug/:brandSlug/publishing/campaigns/compare',
@@ -1259,9 +1256,8 @@ const ADMIN_ROUTE_REGISTRATIONS = [
 /**
  * Canonical application-owned inventory for the protected route patterns
  * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
- * its 206-route snapshot. The inventory hard cut
- * (`/:orgSlug/~/settings/organization/*`) is deliberately absent. Retired
- * `/automation/strategies` is a third hard cut: the `:agentId` pattern must not
+ * its 206-route snapshot. Retired
+ * `/automation/strategies` is a hard cut: the `:agentId` pattern must not
  * treat that slug as a live agent. Org Workspace lives at
  * `/:orgSlug/~/workspace/*`.
  */

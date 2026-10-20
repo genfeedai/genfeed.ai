@@ -261,11 +261,6 @@ export const APP_ROUTES = {
     CAMPAIGNS: '/publishing/campaigns',
     CAMPAIGNS_NEW: '/publishing/campaigns/new',
     /**
-     * Content library: articles, newsletters, and other non-post content
-     * types. Post lifecycle lives at POSTS; this is the type-aware library.
-     */
-    CONTENT: '/publishing/content',
-    /**
      * Canonical Publishing home (dashboard). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /
      * Posts / etc. (same pattern as workspace/discovery/library).
@@ -326,9 +321,6 @@ export const APP_ROUTES = {
     MODELS: '/settings/models',
     MODEL_TRAININGS: '/settings/models/trainings',
     MODEL_VIDEO: '/settings/models/video',
-    ORGANIZATION: '/settings/organization',
-    ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
-    ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     /**
      * Org agent/automation defaults. Menu label is Agents — keep the slug

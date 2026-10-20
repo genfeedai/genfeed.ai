@@ -93,7 +93,7 @@ describe('scoring surface', () => {
     ['rubric', RUBRICS_PATH],
     ['model constant', MODEL_CONSTANT_PATH],
   ])(
-    'trips link-missing on a pull request when the %s file changes',
+    'flags link-missing as an advisory on a pull request when the %s file changes',
     (_label, path) => {
       withSurfaceCopy((root) => {
         const baseline = computeScoringSurface(root);
@@ -110,7 +110,13 @@ describe('scoring surface', () => {
             prBody: 'Refs #4924\n',
             readSummary: () => ({ isPresent: false }),
           }),
-        ).toMatchObject({ code: 'link-missing', isPassing: false });
+        ).toMatchObject({
+          code: 'link-missing',
+          isPassing: true,
+          warning: expect.stringContaining(
+            'No current live calibration evidence was accepted',
+          ),
+        });
       });
     },
   );

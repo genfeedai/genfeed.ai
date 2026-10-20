@@ -94,7 +94,7 @@ export default function TrendDetailRelatedTable({
               render: (item) => (
                 <span
                   className={
-                    item.growthRate > 0 ? 'text-success' : 'text-error'
+                    item.growthRate > 0 ? 'text-success' : 'text-destructive'
                   }
                 >
                   {item.growthRate > 0 ? '+' : ''}

@@ -1,7 +1,10 @@
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+import { requestTopbarBalancesRefresh } from '@hooks/data/billing/use-topbar-balances/request-topbar-balances-refresh';
 import { useTopbarBalances } from '@hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
@@ -322,6 +325,63 @@ describe('shared wallet scope', () => {
     await waitFor(() => expect(result.current.genfeedBalance).toBe(28));
     await act(async () => resolveOld(wallet(999)));
     expect(result.current.genfeedBalance).toBe(28);
+  });
+
+  it('re-reads the wallet when a spending action asks for a refresh', async () => {
+    const { result } = renderHook(() => useTopbarBalances(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.genfeedBalance).toBe(17));
+    state.getBalances.mockResolvedValue(wallet(9));
+    act(() => requestTopbarBalancesRefresh());
+    await waitFor(() => expect(result.current.genfeedBalance).toBe(9));
+    expect(state.getBalances).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a socket balance at once, then reconciles it against the API', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { result } = renderHook(() => useTopbarBalances(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => expect(result.current.genfeedBalance).toBe(17));
+      state.getBalances.mockResolvedValue(wallet(8));
+      act(() => result.current.publishGenfeedBalance(10));
+      await waitFor(() => expect(result.current.genfeedBalance).toBe(10));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      await waitFor(() => expect(result.current.genfeedBalance).toBe(8));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('re-reads a stale wallet when the tab regains focus', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      // The app client turns focus refetching off for every query.
+      const client = new QueryClient({
+        defaultOptions: {
+          queries: { gcTime: 0, refetchOnWindowFocus: false, retry: false },
+        },
+      });
+      const { result } = renderHook(() => useTopbarBalances(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      });
+      await waitFor(() => expect(result.current.genfeedBalance).toBe(17));
+      // Another tab spent credits while this one was in the background.
+      state.getBalances.mockResolvedValue(wallet(9));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(31_000);
+        window.dispatchEvent(new Event('visibilitychange'));
+      });
+      await waitFor(() => expect(result.current.genfeedBalance).toBe(9));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not expose a wallet for unknown desktop context', async () => {

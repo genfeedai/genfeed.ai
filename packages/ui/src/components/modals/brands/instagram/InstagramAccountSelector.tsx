@@ -255,12 +255,24 @@ export default function InstagramAccountSelector({
       )}
 
       {!isLoading && availableAccounts.length > 0 && (
-        <Button
-          label={isConnecting ? translate('confirming') : translate('confirm')}
-          onClick={handleConfirm}
-          isLoading={isConnecting}
-          isDisabled={isConnecting || !selectedAccount}
-        />
+        <div className="flex gap-2">
+          <Button
+            label={
+              isConnecting ? translate('confirming') : translate('confirm')
+            }
+            onClick={handleConfirm}
+            isLoading={isConnecting}
+            isDisabled={isConnecting || !selectedAccount}
+          />
+          {onBack && (
+            <Button
+              label={translate('cancel')}
+              onClick={onBack}
+              isDisabled={isConnecting}
+              variant={ButtonVariant.SECONDARY}
+            />
+          )}
+        </div>
       )}
     </div>
   );

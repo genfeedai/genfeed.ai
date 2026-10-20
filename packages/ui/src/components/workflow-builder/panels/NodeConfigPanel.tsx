@@ -183,7 +183,7 @@ function ConfigField({
       <div className="mb-1 flex items-center justify-between">
         <label className="text-sm font-medium">
           {field.label}
-          {field.required && <span className="text-error ml-1">*</span>}
+          {field.required && <span className="text-destructive ml-1">*</span>}
         </label>
         {variables.length > 0 && (
           <Button

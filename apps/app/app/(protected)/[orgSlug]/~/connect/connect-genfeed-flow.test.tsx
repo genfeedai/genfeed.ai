@@ -19,7 +19,6 @@ const MCP_SCOPES = [
   'articles:create',
   'brands:read',
   'credits:read',
-  'posts:create',
   'posts:draft',
   'posts:schedule',
   'posts:approve',
@@ -557,7 +556,7 @@ describe('ConnectGenfeedFlow', () => {
   it('distinguishes invalid scope failures', async () => {
     mocks.verifyMcpConnection.mockResolvedValue({
       message: 'The selected key is missing guided-flow scopes.',
-      missingScopes: ['posts:create'],
+      missingScopes: ['posts:draft'],
       reason: 'invalid_scope',
       status: 'failed',
     });
@@ -581,7 +580,7 @@ describe('ConnectGenfeedFlow', () => {
     expect(
       await screen.findByText('Key scopes need attention'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Missing: posts:create')).toBeInTheDocument();
+    expect(screen.getByText('Missing: posts:draft')).toBeInTheDocument();
   });
 
   it('classifies rejected malformed keys without logging the secret', async () => {

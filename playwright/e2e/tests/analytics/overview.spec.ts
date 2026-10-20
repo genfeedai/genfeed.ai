@@ -350,7 +350,10 @@ test.describe('Analytics Overview', () => {
       await analyticsPage.navigateToHooks();
       await expect(authenticatedPage).toHaveURL(/analytics\/hooks/);
       await analyticsPage.waitForPageLoad();
-      await expect(analyticsPage.sectionHeading('Viral Hooks')).toBeVisible();
+      await expect(analyticsPage.breadcrumbLeaf('Hooks')).toBeVisible();
+      await expect(
+        analyticsPage.sectionHeading('Post hook breakdown'),
+      ).toBeVisible();
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
         brandPath('/analytics/hooks'),
@@ -359,9 +362,8 @@ test.describe('Analytics Overview', () => {
       await analyticsPage.navigateToInsights();
       await expect(authenticatedPage).toHaveURL(/analytics\/insights/);
       await analyticsPage.waitForPageLoad();
-      await expect(
-        analyticsPage.sectionHeading('Social intelligence inbox'),
-      ).toBeVisible();
+      await expect(analyticsPage.breadcrumbLeaf('Insights')).toBeVisible();
+      await expect(analyticsPage.insightsListCard).toBeVisible();
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
         brandPath('/analytics/insights'),
@@ -451,7 +453,10 @@ test.describe('Analytics Overview', () => {
       await analyticsPage.gotoSection('hooks');
 
       await expect(authenticatedPage).toHaveURL(/hooks/);
-      await expect(analyticsPage.sectionHeading('Viral Hooks')).toBeVisible();
+      await expect(analyticsPage.breadcrumbLeaf('Hooks')).toBeVisible();
+      await expect(
+        analyticsPage.sectionHeading('Post hook breakdown'),
+      ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -462,9 +467,8 @@ test.describe('Analytics Overview', () => {
       await analyticsPage.gotoSection('insights');
 
       await expect(authenticatedPage).toHaveURL(/insights/);
-      await expect(
-        analyticsPage.sectionHeading('Social intelligence inbox'),
-      ).toBeVisible();
+      await expect(analyticsPage.breadcrumbLeaf('Insights')).toBeVisible();
+      await expect(analyticsPage.insightsListCard).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
   });

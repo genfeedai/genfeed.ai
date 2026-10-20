@@ -51,7 +51,6 @@ export function AgentConversationSkeleton({
         className="bottom-0 w-full"
         layoutMode="surface-fixed"
         maxWidth="full"
-        showTopFade={false}
         zIndex={40}
       >
         <PromptBarComposer>

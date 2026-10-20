@@ -43,7 +43,7 @@ export function ClipWorkflowRunCard({
     setWorkflowId,
     workflowExecutionId,
     generatedVideoIds,
-    finalVideoId,
+    finalVideoUrl,
     identity,
     canMerge,
     draftReviewUrl,
@@ -124,7 +124,7 @@ export function ClipWorkflowRunCard({
         <ClipWorkflowStatusFooter
           generatedVideoIds={generatedVideoIds}
           workflowExecutionId={workflowExecutionId}
-          finalVideoId={finalVideoId}
+          finalVideoUrl={finalVideoUrl}
           draftReviewUrl={draftReviewUrl}
           supervisedReviewStatus={steps.supervised_review}
           workflowExecutionUrl={workflowExecutionUrl}

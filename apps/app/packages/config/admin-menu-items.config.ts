@@ -11,7 +11,6 @@ import {
   BookmarkCheck,
   Bot,
   Box,
-  BrainCircuit,
   Building2,
   ChartPie,
   Cpu,
@@ -150,8 +149,8 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ADMIN.AUTOMATION.AGENTS,
     label: 'Agents',
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.AGENTS],
-    outline: BrainCircuit,
-    solid: BrainCircuit,
+    outline: Bot,
+    solid: Bot,
   },
   {
     group: 'AI & Automation',

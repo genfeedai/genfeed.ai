@@ -151,7 +151,7 @@ function ClipsProjectDetail(props: ReturnType<typeof useStudioClipsPage>) {
           <p className="text-sm text-muted-foreground">
             {t('avatarDefaultsHint')}{' '}
             <Link
-              href={orgHref(APP_ROUTES.SETTINGS.ORGANIZATION)}
+              href={orgHref(APP_ROUTES.SETTINGS.PREFERENCES)}
               className="underline"
             >
               {t('configureAvatarDefaults')}

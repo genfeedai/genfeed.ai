@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
+  clearOAuthConnectContext,
   readOAuthConnectContext,
   rememberOAuthConnectContext,
 } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
@@ -84,6 +85,16 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       // ignore
     }
   }, []);
+
+  // The operator's account is not among the candidates (or they changed their
+  // mind). Nothing is saved: the pending credential stays unconnected, and the
+  // stored connect context is dropped so a later visit starts a clean flow.
+  const cancelAccountSelection = useCallback(() => {
+    const returnTo = resolveReturnTo();
+    clearStoredReturnTo();
+    clearOAuthConnectContext();
+    push(returnTo);
+  }, [clearStoredReturnTo, push, resolveReturnTo]);
 
   const completeSuccess = useCallback(() => {
     // Resolve before clearing: providers drop query params on redirect, so
@@ -268,7 +279,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         {isSignedIn && result.status === 'selecting' && (
           <InstagramAccountSelector
             credentialId={result.credentialId}
-            onBack={() => push(resolveReturnTo())}
+            onBack={cancelAccountSelection}
             onConnected={completeSuccess}
             onError={(errorMessage) =>
               logger.error(

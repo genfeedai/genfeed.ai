@@ -55,7 +55,7 @@ export default function AnnouncementComposeForm({
           />
           <span
             className={`absolute bottom-2 right-3 text-xs tabular-nums ${
-              tweetOverLimit ? 'text-error' : 'text-foreground/40'
+              tweetOverLimit ? 'text-destructive' : 'text-foreground/40'
             }`}
           >
             {tweetCharCount}/{TWEET_MAX_CHARS}

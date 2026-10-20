@@ -227,12 +227,12 @@ describe('MembersList seat limit', () => {
   it('replaces the member table with an upgrade state for solo plans', async () => {
     renderMembers({ pageCount: 1, tier: 'free' });
 
-    expect(screen.getByText('Unlock team members with Agencies')).toBeVisible();
+    expect(screen.getByText('Unlock team members with Scale')).toBeVisible();
     expect(
       screen.getByText(/Your current plan is a solo workspace/i),
     ).toBeVisible();
     expect(
-      screen.getByRole('link', { name: 'Upgrade to Agencies' }),
+      screen.getByRole('link', { name: 'Upgrade to Scale' }),
     ).toHaveAttribute('href', '/org-123/~/settings/subscription');
     expect(
       screen.queryByRole('button', { name: /Invite Member/i }),
@@ -245,12 +245,12 @@ describe('MembersList seat limit', () => {
     renderMembers({ pageCount: 0, tier: 'byok' });
 
     expect(
-      screen.getByText('Unlock team members with Agencies'),
+      screen.getByText('Unlock team members with Scale'),
     ).toBeInTheDocument();
     expect(mocks.findAll).not.toHaveBeenCalled();
   });
 
-  it('loads the member table and enables invites for Agencies', async () => {
+  it('loads the member table and enables invites for Scale', async () => {
     renderMembers({ pageCount: 0, tier: 'scale' });
 
     await screen.findByText('No members found');

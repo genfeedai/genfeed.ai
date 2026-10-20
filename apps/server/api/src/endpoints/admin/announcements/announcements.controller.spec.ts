@@ -237,7 +237,7 @@ describe('AnnouncementsController', () => {
       const announcements = [makeAnnouncement()];
       mockAdminAnnouncementsService.getHistory.mockResolvedValue(announcements);
 
-      const result = await controller.getHistory(makeRequest() as never);
+      const result = await controller.getHistory({}, makeRequest() as never);
 
       expect(result).toBeDefined();
     });

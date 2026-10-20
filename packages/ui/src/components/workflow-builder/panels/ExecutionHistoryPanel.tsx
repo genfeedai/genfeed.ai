@@ -145,7 +145,7 @@ function ExecutionItem({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="text-error"
+            className="text-destructive"
             onClick={() => onCancel(execution.id)}
             label="Cancel"
           />
@@ -182,7 +182,7 @@ function ExecutionItem({
                   <span className="flex-1 truncate">{result.nodeType}</span>
                   {result.error && (
                     <span
-                      className="text-error truncate max-w-32"
+                      className="text-destructive truncate max-w-32"
                       title={result.error}
                     >
                       {result.error}
@@ -299,7 +299,9 @@ export default function ExecutionHistoryPanel({
               <Spinner className="size-4 text-primary" />
             </div>
           ) : error ? (
-            <div className="text-sm text-error text-center py-4">{error}</div>
+            <div className="text-sm text-destructive text-center py-4">
+              {error}
+            </div>
           ) : executions.length === 0 ? (
             <p className="text-sm opacity-60 text-center py-4">
               No executions yet. Run your workflow to see history.

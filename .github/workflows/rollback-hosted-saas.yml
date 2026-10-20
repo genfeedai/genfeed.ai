@@ -1,0 +1,134 @@
+name: Rollback hosted SaaS
+run-name: Rollback hosted SaaS | ${{ inputs.target_tag || 'previous stable release' }}
+
+# One-click production rollback. It redeploys an earlier stable release through
+# the same Deploy hosted SaaS lane, so the API image, workers, and the three
+# Vercel frontends all return to that release's commit together, behind the
+# same migration compatibility gate that blocks a rollback client that cannot
+# read the live schema. It never touches the database: a bad migration is
+# repaired with a forward fix, or from the pre-migration RDS snapshot by hand.
+#
+# Dispatch from master. Leave target_tag empty to roll back to the stable
+# release published immediately before the current latest one.
+on:
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: "stable release tag to restore (vX.Y.Z); empty = the release before the latest"
+        required: false
+        default: ""
+        type: string
+      reason:
+        description: "why production is being rolled back (kept in the run title and summary)"
+        required: true
+        type: string
+
+concurrency:
+  group: rollback-hosted-saas
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-target:
+    name: Resolve rollback target
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      release_tag: ${{ steps.target.outputs.release_tag }}
+      source_sha: ${{ steps.target.outputs.source_sha }}
+    steps:
+      - name: Require master
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Rollbacks must run from refs/heads/master (got ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Resolve target release
+        id: target
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_TAG: ${{ inputs.target_tag }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${REASON// }" ]; then
+            echo "::error::A rollback needs a reason."
+            exit 1
+          fi
+
+          # Published, non-prerelease stable tags, newest first.
+          stable_tags="$(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
+              jq -r '[.[][] | select(.draft == false and .prerelease == false) | .tag_name
+                | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[]' |
+              sort -rV
+          )"
+          latest_tag="$(printf '%s\n' "${stable_tags}" | head -n 1)"
+          if [ -z "${latest_tag}" ]; then
+            echo "::error::No published stable release found."
+            exit 1
+          fi
+
+          if [ -n "${REQUESTED_TAG}" ]; then
+            target_tag="${REQUESTED_TAG}"
+            if ! printf '%s\n' "${stable_tags}" | grep -Fxq "${target_tag}"; then
+              echo "::error::${target_tag} is not a published stable release."
+              exit 1
+            fi
+          else
+            target_tag="$(printf '%s\n' "${stable_tags}" | sed -n 2p)"
+            if [ -z "${target_tag}" ]; then
+              echo "::error::There is no stable release before ${latest_tag} to roll back to."
+              exit 1
+            fi
+          fi
+
+          if [ "${target_tag}" = "${latest_tag}" ]; then
+            echo "::error::${target_tag} is already the latest stable release; use Deploy hosted SaaS to redeploy it."
+            exit 1
+          fi
+
+          source_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${target_tag}" --jq .sha)"
+          if ! printf '%s' "${source_sha}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Could not resolve ${target_tag} to a commit."
+            exit 1
+          fi
+
+          {
+            echo "release_tag=${target_tag}"
+            echo "source_sha=${source_sha}"
+          } >>"${GITHUB_OUTPUT}"
+          {
+            echo "## Rollback hosted SaaS"
+            echo ""
+            echo "- Rolling back from: \`${latest_tag}\`"
+            echo "- Restoring: \`${target_tag}\` at \`${source_sha}\`"
+            echo "- Reason: ${REASON}"
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+  deploy:
+    name: Redeploy ${{ needs.resolve-target.outputs.release_tag }}
+    needs: resolve-target
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+      issues: write
+    uses: ./.github/workflows/deploy-hosted-saas.yml
+    with:
+      release_tag: ${{ needs.resolve-target.outputs.release_tag }}
+      source_sha: ${{ needs.resolve-target.outputs.source_sha }}
+      correlation_id: rollback-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.resolve-target.outputs.source_sha }}
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
+      CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}

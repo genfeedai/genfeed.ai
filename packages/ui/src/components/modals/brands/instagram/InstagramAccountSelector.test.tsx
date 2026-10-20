@@ -211,6 +211,49 @@ describe('InstagramAccountSelector', () => {
     expect(confirmButton).toBeDisabled();
   });
 
+  it('offers Cancel beside the confirm action when the right account is not listed', async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
+    );
+    const onBack = vi.fn();
+
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onBack={onBack}
+        onConnected={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(mockServicesService.postSelectAccount).not.toHaveBeenCalled();
+  });
+
+  it('keeps every account reachable in a scrollable list when the operator manages many', async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      Array.from({ length: 25 }, (_, index) => ({
+        id: `ig-account-${index}`,
+        label: `Account ${index}`,
+        username: `account${index}`,
+      })),
+    );
+
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onBack={vi.fn()}
+        onConnected={vi.fn()}
+      />,
+    );
+
+    const last = await screen.findByRole('button', { name: /Account 24/ });
+    expect(last.parentElement).toHaveClass('overflow-y-auto');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    expect(screen.getByText('Use this account')).toBeVisible();
+  });
+
   it('exposes the actual selected account as pressed', async () => {
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
       candidateAccounts,

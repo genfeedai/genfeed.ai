@@ -9,6 +9,11 @@ import {
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
+import {
+  confirmGenerationSpend,
+  mockGenerationQuote,
+  selectAdvancedModel,
+} from '../../utils/generation-setup';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 const sourceId = 'editing-source-e2e';
@@ -36,6 +41,7 @@ for (const { model, editing } of [
   }, testInfo) => {
     test.setTimeout(120_000);
     await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+    await mockGenerationQuote(page);
     let edited = false;
     const bodies: Record<string, unknown>[] = [];
     const recipe = flux
@@ -226,25 +232,10 @@ for (const { model, editing } of [
       .getByTestId('studio-playground-prompt')
       .getByRole('textbox');
     // Explicit model selection lives in Advanced; Auto delegates routing.
-    await page.getByRole('button', { name: /^Generation setup:/ }).click();
-    await page.getByRole('button', { name: 'Advanced', exact: true }).click();
-    await page
-      .getByRole('dialog')
-      .filter({
-        has: page.getByRole('button', { name: 'Advanced', exact: true }),
-      })
-      .getByRole('button', { name: 'Configure Model', exact: true })
-      .click();
-    await page
-      .getByRole('option')
-      .filter({ hasText: flux ? 'FLUX.3' : 'Ideogram' })
-      .first()
-      .click();
+    await selectAdvancedModel(page, flux ? 'FLUX.3' : 'Ideogram');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    await expect(
-      page.getByRole('button', { name: /^Generation setup:/ }),
-    ).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     if (flux) {
       await expect(page.getByLabel('FLUX resolution')).toBeVisible();
       await expect(page.getByLabel('Editing seed')).toHaveCount(0);
@@ -269,6 +260,7 @@ for (const { model, editing } of [
       fullPage: true,
     });
     await page.getByRole('button', { name: 'Generate', exact: true }).click();
+    await confirmGenerationSpend(page);
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toMatchObject({
       data: {

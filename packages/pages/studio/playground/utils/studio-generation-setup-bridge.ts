@@ -11,22 +11,12 @@
  * `tags`, `voiceId`) have no shared-store equivalent — they stay local
  * ("residual"), persisted exactly as before via `studio-playground-storage`.
  */
-import type {
-  GenerationSetupSources,
-  GenerationSetupValues,
-} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type {
   StudioPlaygroundSettings,
   StudioPlaygroundType,
 } from '@pages/studio/playground/types';
 import { getDefaultStudioPlaygroundSettings } from '@pages/studio/playground/utils/studio-playground-settings';
-import type { StudioPlaygroundPersistedState } from '@pages/studio/playground/utils/studio-playground-storage';
-import { STUDIO_PLAYGROUND_TYPES } from '@pages/studio/playground/utils/studio-playground-types';
-import {
-  buildStudioGenerationSetupScope,
-  normalizeGenerationSetupValues,
-  useGenerationSetupStore,
-} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import {
   toGenerationSetupModelKey,
   toStudioSettingsModelKey,
@@ -119,7 +109,7 @@ export function getDefaultGenerationSetupValues(
   };
 }
 
-/** Projects the 15 bridged fields off a legacy `StudioPlaygroundSettings` — migration-only. */
+/** Projects the 15 bridged fields off a `StudioPlaygroundSettings`. */
 export function studioSettingsFieldsToGenerationSetupPatch(
   settings: StudioPlaygroundSettings,
 ): Partial<GenerationSetupValues> {
@@ -213,60 +203,4 @@ export function splitStudioSettingsPatch(
   }
 
   return { bridged, residual };
-}
-
-/**
- * One-time migration: seeds the shared store from legacy
- * `studio-playground-storage` localStorage state, per type, without ever
- * clobbering a scope that already has a persisted entry.
- *
- * `readStudioPlaygroundState()` always returns fully-populated defaults for
- * every type, even on a fresh install (`getDefaultStudioPlaygroundState`), so
- * a blanket seed would wrongly mark every field 'user'-owned and permanently
- * lock out agent recommendations. Instead this is diff-based: a field is
- * migrated as `'user'`-owned only when its legacy value diverges from that
- * type's shared-store default. A type with no divergence is skipped
- * entirely, leaving it agent-owned from a clean slate.
- */
-export function seedGenerationSetupFromLegacyStudioSettings(
-  legacyState: StudioPlaygroundPersistedState,
-): void {
-  const { setupByScope } = useGenerationSetupStore.getState();
-
-  for (const type of STUDIO_PLAYGROUND_TYPES) {
-    const scope = buildStudioGenerationSetupScope(type);
-    if (setupByScope[scope]) {
-      continue;
-    }
-
-    const defaults = getDefaultGenerationSetupValues(type);
-    const legacyPatch = studioSettingsFieldsToGenerationSetupPatch(
-      legacyState.settingsByType[type],
-    );
-
-    const values: GenerationSetupValues = { ...defaults };
-    const sources: GenerationSetupSources = {};
-    let hasDivergence = false;
-
-    for (const key of STUDIO_BRIDGED_SETTINGS_KEYS) {
-      const legacyValue = legacyPatch[key];
-      if (legacyValue === undefined || legacyValue === defaults[key]) {
-        continue;
-      }
-      (values as unknown as Record<string, unknown>)[key] = legacyValue;
-      sources[key] = 'user';
-      hasDivergence = true;
-    }
-
-    if (!hasDivergence) {
-      continue;
-    }
-
-    useGenerationSetupStore.setState({
-      setupByScope: {
-        ...useGenerationSetupStore.getState().setupByScope,
-        [scope]: { sources, values: normalizeGenerationSetupValues(values) },
-      },
-    });
-  }
 }

@@ -19,13 +19,6 @@ function getDiscoveryScopedPath(pathname: string, orgSlug: string): string {
   }
 
   const rest = pathname.slice(index + marker.length);
-  // Collapse legacy /discovery and retired /socials to canonical /overview.
-  if (rest === '/discovery' || rest.startsWith('/discovery/')) {
-    return `/discovery/overview${rest.slice('/discovery'.length)}`;
-  }
-  if (rest === '/socials' || rest.startsWith('/socials/')) {
-    return `/discovery/overview${rest.slice('/socials'.length)}`;
-  }
   return rest ? `/discovery${rest}` : '/discovery/overview';
 }
 

@@ -40,7 +40,7 @@ import { REVIEWED_RATE_SHEET_ENTRIES } from '../src/reviewed-rates';
 
 describe('plan lookups', () => {
   it('finds plans by label case-insensitively', () => {
-    expect(getPlanByLabel('agencies')?.tier).toBe('scale');
+    expect(getPlanByLabel('scale')?.tier).toBe('scale');
     expect(getPlanByLabel('PAY AS YOU GO')?.tier).toBe('payg');
     expect(getPlanByLabel('nonexistent')).toBeUndefined();
   });
@@ -97,8 +97,8 @@ describe('plan price formatting', () => {
       includedCredits: '60,000 credits',
       includedCreditsValue: '$600',
       monthlyPrice: '$499/month',
-      name: 'Agencies',
-      nameWithPrice: 'Agencies ($499/month)',
+      name: 'Scale',
+      nameWithPrice: 'Scale ($499/month)',
       priceLabel: '$499/mo',
     });
     expect(PLAN_COPY.enterprise.nameWithPrice).toBe('Enterprise (custom)');
@@ -325,7 +325,7 @@ describe('website plan catalogue', () => {
   it('publishes the three plans in presentation order', () => {
     expect(websitePlans.map((plan) => plan.label)).toEqual([
       'Pay As You Go',
-      'Agencies',
+      'Scale',
       'Enterprise',
     ]);
     expect(websitePlans.map((plan) => plan.type)).toEqual([
@@ -351,7 +351,7 @@ describe('website plan catalogue', () => {
     expect(payg.includedCredits).toBeUndefined();
   });
 
-  it('sells Agencies with client workspaces and the subscription features', () => {
+  it('sells Scale with client workspaces and the subscription features', () => {
     const scale = getScalePlan();
 
     expect(scale.interval).toBe('month');
@@ -370,7 +370,7 @@ describe('website plan catalogue', () => {
 
 describe('formatTierLabel', () => {
   it('names a plan tier by its display label', () => {
-    expect(formatTierLabel('scale', 'a higher plan')).toBe('Agencies');
+    expect(formatTierLabel('scale', 'a higher plan')).toBe('Scale');
     expect(formatTierLabel('enterprise', 'a higher plan')).toBe('Enterprise');
   });
 

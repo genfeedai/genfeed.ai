@@ -51,9 +51,7 @@ export default function PromptBarContainer({
   children,
   className = '',
   isVisible = true,
-  showTopFade = false,
   topContent,
-  topFadeClassName = '',
   zIndex = 10,
   maxWidth = '4xl',
   layoutMode = 'fixed',
@@ -105,22 +103,6 @@ export default function PromptBarContainer({
         zIndex,
       }}
     >
-      {showTopFade ? (
-        <div
-          aria-hidden="true"
-          data-composer-top-fade=""
-          className={cn(
-            // Soft scrim only — last transcript lines stay readable. A tall
-            // from-background slab paints the conversation black.
-            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/80 via-background/30 to-transparent transition-opacity duration-300',
-            topContent ? 'h-16' : 'h-12',
-            layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
-            layoutMode === 'inflow' && (topContent ? 'h-12' : 'h-10'),
-            layoutMode === 'sticky-bottom' && (topContent ? 'h-12' : 'h-10'),
-            topFadeClassName,
-          )}
-        />
-      ) : null}
       <div
         className={cn(innerClassName, topContent && 'flex flex-col gap-0')}
         data-composer-stack=""

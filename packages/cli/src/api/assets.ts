@@ -1,6 +1,6 @@
 import type { IngredientStatus } from '@genfeedai/contracts';
 import { get } from './client';
-import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
+import { flattenCollection, type JsonApiDocument } from './json-api';
 
 export interface Asset {
   brandId?: string;
@@ -26,14 +26,12 @@ export async function listAssets(options: ListAssetsOptions = {}): Promise<Asset
   const query = new URLSearchParams({ limit: String(limit) });
   if (options.brandId) query.set('brandId', options.brandId);
   if (options.category) query.set('categories', options.category);
-  const response = await get<JsonApiCollectionResponse>(`/ingredients?${query.toString()}`);
+  const response = await get<JsonApiDocument>(`/ingredients?${query.toString()}`);
   return flattenCollection<Asset>(response);
 }
 
 export async function getAsset(id: string): Promise<Asset> {
-  const response = await get<JsonApiCollectionResponse>(
-    `/ingredients/batch?ids=${encodeURIComponent(id)}`
-  );
+  const response = await get<JsonApiDocument>(`/ingredients/batch?ids=${encodeURIComponent(id)}`);
   const asset = flattenCollection<Asset>(response)[0];
   if (!asset) throw new Error(`Asset ${id} was not found`);
   return asset;

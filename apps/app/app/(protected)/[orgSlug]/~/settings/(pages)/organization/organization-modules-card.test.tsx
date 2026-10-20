@@ -267,6 +267,45 @@ describe('OrganizationModulesCard', () => {
     );
   });
 
+  describe('without a paid plan', () => {
+    beforeEach(() => {
+      mocks.settings = {
+        ...mocks.settings,
+        hasPaidModuleSubscription: false,
+      };
+    });
+
+    it('swaps the switch of paid modules for a subscription upsell', () => {
+      render(<OrganizationModulesCard />);
+
+      for (const moduleId of ['automation', 'messages', 'discovery']) {
+        expect(screen.getByTestId(`module-upsell-${moduleId}`)).toBeVisible();
+      }
+      for (const name of ['Automation', 'Messages', 'Discovery'])
+        expect(screen.queryByRole('switch', { name })).toBeNull();
+      expect(toggle('Playground')).toBeChecked();
+      expect(
+        screen.getAllByRole('link', { name: 'Subscribe' })[0],
+      ).toHaveAttribute('href', '/default/~/settings/subscription');
+    });
+
+    it('keeps the upsell link away from members who cannot manage billing', () => {
+      mocks.role = MemberRole.USER;
+      render(<OrganizationModulesCard />);
+
+      expect(screen.getByTestId('module-upsell-messages')).toBeVisible();
+      expect(screen.queryByRole('link', { name: 'Subscribe' })).toBeNull();
+    });
+
+    it('shows the switch again once the plan is paid', () => {
+      mocks.settings = { ...mocks.settings, hasPaidModuleSubscription: true };
+      render(<OrganizationModulesCard />);
+
+      expect(screen.queryByTestId('module-upsell-messages')).toBeNull();
+      expect(toggle('Messages')).toBeInTheDocument();
+    });
+  });
+
   it('keeps member settings readable but prevents changes', () => {
     mocks.role = MemberRole.USER;
     render(<OrganizationModulesCard />);

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
+  type BrandPostCapScope,
   BrandPublishPolicyService,
   resolveBrandPolicyDraftFormat,
 } from '@api/services/brand-publish-policy/brand-publish-policy.service';
@@ -69,6 +70,11 @@ export interface ResolvedAutonomousPostPolicy {
   result: AgentPublishPolicyResult;
   strategyId?: string;
   reviewTimeoutHours: number;
+}
+export interface ScheduledWithinPostCaps<T> {
+  policy: ResolvedAutonomousPostPolicy;
+  /** The write's result; absent when the policy did not permit it. */
+  scheduled?: T;
 }
 export interface RecordAutonomousReviewInput
   extends ResolveAutonomousPostPolicyInput {
@@ -321,6 +327,29 @@ export class AutonomousPublishPolicyService {
       strategyId: strategy?.id,
       result,
     };
+  }
+
+  /**
+   * Writes an unattended SCHEDULED post under the brand's post-cap lock
+   * (#7458). `preview` is the caller's evaluation, made before the lock so the
+   * judge never runs under it. A brand with caps evaluates again once the lock
+   * is held, so the counts include every publish that held it before, and the
+   * lock is released only after `schedule` has committed its post.
+   */
+  async scheduleWithinPostCaps<T>(
+    scope: BrandPostCapScope,
+    preview: ResolvedAutonomousPostPolicy,
+    evaluate: () => Promise<ResolvedAutonomousPostPolicy>,
+    schedule: () => Promise<T>,
+  ): Promise<ScheduledWithinPostCaps<T>> {
+    if (preview.result.decision !== AgentPublishDecision.PERMITTED)
+      return { policy: preview };
+    return this.brandPublishPolicy.withPostCapLock(scope, async (isLocked) => {
+      const policy = isLocked ? await evaluate() : preview;
+      if (policy.result.decision !== AgentPublishDecision.PERMITTED)
+        return { policy };
+      return { policy, scheduled: await schedule() };
+    });
   }
 
   /**

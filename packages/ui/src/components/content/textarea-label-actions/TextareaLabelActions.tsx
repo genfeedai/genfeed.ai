@@ -22,7 +22,7 @@ export default function TextareaLabelActions({
     <div className="flex items-center justify-between w-full">
       <span>
         {label}
-        {isRequired && <span className="text-error ml-1">*</span>}
+        {isRequired && <span className="text-destructive ml-1">*</span>}
       </span>
 
       <div className="flex items-center gap-2">

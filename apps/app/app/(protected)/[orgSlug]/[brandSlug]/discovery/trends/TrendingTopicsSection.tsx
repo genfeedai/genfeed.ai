@@ -16,7 +16,7 @@ function getGrowthRateClass(rate: number): string {
     return 'text-success';
   }
   if (rate < 0) {
-    return 'text-error';
+    return 'text-destructive';
   }
   return '';
 }

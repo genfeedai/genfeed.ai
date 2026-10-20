@@ -336,7 +336,6 @@ describe('workspace shell trusted registry', () => {
     for (const pathname of [
       '/acme/moonrise/library/images',
       '/acme/moonrise/publishing/campaigns',
-      '/acme/moonrise/publishing/content',
       '/acme/moonrise/publishing/posts',
       '/acme/~/publishing/posts',
       '/acme/moonrise/automation/runs/run-1',
@@ -384,12 +383,6 @@ describe('workspace shell trusted registry', () => {
           route.canonicalUrl === '/:orgSlug/:brandSlug/publishing/composer',
       ),
     ).toBe(false);
-  });
-
-  it('keeps the organization-settings hard-cut family outside the registry', () => {
-    expect(
-      resolveWorkspaceShellRoute('/acme/~/settings/organization'),
-    ).toBeNull();
   });
 
   it('registers organization and brand Workspace overviews independently', () => {
@@ -443,7 +436,6 @@ describe('workspace shell trusted registry', () => {
 
   it.each([
     '/acme/~/library/shelf/approved',
-    '/acme/~/publishing/content',
     '/acme/~/publishing/posts/post-1',
   ])('registers the organization collection surface %s', (pathname) => {
     expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({

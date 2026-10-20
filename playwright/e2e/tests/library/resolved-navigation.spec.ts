@@ -7,6 +7,7 @@ import {
   buildProtectedAppBootstrapPayload,
   generateMockBrand,
 } from '@e2e/utils/api-interceptor';
+import { filtersTrigger, openFilterFacet } from '@e2e/utils/filter-menu';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -49,16 +50,14 @@ test('library list navigation preserves resolved tenant parameters', async ({
     APP_ROUTES.LIBRARY.ASSETS,
   );
   // #5502: Recent is the asset browser's Show filter, not a nav link.
-  // #6818 moved that filter into the Filters popover.
-  const filters = authenticatedPage.getByRole('button', { name: /^Filters/ });
-  await expect(filters).toBeVisible();
+  // It is the Show facet of the shared Filters menu (#7567).
+  await expect(filtersTrigger(authenticatedPage)).toBeVisible();
   await expectResolvedLinks(authenticatedPage);
   await test.step('navigate to the recent list', async () => {
-    await filters.click();
-    const recent = authenticatedPage
-      .getByRole('group', { name: 'Show', exact: true })
-      .getByRole('radio', { name: 'Recent', exact: true });
-    await recent.click();
+    const show = await openFilterFacet(authenticatedPage, 'Show');
+    await show
+      .getByRole('menuitemradio', { name: 'Recent', exact: true })
+      .click();
     // Place presets preserve the Images type preset's category filters.
     await authenticatedPage.waitForURL(
       (url) =>
@@ -73,7 +72,14 @@ test('library list navigation preserves resolved tenant parameters', async ({
       'IMAGE',
       'IMAGE_EDIT',
     ]);
-    await expect(recent).toBeChecked();
+    // Choosing a radio row closes the menu; reopen it to read the choice back.
+    await expect(
+      (await openFilterFacet(authenticatedPage, 'Show')).getByRole(
+        'menuitemradio',
+        { name: 'Recent', exact: true },
+      ),
+    ).toBeChecked();
+    await authenticatedPage.keyboard.press('Escape');
     await expect(
       authenticatedPage.getByRole('button', {
         name: 'Remove Recent filter',

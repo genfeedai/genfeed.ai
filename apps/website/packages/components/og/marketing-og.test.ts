@@ -30,6 +30,7 @@ describe('marketing OG images', () => {
     'x',
     'claude',
     'codex',
+    'mcp',
     'integration-wordpress',
     'card-0003',
     'claude--x-twitter',

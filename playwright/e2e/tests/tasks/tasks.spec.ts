@@ -351,6 +351,30 @@ async function mockTasksArea(page: Page) {
   });
 }
 
+/**
+ * The task list is a table: the task title is a link to the detail page and
+ * clicking the rest of the row opens the right sidebar (`?taskId=`). Rows do
+ * not expose a button, so locate them by their row role.
+ */
+function taskRow(page: Page, title: string) {
+  return page.getByRole('row', { name: new RegExp(title) });
+}
+
+function taskTitleLink(page: Page, title: string) {
+  return taskRow(page, title).getByRole('link', { name: new RegExp(title) });
+}
+
+/**
+ * Click the row's cell padding, not the title link or a status/priority
+ * select, so the click is handled by the row itself and opens the sidebar.
+ */
+async function openTaskInspector(page: Page, title: string): Promise<void> {
+  await taskRow(page, title)
+    .locator('td')
+    .first()
+    .click({ position: { x: 4, y: 4 } });
+}
+
 test.describe('Tasks', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
@@ -377,18 +401,14 @@ test.describe('Tasks', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Tasks' }),
     ).toBeVisible();
-    // Rows render the task's title, not its identifier — the identifier only
-    // shows on the standalone detail page and the inspector's "Open full
-    // page" link.
+    // Rows render the task's title as a link to the detail page, not its
+    // identifier — the identifier only shows in that link's href, on the
+    // standalone detail page and in the inspector's "Open full page" link.
     await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Regression in task orchestration',
-      }),
-    ).toBeVisible();
+      taskTitleLink(authenticatedPage, 'Regression in task orchestration'),
+    ).toHaveAttribute('href', `${orgPath(APP_ROUTES.WORKSPACE.TASKS)}/GEN-101`);
     await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Analytics export is failing',
-      }),
+      taskTitleLink(authenticatedPage, 'Analytics export is failing'),
     ).toBeVisible();
 
     // The status filter is a `@ui/primitives/select` (Radix), not a raw
@@ -399,23 +419,22 @@ test.describe('Tasks', () => {
     await authenticatedPage.getByRole('option', { name: 'Blocked' }).click();
 
     await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Analytics export is failing',
-      }),
+      taskTitleLink(authenticatedPage, 'Analytics export is failing'),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Regression in task orchestration',
-      }),
+      taskTitleLink(authenticatedPage, 'Regression in task orchestration'),
     ).toHaveCount(0);
 
     await toolbar.getByRole('combobox').click();
     await authenticatedPage
       .getByRole('option', { name: 'All Statuses' })
       .click();
-    await authenticatedPage
-      .getByRole('button', { name: 'Regression in task orchestration' })
-      .click();
+    // Clicking the row (not the title link, which opens the detail page)
+    // selects the task.
+    await openTaskInspector(
+      authenticatedPage,
+      'Regression in task orchestration',
+    );
 
     await expect(authenticatedPage).toHaveURL(/[?&]taskId=task-101(&|$)/);
 
@@ -463,9 +482,10 @@ test.describe('Tasks', () => {
     // The created row shows its title only, same as the seeded rows above —
     // the identifier never renders in the list.
     await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Add failing coverage for task dashboards',
-      }),
+      taskTitleLink(
+        authenticatedPage,
+        'Add failing coverage for task dashboards',
+      ),
     ).toBeVisible();
   });
 
@@ -547,9 +567,10 @@ test.describe('Tasks', () => {
     await expect(authenticatedPage).toHaveURL(new RegExp(`${tasksUrl}$`));
     await assertNoErrorBoundaryFallback(authenticatedPage, tasksUrl);
 
-    await authenticatedPage
-      .getByRole('button', { name: 'Regression in task orchestration' })
-      .click();
+    await openTaskInspector(
+      authenticatedPage,
+      'Regression in task orchestration',
+    );
     await expect(authenticatedPage).toHaveURL(/[?&]taskId=task-101(&|$)/);
 
     const inspector = authenticatedPage.getByTestId('workspace-task-inspector');

@@ -57,11 +57,7 @@ export class PostGroupsController {
   }
 
   @Post()
-  @RequiredScopes(
-    ApiKeyScope.POSTS_DRAFT,
-    ApiKeyScope.POSTS_CREATE,
-    ApiKeyScope.POSTS_SCHEDULE,
-  )
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() req: Request,
@@ -126,7 +122,6 @@ export class PostGroupsController {
   @Patch(':id')
   @RequiredScopes(
     ApiKeyScope.POSTS_DRAFT,
-    ApiKeyScope.POSTS_CREATE,
     ApiKeyScope.POSTS_SCHEDULE,
     ApiKeyScope.POSTS_PUBLISH,
   )

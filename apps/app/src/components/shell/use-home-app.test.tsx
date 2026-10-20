@@ -7,15 +7,9 @@ const state = vi.hoisted(() => ({
   availableAppIds: ['workspace', 'agent', 'library'] as string[],
   isLoaded: true,
   isReady: true,
-  organizationHomeAppId: null as string | null,
   userHomeAppId: null as string | null,
 }));
 
-vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    settings: { defaultHomeAppId: state.organizationHomeAppId },
-  }),
-}));
 vi.mock('@/components/shell/rail-preferences.provider', () => ({
   useRailPreferencesContext: () => ({
     homeAppId: state.userHomeAppId,
@@ -43,7 +37,6 @@ describe('useHomeApp', () => {
     state.availableAppIds = ['workspace', 'agent', 'library'];
     state.isLoaded = true;
     state.isReady = true;
-    state.organizationHomeAppId = null;
     state.userHomeAppId = null;
   });
 
@@ -60,20 +53,13 @@ describe('useHomeApp', () => {
     );
   });
 
-  it('prefers the member’s choice, then the organization’s', () => {
-    state.organizationHomeAppId = 'library';
-    expect(renderHook(() => useHomeApp()).result.current.appId).toBe('library');
-
+  it('lands on the member’s choice', () => {
     state.userHomeAppId = 'agent';
     expect(renderHook(() => useHomeApp()).result.current.appId).toBe('agent');
   });
 
   it('skips a choice the member cannot open', () => {
     state.userHomeAppId = 'turbo';
-    state.organizationHomeAppId = 'library';
-    expect(renderHook(() => useHomeApp()).result.current.appId).toBe('library');
-
-    state.organizationHomeAppId = 'turbo';
     expect(renderHook(() => useHomeApp()).result.current.appId).toBe(
       'workspace',
     );

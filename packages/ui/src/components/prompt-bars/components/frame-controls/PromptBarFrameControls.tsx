@@ -88,7 +88,7 @@ function ClearButton({
       onClick={onClick}
       ariaLabel={title}
       className={cn(
-        'absolute right-0 top-0 flex size-4 cursor-pointer items-center justify-center rounded-bl bg-black/70 transition-opacity hover:bg-error' /* design-system-allow-content-color -- media overlay */,
+        'absolute right-0 top-0 flex size-4 cursor-pointer items-center justify-center rounded-bl bg-black/70 transition-opacity hover:bg-destructive' /* design-system-allow-content-color -- media overlay */,
         hoverRevealClassName(),
       )}
       tooltip={title}

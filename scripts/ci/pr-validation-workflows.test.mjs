@@ -30,6 +30,7 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'curated-action-catalog.yml',
   'link-check.yml',
   'playwright-coverage-policy.yml',
+  'playwright-pr-smoke.yml',
   'pr-heavy-ci.yml',
   'selfhosted-install-contract.yml',
   'server-image-pr.yml',
@@ -540,6 +541,7 @@ test('draft pull requests run no CI until marked ready', () => {
     ['ci.yml', 'plan'],
     ['bundle-size.yml', 'detect'],
     ['link-check.yml', 'detect'],
+    ['playwright-pr-smoke.yml', 'detect'],
   ]) {
     const workflow = readWorkflow(fileName);
     assert.match(

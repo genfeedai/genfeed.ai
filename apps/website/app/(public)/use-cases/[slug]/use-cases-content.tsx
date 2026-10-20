@@ -49,7 +49,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-4">
               {useCase.painPoints.map((pain: string) => (
                 <li key={pain} className="flex items-start gap-3">
-                  <X className="size-4 text-error mt-0.5 shrink-0" />
+                  <X className="size-4 text-destructive mt-0.5 shrink-0" />
                   <Text className="text-sm text-surface/65">{pain}</Text>
                 </li>
               ))}

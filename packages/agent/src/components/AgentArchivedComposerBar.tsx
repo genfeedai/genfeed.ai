@@ -53,7 +53,6 @@ export function AgentArchivedComposerBar({
       )}
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       maxWidth={isPortaled ? 'full' : '4xl'}
-      showTopFade={false}
       zIndex={40}
     >
       <PromptBarComposer

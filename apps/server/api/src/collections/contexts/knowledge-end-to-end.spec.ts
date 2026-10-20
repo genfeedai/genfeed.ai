@@ -4,7 +4,6 @@ import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowle
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
-import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
@@ -139,7 +138,6 @@ let knowledgeContentRetrieval: KnowledgeContentRetrievalService;
 let ingest: KnowledgeSourceIngestService;
 let capture: KnowledgeCaptureService;
 let selection: KnowledgeSelectionService;
-let legacyBackfill: KnowledgeLegacyBackfillService;
 let agentContextAssembly: AgentContextAssemblyService;
 
 /** Minimal brand identity the fixture brands table names — just enough for
@@ -285,13 +283,6 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     );
     selection = new KnowledgeSelectionService(
       prismaService,
-      brandAccessFixture(prismaService as never),
-    );
-    legacyBackfill = new KnowledgeLegacyBackfillService(
-      prismaService,
-      records,
-      workflowStub as never,
-      logger as never,
       brandAccessFixture(prismaService as never),
     );
     const noopCache = {
@@ -712,58 +703,6 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     expect(hits[0]?.citation).toMatchObject({
       version: 2,
       versionId: refreshed.version.id,
-    });
-  });
-
-  it('keeps legacy context sources retrievable after migration with a citation', async () => {
-    const base = await prisma.contextBase.create({
-      data: {
-        organizationId: 'org-a',
-        sourceBrandId: 'brand-a',
-        data: {
-          purpose: 'knowledge-base',
-          sources: [
-            {
-              category: 'url',
-              id: 'src_legacy',
-              label: 'Legacy FAQ',
-              referenceUrl: 'https://brand.example/faq',
-              status: 'completed',
-            },
-          ],
-        },
-      },
-    });
-    await prisma.contextEntry.create({
-      data: {
-        contextBaseId: base.id,
-        organizationId: 'org-a',
-        data: {
-          content: 'Refunds are issued within 14 days of purchase.',
-          kind: 'knowledge-source-chunk',
-          metadata: { chunkIndex: 0, sourceId: 'src_legacy' },
-        },
-      },
-    });
-
-    const report = await legacyBackfill.run({
-      organizationId: 'org-a',
-      userId: 'user-a',
-    });
-    expect(report.contextSources).toMatchObject({
-      migrated: 1,
-      relinkedChunks: 1,
-    });
-    expect(workflowStub.enqueueIngest).not.toHaveBeenCalled();
-
-    const hits = await retrieve(actorA, 'refunds within days of purchase');
-    expect(hits[0]).toMatchObject({
-      citation: expect.objectContaining({
-        purpose: KnowledgeSourcePurpose.INSPIRATION,
-        title: 'Legacy FAQ',
-        url: 'https://brand.example/faq',
-      }),
-      content: 'Refunds are issued within 14 days of purchase.',
     });
   });
 });

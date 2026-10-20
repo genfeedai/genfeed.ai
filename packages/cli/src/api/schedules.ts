@@ -1,11 +1,6 @@
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { get, patch, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface ScheduleEntry {
   id: string;
@@ -36,12 +31,12 @@ export async function getCalendar(start?: string, end?: string): Promise<Schedul
   if (end) query.set('end', end);
   const qs = query.toString();
   const path = qs ? `/schedules/calendar?${qs}` : '/schedules/calendar';
-  const response = await get<JsonApiCollectionResponse>(path);
+  const response = await get<JsonApiDocument>(path);
   return flattenCollection<ScheduleEntry>(response);
 }
 
 export async function bulkSchedule(items: BulkScheduleItem[]): Promise<ScheduleEntry[]> {
-  const response = await post<JsonApiCollectionResponse>('/schedules/bulk', {
+  const response = await post<JsonApiDocument>('/schedules/bulk', {
     items,
   });
   return flattenCollection<ScheduleEntry>(response);
@@ -54,22 +49,19 @@ export async function getOptimalTimes(
   const body: Record<string, unknown> = {};
   if (platform) body.platform = platform;
   if (timezone) body.timezone = timezone;
-  const response = await post<JsonApiCollectionResponse>('/schedules/optimal', body);
+  const response = await post<JsonApiDocument>('/schedules/optimal', body);
   return flattenCollection<OptimalTime>(response);
 }
 
 export async function getScheduledRelease(releaseId: string): Promise<IReleaseGroup> {
-  const response = await get<JsonApiSingleResponse>(
-    `/post-groups/${encodeURIComponent(releaseId)}`
-  );
+  const response = await get<JsonApiDocument>(`/post-groups/${encodeURIComponent(releaseId)}`);
   return flattenSingle<IReleaseGroup>(response);
 }
 
 export async function cancelScheduledRelease(releaseId: string): Promise<IReleaseGroup> {
-  const response = await patch<JsonApiSingleResponse>(
-    `/post-groups/${encodeURIComponent(releaseId)}`,
-    { action: 'cancel' }
-  );
+  const response = await patch<JsonApiDocument>(`/post-groups/${encodeURIComponent(releaseId)}`, {
+    action: 'cancel',
+  });
   return flattenSingle<IReleaseGroup>(response);
 }
 
@@ -77,9 +69,8 @@ export async function rescheduleScheduledRelease(
   releaseId: string,
   scheduledDate: string
 ): Promise<IReleaseGroup> {
-  const response = await patch<JsonApiSingleResponse>(
-    `/post-groups/${encodeURIComponent(releaseId)}`,
-    { scheduledDate }
-  );
+  const response = await patch<JsonApiDocument>(`/post-groups/${encodeURIComponent(releaseId)}`, {
+    scheduledDate,
+  });
   return flattenSingle<IReleaseGroup>(response);
 }

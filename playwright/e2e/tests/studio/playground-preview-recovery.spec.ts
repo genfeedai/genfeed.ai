@@ -8,6 +8,11 @@ import type { Locator, Page, Request } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
+import {
+  confirmGenerationSpend,
+  mockGenerationQuote,
+  selectAdvancedModel,
+} from '../../utils/generation-setup';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 // #6585 / #6691: More opens by pointer and keyboard without selecting the
@@ -76,6 +81,7 @@ async function mountPlayground(page: Page) {
       generationWrites.push(`${request.method()} ${request.url()}`);
   });
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockGenerationQuote(page);
   const image = (id: string) => ({
     id,
     type: 'ingredients',
@@ -346,21 +352,13 @@ test('a rejected submit keeps the prompt for another attempt', async ({
     .getByTestId('studio-playground-prompt')
     .getByRole('textbox');
   await expect(editor).toBeVisible();
-  await page.getByRole('button', { name: /^Generation setup:/ }).click();
-  await page.getByRole('button', { name: 'Advanced', exact: true }).click();
-  await page
-    .getByRole('dialog')
-    .filter({
-      has: page.getByRole('button', { name: 'Advanced', exact: true }),
-    })
-    .getByRole('button', { name: 'Configure Model', exact: true })
-    .click();
-  await page.getByRole('option').filter({ hasText: 'FLUX.3' }).first().click();
+  await selectAdvancedModel(page, 'FLUX.3');
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
 
   await editor.fill('Keep this prompt after a rejected submit');
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
+  await confirmGenerationSpend(page);
 
   await expect.poll(() => admissions).toBe(1);
   expect(generationWrites).toHaveLength(1);

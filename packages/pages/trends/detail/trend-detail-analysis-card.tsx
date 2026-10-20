@@ -18,7 +18,7 @@ function getTrendDirectionIcon(
     case 'rising':
       return <TrendingUp className="size-5 text-success" />;
     case 'falling':
-      return <TrendingDown className="size-5 text-error" />;
+      return <TrendingDown className="size-5 text-destructive" />;
     default:
       return <ChartColumn className="size-5 text-warning" />;
   }
@@ -29,7 +29,7 @@ function getGrowthRateClass(rate: number): string {
     return 'text-success';
   }
   if (rate < 0) {
-    return 'text-error';
+    return 'text-destructive';
   }
   return '';
 }

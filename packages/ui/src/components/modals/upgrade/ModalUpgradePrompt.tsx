@@ -19,7 +19,7 @@ import { useCallback, useState } from 'react';
 
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: 'Free',
-  [SubscriptionTier.SCALE]: 'Agencies',
+  [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
 };
 

@@ -7,12 +7,12 @@ import { describe, expect, it } from 'vitest';
 runPageModuleTests('apps/website/app/(public)/pricing/page', PageModule);
 
 describe('pricing metadata', () => {
-  it('names Agencies and the Done for you price', async () => {
+  it('names Scale and the Done for you price', async () => {
     const parent = Promise.resolve({}) as ResolvingMetadata;
 
     const result = await PageModule.generateMetadata({}, parent);
 
-    expect(result.description).toContain('Agencies with unlimited seats');
+    expect(result.description).toContain('Scale with unlimited seats');
     expect(result.description).toContain('Done for you from $2,500/month');
     expect(result.description).not.toContain('Pro');
   });
@@ -31,7 +31,7 @@ describe('pricing metadata', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
 
     expect(jsonLd.description).toContain(
-      'Agencies ($499/month) adds unlimited seats, client workspaces',
+      'Scale ($499/month) adds unlimited seats, client workspaces',
     );
     expect(jsonLd.description).toContain('Done for you is from $2,500/month');
   });

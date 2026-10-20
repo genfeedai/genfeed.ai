@@ -435,10 +435,10 @@ export default function PostDetail({
     const editorHref = href(getPublishingPostHref(postId));
     let panelBody: ReactNode;
     if (error) {
-      panelBody = <p className="p-4 text-sm text-error">{error}</p>;
+      panelBody = <p className="p-4 text-sm text-destructive">{error}</p>;
     } else if (!post && !isLoading) {
       panelBody = (
-        <p className="p-4 text-sm text-error">{translate('notFound')}</p>
+        <p className="p-4 text-sm text-destructive">{translate('notFound')}</p>
       );
     } else if (!post) {
       panelBody = (
@@ -463,6 +463,7 @@ export default function PostDetail({
             <PostDetailNeedsYou
               isPublished={isPublished}
               onPublishNow={publishNow}
+              onRetryPublish={handleRetryPublish}
               onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
               post={post}
             />
@@ -494,7 +495,7 @@ export default function PostDetail({
     return (
       <div className={wrapperClassName}>
         <Card className="p-4">
-          <div className="text-error mb-4">{error}</div>
+          <div className="text-destructive mb-4">{error}</div>
         </Card>
       </div>
     );
@@ -506,7 +507,7 @@ export default function PostDetail({
     return (
       <div className={wrapperClassName}>
         <Card className="p-4">
-          <div className="text-error mb-4">{translate('notFound')}</div>
+          <div className="text-destructive mb-4">{translate('notFound')}</div>
         </Card>
       </div>
     );
