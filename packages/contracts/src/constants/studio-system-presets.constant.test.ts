@@ -30,6 +30,29 @@ describe('Studio system presets', () => {
       if (preset.type === 'video') expect(preset.values.duration).toBe(5);
     }
   });
+  it('offers each type only its own presets and none for image editing (#7494)', () => {
+    const rows = STUDIO_SYSTEM_PRESETS.map((preset) => ({
+      id: studioSystemPresetId(preset.key),
+      organizationId: null,
+      brandId: null,
+      isActive: true,
+      isDeleted: false,
+      category: preset.type as never,
+      label: preset.label,
+      description: preset.description,
+      prompt: preset.prompt,
+      aspectRatio: preset.values.aspectRatio,
+    }));
+    expect(
+      resolveStudioSystemPresets(rows, 'image').map((preset) => preset.label),
+    ).toEqual(['Profile picture', 'Banner', 'YouTube thumbnail']);
+    expect(
+      resolveStudioSystemPresets(rows, 'video').map((preset) => preset.label),
+    ).toEqual(['Meme', 'Animation', 'Dance']);
+    // The presets are generation templates (aspect ratio, brand prompt); an
+    // edit keeps the source size and sends the raw instruction.
+    expect(resolveStudioSystemPresets(rows, 'image-edit')).toEqual([]);
+  });
   it('reads operator edits without restoring cleared seed settings or pinning a model', () => {
     const row = {
       id: studioSystemPresetId('studio-banner'),
