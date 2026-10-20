@@ -15,7 +15,10 @@ const service = {
 // reloads when either changes, so the mocks must be stable too.
 const translate = (key: string, values?: Record<string, unknown>) =>
   values ? `${key} ${JSON.stringify(values)}` : key;
-vi.mock('next-intl', () => ({ useTranslations: () => translate }));
+vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+  useTranslations: () => translate,
+}));
 const getService = () => Promise.resolve(service);
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,

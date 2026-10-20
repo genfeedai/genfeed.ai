@@ -11,7 +11,7 @@ import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -21,6 +21,7 @@ import { toast } from 'sonner';
  * toward the daily cap once the person confirms they posted it.
  */
 export default function RepliesWarmupQueue() {
+  const locale = useLocale();
   const translate = useTranslations('common.automation.replies.queue');
   const getBotActivitiesService = useAuthedService((token: string) =>
     BotActivitiesService.getInstance(token),
@@ -141,7 +142,7 @@ export default function RepliesWarmupQueue() {
       {usage?.nextAllowedAt ? (
         <p className="text-sm text-muted-foreground">
           {translate('nextAllowed', {
-            time: new Date(usage.nextAllowedAt).toLocaleTimeString(),
+            time: new Date(usage.nextAllowedAt).toLocaleTimeString(locale),
           })}
         </p>
       ) : null}
