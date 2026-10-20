@@ -91,7 +91,7 @@ describe('OnboardingGuard', () => {
       );
       expect(result.current.canRender).toBe(isCompleted);
       expect(result.current.redirectTarget).toBe(
-        isCompleted ? null : '/acme/~/agent/onboarding',
+        isCompleted ? null : '/onboarding/brand',
       );
       expect(replaceMock).not.toHaveBeenCalled();
     },
@@ -107,8 +107,8 @@ describe('OnboardingGuard', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('renders the agent onboarding surface when access state never hydrates', async () => {
-    pathnameMock.mockReturnValue('/default-organization/~/agent/onboarding');
+  it('renders the onboarding page when access state never hydrates', async () => {
+    pathnameMock.mockReturnValue('/onboarding/brand');
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -127,15 +127,15 @@ describe('OnboardingGuard', () => {
 
     render(
       <OnboardingGuard>
-        <div>Agent Onboarding</div>
+        <div>Onboarding</div>
       </OnboardingGuard>,
     );
 
-    expect(await screen.findByText('Agent Onboarding')).toBeInTheDocument();
+    expect(await screen.findByText('Onboarding')).toBeInTheDocument();
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('sends incomplete Cloud users directly to the conversation', async () => {
+  it('sends incomplete Cloud users to the single onboarding page', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -169,11 +169,11 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
-  it('keeps non-experts in the conversation until overall onboarding completes', async () => {
+  it('keeps non-experts on the onboarding page until overall onboarding completes', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -207,7 +207,7 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
     });
 
     expect(screen.queryByText('Child')).not.toBeInTheDocument();
@@ -255,7 +255,7 @@ describe('OnboardingGuard', () => {
     expect(await screen.findByText('Child')).toBeInTheDocument();
   });
 
-  it('does not bounce a stale completion flag into the classic wizard summary', async () => {
+  it('does not bounce a stale completion flag into the wizard summary', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -289,7 +289,7 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
     });
 
     expect(replaceMock).not.toHaveBeenCalledWith('/onboarding/summary');
