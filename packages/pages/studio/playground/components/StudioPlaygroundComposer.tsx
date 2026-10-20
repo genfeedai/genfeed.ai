@@ -35,10 +35,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
-import {
-  getDefaultVideoResolution,
-  getVideoResolutionLabel,
-} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { getModelCapabilityByKey } from '@genfeedai/helpers/model-capability.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
@@ -81,7 +78,6 @@ import {
   resolveModelKey,
 } from '@pages/studio/playground/utils/studio-playground-settings';
 import {
-  getStudioPlaygroundTypeConfig,
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
   resolveStudioPlaygroundCapabilities,
@@ -89,8 +85,9 @@ import {
 import { buildStudioPresetCommands } from '@pages/studio/playground/utils/studio-prompt-commands';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
-import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
+import GenerationSetupResetButton from '@ui/dropdowns/generation-setup/GenerationSetupResetButton';
 import GenerationSetupSectionChips from '@ui/dropdowns/generation-setup/GenerationSetupSectionChips';
+import GenerationSetupTypeBar from '@ui/dropdowns/generation-setup/GenerationSetupTypeBar';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
   applyGenerationSetupPreset,
@@ -782,39 +779,6 @@ export default function StudioPlaygroundComposer({
           : []),
       ];
 
-  const modelLabel = !isModelChoiceVisible
-    ? undefined
-    : isLoadingModels
-      ? translate('summary.modelLoading')
-      : isAutoStudioModelKey(displaySettings.modelKey)
-        ? translate('inspector.autoModel')
-        : selectedModel?.label || translate('summary.modelUnavailable');
-  const resolutionLabel =
-    type === 'video' && costPromptData.resolution
-      ? (getVideoResolutionLabel(
-          displaySettings.modelKey,
-          costPromptData.resolution,
-        ) ?? costPromptData.resolution)
-      : costPromptData.resolution;
-  // Keep the full setup summary in the accessible icon trigger and tooltip.
-  const setupParts = [
-    modelLabel,
-    capabilities.hasAspectRatio || type === 'image-edit'
-      ? displaySettings.aspectRatio
-      : undefined,
-    type === 'image' || type === 'video' ? resolutionLabel : undefined,
-    capabilities.hasDuration && costPromptData.duration
-      ? translate('inspector.durationSeconds', {
-          seconds: costPromptData.duration,
-        })
-      : undefined,
-    capabilities.hasOutputs ? `x${costPromptData.outputs ?? 1}` : undefined,
-  ].filter(Boolean);
-  const setupLabel =
-    !isAutoView && setupParts.length > 0
-      ? setupParts.join(' · ')
-      : typeOptions.find((option) => option.value === type)?.label;
-
   const referenceSources: PromptBarReferenceSource[] = [];
   const addReferenceSource = (
     role: StudioPlaygroundReferenceRole,
@@ -978,6 +942,37 @@ export default function StudioPlaygroundComposer({
         ) : null}
       </>
     ) : undefined;
+
+  const identityFields = capabilities.hasIdentity ? (
+    <StudioIdentityFields
+      onChange={onSettingsChange}
+      settings={settings}
+      type={type}
+    />
+  ) : null;
+
+  // The last things in the button row: undo for a prompt enhancement, then `+`.
+  const endOfRow = (
+    <>
+      {!isEnhancingPrompt && previousPrompt !== null ? (
+        <Button
+          ariaLabel={translate('undoPromptEnhancement')}
+          className="h-8 shrink-0 px-2 text-xs"
+          label={translate('undo')}
+          onClick={onUndoEnhancePrompt}
+          size={ButtonSize.XS}
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
+        />
+      ) : null}
+      {referenceSources.length > 0 ? (
+        <PromptBarReferenceControls
+          density="compact"
+          sources={referenceSources}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <PromptBarComposer
@@ -1206,117 +1201,76 @@ export default function StudioPlaygroundComposer({
         leadingLabel={translateSetup('promptTools')}
         trailingLabel={translateSetup('generationControls')}
         pinnedLeading={
-          <GenerationSetupPopover
-            // Applying lives in `/` and the context row; saving and
-            // deleting looks stays in the setup popover.
-            showPresets={type === 'image' || type === 'video'}
-            showEnhancementSettings={type === 'image' || type === 'video'}
-            align="start"
-            isIconOnly
-            // Always offered so the Auto type grid keeps the same tiles
-            // whatever type is selected.
-            imageEditing={{
-              isEnabled: type === 'image-edit',
-              label: getStudioPlaygroundTypeConfig('image-edit').label,
-              onChange: (isEditing) =>
-                onTypeChange(isEditing ? 'image-edit' : 'image'),
-            }}
-            triggerLabel={setupLabel}
-            inputControls={inputControls}
-            referenceCount={crunReferenceCount ?? attachedAssets.length}
-            // Every type keeps the Auto/Advanced layout; Avatar just has
-            // no model to choose in Advanced.
+          <GenerationSetupTypeBar
+            // Every type keeps the Auto/Advanced switch; Avatar just has no
+            // model to choose in Advanced.
             advancedMode={{
               isEnabled: isAdvancedMode,
               onChange: handleAdvancedModeChange,
             }}
-            capabilities={capabilities}
-            favoriteModelKeys={favoriteModelKeys}
-            isPresetsLoading={isPresetsLoading}
-            isTypeCommitted
-            lookOptions={lookOptions}
-            models={isModelChoiceVisible ? models : []}
-            onApplyPreset={handleApplyPreset}
-            onApplySystemPreset={handleApplySystemPresetById}
-            onClearPreset={handleClearPreset}
-            onDeletePreset={handleDeletePreset}
-            onFavoriteToggle={onFavoriteToggle}
-            onResetAll={onResetSettings}
-            onResetField={handleResetField}
-            onSavePreset={handleSavePreset}
-            onSetField={handleSetField}
-            outputControls={outputControls}
+            // Editing is a mode of Image, not a type of its own.
+            imageEditing={{
+              isEnabled: type === 'image-edit',
+              onChange: (isEditing) =>
+                onTypeChange(isEditing ? 'image-edit' : 'image'),
+            }}
             onTypeChange={(nextType) => {
-              // The shared popover speaks GenerationSetupType; Studio only
-              // offers its own registry, so anything else is not a Studio pick.
+              // The shared bar speaks GenerationSetupType; Studio only offers
+              // its own registry, so anything else is not a Studio pick.
               if (isStudioPlaygroundType(nextType)) {
                 onTypeChange(nextType);
               }
             }}
-            presets={presets}
-            systemPresets={systemPresetOptions}
-            reasons={reasons}
-            scopeKey={scope}
             setup={setupForComposer}
             typeOptions={typeOptions}
           />
         }
         leading={
-          <>
-            {referenceSources.length > 0 ? (
-              <PromptBarReferenceControls
-                density="compact"
-                sources={referenceSources}
-              />
-            ) : null}
-            {capabilities.hasIdentity ? (
-              <StudioIdentityFields
-                onChange={onSettingsChange}
-                settings={settings}
-                type={type}
-              />
-            ) : null}
-
-            {!isEnhancingPrompt && previousPrompt !== null ? (
-              <Button
-                ariaLabel={translate('undoPromptEnhancement')}
-                className="h-8 shrink-0 px-2 text-xs"
-                label={translate('undo')}
-                onClick={onUndoEnhancePrompt}
-                size={ButtonSize.XS}
-                textTransform="none"
-                variant={ButtonVariant.GHOST}
-              />
-            ) : null}
-            {/* Last, so it takes the free width and compacts first. */}
-            {isAdvancedMode ? (
-              <GenerationSetupSectionChips
-                capabilities={capabilities}
-                favoriteModelKeys={favoriteModelKeys}
-                inputControls={inputControls}
-                isPresetsLoading={isPresetsLoading}
-                lookOptions={lookOptions}
-                models={isModelChoiceVisible ? models : []}
-                onApplyPreset={handleApplyPreset}
-                onApplySystemPreset={handleApplySystemPresetById}
-                onDeletePreset={handleDeletePreset}
-                onFavoriteToggle={onFavoriteToggle}
-                onResetField={handleResetField}
-                onSavePreset={handleSavePreset}
-                onSetField={handleSetField}
-                outputControls={outputControls}
-                presets={presets}
-                systemPresets={systemPresetOptions}
-                reasons={reasons}
-                referenceCount={crunReferenceCount ?? attachedAssets.length}
-                setup={setupForComposer}
-                typeOptions={typeOptions}
-              />
-            ) : null}
-          </>
+          isAdvancedMode ? (
+            <GenerationSetupSectionChips
+              // Model follows the type button; the identity pickers come
+              // next, then Output, Look, Brand and Presets, and `+` ends the row.
+              afterModel={identityFields}
+              capabilities={capabilities}
+              favoriteModelKeys={favoriteModelKeys}
+              inputControls={inputControls}
+              isPresetsLoading={isPresetsLoading}
+              lookOptions={lookOptions}
+              models={isModelChoiceVisible ? models : []}
+              onApplyPreset={handleApplyPreset}
+              onApplySystemPreset={handleApplySystemPresetById}
+              onClearPreset={handleClearPreset}
+              onDeletePreset={handleDeletePreset}
+              onFavoriteToggle={onFavoriteToggle}
+              onResetField={handleResetField}
+              onSavePreset={handleSavePreset}
+              onSetField={handleSetField}
+              outputControls={outputControls}
+              presets={presets}
+              referenceCount={crunReferenceCount ?? attachedAssets.length}
+              showEnhancementSettings={type === 'image' || type === 'video'}
+              showPresets={type === 'image' || type === 'video'}
+              systemPresets={systemPresetOptions}
+              reasons={reasons}
+              setup={setupForComposer}
+              trailing={endOfRow}
+              typeOptions={typeOptions}
+            />
+          ) : (
+            <>
+              {identityFields}
+              {endOfRow}
+            </>
+          )
         }
         trailing={
           <>
+            <GenerationSetupResetButton
+              // Always rendered so Reset all never shifts the Auto/Advanced layout.
+              isDisabled={isAutoView}
+              onResetAll={onResetSettings}
+            />
+
             {onEnhancePrompt && type !== 'image-edit' ? (
               <Button
                 ariaLabel={

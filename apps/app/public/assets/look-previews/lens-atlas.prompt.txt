@@ -1,0 +1,12 @@
+Generated using the built-in imagegen tool. Illustrative examples; not model output guarantees.
+
+Use case: stylized-concept
+Asset type: One raster sprite atlas for an image-generation lens look picker.
+Primary request: Produce a precise contact sheet with exactly 4 columns and 4 rows, 16 equal square cells.
+Common subject across ALL cells: the same traveler wearing an orange jacket on a lakeside bridge with mountains and clouds reflected in the water. Vary ONLY the lens look (field of view, perspective, bokeh, flare and distortion); keep scene and light comparable.
+Row 1: 35mm natural documentary field of view; 50mm standard neutral perspective; 85mm portrait lens with creamy background blur; 24mm wide lens with expansive perspective.
+Row 2: 14mm ultra wide with exaggerated perspective; 135mm telephoto with strong compression and blurred background; 100mm macro lens extreme close detail with shallow depth of field; Anamorphic lens with horizontal blue lens flares and oval bokeh.
+Row 3: Vintage prime lens with soft glow and swirly bokeh; Fisheye lens with strong barrel distortion; Tilt-shift lens with a sharp horizontal focus band and miniature feel; plain natural photography of the same subject.
+Row 4: plain natural photography of the same subject; plain natural photography of the same subject; plain natural photography of the same subject; plain natural photography of the same subject.
+
+Overall aspect ratio 1:1, ideally 1024x1024 pixels. Edge-to-edge cells, NO gutters, margins, frames, lettering, labels, watermarks or interface. Each cell is a fully composed, independent square image. CELL ORDER is strictly left-to-right then top-to-bottom. Constraints: exact uniform grid alignment and fixed cell order; no text anywhere; no overlap between cells; each tile fills its own square entirely. No famous characters, logos or recognizable people.

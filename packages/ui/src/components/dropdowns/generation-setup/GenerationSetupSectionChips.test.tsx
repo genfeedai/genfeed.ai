@@ -62,7 +62,7 @@ const props: GenerationSetupSectionChipsProps = {
 describe('GenerationSetupSectionChips', () => {
   it('puts each Advanced section on the row and opens only that section', () => {
     fitMocks.isCompact = false;
-    render(<GenerationSetupSectionChips {...props} />);
+    render(<GenerationSetupSectionChips {...props} showPresets />);
 
     expect(
       screen.getByRole('button', { name: 'Configure Model' }),
@@ -73,12 +73,35 @@ describe('GenerationSetupSectionChips', () => {
     expect(outputChip).toHaveTextContent('x2');
     expect(screen.queryByRole('button', { name: 'Configure Look' })).toBeNull();
 
-    fireEvent.click(outputChip);
-    const panel = screen.getByRole('dialog', { name: 'Output' });
-    expect(panel).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    const presetsPanel = screen.getByRole('dialog', { name: 'Presets' });
+    expect(presetsPanel).toBeInTheDocument();
+    // A panel opened from a chip has no back button: the chip is the way in.
+    expect(screen.queryByRole('button', { name: 'Back to setup' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back to setup' }));
-    expect(screen.queryByRole('dialog', { name: 'Output' })).toBeNull();
+    // Opening another chip closes the one that was open.
+    fireEvent.keyDown(outputChip, { key: 'Enter' });
+    expect(screen.queryByRole('dialog', { name: 'Presets' })).toBeNull();
+    expect(
+      screen.getByRole('menuitem', { name: /Aspect ratio/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('ends the row with the trailing slot, after the last chip', () => {
+    fitMocks.isCompact = false;
+    render(
+      <GenerationSetupSectionChips
+        {...props}
+        trailing={<span data-testid="end-of-row" />}
+      />,
+    );
+
+    const row = screen.getByTestId('generation-setup-section-chips');
+    const end = screen.getByTestId('end-of-row');
+    expect(
+      row.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(row).not.toContainElement(end);
   });
 
   it('drops the labels and keeps them in the tooltip when the row is tight', () => {

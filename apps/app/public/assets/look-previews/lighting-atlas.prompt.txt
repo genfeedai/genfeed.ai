@@ -1,0 +1,12 @@
+Generated using the built-in imagegen tool. Illustrative examples; not model output guarantees.
+
+Use case: stylized-concept
+Asset type: One raster sprite atlas for an image-generation lighting picker.
+Primary request: Produce a precise contact sheet with exactly 4 columns and 4 rows, 16 equal square cells.
+Common subject across ALL cells: the same traveler wearing an orange jacket in the same simple setup (plain lakeside path). Vary ONLY the lighting; keep pose, framing and photographic rendering identical.
+Row 1: Natural daylight; Golden-hour warm low sun; Studio three-point lighting; Soft diffused light.
+Row 2: Dramatic high-contrast light with deep shadow; Cinematic teal and orange grade; Neon pink and blue signs light; Strong backlight with silhouette edges.
+Row 3: Rim light outlining the subject against dark; High-key bright and airy; Low-key dark with a single light source; Candlelight warm flickering glow.
+Row 4: Moonlight cool blue night; Fluorescent cool-green overhead office tubes; plain natural photography of the same subject; plain natural photography of the same subject.
+
+Overall aspect ratio 1:1, ideally 1024x1024 pixels. Edge-to-edge cells, NO gutters, margins, frames, lettering, labels, watermarks or interface. Each cell is a fully composed, independent square image. CELL ORDER is strictly left-to-right then top-to-bottom. Constraints: exact uniform grid alignment and fixed cell order; no text anywhere; no overlap between cells; each tile fills its own square entirely. No famous characters, logos or recognizable people.

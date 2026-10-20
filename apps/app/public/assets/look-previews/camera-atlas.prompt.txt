@@ -1,0 +1,12 @@
+Generated using the built-in imagegen tool. Illustrative examples; not model output guarantees.
+
+Use case: stylized-concept
+Asset type: One raster sprite atlas for an image-generation camera angle and framing picker.
+Primary request: Produce a precise contact sheet with exactly 4 columns and 4 rows, 16 equal square cells.
+Common subject across ALL cells: the same traveler wearing an orange jacket on a lakeside bridge with mountains and clouds reflected in the water. Vary ONLY the camera position or framing; keep scene, light and rendering photographic and comparable.
+Row 1: Eye-level shot at natural height; Close-up of the face and shoulders; Wide-angle shot showing broad surroundings; Establishing shot showing the whole village and lake from far away.
+Row 2: Portrait framing, vertical head and torso with soft background; Macro detail of the jacket fabric and a bridge railing; Telephoto compressed distant shot; Low-angle shot looking up at the traveler.
+Row 3: High-angle shot looking down at the traveler; Dutch-angle tilted horizon; Drone aerial view from high above; Tilt-shift miniature look with narrow focus band.
+Row 4: Fisheye strongly curved ultra-wide view; plain natural photography of the same subject; plain natural photography of the same subject; plain natural photography of the same subject.
+
+Overall aspect ratio 1:1, ideally 1024x1024 pixels. Edge-to-edge cells, NO gutters, margins, frames, lettering, labels, watermarks or interface. Each cell is a fully composed, independent square image. CELL ORDER is strictly left-to-right then top-to-bottom. Constraints: exact uniform grid alignment and fixed cell order; no text anywhere; no overlap between cells; each tile fills its own square entirely. No famous characters, logos or recognizable people.

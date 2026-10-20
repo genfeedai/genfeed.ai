@@ -1,0 +1,12 @@
+Generated using the built-in imagegen tool. Illustrative examples; not model output guarantees.
+
+Use case: stylized-concept
+Asset type: One raster sprite atlas for a video camera movement picker.
+Primary request: Produce a precise contact sheet with exactly 4 columns and 4 rows, 16 equal square cells.
+Common subject across ALL cells: the same traveler wearing an orange jacket on a lakeside bridge with mountains behind. Each cell is a single frame from a video showing the named camera move through a motion-blur cue of that move only. No arrows, no text, no overlay graphics.
+Row 1: Static locked-off tripod shot, perfectly sharp; Pan left with horizontal blur streaking leftward; Pan right with horizontal blur streaking rightward; Tilt up with vertical blur, sky revealed.
+Row 2: Tilt down with vertical blur, ground revealed; Dolly in with radial streaks converging toward the traveler; Dolly out with radial streaks pulling away from the traveler; Tracking shot beside the walking traveler with blurred background streaks.
+Row 3: Orbit around the traveler with curved blur around a sharp center; Crane up rising with the traveler smaller and a broader view; Handheld shaky slightly blurred frame; Zoom in with radial streaks from the edges.
+Row 4: Zoom out with radial streaks toward the center; Drone flyover high above the bridge and lake with forward motion blur; Whip pan with extreme horizontal smear; plain natural photography of the same subject.
+
+Overall aspect ratio 1:1, ideally 1024x1024 pixels. Edge-to-edge cells, NO gutters, margins, frames, lettering, labels, watermarks or interface. Each cell is a fully composed, independent square image. CELL ORDER is strictly left-to-right then top-to-bottom. Constraints: exact uniform grid alignment and fixed cell order; no text anywhere; no overlap between cells; each tile fills its own square entirely. No famous characters, logos or recognizable people.
