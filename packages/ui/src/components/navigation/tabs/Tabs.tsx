@@ -329,10 +329,18 @@ function TabsContent({
           const Icon = tabItem.icon;
 
           const triggerContent = (
-            <span className={cn('flex items-center gap-2', 'capitalize')}>
+            <span
+              className={cn(
+                'flex items-center gap-2',
+                'capitalize',
+                tabItem.onClose && 'min-w-0',
+              )}
+            >
               {Icon && <Icon className="text-lg" />}
               {tabItem.onClose ? (
-                <span className="max-w-[9rem] truncate">{tabItem.label}</span>
+                <span className="min-w-0 max-w-[9rem] truncate">
+                  {tabItem.label}
+                </span>
               ) : (
                 (tabItem.label as ReactNode)
               )}
@@ -348,7 +356,7 @@ function TabsContent({
               disabled={tab.isDisabled}
               className={cn(
                 tab.isDisabled && 'opacity-50 cursor-not-allowed',
-                tabItem.onClose && 'pr-7',
+                tabItem.onClose && 'min-w-0 shrink pr-7',
               )}
               onClick={(event) => {
                 if (stopClickPropagation) {
@@ -367,7 +375,7 @@ function TabsContent({
           return (
             <span
               key={key}
-              className="relative inline-flex h-full shrink-0 items-center"
+              className="relative inline-flex h-full min-w-16 shrink items-center"
             >
               {trigger}
               <Button
