@@ -2750,7 +2750,7 @@ describe('StudioPlaygroundComposer', () => {
         screen.queryByRole('button', { name: 'Enhance prompt' }),
       ).not.toBeInTheDocument();
     });
-    it('forces source dimensions for a mask, preserves seed zero and hides character extensions', () => {
+    it('forces source dimensions for a mask, preserves seed zero and passes the extensions it is given', () => {
       render(
         <StudioPlaygroundComposer
           {...baseProps}
@@ -2797,7 +2797,7 @@ describe('StudioPlaygroundComposer', () => {
         }),
       );
       expect(screen.getByLabelText('Editing seed')).toHaveValue(0);
-      expect(promptEditorProps.extraExtensions).toBeUndefined();
+      expect(promptEditorProps.extraExtensions).toEqual([]);
       expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     });
   });

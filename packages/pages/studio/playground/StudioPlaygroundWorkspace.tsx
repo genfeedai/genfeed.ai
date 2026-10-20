@@ -328,6 +328,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     type,
     updateSettings,
   } = useStudioPlaygroundSettings();
+  // An edit sends the raw instruction, so character mentions stay out of it;
+  // the `/` palette stays, since it is how the edit presets are offered.
+  const composerExtensions = useMemo(
+    () => (type === 'image-edit' ? promptCommandExtensions : extraExtensions),
+    [type, promptCommandExtensions, extraExtensions],
+  );
 
   const authIdentity = useAuthIdentity();
   const crunRestoreScope = JSON.stringify([
@@ -2819,7 +2825,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 crunStartFrameId={crunPreparedIntent.referenceIds[0]}
                 crunEndFrameId={resolvedReferences.endFrameId}
                 documentSeed={documentSeed}
-                extraExtensions={extraExtensions}
+                extraExtensions={composerExtensions}
                 isDragActive={capabilities.hasReferences && dragState.isActive}
                 isEnhancingPrompt={isEnhancingPrompt}
                 isListening={isListening}

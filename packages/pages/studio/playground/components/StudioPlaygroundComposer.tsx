@@ -1080,7 +1080,7 @@ export default function StudioPlaygroundComposer({
         className="min-h-6 min-w-0 w-full [&_.ProseMirror]:min-h-6"
         editorClassName="py-0.5"
         documentSeed={documentSeed}
-        extraExtensions={type === 'image-edit' ? undefined : extraExtensions}
+        extraExtensions={extraExtensions}
         onDocumentChange={onPromptDocumentChange}
         onSubmit={() => {
           if (!isSubmitBlocked) {
