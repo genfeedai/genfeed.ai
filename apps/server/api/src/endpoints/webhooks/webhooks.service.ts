@@ -15,12 +15,10 @@ import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/servi
 import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
-import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetCategory,
   AssetParent,
@@ -31,12 +29,7 @@ import {
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
-import { STORYBOARD_RUN_CONTRACT } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import { parseStoryboardRunId } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
-import type {
-  IFileMetadata,
-  IStoryboardNotificationContext,
-} from '@genfeedai/contracts/interfaces';
+import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -89,7 +82,6 @@ export class WebhooksService {
     private readonly metadataService: MetadataService,
     private readonly activityRecorder: ActivityRecorderService,
     private readonly postProcessingOrchestrator: PostProcessingOrchestratorService,
-    private readonly prisma: PrismaService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -619,11 +611,8 @@ export class WebhooksService {
       return;
     }
 
-    const storyboard = await this.findStoryboardContext(
-      parseStoryboardRunId(ingredient.sourceActionId) ??
-        parseStoryboardRunId(ingredient.groupId),
-      ingredient.organizationId,
-    );
+    const storyboard =
+      await this.postProcessingOrchestrator.findStoryboardContext(ingredient);
 
     const ingredientCategory = categoryToMediaType(categoryValue);
     const cdnUrl = await this.postProcessingOrchestrator.authorizeProcessingUrl(
@@ -704,60 +693,6 @@ export class WebhooksService {
       source: { id: ingredient.id, type: 'ingredient' },
       topic: 'operator.alerts',
     });
-  }
-
-  /**
-   * A storyboard still or video is posted into its storyboard's Discord
-   * thread, not the studio channel. The run must be a storyboard (other remix
-   * runs share the key shape). The title and layout link are best effort: a
-   * lookup failure leaves the generation on the ordinary channel path.
-   */
-  private async findStoryboardContext(
-    runId: string | null,
-    organizationId: string | null | undefined,
-  ): Promise<IStoryboardNotificationContext | null> {
-    if (!runId || !organizationId) return null;
-    try {
-      const run = await this.prisma.contentRun.findFirst({
-        select: {
-          brand: { select: { slug: true } },
-          config: true,
-          organization: { select: { slug: true } },
-        },
-        where: scopedWhere(organizationId, {
-          config: { equals: STORYBOARD_RUN_CONTRACT, path: ['contract'] },
-          id: runId,
-        }),
-      });
-      if (!run) return null;
-      const config: unknown = run.config;
-      const plan: unknown =
-        config && typeof config === 'object'
-          ? Reflect.get(config, 'plan')
-          : null;
-      const planTitle: unknown =
-        plan && typeof plan === 'object' ? Reflect.get(plan, 'title') : null;
-      const title =
-        typeof planTitle === 'string' && planTitle.trim()
-          ? planTitle.trim()
-          : 'Untitled storyboard';
-      const orgSlug = run.organization?.slug;
-      const brandSlug = run.brand?.slug;
-      return {
-        layoutPath:
-          orgSlug && brandSlug
-            ? `/${encodeURIComponent(orgSlug)}/${encodeURIComponent(brandSlug)}/studio/storyboard/${encodeURIComponent(runId)}`
-            : undefined,
-        runId,
-        title,
-      };
-    } catch (error: unknown) {
-      this.loggerService.warn(
-        `${this.constructorName} storyboard lookup failed (non-fatal)`,
-        { error: getErrorMessage(error), runId },
-      );
-      return null;
-    }
   }
 
   async processAssetFromWebhook(
