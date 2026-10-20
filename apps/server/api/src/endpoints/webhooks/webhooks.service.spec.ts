@@ -1337,6 +1337,38 @@ describe('WebhooksService', () => {
       );
     });
 
+    it('posts a storyboard scene video by its group id', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredient,
+        groupId: `remix-${runId}-scene-1-video-1`,
+        sourceActionId: null,
+      } as unknown as IngredientDocument);
+      mockContentRunFindFirst.mockResolvedValue({
+        brand: { slug: 'acme' },
+        config: { plan: { title: 'Steam shots' } },
+        organization: { slug: 'org' },
+      });
+
+      await notify();
+
+      expect(dispatchedPayload()).toMatchObject({
+        storyboard: { runId, title: 'Steam shots' },
+      });
+    });
+
+    it('keeps the channel path for a remix run that is not a storyboard', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredient,
+        groupId: `remix-${runId}-scene-1-video-1`,
+        sourceActionId: null,
+      } as unknown as IngredientDocument);
+      mockContentRunFindFirst.mockResolvedValue(null);
+
+      await notify();
+
+      expect(dispatchedPayload()).not.toHaveProperty('storyboard');
+    });
+
     it('keeps the ordinary channel path for other ingredients', async () => {
       ingredientsService.findOne.mockResolvedValue({
         ...mockIngredient,

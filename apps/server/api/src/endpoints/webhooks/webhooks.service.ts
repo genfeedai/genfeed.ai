@@ -32,7 +32,7 @@ import {
   normalizeCategory,
 } from '@genfeedai/contracts';
 import { STORYBOARD_RUN_CONTRACT } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import { parseStoryboardStillRunId } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
+import { parseStoryboardRunId } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type {
   IFileMetadata,
   IStoryboardNotificationContext,
@@ -620,7 +620,8 @@ export class WebhooksService {
     }
 
     const storyboard = await this.findStoryboardContext(
-      ingredient.sourceActionId,
+      parseStoryboardRunId(ingredient.sourceActionId) ??
+        parseStoryboardRunId(ingredient.groupId),
       ingredient.organizationId,
     );
 
@@ -706,15 +707,15 @@ export class WebhooksService {
   }
 
   /**
-   * A storyboard still is posted into its storyboard's Discord thread, not the
-   * studio channel. The title and layout link are best effort: a lookup failure
-   * leaves the still on the ordinary channel path.
+   * A storyboard still or video is posted into its storyboard's Discord
+   * thread, not the studio channel. The run must be a storyboard (other remix
+   * runs share the key shape). The title and layout link are best effort: a
+   * lookup failure leaves the generation on the ordinary channel path.
    */
   private async findStoryboardContext(
-    sourceActionId: string | null | undefined,
+    runId: string | null,
     organizationId: string | null | undefined,
   ): Promise<IStoryboardNotificationContext | null> {
-    const runId = parseStoryboardStillRunId(sourceActionId);
     if (!runId || !organizationId) return null;
     try {
       const run = await this.prisma.contentRun.findFirst({

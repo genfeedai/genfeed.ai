@@ -12,18 +12,28 @@ const OPERATION_ID_SUFFIX =
   /-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * The storyboard run a still belongs to, read from its `sourceActionId`
- * (`storyboard-still-<runId>-<operationId>`). Returns null for any other
- * ingredient.
+ * Scene stills and scene videos of a storyboard are keyed `remix-<runId>-...`
+ * (their `sourceActionId` for stills, their `groupId` for stills and videos).
+ * Run ids are cuids, so the run is the first dash-free segment; the
+ * `remix-source:` import marker has no such segment.
  */
-export function parseStoryboardStillRunId(
-  sourceActionId: string | null | undefined,
+const STORYBOARD_SCENE_KEY = /^remix-([a-z0-9]+)-/;
+
+/**
+ * The storyboard run a generated still or video belongs to, read from its
+ * `sourceActionId` or `groupId` (`storyboard-still-<runId>-<operationId>` or
+ * `remix-<runId>-...`). Returns null for any other ingredient. The caller
+ * still confirms the run is a storyboard.
+ */
+export function parseStoryboardRunId(
+  value: string | null | undefined,
 ): string | null {
-  if (!sourceActionId?.startsWith(STORYBOARD_STILL_SOURCE_ACTION_PREFIX))
-    return null;
-  const runId = sourceActionId
-    .slice(STORYBOARD_STILL_SOURCE_ACTION_PREFIX.length)
-    .replace(OPERATION_ID_SUFFIX, '');
+  if (!value) return null;
+  const runId = value.startsWith(STORYBOARD_STILL_SOURCE_ACTION_PREFIX)
+    ? value
+        .slice(STORYBOARD_STILL_SOURCE_ACTION_PREFIX.length)
+        .replace(OPERATION_ID_SUFFIX, '')
+    : (STORYBOARD_SCENE_KEY.exec(value)?.[1] ?? '');
   return runId.length > 0 ? runId : null;
 }
 
