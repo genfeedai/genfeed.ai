@@ -50,6 +50,29 @@ describe('WorkspacePanelTabs', () => {
     expect(props.onSelectTab).toHaveBeenCalledWith('details');
   });
 
+  it('wires the tabs to their panels and moves between them with the arrow keys', () => {
+    const { props } = renderTabs();
+    const agentTab = screen.getByRole('tab', { name: 'Agent' });
+    const detailsTab = screen.getByRole('tab', { name: 'Details' });
+
+    expect(agentTab).toHaveAttribute('aria-controls', 'workspace-agent-dock');
+    expect(detailsTab).toHaveAttribute(
+      'aria-controls',
+      'workspace-details-panel',
+    );
+    expect(agentTab).toHaveAttribute('tabindex', '0');
+    expect(detailsTab).toHaveAttribute('tabindex', '-1');
+
+    fireEvent.keyDown(agentTab, { key: 'ArrowRight' });
+    expect(props.onSelectTab).toHaveBeenLastCalledWith('details');
+    fireEvent.keyDown(agentTab, { key: 'ArrowLeft' });
+    expect(props.onSelectTab).toHaveBeenLastCalledWith('details');
+    fireEvent.keyDown(agentTab, { key: 'Home' });
+    expect(props.onSelectTab).toHaveBeenLastCalledWith('agent');
+    fireEvent.keyDown(agentTab, { key: 'End' });
+    expect(props.onSelectTab).toHaveBeenLastCalledWith('details');
+  });
+
   it('only lists the tabs the shell can show', () => {
     renderTabs({ hasAgent: false, activeTab: 'details' });
 

@@ -1575,6 +1575,49 @@ describe('UniversalWorkspaceShell', () => {
       expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
     });
 
+    it('reopens a collapsed selection when its Details tab is chosen', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+
+      render(
+        <ContextSidebarProvider>
+          <AgentDockProvider>
+            <UniversalWorkspaceShell agentApiService={agentApiService}>
+              <DockProbe />
+              <ContextSidebarPanel
+                onClose={() => {}}
+                selection={{
+                  id: 'asset-1',
+                  kind: 'asset',
+                  origin: 'user',
+                  title: 'Image',
+                }}
+              >
+                <p>Asset detail</p>
+              </ContextSidebarPanel>
+            </UniversalWorkspaceShell>
+          </AgentDockProvider>
+        </ContextSidebarProvider>,
+      );
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      act(() => dock?.open());
+
+      // Collapse the details while the agent stays open.
+      fireEvent.click(screen.getByTestId('workspace-panel-tab-details'));
+      fireEvent.click(screen.getByTestId('context-sidebar-close'));
+      expect(screen.getByTestId('workspace-panel-tab-agent')).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+
+      fireEvent.click(screen.getByTestId('workspace-panel-tab-details'));
+
+      expect(screen.getByTestId('workspace-panel-tab-details')).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByText('Asset detail')).toBeVisible();
+    });
+
     it('closes the agent from the panel header', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
       renderWithDock();

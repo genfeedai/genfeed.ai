@@ -111,7 +111,9 @@ import {
   WorkspaceContextSidebarRail,
 } from './WorkspaceContextSidebar';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
-import WorkspacePanelTabs from './WorkspacePanelTabs';
+import WorkspacePanelTabs, {
+  WORKSPACE_PANEL_TAB_IDS,
+} from './WorkspacePanelTabs';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
   useActiveWorkspaceSurfaceAdapter,
@@ -680,10 +682,13 @@ function UniversalWorkspaceShellContent({
     (tab: WorkspacePanelTab) => {
       if (tab === 'agent') {
         openAgentDock?.();
+      } else if (!isInspectorOpen) {
+        // Details can be offered for a collapsed selection: open it.
+        activeContextSidebar?.reveal();
       }
       setPanelTabPreference(tab);
     },
-    [openAgentDock],
+    [activeContextSidebar, isInspectorOpen, openAgentDock],
   );
 
   const handleClosePanel = useCallback(() => {
@@ -1265,8 +1270,11 @@ function UniversalWorkspaceShellContent({
               ) : null}
               {contextSidebar ? (
                 <div
+                  aria-labelledby={WORKSPACE_PANEL_TAB_IDS.details}
                   className="flex min-h-0 flex-1 flex-col"
                   hidden={!activeContextSidebar || activePanelTab !== 'details'}
+                  id="workspace-details-panel"
+                  role="tabpanel"
                 >
                   <WorkspaceContextSidebarRail
                     contextSidebar={contextSidebar}
