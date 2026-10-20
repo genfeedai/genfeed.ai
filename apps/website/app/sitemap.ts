@@ -21,91 +21,76 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/changelog',
     },
     {
       changeFrequency: 'daily',
-      lastModified: new Date(),
       priority: 1,
       url: 'https://genfeed.ai',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/pricing',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/done-for-you',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/founder-content',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/x',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/linkedin',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/instagram',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/tiktok',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/youtube',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/threads',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/facebook',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/pinterest',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/podcast-to-content',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/launch-content',
     },
@@ -113,133 +98,111 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // collateral) but kept indexable so a shared link can still rank.
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.6,
       url: 'https://genfeed.ai/custom-models',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/features',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/about',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/contact',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/use-cases',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/use-cases/creators',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/use-cases/agencies',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/use-cases/ai-influencers',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/publishing',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/studio',
     },
     {
       changeFrequency: 'daily',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/models',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/benchmark',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/workflows',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/agent',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/developers',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/library',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/analytics',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/calendar',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/research',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/brand-os',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/experts',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/tools',
     },
@@ -250,31 +213,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/tools/youtube-clips',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/tools/youtube-long-form',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/integrations',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/cloud',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/self-hosted',
     },
@@ -282,43 +240,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // even while the first desktop build is still unpublished.
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.6,
       url: 'https://genfeed.ai/desktop',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/articles',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/posts',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/faq',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.6,
       url: 'https://genfeed.ai/gen',
     },
     {
       changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/skills',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/vs',
     },
@@ -326,31 +277,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // no indexable page depends on the (deliberately short) footer nav.
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.4,
       url: 'https://genfeed.ai/sitemap',
     },
     {
       changeFrequency: 'yearly',
-      lastModified: new Date(),
       priority: 0.3,
       url: 'https://genfeed.ai/privacy',
     },
     {
       changeFrequency: 'yearly',
-      lastModified: new Date(),
       priority: 0.3,
       url: 'https://genfeed.ai/terms',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.3,
       url: 'https://genfeed.ai/llms.txt',
     },
     {
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.3,
       url: 'https://genfeed.ai/llms-full.txt',
     },
@@ -359,7 +305,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const agentClientRoutes: MetadataRoute.Sitemap = agentClientSlugs.map(
     (slug) => ({
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.7,
       url: `https://genfeed.ai/${slug}`,
     }),
@@ -369,7 +314,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     agentClientSlugs.flatMap((slug) =>
       AGENT_CLIENT_CHANNEL_SLUGS.map((channel) => ({
         changeFrequency: 'monthly' as const,
-        lastModified: new Date(),
         priority: 0.6,
         url: `https://genfeed.ai/${slug}/${channel}`,
       })),
@@ -377,7 +321,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const productRoutes: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
     changeFrequency: 'weekly',
-    lastModified: new Date(),
     priority: 0.9,
     url: `https://genfeed.ai/${slug}`,
   }));
@@ -385,7 +328,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const competitorRoutes: MetadataRoute.Sitemap = competitorSlugs.map(
     (slug) => ({
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.8,
       url: `https://genfeed.ai/vs/${slug}`,
     }),
@@ -394,7 +336,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const integrationRoutes: MetadataRoute.Sitemap = integrationSlugs.map(
     (slug) => ({
       changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.8,
       url: `https://genfeed.ai/integrations/${slug}`,
     }),
@@ -402,7 +343,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const useCaseRoutes: MetadataRoute.Sitemap = useCaseSlugs.map((slug) => ({
     changeFrequency: 'monthly',
-    lastModified: new Date(),
     priority: 0.8,
     url: `https://genfeed.ai/use-cases/${slug}`,
   }));
@@ -423,9 +363,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
         routes.push({
           changeFrequency: 'weekly' as const,
-          lastModified: article.updatedAt
-            ? new Date(article.updatedAt)
-            : new Date(),
+          ...(article.updatedAt
+            ? { lastModified: new Date(article.updatedAt) }
+            : {}),
           priority: 0.8,
           url: `https://genfeed.ai/articles/${article.slug}`,
         });
@@ -450,7 +390,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         )
         .map((slug) => ({
           changeFrequency: 'weekly' as const,
-          lastModified: new Date(),
           priority: 0.8,
           url: `https://genfeed.ai/articles/${slug}`,
         }));

@@ -114,4 +114,24 @@ describe('website sitemap', () => {
     );
     expect(new Set(articleUrls).size).toBe(articleUrls.length);
   });
+
+  it('only dates routes whose real update time is known', async () => {
+    findAllPublicArticles.mockResolvedValue([
+      { slug: 'dated', updatedAt: '2026-10-01T00:00:00.000Z' },
+      { slug: 'undated' },
+    ] as Article[]);
+
+    const routes = await sitemap();
+    const byUrl = new Map(routes.map((route) => [route.url, route]));
+
+    expect(
+      byUrl.get('https://genfeed.ai/articles/dated')?.lastModified,
+    ).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    expect(byUrl.get('https://genfeed.ai/articles/undated')).not.toHaveProperty(
+      'lastModified',
+    );
+    expect(byUrl.get('https://genfeed.ai/pricing')).not.toHaveProperty(
+      'lastModified',
+    );
+  });
 });
