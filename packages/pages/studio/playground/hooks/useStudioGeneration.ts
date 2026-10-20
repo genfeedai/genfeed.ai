@@ -27,6 +27,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { AssetQueryService } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { requestTopbarBalancesRefresh } from '@hooks/data/billing/use-topbar-balances/request-topbar-balances-refresh';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   StudioPlaygroundJob,
@@ -193,6 +194,13 @@ export function useStudioGeneration({
     onGeneratedRef.current = onGenerated;
   }, [onGenerated]);
 
+  // A reserve, settle or release moves the wallet, so every result also asks
+  // the balance chip to re-read instead of waiting on the socket event.
+  const notifyGenerated = useCallback(() => {
+    requestTopbarBalancesRefresh();
+    onGeneratedRef.current?.();
+  }, []);
+
   useEffect(
     () => () => {
       for (const unsubscribe of subscriptionsRef.current) {
@@ -357,7 +365,7 @@ export function useStudioGeneration({
             if (ingredient.status === IngredientStatus.FAILED) {
               window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
             }
-            onGeneratedRef.current?.();
+            notifyGenerated();
           } catch (error) {
             logger.error(
               'Failed to load Studio generation result after socket event',
@@ -368,7 +376,7 @@ export function useStudioGeneration({
               error: 'The result could not be loaded. Reconnecting…',
               phase: 'saving',
             });
-            onGeneratedRef.current?.();
+            notifyGenerated();
           } finally {
             cleanup();
           }
@@ -392,7 +400,14 @@ export function useStudioGeneration({
       unsubscribe = subscribe(topic, handler);
       subscriptionsRef.current.push(unsubscribe);
     },
-    [brandId, notificationsService, patchJob, resolveFetchService, subscribe],
+    [
+      brandId,
+      notificationsService,
+      patchJob,
+      resolveFetchService,
+      subscribe,
+      notifyGenerated,
+    ],
   );
 
   const trackPendingIds = useCallback(
@@ -498,7 +513,7 @@ export function useStudioGeneration({
           error: ingredient.generationError ?? undefined,
           url: resolveStudioAssetUrl(ingredient),
         });
-        onGeneratedRef.current?.();
+        notifyGenerated();
       } catch (error) {
         if (activeBrandRef.current === brandId)
           notificationsService.error(
@@ -508,7 +523,13 @@ export function useStudioGeneration({
         cancellingIds.current.delete(job.id);
       }
     },
-    [brandId, getIngredientsService, notificationsService, patchJob],
+    [
+      brandId,
+      getIngredientsService,
+      notificationsService,
+      patchJob,
+      notifyGenerated,
+    ],
   );
 
   useEffect(() => {
@@ -566,7 +587,7 @@ export function useStudioGeneration({
             if (ingredient.status === IngredientStatus.FAILED) {
               window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
             }
-            onGeneratedRef.current?.();
+            notifyGenerated();
           } catch (error) {
             if (!controller.signal.aborted)
               logger.debug(
@@ -597,6 +618,7 @@ export function useStudioGeneration({
     jobsBrandId,
     patchJob,
     resolveFetchService,
+    notifyGenerated,
   ]);
 
   // A socket failure event and a session-restored card carry only the
@@ -1123,7 +1145,7 @@ export function useStudioGeneration({
               },
               ...previous.filter((job) => job.runId !== runId),
             ]);
-            onGeneratedRef.current?.();
+            notifyGenerated();
             isAccepted = true;
             break;
           }
@@ -1249,11 +1271,13 @@ export function useStudioGeneration({
           if (activeBrandRef.current !== brandId) return false;
           subscribeToPendingJob(id, type);
         }
-        onGeneratedRef.current?.();
+        notifyGenerated();
         window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
         notificationsService.error(message);
       }
 
+      // Admission reserves credits before the provider answers, accepted or not.
+      requestTopbarBalancesRefresh();
       return isAccepted;
     },
     [
@@ -1271,6 +1295,7 @@ export function useStudioGeneration({
       translateBrand,
       translateCrun,
       type,
+      notifyGenerated,
     ],
   );
 

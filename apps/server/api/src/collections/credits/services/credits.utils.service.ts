@@ -456,21 +456,57 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       ...input,
       billingAccountId: account.id,
     };
-    return admission
-      ? this.creditReservationService.reserve(request, admission)
-      : this.creditReservationService.reserve(request);
+    const reservation = admission
+      ? await this.creditReservationService.reserve(request, admission)
+      : await this.creditReservationService.reserve(request);
+    // A hold lowers the spendable balance at once, so open tabs follow it.
+    await this.publishAvailableBalance(input.organizationId);
+    return reservation;
   }
 
   async settleReservation(
     input: ISettleCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
-    return this.creditReservationService.settle(input);
+    const snapshot = await this.creditReservationService.settle(input);
+    await this.publishAvailableBalance(
+      input.organizationId,
+      snapshot.available,
+    );
+    return snapshot;
   }
 
   async releaseReservation(
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
-    return this.creditReservationService.release(input);
+    const snapshot = await this.creditReservationService.release(input);
+    await this.publishAvailableBalance(
+      input.organizationId,
+      snapshot.available,
+    );
+    return snapshot;
+  }
+
+  /**
+   * Tells every open tab the new spendable balance after a hold moves. Runs
+   * after the wallet transaction commits and never fails the billing step: the
+   * balance chip also refetches on focus, so a missed event is only late.
+   */
+  private async publishAvailableBalance(
+    organizationId: string,
+    available?: number,
+  ): Promise<void> {
+    try {
+      const balance =
+        available ?? (await this.getOrganizationCreditsBalance(organizationId));
+      await this.websocketService.emit(`/credits/${organizationId}`, {
+        balance,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} failed to publish wallet balance`,
+        { error, organizationId },
+      );
+    }
   }
 
   async bindReservationOutput(

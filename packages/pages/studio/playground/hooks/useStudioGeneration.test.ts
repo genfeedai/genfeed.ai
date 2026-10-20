@@ -374,6 +374,33 @@ describe('useStudioGeneration socket tracking', () => {
     expect(result.current.jobs[0]?.ingredient).toBe(ingredient);
   });
 
+  it('asks the wallet chip to re-read after a submit and after a finished result', async () => {
+    const onRefresh = vi.fn();
+    window.addEventListener('genfeed:topbar-balances:refresh', onRefresh);
+    try {
+      const captured = captureHandler();
+      const { result } = renderStudioGeneration();
+
+      await act(async () => {
+        await result.current.submit('A founder at a desk');
+      });
+      const afterSubmit = onRefresh.mock.calls.length;
+      expect(afterSubmit).toBeGreaterThan(0);
+
+      mockImagesFindOne.mockResolvedValue({
+        cdnUrl: 'https://a/i.png',
+        id: 'img-1',
+        status: IngredientStatus.GENERATED,
+      });
+      await act(async () => {
+        await captured.current?.onSuccess({ id: 'img-1' });
+      });
+      expect(onRefresh.mock.calls.length).toBeGreaterThan(afterSubmit);
+    } finally {
+      window.removeEventListener('genfeed:topbar-balances:refresh', onRefresh);
+    }
+  });
+
   it('keeps result loading recoverable when the finished asset cannot be read', async () => {
     mockImagesFindOne.mockRejectedValue(new Error('403'));
     const captured = captureHandler();
