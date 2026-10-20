@@ -1619,6 +1619,23 @@
           "default": "Default",
           "spam": "Spam (skip auto)"
         }
+      },
+      "queue": {
+        "title": "Warm-up replies",
+        "description": "Replies drafted for accounts you follow. Open each one in X and post it yourself so a new account grows with real conversation.",
+        "usage": "{posted} of {cap} posted in the last 24 hours",
+        "nextAllowed": "Next reply allowed after {time}",
+        "empty": "No drafts waiting. New drafts appear when the account monitor finds a post to answer.",
+        "replyLabel": "Reply to @{author}",
+        "characters": "{count} / {max}",
+        "openInX": "Open in X",
+        "markPosted": "I posted it",
+        "dismiss": "Dismiss",
+        "opened": "Opened in X. Post it there, then confirm here.",
+        "posted": "Counted. Nice one.",
+        "dismissed": "Draft dismissed",
+        "loadFailed": "Could not load the warm-up queue",
+        "actionFailed": "That did not go through"
       }
     },
     "workflowBinding": {

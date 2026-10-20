@@ -182,6 +182,11 @@ export interface IBotActivity {
   processingTimeMs?: number;
   errorMessage?: string;
   skippedReason?: string;
+  /** Draft waiting for a person to post it (`awaiting_approval`). */
+  draftReplyText?: string;
+  triggerTweetId?: string;
+  triggerTweetText?: string;
+  triggerTweetAuthorUsername?: string;
 }
 
 export interface IBotActivityStats {

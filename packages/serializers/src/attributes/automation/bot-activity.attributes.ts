@@ -25,4 +25,10 @@ export const botActivityAttributes = createEntityAttributes([
   'intentConfidence',
   'intentSource',
   'isIntentNeedsReview',
+  // The post a monitored-account reply answers, and the draft waiting for a
+  // person to post it (awaiting_approval).
+  'triggerTweetId',
+  'triggerTweetText',
+  'triggerTweetAuthorUsername',
+  'draftReplyText',
 ]);
