@@ -41,6 +41,7 @@ import type {
   StudioPlaygroundJob,
   StudioPlaygroundReferenceRole,
   StudioPlaygroundType,
+  StudioSubmitOptions,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { isAutoStudioModelKey } from '@genfeedai/pricing';
@@ -1317,121 +1318,129 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   );
 
   const referencePreviewUrlRef = useRef<string | undefined>(undefined);
-  const handleSubmit = useCallback(() => {
-    if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
-      return;
-    }
-    const referencePreviewUrl = referencePreviewUrlRef.current;
-    const previewOption = referencePreviewUrl
-      ? { referencePreviewUrl }
-      : undefined;
-    if (type === 'image-edit') {
-      const submission = previewOption
-        ? submit(prompt, resolvedReferences, previewOption)
-        : submit(prompt, resolvedReferences);
+  const handleSubmit = useCallback(
+    (submitOptions?: StudioSubmitOptions) => {
+      if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
+        return;
+      }
+      const referencePreviewUrl = referencePreviewUrlRef.current;
+      const previewOption = referencePreviewUrl
+        ? { referencePreviewUrl }
+        : undefined;
+      const pinnedOption = submitOptions?.pinnedModelKey
+        ? { pinnedModelKey: submitOptions.pinnedModelKey }
+        : undefined;
+      if (type === 'image-edit') {
+        const editOptions = { ...previewOption, ...pinnedOption };
+        const submission = Object.keys(editOptions).length
+          ? submit(prompt, resolvedReferences, editOptions)
+          : submit(prompt, resolvedReferences);
+        const submittedPrompt = prompt;
+        void submission.then((accepted) => {
+          if (accepted && latestPromptRef.current === submittedPrompt) {
+            setPrompt('');
+          }
+        });
+        return;
+      }
+      // Skills picked from `/` are literal tokens in the prompt. They steer the
+      // enhancement pass, never the generator, so they come off first.
+      const prepared = prepareCrunGenerationIntent({
+        document: promptDocumentRef.current,
+        existingReferenceIds: resolvedReferences.imageReferenceIds,
+        prompt,
+        resolvePromptCommands,
+        resolveCharacterMentions,
+      });
+      const { skillSlugs } = prepared;
+      if (rejectUnsupportedSkillSelection(skillSlugs)) return;
+      for (const notice of prepared.notices) {
+        notificationsService.warning(notice);
+      }
       const submittedPrompt = prompt;
-      void submission.then((accepted) => {
-        if (accepted && latestPromptRef.current === submittedPrompt) {
+      const promptAuthor = resolveStudioPromptAuthor(
+        agentPromptSeed,
+        prompt,
+        type,
+      );
+      void submit(
+        prepared.text,
+        {
+          ...resolvedReferences,
+          imageReferenceIds: prepared.referenceIds,
+        },
+        {
+          ...(previewOption ?? {}),
+          ...(pinnedOption ?? {}),
+          originalText: prompt,
+          ...(promptAuthor ? { promptAuthor } : {}),
+          ...(crunModel
+            ? {
+                ...(crunRequest ? { crunRequest } : {}),
+                ...(crunVideoRequest ? { crunVideoRequest } : {}),
+                getCurrentCrunQuote: crunQuote.getCurrentQuote,
+              }
+            : skillSlugs.length ||
+                hasKnowledgeSelection ||
+                (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
+                (enhancedPromptId && prepared.text === prompt)
+              ? {
+                  ...(skillSlugs.length
+                    ? { requestedSkillSlugs: skillSlugs }
+                    : {}),
+                  ...(hasKnowledgeSelection
+                    ? { knowledge: knowledgeSelection }
+                    : {}),
+                  ...(isHandoffAccepted && handoffPayload?.harness !== undefined
+                    ? { harness: handoffPayload.harness }
+                    : {}),
+                  ...(enhancedPromptId && prepared.text === prompt
+                    ? { promptId: enhancedPromptId }
+                    : {}),
+                }
+              : {}),
+        },
+      ).then((isAccepted) => {
+        // A sent generation leaves an empty composer (and draft) behind; the
+        // model settings stay for the next one. Skipped when the user already
+        // moved on to the next prompt while this one was being sent.
+        if (isAccepted && latestPromptRef.current === submittedPrompt) {
           setPrompt('');
+          setAgentPromptSeed(null);
+          setContentReferences([]);
+          restoredRolesRef.current.clear();
+          setPendingRestoredUploadIds(null);
+          setRestoredAttachments(EMPTY_ATTACHMENTS);
+          clearAttachments();
         }
       });
-      return;
-    }
-    // Skills picked from `/` are literal tokens in the prompt. They steer the
-    // enhancement pass, never the generator, so they come off first.
-    const prepared = prepareCrunGenerationIntent({
-      document: promptDocumentRef.current,
-      existingReferenceIds: resolvedReferences.imageReferenceIds,
-      prompt,
-      resolvePromptCommands,
-      resolveCharacterMentions,
-    });
-    const { skillSlugs } = prepared;
-    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
-    for (const notice of prepared.notices) {
-      notificationsService.warning(notice);
-    }
-    const submittedPrompt = prompt;
-    const promptAuthor = resolveStudioPromptAuthor(
+    },
+    [
       agentPromptSeed,
-      prompt,
+      clearAttachments,
       type,
-    );
-    void submit(
-      prepared.text,
-      {
-        ...resolvedReferences,
-        imageReferenceIds: prepared.referenceIds,
-      },
-      {
-        ...(previewOption ?? {}),
-        originalText: prompt,
-        ...(promptAuthor ? { promptAuthor } : {}),
-        ...(crunModel
-          ? {
-              ...(crunRequest ? { crunRequest } : {}),
-              ...(crunVideoRequest ? { crunVideoRequest } : {}),
-              getCurrentCrunQuote: crunQuote.getCurrentQuote,
-            }
-          : skillSlugs.length ||
-              hasKnowledgeSelection ||
-              (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
-              (enhancedPromptId && prepared.text === prompt)
-            ? {
-                ...(skillSlugs.length
-                  ? { requestedSkillSlugs: skillSlugs }
-                  : {}),
-                ...(hasKnowledgeSelection
-                  ? { knowledge: knowledgeSelection }
-                  : {}),
-                ...(isHandoffAccepted && handoffPayload?.harness !== undefined
-                  ? { harness: handoffPayload.harness }
-                  : {}),
-                ...(enhancedPromptId && prepared.text === prompt
-                  ? { promptId: enhancedPromptId }
-                  : {}),
-              }
-            : {}),
-      },
-    ).then((isAccepted) => {
-      // A sent generation leaves an empty composer (and draft) behind; the
-      // model settings stay for the next one. Skipped when the user already
-      // moved on to the next prompt while this one was being sent.
-      if (isAccepted && latestPromptRef.current === submittedPrompt) {
-        setPrompt('');
-        setAgentPromptSeed(null);
-        setContentReferences([]);
-        restoredRolesRef.current.clear();
-        setPendingRestoredUploadIds(null);
-        setRestoredAttachments(EMPTY_ATTACHMENTS);
-        clearAttachments();
-      }
-    });
-  }, [
-    agentPromptSeed,
-    clearAttachments,
-    type,
-    isHandoffAccepted,
-    handoffPayload,
-    crunModel,
-    crunRequest,
-    crunVideoRequest,
-    crunQuote.getCurrentQuote,
-    enhancedPromptId,
-    hasKnowledgeSelection,
-    knowledgeSelection,
-    isListening,
-    isTranscribing,
-    isUploading,
-    crunRestoreStatus,
-    notificationsService,
-    prompt,
-    resolvedReferences,
-    resolveCharacterMentions,
-    rejectUnsupportedSkillSelection,
-    resolvePromptCommands,
-    submit,
-  ]);
+      isHandoffAccepted,
+      handoffPayload,
+      crunModel,
+      crunRequest,
+      crunVideoRequest,
+      crunQuote.getCurrentQuote,
+      enhancedPromptId,
+      hasKnowledgeSelection,
+      knowledgeSelection,
+      isListening,
+      isTranscribing,
+      isUploading,
+      crunRestoreStatus,
+      notificationsService,
+      prompt,
+      resolvedReferences,
+      resolveCharacterMentions,
+      rejectUnsupportedSkillSelection,
+      resolvePromptCommands,
+      submit,
+    ],
+  );
 
   const attachContentReference = useCallback(
     (item: ContentMentionItem, role: StudioPlaygroundReferenceRole) => {

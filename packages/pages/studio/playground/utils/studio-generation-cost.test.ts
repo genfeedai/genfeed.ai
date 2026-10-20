@@ -1,5 +1,9 @@
+import { RouterPriority } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { buildStudioGenerationQuoteRequest } from '@genfeedai/pricing';
+import {
+  buildStudioAutoGenerationQuoteRequest,
+  buildStudioGenerationQuoteRequest,
+} from '@genfeedai/pricing';
 import {
   buildBaseGenerationPayload,
   buildImagePayload,
@@ -148,4 +152,64 @@ describe('buildStudioGenerationQuoteRequest', () => {
       }),
     ).toMatchObject({ resolution: '1k' });
   });
+});
+
+describe('buildStudioAutoGenerationQuoteRequest', () => {
+  it('asks the server to route an Auto image from the prompt and quote it', () => {
+    expect(
+      buildStudioAutoGenerationQuoteRequest({
+        aspectRatio: '9:16',
+        outputs: 2,
+        prioritize: RouterPriority.QUALITY,
+        prompt: '  A product on a table  ',
+        type: 'image',
+      }),
+    ).toEqual({
+      aspectRatio: '9:16',
+      category: 'image',
+      outputs: 2,
+      prioritize: RouterPriority.QUALITY,
+      prompt: 'A product on a table',
+    });
+  });
+
+  it('routes an Auto video with its duration and a single output', () => {
+    expect(
+      buildStudioAutoGenerationQuoteRequest({
+        duration: 5,
+        outputs: 3,
+        prompt: 'A drone shot',
+        type: 'video',
+      }),
+    ).toEqual({ category: 'video', duration: 5, prompt: 'A drone shot' });
+  });
+
+  it('lets the server resolve the editing default without a prompt', () => {
+    expect(
+      buildStudioAutoGenerationQuoteRequest({
+        aspectRatio: '1:1',
+        outputs: 1,
+        prompt: '',
+        type: 'image-edit',
+      }),
+    ).toEqual({ category: 'image-edit', outputs: 1 });
+  });
+
+  it.each([
+    ['an image', 'image'],
+    ['a video', 'video'],
+  ] as const)('cannot route %s without a prompt', (_label, type) => {
+    expect(
+      buildStudioAutoGenerationQuoteRequest({ prompt: '   ', type }),
+    ).toBeNull();
+  });
+
+  it.each(['music', 'voice', 'avatar'] as const)(
+    'does not route %s',
+    (type) => {
+      expect(
+        buildStudioAutoGenerationQuoteRequest({ prompt: 'Hello', type }),
+      ).toBeNull();
+    },
+  );
 });

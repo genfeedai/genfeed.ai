@@ -1693,6 +1693,89 @@ describe('FLUX.3 submission and reusable native recipe', () => {
   });
 });
 
+describe('pinned Auto submission', () => {
+  const pinned = 'black-forest-labs/flux-3-image';
+
+  it('submits the model Auto was priced at instead of routing again', async () => {
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['pinned'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel(pinned)],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        aspectRatio: '7:5',
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        outputs: 3,
+        resolution: '2K',
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          'A landscape',
+          {},
+          { pinnedModelKey: pinned },
+        ),
+      ).toBe(true);
+    });
+    const body = mockImagesPost.mock.calls[0]?.[0];
+    expect(body).toMatchObject({
+      aspectRatio: '7:5',
+      model: pinned,
+      outputs: 1,
+      resolution: '1k',
+    });
+    expect(body).toMatchObject({ autoSelectModel: false });
+  });
+
+  it('keeps routing Auto when the priced model is not in the catalog', async () => {
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['unpinned'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel('google/imagen-4')],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      },
+    });
+    await act(async () => {
+      await result.current.submit(
+        'A landscape',
+        {},
+        { pinnedModelKey: pinned },
+      );
+    });
+    expect(mockImagesPost.mock.calls[0]?.[0]).toMatchObject({
+      autoSelectModel: true,
+    });
+  });
+
+  it('does not pin the next submit', async () => {
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['again'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel(pinned)],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      },
+    });
+    await act(async () => {
+      await result.current.submit(
+        'A landscape',
+        {},
+        { pinnedModelKey: pinned },
+      );
+    });
+    await act(async () => {
+      await result.current.submit('Another landscape');
+    });
+    expect(mockImagesPost.mock.calls[1]?.[0]).toMatchObject({
+      autoSelectModel: true,
+    });
+  });
+});
+
 describe('persisted video submission reconciliation', () => {
   it('hydrates a server-owned FAILED row once and refreshes both surfaces without synthetic duplication', async () => {
     const onGenerated = vi.fn();

@@ -48,6 +48,7 @@ import {
   hasStudioAvatarSelection,
   hasStudioVoiceSelection,
 } from '@pages/studio/playground/utils/studio-identity-selection';
+import { pinStudioSettingsToModel } from '@pages/studio/playground/utils/studio-pinned-model';
 import {
   mergeStudioPlaygroundJobs,
   resolveJsonApiIngredientId,
@@ -142,6 +143,8 @@ export interface StudioGenerationOptions {
   promptId?: string;
   /** Set only when the prompt came from an agent proposal. */
   promptAuthor?: GenerationPromptAuthor;
+  /** The model an Auto choice was priced at; submitted instead of routing again. */
+  pinnedModelKey?: string;
 }
 
 export interface StudioGenerationReferences {
@@ -710,6 +713,16 @@ export function useStudioGeneration({
       references: StudioGenerationReferences = {},
       options?: StudioGenerationOptions,
     ): Promise<boolean> {
+      // An Auto choice priced before submit is pinned to the model that was
+      // quoted, so the amount confirmed is the amount charged.
+      const pinnedModelKey =
+        options?.pinnedModelKey &&
+        models.some((model) => model.key === options.pinnedModelKey)
+          ? options.pinnedModelKey
+          : undefined;
+      const activeSettings = pinnedModelKey
+        ? pinStudioSettingsToModel(settings, pinnedModelKey)
+        : settings;
       const referencePreviewUrl = readStudioReferencePreviewUrl(
         options?.referencePreviewUrl,
       );
@@ -724,7 +737,7 @@ export function useStudioGeneration({
         brandId,
         promptText,
         references: references.imageReferenceIds ?? [],
-        settings,
+        settings: activeSettings,
         type,
       });
 
@@ -739,7 +752,8 @@ export function useStudioGeneration({
 
       if (
         type === 'voice' &&
-        (!settings.voiceId || !resolveSpeechVoiceProvider(settings.voiceRef))
+        (!activeSettings.voiceId ||
+          !resolveSpeechVoiceProvider(activeSettings.voiceRef))
       ) {
         notificationsService.error('Pick a voice before generating');
         return false;
@@ -747,8 +761,8 @@ export function useStudioGeneration({
 
       if (
         type === 'avatar' &&
-        (!hasStudioAvatarSelection(settings) ||
-          !hasStudioVoiceSelection(settings))
+        (!hasStudioAvatarSelection(activeSettings) ||
+          !hasStudioVoiceSelection(activeSettings))
       ) {
         notificationsService.error(
           'Pick an avatar and a voice before generating',
@@ -759,9 +773,9 @@ export function useStudioGeneration({
       if (
         type === 'image-edit' &&
         (!references.editSourceIds?.length ||
-          (settings.modelKey !== AUTO_MODEL_OPTION_VALUE &&
-            (!isImageEditModel(settings.modelKey) ||
-              !models.some((model) => model.key === settings.modelKey))))
+          (activeSettings.modelKey !== AUTO_MODEL_OPTION_VALUE &&
+            (!isImageEditModel(activeSettings.modelKey) ||
+              !models.some((model) => model.key === activeSettings.modelKey))))
       ) {
         notificationsService.error(
           'Choose a source image and an available editing model.',
@@ -769,7 +783,7 @@ export function useStudioGeneration({
         return false;
       }
       const modelKey = resolveModelKey(
-        settings,
+        activeSettings,
         models,
         config.capabilities.hasModelSelection,
       );
@@ -792,7 +806,7 @@ export function useStudioGeneration({
       const recipe = recipeFromPromptData(
         promptData,
         type,
-        settings,
+        activeSettings,
         options?.originalText ?? promptText,
       );
       const capturedCrunRequest =
@@ -863,8 +877,8 @@ export function useStudioGeneration({
               operation: 'image-edit',
               model: editingModelKey,
               sourceIds: references.editSourceIds ?? [],
-              resolution: settings.resolution,
-              aspectRatio: settings.aspectRatio,
+              resolution: activeSettings.resolution,
+              aspectRatio: activeSettings.aspectRatio,
               grounding: false,
               outputs: 1,
             }
@@ -876,10 +890,10 @@ export function useStudioGeneration({
               maskId: references.editMaskId,
               size: references.editMaskId
                 ? 'source'
-                : (settings.editSize ?? 'source'),
+                : (activeSettings.editSize ?? 'source'),
               quality: IMAGE_EDIT_QUALITY,
-              outputs: settings.outputs,
-              seed: settings.editSeed,
+              outputs: activeSettings.outputs,
+              seed: activeSettings.editSeed,
             };
       }
       if (type === 'image-edit')
@@ -899,7 +913,7 @@ export function useStudioGeneration({
         ...Array.from(
           {
             length: config.capabilities.hasOutputs
-              ? Math.max(1, settings.outputs)
+              ? Math.max(1, activeSettings.outputs)
               : 1,
           },
           (_, index) => ({
@@ -929,21 +943,24 @@ export function useStudioGeneration({
               brand: brandId,
               ...(modelKey
                 ? { model: modelKey }
-                : { autoSelectModel: true, prioritize: settings.prioritize }),
+                : {
+                    autoSelectModel: true,
+                    prioritize: activeSettings.prioritize,
+                  }),
               references: sources.slice(1),
               ...(flux
                 ? {
-                    resolution: settings.resolution,
-                    aspectRatio: settings.aspectRatio,
+                    resolution: activeSettings.resolution,
+                    aspectRatio: activeSettings.aspectRatio,
                   }
                 : {
                     maskId: references.editMaskId,
                     size: references.editMaskId
                       ? 'source'
-                      : (settings.editSize ?? 'source'),
-                    seed: settings.editSeed,
+                      : (activeSettings.editSize ?? 'source'),
+                    seed: activeSettings.editSeed,
                   }),
-              outputs: flux ? 1 : settings.outputs,
+              outputs: flux ? 1 : activeSettings.outputs,
               sourceActionId: runId,
             })) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
@@ -992,7 +1009,7 @@ export function useStudioGeneration({
               },
               promptData,
             );
-            if (flux) payload.aspectRatio = settings.aspectRatio;
+            if (flux) payload.aspectRatio = activeSettings.aspectRatio;
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             isAccepted = true;
@@ -1061,20 +1078,20 @@ export function useStudioGeneration({
             const service = await getMusicsService();
             const musicPromptData = {
               ...promptData,
-              instrumental: settings.instrumental,
-              lyrics: settings.lyrics,
+              instrumental: activeSettings.instrumental,
+              lyrics: activeSettings.lyrics,
               // `buildStudioPromptData` only fills `style` for `hasLook`
               // types (image/video) — music carries its own genre/style
               // control (`hasStyle`), so read it straight off settings the
               // same way instrumental/lyrics do. `PromptTextareaSchema.style`
               // is a required string, so default the unset case the same
               // way `buildStudioPromptData` itself does.
-              style: settings.style ?? '',
+              style: activeSettings.style ?? '',
             };
             const payload = buildMusicPayload(
               musicPromptData,
               modelKey,
-              settings.duration,
+              activeSettings.duration,
             );
             const data = (await service.post(
               payload as Parameters<MusicsService['post']>[0],
@@ -1088,7 +1105,7 @@ export function useStudioGeneration({
             const service = await getHeyGenService();
             const data = await service.generate(
               buildStudioAvatarRequest(
-                settings,
+                activeSettings,
                 resolveStudioAvatarScript(promptData.speech, promptData.text),
                 modelKey,
               ),
@@ -1101,8 +1118,10 @@ export function useStudioGeneration({
           case 'voice': {
             // `voiceProvider` says which catalog `voiceId` belongs to; without
             // it the server cannot tell an ElevenLabs id from a HeyGen one.
-            const voiceProvider = resolveSpeechVoiceProvider(settings.voiceRef);
-            if (!settings.voiceId || !voiceProvider) {
+            const voiceProvider = resolveSpeechVoiceProvider(
+              activeSettings.voiceRef,
+            );
+            if (!activeSettings.voiceId || !voiceProvider) {
               notificationsService.error('Pick a voice before generating');
               break;
             }
@@ -1121,10 +1140,13 @@ export function useStudioGeneration({
             const voice = await service.generate({
               ...(modelKey
                 ? { model: modelKey }
-                : { autoSelectModel: true, prioritize: settings.prioritize }),
+                : {
+                    autoSelectModel: true,
+                    prioritize: activeSettings.prioritize,
+                  }),
               speed: 1,
               text: promptData.speech?.trim() || promptText.trim(),
-              voiceId: settings.voiceId,
+              voiceId: activeSettings.voiceId,
               voiceProvider,
             });
 

@@ -1,3 +1,4 @@
+import type { RouterPriority } from '@genfeedai/contracts';
 import {
   type ImageEditSize,
   isFlux3ImageModel,
@@ -121,5 +122,45 @@ export function buildStudioGenerationQuoteRequest({
     isImageQualitySupported(modelKey, resolution)
       ? { quality: resolution }
       : {}),
+  };
+}
+
+export interface StudioAutoQuoteInput {
+  aspectRatio?: string;
+  duration?: number;
+  outputs?: number;
+  prioritize?: RouterPriority;
+  prompt: string;
+  type: StudioPlaygroundType;
+}
+
+/**
+ * The request that makes the server pick the model Auto would route to and
+ * quote it. Auto cannot be priced from the settings alone, so the answer's
+ * `modelKey` is quoted again with the concrete request above and submitted
+ * pinned; what is confirmed is then exactly what is charged. Image editing
+ * needs no prompt: the server resolves the registry editing default.
+ */
+export function buildStudioAutoGenerationQuoteRequest({
+  aspectRatio,
+  duration,
+  outputs,
+  prioritize,
+  prompt,
+  type,
+}: StudioAutoQuoteInput): AgentGenerationQuoteRequest | null {
+  if (type !== 'image' && type !== 'image-edit' && type !== 'video')
+    return null;
+  const text = prompt.trim();
+  if (!text && type !== 'image-edit') return null;
+  return {
+    ...(aspectRatio !== undefined && type !== 'image-edit'
+      ? { aspectRatio }
+      : {}),
+    category: type,
+    ...(type === 'video' && duration !== undefined ? { duration } : {}),
+    ...(outputs !== undefined && type !== 'video' ? { outputs } : {}),
+    ...(prioritize !== undefined ? { prioritize } : {}),
+    ...(text ? { prompt: text } : {}),
   };
 }

@@ -42,6 +42,7 @@ import {
 import { getModelCapabilityByKey } from '@genfeedai/helpers/model-capability.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
+  buildStudioAutoGenerationQuoteRequest,
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
@@ -50,7 +51,10 @@ import type {
   PromptBarContextItem,
 } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
-import type { StudioPlaygroundComposerProps } from '@genfeedai/props/studio/studio-playground.props';
+import type {
+  StudioPlaygroundComposerProps,
+  StudioSpendSource,
+} from '@genfeedai/props/studio/studio-playground.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
@@ -67,6 +71,7 @@ import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/playground/hooks/useStudioLooks';
+import { useStudioSpendConfirmation } from '@pages/studio/playground/hooks/useStudioSpendConfirmation';
 import {
   buildStudioAvatarRequest,
   resolveStudioAvatarScript,
@@ -76,6 +81,7 @@ import {
   hasStudioAvatarSelection,
   hasStudioVoiceSelection,
 } from '@pages/studio/playground/utils/studio-identity-selection';
+import { pinStudioSettingsToModel } from '@pages/studio/playground/utils/studio-pinned-model';
 import {
   buildStudioPromptData,
   resolveModelKey,
@@ -196,8 +202,15 @@ export default function StudioPlaygroundComposer({
     onSettingsChange,
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
+  const { confirmSpend, isQuoting } = useStudioSpendConfirmation();
+  const onSubmitRef = useRef(onSubmit);
+  onSubmitRef.current = onSubmit;
+  // Nothing is spent before the operator has seen and confirmed the amount.
   const guardedSubmit = () => {
-    if (!isSubmitBlocked && canSubmitStudioGeneration()) onSubmit();
+    if (isSubmitBlocked || !canSubmitStudioGeneration()) return;
+    confirmSpend({ models, source: spendSource }, (options) =>
+      onSubmitRef.current(options),
+    );
   };
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
@@ -403,33 +416,46 @@ export default function StudioPlaygroundComposer({
           lyrics: displaySettings.lyrics,
         }).duration
       : costPromptData.duration;
+  // The request for the model Studio submits, or for the one Auto was priced
+  // at (`pinnedModelKey`), which is submitted with that model's controls.
+  const buildQuoteRequest = (pinnedModelKey?: string) => {
+    const quoteSettings = pinnedModelKey
+      ? pinStudioSettingsToModel(displaySettings, pinnedModelKey)
+      : displaySettings;
+    const quoteData = pinnedModelKey
+      ? buildStudioPromptData({
+          brandId: '',
+          promptText: '',
+          settings: quoteSettings,
+          type,
+        })
+      : costPromptData;
+    return buildStudioGenerationQuoteRequest({
+      aspectRatio: quoteSettings.aspectRatio,
+      duration: pinnedModelKey ? quoteData.duration : quoteDuration,
+      editSize: hasEditMask ? 'source' : quoteSettings.editSize,
+      referenceUrls: attachedAssets
+        .filter(
+          (asset) =>
+            asset.role === (type === 'image-edit' ? 'editSource' : 'reference'),
+        )
+        .flatMap((asset) =>
+          asset.previewUrl && /^https?:\/\//.test(asset.previewUrl)
+            ? [asset.previewUrl]
+            : [],
+        ),
+      height: quoteData.height,
+      isAudioEnabled: quoteSettings.isAudioEnabled,
+      modelKey: pinnedModelKey ?? quoteModelKey,
+      outputs: quoteData.outputs,
+      resolution: quoteData.resolution,
+      type,
+      width: quoteData.width,
+    });
+  };
   // The server quote admission charges; Studio never recalculates it.
   const serverEstimate = useStudioGenerationEstimate(
-    isServerPricedModel
-      ? buildStudioGenerationQuoteRequest({
-          aspectRatio: displaySettings.aspectRatio,
-          duration: quoteDuration,
-          editSize: hasEditMask ? 'source' : displaySettings.editSize,
-          referenceUrls: attachedAssets
-            .filter(
-              (asset) =>
-                asset.role ===
-                (type === 'image-edit' ? 'editSource' : 'reference'),
-            )
-            .flatMap((asset) =>
-              asset.previewUrl && /^https?:\/\//.test(asset.previewUrl)
-                ? [asset.previewUrl]
-                : [],
-            ),
-          height: costPromptData.height,
-          isAudioEnabled: displaySettings.isAudioEnabled,
-          modelKey: quoteModelKey,
-          outputs: costPromptData.outputs,
-          resolution: costPromptData.resolution,
-          type,
-          width: costPromptData.width,
-        })
-      : null,
+    isServerPricedModel ? buildQuoteRequest() : null,
   );
   // An avatar is quoted for the body Generate submits (script, identity and
   // the resolved engine); until all three exist there is nothing to price.
@@ -491,9 +517,57 @@ export default function StudioPlaygroundComposer({
     isReferenceCombinationInvalid ||
     isKling4KReferenceInvalid ||
     isAwaitingModels ||
+    isQuoting ||
     isListening ||
     isTranscribing ||
     isUploading;
+  // How Generate is priced before it submits: the server quote for a model
+  // Studio can price, the quote a Crun or avatar render already holds, and
+  // nothing for a type with no tariff (voice).
+  const crunSpendQuote =
+    selectedModel?.provider === 'crun' ? crunQuote?.getCurrentQuote() : null;
+  const spendSource: StudioSpendSource =
+    selectedModel?.provider === 'crun'
+      ? crunSpendQuote
+        ? {
+            credits:
+              crunSpendQuote.billingMode === 'byok'
+                ? 0
+                : crunSpendQuote.credits,
+            isByok: crunSpendQuote.billingMode === 'byok',
+            isStillCurrent: () =>
+              crunQuote?.getCurrentQuote()?.quoteId === crunSpendQuote.quoteId,
+            kind: 'known',
+          }
+        : { kind: 'unpriced' }
+      : type === 'avatar'
+        ? estimate.status === 'estimated' && estimate.credits !== null
+          ? {
+              credits: estimate.credits,
+              isByok: estimate.billingMode === 'byok',
+              kind: 'known',
+            }
+          : { kind: 'unpriced' }
+        : type === 'image' ||
+            type === 'image-edit' ||
+            type === 'video' ||
+            type === 'music'
+          ? {
+              autoRequest:
+                isAutoStudioModelKey(settings.modelKey) && type !== 'music'
+                  ? buildStudioAutoGenerationQuoteRequest({
+                      aspectRatio: settings.aspectRatio,
+                      duration: costPromptData.duration,
+                      outputs: costPromptData.outputs,
+                      prioritize: settings.prioritize,
+                      prompt,
+                      type,
+                    })
+                  : null,
+              buildRequest: buildQuoteRequest,
+              kind: 'server',
+            }
+          : { kind: 'unpriced' };
 
   const scope = buildStudioGenerationSetupScope(type);
   const defaults = getDefaultGenerationSetupValues(type);
