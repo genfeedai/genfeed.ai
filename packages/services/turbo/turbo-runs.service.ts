@@ -15,6 +15,7 @@ import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 
 export interface TurboRunListQuery {
+  brandId?: string;
   status?: TurboRunStatus;
   limit?: number;
   offset?: number;

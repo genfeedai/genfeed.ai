@@ -141,6 +141,61 @@ describe('TurboRunReviewService.getReviewInboxSummary', () => {
   });
 });
 
+describe('TurboRunReviewService.getTurboRuns', () => {
+  const turboRun = {
+    count: vi.fn(),
+    findMany: vi.fn(),
+  };
+  const summaryService = { toTurboRunSummaries: vi.fn() };
+
+  let service: TurboRunReviewService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    turboRun.findMany.mockResolvedValue([]);
+    turboRun.count.mockResolvedValue(0);
+    summaryService.toTurboRunSummaries.mockResolvedValue([]);
+    service = new TurboRunReviewService(
+      { turboRun } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      summaryService as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+  });
+
+  it('lists the whole organization when no brand is requested', async () => {
+    await service.getTurboRuns('org-1');
+
+    const where = {
+      isDeleted: false,
+      organizationId: 'org-1',
+    };
+    expect(turboRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where }),
+    );
+    expect(turboRun.count).toHaveBeenCalledWith({ where });
+  });
+
+  it('narrows the list and its total to the requested brand', async () => {
+    await service.getTurboRuns('org-1', { brandId: 'brand-1' });
+
+    const where = {
+      brandId: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    };
+    expect(turboRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where }),
+    );
+    expect(turboRun.count).toHaveBeenCalledWith({ where });
+  });
+});
+
 describe('TurboRunReviewService.cancelTurboRun', () => {
   const turboRun = {
     findFirst: vi.fn(),

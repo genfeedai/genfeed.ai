@@ -105,10 +105,10 @@ export default function PublishingOverviewPage() {
 
   const turboRunsQuery = useQuery({
     enabled: isCollectionReady,
-    queryKey: ['publish-overview-batches', organizationId],
+    queryKey: ['publish-overview-batches', organizationId, brandId],
     queryFn: async () => {
       const service = await getTurboRunsService();
-      return service.getTurboRuns();
+      return service.getTurboRuns(brandId ? { brandId } : undefined);
     },
   });
 

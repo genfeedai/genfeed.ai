@@ -192,10 +192,21 @@ export class TurboRunReviewService {
 
   async getTurboRuns(
     orgId: string,
-    query?: { status?: TurboRunStatus; limit?: number; offset?: number },
+    query?: {
+      brandId?: string;
+      status?: TurboRunStatus;
+      limit?: number;
+      offset?: number;
+    },
   ): Promise<{ items: ITurboRunSummary[]; total: number }> {
     const limit = Math.min(query?.limit ?? 20, 100);
     const offset = query?.offset ?? 0;
+    const filter = {
+      ...(query?.brandId ? { brandId: query.brandId } : {}),
+      ...(query?.status
+        ? { status: toPrismaTurboRunStatus(query.status) }
+        : {}),
+    };
 
     const [turboRuns, total] = await Promise.all([
       this.prisma.turboRun.findMany({
@@ -203,18 +214,10 @@ export class TurboRunReviewService {
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
-        where: scopedWhere(orgId, {
-          ...(query?.status
-            ? { status: toPrismaTurboRunStatus(query.status) }
-            : {}),
-        }),
+        where: scopedWhere(orgId, filter),
       }),
       this.prisma.turboRun.count({
-        where: scopedWhere(orgId, {
-          ...(query?.status
-            ? { status: toPrismaTurboRunStatus(query.status) }
-            : {}),
-        }),
+        where: scopedWhere(orgId, filter),
       }),
     ]);
 

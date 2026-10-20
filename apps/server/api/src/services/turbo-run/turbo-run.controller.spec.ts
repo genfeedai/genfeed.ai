@@ -145,6 +145,29 @@ describe('TurboRunController', () => {
       expect(service.getTurboRuns).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it('passes the requested brand through to the service', async () => {
+      service.getTurboRuns.mockResolvedValue({ items: [], total: 0 } as never);
+      const user = {
+        id: 'user-123',
+        organizationId: 'org',
+        userId: 'usr',
+      } as never;
+
+      await controller.getTurboRuns(
+        mockReq,
+        user,
+        undefined,
+        undefined,
+        undefined,
+        'brand-1',
+      );
+
+      expect(service.getTurboRuns).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ brandId: 'brand-1' }),
+      );
+    });
   });
 
   describe('getTurboRun', () => {

@@ -119,17 +119,24 @@ export class TurboRunController {
     name: 'status',
     required: false,
   })
+  @ApiQuery({
+    description: 'Only runs created for this brand',
+    name: 'brandId',
+    required: false,
+  })
   async getTurboRuns(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Query('status') status?: TurboRunStatus,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('brandId') brandId?: string,
   ) {
     try {
       const organization = resolveTenantReadScope(user).organizationId;
 
       const data = await this.turboRunService.getTurboRuns(organization, {
+        brandId: brandId || undefined,
         limit: limit ? parseInt(limit, 10) : undefined,
         offset: offset ? parseInt(offset, 10) : undefined,
         status,

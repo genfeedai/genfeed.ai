@@ -114,7 +114,12 @@ export class TurboRunService {
   @HandleErrors('get runs', 'turbo-run')
   getTurboRuns(
     orgId: string,
-    query?: { status?: TurboRunStatus; limit?: number; offset?: number },
+    query?: {
+      brandId?: string;
+      status?: TurboRunStatus;
+      limit?: number;
+      offset?: number;
+    },
   ): Promise<{ items: ITurboRunSummary[]; total: number }> {
     return this.reviewService.getTurboRuns(orgId, query);
   }
