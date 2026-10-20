@@ -60,12 +60,19 @@ vi.mock('@/components/analytics/AnalyticsPublicRouteSync', () => ({
 }));
 
 vi.mock('@ui/modals/brands/instagram/InstagramAccountSelector', () => ({
-  default: (props: { credentialId: string; onConnected: () => void }) => {
+  default: (props: {
+    credentialId: string;
+    onBack?: () => void;
+    onConnected: () => void;
+  }) => {
     mockInstagramAccountSelector(props);
     return (
       <div data-testid="instagram-account-selector">
         <button onClick={props.onConnected} type="button">
           confirm-selection
+        </button>
+        <button onClick={props.onBack} type="button">
+          cancel-selection
         </button>
       </div>
     );
@@ -497,6 +504,27 @@ describe('OAuthPlatformForm', () => {
     );
     expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('aborts without saving and returns to the connect origin when the operator cancels account selection', async () => {
+    const brandId = '11111111-1111-4111-8111-111111111111';
+    window.sessionStorage.setItem(
+      'oauth_connect_context',
+      JSON.stringify({ brandId }),
+    );
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-ambiguous',
+      isConnected: false,
+      needsAccountSelection: true,
+    });
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    fireEvent.click(await screen.findByText('cancel-selection'));
+
+    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+    expect(window.sessionStorage.getItem('oauth_connect_context')).toBeNull();
+    expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
   });
 
   it('completes the redirect once the operator confirms a selected Instagram account', async () => {

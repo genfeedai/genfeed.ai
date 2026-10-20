@@ -217,6 +217,7 @@ const UI_TEST_MESSAGES = {
         selectAccount: {
           alreadyConnected: 'Already connected',
           back: 'Go back',
+          cancel: 'Cancel',
           confirm: 'Use this account',
           confirmError: 'Failed to connect this account. Please try again.',
           confirming: 'Connecting…',
