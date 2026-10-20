@@ -108,7 +108,7 @@ describe('BreakoutRemixOfferService', () => {
             sourcePostId: 'source-a',
           }),
         }),
-        value: 'A X post is outperforming your usual posts',
+        value: 'Your X post is outperforming your usual posts',
       }),
     );
   });

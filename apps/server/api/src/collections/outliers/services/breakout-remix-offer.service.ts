@@ -28,8 +28,20 @@ export interface BreakoutRemixOfferPayload {
   sourcePostId: string | null;
 }
 
+const PLATFORM_LABELS: Readonly<Record<string, string>> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  mastodon: 'Mastodon',
+  pinterest: 'Pinterest',
+  threads: 'Threads',
+  tiktok: 'TikTok',
+  twitter: 'X',
+  youtube: 'YouTube',
+};
+
 function platformLabel(platform: string): string {
-  return platform === 'twitter' ? 'X' : platform;
+  return PLATFORM_LABELS[platform] ?? platform;
 }
 
 function snippet(text: string | null | undefined): string | null {
@@ -144,7 +156,7 @@ export class BreakoutRemixOfferService {
       userId: actor.userId,
       value: preview
         ? `“${preview}” is outperforming your usual ${platformLabel(source.platform)} posts`
-        : `A ${platformLabel(source.platform)} post is outperforming your usual posts`,
+        : `Your ${platformLabel(source.platform)} post is outperforming your usual posts`,
     });
     return recorded.id;
   }
