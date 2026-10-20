@@ -84,6 +84,9 @@
     "trends": {
       "ready": "Trend summary ready"
     },
+    "breakout": {
+      "remix_offered": "A post is breaking out. Remix it"
+    },
     "approval": {
       "requested": "Tool approval needed"
     },
