@@ -260,9 +260,10 @@ export default function AppLayout({
             className={cn(
               'flex flex-1 flex-col bg-background',
               // Menu and page share one block directly beside the rail and
-              // below the topbar. The inspector finishes the right corners.
+              // below the topbar. With the inspector open it runs flush to the
+              // window bottom and loses its rounding, matching the panel height.
               hasChrome &&
-                'md:mb-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[var(--workspace-inspector-width,0px)] xl:[[data-inspector-open=true]_&]:rounded-r-none',
+                'md:mb-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[var(--workspace-inspector-width,0px)] xl:[[data-inspector-open=true]_&]:mb-0 xl:[[data-inspector-open=true]_&]:rounded-none xl:[[data-inspector-open=true]_&]:border-r-0 xl:[[data-inspector-open=true]_&]:border-b-0',
             )}
           >
             {hasChrome ? desktopSidebar : null}
