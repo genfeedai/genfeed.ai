@@ -7,7 +7,7 @@ import {
 } from './studio-system-presets.constant';
 
 describe('Studio system presets', () => {
-  it('defines the six image/video use cases with canonical content templates and no model override', () => {
+  it('defines the image, video and edit use cases with no model override', () => {
     expect(STUDIO_SYSTEM_PRESETS.map((p) => p.label)).toEqual([
       'Profile picture',
       'Banner',
@@ -15,22 +15,31 @@ describe('Studio system presets', () => {
       'Meme',
       'Animation',
       'Dance',
+      'Remove background',
+      'Enhance photo',
+      'Retouch',
+      'Change style',
     ]);
     expect(
       new Set(STUDIO_SYSTEM_PRESETS.map((p) => studioSystemPresetId(p.key)))
         .size,
-    ).toBe(6);
+    ).toBe(STUDIO_SYSTEM_PRESETS.length);
     for (const preset of STUDIO_SYSTEM_PRESETS) {
+      expect(preset.values).not.toHaveProperty('modelKey');
+      expect(preset.values).not.toHaveProperty('prioritize');
+      if (preset.type === 'image-edit') {
+        // An edit keeps the source size and sends the raw instruction.
+        expect(preset.values).toEqual({});
+        continue;
+      }
       expect(Object.values(ContentTemplateKey)).toContain(
         preset.values.promptTemplate,
       );
-      expect(preset.values).not.toHaveProperty('modelKey');
-      expect(preset.values).not.toHaveProperty('prioritize');
       expect(preset.values.aspectRatio).toMatch(/^\d+:\d+$/);
       if (preset.type === 'video') expect(preset.values.duration).toBe(5);
     }
   });
-  it('offers each type only its own presets and none for image editing (#7494)', () => {
+  it('offers each type only its own presets, including image editing (#7494)', () => {
     const rows = STUDIO_SYSTEM_PRESETS.map((preset) => ({
       id: studioSystemPresetId(preset.key),
       organizationId: null,
@@ -41,7 +50,9 @@ describe('Studio system presets', () => {
       label: preset.label,
       description: preset.description,
       prompt: preset.prompt,
-      aspectRatio: preset.values.aspectRatio,
+      ...('aspectRatio' in preset.values
+        ? { aspectRatio: preset.values.aspectRatio }
+        : {}),
     }));
     expect(
       resolveStudioSystemPresets(rows, 'image').map((preset) => preset.label),
@@ -49,9 +60,20 @@ describe('Studio system presets', () => {
     expect(
       resolveStudioSystemPresets(rows, 'video').map((preset) => preset.label),
     ).toEqual(['Meme', 'Animation', 'Dance']);
-    // The presets are generation templates (aspect ratio, brand prompt); an
-    // edit keeps the source size and sends the raw instruction.
-    expect(resolveStudioSystemPresets(rows, 'image-edit')).toEqual([]);
+    // An edit keeps the source size and sends the raw instruction, so its
+    // presets carry wording only.
+    const editPresets = resolveStudioSystemPresets(rows, 'image-edit');
+    expect(editPresets.map((preset) => preset.label)).toEqual([
+      'Remove background',
+      'Enhance photo',
+      'Retouch',
+      'Change style',
+    ]);
+    for (const preset of editPresets) {
+      expect(preset.type).toBe('image-edit');
+      expect(preset.values).toEqual({});
+      expect(preset.prompt.length).toBeGreaterThan(0);
+    }
   });
   it('reads operator edits without restoring cleared seed settings or pinning a model', () => {
     const row = {

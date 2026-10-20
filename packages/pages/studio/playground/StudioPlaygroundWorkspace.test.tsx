@@ -154,7 +154,26 @@ const mocks = vi.hoisted(() => ({
     },
   },
   models: {
-    value: { isLoadingModels: false, models: [] as { key: string }[] },
+    value: {
+      isLoadingModels: false,
+      models: [] as {
+        inputControls?: unknown;
+        isDefault?: boolean;
+        key: string;
+        label?: string;
+        provider?: string;
+      }[],
+    } as {
+      isLoadingModels: boolean;
+      isModelCatalogReady?: boolean;
+      models: {
+        inputControls?: unknown;
+        isDefault?: boolean;
+        key: string;
+        label?: string;
+        provider?: string;
+      }[];
+    },
   },
   notify: vi.fn(),
   results: vi.fn(),

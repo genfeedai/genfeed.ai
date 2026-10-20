@@ -361,8 +361,11 @@ describe('StudioPlaygroundComposer', () => {
       isDeleted: false,
       organizationId: null,
       brandId: null,
-      category:
-        preset.type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO,
+      category: {
+        image: ModelCategory.IMAGE,
+        'image-edit': ModelCategory.IMAGE_EDIT,
+        video: ModelCategory.VIDEO,
+      }[preset.type],
       label: preset.label,
       description: preset.description,
       prompt: preset.prompt,
@@ -1266,6 +1269,36 @@ describe('StudioPlaygroundComposer', () => {
       getDefaultGenerationSetupValues('image'),
     );
     expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+  });
+
+  it('offers edit instructions in the slash menu in edit mode and keeps the generation size (#7494)', () => {
+    const onContextChange = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt=""
+        settings={getDefaultStudioPlaygroundSettings('image-edit')}
+        type="image-edit"
+      />,
+    );
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.map((command) => command.label)).toEqual(
+      expect.arrayContaining(['Remove background', 'Enhance photo']),
+    );
+    expect(context.commands.some((command) => command.label === 'Banner')).toBe(
+      false,
+    );
+    const removeBackground = STUDIO_SYSTEM_PRESETS.find(
+      (preset) => preset.key === 'studio-edit-remove-background',
+    );
+    selectSlashPreset(onContextChange, 'Remove background', '');
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith(
+      removeBackground?.prompt,
+    );
+    const applied = storeMocks.applyPreset.mock.lastCall?.[2];
+    expect(applied).toMatchObject({ type: 'image-edit' });
+    expect(applied).not.toHaveProperty('aspectRatio');
   });
 
   it('fills an empty video prompt from a template without choosing a model', () => {
