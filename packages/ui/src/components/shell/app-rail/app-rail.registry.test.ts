@@ -11,6 +11,7 @@ import {
   getRailAppRoute,
   isAppRailItemEnabled,
   isAppRailItemLocked,
+  isAppRailPathEnabled,
 } from './app-rail.registry';
 
 describe('app rail registry', () => {
@@ -113,7 +114,13 @@ describe('app rail registry', () => {
   });
 
   it('maps a route to the module flag that gates it (#5468)', () => {
-    expect(getAppRailFlagKeyForPath('/acme/brand/studio/clips')).toBe('studio');
+    expect(getAppRailFlagKeyForPath('/acme/brand/studio/clips')).toBe('clips');
+    expect(getAppRailFlagKeyForPath('/acme/brand/studio/motion')).toBe(
+      'motion',
+    );
+    expect(getAppRailFlagKeyForPath('/acme/brand/studio/playground')).toBe(
+      'studio',
+    );
     expect(getAppRailFlagKeyForPath('/acme/~/messages/replies')).toBe(
       'messages',
     );
@@ -126,37 +133,47 @@ describe('app rail registry', () => {
     expect(getAppRailFlagKeyForPath('/admin/users')).toBeUndefined();
   });
 
-  it('gates each Studio tool with its own surface switch under the studio module', () => {
+  it('gives each Studio tool its own module switch, apart from the studio module', () => {
     expect(
       Object.fromEntries(
-        APP_RAIL_REGISTRY.filter(
-          (app) => app.visibilityFlagKey === 'studio',
-        ).map((app) => [app.id, app.surfaceFlagKey ?? null]),
+        ['playground', 'storyboard', 'turbo', 'motion', 'clips', 'editor'].map(
+          (id) => [
+            id,
+            APP_RAIL_REGISTRY.find((app) => app.id === id)?.visibilityFlagKey,
+          ],
+        ),
       ),
     ).toEqual({
-      clips: 'studio_clips',
-      editor: 'studio_editor',
-      motion: 'studio_motion',
-      playground: null,
-      storyboard: 'studio_storyboard',
-      turbo: 'studio_turbo',
+      clips: 'clips',
+      editor: 'editor',
+      motion: 'motion',
+      playground: 'studio',
+      storyboard: 'storyboard',
+      turbo: 'turbo',
     });
   });
 
-  it('turns an app off when either platform switch is off', () => {
+  it('turns an app off only when its own platform switch is off', () => {
     const clips = APP_RAIL_REGISTRY.find((app) => app.id === 'clips');
     if (!clips) throw new Error('missing clips rail app');
+    expect(isAppRailItemEnabled(clips, { clips: true }, true)).toBe(true);
+    expect(isAppRailItemEnabled(clips, { clips: false }, true)).toBe(false);
     expect(
-      isAppRailItemEnabled(clips, { studio: true, studio_clips: true }, true),
+      isAppRailItemEnabled(clips, { clips: true, studio: false }, true),
     ).toBe(true);
-    expect(
-      isAppRailItemEnabled(clips, { studio: true, studio_clips: false }, true),
-    ).toBe(false);
-    expect(
-      isAppRailItemEnabled(clips, { studio: false, studio_clips: true }, true),
-    ).toBe(false);
     expect(isAppRailItemEnabled(clips, {}, true)).toBe(false);
     expect(isAppRailItemEnabled(clips, {}, false)).toBe(true);
+  });
+
+  it('answers whether the app behind a path is on', () => {
+    expect(
+      isAppRailPathEnabled('/acme/brand/studio/motion', { motion: false }),
+    ).toBe(false);
+    expect(
+      isAppRailPathEnabled('/acme/brand/studio/motion', { studio: false }),
+    ).toBe(true);
+    expect(isAppRailPathEnabled('/acme/brand/studio/motion', {})).toBe(true);
+    expect(isAppRailPathEnabled(null, { studio: false })).toBe(true);
   });
 
   it('gates every app except Workspace with a module flag', () => {

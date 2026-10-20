@@ -60,28 +60,28 @@ describe('PlatformModuleRouteGate (#5468)', () => {
   });
 
   it('blocks disabled Clips creation for regular users', () => {
-    state.flags = { studio: false };
+    state.flags = { clips: false };
     state.pathname = '/acme/brand/studio/clips/new';
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
   });
 
   it('preserves superadmin inspection of disabled Clips creation', () => {
-    state.flags = { studio: false };
+    state.flags = { clips: false };
     state.isSuperAdmin = true;
     state.pathname = '/acme/brand/studio/clips/new';
     renderGate();
     expect(screen.getByText('module content')).toBeInTheDocument();
   });
 
-  it('answers 404 on a Studio surface whose own flag is off', () => {
-    state.flags = { studio: true, studio_motion: false };
+  it('answers 404 on an app whose own flag is off', () => {
+    state.flags = { studio: true, motion: false };
     state.pathname = '/acme/brand/studio/motion';
 
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
   });
 
-  it('keeps other Studio surfaces open when one surface is off', () => {
-    state.flags = { studio: true, studio_motion: false };
+  it('keeps other apps open when one app is off', () => {
+    state.flags = { studio: true, motion: false };
     state.pathname = '/acme/brand/studio/storyboard/new';
 
     renderGate();
@@ -89,8 +89,17 @@ describe('PlatformModuleRouteGate (#5468)', () => {
     expect(screen.getByText('module content')).toBeInTheDocument();
   });
 
-  it('lets a superadmin open a Studio surface that is off', () => {
-    state.flags = { studio: true, studio_editor: false };
+  it('keeps Motion open when only the studio module is off', () => {
+    state.flags = { studio: false, motion: true };
+    state.pathname = '/acme/brand/studio/motion';
+
+    renderGate();
+
+    expect(screen.getByText('module content')).toBeInTheDocument();
+  });
+
+  it('lets a superadmin open an app that is off', () => {
+    state.flags = { studio: true, editor: false };
     state.isSuperAdmin = true;
     state.pathname = '/acme/~/studio/editor/new';
 

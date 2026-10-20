@@ -46,6 +46,7 @@ import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.p
 import {
   ADMIN_RAIL_CATEGORIES,
   getActiveAppId,
+  isAppRailPathEnabled,
 } from '@ui/shell/app-rail/app-rail.registry';
 import {
   useParams,
@@ -60,7 +61,6 @@ import {
   pickOperatorTaskContextSearchParams,
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
-import { isStudioSurfaceEnabled } from '@/lib/platform-flags/studio-surface-flags';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 
 import {
@@ -331,7 +331,7 @@ export function useAppProtectedLayout(
       (studioApp ? STUDIO_APP_MENU_ITEMS[studioApp] : [])
         .filter(
           (item) =>
-            isStudioSurfaceEnabled(item.href, platformFlags) &&
+            isAppRailPathEnabled(item.href, platformFlags) &&
             (!item.organizationModule ||
               // While preferences load, keep the always-released apps
               // (Playground, Storyboard) so their nav does not flicker.

@@ -128,8 +128,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     label: 'storyboard.label',
     organizationModule: 'storyboard',
     route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.STORYBOARD }),
-    surfaceFlagKey: 'studio_storyboard',
-    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.storyboard,
   },
   {
     activePathRoots: [APP_ROUTES.STUDIO.TURBO],
@@ -141,8 +140,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     label: 'turbo.label',
     organizationModule: 'turbo',
     route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.TURBO }),
-    surfaceFlagKey: 'studio_turbo',
-    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.turbo,
   },
   {
     activePathRoots: [APP_ROUTES.STUDIO.MOTION],
@@ -154,8 +152,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     label: 'motion.label',
     organizationModule: 'motion',
     route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.MOTION }),
-    surfaceFlagKey: 'studio_motion',
-    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.motion,
   },
   {
     activePathRoots: [APP_ROUTES.STUDIO.CLIPS],
@@ -167,8 +164,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     label: 'clips.label',
     organizationModule: 'clips',
     route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.CLIPS }),
-    surfaceFlagKey: 'studio_clips',
-    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.clips,
   },
   {
     activePathRoots: [APP_ROUTES.STUDIO.EDITOR],
@@ -180,8 +176,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     label: 'editor.label',
     organizationModule: 'editor',
     route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.EDITOR }),
-    surfaceFlagKey: 'studio_editor',
-    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.editor,
   },
   {
     activePathRoots: ['/automation'],
@@ -481,20 +476,31 @@ export function getAppRailFlagKeyForPath(
 }
 
 /**
- * Whether the platform switches behind an app are on: its module flag and, for
- * a Studio app, its surface flag. An unknown flag is on only while the flag
- * provider is unconfigured.
+ * Whether the platform switch behind an app is on. An unknown flag is on only
+ * while the flag provider is unconfigured.
  */
 export function isAppRailItemEnabled(
   app: AppRailItemConfig,
   flags: Readonly<Record<string, unknown>>,
   isConfigured: boolean,
 ): boolean {
-  return [app.visibilityFlagKey, app.surfaceFlagKey].every(
-    (flagKey) =>
-      !flagKey ||
-      (Object.hasOwn(flags, flagKey) ? flags[flagKey] === true : !isConfigured),
+  const flagKey = app.visibilityFlagKey;
+  return (
+    !flagKey ||
+    (Object.hasOwn(flags, flagKey) ? flags[flagKey] === true : !isConfigured)
   );
+}
+
+/**
+ * Whether the app that owns `path` is switched on. Only an explicit `false`
+ * hides it, so a flag the API does not know yet keeps the app visible.
+ */
+export function isAppRailPathEnabled(
+  path: string | null | undefined,
+  flags: Readonly<Record<string, unknown>>,
+): boolean {
+  const flagKey = getAppRailFlagKeyForPath(path ?? undefined);
+  return flagKey === undefined || flags[flagKey] !== false;
 }
 
 export function getAppRailHref(

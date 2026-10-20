@@ -248,7 +248,7 @@ describe('OrganizationExplorePage (#5502)', () => {
   });
 
   it('does not list apps switched off by the platform', () => {
-    mocks.flags = { ...RELEASED_FLAGS, studio: true, studio_storyboard: false };
+    mocks.flags = { ...RELEASED_FLAGS, studio: true, storyboard: false };
     render(<OrganizationExplorePage />);
 
     expect(screen.queryByTestId('explore-app-storyboard')).toBeNull();

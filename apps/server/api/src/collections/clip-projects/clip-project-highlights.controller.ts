@@ -27,7 +27,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio_clips')
+@FeatureFlag('clips')
 @OrganizationModule('clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)

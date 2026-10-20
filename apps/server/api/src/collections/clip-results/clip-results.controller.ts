@@ -39,7 +39,7 @@ import type { Request } from 'express';
 const CLIP_RESULTS_LIST_LIMIT = 100;
 
 @AutoSwagger()
-@FeatureFlag('studio_clips')
+@FeatureFlag('clips')
 @OrganizationModule('clips')
 @Controller('clip-results')
 @ApiBearerAuth()

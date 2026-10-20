@@ -11,6 +11,11 @@ import {
 export const PLATFORM_MODULE_FLAG_KEYS = [
   'agent',
   'studio',
+  'storyboard',
+  'turbo',
+  'motion',
+  'clips',
+  'editor',
   'library',
   'publishing',
   'messages',
@@ -18,19 +23,6 @@ export const PLATFORM_MODULE_FLAG_KEYS = [
   'discovery',
   'analytics',
   'automation',
-] as const;
-
-/**
- * Studio surfaces, each switchable on its own under the `studio` module. Off
- * hides the Studio nav entry and its routes; surfaces with their own API also
- * answer 404. Generate is the Studio home, so it follows the module itself.
- */
-export const PLATFORM_STUDIO_FLAG_KEYS = [
-  'studio_motion',
-  'studio_storyboard',
-  'studio_clips',
-  'studio_turbo',
-  'studio_editor',
 ] as const;
 
 /** Product features, switched from Admin → Flags. */
@@ -42,12 +34,10 @@ export const PLATFORM_FEATURE_FLAG_KEYS = [
 ] as const;
 
 export type PlatformModuleFlagKey = (typeof PLATFORM_MODULE_FLAG_KEYS)[number];
-export type PlatformStudioFlagKey = (typeof PLATFORM_STUDIO_FLAG_KEYS)[number];
 export type PlatformFeatureFlagKey =
   (typeof PLATFORM_FEATURE_FLAG_KEYS)[number];
 export type PlatformFlagKey =
   | PlatformModuleFlagKey
-  | PlatformStudioFlagKey
   | PlatformFeatureFlagKey
   | PlatformReleaseFlagKey;
 
@@ -56,7 +46,6 @@ type PlatformFlagValues = Readonly<Record<PlatformFlagKey, boolean>>;
 
 export const PLATFORM_FLAG_KEYS: readonly PlatformFlagKey[] = [
   ...PLATFORM_MODULE_FLAG_KEYS,
-  ...PLATFORM_STUDIO_FLAG_KEYS,
   ...PLATFORM_FEATURE_FLAG_KEYS,
   ...PLATFORM_RELEASE_FLAG_KEYS,
 ];
@@ -79,14 +68,9 @@ function isPlatformFlagDefaultOn(key: PlatformFlagKey): boolean {
 export const PLATFORM_FLAG_PARENTS: Readonly<
   Partial<Record<PlatformFlagKey, PlatformFlagKey>>
 > = {
-  turbo_ideas: 'studio_turbo',
+  turbo_ideas: 'turbo',
   library_canvas: 'library',
   reply_bot: 'messages',
-  studio_turbo: 'studio',
-  studio_clips: 'studio',
-  studio_editor: 'studio',
-  studio_motion: 'studio',
-  studio_storyboard: 'studio',
 };
 
 /** Direct children of `parent`, in `PLATFORM_FLAG_KEYS` order. */
@@ -155,14 +139,20 @@ export function resolvePlatformFlags(
 }
 
 /**
- * Platform module flags behind app-rail entries. Every Studio app (Playground,
- * Storyboard, Turbo, Motion, Clips, Editor) sits under the `studio` module.
+ * Platform module flags behind app-rail entries. Each app is its own module:
+ * Playground follows `studio`, and Storyboard, Turbo, Motion, Clips and Editor
+ * each have their own switch.
  */
 export const APP_RAIL_FEATURE_FLAGS = {
   agent: 'agent',
   messages: 'messages',
   discovery: 'discovery',
   studio: 'studio',
+  storyboard: 'storyboard',
+  turbo: 'turbo',
+  motion: 'motion',
+  clips: 'clips',
+  editor: 'editor',
   library: 'library',
   publishing: 'publishing',
   analytics: 'analytics',

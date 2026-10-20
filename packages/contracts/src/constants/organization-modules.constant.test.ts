@@ -124,7 +124,7 @@ describe('offered modules', () => {
     expect(
       isOrganizationModuleOffered('turbo', settings, {
         ...RELEASED,
-        studio_turbo: false,
+        turbo: false,
       }),
     ).toBe(false);
     expect(
