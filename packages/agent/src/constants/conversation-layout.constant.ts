@@ -21,9 +21,11 @@ export const AGENT_CONVERSATION_STICKY_TOP_CLASS =
  * docked composer when a vertical scrollbar is present.
  * `--agent-conversation-sticky-top` is the Cursor-style inset for sticky
  * user prompts; override on this node when a banner sits above the transcript.
+ * A flex column lets the transcript grow so the column footer (composer)
+ * stays at the bottom of a short conversation instead of floating under it.
  */
 export const AGENT_CONVERSATION_SCROLL_CLASS =
-  'min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-gutter:stable_both-edges] [--agent-conversation-sticky-top:0.75rem]';
+  'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-gutter:stable_both-edges] [--agent-conversation-sticky-top:0.75rem]';
 
 /**
  * Off-screen assistant/work rows skip paint via content-visibility while

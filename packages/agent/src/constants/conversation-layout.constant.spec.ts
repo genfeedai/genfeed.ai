@@ -60,6 +60,10 @@ describe('conversation-layout.constant', () => {
     );
   });
 
+  it('lays the scroll region out as a column so the composer anchors to the bottom', () => {
+    expect(AGENT_CONVERSATION_SCROLL_CLASS).toContain('flex-col');
+  });
+
   it('keeps assistant prose at full foreground contrast', () => {
     expect(AGENT_ASSISTANT_PROSE_CLASS).toContain('text-foreground');
     expect(AGENT_ASSISTANT_PROSE_CLASS).not.toContain('text-foreground/');

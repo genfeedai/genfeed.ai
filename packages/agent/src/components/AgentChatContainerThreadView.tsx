@@ -243,7 +243,7 @@ export function AgentChatContainerThreadView({
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
       <div ref={scrollContainerRef} className={AGENT_CONVERSATION_SCROLL_CLASS}>
         <div
-          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'space-y-1 pt-4')}
+          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'grow space-y-1 pt-4')}
           data-composer-padding={String(composerTranscriptPaddingPx)}
           style={{ paddingBottom: composerTranscriptPaddingPx }}
         >
@@ -297,7 +297,7 @@ export function AgentChatContainerThreadView({
         {hasColumnFooter ? (
           <div
             className={cn(
-              'z-20',
+              'z-20 shrink-0',
               hasContentBehindComposer && 'sticky bottom-0 bg-background',
             )}
             data-composer-overlap={hasContentBehindComposer ? 'true' : 'false'}
