@@ -98,6 +98,16 @@ describe('useOverviewBootstrap', () => {
     expect(mockGetAuthService).not.toHaveBeenCalled();
   });
 
+  it('requests the overview for the brand the page is scoped to', async () => {
+    renderHook(() => useOverviewBootstrap({ brandId: 'brand_123' }), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockGetOverviewBootstrap).toHaveBeenCalledWith('brand_123');
+    });
+  });
+
   it('fetches fresh data when revalidateOnMount is true and auth is ready', async () => {
     const serverData = {
       analytics: { totalCredentialsConnected: 99 },

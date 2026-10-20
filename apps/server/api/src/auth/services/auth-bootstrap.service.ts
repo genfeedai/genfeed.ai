@@ -42,6 +42,12 @@ function getBrandId(record: { id?: unknown } | null | undefined): string {
   return typeof record?.id === 'string' ? record.id : '';
 }
 
+/** Brand the client page is scoped to (`?brandId=`), when it sent a plain one. */
+function getRequestedBrandId(request: AuthBootstrapRequest): string {
+  const requested = request.query?.brandId;
+  return typeof requested === 'string' ? requested.trim() : '';
+}
+
 type BootstrapBaseData = Pick<
   AccessBootstrapCachePayload,
   'access' | 'brands' | 'currentUser' | 'settings'
@@ -103,7 +109,9 @@ export class AuthBootstrapService {
       return null;
     }
 
-    const brandId = request.context?.brandId ?? user?.brandId ?? '';
+    const brandId =
+      getRequestedBrandId(request) ||
+      (request.context?.brandId ?? user?.brandId ?? '');
     const userId = request.context?.userId ?? user?.userId ?? user?.id ?? '';
 
     return [organizationId, brandId || 'no-brand', userId || 'no-user'].join(
@@ -445,7 +453,14 @@ export class AuthBootstrapService {
 
     const bootstrap = await this.resolveBootstrapBase(request);
     const organizationId = bootstrap.access.organizationId;
-    const brandId = bootstrap.access.brandId || undefined;
+    // Brand pages scope the overview to the brand in the URL, not the user's
+    // stored active brand. Only a brand the viewer can access is honoured.
+    const requestedBrandId = getRequestedBrandId(request);
+    const brandId =
+      (requestedBrandId &&
+      bootstrap.brands.some((brand) => getBrandId(brand) === requestedBrandId)
+        ? requestedBrandId
+        : bootstrap.access.brandId) || undefined;
 
     if (
       !organizationId ||
@@ -467,7 +482,11 @@ export class AuthBootstrapService {
     }
 
     const cacheKey =
-      requestCacheKey ?? this.getOverviewBootstrapCacheKey(bootstrap.access);
+      requestCacheKey ??
+      this.getOverviewBootstrapCacheKey({
+        ...bootstrap.access,
+        brandId: brandId ?? bootstrap.access.brandId,
+      });
     const cached = this.getCachedOverviewBootstrap(cacheKey);
     if (cached && !isCloudDeployment()) {
       return cached;
@@ -486,9 +505,10 @@ export class AuthBootstrapService {
     };
 
     this.setCachedOverviewBootstrap(cacheKey, payload);
-    const resolvedCacheKey = this.getOverviewBootstrapCacheKey(
-      bootstrap.access,
-    );
+    const resolvedCacheKey = this.getOverviewBootstrapCacheKey({
+      ...bootstrap.access,
+      brandId: brandId ?? bootstrap.access.brandId,
+    });
     if (resolvedCacheKey !== cacheKey) {
       this.setCachedOverviewBootstrap(resolvedCacheKey, payload);
     }

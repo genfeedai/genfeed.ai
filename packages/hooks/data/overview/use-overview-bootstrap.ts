@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 export interface UseOverviewBootstrapOptions {
+  /** Brand the page is scoped to; omit on org-level pages. */
+  brandId?: string;
   initialAnalytics?: Partial<IAnalytics>;
   initialReviewInbox?: OverviewBootstrapPayload['reviewInbox'];
   initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
@@ -83,10 +85,15 @@ export function useOverviewBootstrap(
     !!initialData;
 
   const { data, error, isError, isLoading, refetch } = useQuery({
-    queryKey: ['overview-bootstrap', effectiveUserId, orgId ?? 'no-org'],
+    queryKey: [
+      'overview-bootstrap',
+      effectiveUserId,
+      orgId ?? 'no-org',
+      options.brandId ?? null,
+    ],
     queryFn: async () => {
       const service = await getAuthService();
-      return await service.getOverviewBootstrap();
+      return await service.getOverviewBootstrap(options.brandId);
     },
     enabled: shouldFetch,
     initialData,

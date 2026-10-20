@@ -202,6 +202,16 @@ describe('AuthService', () => {
     expect(http.get).toHaveBeenCalledWith('bootstrap/overview');
     expect(result).toEqual(payload);
   });
+
+  it('getOverviewBootstrap scopes the request to a brand when given one', async () => {
+    http.get.mockResolvedValue(axiosResponse({ activeRuns: [], runs: [] }));
+
+    await service.getOverviewBootstrap('brand-1');
+
+    expect(http.get).toHaveBeenCalledWith('bootstrap/overview', {
+      params: { brandId: 'brand-1' },
+    });
+  });
 });
 
 describe('HookRemixService', () => {

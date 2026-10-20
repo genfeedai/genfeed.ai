@@ -96,9 +96,16 @@ export class AuthService extends HTTPBaseService {
       .then((res) => res.data);
   }
 
-  public async getOverviewBootstrap(): Promise<OverviewBootstrapPayload> {
-    return await this.instance
-      .get<OverviewBootstrapPayload>('bootstrap/overview')
-      .then((res) => res.data);
+  /** `brandId` scopes the overview to that brand instead of the active one. */
+  public async getOverviewBootstrap(
+    brandId?: string,
+  ): Promise<OverviewBootstrapPayload> {
+    const request = brandId
+      ? this.instance.get<OverviewBootstrapPayload>('bootstrap/overview', {
+          params: { brandId },
+        })
+      : this.instance.get<OverviewBootstrapPayload>('bootstrap/overview');
+
+    return await request.then((res) => res.data);
   }
 }

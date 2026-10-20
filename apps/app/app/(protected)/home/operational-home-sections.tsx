@@ -914,8 +914,10 @@ export default function OperationalHomeSections({
     credentialsLoading,
     refreshBrands,
   } = useBrand();
+  // Undefined on the org-level home, where no brand is selected in the URL.
+  const { brandId: collectionBrandId } = useCollectionScope();
   const { analytics, isError, isLoading, refresh, reviewInbox } =
-    useOverviewBootstrap();
+    useOverviewBootstrap({ brandId: collectionBrandId });
   const {
     executions,
     isLoading: isWorkflowExecutionsLoading,

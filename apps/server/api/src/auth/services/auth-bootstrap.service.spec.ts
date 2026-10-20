@@ -863,6 +863,59 @@ describe('AuthBootstrapService', () => {
     });
   });
 
+  it('scopes the overview to the requested brand only when the viewer can access it', async () => {
+    const organizationId = 'test-object-id';
+    const activeBrandId = 'active-brand-id';
+    const requestedBrandId = 'requested-brand-id';
+    const userId = 'test-user-id';
+    accessBootstrapCacheService.get.mockResolvedValue({
+      access: {
+        brandId: activeBrandId,
+        hasGeneratedFirstAsset: false,
+        hasDismissedAssetGate: false,
+        creditsBalance: 0,
+        hasEverHadCredits: false,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        memberRole: null,
+        organizationId,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: SubscriptionTier.SCALE,
+        userId,
+      },
+      brands: [{ id: activeBrandId }, { id: requestedBrandId }],
+      currentUser: null,
+      fleetCapabilities: null,
+      settings: null,
+      streak: null,
+    } as unknown as AccessBootstrapCachePayload);
+    const buildRequest = (brandId: string) =>
+      ({
+        context: { brandId: activeBrandId, organizationId, userId },
+        query: { brandId },
+        user: {
+          brandId: activeBrandId,
+          id: 'authProvider_4',
+          organizationId,
+          userId,
+        },
+      }) as never;
+
+    await service.getOverviewBootstrap(buildRequest(requestedBrandId));
+    expect(turboRunService.getReviewInboxSummary).toHaveBeenLastCalledWith(
+      organizationId,
+      requestedBrandId,
+      5,
+    );
+
+    await service.getOverviewBootstrap(buildRequest('someone-elses-brand'));
+    expect(turboRunService.getReviewInboxSummary).toHaveBeenLastCalledWith(
+      organizationId,
+      activeBrandId,
+      5,
+    );
+  });
+
   it('reuses the short-lived overview bootstrap cache for repeated reloads', async () => {
     const organizationId = 'test-object-id';
     const brandId = 'test-brand-id';
