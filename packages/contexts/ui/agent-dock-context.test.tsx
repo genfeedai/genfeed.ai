@@ -51,9 +51,7 @@ function DockProbe({ isAvailable = true }: { readonly isAvailable?: boolean }) {
     setIsAvailable?.(isAvailable);
   }, [isAvailable, setIsAvailable]);
 
-  return (
-    <p data-testid="dock">{dock?.isOpen ? 'open' : 'closed'}</p>
-  );
+  return <p data-testid="dock">{dock?.isOpen ? 'open' : 'closed'}</p>;
 }
 
 function renderDock(isAvailable = true) {
