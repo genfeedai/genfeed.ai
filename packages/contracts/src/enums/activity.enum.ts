@@ -34,6 +34,8 @@ export enum ActivitySource {
   BOT_GENERATION = 'bot-generate',
   VOICE_GENERATION = 'voice-generate',
   TREND_SCAN = 'trend-scan',
+  /** A published post's metrics broke out of the account's baseline. */
+  BREAKOUT_DETECTION = 'breakout-detection',
   BRAND_INTERVIEW = 'brand-interview',
   EXPERT_FIRST_SYSTEM = 'expert-first-system',
   BRAND_RELOCATION = 'brand-relocation',
@@ -136,6 +138,8 @@ export enum ActivityKey {
   WORKFLOW_REPORT_DELIVERED = 'workflow-report-delivered',
   /** A scheduled trend summary is ready. */
   TREND_SUMMARY_READY = 'trend-summary-ready',
+  /** A post is breaking out of the account's baseline: offer a remix of it. */
+  BREAKOUT_REMIX_OFFERED = 'breakout-remix-offered',
   /** An MCP tool call is waiting for approval. */
   MCP_APPROVAL_REQUESTED = 'mcp-approval-requested',
   /** Audit: a post moved between lifecycle states. */

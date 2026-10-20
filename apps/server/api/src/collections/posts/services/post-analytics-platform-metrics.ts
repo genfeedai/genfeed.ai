@@ -4,6 +4,20 @@ import type {
   BreakoutExposureMetric,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type { CredentialPlatform } from '@genfeedai/prisma';
+
+export const CREDENTIAL_PLATFORM = {
+  FACEBOOK: 'FACEBOOK' as CredentialPlatform,
+  INSTAGRAM: 'INSTAGRAM' as CredentialPlatform,
+  LINKEDIN: 'LINKEDIN' as CredentialPlatform,
+  MASTODON: 'MASTODON' as CredentialPlatform,
+  PINTEREST: 'PINTEREST' as CredentialPlatform,
+  THREADS: 'THREADS' as CredentialPlatform,
+  TIKTOK: 'TIKTOK' as CredentialPlatform,
+  TWITTER: 'TWITTER' as CredentialPlatform,
+  YOUTUBE: 'YOUTUBE' as CredentialPlatform,
+};
+
 export interface UpdateTodayAnalyticsMetrics {
   breakoutExposures?: Partial<
     Record<BreakoutExposureMetric, BreakoutExposureEvidence>

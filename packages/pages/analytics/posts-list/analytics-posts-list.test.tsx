@@ -12,6 +12,7 @@ const pushMock = vi.fn();
 const replaceMock = vi.fn();
 const useTopPostsMock = vi.fn();
 const useWinnerPostsMock = vi.fn();
+const openRemixMock = vi.fn();
 
 function ToolbarHost() {
   const { toolbarNode } = useAnalyticsContext();
@@ -71,6 +72,10 @@ vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
   ),
 }));
 
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () => ({ openRemix: openRemixMock }),
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/acme/moonrise${path}`,
@@ -93,6 +98,7 @@ describe('AnalyticsPostsList', () => {
       isLoading: false,
       topPosts: [],
     });
+    openRemixMock.mockReset();
     useWinnerPostsMock.mockReset();
     useWinnerPostsMock.mockReturnValue({
       error: null,
@@ -244,6 +250,52 @@ describe('AnalyticsPostsList', () => {
 
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       'post-9',
+    );
+  });
+
+  it('offers a remix of each winner without opening its detail', () => {
+    useWinnerPostsMock.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refetch: vi.fn(),
+      winners: [
+        {
+          brandId: 'brand-1',
+          brandName: 'Acme',
+          contentType: 'text',
+          description: null,
+          engagementRate: 2,
+          evidence: [
+            {
+              baseline: 100,
+              ratio: 9,
+              sampleSize: 30,
+              signal: 'views',
+              tier: 'breakout',
+              value: 900,
+            },
+          ],
+          label: 'Hot take',
+          platform: 'twitter',
+          postId: 'post-x1',
+          publishedAt: '2026-10-01T00:00:00.000Z',
+          totalComments: 4,
+          totalLikes: 40,
+          totalViews: 900,
+        },
+      ],
+    });
+
+    renderPostsList({ show: 'winners' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remix this winner' }));
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      kind: 'owned_post',
+      postId: 'post-x1',
+    });
+    expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
+      'closed',
     );
   });
 

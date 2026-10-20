@@ -8,6 +8,7 @@ import { ContentLearningCoreModule } from '@api/collections/content-learning/con
 import { ContentPerformanceCoreModule } from '@api/collections/content-performance/content-performance-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { BreakoutRemixOfferModule } from '@api/collections/outliers/breakout-remix-offer.module';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -54,6 +55,7 @@ const ANALYTICS_COLLECTION_SERVICES = [
   exports: [...ANALYTICS_COLLECTION_SERVICES],
   imports: [
     BrandAccessModule,
+    BreakoutRemixOfferModule,
     ContentLearningCoreModule,
     OutliersCoreModule,
     ContentPerformanceCoreModule,

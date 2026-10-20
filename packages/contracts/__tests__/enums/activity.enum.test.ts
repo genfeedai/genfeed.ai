@@ -45,6 +45,7 @@ describe('activity.enum', () => {
         'BOT_GENERATION',
         'VOICE_GENERATION',
         'TREND_SCAN',
+        'BREAKOUT_DETECTION',
         'BRAND_INTERVIEW',
         'EXPERT_FIRST_SYSTEM',
         'BRAND_RELOCATION',
@@ -102,6 +103,7 @@ describe('activity.enum', () => {
       expect(ActivitySource.BOT_GENERATION).toBe('bot-generate');
       expect(ActivitySource.VOICE_GENERATION).toBe('voice-generate');
       expect(ActivitySource.TREND_SCAN).toBe('trend-scan');
+      expect(ActivitySource.BREAKOUT_DETECTION).toBe('breakout-detection');
       expect(ActivitySource.BRAND_INTERVIEW).toBe('brand-interview');
       expect(ActivitySource.EXPERT_FIRST_SYSTEM).toBe('expert-first-system');
       expect(ActivitySource.BRAND_RELOCATION).toBe('brand-relocation');
@@ -182,6 +184,7 @@ describe('activity.enum', () => {
         'WORKFLOW_REVIEW_REQUESTED',
         'WORKFLOW_REPORT_DELIVERED',
         'TREND_SUMMARY_READY',
+        'BREAKOUT_REMIX_OFFERED',
         'MCP_APPROVAL_REQUESTED',
         'POST_LIFECYCLE_TRANSITION',
         'BRAND_OS_EXPORT_DOWNLOAD',
@@ -214,6 +217,7 @@ describe('activity.enum', () => {
       expect(ActivityKey.MODELS_TRAINING_COMPLETED).toBe(
         'model-training-completed',
       );
+      expect(ActivityKey.BREAKOUT_REMIX_OFFERED).toBe('breakout-remix-offered');
       expect(ActivityKey.SOCIAL_INTEGRATION_FAILED).toBe(
         'integration-social-failed',
       );

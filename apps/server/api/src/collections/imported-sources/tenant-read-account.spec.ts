@@ -309,20 +309,8 @@ describe('account selected data and original authorization', () => {
         ? { id: selectedBrand, organizationId: selectedOrg }
         : null,
     );
-    const credentials = vi.fn(
-      async (input: {
-        where: { organizationId: string; brandId: string };
-      }) => ({
-        docs: [
-          {
-            total:
-              input.where.organizationId === selectedOrg &&
-              input.where.brandId === selectedBrand
-                ? 2
-                : 99,
-          },
-        ],
-      }),
+    const countConnected = vi.fn(async (org: string, brand: string) =>
+      org === selectedOrg && brand === selectedBrand ? 2 : 99,
     );
     const overview = vi.fn(async (org: string) => ({
       totalViews: org === selectedOrg ? 42 : 99,
@@ -331,7 +319,7 @@ describe('account selected data and original authorization', () => {
     }));
     const controller = instance(BrandsRelationshipsController.prototype, {
       brandsService: { findOne },
-      credentialsService: { findAll: credentials },
+      credentialsService: { countConnected },
       analyticsAggregationService: { getOverviewMetrics: overview },
     });
     const request = requestFor();
@@ -339,18 +327,11 @@ describe('account selected data and original authorization', () => {
       BrandsRelationshipsController.prototype.findBrandAnalytics,
       () => controller.findBrandAnalytics(request, selectedBrand, {}, user),
     );
-    expect(result.data?.attributes).toMatchObject({ totalViews: 42 });
-    expect(credentials).toHaveBeenCalledWith(
-      {
-        where: {
-          brandId: selectedBrand,
-          organizationId: selectedOrg,
-          isConnected: true,
-          isDeleted: false,
-        },
-      },
-      { pagination: false },
-    );
+    expect(result.data?.attributes).toMatchObject({
+      totalCredentialsConnected: 2,
+      totalViews: 42,
+    });
+    expect(countConnected).toHaveBeenCalledWith(selectedOrg, selectedBrand);
     expect(overview).toHaveBeenCalledWith(
       selectedOrg,
       selectedBrand,

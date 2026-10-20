@@ -58,36 +58,22 @@ export class BrandsRelationshipsController {
       resolveTenantReadScope(user),
     );
 
-    // Count connected brands (credentials for this brand)
-    const countResult = await this.credentialsService.findAll(
-      {
-        where: {
-          brandId: brandId,
-          isConnected: true,
-          isDeleted: false,
-          organizationId: resolveTenantReadScope(user).organizationId,
-        },
-      },
-      { pagination: false },
-    );
-    const totalCredentialsConnected =
-      (countResult.docs[0] as unknown as { total?: number })?.total || 0;
+    const { organizationId } = resolveTenantReadScope(user);
+    const [metrics, totalCredentialsConnected] = await Promise.all([
+      this.analyticsAggregationService.getOverviewMetrics(
+        organizationId,
+        brandId,
+        query.startDate,
+        query.endDate,
+      ),
+      this.credentialsService.countConnected(organizationId, brandId),
+    ]);
 
-    const startDate = query.startDate;
-    const endDate = query.endDate;
-    const metrics = await this.analyticsAggregationService.getOverviewMetrics(
-      resolveTenantReadScope(user).organizationId,
-      brandId,
-      startDate,
-      endDate,
-    );
-
+    // Same payload as `GET /organizations/:id/analytics`, narrowed to the
+    // brand: the overview KPIs read engagement and active platforms too.
     return serializeSingle(request, AnalyticSerializer, {
-      monthlyGrowth: metrics.viewsGrowth,
+      ...metrics,
       totalCredentialsConnected,
-      totalPosts: metrics.totalPosts,
-      totalViews: metrics.totalViews,
-      viewsGrowth: metrics.viewsGrowth,
     });
   }
 

@@ -14,6 +14,7 @@ import {
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { captureAndDetectPostExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
+import { BreakoutRemixOfferService } from '@api/collections/outliers/services/breakout-remix-offer.service';
 import { enqueueDetectedBreakoutResponseAfterCommit } from '@api/collections/outliers/services/breakout-response-execution-queue.util';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
@@ -22,6 +23,7 @@ import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analyt
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import {
+  CREDENTIAL_PLATFORM,
   type InstagramPostMetrics,
   mapBreakoutExposureMetrics,
   mapDailyPostMetrics,
@@ -51,19 +53,7 @@ import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interface
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
-
-const CREDENTIAL_PLATFORM = {
-  FACEBOOK: 'FACEBOOK' as CredentialPlatform,
-  INSTAGRAM: 'INSTAGRAM' as CredentialPlatform,
-  LINKEDIN: 'LINKEDIN' as CredentialPlatform,
-  MASTODON: 'MASTODON' as CredentialPlatform,
-  PINTEREST: 'PINTEREST' as CredentialPlatform,
-  THREADS: 'THREADS' as CredentialPlatform,
-  TIKTOK: 'TIKTOK' as CredentialPlatform,
-  TWITTER: 'TWITTER' as CredentialPlatform,
-  YOUTUBE: 'YOUTUBE' as CredentialPlatform,
-};
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class PostAnalyticsService extends BaseService<
@@ -79,6 +69,7 @@ export class PostAnalyticsService extends BaseService<
     private readonly outliersService: OutliersService,
     private readonly checkpoints: LearningCheckpointService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    @Optional() private readonly remixOffers?: BreakoutRemixOfferService,
   ) {
     super(prisma, 'postAnalytics', logger);
   }
@@ -163,6 +154,11 @@ export class PostAnalyticsService extends BaseService<
         prisma: this.prisma,
         queue: this.workflowQueue,
       },
+      authorization.initiatingActor,
+      source,
+    );
+    // The offer is free and independent of the organization's spend opt-in above.
+    await this.remixOffers?.offerAfterCommit(
       authorization.initiatingActor,
       source,
     );

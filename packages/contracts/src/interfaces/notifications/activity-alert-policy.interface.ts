@@ -1,5 +1,6 @@
 import { ActivityKey } from '../../enums/activity.enum';
 import {
+  BREAKOUT_REMIX_NOTIFICATION_TOPIC,
   type NotificationTopic,
   SOCIAL_REPLY_NOTIFICATION_TOPIC,
 } from './notification-preference.interface';
@@ -174,6 +175,16 @@ export const ACTIVITY_ALERT_POLICIES = {
     recipients: [{ channels: ['in_app'], recipient: 'actor' }],
     severity: 'info',
     topic: 'trends.summary',
+  },
+  // A post broke out of its account's baseline. The offer costs nothing, so it
+  // does not depend on the organization's breakout-response opt-in.
+  [ActivityKey.BREAKOUT_REMIX_OFFERED]: {
+    recipients: [
+      { channels: ['in_app'], recipient: 'actor' },
+      { channels: ['in_app'], recipient: 'organization-owner' },
+    ],
+    severity: 'info',
+    topic: BREAKOUT_REMIX_NOTIFICATION_TOPIC,
   },
 } as const satisfies Readonly<
   Partial<Record<ActivityKey, ActivityAlertPolicy>>

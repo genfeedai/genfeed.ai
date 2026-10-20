@@ -508,6 +508,78 @@ describe('NotificationInboxService', () => {
       }),
     );
   });
+  it('links a breakout remix offer to the post to remix on an accessible brand', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'breakout.remix',
+        event: {
+          sourceId: 'response-1',
+          sourceType: 'breakout_response',
+          eventKey: 'breakout-remix-offered',
+          payload: {
+            version: 1,
+            kind: 'breakout_remix_offer',
+            brandId: 'brand-1',
+            platform: 'twitter',
+            responseId: 'response-1',
+            postId: 'post/1',
+            sourcePostId: null,
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+
+    const page = await service.list('org', 'recipient');
+
+    expect(page.docs[0]).toEqual(
+      expect.objectContaining({
+        topic: 'breakout.remix',
+        outcome: 'completed',
+        sourceHref: '/acme/acme-brand/analytics/posts?remixPostId=post%2F1',
+        sourceLabel: null,
+        failure: null,
+      }),
+    );
+  });
+  it('links a native-account breakout offer by its source post and hides the link on an unreachable brand', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'breakout.remix',
+        event: {
+          sourceId: 'response-2',
+          sourceType: 'breakout_response',
+          eventKey: 'breakout-remix-offered',
+          payload: {
+            version: 1,
+            kind: 'breakout_remix_offer',
+            brandId: 'brand-2',
+            platform: 'twitter',
+            responseId: 'response-2',
+            postId: null,
+            sourcePostId: 'source-1',
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([]);
+
+    expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+      null,
+    );
+
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-2', slug: 'second' },
+    ]);
+
+    expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+      '/acme/second/analytics/posts?remixSourcePostId=source-1',
+    );
+  });
   it('does not render a payload without the social reply shape as a reply', async () => {
     const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([
