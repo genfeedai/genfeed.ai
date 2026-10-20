@@ -8,7 +8,6 @@ import {
 } from '@api/collections/brands/utils/brand-context-asks.util';
 import { buildBrandContextAskCard } from '@api/services/agent-orchestrator/constants/missing-brand-context.constant';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   IBrandContextAskCard,
   IBrandContextAskRequest,
@@ -44,7 +43,7 @@ function isSameCard(
 /**
  * Server side of the in-flow brand-context question (follow-up to #6650,
  * #6651, #6648): validates and records a `brand_context:<field>` card, and
- * tells the onboarding save path whether a call belongs to onboarding.
+ * tells the onboarding save path whether a call is threadless (MCP onboarding).
  *
  * Every read and write is scoped to the organization and skips deleted rows.
  */
@@ -56,27 +55,14 @@ export class AgentBrandContextAskService {
       BrandsService,
       'findOne' | 'updateAgentConfig'
     >,
-    private readonly prisma: PrismaService,
   ) {}
 
   /**
-   * A threadless call (the MCP `onboard_brand` tool) and a call from an
-   * onboarding thread keep the onboarding contract. Any other thread,
-   * including one that cannot be found, is an in-flow save.
+   * A threadless call (the MCP `onboard_brand` tool) keeps the onboarding
+   * contract. Any call from a thread is an in-flow save.
    */
-  async resolveSaveMode(
-    ctx: ToolExecutionContext,
-  ): Promise<OnboardingAnswersSaveMode> {
-    if (!ctx.threadId) return 'onboarding';
-    const thread = await this.prisma.agentThread.findFirst({
-      select: { source: true },
-      where: {
-        id: ctx.threadId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      },
-    });
-    return thread?.source === 'onboarding' ? 'onboarding' : 'in_flow';
+  resolveSaveMode(ctx: ToolExecutionContext): OnboardingAnswersSaveMode {
+    return ctx.threadId ? 'in_flow' : 'onboarding';
   }
 
   /**

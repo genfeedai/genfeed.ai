@@ -1,13 +1,11 @@
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
-import { COMMUNITY_ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/community-onboarding-system-prompt.constant';
 import {
   GENFEED_AGENT_BRAND_QUESTION_RULE,
   GENFEED_AGENT_IDENTITY,
   GENFEED_AGENT_IDENTITY_LINE,
   GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS,
 } from '@api/services/agent-orchestrator/constants/genfeed-agent-identity.constant';
-import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import { SYSTEM_PROMPT_MANAGER } from '@api/services/agent-spawn/constants/spawn-system-prompt.constant';
 import { TASK_DECOMPOSITION_SYSTEM_PROMPT } from '@api/services/task-orchestration/constants/decomposition-prompt.constant';
 import { describe, expect, it } from 'vitest';
@@ -42,30 +40,6 @@ const AGENT_PROMPTS = [
       '## Recurring Automation Flow',
       '## Workflow Creation Flow',
       '## Livestream Bot Flow',
-      "- Today's date: {{date}}",
-    ],
-  },
-  {
-    isBrandQuestionAllowed: false,
-    name: 'cloud onboarding',
-    prompt: ONBOARDING_SYSTEM_PROMPT,
-    roleLine:
-      'In this conversation you are helping the user set up their brand through a quick conversation with one URL and button answers.',
-    roleRules: [
-      '## Brand setup conversation (follow this order)',
-      "- Today's date: {{date}}",
-    ],
-  },
-  {
-    isBrandQuestionAllowed: false,
-    name: 'self-hosted onboarding',
-    prompt: COMMUNITY_ONBOARDING_SYSTEM_PROMPT,
-    roleLine:
-      'In this conversation you are onboarding the operator of a self-hosted Genfeed instance. Guide the operator using their own provider API keys and the tools available inside this instance.',
-    roleRules: [
-      '## Brand setup conversation (follow this order)',
-      '## Self-hosted provider constraints (apply at the first-post handoff)',
-      'Never offer to sell credits or link to Genfeed Cloud billing.',
       "- Today's date: {{date}}",
     ],
   },

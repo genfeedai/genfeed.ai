@@ -79,8 +79,7 @@ export class AgentConnectionToolHandler {
     const platform = String(params.platform || '')
       .trim()
       .toLowerCase();
-    const isOnboarding = Boolean(params.isOnboarding);
-    const returnTo = isOnboarding ? '/agent/onboarding' : '/agent';
+    const returnTo = '/agent';
 
     if (platform && this.connectionRequests) {
       const result = await this.connectionRequests.start(params, ctx);

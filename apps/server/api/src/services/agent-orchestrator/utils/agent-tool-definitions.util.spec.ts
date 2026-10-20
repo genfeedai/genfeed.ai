@@ -1,7 +1,6 @@
 import {
   buildAgentChatCompletionParams,
   buildToolDefinitions,
-  CLOUD_ONLY_ONBOARDING_TOOLS,
   resolveBlockedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
 import type { CuratedActionName } from '@genfeedai/actions';
@@ -9,8 +8,8 @@ import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-function resolveToolNames(source?: string): CuratedActionName[] {
-  return buildToolDefinitions(undefined, resolveBlockedTools({ source })).map(
+function resolveToolNames(): CuratedActionName[] {
+  return buildToolDefinitions(undefined, resolveBlockedTools()).map(
     (tool) => tool.function.name as CuratedActionName,
   );
 }
@@ -19,59 +18,22 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('self-hosted onboarding tool boundary', () => {
-  it('defines payment and monthly content as cloud-only onboarding tools', () => {
-    expect(CLOUD_ONLY_ONBOARDING_TOOLS).toEqual([
-      'present_payment_options',
-      'generate_monthly_content',
-    ]);
-  });
-
-  it('blocks both cloud-only tools during self-hosted onboarding', () => {
+describe('self-hosted tool boundary', () => {
+  it('blocks payment options on self-hosted turns', () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
 
-    const tools = resolveToolNames('onboarding');
-    expect(tools).toContain('scan_brand_url');
-    expect(tools).toContain('save_onboarding_answers');
-
-    expect(tools).not.toContain('present_payment_options');
-    expect(tools).not.toContain('generate_monthly_content');
-  });
-
-  it('makes presentPaymentOptions unreachable during self-hosted onboarding', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-
-    expect(resolveToolNames('onboarding')).not.toContain(
-      'present_payment_options',
-    );
-  });
-
-  it('keeps both cloud-only tools during cloud onboarding', () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-
-    const tools = resolveToolNames('onboarding');
-    expect(tools).toContain('scan_brand_url');
-    expect(tools).toContain('save_onboarding_answers');
-
-    expect(tools).toContain('present_payment_options');
-    expect(tools).toContain('generate_monthly_content');
-  });
-
-  it('blocks payment options on self-hosted non-onboarding turns too', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-
-    const tools = resolveToolNames('agent');
+    const tools = resolveToolNames();
 
     expect(tools).not.toContain('present_payment_options');
     expect(tools).toContain('generate_monthly_content');
   });
 
-  it('blocks onboarding-only tools on cloud non-onboarding turns', () => {
+  it('blocks onboarding-only tools on cloud turns', () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
 
-    const tools = resolveToolNames('agent');
+    const tools = resolveToolNames();
 
-    expect(resolveBlockedTools({ source: 'agent' })).toEqual([
+    expect(resolveBlockedTools()).toEqual([
       'complete_brand_onboarding_step',
       'scan_brand_url',
     ]);
@@ -79,43 +41,25 @@ describe('self-hosted onboarding tool boundary', () => {
     expect(tools).toContain('generate_monthly_content');
   });
 
-  it.each([undefined, 'agent', 'proactive'])(
-    'blocks onboarding-only writes for source %s in both deployment modes',
-    (source) => {
-      for (const cloud of [undefined, '1']) {
-        vi.stubEnv('GENFEED_CLOUD', cloud);
-        expect(resolveToolNames(source)).not.toContain('scan_brand_url');
-        expect(resolveToolNames(source)).not.toContain(
-          'complete_brand_onboarding_step',
-        );
-        // In-flow brand context answers save through the same tool; its
-        // handler accepts only fields the conversation asked on a card.
-        expect(resolveToolNames(source)).toContain('save_onboarding_answers');
-      }
-    },
-  );
+  it('blocks onboarding-only writes in both deployment modes', () => {
+    for (const cloud of [undefined, '1']) {
+      vi.stubEnv('GENFEED_CLOUD', cloud);
+      expect(resolveToolNames()).not.toContain('scan_brand_url');
+      expect(resolveToolNames()).not.toContain(
+        'complete_brand_onboarding_step',
+      );
+      // In-flow brand context answers save through the same tool; its
+      // handler accepts only fields the conversation asked on a card.
+      expect(resolveToolNames()).toContain('save_onboarding_answers');
+    }
+  });
 
-  it('adds onboarding tools to a general allow-list only on onboarding turns', () => {
+  it('keeps onboarding-only tools out of a general allow-list', () => {
     const allowed: CuratedActionName[] = ['get_brand_context'];
     expect(
-      buildToolDefinitions(
-        allowed,
-        resolveBlockedTools({ source: 'onboarding' }),
-        'onboarding',
-      ).map((tool) => tool.function.name),
-    ).toEqual(
-      expect.arrayContaining([
-        'complete_brand_onboarding_step',
-        'scan_brand_url',
-        'save_onboarding_answers',
-      ]),
-    );
-    expect(
-      buildToolDefinitions(
-        allowed,
-        resolveBlockedTools({ source: 'agent' }),
-        'agent',
-      ).map((tool) => tool.function.name),
+      buildToolDefinitions(allowed, resolveBlockedTools()).map(
+        (tool) => tool.function.name,
+      ),
     ).toEqual(['get_brand_context']);
   });
 
@@ -304,13 +248,4 @@ describe('auto-routing request shape', () => {
       expect.objectContaining({ id: 'auto-router' }),
     ]);
   });
-});
-
-it('blocks the Expert brand handoff outside onboarding', () => {
-  expect(resolveBlockedTools({ source: 'workspace' })).toContain(
-    'complete_brand_onboarding_step',
-  );
-  expect(resolveBlockedTools({ source: 'onboarding' }) ?? []).not.toContain(
-    'complete_brand_onboarding_step',
-  );
 });

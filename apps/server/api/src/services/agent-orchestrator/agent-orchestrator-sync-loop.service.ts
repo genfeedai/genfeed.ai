@@ -339,8 +339,7 @@ export class AgentOrchestratorSyncLoopService {
           ? TURBO_RUN_SCOPED_ALLOWED_TOOLS
           : undefined,
       ),
-      resolveBlockedTools({ source: request.source }),
-      request.source,
+      resolveBlockedTools(),
     );
     const allowedToolNames = new Set(
       tools.map((tool) => tool.function.name as CuratedActionName),

@@ -179,7 +179,7 @@ export function projectAgentTurnRequest(
   const content = requiredString(request.content, 'request.content');
   const threadId = requiredString(request.threadId, 'request.threadId');
   const source = optionalString(request.source);
-  if (source && !['agent', 'onboarding', 'proactive'].includes(source)) {
+  if (source && !['agent', 'proactive'].includes(source)) {
     throw new Error(`Unsupported agent request source: ${source}`);
   }
   const creditBudget = request.creditBudget;

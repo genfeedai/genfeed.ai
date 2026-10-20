@@ -1,8 +1,4 @@
-import {
-  ONBOARDING_BUTTON_CARDS,
-  ONBOARDING_CONVERSATION_FLOW,
-  ONBOARDING_SKIP_CONFIRMATION_OPTIONS,
-} from '@api/services/agent-orchestrator/constants/onboarding-conversation-flow.constant';
+import { ONBOARDING_BUTTON_CARDS } from '@api/services/agent-orchestrator/constants/onboarding-conversation-flow.constant';
 import { ONBOARDING_ANSWER_FIELD_IDS } from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 
@@ -20,13 +16,6 @@ describe('onboarding button card contract', () => {
     expect(ONBOARDING_BUTTON_CARDS.map((card) => card.field)).toEqual(
       ONBOARDING_ANSWER_FIELD_IDS,
     );
-    const rendered = ONBOARDING_BUTTON_CARDS.map((card) =>
-      ONBOARDING_CONVERSATION_FLOW.indexOf(
-        `. ${card.title} (field: ${card.field})`,
-      ),
-    );
-    expect(rendered.every((index) => index > 0)).toBe(true);
-    expect(rendered).toEqual([...rendered].sort((a, b) => a - b));
   });
 
   it.each(ONBOARDING_BUTTON_CARDS)(
@@ -70,24 +59,6 @@ describe('onboarding button card contract', () => {
       suggestionSource: 'competitors',
     });
     expect(byField.competitors?.fallbackOptions).toBeUndefined();
-    // A scan can return fewer suggestions than the card's limit, and
-    // request_input rejects maxSelections above the options shown.
-    for (const card of [byField.audience, byField.competitors])
-      expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-        `${card?.title} (field: ${card?.field}): isMultiSelect: true, maxSelections: the smaller of ${card?.maxSelections} and the number of suggestions shown (not counting Skip)`,
-      );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'Goal (field: goals): isMultiSelect: true, maxSelections: 3.',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'data.summary.suggestions.audiences',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'never invent options the scan did not return',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'skippedFields: ["competitors"]',
-    );
   });
 
   it('warns before skipping only audience, offer and competitors', () => {
@@ -107,46 +78,9 @@ describe('onboarding button card contract', () => {
         "Without competitors, I can't position you against them or track their ads and trends.",
       ],
     ]);
-    expect(ONBOARDING_SKIP_CONFIRMATION_OPTIONS).toEqual([
-      { id: 'skip_confirmed', label: 'Skip anyway' },
-      { id: 'answer_it', label: 'Answer it (+5 credits)' },
-    ]);
-    for (const card of ONBOARDING_BUTTON_CARDS.filter(
-      (entry) => entry.skipWarning,
-    ))
-      expect(ONBOARDING_CONVERSATION_FLOW).toContain(`"${card.skipWarning}"`);
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'Skip anyway (id: skip_confirmed), Answer it (+5 credits) (id: answer_it)',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'Skip on Goal, Platforms, Tone, Cadence: call save_onboarding_answers with skippedFields',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'answer_it: ask the same card again',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'already confirmed in the product modal',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'Do not ask a second confirmation card',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'If the URL answer is Skip (id: skip), do not call scan_brand_url',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).not.toContain(
-      'When the user picks Skip',
-    );
   });
 
-  it('saves after every card and never pays for a skip', () => {
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
-      'Right after each answered card, call save_onboarding_answers with only that field',
-    );
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain('a skip never does');
-    expect(ONBOARDING_CONVERSATION_FLOW).toContain('allowFreeText: false');
-  });
-
-  it('offers Learn from my Instagram on Tone through the existing connection flow', () => {
+  it('offers Learn from my Instagram on Tone', () => {
     const tone = ONBOARDING_BUTTON_CARDS.find((card) => card.field === 'tone');
     expect(tone?.options.map((option) => option.id)).toEqual([
       'keep',
@@ -155,14 +89,5 @@ describe('onboarding button card contract', () => {
       'learn_from_instagram',
       'skip',
     ]);
-    for (const rule of [
-      'call connect_social_account with platform: instagram',
-      'never publishes',
-      'call get_connection_status with platform: instagram',
-      'toneAdjustment: learn_from_instagram',
-      'call draft_brand_voice_profile once',
-      'except the Instagram connection the user picks on the Tone card',
-    ])
-      expect(ONBOARDING_CONVERSATION_FLOW).toContain(rule);
   });
 });

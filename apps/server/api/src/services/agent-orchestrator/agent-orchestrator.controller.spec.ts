@@ -108,7 +108,7 @@ describe('AgentOrchestratorController', () => {
       service.chat.mockResolvedValue({} as never);
       const body: AgentChatBodyDto = {
         content: 'hello',
-        source: 'onboarding',
+        source: 'proactive',
         threadId: 'conv-1',
       };
 
@@ -117,7 +117,7 @@ describe('AgentOrchestratorController', () => {
       expect(service.chat).toHaveBeenCalledWith(
         expect.objectContaining({
           content: 'hello',
-          source: 'onboarding',
+          source: 'proactive',
         }),
         expect.objectContaining({
           userId: expect.any(String),

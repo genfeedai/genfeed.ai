@@ -11,7 +11,6 @@ import { AgentStrategiesService } from '@api/collections/agent-strategies/servic
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentScopeContextService } from '@api/index';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
@@ -22,8 +21,6 @@ import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
-import { COMMUNITY_ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/community-onboarding-system-prompt.constant';
-import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type {
   AgentChatAttachment,
   AgentChatContext,
@@ -48,9 +45,7 @@ import {
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { AgentMessageRole, AgentType } from '@genfeedai/contracts';
-import { isExpertAccountType } from '@genfeedai/contracts/constants';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -69,12 +64,11 @@ function buildGenerationModePrompt(
 
 /**
  * Interactive chat turns may ask one missing brand-context question in-flow.
- * Onboarding asks its own cards, the brand interview runs its own script, and
- * proactive runs have nobody to answer.
+ * The brand interview runs its own script and proactive runs have nobody to
+ * answer.
  */
 function isInFlowBrandQuestionTurn(request: AgentChatRequest): boolean {
   return (
-    request.source !== 'onboarding' &&
     request.source !== 'proactive' &&
     request.agentType !== AgentType.BRAND_INTERVIEW
   );
@@ -103,7 +97,6 @@ export class AgentOrchestratorContextService {
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
-    @Optional() private readonly organizationsService?: OrganizationsService,
   ) {}
 
   /**
@@ -222,15 +215,7 @@ export class AgentOrchestratorContextService {
       policy,
       strategy?.skillSlugs,
     );
-    const onboardingOrganization =
-      request.source === 'onboarding'
-        ? await this.organizationsService?.findOne({
-            id: context.organizationId,
-            isDeleted: false,
-          })
-        : null;
     const systemPrompt = this.composeTurnSystemPrompt({
-      accountType: onboardingOrganization?.accountType,
       agentTypeConfig,
       brandContext,
       brandId: policy.brandId,
@@ -310,7 +295,7 @@ export class AgentOrchestratorContextService {
   }
 
   /**
-   * Selects the turn's system prompt: onboarding, brand interview, the
+   * Selects the turn's system prompt: brand interview, the
    * thread's or request's custom prompt, then the orchestrator base prompt
    * layered with brand context and reply style.
    */
@@ -318,15 +303,6 @@ export class AgentOrchestratorContextService {
     input: AgentTurnSystemPromptInput,
   ): string | undefined {
     const { agentTypeConfig, brandContext, replyStyle, request } = input;
-    if (request.source === 'onboarding') {
-      return this.composeOnboardingSystemPrompt({
-        accountType: input.accountType,
-        brandContext,
-        brandId: input.brandId,
-        replyStyle,
-      });
-    }
-
     if (request.agentType === AgentType.BRAND_INTERVIEW) {
       return composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT);
     }
@@ -470,33 +446,6 @@ export class AgentOrchestratorContextService {
     }
 
     return history;
-  }
-  private composeOnboardingSystemPrompt(input: {
-    accountType?: string | null;
-    brandContext:
-      | Parameters<AgentContextAssemblyService['buildSystemPrompt']>[1]
-      | null;
-    brandId?: string;
-    replyStyle?: string;
-  }): string {
-    const onboardingPrompt = isSelfHostedDeployment()
-      ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
-      : ONBOARDING_SYSTEM_PROMPT;
-    const accountPrompt = isExpertAccountType(input.accountType)
-      ? `${onboardingPrompt}\n\nAccount type: EXPERT. Replace the normal handoff: after save_onboarding_answers call complete_brand_onboarding_step. Show only its single Continue button to /onboarding/positioning. Never offer Create my first post or Go to my workspace and never call complete_onboarding for an Expert.`
-      : onboardingPrompt;
-    const scopedPrompt = input.brandId
-      ? `${accountPrompt}\n\nCurrent brand ID: ${input.brandId}. Use this saved brand; do not create a duplicate.`
-      : accountPrompt;
-    return composeAgentGuardrails(
-      input.brandContext
-        ? this.contextAssemblyService.buildSystemPrompt(
-            scopedPrompt,
-            input.brandContext,
-            { replyStyle: input.replyStyle },
-          )
-        : scopedPrompt,
-    );
   }
 
   /**

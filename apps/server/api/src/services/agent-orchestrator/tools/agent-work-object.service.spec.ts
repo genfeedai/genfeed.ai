@@ -456,52 +456,6 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     );
   });
 
-  it.each(['agent', 'onboarding'])(
-    'opts Skip into immediate submit only for onboarding requests: %s',
-    async (source) => {
-      prisma.agentThread.findFirst.mockResolvedValue({ source });
-      await service.requestInput(
-        {
-          requestId: 'ask-1',
-          title: 'Goals',
-          prompt: 'Choose',
-          isMultiSelect: true,
-          options: [{ id: 'skip', label: 'Skip' }],
-        },
-        context as never,
-      );
-      const metadata =
-        publisher.publishInputRequest.mock.calls.at(-1)?.[0].metadata;
-      if (source === 'onboarding')
-        expect(metadata).toMatchObject({
-          submitImmediatelyOptionIds: ['skip'],
-        });
-      else expect(metadata).not.toHaveProperty('submitImmediatelyOptionIds');
-    },
-  );
-
-  it.each(['agent', 'onboarding'])(
-    'requires Skip to be the last onboarding choice: %s',
-    async (source) => {
-      prisma.agentThread.findFirst.mockResolvedValue({ source });
-      const request = service.requestInput(
-        {
-          requestId: 'ask-1',
-          title: 'Audience',
-          prompt: 'Who matters most?',
-          options: [
-            { id: 'skip', label: 'Skip' },
-            { id: 'suggested_1', label: 'Gym owners' },
-          ],
-        },
-        context as never,
-      );
-      if (source === 'onboarding')
-        await expect(request).rejects.toThrow('Skip as the last choice');
-      else await expect(request).resolves.toMatchObject({ success: true });
-    },
-  );
-
   describe('in-flow brand context cards', () => {
     const card = {
       requestId: 'brand_context:offer',
@@ -544,13 +498,6 @@ describe('AgentWorkObjectService review and scope boundary', () => {
         service.requestInput(card, context as never),
       ).rejects.toThrow('Do not ask');
       expect(publisher.publishInputRequest).not.toHaveBeenCalled();
-    });
-
-    it('leaves onboarding cards to the onboarding contract', async () => {
-      prisma.agentThread.findFirst.mockResolvedValue({ source: 'onboarding' });
-      await service.requestInput(card, context as never);
-      expect(brandContextAsks.recordAsk).not.toHaveBeenCalled();
-      expect(publisher.publishInputRequest).toHaveBeenCalled();
     });
   });
 

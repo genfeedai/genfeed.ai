@@ -71,7 +71,7 @@ export interface AgentChatRequest {
   expectedContextVersion?: number;
   hostSupportsApproval?: boolean;
   model?: string;
-  source?: 'agent' | 'onboarding' | 'proactive';
+  source?: 'agent' | 'proactive';
   threadId?: string;
 }
 

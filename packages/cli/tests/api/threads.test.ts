@@ -67,7 +67,7 @@ describe('api/threads', () => {
     mockPost.mockResolvedValue({ runId: 'run-2', threadId: 'thread-2' });
 
     const { startAgentChatStream } = await import('../../src/api/threads');
-    await startAgentChatStream({ content: 'hello', source: 'onboarding' });
+    await startAgentChatStream({ content: 'hello', source: 'proactive' });
 
     expect(mockPost).toHaveBeenCalledWith('/agent/threads/turns/stream', {
       attachments: undefined,
@@ -77,7 +77,7 @@ describe('api/threads', () => {
       expectedContextVersion: undefined,
       hostSupportsApproval: false,
       model: undefined,
-      source: 'onboarding',
+      source: 'proactive',
     });
   });
 

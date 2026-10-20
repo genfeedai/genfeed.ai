@@ -251,8 +251,7 @@ export class AgentOrchestratorStreamLoopService {
           : undefined;
       const tools = buildToolDefinitions(
         mergeAllowedTools(baseTools, scopedTools),
-        resolveBlockedTools({ source }),
-        source,
+        resolveBlockedTools(),
       );
       const allowedToolNames = new Set(
         tools.map((tool) => tool.function.name as CuratedActionName),
@@ -524,7 +523,6 @@ export class AgentOrchestratorStreamLoopService {
                   defaultModelKey,
                   model,
                   prompt: latestUserMessage,
-                  source,
                 }),
                 isFallbackContent: normalizedContent.isFallback,
                 memoryEntries: memoryEntriesForResponse,

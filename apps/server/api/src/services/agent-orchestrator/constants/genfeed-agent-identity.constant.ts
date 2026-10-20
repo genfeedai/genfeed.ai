@@ -3,7 +3,7 @@ import { MISSING_BRAND_CONTEXT_HEADER } from '@api/services/agent-orchestrator/c
 /**
  * Shared identity block every Genfeed agent system prompt starts with (#4962).
  *
- * Each role prompt (orchestrator, onboarding, brand interview, sub-agents,
+ * Each role prompt (orchestrator, brand interview, sub-agents,
  * planning, routing) imports one of the blocks below and keeps only its
  * role-specific section. Keep this Cloud-neutral: self-hosted prompts use it.
  */
@@ -20,7 +20,7 @@ export const GENFEED_AGENT_IDENTITY = `${GENFEED_AGENT_IDENTITY_LINE} Genfeed is
 
 /**
  * Only for prompts whose conversation allows free questions. Scripted flows
- * (onboarding, brand interview) and non-interactive runs (sub-agents, task
+ * (brand interview) and non-interactive runs (sub-agents, task
  * routing) use `GENFEED_AGENT_IDENTITY` without it.
  */
 export const GENFEED_AGENT_BRAND_QUESTION_RULE = `- When a missing brand fact would materially change an output, ask one short button question with request_input instead of guessing.

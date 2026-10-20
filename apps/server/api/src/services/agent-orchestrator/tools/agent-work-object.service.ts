@@ -290,7 +290,7 @@ export class AgentWorkObjectService {
     context: ToolExecutionContext,
   ) {
     const scope = this.scope(context);
-    const thread = await this.thread(scope);
+    await this.thread(scope);
     const options = Array.isArray(params.options)
       ? params.options.map((value) => {
           const option = record(value);
@@ -310,15 +310,6 @@ export class AgentWorkObjectService {
     )
       throw new BadRequestException(
         'Use one to five uniquely identified choices.',
-      );
-    const skipIndex = options.findIndex((option) => option.id === 'skip');
-    if (
-      thread.source === 'onboarding' &&
-      skipIndex !== -1 &&
-      skipIndex !== options.length - 1
-    )
-      throw new BadRequestException(
-        'Onboarding cards must list Skip as the last choice.',
       );
     const recommendedOptionId =
       typeof params.recommendedOptionId === 'string'
@@ -351,18 +342,17 @@ export class AgentWorkObjectService {
     const inputRequestId = requiredString(params.requestId, 'requestId');
     // An in-flow brand-context card is validated and recorded before it is
     // shown, so its cooldown holds even when the user never answers.
-    if (thread.source !== 'onboarding')
-      await this.brandContextAsks.recordAsk(
-        {
-          allowFreeText: params.allowFreeText === false ? false : undefined,
-          isMultiSelect,
-          maxSelections:
-            typeof maxSelections === 'number' ? maxSelections : undefined,
-          options,
-          requestId: inputRequestId,
-        },
-        scope,
-      );
+    await this.brandContextAsks.recordAsk(
+      {
+        allowFreeText: params.allowFreeText === false ? false : undefined,
+        isMultiSelect,
+        maxSelections:
+          typeof maxSelections === 'number' ? maxSelections : undefined,
+        options,
+        requestId: inputRequestId,
+      },
+      scope,
+    );
     await this.publisher.publishInputRequest({
       inputRequestId,
       threadId: scope.threadId,
@@ -377,9 +367,6 @@ export class AgentWorkObjectService {
       recommendedOptionId,
       metadata: {
         kind: 'consequential',
-        ...(thread.source === 'onboarding'
-          ? { submitImmediatelyOptionIds: ['skip'] }
-          : {}),
         brandId: scope.brandId,
         contextVersion: context.validatedScope?.contextVersion,
       },

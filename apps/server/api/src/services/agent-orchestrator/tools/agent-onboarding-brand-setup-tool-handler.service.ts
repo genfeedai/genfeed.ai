@@ -315,7 +315,7 @@ export class AgentOnboardingBrandSetupToolHandler {
       throw new ForbiddenException(
         'The brand is not available in this organization.',
       );
-    const saveMode = await this.brandContextAsks.resolveSaveMode(ctx);
+    const saveMode = this.brandContextAsks.resolveSaveMode(ctx);
     if (saveMode === 'in_flow')
       this.brandContextAsks.assertInFlowSaveAllowed(
         brand.agentConfig,

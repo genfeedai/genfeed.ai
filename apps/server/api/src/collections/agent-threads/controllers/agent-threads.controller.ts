@@ -89,9 +89,7 @@ export class AgentThreadsController {
         : undefined;
       // Brand selected → hard filter to that brand. Brand cleared → full org.
       const brandId = brand?.trim() ? brand.trim() : undefined;
-      // Entry-point filter. Onboarding resume queries `source=onboarding` so
-      // the newest onboarding thread is found regardless of how many newer
-      // standard threads exist.
+      // Entry-point filter (`agent`, `proactive`).
       const threadSource = source?.trim() ? source.trim() : undefined;
       const threads = await this.agentThreadsService.getUserThreads(
         dbUserId,

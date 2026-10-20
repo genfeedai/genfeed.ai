@@ -7,11 +7,8 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
  */
 
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
-import { AgentOnboardingKickoffController } from '@api/collections/agent-threads/controllers/agent-onboarding-kickoff.controller';
 import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
-import { AgentOnboardingBrandHandoffService } from '@api/collections/agent-threads/services/agent-onboarding-brand-handoff.service';
-import { AgentOnboardingKickoffService } from '@api/collections/agent-threads/services/agent-onboarding-kickoff.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -24,11 +21,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [
-    AgentRunsController,
-    AgentThreadsController,
-    AgentOnboardingKickoffController,
-  ],
+  controllers: [AgentRunsController, AgentThreadsController],
   exports: [AgentScopeContextService, AgentThreadsService],
   imports: [
     BrandAccessModule,
@@ -40,8 +33,6 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentThreadsService,
-    AgentOnboardingKickoffService,
-    AgentOnboardingBrandHandoffService,
     AgentThreadProjectorService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },

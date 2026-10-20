@@ -96,7 +96,7 @@ export interface AgentChatRequest {
   /** Trusted internal provenance for a user-confirmed cross-thread handoff. */
   transferId?: string;
   model?: string;
-  source?: 'agent' | 'proactive' | 'onboarding';
+  source?: 'agent' | 'proactive';
   systemPromptOverride?: string;
   /** False when the invoking host cannot persist or resume an approval. */
   hostSupportsApproval?: boolean;

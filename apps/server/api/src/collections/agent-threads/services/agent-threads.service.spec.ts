@@ -81,7 +81,7 @@ describe('AgentThreadsService Prisma row contract', () => {
       'org-1',
       AgentThreadStatus.ACTIVE,
       undefined,
-      'onboarding',
+      'proactive',
       FIRST_PAGE,
     );
 
@@ -90,13 +90,13 @@ describe('AgentThreadsService Prisma row contract', () => {
       expect.objectContaining({
         isDeleted: false,
         organizationId: 'org-1',
-        source: 'onboarding',
+        source: 'proactive',
         status: AgentThreadStatus.ACTIVE,
         userId: 'user-1',
       }),
     );
     expect(call.orderBy).toEqual([{ updatedAt: 'desc' }, { id: 'desc' }]);
-    // The source filter runs in the database, so the newest onboarding thread
+    // The source filter runs in the database, so the newest thread of that source
     // is on page one however many newer standard threads exist.
     expect(call.take).toBe(50);
     expect(call.skip).toBe(0);
