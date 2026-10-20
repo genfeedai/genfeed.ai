@@ -122,58 +122,13 @@ test.describe('Chat flow interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('onboarding entry renders the chat composer', async ({
+  test('legacy agent onboarding URLs redirect to the onboarding page', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/agent/onboarding`);
-    await typeInComposer(authenticatedPage, 'I make short-form videos');
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('onboarding composer submits an answer', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/agent/onboarding`);
-    const wasTyped = await typeInComposer(
-      authenticatedPage,
-      'My brand is about cooking',
-    );
-    if (wasTyped) {
-      await submitComposer(authenticatedPage);
-    }
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('onboarding wizard advances when steps are present', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/agent/onboarding`);
-    await tryClick(authenticatedPage, 'button:has-text("Next")');
-    await tryClick(authenticatedPage, 'button:has-text("Continue")');
-    await tryClick(authenticatedPage, 'button:has-text("Get started")');
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('onboarding thread route resumes a conversation', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(
-      authenticatedPage,
-      `${ORG}/agent/onboarding/thread-1`,
-    );
-    await typeInComposer(authenticatedPage, 'Continuing onboarding');
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('onboarding thread route stays interactive', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(
-      authenticatedPage,
-      `${ORG}/agent/onboarding/thread-1`,
-    );
-    await tryClick(authenticatedPage, 'button');
-    await tryClick(authenticatedPage, 'a');
-    await assertHealthy(authenticatedPage);
+    await authenticatedPage.goto(`${ORG}/agent/onboarding`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(authenticatedPage).not.toHaveURL(/\/agent\/onboarding/);
+    await expectNoErrorOverlay(authenticatedPage);
   });
 });

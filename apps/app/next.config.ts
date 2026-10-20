@@ -334,6 +334,25 @@ const config = createAppNextConfig({
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/store/:path*'),
     },
+    // The agent onboarding conversation was replaced by the single
+    // `/onboarding` page. Keep bookmarked and emailed links working.
+    {
+      destination: APP_ROUTES.ONBOARDING.ROOT,
+      permanent: false,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        '/agent/onboarding/:path*',
+      ),
+    },
+    {
+      destination: APP_ROUTES.ONBOARDING.ROOT,
+      permanent: false,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        '/agent/onboarding/:path*',
+      ),
+    },
     ...filterRouteRedirects,
     ...adminFilterRouteRedirects,
     // Market trends moved from Analytics (own-content measurement) to

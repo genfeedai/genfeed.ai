@@ -53,7 +53,6 @@ vi.mock('@genfeedai/contracts/constants', () => ({
     AGENT: {
       JOURNEY: '/agent/journey',
       NEW: '/agent/new',
-      ONBOARDING: '/agent/onboarding',
       ROOT: '/agent',
     },
     CONNECT: '/connect',

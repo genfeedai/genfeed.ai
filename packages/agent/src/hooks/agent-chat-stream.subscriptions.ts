@@ -74,9 +74,6 @@ export type StreamSubscriptionDeps = {
     inputRequestId: string,
     timestamp: string,
   ) => boolean;
-  completeOnboardingIfNeeded: (
-    toolCalls: AgentStreamDonePayload['toolCalls'],
-  ) => void | Promise<void>;
   finalizeStream: (message: AgentChatMessage) => void;
   isAwaitingRunIdRef: MutableRefObject<boolean>;
   isThreadVisible: (threadId: string) => boolean;
@@ -508,12 +505,6 @@ export function attachAgentStreamSubscriptions(
               applyResultDashboardOperation(payload.metadata);
           }
           if (!pendingInput) deps.cleanupSubscriptions();
-
-          Promise.resolve(
-            deps.completeOnboardingIfNeeded(payload.toolCalls),
-          ).catch(() => {
-            // Intentionally swallowed — onboarding completion is fire-and-forget
-          });
         },
         false,
         settleQueuedUiActionRun,

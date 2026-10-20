@@ -1,10 +1,6 @@
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
-const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set([
-  'journey',
-  'new',
-  'onboarding',
-]);
+const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new']);
 
 const STORYBOARD_RUN_ID_EXCLUSIONS = new Set(['new']);
 

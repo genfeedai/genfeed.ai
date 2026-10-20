@@ -35,7 +35,7 @@ export default function AgentConversationRouteHost({
     // as the unthreaded conversation so /agent/new keeps the shell mounted
     // instead of rendering only a page that returns null.
     if (!rawPathname) {
-      return { isOnboarding: false, threadId: undefined };
+      return { threadId: undefined };
     }
 
     return resolveAgentConversationRoute(

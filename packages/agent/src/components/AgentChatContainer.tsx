@@ -12,51 +12,20 @@ import { AgentWebLocalCliNotice } from '@genfeedai/agent/components/AgentWebLoca
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
-import { captureAgentStreamHydration } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
-import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
-import {
-  mapSnapshotPendingInputRequest,
-  mapSnapshotRunStatus,
-  readSnapshotRunError,
-} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
-import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
 import { AlertCategory } from '@genfeedai/contracts';
-import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import Alert from '@ui/feedback/alert/Alert';
-import {
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
-
-function readOnboardingUrlSeed(
-  request: AgentInputRequest | null,
-): string | null {
-  if (!request || request.allowFreeText === false) return null;
-  const urls = (request.options ?? []).filter((option) =>
-    /^https?:\/\//i.test(option.id),
-  );
-  return (
-    urls.find((option) => option.id === request.recommendedOptionId)?.id ??
-    urls[0]?.id ??
-    null
-  );
-}
 
 export function AgentChatContainer({
   knowledgeSelection,
@@ -70,7 +39,6 @@ export function AgentChatContainer({
   emptyStateDescription = 'Ask me to generate images, create posts, check analytics, and more',
   suggestedActions,
   showSuggestedActionsWhenNotEmpty = false,
-  onOnboardingCompleted,
   onCopy,
   onRegenerate,
   onOAuthConnect,
@@ -82,7 +50,6 @@ export function AgentChatContainer({
   onUnarchive,
   isStreaming = false,
   promptBarLayoutMode = 'fixed',
-  onboardingMode = false,
   isWideLayout = false,
   workspacePlanningTaskId = null,
 }: AgentChatContainerProps): ReactElement {
@@ -126,7 +93,6 @@ export function AgentChatContainer({
     isLoadingThread,
     isReadOnly,
     isStreaming,
-    onOnboardingCompleted,
     onCopy,
     onRegenerate,
     onCreateFollowUpTasks,
@@ -147,85 +113,6 @@ export function AgentChatContainer({
   const stableSocketConnectionState = useStableSocketConnectionState(
     container.socketConnectionState,
   );
-
-  useEffect(() => {
-    if (
-      !onboardingMode ||
-      !activeThreadId ||
-      container.pendingInputRequest ||
-      stableSocketConnectionState === 'connected'
-    )
-      return;
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const recover = async () => {
-      const initial = useAgentChatStore.getState();
-      const initialRun = selectActiveRun(initial);
-      const canHydrate = captureAgentStreamHydration(activeThreadId);
-      try {
-        const snapshot = await apiService.getThreadSnapshot(
-          activeThreadId,
-          controller.signal,
-        );
-        const state = useAgentChatStore.getState();
-        const currentRun = selectActiveRun(state);
-        if (
-          controller.signal.aborted ||
-          state.activeThreadId !== activeThreadId ||
-          state.pendingInputRequest ||
-          state.threadUiBusyById[activeThreadId] ||
-          !canHydrate(snapshot) ||
-          ((initialRun.status === 'running' ||
-            initialRun.status === 'cancelling') &&
-            snapshot.activeRun?.runId !== initialRun.runId) ||
-          currentRun.runId !== initialRun.runId ||
-          currentRun.status !== initialRun.status ||
-          snapshot.lastSequence <
-            (state.threadEventSequenceById[activeThreadId] ?? 0)
-        )
-          return;
-        const card = mapSnapshotPendingInputRequest(snapshot);
-        const status = mapSnapshotRunStatus(snapshot.activeRun?.status);
-        if (
-          card ||
-          status === 'failed' ||
-          status === 'completed' ||
-          status === 'cancelled'
-        ) {
-          state.applyThreadSnapshotState(activeThreadId, snapshot);
-          state.resetStreamState();
-          state.transitionRun(activeThreadId, {
-            type: 'begin',
-            runId: snapshot.activeRun?.runId ?? null,
-            status,
-            startedAt: snapshot.activeRun?.startedAt,
-          });
-          state.transitionRun(activeThreadId, {
-            type: 'generating',
-            isGenerating: false,
-          });
-          state.setPendingInputRequest(card);
-          const error = readSnapshotRunError(snapshot);
-          if (error) state.setError(error);
-        }
-      } catch {
-        // Keep REST input available while snapshot recovery retries.
-      } finally {
-        if (!controller.signal.aborted) timer = setTimeout(recover, 2000);
-      }
-    };
-    void recover();
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [
-    activeThreadId,
-    apiService,
-    container.pendingInputRequest,
-    onboardingMode,
-    stableSocketConnectionState,
-  ]);
 
   const highlightedMessageId: string | null = null;
   const formattedError = useMemo(
@@ -268,45 +155,11 @@ export function AgentChatContainer({
       attachments?: Parameters<typeof container.handleSend>[2],
       options?: Parameters<typeof container.handleSend>[3],
     ) => {
-      const request = container.pendingInputRequest;
-      if (
-        onboardingMode &&
-        request &&
-        request.allowFreeText !== false &&
-        content.trim()
-      ) {
-        // A failed submission is already shown through the container's error
-        // state; the rejection only exists for form callers that await it.
-        container.handleSubmitInputRequest(content).catch(() => undefined);
-        return true;
-      }
       composerShell?.onSendMessage?.();
       return container.handleSend(content, mentions, attachments, options);
     },
-    [
-      composerShell?.onSendMessage,
-      container.handleSend,
-      container.handleSubmitInputRequest,
-      container.pendingInputRequest,
-      onboardingMode,
-    ],
+    [composerShell?.onSendMessage, container.handleSend],
   );
-  const seededOnboardingRequestId = useRef<string | null>(null);
-  useEffect(() => {
-    if (!onboardingMode) return;
-    const request = container.pendingInputRequest;
-    const url = readOnboardingUrlSeed(request);
-    if (
-      !request ||
-      !url ||
-      seededOnboardingRequestId.current === request.inputRequestId
-    ) {
-      return;
-    }
-    seededOnboardingRequestId.current = request.inputRequestId;
-    useAgentChatStore.getState().seedComposer(url, request.threadId);
-  }, [container.pendingInputRequest, onboardingMode]);
-
   const handleSuggestionSend = useCallback(
     (prompt: string) => {
       sendConversationMessage(prompt, undefined, undefined, {
@@ -352,24 +205,9 @@ export function AgentChatContainer({
     composerShell?.placement === 'overlay';
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
-  const [greetingCreatedAt] = useState(() => new Date().toISOString());
-  const greetingTimeline: TimelineEntry[] = [
-    {
-      kind: 'assistant-message',
-      id: 'onboarding-greeting',
-      createdAt: greetingCreatedAt,
-      message: {
-        id: 'onboarding-greeting',
-        threadId: activeThreadId ?? '',
-        role: 'assistant',
-        content: ONBOARDING_GREETING,
-        createdAt: greetingCreatedAt,
-      },
-    },
-  ];
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
-    (onboardingMode || !container.isEmpty || isShellHostedComposer);
+    (!container.isEmpty || isShellHostedComposer);
   const shouldRenderInlineComposerFeedback = !isComposerDocked;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
@@ -385,14 +223,12 @@ export function AgentChatContainer({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
     isComposerVisible:
-      !onboardingMode &&
       !isColumnComposer &&
       composerShell?.isComposerVisible !== false &&
       composerShell?.placement !== 'dock',
     overlayHeightPx: composerOverlayHeightPx,
   });
-  const placeComposerInColumn =
-    isColumnComposer && !(container.isEmpty && !onboardingMode);
+  const placeComposerInColumn = isColumnComposer && !container.isEmpty;
   const dockedComposer = shouldShowDockedComposer ? (
     shouldShowArchivedComposer && onUnarchive ? (
       <AgentArchivedComposerBar
@@ -405,9 +241,7 @@ export function AgentChatContainer({
       />
     ) : (
       <AgentChatPromptBar
-        composerBanner={
-          onboardingMode ? undefined : (runtimeBanner ?? undefined)
-        }
+        composerBanner={runtimeBanner ?? undefined}
         activeWorkEvent={activeWorkEvent}
         workEvents={container.workEvents}
         addFiles={container.addFiles}
@@ -430,9 +264,7 @@ export function AgentChatContainer({
         isAttachmentUploading={container.isAttachmentUploading}
         isBusy={container.isBusy}
         isComposerUnavailable={
-          (!onboardingMode && isLoadingThread) ||
-          (onboardingMode && !activeThreadId) ||
-          (!onboardingMode && stableSocketConnectionState !== 'connected')
+          isLoadingThread || stableSocketConnectionState !== 'connected'
         }
         followUps={container.followUpQueue.queue}
         isReadOnly={isReadOnly}
@@ -456,13 +288,9 @@ export function AgentChatContainer({
         onSendFollowUpNow={container.sendFollowUpNow}
         isInterruptingFollowUps={container.followUpQueue.isInterrupting}
         onStop={container.handleStopRun}
-        isPortalSuppressed={onboardingMode}
-        isTrackAligned={onboardingMode}
         onSubmitInputRequest={container.handleSubmitInputRequest}
         pendingInputRequest={
-          composerShell && !onboardingMode
-            ? container.pendingInputRequest
-            : null
+          composerShell ? container.pendingInputRequest : null
         }
         placeholder={container.pendingInputRequest?.prompt ?? placeholder}
         promptBarSuggestions={promptBarSuggestions}
@@ -500,14 +328,14 @@ export function AgentChatContainer({
           </div>
         ) : null}
 
-        {isLoadingThread && container.isEmpty && !onboardingMode ? (
+        {isLoadingThread && container.isEmpty ? (
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <AgentConversationSkeleton
               isWideLayout={isWideLayout}
               title={container.activeThreadTitle}
             />
           </div>
-        ) : container.isEmpty && !onboardingMode ? (
+        ) : container.isEmpty ? (
           <AgentChatEmptyState
             addFiles={container.addFiles}
             agentMode={container.draftAgentMode}
@@ -530,9 +358,7 @@ export function AgentChatContainer({
             // full-page empty keeps it inline and centered under the hero.
             // Archived threads use the docked restore bar instead of a dead
             // input.
-            isComposerVisible={
-              !onboardingMode && !isArchivedThread && !isShellHostedComposer
-            }
+            isComposerVisible={!isArchivedThread && !isShellHostedComposer}
             isReadOnly={isReadOnly}
             isRunActive={container.isRunActive}
             isWideLayout={isWideLayout}
@@ -568,7 +394,6 @@ export function AgentChatContainer({
             isSubmittingInputRequest={container.isSubmittingInputRequest}
             latestProposedPlan={container.latestProposedPlan}
             messagesEndRef={container.messagesEndRef}
-            onboardingMode={onboardingMode}
             onApprovePlan={container.handleApprovePlan}
             onBrandCreate={onBrandCreate}
             onCopy={container.handleCopy}
@@ -592,28 +417,18 @@ export function AgentChatContainer({
             hasDockedGenerationCard={hasDockedGenerationCard}
             scrollContainerRef={container.scrollContainerRef}
             scrollToBottom={container.scrollToBottom}
-            shouldShowInputRequestOverlay={
-              onboardingMode || shouldRenderInlineComposerFeedback
-            }
+            shouldShowInputRequestOverlay={shouldRenderInlineComposerFeedback}
             showFollowUpButton={
               Boolean(workspacePlanningTaskId) &&
               Boolean(onCreateFollowUpTasks) &&
               container.latestProposedPlan?.status === 'approved'
             }
-            timeline={
-              onboardingMode && container.isEmpty
-                ? greetingTimeline
-                : container.timeline
-            }
-            columnFooter={
-              onboardingMode || placeComposerInColumn
-                ? dockedComposer
-                : undefined
-            }
+            timeline={container.timeline}
+            columnFooter={placeComposerInColumn ? dockedComposer : undefined}
           />
         )}
 
-        {onboardingMode || placeComposerInColumn ? null : dockedComposer}
+        {placeComposerInColumn ? null : dockedComposer}
       </div>
     </div>
   );

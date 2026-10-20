@@ -13,12 +13,11 @@ import { useCallback, useRef } from 'react';
 interface UseAgentChatOptions {
   apiService: AgentApiService;
   model?: string;
-  onOnboardingCompleted?: () => void | Promise<void>;
 }
 
 interface SendMessageOptions {
   artifactReferences?: AgentArtifactReference[];
-  source?: 'agent' | 'proactive' | 'onboarding';
+  source?: 'agent' | 'proactive';
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
   brandId?: string;
@@ -32,7 +31,7 @@ interface UseAgentChatReturn {
 }
 
 export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
-  const { apiService, model, onOnboardingCompleted } = options;
+  const { apiService, model } = options;
   const addMessage = useAgentChatStore((s) => s.addMessage);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
@@ -163,15 +162,6 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
             uiBlocksState?.blockIds ?? metadata.blockIds,
           );
         }
-
-        const hasCompletedOnboardingTool = response.toolCalls.some(
-          (toolCall) =>
-            toolCall.toolName === 'complete_onboarding' &&
-            toolCall.status === 'completed',
-        );
-        if (hasCompletedOnboardingTool && onOnboardingCompleted) {
-          await onOnboardingCompleted();
-        }
       } catch (err) {
         if (signal.aborted) {
           return;
@@ -196,7 +186,6 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
       setCreditsRemaining,
       upsertThread,
       setLatestProposedPlan,
-      onOnboardingCompleted,
       pageContext,
     ],
   );

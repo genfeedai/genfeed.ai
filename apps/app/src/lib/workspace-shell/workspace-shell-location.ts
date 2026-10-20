@@ -48,8 +48,8 @@ export function createOverlayRequest(
 /**
  * The conversation surface is the only route that carries thread identity, and
  * it carries it in the path. The registry — not a pathname pattern — decides
- * which route that is, so sibling agent routes (`/agent/journey`,
- * `/agent/onboarding`) are never mistaken for a thread id.
+ * which route that is, so sibling agent routes (`/agent/journey`) are never
+ * mistaken for a thread id.
  */
 function getRouteThreadCandidate(
   route: ReturnType<typeof resolveWorkspaceShellRoute>,

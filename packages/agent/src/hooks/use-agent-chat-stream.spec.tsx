@@ -8,7 +8,6 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import {
-  type AgentChatMessage,
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -126,112 +125,6 @@ describe('useAgentChatStream', () => {
         }),
       ),
     ).not.toThrow();
-  });
-
-  it('surfaces a failed onboarding-completion callback without an unhandled rejection', async () => {
-    const apiService = createApiService({
-      chatStream: vi.fn().mockResolvedValue({
-        threadId: 'thread-onboarding',
-        executionId: 'run-onboarding',
-        queuedAt: '2026-09-23T12:00:00.000Z',
-        contextVersion: 1,
-      }),
-    });
-    const onOnboardingCompleted = vi
-      .fn()
-      .mockRejectedValue(new Error('Session expired'));
-    const { result } = renderHook(() =>
-      useAgentChatStream({ apiService, onOnboardingCompleted }),
-    );
-    await act(async () => {
-      await result.current.sendMessage('Skip setup');
-    });
-    await act(async () => {
-      for (const handler of socketHandlers.get('agent:done') ?? [])
-        handler({
-          threadId: 'thread-onboarding',
-          runId: 'run-onboarding',
-          fullContent: 'Setup finished.',
-          metadata: {},
-          creditsRemaining: 10,
-          toolCalls: [
-            {
-              toolName: 'complete_onboarding',
-              status: 'completed',
-              creditsUsed: 0,
-              durationMs: 1,
-            },
-          ],
-        });
-    });
-    await waitFor(() => expect(onOnboardingCompleted).toHaveBeenCalled());
-    expect(useAgentChatStore.getState().error).toContain(
-      'Could not finish setup',
-    );
-  });
-
-  it('restores the next input card and onboarding completion from a recovered reply', async () => {
-    vi.useFakeTimers();
-    const reply: AgentChatMessage = {
-      id: 'reply-complete',
-      threadId: 'thread-onboarding',
-      role: 'assistant',
-      content: 'Your brand is ready',
-      createdAt: new Date().toISOString(),
-      metadata: { runId: 'run-onboarding' },
-      toolCalls: [
-        {
-          toolName: 'request_input',
-          status: 'completed',
-          creditsUsed: 0,
-          durationMs: 1,
-        },
-        {
-          toolName: 'complete_onboarding',
-          status: 'completed',
-          creditsUsed: 0,
-          durationMs: 1,
-        },
-      ],
-    };
-    const apiService = createApiService({
-      chatStream: vi.fn().mockResolvedValue({
-        threadId: 'thread-onboarding',
-        executionId: 'run-onboarding',
-        queuedAt: reply.createdAt,
-        contextVersion: 1,
-      }),
-      getMessages: vi.fn().mockResolvedValue([reply]),
-      getThreadSnapshot: vi.fn().mockResolvedValue({
-        threadId: 'thread-onboarding',
-        pendingInputRequests: [
-          {
-            requestId: 'next-question',
-            title: 'Next question',
-            prompt: 'Choose',
-            options: [],
-            allowFreeText: false,
-          },
-        ],
-      }),
-    });
-    const onOnboardingCompleted = vi.fn();
-    const { result } = renderHook(() =>
-      useAgentChatStream({ apiService, onOnboardingCompleted }),
-    );
-    await act(async () => {
-      await result.current.sendMessage('Go to my workspace');
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(11_000);
-    });
-    expect(apiService.getThreadSnapshot).toHaveBeenCalledWith(
-      'thread-onboarding',
-    );
-    expect(
-      useAgentChatStore.getState().pendingInputRequest?.inputRequestId,
-    ).toBe('next-question');
-    expect(onOnboardingCompleted).toHaveBeenCalledOnce();
   });
 
   it('buffers early socket events until the stream response provides the thread id', async () => {

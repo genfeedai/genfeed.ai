@@ -15,13 +15,12 @@ import type { MutableRefObject } from 'react';
 export interface UseAgentChatStreamOptions {
   apiService: AgentApiService;
   model?: string;
-  onOnboardingCompleted?: () => void | Promise<void>;
 }
 
 export interface SendStreamMessageOptions {
   artifactReferences?: AgentArtifactReference[];
   forceNewThread?: boolean;
-  source?: 'agent' | 'proactive' | 'onboarding';
+  source?: 'agent' | 'proactive';
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
   brandId?: string;

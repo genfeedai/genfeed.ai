@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
 import { applyRailAppOrder } from '@genfeedai/contracts/constants';
 import type {
   AppRailNavigationItem,
@@ -16,7 +15,6 @@ import type {
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
-import { Button } from '@ui/primitives/button';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -61,7 +59,6 @@ function AppRailItem({
   href,
   isActive,
   isLocked,
-  isNavigationSuspended = false,
   onNavigateStart,
 }: AppRailItemProps) {
   const t = useTranslations('common.appRail');
@@ -72,13 +69,11 @@ function AppRailItem({
   );
   const shortcutLabel = formatRailShortcut(shortcut);
   const hasBadge = !isLocked && badge !== undefined && badge.count > 0;
-  const accessibleLabel = isNavigationSuspended
-    ? `${label}. ${t('onboardingHold')}`
-    : isLocked
-      ? t('locked', { app: label })
-      : hasBadge
-        ? `${label}, ${badge.label}`
-        : label;
+  const accessibleLabel = isLocked
+    ? t('locked', { app: label })
+    : hasBadge
+      ? `${label}, ${badge.label}`
+      : label;
   const itemClassName = cn(
     'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
@@ -88,7 +83,6 @@ function AppRailItem({
       ? 'bg-foreground/[0.12] text-foreground'
       : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground',
     isLocked && 'opacity-60',
-    isNavigationSuspended && 'opacity-40',
   );
   const itemBody = (
     <>
@@ -119,52 +113,37 @@ function AppRailItem({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {isNavigationSuspended ? (
-          <Button
-            aria-describedby={`app-rail-desc-${app.id}`}
-            ariaLabel={accessibleLabel}
-            className={itemClassName}
-            data-testid={`app-rail-item-${app.id}`}
-            isDisabled
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          >
-            {itemBody}
-          </Button>
-        ) : (
-          <Link
-            href={href}
-            prefetch={false}
-            // The slot around the link is the drag source, so the browser's
-            // own link drag never competes with reordering.
-            draggable={false}
-            aria-current={isActive ? 'page' : undefined}
-            aria-describedby={`app-rail-desc-${app.id}`}
-            aria-label={accessibleLabel}
-            data-testid={`app-rail-item-${app.id}`}
-            onBlur={(event) => {
-              intent.onBlur();
-              hoverProps.onBlur(event);
-            }}
-            onClick={onNavigateStart}
-            onFocus={(event) => {
-              intent.onFocus();
-              hoverProps.onFocus(event);
-            }}
-            onMouseEnter={(event) => {
-              intent.onMouseEnter();
-              hoverProps.onMouseEnter(event);
-            }}
-            onMouseLeave={(event) => {
-              intent.onMouseLeave();
-              hoverProps.onMouseLeave(event);
-            }}
-            className={itemClassName}
-          >
-            {itemBody}
-          </Link>
-        )}
+        <Link
+          href={href}
+          prefetch={false}
+          // The slot around the link is the drag source, so the browser's
+          // own link drag never competes with reordering.
+          draggable={false}
+          aria-current={isActive ? 'page' : undefined}
+          aria-describedby={`app-rail-desc-${app.id}`}
+          aria-label={accessibleLabel}
+          data-testid={`app-rail-item-${app.id}`}
+          onBlur={(event) => {
+            intent.onBlur();
+            hoverProps.onBlur(event);
+          }}
+          onClick={onNavigateStart}
+          onFocus={(event) => {
+            intent.onFocus();
+            hoverProps.onFocus(event);
+          }}
+          onMouseEnter={(event) => {
+            intent.onMouseEnter();
+            hoverProps.onMouseEnter(event);
+          }}
+          onMouseLeave={(event) => {
+            intent.onMouseLeave();
+            hoverProps.onMouseLeave(event);
+          }}
+          className={itemClassName}
+        >
+          {itemBody}
+        </Link>
       </TooltipTrigger>
       <TooltipContent
         side="right"
@@ -197,7 +176,6 @@ export function AppRail({
   header,
   installedAppIds,
   isAssetGateLocked = false,
-  isNavigationSuspended = false,
   moduleAccess,
   modulePreferences,
   onNavigate,
@@ -349,10 +327,7 @@ export function AppRail({
     );
     return items.map((item) => byId.get(item.app.id) ?? item);
   }, [items, moreItems, railItems]);
-  const isReorderable =
-    onRailAppOrderChange !== undefined &&
-    !isAdminChrome &&
-    !isNavigationSuspended;
+  const isReorderable = onRailAppOrderChange !== undefined && !isAdminChrome;
   const reorder = useCallback(
     (order: readonly string[], moved?: { id: string; position: number }) => {
       onRailAppOrderChange?.(order);
@@ -432,7 +407,6 @@ export function AppRail({
   });
   const handleNavigate = useCallback(
     (item: AppRailNavigationItem, via: AppRailNavigationVia) => {
-      if (isNavigationSuspended) return;
       onNavigationEvent?.({
         from_app: activeAppId ?? null,
         to_app: item.app.id,
@@ -449,7 +423,6 @@ export function AppRail({
     },
     [
       activeAppId,
-      isNavigationSuspended,
       onNavigationEvent,
       onOpenAdminExternally,
       surface,
@@ -466,7 +439,6 @@ export function AppRail({
     items: navigationItems,
     surface,
     isDesktop,
-    isSuspended: isNavigationSuspended,
     commandLabel,
     navigate: handleNavigate,
   });
@@ -478,7 +450,6 @@ export function AppRail({
         {...item}
         badge={badges?.[item.app.id]}
         isActive={item.app.id === activeAppId}
-        isNavigationSuspended={isNavigationSuspended}
         onNavigateStart={(event) => {
           // The link would also navigate in place; Admin opens elsewhere.
           if (onOpenAdminExternally && item.app.group === 'admin') {
@@ -506,7 +477,7 @@ export function AppRail({
         data-testid={`app-rail-slot-${item.app.id}`}
         key={item.app.id}
         onContextMenu={(event) => {
-          if (isNavigationSuspended || (!isReorderable && !onTogglePin)) return;
+          if (!isReorderable && !onTogglePin) return;
           event.preventDefault();
           // A keyboard-opened menu reports no pointer position: anchor it
           // beside the item instead.
@@ -542,7 +513,6 @@ export function AppRail({
         className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         // Page menu: the one surface exempt from the product motion policy.
         data-motion="allow"
-        data-onboarding-hold={isNavigationSuspended ? 'true' : 'false'}
         data-testid="app-rail"
       >
         {header ? (
@@ -567,7 +537,6 @@ export function AppRail({
             {railItems.map(renderRailItem)}
             {showMore ? (
               <AppRailMore
-                isSuspended={isNavigationSuspended}
                 items={moreItems}
                 onOpen={(item) => handleNavigate(item, 'click')}
                 onReset={onResetRail}
@@ -591,16 +560,7 @@ export function AppRail({
             data-testid="app-rail-bottom"
           >
             {admin ? renderItem(admin) : null}
-            {footer ? (
-              <div
-                className={cn(
-                  isNavigationSuspended && 'pointer-events-none opacity-40',
-                )}
-                inert={isNavigationSuspended || undefined}
-              >
-                {footer}
-              </div>
-            ) : null}
+            {footer ? <div>{footer}</div> : null}
           </div>
         ) : null}
       </nav>

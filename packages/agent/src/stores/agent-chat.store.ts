@@ -43,16 +43,6 @@ import {
   isAgentUiActionSourceOwner,
 } from '@genfeedai/contracts/interfaces';
 import {
-  ONBOARDING_JOURNEY_MISSIONS,
-  ONBOARDING_JOURNEY_TOTAL_CREDITS,
-  ONBOARDING_SIGNUP_GIFT_CREDITS,
-  ONBOARDING_TOTAL_VISIBLE_CREDITS,
-} from '@genfeedai/contracts/types/onboarding-journey';
-import type {
-  OnboardingChecklistStatus,
-  OnboardingChecklistStep,
-} from '@genfeedai/props/ui/agent/agent-onboarding.props';
-import {
   adoptNewScopeSetup,
   buildAgentGenerationSetupScope,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
@@ -153,21 +143,6 @@ export type AgentSocketConnectionState =
   | 'connected'
   | 'reconnecting'
   | 'offline';
-
-const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] =
-  ONBOARDING_JOURNEY_MISSIONS.map(
-    (mission, index): OnboardingChecklistStep => ({
-      ctaHref: mission.ctaHref,
-      ctaLabel: mission.ctaLabel,
-      description: mission.description,
-      id: mission.id,
-      isClaimed: false,
-      isRecommended: index === 0,
-      rewardCredits: mission.rewardCredits,
-      status: 'pending',
-      title: mission.label,
-    }),
-  );
 
 interface AgentStreamState {
   acceptedReceipt?: AgentTurnAcceptedPayload;
@@ -270,12 +245,6 @@ interface AgentChatState {
   overlayAutoCollapsedAgent: boolean;
   userChangedAgentDuringOverlay: boolean;
   wasAgentOpenBeforeOverlay: boolean;
-  onboardingSteps: OnboardingChecklistStep[];
-  onboardingEarnedCredits: number;
-  onboardingTotalJourneyCredits: number;
-  onboardingSignupGiftCredits: number;
-  onboardingTotalVisibleCredits: number;
-  onboardingCompletionPercent: number;
   workEvents: AgentWorkEvent[];
   socketConnectionState: AgentSocketConnectionState;
   stream: AgentStreamState;
@@ -373,18 +342,6 @@ interface AgentChatActions {
   setMemoryEntries: (entries: AgentMemoryEntry[]) => void;
   addMemoryEntry: (entry: AgentMemoryEntry) => void;
   removeMemoryEntry: (entryId: string) => void;
-  setOnboardingStepStatus: (
-    stepId: string,
-    status: OnboardingChecklistStatus,
-  ) => void;
-  setOnboardingChecklist: (payload: {
-    steps: OnboardingChecklistStep[];
-    earnedCredits?: number;
-    totalJourneyCredits?: number;
-    signupGiftCredits?: number;
-    totalOnboardingCreditsVisible?: number;
-    completionPercent?: number;
-  }) => void;
   appendStreamToken: (token: string) => void;
   setStreamingReasoning: (content: string) => void;
   addActiveToolCall: (toolCall: AgentToolCall) => void;
@@ -1043,12 +1000,6 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
     messages: [],
     messagesCursor: null,
     modelCosts: {},
-    onboardingCompletionPercent: 0,
-    onboardingEarnedCredits: 0,
-    onboardingSignupGiftCredits: ONBOARDING_SIGNUP_GIFT_CREDITS,
-    onboardingSteps: DEFAULT_ONBOARDING_STEPS,
-    onboardingTotalJourneyCredits: ONBOARDING_JOURNEY_TOTAL_CREDITS,
-    onboardingTotalVisibleCredits: ONBOARDING_TOTAL_VISIBLE_CREDITS,
     overlayActiveIds: [],
     overlayAutoCollapsedAgent: false,
     pageContext: null,
@@ -1275,25 +1226,6 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         };
       }),
     setModelCosts: (costs) => set({ modelCosts: costs }),
-    setOnboardingChecklist: (payload) =>
-      set({
-        onboardingCompletionPercent: payload.completionPercent ?? 0,
-        onboardingEarnedCredits: payload.earnedCredits ?? 0,
-        onboardingSignupGiftCredits: payload.signupGiftCredits ?? 0,
-        onboardingSteps: payload.steps,
-        onboardingTotalJourneyCredits:
-          payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS,
-        onboardingTotalVisibleCredits:
-          payload.totalOnboardingCreditsVisible ??
-          (payload.signupGiftCredits ?? 0) +
-            (payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS),
-      }),
-    setOnboardingStepStatus: (stepId, status) =>
-      set((state) => ({
-        onboardingSteps: state.onboardingSteps.map((step) =>
-          step.id === stepId ? { ...step, status } : step,
-        ),
-      })),
     setPageContext: (context) => set({ pageContext: context }),
     setPendingInputRequest: (request) => set({ pendingInputRequest: request }),
     setRunStartedAt: (startedAt) =>

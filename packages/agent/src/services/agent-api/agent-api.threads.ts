@@ -17,7 +17,6 @@ import type {
   AgentScopePayload,
   AgentTransferPresentation,
   IAgentTransfer,
-  IUser,
 } from '@genfeedai/contracts/interfaces';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
@@ -188,31 +187,6 @@ export async function createThread(
   );
 }
 
-export async function kickoffOnboarding(
-  api: AgentBaseApiService,
-  brandId?: string | null,
-  signal?: AbortSignal,
-): Promise<AgentThread> {
-  return api.fetchResource<AgentThread>(
-    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/onboarding/kickoff`,
-    { body: JSON.stringify({ brandId }), method: 'POST', signal },
-    'Failed to start onboarding',
-    'Failed to deserialize onboarding thread',
-  );
-}
-
-export async function completeExpertBrandHandoff(
-  api: AgentBaseApiService,
-  brandId?: string | null,
-): Promise<IUser> {
-  return api.fetchResource<IUser>(
-    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/onboarding/brand/handoff`,
-    { body: JSON.stringify({ brandId }), method: 'POST' },
-    'Failed to continue Expert setup',
-    'Failed to deserialize onboarding progress',
-  );
-}
-
 export async function sendMessage(
   api: AgentBaseApiService,
   payload: SendMessagePayload,
@@ -288,7 +262,7 @@ export async function getThreads(
     brandId?: string | null;
     /**
      * When set, list is narrowed server-side to threads opened from that entry
-     * point (`onboarding`, `agent`, `proactive`).
+     * point (`agent`, `proactive`).
      */
     source?: string | null;
   },

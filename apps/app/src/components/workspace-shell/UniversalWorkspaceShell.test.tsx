@@ -943,27 +943,6 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('keeps the context sidebar on onboarding and leaves the composer in the column', () => {
-    navigation.pathname = '/acme/~/agent/onboarding';
-    agentState.activeThreadId = null;
-
-    const { container } = render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div data-testid="canonical-canvas">Onboarding conversation</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
-      'data-workspace-surface',
-      'agent-onboarding',
-    );
-    expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
-    expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
-    expect(
-      container.querySelector('#workspace-context-inspector'),
-    ).toBeInTheDocument();
-  });
-
   it('binds the topbar brand on product routes without a surface adapter', async () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();

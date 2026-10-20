@@ -6,8 +6,6 @@ import {
   findAgentStreamEntry,
   projectAgentStreamEntry,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
-import { useOnboardingBrandContext } from '@genfeedai/agent/hooks/use-onboarding-brand-context';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -98,7 +96,6 @@ interface UseAgentFullPageParams {
   apiService: AgentApiService;
   authReady: boolean;
   threadId?: string;
-  onboardingMode: boolean;
   userRole?: MemberRole;
 }
 
@@ -106,7 +103,6 @@ export function useAgentFullPage({
   apiService,
   authReady,
   threadId: rawThreadId,
-  onboardingMode,
   userRole,
 }: UseAgentFullPageParams) {
   // Treat malformed ids (including the stringified "undefined" that a bad
@@ -123,25 +119,6 @@ export function useAgentFullPage({
     string | null
   >(null);
 
-  const onboardingSteps = useAgentChatStore((s) => s.onboardingSteps);
-  const onboardingEarnedCredits = useAgentChatStore(
-    (s) => s.onboardingEarnedCredits,
-  );
-  const onboardingSignupGiftCredits = useAgentChatStore(
-    (s) => s.onboardingSignupGiftCredits,
-  );
-  const onboardingTotalJourneyCredits = useAgentChatStore(
-    (s) => s.onboardingTotalJourneyCredits,
-  );
-  const onboardingTotalVisibleCredits = useAgentChatStore(
-    (s) => s.onboardingTotalVisibleCredits,
-  );
-  const onboardingCompletionPercent = useAgentChatStore(
-    (s) => s.onboardingCompletionPercent,
-  );
-  const currentStepId = onboardingSteps.find(
-    (s) => s.status === 'in-progress',
-  )?.id;
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
   const updateThread = useAgentChatStore((s) => s.updateThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
@@ -167,9 +144,6 @@ export function useAgentFullPage({
   );
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
-  const setOnboardingChecklist = useAgentChatStore(
-    (s) => s.setOnboardingChecklist,
-  );
   const setDraftAgentMode = useAgentChatStore((s) => s.setDraftAgentMode);
   const setLatestProposedPlan = useAgentChatStore(
     (s) => s.setLatestProposedPlan,
@@ -178,11 +152,6 @@ export function useAgentFullPage({
   const clearThreadAttention = useAgentChatStore((s) => s.clearThreadAttention);
   const pageContext = useAgentChatStore((s) => s.pageContext);
   const activeStoreThreadId = useAgentChatStore((s) => s.activeThreadId);
-  const activeThreadBrandId = useAgentChatStore((s) =>
-    threadId
-      ? (s.threads.find((thread) => thread.id === threadId)?.brandId ?? null)
-      : null,
-  );
   // Store status can land before getThread resolves (or after archive-from-menu).
   // Prefer either source so isReadOnly does not lag open for regenerates.
   const storeThreadStatus = useAgentChatStore((s) =>
@@ -201,17 +170,6 @@ export function useAgentFullPage({
   const hasThreadOutputs = threadOutputs.length > 0;
 
   const agentSetup = useAgentSetupStatus();
-  const pendingInputRequestId = useAgentChatStore(
-    (s) => s.pendingInputRequest?.inputRequestId ?? '',
-  );
-  // A saved onboarding answer lands mid-turn and the next card follows it, so
-  // a new message or card is the signal to refresh the brand-context score.
-  const onboardingBrandContext = useOnboardingBrandContext({
-    apiService,
-    brandId: activeThreadBrandId ?? agentSetup.brand?.id,
-    isEnabled: onboardingMode && authReady,
-    refreshKey: `${existingMessages.length}:${existingMessages.at(-1)?.id ?? ''}:${pendingInputRequestId}`,
-  });
   // Thread outputs take priority over the setup panel: only offer setup in the
   // right pane / mobile drawer when the active thread has produced nothing yet.
   const showSetupPanel = agentSetup.showSetupPanel && !hasThreadOutputs;
@@ -263,52 +221,6 @@ export function useAgentFullPage({
 
     setMobileOutputsOpen(false);
   }, [hasThreadOutputs]);
-
-  useEffect(() => {
-    if (!onboardingMode) {
-      return;
-    }
-
-    const latestChecklistAction = [...existingMessages]
-      .reverse()
-      .flatMap((message) => message.metadata?.uiActions ?? [])
-      .find(
-        (action): action is AgentUiAction =>
-          action.type === 'onboarding_checklist_card',
-      );
-
-    if (!latestChecklistAction?.checklist?.length) {
-      return;
-    }
-
-    const recommendedId = latestChecklistAction.checklist.find(
-      (item) => item.isRecommended,
-    )?.id;
-
-    setOnboardingChecklist({
-      completionPercent: latestChecklistAction.completionPercent,
-      earnedCredits: latestChecklistAction.earnedCredits,
-      signupGiftCredits: latestChecklistAction.signupGiftCredits,
-      steps: latestChecklistAction.checklist.map((item) => ({
-        ctaHref: item.ctaHref,
-        ctaLabel: item.ctaLabel,
-        description: item.description ?? '',
-        id: item.id,
-        isClaimed: item.isClaimed,
-        isRecommended: item.isRecommended,
-        rewardCredits: item.rewardCredits,
-        status: item.isCompleted
-          ? 'complete'
-          : item.id === recommendedId
-            ? 'in-progress'
-            : 'pending',
-        title: item.label,
-      })),
-      totalJourneyCredits: latestChecklistAction.totalJourneyCredits,
-      totalOnboardingCreditsVisible:
-        latestChecklistAction.totalOnboardingCreditsVisible,
-    });
-  }, [existingMessages, onboardingMode, setOnboardingChecklist]);
 
   // Fetch credits info on mount
   useEffect(() => {
@@ -734,23 +646,14 @@ export function useAgentFullPage({
   const resolvedThreadStatus = activeThreadStatus ?? storeThreadStatus ?? null;
 
   return {
-    activeThreadBrandId,
     activeThreadStatus: resolvedThreadStatus,
     agentSetup,
-    currentStepId,
     handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
-    onboardingBrandContext,
-    onboardingCompletionPercent,
-    onboardingEarnedCredits,
-    onboardingSignupGiftCredits,
-    onboardingSteps,
-    onboardingTotalJourneyCredits,
-    onboardingTotalVisibleCredits,
     resolvedActions,
     setMobileOutputsOpen,
     setMobileSetupOpen,

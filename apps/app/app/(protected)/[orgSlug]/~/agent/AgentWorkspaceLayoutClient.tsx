@@ -4,7 +4,6 @@ import {
 } from '@contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
-  getBrandOrganizationAccountType,
   getBrandOrganizationId,
 } from '@contexts/user/brand-context/brand-context.helpers';
 import {
@@ -15,14 +14,10 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
-import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
-import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
-  isExpertAccountType,
 } from '@genfeedai/contracts/constants';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -32,16 +27,8 @@ import {
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { UsersService } from '@services/organization/users.service';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
@@ -52,13 +39,6 @@ import {
 import { AgentWorkspaceContext } from './agent-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
-
-/**
- * Threads opened from the onboarding entry route carry this source. The resume
- * lookup filters on it server-side so the newest onboarding thread is found no
- * matter how many newer standard threads the operator has.
- */
-const ONBOARDING_THREAD_SOURCE = 'onboarding';
 
 function mostRecentAuthorizedThread(
   threads: AgentThread[],
@@ -124,54 +104,24 @@ function AgentWorkspaceLayoutClientContent({
     [rawPathname],
   );
   const { replace } = useRouter();
-  const {
-    brandId,
-    brands,
-    isBrandScopeResolved,
-    organizationId,
-    selectedBrand,
-  } = useBrand();
-  const {
-    activeHref,
-    brandSlug: routeBrandSlug,
-    orgHref,
-    orgSlug,
-  } = useOrgUrl();
+  const { brandId, brands, isBrandScopeResolved, organizationId } = useBrand();
+  const { activeHref, brandSlug: routeBrandSlug, orgSlug } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const threads = useAgentChatStore((s) => s.threads);
-  const completedRef = useRef(false);
   const lastBootstrapKeyRef = useRef<string | null>(null);
   const newRouteBaselineThreadRef = useRef<
     string | null | typeof UNSET_THREAD_BASELINE
   >(UNSET_THREAD_BASELINE);
   const pendingNavigationThreadRef = useRef<string | null>(null);
-  const [onboardingBootstrapError, setOnboardingBootstrapError] =
-    useState(false);
-  const [onboardingRetry, setOnboardingRetry] = useState(0);
-  const [onboardingStartFailures, setOnboardingStartFailures] = useState(0);
-  const hasAttemptedResumeRef = useRef<number | null>(null);
-  const retryOnboardingBootstrap = useCallback(() => {
-    hasAttemptedResumeRef.current = null;
-    setOnboardingBootstrapError(false);
-    setOnboardingRetry((attempt) => attempt + 1);
-  }, []);
   const hasAttemptedReturningBootstrapRef = useRef(false);
   const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
-  const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
-  const isExpertOnboarding = isExpertAccountType(
-    getBrandOrganizationAccountType(
-      selectedBrand ??
-        brands.find((brand) => getBrandEntityId(brand) === brandId),
-    ),
-  );
-  const isOnboardingEntryRoute = pathname === APP_ROUTES.AGENT.ONBOARDING;
   const isStandardNewRoute =
     pathname === APP_ROUTES.AGENT.ROOT || pathname === APP_ROUTES.AGENT.NEW;
   const isReturningBootstrapRoute = pathname === APP_ROUTES.AGENT.ROOT;
-  const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
+  const isUnthreadedRoute = isStandardNewRoute;
   const explicitPrefillPrompt = searchParams.get('prompt')?.trim() || '';
   const taskPrefillPrompt = useMemo(() => {
     if (searchParams.get('taskSource') !== 'workspace') {
@@ -211,53 +161,18 @@ function AgentWorkspaceLayoutClientContent({
     [getToken, providedAgentApiService],
   );
 
-  const completeOnboardingFlow = useCallback(async () => {
-    if (completedRef.current) {
-      return;
-    }
-
-    const effectiveToken = await resolveAuthToken(getToken);
-    if (!effectiveToken) {
-      throw new Error('Please sign in again to finish setup.');
-    }
-    if (isOnboarding && isExpertOnboarding) {
-      await agentApiService.completeExpertBrandHandoff(brandId);
-    } else {
-      // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
-      await UsersService.getInstance(effectiveToken).patchMe({
-        isOnboardingCompleted: true,
-      });
-    }
-    completedRef.current = true;
-    await getToken({ forceRefresh: true }).catch(() => null);
-    if (isOnboarding) {
-      clearClientProtectedBootstrapCache();
-      window.location.href = isExpertOnboarding
-        ? APP_ROUTES.ONBOARDING.POSITIONING
-        : activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
-    }
-  }, [
-    getToken,
-    isOnboarding,
-    isExpertOnboarding,
-    agentApiService,
-    brandId,
-    activeHref,
-  ]);
-
   const { sendMessage } = useAgentChatStream({
     apiService: agentApiService,
-    onOnboardingCompleted: completeOnboardingFlow,
   });
 
-  const handleOAuthConnect = useAgentOAuthConnect({ isOnboarding });
+  const handleOAuthConnect = useAgentOAuthConnect();
 
   // Bootstrap the prefilled prompt only on unthreaded entry routes.
   useEffect(() => {
     const controller = new AbortController();
     const bootstrapKey =
       isUnthreadedRoute && !isJourneyRoute && prefillPrompt
-        ? `${isOnboarding ? 'onboarding' : 'agent'}:${prefillPrompt}`
+        ? `agent:${prefillPrompt}`
         : null;
 
     if (
@@ -277,7 +192,7 @@ function AgentWorkspaceLayoutClientContent({
       forceNewThread: true,
       ...(useManualBootstrap ? { agentMode: AgentThreadMode.MANUAL } : {}),
       signal: controller.signal,
-      source: isOnboarding ? 'onboarding' : 'agent',
+      source: 'agent',
     }).catch(() => undefined);
 
     return () => controller.abort();
@@ -285,7 +200,6 @@ function AgentWorkspaceLayoutClientContent({
     isJourneyRoute,
     brandId,
     effectiveIsLoaded,
-    isOnboarding,
     isUnthreadedRoute,
     prefillPrompt,
     useManualBootstrap,
@@ -298,123 +212,6 @@ function AgentWorkspaceLayoutClientContent({
       lastBootstrapKeyRef.current = null;
     }
   }, [isJourneyRoute, isUnthreadedRoute, prefillPrompt]);
-
-  // Resume an authorized onboarding thread, or ask the server to start one.
-  useEffect(() => {
-    if (
-      !effectiveIsLoaded ||
-      !isBrandScopeResolved ||
-      !organizationId ||
-      !isOnboardingEntryRoute ||
-      prefillPrompt ||
-      activeThreadId ||
-      hasAttemptedResumeRef.current === onboardingRetry
-    ) {
-      return;
-    }
-
-    hasAttemptedResumeRef.current = onboardingRetry;
-    const controller = new AbortController();
-    let hasSettled = false;
-    void agentApiService
-      .getThreads(
-        { source: ONBOARDING_THREAD_SOURCE, status: AgentThreadStatus.ACTIVE },
-        controller.signal,
-      )
-      .then(async (threads) => {
-        if (controller.signal.aborted) return;
-        const liveState = useAgentChatStore.getState();
-        if (
-          liveState.activeThreadId ||
-          liveState.messages.length > 0 ||
-          selectIsGenerating(liveState) ||
-          liveState.stream.isStreaming
-        )
-          return;
-        const selectedBrand = brands.find(
-          (brand) =>
-            getBrandOrganizationId(brand) === organizationId &&
-            (!brandId || getBrandEntityId(brand) === brandId),
-        );
-        const resumable = mostRecentAuthorizedThread(
-          threads.filter(
-            (thread) =>
-              thread.source === ONBOARDING_THREAD_SOURCE &&
-              thread.brandId ===
-                (selectedBrand ? getBrandEntityId(selectedBrand) : brandId),
-          ),
-          organizationId,
-          brands,
-        );
-        if (resumable) {
-          useAgentChatStore.getState().upsertThread(resumable);
-          hasSettled = true;
-          setOnboardingStartFailures(0);
-          if (pendingNavigationThreadRef.current !== resumable.id) {
-            pendingNavigationThreadRef.current = resumable.id;
-            newRouteBaselineThreadRef.current = resumable.id;
-            // Onboarding is the org-scoped agent surface (proxy.ts sends every
-            // incomplete-onboarding user to `/:org/~/agent/onboarding`, never a
-            // brand path) — resuming must stay on that canonical route, not
-            // `activeHref`'s brand-scoped fallback (see the note above on the
-            // returning-bootstrap effect for why that fallback is unstable).
-            replace(orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${resumable.id}`));
-          }
-          return;
-        }
-        const thread = await agentApiService.kickoffOnboarding(
-          selectedBrand ? getBrandEntityId(selectedBrand) : undefined,
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
-        if (!mostRecentAuthorizedThread([thread], organizationId, brands)) {
-          throw new Error('Onboarding thread scope is unavailable.');
-        }
-        hasSettled = true;
-        setOnboardingStartFailures(0);
-        useAgentChatStore.getState().upsertThread(thread);
-        pendingNavigationThreadRef.current = thread.id;
-        newRouteBaselineThreadRef.current = thread.id;
-        replace(orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${thread.id}`));
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          hasSettled = true;
-          if (error instanceof AgentApiRequestError && error.status === 409) {
-            clearClientProtectedBootstrapCache();
-            window.location.href = activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
-            return;
-          }
-          setOnboardingStartFailures((count) => count + 1);
-          setOnboardingBootstrapError(true);
-        }
-      });
-    return () => {
-      controller.abort();
-      if (!hasSettled) hasAttemptedResumeRef.current = null;
-    };
-  }, [
-    activeThreadId,
-    activeHref,
-    agentApiService,
-    brandId,
-    brands,
-    effectiveIsLoaded,
-    isBrandScopeResolved,
-    isOnboardingEntryRoute,
-    orgHref,
-    organizationId,
-    prefillPrompt,
-    replace,
-    onboardingRetry,
-  ]);
-
-  // Allow another resume attempt once the operator leaves the entry route.
-  useEffect(() => {
-    if (!isOnboardingEntryRoute) {
-      hasAttemptedResumeRef.current = null;
-    }
-  }, [isOnboardingEntryRoute]);
 
   // Bare /agent is the root/login bootstrap sentinel, reached either org-scoped
   // (/:org/~/agent) or brand-scoped (/:org/:brand/agent). Restore only a
@@ -585,11 +382,8 @@ function AgentWorkspaceLayoutClientContent({
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.
-  // Onboarding is exempt — it is the org-scoped surface (see the resume and
-  // auto-navigate effects above), and a thread created there can legitimately
-  // carry a `brandId` without the URL ever adopting that brand's slug.
   useEffect(() => {
-    if (!orgSlug || !organizationId || isOnboarding) {
+    if (!orgSlug || !organizationId) {
       return;
     }
 
@@ -632,7 +426,6 @@ function AgentWorkspaceLayoutClientContent({
     activeThreadId,
     brandId,
     brands,
-    isOnboarding,
     orgSlug,
     organizationId,
     pathname,
@@ -658,54 +451,25 @@ function AgentWorkspaceLayoutClientContent({
       activeThreadId !== newRouteBaselineThreadRef.current &&
       pendingNavigationThreadRef.current !== activeThreadId
     ) {
-      // Onboarding stays on the org-scoped surface (`orgHref`) once the
-      // thread is created: `activeHref` falls back to the session-selected
-      // brand, and proxy.ts's canonical onboarding entry is always
-      // `/:org/~/agent/onboarding` — never a brand path (see the resume
-      // effect above for the same fallback instability).
-      const nextRoute = isOnboarding
-        ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${activeThreadId}`)
-        : activeHref(`${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`);
+      const nextRoute = activeHref(
+        `${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`,
+      );
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
       captureAnalyticsEvent(ANALYTICS_EVENTS.AGENT_THREAD_CREATED, {
-        agentType: isOnboarding ? 'onboarding' : 'standard',
+        agentType: 'standard',
       });
       replace(nextRoute);
     }
-  }, [
-    activeThreadId,
-    isJourneyRoute,
-    isOnboarding,
-    isUnthreadedRoute,
-    activeHref,
-    orgHref,
-    replace,
-  ]);
+  }, [activeThreadId, isJourneyRoute, isUnthreadedRoute, activeHref, replace]);
 
   const contextValue = useMemo(
     () => ({
       agentApiService,
-      completeOnboardingFlow,
-      onboardingBootstrapError,
-      onboardingStartFailures,
-      retryOnboardingBootstrap,
       handleOAuthConnect,
       isLoaded: effectiveIsLoaded,
-      isOnboarding,
-      isExpertOnboarding,
     }),
-    [
-      agentApiService,
-      effectiveIsLoaded,
-      isOnboarding,
-      isExpertOnboarding,
-      handleOAuthConnect,
-      completeOnboardingFlow,
-      onboardingBootstrapError,
-      onboardingStartFailures,
-      retryOnboardingBootstrap,
-    ],
+    [agentApiService, effectiveIsLoaded, handleOAuthConnect],
   );
 
   return (

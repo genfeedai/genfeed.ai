@@ -86,8 +86,8 @@ describe('AgentConversationRouteHost', () => {
     expect(shellUnmountSpy).not.toHaveBeenCalled();
   });
 
-  it('wraps onboarding conversations in the focused onboarding frame', () => {
-    const { getByTestId } = renderHost('/test-org/~/agent/onboarding/thread-9');
+  it('wraps the conversation in a full-height frame', () => {
+    const { getByTestId } = renderHost('/test-org/~/agent/thread-9');
 
     const shell = getByTestId('conversation-shell');
     expect(shell).toHaveTextContent('thread-9');

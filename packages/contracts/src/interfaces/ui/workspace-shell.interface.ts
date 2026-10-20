@@ -60,7 +60,7 @@ export type WorkspaceShellOverlayKey =
  */
 export type WorkspaceShellSurfaceKey =
   | 'agent-conversation'
-  | 'agent-onboarding'
+  | 'agent-journey'
   | 'analytics'
   | 'artifact-editor'
   | 'automation'

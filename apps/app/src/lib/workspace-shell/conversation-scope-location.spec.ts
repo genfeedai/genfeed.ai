@@ -48,10 +48,6 @@ describe('conversation scope location', () => {
       threadId,
     );
     expect(extractAgentThreadIdFromPathname('/agent/new')).toBeNull();
-    expect(extractAgentThreadIdFromPathname('/agent/onboarding')).toBeNull();
     expect(extractAgentThreadIdFromPathname('/agent/journey')).toBeNull();
-    expect(
-      extractAgentThreadIdFromPathname('/agent/onboarding/thread-1'),
-    ).toBeNull();
   });
 });

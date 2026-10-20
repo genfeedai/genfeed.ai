@@ -21,13 +21,10 @@ describe('extractAgentConversationId', () => {
     ).toBe(conversationId);
   });
 
-  it('ignores new / journey / onboarding segments', () => {
+  it('ignores new / journey segments', () => {
     expect(extractAgentConversationId('/default/default/agent/new')).toBeNull();
     expect(
       extractAgentConversationId('/default/default/agent/journey'),
-    ).toBeNull();
-    expect(
-      extractAgentConversationId('/default/default/agent/onboarding'),
     ).toBeNull();
   });
 });

@@ -1,4 +1,3 @@
-import * as brandsApi from '@genfeedai/agent/services/agent-api/agent-api.brands';
 import * as executionsApi from '@genfeedai/agent/services/agent-api/agent-api.executions';
 import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
 import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
@@ -45,11 +44,6 @@ export class AgentApiService extends AgentBaseApiService {
   }
 
   // Threads / chat
-  kickoffOnboarding = threadsApi.kickoffOnboarding.bind(null, this);
-  completeExpertBrandHandoff = threadsApi.completeExpertBrandHandoff.bind(
-    null,
-    this,
-  );
   createThread = threadsApi.createThread.bind(null, this);
   sendMessage = threadsApi.sendMessage.bind(null, this);
   chat = threadsApi.chat.bind(null, this);
@@ -73,7 +67,6 @@ export class AgentApiService extends AgentBaseApiService {
   retryAgentTransfer = threadsApi.retryAgentTransfer.bind(null, this);
 
   // Brands
-  getBrandCompleteness = brandsApi.getBrandCompleteness.bind(null, this);
 
   // Workflow executions / credits / readiness
   getInstallReadiness = executionsApi.getInstallReadiness.bind(null, this);

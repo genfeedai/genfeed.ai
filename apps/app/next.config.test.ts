@@ -106,6 +106,25 @@ describe('app next.config', () => {
     },
   );
 
+  it.each([
+    '/acme/~/agent/onboarding',
+    '/acme/~/agent/onboarding/thread-1',
+    '/acme/brand/agent/onboarding',
+    '/acme/brand/agent/onboarding/thread-1',
+  ])(
+    'sends the retired agent onboarding route %s to /onboarding',
+    async (source) => {
+      const response = await unstable_getResponseFromNextConfig({
+        url: `https://example.com${source}`,
+        nextConfig: { redirects: config.redirects },
+      });
+      expect(response.status).toBe(307);
+      expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+        '/onboarding',
+      );
+    },
+  );
+
   it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
     const response = await unstable_getResponseFromNextConfig({
       url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',

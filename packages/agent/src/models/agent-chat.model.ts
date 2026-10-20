@@ -599,7 +599,7 @@ export interface AgentChatPayload {
   knowledgeSelection?: KnowledgeSelection;
   content: string;
   model?: string;
-  source?: 'agent' | 'proactive' | 'onboarding';
+  source?: 'agent' | 'proactive';
   attachments?: ChatAttachment[];
   pageContext?: AgentPageContext;
   /** Skills picked from the composer `/` palette for this turn. */

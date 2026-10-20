@@ -17,8 +17,8 @@
     "unsupportedCard": "This card type is not supported yet."
   },
   "fullPage": {
-    "onboardingUrlPlaceholder": "Paste a public URL…",
-    "outputs": "Outputs"
+    "outputs": "Outputs",
+    "placeholder": "Ask for help with content, review, or planning..."
   },
   "threadList": {
     "agent": "Agent",
@@ -470,15 +470,8 @@
     "placeholderRecommended": "Type your own answer, or leave this blank to use \"{recommended}\"",
     "placeholder": "Type your answer",
     "useAnswer": "Use this answer",
-    "continue": "Continue",
     "submit": "Submit answers",
-    "failed": "Your answer was not saved. Try again.",
-    "skipCardTitle": "Skip for now",
-    "skipCardBody": "You can answer this later. Posts, images, and videos stay generic until you do.",
-    "skipConfirmTitle": "Skip this step?",
-    "skipConfirmBody": "Onboarding is how the brand gets specific. Finishing it makes the posts, images, and videos match you. Skipping leaves that output generic.",
-    "skipStay": "Answer it",
-    "skipConfirm": "Skip anyway"
+    "failed": "Your answer was not saved. Try again."
   },
   "turboRunResultCard": {
     "noDraftPreview": "No preview available for this draft.",
@@ -518,17 +511,6 @@
     "description": "The agent has not responded for a while. You can keep waiting, or stop this turn and send it again.",
     "keepWaiting": "Keep waiting",
     "stopAndRetry": "Stop and retry"
-  },
-  "onboardingChecklist": {
-    "brandContext": "Brand context",
-    "creditsEarned": "Credits earned",
-    "footer": "Every answer is saved to your brand and used in every post, image and video.",
-    "hintEmpty": "Starts with your website",
-    "hintPartial": "Each answer makes outputs more specific",
-    "hintStrong": "Strong: outputs will sound like you",
-    "rewardEarned": "+{credits} earned",
-    "rewardPending": "+{credits}",
-    "rowSkipped": "{label} (skipped)"
   },
   "threadView": {
     "scrollToLatest": "Scroll to latest message"

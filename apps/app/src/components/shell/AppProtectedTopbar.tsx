@@ -22,7 +22,6 @@ import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitc
 import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
-import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -122,7 +121,6 @@ function AppProtectedTopbarContent({
 
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
-  const isOnboardingHold = isAgentOnboardingPathname(pathname);
   // Breadcrumb fallback label only (the app rail's active state is path-based).
   const breadcrumbFallbackApp = isAdminChrome
     ? 'admin'
@@ -146,7 +144,6 @@ function AppProtectedTopbarContent({
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
-              isDisabled={isOnboardingHold}
               onClick={onMenuToggle}
               withWrapper={false}
             >
@@ -154,13 +151,7 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          <div
-            className={cn(
-              'flex min-w-0 items-center gap-1 md:gap-1.5',
-              isOnboardingHold && 'pointer-events-none opacity-40',
-            )}
-            inert={isOnboardingHold || undefined}
-          >
+          <div className="flex min-w-0 items-center gap-1 md:gap-1.5">
             {isAdminChrome || isPersonalSettingsPage(pathname) ? null : (
               <div className="w-max min-w-0 max-w-52 md:shrink-0">
                 <OrganizationSwitcher
@@ -190,13 +181,7 @@ function AppProtectedTopbarContent({
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
-          <div
-            className={cn(
-              'flex min-w-0 items-center gap-1 md:gap-1.5',
-              isOnboardingHold && 'pointer-events-none opacity-40',
-            )}
-            inert={isOnboardingHold || undefined}
-          >
+          <div className="flex min-w-0 items-center gap-1 md:gap-1.5">
             {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
             {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
@@ -228,12 +213,12 @@ function AppProtectedTopbarContent({
                 type="button"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
-                className={cn('size-8', isOnboardingHold && 'opacity-40')}
+                className="size-8"
                 data-active={
                   agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
                 }
                 data-testid="topbar-agent-dock-toggle"
-                isDisabled={!agentDock.isAvailable || isOnboardingHold}
+                isDisabled={!agentDock.isAvailable}
                 withWrapper={false}
                 ariaLabel={
                   !agentDock.isAvailable

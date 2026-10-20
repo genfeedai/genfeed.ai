@@ -4,6 +4,5 @@
  * resolve to `null` so the layout renders the page's own content instead.
  */
 export interface AgentConversationRoute {
-  isOnboarding: boolean;
   threadId?: string;
 }

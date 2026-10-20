@@ -72,7 +72,6 @@ interface UseAgentChatContainerParams {
   isReadOnly: boolean;
   isStreaming: boolean;
   model?: string;
-  onOnboardingCompleted?: () => void | Promise<void>;
   onCopy?: (content: string) => void | Promise<void>;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
@@ -129,7 +128,6 @@ export function useAgentChatContainer({
   isReadOnly,
   isStreaming,
   model,
-  onOnboardingCompleted,
   onCopy,
   onRegenerate,
   onCreateFollowUpTasks,
@@ -195,12 +193,6 @@ export function useAgentChatContainer({
   const uiActionStates = useAgentChatStore((s) =>
     activeThreadId ? s.uiActionStatesByThread[activeThreadId] : undefined,
   );
-  const onboardingSignupGiftCredits = useAgentChatStore(
-    (s) => s.onboardingSignupGiftCredits,
-  );
-  const onboardingTotalJourneyCredits = useAgentChatStore(
-    (s) => s.onboardingTotalJourneyCredits,
-  );
   const pendingInputRequest = useAgentChatStore((s) => s.pendingInputRequest);
   const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setActiveRunStatus = useAgentChatStore((s) => s.setActiveRunStatus);
@@ -212,7 +204,6 @@ export function useAgentChatContainer({
   const { sendMessage: sendNonStreaming } = useAgentChat({
     apiService,
     model,
-    onOnboardingCompleted,
   });
   const {
     abandonRun,
@@ -225,7 +216,6 @@ export function useAgentChatContainer({
   } = useAgentChatStream({
     apiService,
     model,
-    onOnboardingCompleted,
   });
 
   // Threads on `local/claude-cli` / `local/codex-cli` run in Genfeed Desktop
@@ -1314,8 +1304,6 @@ export function useAgentChatContainer({
     activeRunStatus,
     draftAgentMode,
     latestProposedPlan,
-    onboardingSignupGiftCredits,
-    onboardingTotalJourneyCredits,
     pendingInputRequest,
     socketConnectionState,
     workEvents,

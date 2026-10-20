@@ -191,22 +191,21 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
-  it.each([
-    '/acme/~/agent/journey',
-    '/acme/~/agent/onboarding',
-    '/acme/~/settings/subscription',
-  ])('restores the permanent canvas route %s', (pathname) => {
-    expect(
-      restoreWorkspaceShellLocation({
-        pathname,
-        searchParams: new URLSearchParams({ thread: 'thread-1' }),
-      }),
-    ).toMatchObject({
-      isCanonical: false,
-      state: 'canvas',
-      threadId: null,
-    });
-  });
+  it.each(['/acme/~/agent/journey', '/acme/~/settings/subscription'])(
+    'restores the permanent canvas route %s',
+    (pathname) => {
+      expect(
+        restoreWorkspaceShellLocation({
+          pathname,
+          searchParams: new URLSearchParams({ thread: 'thread-1' }),
+        }),
+      ).toMatchObject({
+        isCanonical: false,
+        state: 'canvas',
+        threadId: null,
+      });
+    },
+  );
 
   it('returns null for unknown routes', () => {
     expect(

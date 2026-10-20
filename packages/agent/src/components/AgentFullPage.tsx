@@ -2,12 +2,10 @@ import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPageMobileBar';
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
-import { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { isCloudDeployment } from '@genfeedai/config/deployment';
 import type { MemberRole } from '@genfeedai/contracts';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
@@ -24,8 +22,6 @@ interface AgentFullPageProps {
   authReady?: boolean;
   threadId?: string;
   showThreadSidebar?: boolean;
-  onboardingMode?: boolean;
-  onOnboardingCompleted?: () => void | Promise<void>;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
   onOAuthConnect?: (platform: string) => void;
   onBrandCreate?: (payload: {
@@ -50,8 +46,6 @@ export function AgentFullPage({
   authReady = true,
   threadId,
   showThreadSidebar = true,
-  onboardingMode = false,
-  onOnboardingCompleted,
   onCreateFollowUpTasks,
   onOAuthConnect,
   onBrandCreate,
@@ -60,24 +54,15 @@ export function AgentFullPage({
   userRole,
 }: AgentFullPageProps): ReactElement {
   const translate = useTranslations('agent.fullPage');
-  const translateChecklist = useTranslations('agent.onboardingChecklist');
   const {
     activeThreadStatus,
     agentSetup,
-    currentStepId,
     handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
-    onboardingBrandContext,
-    onboardingCompletionPercent,
-    onboardingEarnedCredits,
-    onboardingSignupGiftCredits,
-    onboardingSteps,
-    onboardingTotalJourneyCredits,
-    onboardingTotalVisibleCredits,
     resolvedActions,
     setMobileOutputsOpen,
     setMobileSetupOpen,
@@ -89,7 +74,6 @@ export function AgentFullPage({
     apiService,
     authReady,
     threadId,
-    onboardingMode,
     userRole,
   });
 
@@ -99,7 +83,7 @@ export function AgentFullPage({
         'flex min-h-0 flex-1 overflow-hidden bg-background text-foreground',
       )}
     >
-      {!onboardingMode && showThreadSidebar ? (
+      {showThreadSidebar ? (
         <div className="hidden xl:flex xl:w-[15rem] xl:shrink-0 xl:border-r xl:border-border xl:bg-background">
           <AgentSidebarContent apiService={apiService} />
         </div>
@@ -107,9 +91,9 @@ export function AgentFullPage({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AgentFullPageMobileBar
-          showThreadSidebar={!onboardingMode && showThreadSidebar}
-          hasThreadOutputs={!onboardingMode && hasThreadOutputs}
-          showSetupPanel={!onboardingMode && showSetupPanel}
+          showThreadSidebar={showThreadSidebar}
+          hasThreadOutputs={hasThreadOutputs}
+          showSetupPanel={showSetupPanel}
           onOpenThreads={() => setMobileThreadsOpen(true)}
           onOpenOutputs={() => setMobileOutputsOpen(true)}
           onOpenSetup={() => setMobileSetupOpen(true)}
@@ -129,29 +113,17 @@ export function AgentFullPage({
               isLoadingThread={isLoadingThread}
               isStreaming
               isReadOnly={activeThreadStatus === AgentThreadStatus.ARCHIVED}
-              emptyStateTitle={
-                onboardingMode ? 'Your brand. Your first post.' : 'Start a chat'
-              }
-              emptyStateDescription={
-                onboardingMode
-                  ? 'An image and a tweet, made for you. Review the draft before connecting an account.'
-                  : 'Plan content, review drafts, or decide what to do next.'
-              }
-              placeholder={
-                onboardingMode
-                  ? translate('onboardingUrlPlaceholder')
-                  : 'Ask for help with content, review, or planning...'
-              }
-              suggestedActions={onboardingMode ? [] : resolvedActions}
+              emptyStateTitle="Start a chat"
+              emptyStateDescription="Plan content, review drafts, or decide what to do next."
+              placeholder={translate('placeholder')}
+              suggestedActions={resolvedActions}
               showSuggestedActionsWhenNotEmpty={showRuntimeSuggestedActions}
               onCreateFollowUpTasks={onCreateFollowUpTasks}
-              onOnboardingCompleted={onOnboardingCompleted}
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
               onOpenInStudio={onOpenInStudio}
               onSelectCreditPack={onSelectCreditPack}
               onUnarchive={handleUnarchiveActiveThread}
-              onboardingMode={onboardingMode}
               isWideLayout
               promptBarLayoutMode="surface-fixed"
               workspacePlanningTaskId={workspacePlanningTaskId}
@@ -162,7 +134,7 @@ export function AgentFullPage({
 
       {/* Inside the workspace shell the thread's outputs are the context
         sidebar's selection; the sidebar stays closed until there are any. */}
-      {!onboardingMode && hasThreadOutputs ? (
+      {hasThreadOutputs ? (
         <ContextSidebarPanel
           selection={{
             id: `thread-outputs:${threadId ?? 'new'}`,
@@ -175,39 +147,15 @@ export function AgentFullPage({
         </ContextSidebarPanel>
       ) : null}
 
-      {onboardingMode && onboardingBrandContext ? (
-        <ContextSidebarPanel
-          selection={{
-            id: `onboarding-brand-context:${threadId ?? 'setup'}`,
-            isOpenByDefault: true,
-            kind: 'thread',
-            origin: 'automatic',
-            title: translateChecklist('brandContext'),
-          }}
-        >
-          <AgentOnboardingChecklist
-            brandContext={onboardingBrandContext}
-            completionPercent={onboardingCompletionPercent}
-            currentStepId={currentStepId}
-            earnedCredits={onboardingEarnedCredits}
-            isCreditRewardsVisible={isCloudDeployment()}
-            signupGiftCredits={onboardingSignupGiftCredits}
-            steps={onboardingSteps}
-            totalOnboardingCreditsVisible={onboardingTotalVisibleCredits}
-            totalJourneyCredits={onboardingTotalJourneyCredits}
-          />
-        </ContextSidebarPanel>
-      ) : null}
-
       <AgentFullPageMobileDrawers
         apiService={apiService}
-        showThreadSidebar={!onboardingMode && showThreadSidebar}
+        showThreadSidebar={showThreadSidebar}
         mobileThreadsOpen={mobileThreadsOpen}
         onMobileThreadsOpenChange={setMobileThreadsOpen}
-        hasThreadOutputs={!onboardingMode && hasThreadOutputs}
+        hasThreadOutputs={hasThreadOutputs}
         mobileOutputsOpen={mobileOutputsOpen}
         onMobileOutputsOpenChange={setMobileOutputsOpen}
-        showSetupPanel={!onboardingMode && showSetupPanel}
+        showSetupPanel={showSetupPanel}
         mobileSetupOpen={mobileSetupOpen}
         onMobileSetupOpenChange={setMobileSetupOpen}
         agentSetup={agentSetup}

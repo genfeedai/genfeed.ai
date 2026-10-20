@@ -18,7 +18,7 @@ describe('resolveMissionCtaHref', () => {
     ['connect_social_account', '/settings/brands'],
     ['generate_first_image', '/settings/api-keys'],
     ['generate_first_video', '/settings/api-keys'],
-    ['publish_first_post', '/agent/onboarding'],
+    ['publish_first_post', '/agent/new'],
   ] as const)('resolves %s to %s for self-hosted', (missionId, expected) => {
     const definition = ONBOARDING_JOURNEY_MISSIONS.find(
       (mission) => mission.id === missionId,

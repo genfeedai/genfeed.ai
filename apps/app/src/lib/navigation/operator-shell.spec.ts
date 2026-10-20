@@ -40,43 +40,25 @@ describe('operator-shell helpers', () => {
 
   it('resolves which conversation surface a normalized agent path hosts', () => {
     expect(resolveAgentConversationRoute('/agent')).toEqual({
-      isOnboarding: false,
       threadId: undefined,
     });
     expect(resolveAgentConversationRoute('/agent/new')).toEqual({
-      isOnboarding: false,
       threadId: undefined,
     });
     expect(resolveAgentConversationRoute('/agent/thread-1')).toEqual({
-      isOnboarding: false,
       threadId: 'thread-1',
     });
-    expect(resolveAgentConversationRoute('/agent/onboarding')).toEqual({
-      isOnboarding: true,
-      threadId: undefined,
-    });
-    expect(resolveAgentConversationRoute('/agent/onboarding/thread-1')).toEqual(
-      {
-        isOnboarding: true,
-        threadId: 'thread-1',
-      },
-    );
     expect(
       resolveAgentConversationRoute(
         normalizeProtectedPathname('/acme/~/agent/thread-1'),
       ),
-    ).toEqual({ isOnboarding: false, threadId: 'thread-1' });
+    ).toEqual({ threadId: 'thread-1' });
   });
 
   it('keeps malformed thread ids off the conversation surface', () => {
     // `/agent/undefined` from a stale link: the page redirects, the layout
     // must not fetch `/threads/undefined/*` in the meantime.
     expect(resolveAgentConversationRoute('/agent/undefined')).toEqual({
-      isOnboarding: false,
-      threadId: undefined,
-    });
-    expect(resolveAgentConversationRoute('/agent/onboarding/null')).toEqual({
-      isOnboarding: true,
       threadId: undefined,
     });
   });
@@ -134,9 +116,6 @@ describe('operator-shell helpers', () => {
     expect(resolveBrandSwitchSurfacePath(`/agent/${threadId}`)).toBe(
       '/agent/new',
     );
-    expect(resolveBrandSwitchSurfacePath('/agent/onboarding/thread-1')).toBe(
-      '/agent/new',
-    );
     expect(resolveBrandSwitchSurfacePath('/agent/new')).toBe('/agent/new');
     expect(resolveBrandSwitchSurfacePath('/studio/storyboard')).toBe(
       '/studio/storyboard',
@@ -183,9 +162,6 @@ describe('operator-shell helpers', () => {
       '/agent/new',
     );
     expect(resolveOrganizationScopePath('/agent')).toBe('/agent/new');
-    expect(resolveOrganizationScopePath('/agent/onboarding/thread-1')).toBe(
-      '/agent/new',
-    );
     expect(resolveOrganizationScopePath('/agent/new')).toBe('/agent/new');
     expect(resolveOrganizationScopePath('/studio/storyboard')).toBe(
       '/studio/storyboard',

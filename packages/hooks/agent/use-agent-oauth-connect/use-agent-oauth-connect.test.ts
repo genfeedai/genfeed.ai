@@ -130,11 +130,9 @@ describe('useAgentOAuthConnect', () => {
 
   it('includes the active brand and threads the return_to when available', async () => {
     selectedBrand = { id: 'brand-9' };
-    pathname = '/o/~/agent/onboarding/thread-5';
+    pathname = '/o/~/agent/thread-5';
     mockUseParams.mockReturnValue({ threadId: 'thread-5' });
-    const { result } = renderHook(() =>
-      useAgentOAuthConnect({ isOnboarding: true }),
-    );
+    const { result } = renderHook(() => useAgentOAuthConnect());
 
     await act(async () => {
       await result.current('linkedin');
@@ -144,7 +142,7 @@ describe('useAgentOAuthConnect', () => {
       brandId: 'brand-9',
     });
     expect(openSpy).toHaveBeenCalledWith(
-      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/~/agent/onboarding/thread-5')}`,
+      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/~/agent/thread-5')}`,
       '_self',
     );
   });

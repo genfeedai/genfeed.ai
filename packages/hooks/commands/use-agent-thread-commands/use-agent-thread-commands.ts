@@ -14,7 +14,6 @@ export interface AgentThreadCommandItem {
 export interface UseAgentThreadCommandsOptions {
   threads: AgentThreadCommandItem[];
   onNavigate: (path: string) => void;
-  enabled?: boolean;
 }
 
 function hasCommandThreadId(thread: AgentThreadCommandItem): boolean {
@@ -29,7 +28,6 @@ function hasCommandThreadId(thread: AgentThreadCommandItem): boolean {
 export function useAgentThreadCommands({
   threads,
   onNavigate,
-  enabled = true,
 }: UseAgentThreadCommandsOptions): void {
   const { registerCommands, unregisterCommands } = useCommandPalette();
 
@@ -57,7 +55,7 @@ export function useAgentThreadCommands({
   useEffect(() => {
     const previousCommands = previousCommandsRef.current;
 
-    if (!enabled || commands.length === 0) {
+    if (commands.length === 0) {
       if (previousCommands.size > 0) {
         unregisterCommands([...previousCommands.keys()]);
       }
@@ -105,7 +103,7 @@ export function useAgentThreadCommands({
     }
 
     previousCommandsRef.current = nextCommands;
-  }, [commands, enabled, registerCommands, unregisterCommands]);
+  }, [commands, registerCommands, unregisterCommands]);
 
   useEffect(() => {
     return () => {

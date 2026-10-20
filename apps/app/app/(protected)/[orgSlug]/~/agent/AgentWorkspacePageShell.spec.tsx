@@ -1,33 +1,15 @@
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { TasksService } from '@services/management/tasks.service';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
-
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
-  );
-
-  return {
-    useTranslations: () => translateFromCatalog('common.agent.onboardingShell'),
-  };
-});
 
 const agentFullPageSpy = vi.fn();
 const getTokenMock = vi.fn();
 const createFollowUpTasksMock = vi.fn();
 
 const agentChatState = {
-  stream: { isStreaming: false },
-  messages: [] as Array<{
-    id: string;
-    role: string;
-    metadata?: { runOutcome?: { status: string; error?: string } };
-  }>,
-  error: null as string | null,
-  pendingInputRequest: null as object | null,
   activeThreadId: null as string | null,
   threads: [] as Array<{ brandId?: string | null; id: string }>,
 };
@@ -95,41 +77,22 @@ vi.mock('@services/management/tasks.service', async () => {
   };
 });
 
-const completeOnboardingFlowMock = vi.fn();
 const handleOAuthConnectMock = vi.fn();
-const retryBootstrapMock = vi.fn();
-const bootstrapState = { hasError: false, failures: 0, isExpert: false };
 
 vi.mock('./agent-workspace-context', () => ({
   useAgentWorkspace: () => ({
     agentApiService: { kind: 'service' },
-    completeOnboardingFlow: completeOnboardingFlowMock,
     handleOAuthConnect: handleOAuthConnectMock,
     isLoaded: true,
-    isOnboarding: true,
-    isExpertOnboarding: bootstrapState.isExpert,
-    onboardingBootstrapError: bootstrapState.hasError,
-    onboardingStartFailures: bootstrapState.failures,
-    retryOnboardingBootstrap: retryBootstrapMock,
   }),
 }));
 
 describe('AgentWorkspacePageShell', () => {
   beforeEach(() => {
     agentFullPageSpy.mockClear();
-    retryBootstrapMock.mockClear();
-    bootstrapState.hasError = false;
-    bootstrapState.failures = 0;
-    bootstrapState.isExpert = false;
-    agentChatState.messages = [];
-    agentChatState.stream.isStreaming = false;
-    agentChatState.error = null;
-    agentChatState.pendingInputRequest = null;
     agentChatState.activeThreadId = null;
     agentChatState.threads = [];
     composerShellBrandId = undefined;
-    completeOnboardingFlowMock.mockReset();
-    completeOnboardingFlowMock.mockResolvedValue(undefined);
     pushMock.mockClear();
     replaceMock.mockClear();
     getTokenMock.mockResolvedValue('authProvider-token');
@@ -157,121 +120,6 @@ describe('AgentWorkspacePageShell', () => {
     );
   });
 
-  it('has no header Skip to workspace action', () => {
-    render(<AgentWorkspacePageShell />);
-    expect(
-      screen.queryByRole('button', { name: 'Skip to workspace' }),
-    ).not.toBeInTheDocument();
-    expect(completeOnboardingFlowMock).not.toHaveBeenCalled();
-  });
-
-  it('offers retry when kickoff fails without completing onboarding', () => {
-    bootstrapState.hasError = true;
-    render(<AgentWorkspacePageShell />);
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Could not start your brand setup',
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(retryBootstrapMock).toHaveBeenCalledOnce();
-    expect(completeOnboardingFlowMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
-  });
-
-  it('only offers workspace escape after three failed kickoff attempts', async () => {
-    bootstrapState.hasError = true;
-    bootstrapState.failures = 2;
-    const view = render(<AgentWorkspacePageShell />);
-    expect(
-      screen.queryByRole('button', { name: 'Continue to workspace' }),
-    ).not.toBeInTheDocument();
-    bootstrapState.failures = 3;
-    view.rerender(<AgentWorkspacePageShell />);
-    await act(async () =>
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Continue to workspace' }),
-      ),
-    );
-    expect(completeOnboardingFlowMock).toHaveBeenCalledOnce();
-  });
-
-  it('offers the guarded Expert setup escape after repeated failures', async () => {
-    bootstrapState.failures = 3;
-    bootstrapState.isExpert = true;
-    render(<AgentWorkspacePageShell />);
-    expect(
-      screen.queryByRole('button', { name: 'Continue to workspace' }),
-    ).not.toBeInTheDocument();
-    await act(async () =>
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Continue Expert setup' }),
-      ),
-    );
-    expect(completeOnboardingFlowMock).toHaveBeenCalledOnce();
-  });
-
-  it('offers escape after three consecutive failed turns and clears the count on a recovered card', () => {
-    agentChatState.pendingInputRequest = { inputRequestId: 'same-failed-card' };
-    const view = render(<AgentWorkspacePageShell />);
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      agentChatState.error = `Failure ${attempt}`;
-      view.rerender(<AgentWorkspacePageShell />);
-      if (attempt < 3)
-        expect(
-          screen.queryByRole('button', { name: 'Continue to workspace' }),
-        ).not.toBeInTheDocument();
-      agentChatState.error = null;
-      view.rerender(<AgentWorkspacePageShell />);
-    }
-    expect(
-      screen.getByRole('button', { name: 'Continue to workspace' }),
-    ).toBeInTheDocument();
-    agentChatState.pendingInputRequest = { inputRequestId: 'recovered' };
-    view.rerender(<AgentWorkspacePageShell />);
-    expect(
-      screen.queryByRole('button', { name: 'Continue to workspace' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('counts failed assistant replies across retries and resets after a successful reply', () => {
-    const view = render(<AgentWorkspacePageShell />);
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      agentChatState.error = null;
-      view.rerender(<AgentWorkspacePageShell />);
-      agentChatState.messages.push({
-        id: `failed-${attempt}`,
-        role: 'assistant',
-        metadata: {
-          runOutcome: { status: 'failed', error: `Failure ${attempt}` },
-        },
-      });
-      agentChatState.error = `Failure ${attempt}`;
-      view.rerender(<AgentWorkspacePageShell />);
-    }
-    expect(
-      screen.getByRole('button', { name: 'Continue to workspace' }),
-    ).toBeInTheDocument();
-    agentChatState.error = null;
-    agentChatState.messages.push({ id: 'success', role: 'assistant' });
-    view.rerender(<AgentWorkspacePageShell />);
-    expect(
-      screen.queryByRole('button', { name: 'Continue to workspace' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('does not reset repeated errors when the prior successful reply is unchanged', () => {
-    agentChatState.messages = [{ id: 'prior-success', role: 'assistant' }];
-    const view = render(<AgentWorkspacePageShell />);
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      agentChatState.error = `Failure ${attempt}`;
-      view.rerender(<AgentWorkspacePageShell />);
-      agentChatState.error = null;
-      view.rerender(<AgentWorkspacePageShell />);
-    }
-    expect(
-      screen.getByRole('button', { name: 'Continue to workspace' }),
-    ).toBeInTheDocument();
-  });
-
   it('passes workspace wiring through to AgentFullPage', () => {
     render(<AgentWorkspacePageShell threadId="thread-123" />);
 
@@ -279,9 +127,7 @@ describe('AgentWorkspacePageShell', () => {
       expect.objectContaining({
         apiService: { kind: 'service' },
         authReady: true,
-        onboardingMode: true,
         onOAuthConnect: handleOAuthConnectMock,
-        onOnboardingCompleted: completeOnboardingFlowMock,
         showThreadSidebar: false,
         threadId: 'thread-123',
       }),

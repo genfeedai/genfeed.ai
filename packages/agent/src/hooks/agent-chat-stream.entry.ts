@@ -75,7 +75,7 @@ export function createAgentStreamController(
   const presentationStore = entry.presentation;
   const subscribe = <T>(event: string, handler: (payload: T) => void) =>
     subscribeAgentStreamEntry(entry, event, handler);
-  const { apiService, model, onOnboardingCompleted } = options;
+  const { apiService, model } = options;
 
   const addMessage = presentationStore.getState().addMessage;
   const activeThreadId = entry.activeStreamThreadRef.current;
@@ -316,32 +316,6 @@ export function createAgentStreamController(
     });
   };
 
-  const completeOnboardingIfNeeded = async (
-    toolCalls: Array<{ status: 'completed' | 'failed'; toolName: string }>,
-  ) => {
-    const hasCompletedOnboarding = toolCalls.some(
-      (toolCall) =>
-        toolCall.toolName === 'complete_onboarding' &&
-        toolCall.status === 'completed',
-    );
-
-    if (hasCompletedOnboarding && onOnboardingCompleted) {
-      const generation = entry.ownerGeneration;
-      try {
-        await onOnboardingCompleted();
-      } catch {
-        if (
-          !isCurrentAgentStreamEntry(entry) ||
-          entry.ownerGeneration !== generation
-        )
-          return;
-        setError(
-          'Could not finish setup. Reload the page to open your workspace, or sign in again if your session expired.',
-        );
-      }
-    }
-  };
-
   const scheduleCompletionWatchdog = () => {
     clearCompletionWatchdog();
 
@@ -394,7 +368,6 @@ export function createAgentStreamController(
         if (snapshot && isThreadVisible(threadId)) {
           setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
         }
-        await completeOnboardingIfNeeded(toolCalls);
       },
       cleanupSubscriptions: releaseCompletedSubscriptions,
       clearCompletionWatchdog,
@@ -542,7 +515,6 @@ export function createAgentStreamController(
             markThreadRunning(threadId, { lastActivityAt: timestamp });
           return resolved;
         },
-        completeOnboardingIfNeeded,
         finalizeStream,
         isAwaitingRunIdRef: streamRuntime.isAwaitingRunIdRef,
         isThreadVisible,

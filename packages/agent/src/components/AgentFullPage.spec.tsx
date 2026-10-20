@@ -36,7 +36,6 @@ vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
     emptyStateTitle?: string;
     isWideLayout?: boolean;
     isLoadingThread?: boolean;
-    onboardingMode?: boolean;
     placeholder?: string;
     promptBarLayoutMode?: string;
     suggestedActions?: Array<{
@@ -51,7 +50,6 @@ vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
       {props.isLoadingThread ? ' loading-thread' : ''}
       <div>{props.emptyStateTitle}</div>
       <div>{props.emptyStateDescription}</div>
-      <div>{props.onboardingMode ? 'onboarding-mode' : 'standard-mode'}</div>
       <div>{props.placeholder}</div>
       <div>{props.promptBarLayoutMode}</div>
       <div>{props.isWideLayout ? 'wide-layout' : 'standard-layout'}</div>
@@ -67,10 +65,6 @@ vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
       </div>
     </div>
   ),
-}));
-
-vi.mock('@genfeedai/agent/components/AgentOnboardingChecklist', () => ({
-  AgentOnboardingChecklist: () => <div>agent-onboarding-checklist</div>,
 }));
 
 vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
@@ -1004,9 +998,7 @@ describe('AgentFullPage', () => {
     );
   }
 
-  function shellTree(
-    page: { onboardingMode?: boolean; threadId?: string } | null,
-  ) {
+  function shellTree(page: { threadId?: string } | null) {
     return (
       <ContextSidebarProvider>
         <SelectionProbe />
@@ -1014,7 +1006,6 @@ describe('AgentFullPage', () => {
         {page ? (
           <AgentFullPage
             apiService={createApiService() as never}
-            onboardingMode={page.onboardingMode}
             threadId={page.threadId}
           />
         ) : null}
@@ -1085,35 +1076,6 @@ describe('AgentFullPage', () => {
     expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
       'none',
     );
-  });
-
-  it('keeps onboarding outputs out of the context sidebar', () => {
-    storeState.activeThreadId = 'thread-1';
-    storeState.messages = [outputMessage('thread-1')] as never;
-
-    render(shellTree({ onboardingMode: true, threadId: 'thread-1' }));
-
-    expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-      'none',
-    );
-  });
-
-  it('shows onboarding brand context in the context sidebar', async () => {
-    storeState.activeThreadId = 'thread-1';
-    storeState.threads = [{ brandId: 'brand-1', id: 'thread-1' }];
-
-    render(shellTree({ onboardingMode: true, threadId: 'thread-1' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-        'thread:onboarding-brand-context:thread-1',
-      );
-    });
-    expect(
-      within(screen.getByTestId('context-sidebar-outlet')).getByText(
-        'agent-onboarding-checklist',
-      ),
-    ).toBeInTheDocument();
   });
 
   it('leaves the context sidebar empty without outputs, even while setup is incomplete', () => {
@@ -1405,15 +1367,6 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });
 
-  it('accepts a URL without a first-post suggested action during onboarding', () => {
-    render(
-      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
-    );
-
-    expect(screen.getByText('Paste a public URL…')).toBeInTheDocument();
-    expect(screen.queryByText('Create my first post')).not.toBeInTheDocument();
-  });
-
   it('does not clear draft conversation state again while waiting to navigate away from /agent/new', async () => {
     const apiService = createApiService();
 
@@ -1471,39 +1424,5 @@ describe('AgentFullPage', () => {
 
     expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
     expect(screen.getByText('wide-layout')).toBeInTheDocument();
-  });
-
-  it('keeps onboarding focused on the draft while setup is incomplete', () => {
-    setupStatusState.showSetupPanel = true;
-    storeState.messages = [];
-
-    render(
-      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
-    );
-
-    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
-    expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
-    expect(screen.getByText('wide-layout')).toBeInTheDocument();
-  });
-
-  it('prioritizes thread outputs over the setup panel in onboarding when both apply', () => {
-    setupStatusState.showSetupPanel = true;
-    storeState.messages = [
-      {
-        content: 'Generated a video',
-        createdAt: '2026-03-26T10:00:00.000Z',
-        id: 'msg-output',
-        metadata: { mediaUrl: 'https://cdn/output.mp4' } as never,
-        role: 'assistant',
-        threadId: 'thread-1',
-      },
-    ];
-
-    render(
-      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
-    );
-
-    expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
-    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
   });
 });

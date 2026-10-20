@@ -691,7 +691,7 @@ describe('AppProtectedLayout', () => {
     },
   );
 
-  it.each(['/admin', '/onboarding/brand', '/org-123/~/agent/onboarding'])(
+  it.each(['/admin', '/onboarding/brand'])(
     'registers settings on palette host %s',
     (pathname) => {
       mockPathname.value = pathname;
@@ -1260,51 +1260,6 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('streak-notifications-bridge'),
     ).not.toBeInTheDocument();
-  });
-
-  it('keeps shared shell chrome on onboarding agent routes', () => {
-    mockPathname.value = '/org-123/brand-123/agent/onboarding';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('streak-notifications-bridge'),
-    ).toBeInTheDocument();
-    expect(appLayoutSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        bannerComponent: expect.anything(),
-        railComponent: expect.anything(),
-        topbarComponent: expect.any(Function),
-      }),
-    );
-    expect(protectedProvidersSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeElementsProvider: true,
-        includePromptBarProvider: true,
-      }),
-    );
-  });
-
-  it('keeps catalog providers on org-empty onboarding routes', () => {
-    mockPathname.value = '/org-123/~/agent/onboarding';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    expect(protectedProvidersSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeElementsProvider: true,
-        includePromptBarProvider: true,
-      }),
-    );
   });
 
   it('does not refresh the route when the shell mounts already signed in', () => {

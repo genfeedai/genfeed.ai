@@ -32,7 +32,6 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
     clearCompletionWatchdog: vi.fn(),
     clearPendingInputRequest: vi.fn(),
     resolvePendingInputRequest: vi.fn(() => true),
-    completeOnboardingIfNeeded: vi.fn(),
     finalizeStream: vi.fn(),
     isAwaitingRunIdRef: { current: false },
     isThreadVisible: vi.fn(() => true),
@@ -494,7 +493,6 @@ describe('attachAgentStreamSubscriptions', () => {
     expect(deps.setCreditsRemaining).toHaveBeenCalledWith(88);
     expect(deps.clearPendingInputRequest).toHaveBeenCalled();
     expect(deps.cleanupSubscriptions).toHaveBeenCalled();
-    expect(deps.completeOnboardingIfNeeded).toHaveBeenCalledWith([]);
   });
 
   it('done marks hidden threads updated without touching stream state', () => {

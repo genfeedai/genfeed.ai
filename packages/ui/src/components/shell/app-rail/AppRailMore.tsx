@@ -20,7 +20,6 @@ import { useState } from 'react';
  * opening or pinning, plus the way back to the default rail.
  */
 export function AppRailMore({
-  isSuspended = false,
   items,
   onOpen,
   onReset,
@@ -36,7 +35,6 @@ export function AppRailMore({
           ariaLabel={t('more')}
           className="size-8 text-foreground/50 hover:text-foreground"
           data-testid="app-rail-more"
-          isDisabled={isSuspended}
           size={ButtonSize.ICON}
           type="button"
           variant={ButtonVariant.GHOST}

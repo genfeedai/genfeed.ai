@@ -162,7 +162,6 @@ describe('AgentChatContainerThreadView', () => {
         isSubmittingInputRequest={false}
         latestProposedPlan={null}
         messagesEndRef={createRef<HTMLDivElement>()}
-        onboardingMode={false}
         onApprovePlan={vi.fn()}
         onCopy={vi.fn()}
         onCreateFollowUpTasks={vi.fn()}
@@ -189,68 +188,5 @@ describe('AgentChatContainerThreadView', () => {
     });
 
     expect(jump.parentElement).toHaveStyle({ bottom: '180px' });
-  });
-
-  it('renders the onboarding card after the transcript and scrolls it into view', () => {
-    const scroll = vi.fn();
-    const original = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scroll;
-    const view = render(
-      <AgentChatContainerThreadView
-        activeThreadTitle={null}
-        activeUiAction={null}
-        apiService={{} as never}
-        followUpTaskMessage={null}
-        highlightedMessageId={null}
-        isAtBottom={false}
-        isBusy={false}
-        isCreatingFollowUpTasks={false}
-        isPlanReviewPending={false}
-        isGenerating={false}
-        isWideLayout={false}
-        isReadOnly={false}
-        isStreamingActive={false}
-        isSubmittingInputRequest={false}
-        latestProposedPlan={null}
-        messagesEndRef={createRef<HTMLDivElement>()}
-        onboardingMode
-        onApprovePlan={vi.fn()}
-        onCopy={vi.fn()}
-        onCreateFollowUpTasks={vi.fn()}
-        onIngredientSelect={vi.fn()}
-        onRequestPlanChanges={vi.fn()}
-        onRetry={vi.fn()}
-        onRetryLastFailedRun={vi.fn()}
-        onSubmitInputRequest={vi.fn()}
-        onUiAction={vi.fn()}
-        padBottomForComposer
-        composerTranscriptPaddingPx={180}
-        pendingInputRequest={{
-          inputRequestId: 'card-1',
-          threadId: 'thread-1',
-          title: 'Goals',
-          prompt: 'Choose',
-          options: [],
-        }}
-        pendingUiActions={[]}
-        scrollContainerRef={createRef<HTMLDivElement>()}
-        scrollToBottom={vi.fn()}
-        shouldShowInputRequestOverlay
-        showFollowUpButton={false}
-        timeline={[]}
-      />,
-    );
-
-    const footer = screen.getByTestId('agent-column-composer');
-    const heading = screen.getByRole('heading', { name: 'Goals' });
-    expect(footer).toContainElement(heading);
-    expect(footer).not.toContainElement(screen.getByText('timeline'));
-    expect(
-      screen.getByText('timeline').compareDocumentPosition(heading) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(scroll).toHaveBeenCalledWith({ block: 'end' });
-    view.unmount();
-    Element.prototype.scrollIntoView = original;
   });
 });

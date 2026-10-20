@@ -15,17 +15,6 @@ import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 
-export interface UseAgentOAuthConnectOptions {
-  /**
-   * Whether the caller is on the agent onboarding surface. Callers pass their
-   * own route-normalized value — the raw pathname carries the `/[orgSlug]/~`
-   * prefix and can't be matched against `APP_ROUTES.AGENT.ONBOARDING` here.
-   * Controls whether `return_to` points back to the onboarding or standard
-   * agent route. Defaults to `false`.
-   */
-  isOnboarding?: boolean;
-}
-
 /**
  * Shared handler for the agent `oauth_connect_card`. Kicks off a platform OAuth
  * connect via {@link ServicesService} and redirects the tab to the provider's
@@ -36,12 +25,9 @@ export interface UseAgentOAuthConnectOptions {
  * floating agent panel from one implementation — previously the panel received
  * no handler, so the card was a no-op everywhere except `/agent`.
  */
-export function useAgentOAuthConnect(
-  options: UseAgentOAuthConnectOptions = {},
-): (platform: string) => Promise<void> {
-  const { isOnboarding = false } = options;
+export function useAgentOAuthConnect(): (platform: string) => Promise<void> {
   const params = useParams<{ id?: string; threadId?: string }>();
-  const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
+  const { brandSlug, href, orgSlug } = useOrgUrl();
   const { getToken } = useAuthIdentity();
   const { brands, selectedBrand } = useBrand();
   const connectionBrand = brandSlug
@@ -78,13 +64,9 @@ export function useAgentOAuthConnect(
         const credential = await service.postConnect({
           brandId: connectionBrand.id,
         });
-        const returnTo = isOnboarding
-          ? threadId
-            ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${threadId}`)
-            : orgHref(APP_ROUTES.AGENT.ONBOARDING)
-          : threadId
-            ? href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
-            : href(APP_ROUTES.AGENT.NEW);
+        const returnTo = threadId
+          ? href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
+          : href(APP_ROUTES.AGENT.NEW);
         try {
           sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
         } catch {
@@ -110,6 +92,6 @@ export function useAgentOAuthConnect(
         throw error;
       }
     },
-    [connectionBrand, getToken, href, isOnboarding, orgHref, threadId],
+    [connectionBrand, getToken, href, threadId],
   );
 }

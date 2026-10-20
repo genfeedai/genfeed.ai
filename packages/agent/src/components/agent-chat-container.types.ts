@@ -22,7 +22,6 @@ export interface AgentChatContainerProps {
   emptyStateDescription?: string;
   suggestedActions?: SuggestedAction[];
   showSuggestedActionsWhenNotEmpty?: boolean;
-  onOnboardingCompleted?: () => void | Promise<void>;
   onCopy?: (content: string) => void | Promise<void>;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
@@ -43,7 +42,6 @@ export interface AgentChatContainerProps {
   onUnarchive?: () => void | Promise<void>;
   isStreaming?: boolean;
   promptBarLayoutMode?: 'fixed' | 'surface-fixed';
-  onboardingMode?: boolean;
   isWideLayout?: boolean;
   workspacePlanningTaskId?: string | null;
 }

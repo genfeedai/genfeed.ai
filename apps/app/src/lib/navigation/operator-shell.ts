@@ -68,9 +68,8 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
  * through {@link normalizeProtectedPathname}) belongs to.
  *
  * The agent layout hosts one persistent conversation for `/agent`,
- * `/agent/new`, `/agent/:threadId`, `/agent/onboarding`, and
- * `/agent/onboarding/:threadId` — the URL is the thread selector, the shell
- * never remounts. Anything else under `/agent` (`/agent/journey`) is a page
+ * `/agent/new`, and `/agent/:threadId` — the URL is the thread selector, the
+ * shell never remounts. Anything else under `/agent` (`/agent/journey`) is a page
  * with its own content and resolves to `null`.
  *
  * Malformed ids (`/agent/undefined` from a stale link) resolve without a
@@ -97,24 +96,18 @@ export function resolveAgentConversationRoute(
   const toThreadId = (segment: string | undefined): string | undefined =>
     isRenderableThreadId(segment) ? segment : undefined;
 
-  if (segments[0] === 'onboarding') {
-    return segments.length <= 2
-      ? { isOnboarding: true, threadId: toThreadId(segments[1]) }
-      : null;
-  }
-
   if (
     segments.length === 0 ||
     (segments.length === 1 && segments[0] === 'new')
   ) {
-    return { isOnboarding: false, threadId: undefined };
+    return { threadId: undefined };
   }
 
   if (
     segments.length === 1 &&
     normalizedPathname !== APP_ROUTES.AGENT.JOURNEY
   ) {
-    return { isOnboarding: false, threadId: toThreadId(segments[0]) };
+    return { threadId: toThreadId(segments[0]) };
   }
 
   return null;
@@ -191,7 +184,7 @@ export function getCurrentBrandScopedPath(pathname: string): string {
 }
 
 /**
- * Brand-owned resources (a selected conversation, an onboarding thread)
+ * Brand-owned resources (a selected conversation)
  * cannot follow the user onto another brand. Keep the surface; drop the id.
  */
 export function resolveBrandSwitchSurfacePath(brandScopedPath: string): string {

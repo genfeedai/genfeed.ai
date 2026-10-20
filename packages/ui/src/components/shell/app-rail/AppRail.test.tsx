@@ -218,18 +218,6 @@ function renderedLauncherAppIds() {
 }
 
 describe('AppRail', () => {
-  it('does not link rail items while onboarding holds navigation', () => {
-    render(<AppRail isNavigationSuspended orgSlug="acme" />);
-    const agent = screen.getByTestId('app-rail-item-agent');
-    expect(agent.tagName).toBe('BUTTON');
-    expect(agent).toBeDisabled();
-    expect(screen.getByTestId('app-rail')).toHaveAttribute(
-      'data-onboarding-hold',
-      'true',
-    );
-    expect(commands.registerCommands).not.toHaveBeenCalled();
-  });
-
   it('keeps the web G-then-N shortcut in the palette, not the tooltip', () => {
     render(<AppRail orgSlug="acme" />);
     expect(
@@ -2110,24 +2098,6 @@ describe('AppRail', () => {
         surface: 'desktop',
         to_index: 0,
       });
-    });
-
-    it('freezes reordering and More during the onboarding hold', () => {
-      render(
-        <AppRail
-          orgSlug="acme"
-          isNavigationSuspended
-          onRailAppOrderChange={vi.fn()}
-          onResetRail={vi.fn()}
-        />,
-      );
-
-      expect(screen.getByTestId('app-rail-more')).toBeDisabled();
-      expect(
-        screen.getByTestId('app-rail-slot-agent').getAttribute('draggable'),
-      ).toBeNull();
-      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
-      expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
     });
   });
 });

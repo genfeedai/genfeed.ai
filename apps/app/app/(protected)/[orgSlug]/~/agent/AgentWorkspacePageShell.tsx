@@ -3,8 +3,6 @@ import {
   useAgentChatStore,
   useConversationComposerShell,
 } from '@genfeedai/agent';
-import { readRecordedRunFailure } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -14,10 +12,8 @@ import KnowledgeReferenceSection from '@pages/library/knowledge/components/Knowl
 import type { AgentWorkspacePageShellProps } from '@props/agent/agent-workspace-page-shell.props';
 import type { BrandKnowledgeSelection } from '@props/content/knowledge-library.props';
 import { TasksService } from '@services/management/tasks.service';
-import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAgentWorkspace } from './agent-workspace-context';
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
@@ -26,76 +22,10 @@ export function AgentWorkspacePageShell({
   threadId,
 }: AgentWorkspacePageShellProps) {
   const { push } = useRouter();
-  const translate = useTranslations('common.agent.onboardingShell');
   const { orgHref } = useOrgUrl();
   const { getToken } = useAuthIdentity();
-  const {
-    agentApiService,
-    isLoaded,
-    handleOAuthConnect,
-    completeOnboardingFlow,
-    isOnboarding,
-    isExpertOnboarding,
-    onboardingBootstrapError,
-    onboardingStartFailures,
-    retryOnboardingBootstrap,
-  } = useAgentWorkspace();
+  const { agentApiService, isLoaded, handleOAuthConnect } = useAgentWorkspace();
   const handleBrandCreate = useAgentBrandCreate();
-  const [turnFailures, setTurnFailures] = useState(0);
-  const [isContinuing, setIsContinuing] = useState(false);
-  const [escapeError, setEscapeError] = useState(false);
-  const failureSeen = useRef(false);
-  const turnError = useAgentChatStore((state) => state.error);
-  const pendingCard = useAgentChatStore((state) => state.pendingInputRequest);
-  const lastSuccessfulCardId = useRef(pendingCard?.inputRequestId ?? null);
-  useEffect(() => {
-    if (
-      pendingCard &&
-      pendingCard.inputRequestId !== lastSuccessfulCardId.current
-    ) {
-      lastSuccessfulCardId.current = pendingCard.inputRequestId;
-      setTurnFailures(0);
-    }
-  }, [pendingCard]);
-  const latestSuccessfulAssistantReplyId = useAgentChatStore((state) => {
-    const message = state.messages.at(-1);
-    return message?.role === 'assistant' &&
-      !state.stream.isStreaming &&
-      !state.error &&
-      !readRecordedRunFailure(message.metadata)
-      ? message.id
-      : null;
-  });
-  const lastSuccessfulReplyId = useRef(latestSuccessfulAssistantReplyId);
-  useEffect(() => {
-    if (
-      latestSuccessfulAssistantReplyId &&
-      latestSuccessfulAssistantReplyId !== lastSuccessfulReplyId.current
-    ) {
-      lastSuccessfulReplyId.current = latestSuccessfulAssistantReplyId;
-      setTurnFailures(0);
-    }
-  }, [latestSuccessfulAssistantReplyId]);
-  useEffect(() => {
-    if (!isOnboarding) return;
-    if (turnError && !failureSeen.current) {
-      failureSeen.current = true;
-      setTurnFailures((count) => count + 1);
-    } else if (!turnError) {
-      failureSeen.current = false;
-    }
-  }, [isOnboarding, turnError]);
-  const handleContinueToWorkspace = useCallback(async () => {
-    setIsContinuing(true);
-    setEscapeError(false);
-    try {
-      await completeOnboardingFlow();
-    } catch {
-      setEscapeError(true);
-    } finally {
-      setIsContinuing(false);
-    }
-  }, [completeOnboardingFlow]);
   // Knowledge is picked for the brand the next turn runs under: the composer's
   // brand when it sets one (new threads adopt it), otherwise the open thread's.
   const composerShell = useConversationComposerShell();
@@ -167,36 +97,6 @@ export function AgentWorkspacePageShell({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-      {isOnboarding && onboardingBootstrapError ? (
-        <div role="alert" className="flex items-center gap-3 px-4 py-2 text-sm">
-          <p>{translate('startError')}</p>
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            onClick={retryOnboardingBootstrap}
-          >
-            {translate('retry')}
-          </Button>
-        </div>
-      ) : null}
-      {isOnboarding && (onboardingStartFailures >= 3 || turnFailures >= 3) ? (
-        <div className="flex shrink-0 items-center gap-3 px-4 py-2">
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            isDisabled={isContinuing}
-            onClick={handleContinueToWorkspace}
-          >
-            {translate(
-              isExpertOnboarding
-                ? 'continueExpertSetup'
-                : 'continueToWorkspace',
-            )}
-          </Button>
-          {escapeError ? (
-            <p role="alert">{translate('continueError')}</p>
-          ) : null}
-        </div>
-      ) : null}
       <AgentFullPage
         apiService={agentApiService}
         authReady={isLoaded}
@@ -209,14 +109,12 @@ export function AgentWorkspacePageShell({
           />
         }
         knowledgeSelection={knowledgeSelection}
-        onboardingMode={isOnboarding}
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
         showThreadSidebar={false}
         threadId={threadId}
         onNavigateToBilling={handleNavigateToBilling}
         onOAuthConnect={handleOAuthConnect}
         onBrandCreate={handleBrandCreate}
-        onOnboardingCompleted={completeOnboardingFlow}
         onOpenInStudio={handleOpenInStudio}
         onSelectCreditPack={handleSelectCreditPack}
       />

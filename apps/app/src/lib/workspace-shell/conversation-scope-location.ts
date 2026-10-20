@@ -64,7 +64,7 @@ export function buildScopedThreadHref(
 
 /**
  * Extract a standard agent thread id from a normalized protected pathname
- * (`/agent/:id`). Onboarding and unthreaded entry routes return null.
+ * (`/agent/:id`). Unthreaded entry routes return null.
  */
 export function extractAgentThreadIdFromPathname(
   pathname: string,
@@ -75,11 +75,7 @@ export function extractAgentThreadIdFromPathname(
   }
 
   const threadId = match[1];
-  if (
-    threadId === 'new' ||
-    threadId === 'onboarding' ||
-    threadId === 'journey'
-  ) {
+  if (threadId === 'new' || threadId === 'journey') {
     return null;
   }
 

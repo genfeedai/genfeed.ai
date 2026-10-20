@@ -55,11 +55,6 @@ export interface AppRailProps {
    * section. Passed down from the app shell's access state.
    */
   isAssetGateLocked?: boolean;
-  /**
-   * Onboarding hold. Rail items and the account footer stop navigating until
-   * the conversation finishes. Collapse controls live outside this rail.
-   */
-  isNavigationSuspended?: boolean;
   /** Pinned above the apps, e.g. the organization avatar (Slack workspace icon). */
   header?: ReactNode;
   /** Pinned at the very bottom, below Admin: Help and the account avatar. */
@@ -109,7 +104,6 @@ export interface AppRailProps {
 }
 
 export interface AppRailMoreProps {
-  isSuspended?: boolean;
   /** Apps the member can open that are not on the rail. */
   items: readonly AppRailNavigationItem[];
   onOpen: (item: AppRailNavigationItem) => void;
@@ -150,7 +144,6 @@ export interface AppRailItemProps {
   href: string;
   isActive: boolean;
   isLocked: boolean;
-  isNavigationSuspended?: boolean;
   label: string;
   description: string;
   shortcut?: string[];
@@ -161,7 +154,6 @@ export interface UseAppRailNavigationOptions {
   items: readonly AppRailNavigationItem[];
   surface: AppRailSurface;
   isDesktop: boolean;
-  isSuspended?: boolean;
   commandLabel: (label: string) => string;
   navigate: (item: AppRailNavigationItem, via: AppRailNavigationVia) => void;
 }

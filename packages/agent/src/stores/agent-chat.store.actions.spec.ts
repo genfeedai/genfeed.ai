@@ -19,7 +19,6 @@ import {
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
-import { ONBOARDING_JOURNEY_TOTAL_CREDITS } from '@genfeedai/contracts/types/onboarding-journey';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeMessage(
@@ -789,55 +788,6 @@ describe('agent-chat.store memory entries', () => {
     expect(
       useAgentChatStore.getState().memoryEntries.map((entry) => entry.id),
     ).toEqual(['mem-2']);
-  });
-});
-
-describe('agent-chat.store onboarding', () => {
-  it('setOnboardingStepStatus updates only the matching step', () => {
-    useAgentChatStore
-      .getState()
-      .setOnboardingStepStatus('complete_company_info', 'completed');
-
-    const steps = useAgentChatStore.getState().onboardingSteps;
-    expect(
-      steps.find((step) => step.id === 'complete_company_info')?.status,
-    ).toBe('completed');
-    expect(
-      steps.find((step) => step.id === 'generate_first_image')?.status,
-    ).toBe('pending');
-  });
-
-  it('setOnboardingChecklist applies payload with defaults', () => {
-    useAgentChatStore.getState().setOnboardingChecklist({
-      earnedCredits: 25,
-      steps: [],
-    });
-
-    const state = useAgentChatStore.getState();
-    expect(state.onboardingSteps).toEqual([]);
-    expect(state.onboardingEarnedCredits).toBe(25);
-    expect(state.onboardingTotalJourneyCredits).toBe(
-      ONBOARDING_JOURNEY_TOTAL_CREDITS,
-    );
-    expect(state.onboardingSignupGiftCredits).toBe(0);
-    expect(state.onboardingTotalVisibleCredits).toBe(
-      ONBOARDING_JOURNEY_TOTAL_CREDITS,
-    );
-    expect(state.onboardingCompletionPercent).toBe(0);
-  });
-
-  it('setOnboardingChecklist honors explicit totals', () => {
-    useAgentChatStore.getState().setOnboardingChecklist({
-      completionPercent: 40,
-      signupGiftCredits: 100,
-      steps: [],
-      totalJourneyCredits: 500,
-      totalOnboardingCreditsVisible: 700,
-    });
-
-    const state = useAgentChatStore.getState();
-    expect(state.onboardingTotalVisibleCredits).toBe(700);
-    expect(state.onboardingCompletionPercent).toBe(40);
   });
 });
 

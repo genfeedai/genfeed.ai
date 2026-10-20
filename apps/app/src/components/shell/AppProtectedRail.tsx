@@ -23,7 +23,6 @@ import {
   captureAppRailReorder,
 } from '@/lib/analytics/app-rail-analytics';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
-import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 import {
   appendSearchParamsToHref,
   pickOperatorTaskContextSearchParams,
@@ -150,7 +149,6 @@ function AppProtectedRailContent({
       isAdminChrome={isAdminChrome}
       installedAppIds={installedAppIds}
       isAssetGateLocked={isAssetGateLocked}
-      isNavigationSuspended={isAgentOnboardingPathname(pathname)}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       hiddenAppIds={hiddenAppIds}

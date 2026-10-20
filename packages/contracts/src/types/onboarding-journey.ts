@@ -92,7 +92,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'publish_first_post',
       label: 'Publish your first post',
       rewardCredits: 70,
-      selfHostedCtaHref: '/agent/onboarding',
+      selfHostedCtaHref: '/agent/new',
       whyItMatters:
         'Publishing closes the loop from setup to real output and proves time-to-value.',
     },

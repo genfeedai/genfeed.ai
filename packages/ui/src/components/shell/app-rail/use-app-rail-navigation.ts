@@ -25,7 +25,6 @@ export function useAppRailNavigation({
   items,
   surface,
   isDesktop,
-  isSuspended = false,
   commandLabel,
   navigate,
 }: UseAppRailNavigationOptions): void {
@@ -46,7 +45,6 @@ export function useAppRailNavigation({
   useEffect(() => {
     // Re-register when command membership, order, or localized metadata changes.
     void registrationKey;
-    if (isSuspended) return;
     const media = window.matchMedia('(min-width: 768px)');
     let registeredIds: string[] = [];
     const { handleKeyDown, reset } = createAppRailShortcutHandler(
@@ -93,5 +91,5 @@ export function useAppRailNavigation({
       cleanup();
       media.removeEventListener('change', syncSurface);
     };
-  }, [isSuspended, registrationKey, surface, isDesktop]);
+  }, [registrationKey, surface, isDesktop]);
 }
