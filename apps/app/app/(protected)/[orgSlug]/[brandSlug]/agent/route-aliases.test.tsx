@@ -5,8 +5,6 @@ for (const routePath of [
   'page.tsx',
   'new/page.tsx',
   '[id]/page.tsx',
-  'onboarding/page.tsx',
-  'onboarding/[threadId]/page.tsx',
   'journey/page.tsx',
 ]) {
   assertSourceHasExport(
