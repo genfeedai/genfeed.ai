@@ -8,6 +8,25 @@ import { storyboardIdSchema } from './storyboard-source.contract';
  */
 export const STORYBOARD_STILL_SOURCE_ACTION_PREFIX = 'storyboard-still-';
 
+const OPERATION_ID_SUFFIX =
+  /-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The storyboard run a still belongs to, read from its `sourceActionId`
+ * (`storyboard-still-<runId>-<operationId>`). Returns null for any other
+ * ingredient.
+ */
+export function parseStoryboardStillRunId(
+  sourceActionId: string | null | undefined,
+): string | null {
+  if (!sourceActionId?.startsWith(STORYBOARD_STILL_SOURCE_ACTION_PREFIX))
+    return null;
+  const runId = sourceActionId
+    .slice(STORYBOARD_STILL_SOURCE_ACTION_PREFIX.length)
+    .replace(OPERATION_ID_SUFFIX, '');
+  return runId.length > 0 ? runId : null;
+}
+
 const shotIdsSchema = z
   .array(storyboardIdSchema)
   .min(1)

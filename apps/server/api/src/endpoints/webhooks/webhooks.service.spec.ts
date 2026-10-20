@@ -27,6 +27,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetCategory,
   IngredientCategory,
@@ -138,6 +139,8 @@ describe('WebhooksService', () => {
     width: 1920,
   };
 
+  const mockContentRunFindFirst = vi.fn();
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
@@ -181,6 +184,10 @@ describe('WebhooksService', () => {
           useValue: {
             dispatch: vi.fn(),
           },
+        },
+        {
+          provide: PrismaService,
+          useValue: { contentRun: { findFirst: mockContentRunFindFirst } },
         },
         {
           provide: NotificationsPublisherService,
@@ -1276,6 +1283,82 @@ describe('WebhooksService', () => {
       expect(autoMergeService.triggerAutoMergeIfReady).toHaveBeenCalledWith(
         expect.objectContaining({ id: mockIngredientId }),
       );
+    });
+  });
+  describe('storyboard still Discord notification', () => {
+    const runId = 'clxrun0000000000001';
+    const sourceActionId = `storyboard-still-${runId}-4f9c1c0e-6a53-4d6a-9d0b-2d1f4f5a9b10`;
+    type DiscordNotifier = {
+      sendDiscordNotificationAsync(
+        ingredientId: string,
+        category: IngredientCategory,
+        integration: string,
+      ): Promise<void>;
+    };
+    const notify = () =>
+      (service as unknown as DiscordNotifier).sendDiscordNotificationAsync(
+        mockIngredientId,
+        IngredientCategory.IMAGE,
+        'replicate',
+      );
+    const dispatchedPayload = () => {
+      const dispatch = vi.mocked(_notificationsService.dispatch);
+      return dispatch.mock.calls[0][0].messages[0].message.payload;
+    };
+
+    it('posts a storyboard still with its storyboard context', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredient,
+        sourceActionId,
+      } as unknown as IngredientDocument);
+      mockContentRunFindFirst.mockResolvedValue({
+        brand: { slug: 'acme' },
+        config: { plan: { title: 'Steam shots' } },
+        organization: { slug: 'org' },
+      });
+
+      await notify();
+
+      expect(dispatchedPayload()).toMatchObject({
+        storyboard: {
+          layoutPath: `/org/acme/studio/storyboard/${runId}`,
+          runId,
+          title: 'Steam shots',
+        },
+      });
+      expect(mockContentRunFindFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: runId,
+            isDeleted: false,
+            organizationId: mockOrgId,
+          }),
+        }),
+      );
+    });
+
+    it('keeps the ordinary channel path for other ingredients', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredient,
+        sourceActionId: null,
+      } as unknown as IngredientDocument);
+
+      await notify();
+
+      expect(mockContentRunFindFirst).not.toHaveBeenCalled();
+      expect(dispatchedPayload()).not.toHaveProperty('storyboard');
+    });
+
+    it('still posts the still when the storyboard lookup fails', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredient,
+        sourceActionId,
+      } as unknown as IngredientDocument);
+      mockContentRunFindFirst.mockRejectedValue(new Error('db down'));
+
+      await notify();
+
+      expect(dispatchedPayload()).not.toHaveProperty('storyboard');
     });
   });
 });

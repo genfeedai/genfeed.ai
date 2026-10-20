@@ -7,6 +7,7 @@ import type {
   IDiscordTransportStatus,
   IIngredientNotificationData,
   IRevenueNotificationPayload,
+  IStoryboardNotificationContext,
   IUserCreatedPayload,
 } from '@genfeedai/contracts/interfaces';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
@@ -150,6 +151,7 @@ export class DiscordService {
     category: IngredientCategory,
     cdnUrl: string,
     ingredient: IIngredientNotificationData,
+    storyboard?: IStoryboardNotificationContext,
   ): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
@@ -170,10 +172,17 @@ export class DiscordService {
           ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
           : null;
 
+        const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+        const layoutUrl =
+          storyboard?.layoutPath && appUrl
+            ? `${appUrl}${storyboard.layoutPath}`
+            : null;
+
         const buttons = this.buildIngredientButtons(
           category,
           cdnUrl,
           ingredientManagerUrl,
+          layoutUrl,
         );
 
         const embed: IDiscordEmbed = {
@@ -198,11 +207,22 @@ export class DiscordService {
         const avatarUrl =
           (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
 
+        // A storyboard's stills share one thread; without one they fall back
+        // to the channel like any other generation.
+        const threadId = storyboard
+          ? ((await this.discordBotService.getStoryboardThread({
+              layoutUrl,
+              runId: storyboard.runId,
+              title: storyboard.title,
+            })) ?? undefined)
+          : undefined;
+
         // A separate video URL message lets Discord embed the video before its details.
         if (category === IngredientCategory.VIDEO) {
           await webhookClient.send({
             avatarURL: avatarUrl,
             content: cdnUrl,
+            threadId,
             username: 'Genfeed.ai',
           });
         }
@@ -210,6 +230,7 @@ export class DiscordService {
         const messagePayload: WebhookMessageCreateOptions = {
           avatarURL: avatarUrl,
           embeds: [embed],
+          threadId,
           username: 'Genfeed.ai',
         };
 
@@ -370,6 +391,7 @@ export class DiscordService {
     category: IngredientCategory,
     cdnUrl: string,
     managerUrl: string | null,
+    storyboardUrl: string | null = null,
   ): ButtonBuilder[] {
     const buttons: ButtonBuilder[] = [];
 
@@ -388,6 +410,15 @@ export class DiscordService {
           .setLabel('View Full Image')
           .setStyle(ButtonStyle.Link)
           .setURL(cdnUrl),
+      );
+    }
+
+    if (storyboardUrl) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel('Open Storyboard')
+          .setStyle(ButtonStyle.Link)
+          .setURL(storyboardUrl),
       );
     }
 

@@ -124,6 +124,9 @@ export class ChannelMessageDispatcherService {
           throw new InvalidChannelMessageError('Ingredient payload incomplete');
         }
         const category = readPayloadString(payload, 'category');
+        const storyboard = readPayloadRecord(payload, 'storyboard');
+        const storyboardRunId =
+          typeof storyboard?.runId === 'string' ? storyboard.runId : '';
         return this.discordService.sendIngredientNotification(
           Object.values(IngredientCategory).find(
             (value) => value === category,
@@ -154,6 +157,19 @@ export class ChannelMessageDispatcherService {
                 ? ingredient.thumbnailUrl
                 : undefined,
           },
+          storyboardRunId
+            ? {
+                layoutPath:
+                  typeof storyboard?.layoutPath === 'string'
+                    ? storyboard.layoutPath
+                    : undefined,
+                runId: storyboardRunId,
+                title:
+                  typeof storyboard?.title === 'string' && storyboard.title
+                    ? storyboard.title
+                    : 'Untitled storyboard',
+              }
+            : undefined,
         );
       }
       case 'article_notification':

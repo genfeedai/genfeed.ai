@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   generateStoryboardStillsSchema,
+  parseStoryboardStillRunId,
   quoteStoryboardStillsSchema,
   storyboardStillQuoteSchema,
 } from '../../src/api-types/contracts/storyboard-still.contract';
@@ -46,5 +47,20 @@ describe('storyboard still contract', () => {
     expect(
       storyboardStillQuoteSchema.safeParse({ ...quote, total: 4 }).success,
     ).toBe(false);
+  });
+});
+
+describe('parseStoryboardStillRunId', () => {
+  it('reads the run id out of a still source action id', () => {
+    expect(
+      parseStoryboardStillRunId(
+        'storyboard-still-clx9run123-4f9c1c0e-6a53-4d6a-9d0b-2d1f4f5a9b10',
+      ),
+    ).toBe('clx9run123');
+  });
+
+  it('ignores ingredients that are not storyboard stills', () => {
+    expect(parseStoryboardStillRunId(null)).toBeNull();
+    expect(parseStoryboardStillRunId('agent-source:abc')).toBeNull();
   });
 });

@@ -237,6 +237,88 @@ describe('DiscordBotService', () => {
     });
   });
 
+  describe('getStoryboardThread', () => {
+    const input = {
+      layoutUrl: null,
+      runId: 'clxrun0001abcdef',
+      title: 'Steam',
+    };
+    const suffix = ' · abcdef';
+
+    function makeChannel(
+      threads: { id: string; name: string; setArchived?: Mock }[],
+      archived: { id: string; name: string; setArchived: Mock }[] = [],
+    ) {
+      const startThread = vi.fn().mockResolvedValue({ id: 'new-thread' });
+      const channel = Object.assign(Object.create(TextChannel.prototype), {
+        send: vi.fn().mockResolvedValue({ startThread }),
+        threads: {
+          fetchActive: vi.fn().mockResolvedValue({
+            threads: {
+              find: (fn: (t: unknown) => boolean) => threads.find(fn),
+            },
+          }),
+          fetchArchived: vi.fn().mockResolvedValue({
+            threads: {
+              find: (fn: (t: unknown) => boolean) => archived.find(fn),
+            },
+          }),
+        },
+      });
+      mockClient.channels.fetch.mockResolvedValue(channel);
+      return { channel, startThread };
+    }
+
+    beforeEach(async () => {
+      await service.onModuleInit();
+      mockClient.once.mock.calls[0][1]();
+    });
+
+    it('opens one thread per run and reuses it for later stills', async () => {
+      const { channel, startThread } = makeChannel([]);
+
+      const first = await Promise.all([
+        service.getStoryboardThread(input),
+        service.getStoryboardThread(input),
+      ]);
+      const later = await service.getStoryboardThread(input);
+
+      expect(first).toEqual(['new-thread', 'new-thread']);
+      expect(later).toBe('new-thread');
+      expect(channel.send).toHaveBeenCalledTimes(1);
+      expect(startThread).toHaveBeenCalledTimes(1);
+      expect(startThread).toHaveBeenCalledWith(
+        expect.objectContaining({ name: `Steam${suffix}` }),
+      );
+    });
+
+    it('finds the run thread again after a restart', async () => {
+      const { channel } = makeChannel([
+        { id: 'existing', name: `Steam${suffix}` },
+      ]);
+
+      await expect(service.getStoryboardThread(input)).resolves.toBe(
+        'existing',
+      );
+      expect(channel.send).not.toHaveBeenCalled();
+    });
+
+    it('unarchives an archived run thread', async () => {
+      const setArchived = vi.fn().mockResolvedValue(undefined);
+      makeChannel([], [{ id: 'old', name: `Steam${suffix}`, setArchived }]);
+
+      await expect(service.getStoryboardThread(input)).resolves.toBe('old');
+      expect(setArchived).toHaveBeenCalledWith(false);
+    });
+
+    it('resolves null so the caller posts to the channel when it cannot', async () => {
+      mockClient.channels.fetch.mockRejectedValue(new Error('Missing Access'));
+
+      await expect(service.getStoryboardThread(input)).resolves.toBeNull();
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+  });
+
   describe('getOrCreateWebhook', () => {
     beforeEach(async () => {
       await service.onModuleInit();

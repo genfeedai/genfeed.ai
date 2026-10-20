@@ -41,6 +41,7 @@ describe('DiscordService', () => {
     getIngredientsWebhook: vi.fn(),
     getModelsWebhook: vi.fn(),
     getPostsWebhook: vi.fn(),
+    getStoryboardThread: vi.fn(),
     getUsersWebhook: vi.fn(),
   };
 
@@ -207,6 +208,73 @@ describe('DiscordService', () => {
   });
 
   describe('sendIngredientNotification', () => {
+    const storyboard = {
+      layoutPath: '/org/brand/studio/storyboard/run-1',
+      runId: 'run-1',
+      title: 'Steam shots',
+    };
+
+    it('posts a storyboard still into its storyboard thread', async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : undefined,
+      );
+      mockDiscordBotService.getIngredientsWebhook.mockResolvedValue(
+        mockWebhookClient,
+      );
+      mockDiscordBotService.getStoryboardThread.mockResolvedValue('thread-1');
+      const { service } = await createService();
+
+      await service.sendIngredientNotification(
+        IngredientCategory.IMAGE,
+        'https://cdn/img.png',
+        { id: 'ing-1' },
+        storyboard,
+      );
+
+      expect(mockDiscordBotService.getStoryboardThread).toHaveBeenCalledWith({
+        layoutUrl: 'https://app.genfeed.ai/org/brand/studio/storyboard/run-1',
+        runId: 'run-1',
+        title: 'Steam shots',
+      });
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const payload = mockSend.mock.calls[0][0] as WebhookMessageCreateOptions;
+      expect(payload.threadId).toBe('thread-1');
+      expect(JSON.stringify(payload.components)).toContain('Open Storyboard');
+    });
+
+    it('falls back to the channel when no thread can be opened', async () => {
+      mockDiscordBotService.getIngredientsWebhook.mockResolvedValue(
+        mockWebhookClient,
+      );
+      mockDiscordBotService.getStoryboardThread.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await service.sendIngredientNotification(
+        IngredientCategory.IMAGE,
+        'https://cdn/img.png',
+        { id: 'ing-1' },
+        storyboard,
+      );
+
+      const payload = mockSend.mock.calls[0][0] as WebhookMessageCreateOptions;
+      expect(payload.threadId).toBeUndefined();
+    });
+
+    it('never opens a thread for an ordinary generation', async () => {
+      mockDiscordBotService.getIngredientsWebhook.mockResolvedValue(
+        mockWebhookClient,
+      );
+      const { service } = await createService();
+
+      await service.sendIngredientNotification(
+        IngredientCategory.IMAGE,
+        'https://cdn/img.png',
+        { id: 'ing-1' },
+      );
+
+      expect(mockDiscordBotService.getStoryboardThread).not.toHaveBeenCalled();
+    });
+
     it('should propagate webhook lookup errors before delivery handling', async () => {
       const lookupError = new Error('webhook lookup failed');
       mockDiscordBotService.getIngredientsWebhook.mockRejectedValueOnce(
