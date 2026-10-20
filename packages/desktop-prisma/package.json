@@ -6,13 +6,13 @@
   "description": "Prisma schema, client, and migrations for the Genfeed desktop app",
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
-    "@prisma/client": "7.10.0",
-    "@prisma/driver-adapter-utils": "7.10.0",
+    "@prisma/client": "7.10.1",
+    "@prisma/driver-adapter-utils": "7.10.1",
     "prisma-pglite": "3.0.2"
   },
   "devDependencies": {
     "@genfeedai/tsconfig": "workspace:*",
-    "prisma": "7.10.0"
+    "prisma": "7.10.1"
   },
   "exports": {
     ".": "./src/index.ts",

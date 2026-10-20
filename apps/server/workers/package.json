@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "3.1152.0",
-    "@aws-sdk/client-ec2": "3.1152.0",
+    "@aws-sdk/client-cloudwatch": "3.1153.0",
+    "@aws-sdk/client-ec2": "3.1153.0",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/api": "workspace:*",
     "@genfeedai/config": "workspace:*",
@@ -13,15 +13,15 @@
     "@nestjs/axios": "12.0.1",
     "@nestjs/bullmq": "12.0.0",
     "@nestjs/event-emitter": "12.0.1",
-    "bullmq": "6.3.15",
+    "bullmq": "6.3.18",
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed background jobs and recurring platform schedules",
   "devDependencies": {
-    "@nestjs/testing": "12.1.3",
-    "@prisma/adapter-pg": "7.10.0",
+    "@nestjs/testing": "12.2.0",
+    "@prisma/adapter-pg": "7.10.1",
     "@types/multer": "2.3.0",
     "@types/pg": "8.23.1",
     "pg": "8.23.1",
