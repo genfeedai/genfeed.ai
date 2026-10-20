@@ -3,10 +3,10 @@ Generated using the built-in imagegen tool. Illustrative examples; not model out
 Use case: stylized-concept
 Asset type: One raster sprite atlas for an image-generation scene picker.
 Primary request: Produce a precise contact sheet with exactly 4 columns and 4 rows, 16 equal square cells.
-Common subject across ALL cells: a traveler wearing an orange jacket standing in each place. Keep the traveler, pose and photographic cinematic rendering comparable so only the scene changes.
-Row 1: Photography studio with seamless backdrop; Indoor room; Cozy interior with warm lamps and blankets; Outdoor open meadow.
-Row 2: Urban street with buildings and crosswalk; City skyline with towers in the distance; Nature with hills and a stream; Forest with tall trees.
-Row 3: Beach with waves and sand; Desert with dunes; Underwater with light rays and bubbles; Outer space with stars and a planet.
-Row 4: Industrial warehouse with pipes and steel; Abstract geometric colour environment; plain natural photography of the same subject; plain natural photography of the same subject.
+SUBJECT PINNED IN EVERY CELL: the same woman in her 30s with a short dark chin-length bob haircut (straight dark hair ending exactly at the jaw line), NO hat, wearing a bright orange zip jacket and dark trousers, standing in medium shot facing the camera. Only the scene around her changes. Photographic cinematic rendering. The scene must be the loud, obvious trait of each cell and every cell must differ clearly from its neighbours.
+Row 1: Photography studio with seamless grey backdrop and softbox lights; Indoor room with a sofa, window and shelves; Cozy interior with warm lamps and blankets; Outdoor open sunny meadow with wildflowers.
+Row 2: Urban street with buildings and crosswalk; City skyline with towers in the distance at dusk; Nature with green hills and a stream; Forest with tall trees and light shafts.
+Row 3: Beach with waves and sand; Desert with orange dunes; Underwater with light rays and bubbles; Outer space with stars and a planet.
+Row 4: Industrial warehouse with steel pipes, girders and concrete floor; Abstract geometric colour environment of bold flat shapes and gradients; plain studio photograph of her against a seamless pale-blue backdrop, hands in pockets; plain studio photograph of her in side profile against a seamless warm-beige backdrop.
 
 Overall aspect ratio 1:1, ideally 1024x1024 pixels. Edge-to-edge cells, NO gutters, margins, frames, lettering, labels, watermarks or interface. Each cell is a fully composed, independent square image. CELL ORDER is strictly left-to-right then top-to-bottom. Constraints: exact uniform grid alignment and fixed cell order; no text anywhere; no overlap between cells; each tile fills its own square entirely. No famous characters, logos or recognizable people.
