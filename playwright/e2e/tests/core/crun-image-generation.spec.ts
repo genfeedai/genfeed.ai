@@ -329,7 +329,8 @@ async function installFixture(
 }
 
 // The setup summary is spread over the chips: Model carries the model name and
-// Output the ratio, duration and count.
+// Output the ratio, duration and count. A narrow bar drops the chip text, so
+// read the summary from the title, which the chip always keeps.
 async function expectGenerationSetup(
   page: Page,
   summary: { model: string; output: string },
@@ -337,10 +338,10 @@ async function expectGenerationSetup(
   const chips = page.getByTestId('generation-setup-section-chips');
   await expect(
     chips.getByRole('button', { name: 'Configure Model', exact: true }),
-  ).toContainText(summary.model);
+  ).toHaveAttribute('title', `Model: ${summary.model}`);
   await expect(
     chips.getByRole('button', { name: 'Configure Output', exact: true }),
-  ).toContainText(summary.output);
+  ).toHaveAttribute('title', `Output: ${summary.output}`);
 }
 // Advanced mode lists Model/Output/Look as chips in the prompt-bar toolbar;
 // each chip opens only its own section.
