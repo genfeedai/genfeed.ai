@@ -17,6 +17,15 @@ plus API `core`. Playwright `authed` stays non-gating on that deploy path.
 Playwright `full` must never be `uses`/`needs` of `full-suite.yml` or
 `release.yml`.
 
+## Pull request smoke
+
+`playwright-pr-smoke.yml` runs Playwright `core` on one runner (no sharding) for
+pull requests that affect `@genfeedai/app` through the workspace graph. It is
+advisory (`continue-on-error`, not a required check) and exists so a UI change
+that breaks a browser spec is red on the PR instead of on master. It never
+runs the `full` tier and is not a dependency of `full-suite.yml` or
+`release.yml`.
+
 ## Playwright full-tier quarantines
 
 Machine-readable list: `scripts/playwright-e2e-tiers.manifest.mjs`.
