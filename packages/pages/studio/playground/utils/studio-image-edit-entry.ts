@@ -1,11 +1,11 @@
 import {
+  DEFAULT_IMAGE_EDIT_MODEL_KEY,
   FLUX_3_ASPECT_RATIOS,
   isFlux3AspectRatio,
   isImageEditModel,
 } from '@genfeedai/contracts/constants';
 import type { ImageEditingRecipe } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundSettings } from '@pages/studio/playground/types';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 
 /** Pixel rounding only. A nearer ladder entry is not the source ratio. */
 const ASPECT_MATCH_TOLERANCE = 0.01;
@@ -32,10 +32,10 @@ export interface ImageEditEntryResolution {
 
 /**
  * Edit image attaches the source and opens the editor. A generation model
- * such as Hailuo is not an editor, so that case keeps the editor default
- * and says so. An editing model the user already selected is kept. A ratio
- * the editor lists is copied through. Anything else matches the source
- * image rather than resetting to the type default.
+ * such as Hailuo is not an editor, so that case selects the editor default
+ * (Ideogram 4.5) and says so. An editing model the user already selected is
+ * kept. A ratio the editor lists is copied through. Anything else matches the
+ * source image rather than resetting to the type default.
  */
 export function resolveImageEditEntry(
   source: ImageEditEntrySource,
@@ -51,7 +51,7 @@ export function resolveImageEditEntry(
     if (isImageEditModel(sourceModelKey)) {
       patch.modelKey = sourceModelKey;
     } else {
-      patch.modelKey = AUTO_MODEL_OPTION_VALUE;
+      patch.modelKey = DEFAULT_IMAGE_EDIT_MODEL_KEY;
       replacedModelKey = sourceModelKey;
     }
   }

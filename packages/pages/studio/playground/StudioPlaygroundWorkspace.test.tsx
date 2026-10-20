@@ -10,6 +10,7 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import {
+  DEFAULT_IMAGE_EDIT_MODEL_KEY,
   IMAGE_EDIT_CONTRACT_VERSION,
   LIBRARY_ASSETS_REFRESH_EVENT,
   MODEL_KEYS,
@@ -2342,6 +2343,62 @@ describe('StudioPlaygroundWorkspace', () => {
     });
   });
 
+  it('keeps Ideogram 4.5 as the editing default in simple mode instead of forcing Auto', async () => {
+    mocks.type.value = 'image-edit';
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY },
+      setType: mocks.setType,
+      type: 'image-edit',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
+  });
+
+  it('moves an editing model the catalog dropped to the catalog editing default', async () => {
+    mocks.type.value = 'image-edit';
+    mocks.models.value = {
+      isLoadingModels: false,
+      isModelCatalogReady: true,
+      models: [
+        { key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT },
+        {
+          isDefault: true,
+          key: 'provider/editor',
+          label: 'Provider editor',
+        },
+      ],
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY },
+      setType: mocks.setType,
+      type: 'image-edit',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: 'provider/editor',
+    });
+    expect(mocks.notify).toHaveBeenCalledWith(
+      'Your saved model is no longer available — Studio switched to Provider editor.',
+    );
+  });
+
   it('returns a saved avatar engine to Auto in simple mode, now that avatar has a model catalog', async () => {
     mocks.type.value = 'avatar';
     mocks.advancedMode.value = {
@@ -3786,7 +3843,7 @@ describe('StudioPlaygroundWorkspace', () => {
           editSeed: undefined,
           editPrimaryId: 'source-wide',
           aspectRatio: '16:9',
-          modelKey: AUTO_MODEL_OPTION_VALUE,
+          modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
         }),
       );
       expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
@@ -3878,7 +3935,7 @@ describe('StudioPlaygroundWorkspace', () => {
           editSeed: undefined,
           editPrimaryId: 'source-recorded',
           aspectRatio: '16:9',
-          modelKey: AUTO_MODEL_OPTION_VALUE,
+          modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
         }),
       );
       expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(

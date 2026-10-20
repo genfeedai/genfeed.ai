@@ -1,6 +1,7 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
 import {
+  DEFAULT_IMAGE_EDIT_MODEL_KEY,
   FLUX_3_ASPECT_RATIOS,
   FLUX_3_RESOLUTIONS,
   isFlux3ImageModel,
@@ -180,7 +181,10 @@ export function getDefaultStudioPlaygroundSettings(
     duration: DEFAULT_DURATION_BY_TYPE[type],
     instrumental: undefined,
     isAudioEnabled: false,
-    modelKey: AUTO_MODEL_OPTION_VALUE,
+    modelKey:
+      type === 'image-edit'
+        ? DEFAULT_IMAGE_EDIT_MODEL_KEY
+        : AUTO_MODEL_OPTION_VALUE,
     outputs: 1,
     prioritize: RouterPriority.BALANCED,
     resolution: DEFAULT_RESOLUTION_BY_TYPE[type] ?? '1K',

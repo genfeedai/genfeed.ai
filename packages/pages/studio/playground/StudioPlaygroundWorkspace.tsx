@@ -856,6 +856,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       isAdvancedMode ||
       !capabilities.hasModelSelection ||
       handoffPayload ||
+      // Editing has a contractual default (Ideogram 4.5). Choosing Auto there
+      // is a deliberate, Advanced choice, never what simple mode implies.
+      type === 'image-edit' ||
       (isAutoStudioModelKey(settings.modelKey) &&
         settings.prioritize === RouterPriority.QUALITY)
     ) {
@@ -872,6 +875,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     isAdvancedModeLoaded,
     settings.modelKey,
     settings.prioritize,
+    type,
     updateSettings,
   ]);
 
@@ -887,9 +891,19 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ) {
       return;
     }
-    updateSettings({ modelKey: AUTO_MODEL_OPTION_VALUE });
+    // An editor the org no longer offers falls back to its own editing default
+    // before Auto, so the selection keeps naming a model.
+    const fallbackEditor =
+      type === 'image-edit'
+        ? (models.find((model) => model.isDefault) ?? models[0])
+        : undefined;
+    updateSettings({
+      modelKey: fallbackEditor?.key ?? AUTO_MODEL_OPTION_VALUE,
+    });
     notificationsService.info(
-      'Your saved model is no longer available — Studio switched to Auto.',
+      fallbackEditor
+        ? `Your saved model is no longer available — Studio switched to ${fallbackEditor.label}.`
+        : 'Your saved model is no longer available — Studio switched to Auto.',
     );
   }, [
     capabilities.hasModelSelection,
@@ -897,6 +911,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     models,
     notificationsService,
     settings.modelKey,
+    type,
     updateSettings,
   ]);
 
