@@ -79,7 +79,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       (entry) => entry.key === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
     );
 
-    // 10k prompt + 2k completion at $0.75 / $3.75 per 1M, × 1.7 / $0.01 = 3.
+    // 10k prompt + 2k completion at $0.75 / $3.75 per 1M, × 2.0 / $0.01 = 3.
     expect(row).toMatchObject({
       category: ModelCategory.TEXT,
       cost: 3,

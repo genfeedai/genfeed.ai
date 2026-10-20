@@ -15,9 +15,9 @@ describe('agent-chat runtime margin multiplier', () => {
     setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
   });
 
-  it('defaults to 1.7 (70% markup on provider cost)', () => {
-    expect(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER).toBe(1.7);
-    expect(getRuntimeAgentChatMarginMultiplier()).toBe(1.7);
+  it('defaults to 2.0 (100% markup on provider cost)', () => {
+    expect(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER).toBe(2);
+    expect(getRuntimeAgentChatMarginMultiplier()).toBe(2);
   });
 
   it('is independent of the generation runtime multiplier', () => {
@@ -36,7 +36,7 @@ describe('agent-chat runtime margin multiplier', () => {
     setRuntimeMarginMultiplier(initialGeneration);
   });
 
-  it('falls back to the 1.7 default for invalid multipliers', () => {
+  it('falls back to the 2.0 default for invalid multipliers', () => {
     setRuntimeAgentChatMarginMultiplier(0);
     expect(getRuntimeAgentChatMarginMultiplier()).toBe(
       DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
