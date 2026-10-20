@@ -735,6 +735,8 @@ jobs:
               `See the smoke job log on the failed run for the checked hosts.`,
               ``,
               `This means the production deploy completed but the live public surface did not pass smoke verification.`,
+              ``,
+              `To restore the previous stable release (API, workers, and frontends), run the "Rollback hosted SaaS" workflow from master; see docs/operations/rollback.md.`,
             ].join('\n');
 
             try {

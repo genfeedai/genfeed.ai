@@ -1,5 +1,10 @@
+import { BotActivityStatus } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IBotActivityStats } from '@genfeedai/contracts/interfaces';
+import type {
+  IAssistedReplyOpenResult,
+  IAssistedReplyUsage,
+  IBotActivityStats,
+} from '@genfeedai/contracts/interfaces';
 import { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
 import {
   BaseService,
@@ -62,6 +67,50 @@ export class BotActivitiesService extends BaseService<BotActivity> {
           toDate,
         },
       },
+    );
+    return response.data;
+  }
+
+  /**
+   * X replies drafted for a person to review and post themselves.
+   */
+  findAwaitingApproval(
+    options: { limit?: number; page?: number } = {},
+  ): Promise<{ data: BotActivity[]; total: number }> {
+    return this.findWithFilters({
+      status: BotActivityStatus.AWAITING_APPROVAL,
+      ...options,
+    });
+  }
+
+  async getReplyQueueUsage(): Promise<IAssistedReplyUsage> {
+    const response =
+      await this.instance.get<IAssistedReplyUsage>('/reply-queue/usage');
+    return response.data;
+  }
+
+  /** Saves the edited draft and returns X's prefilled reply composer link. */
+  async openReplyQueueItem(
+    id: string,
+    replyText?: string,
+  ): Promise<IAssistedReplyOpenResult> {
+    const response = await this.instance.post<IAssistedReplyOpenResult>(
+      `/${id}/reply-queue/open`,
+      { replyText },
+    );
+    return response.data;
+  }
+
+  async confirmReplyQueueItemPosted(id: string): Promise<IAssistedReplyUsage> {
+    const response = await this.instance.post<IAssistedReplyUsage>(
+      `/${id}/reply-queue/posted`,
+    );
+    return response.data;
+  }
+
+  async dismissReplyQueueItem(id: string): Promise<IAssistedReplyUsage> {
+    const response = await this.instance.post<IAssistedReplyUsage>(
+      `/${id}/reply-queue/dismiss`,
     );
     return response.data;
   }

@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { storyboardIdSchema } from './storyboard-source.contract';
 
+/**
+ * Every sketch still is created with a `sourceActionId` that starts with this
+ * prefix. The Library and the playground gallery use it to leave stills out:
+ * they belong in the storyboard layout only.
+ */
+export const STORYBOARD_STILL_SOURCE_ACTION_PREFIX = 'storyboard-still-';
+
 const shotIdsSchema = z
   .array(storyboardIdSchema)
   .min(1)

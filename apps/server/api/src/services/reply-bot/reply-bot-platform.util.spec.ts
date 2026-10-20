@@ -1,8 +1,9 @@
 import {
+  isManualReplyRequired,
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
 } from '@api/services/reply-bot/reply-bot-platform.util';
-import { ReplyBotPlatform } from '@genfeedai/contracts';
+import { ReplyBotPlatform, ReplyBotType } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('reply-bot-platform.util', () => {
@@ -24,6 +25,24 @@ describe('reply-bot-platform.util', () => {
     );
     expect(unsupportedReplyBotPlatformMessage(null)).toBe(
       'Unsupported reply bot platform: unknown',
+    );
+  });
+
+  it('requires a person to post replies from X account monitors only', () => {
+    expect(isManualReplyRequired(ReplyBotType.ACCOUNT_MONITOR, 'twitter')).toBe(
+      true,
+    );
+    expect(
+      isManualReplyRequired(ReplyBotType.REPLY_GUY, ReplyBotPlatform.TWITTER),
+    ).toBe(false);
+    expect(
+      isManualReplyRequired(ReplyBotType.COMMENT_RESPONDER, 'twitter'),
+    ).toBe(false);
+    expect(
+      isManualReplyRequired(ReplyBotType.ACCOUNT_MONITOR, 'instagram'),
+    ).toBe(false);
+    expect(isManualReplyRequired(ReplyBotType.ACCOUNT_MONITOR, undefined)).toBe(
+      true,
     );
   });
 });

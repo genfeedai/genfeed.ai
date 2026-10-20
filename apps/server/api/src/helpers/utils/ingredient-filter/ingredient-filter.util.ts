@@ -1,5 +1,6 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { type IngredientOrigin, TagMatchMode } from '@genfeedai/contracts';
+import { STORYBOARD_STILL_SOURCE_ACTION_PREFIX } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type { Prisma } from '@genfeedai/prisma';
 
 /**
@@ -42,6 +43,28 @@ export const IngredientFilterUtil = {
   /** The unified Library list include: row metadata and prompt, plus tags. */
   buildLibraryListInclude() {
     return { metadata: true, prompt: true, ...LIBRARY_TAGS_INCLUDE };
+  },
+
+  /**
+   * Leave storyboard sketch stills out of a Library or gallery list. They are
+   * ordinary image ingredients, but only the storyboard layout shows them.
+   *
+   * The null branch is explicit: `NOT (col LIKE ...)` is NULL for a row with no
+   * `sourceActionId`, which would drop every ordinary asset.
+   */
+  buildStoryboardStillExclusion(): Prisma.IngredientWhereInput {
+    return {
+      OR: [
+        { sourceActionId: null },
+        {
+          NOT: {
+            sourceActionId: {
+              startsWith: STORYBOARD_STILL_SOURCE_ACTION_PREFIX,
+            },
+          },
+        },
+      ],
+    };
   },
 
   /**

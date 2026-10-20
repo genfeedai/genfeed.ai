@@ -113,6 +113,7 @@ export async function buildImageListAggregate(
           ],
         },
         originFilter,
+        IngredientFilterUtil.buildStoryboardStillExclusion(),
         characterFilter,
         IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
       ],

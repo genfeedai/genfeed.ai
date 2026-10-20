@@ -17,6 +17,17 @@ describe('IngredientFilterUtil', () => {
     });
   });
 
+  describe('buildStoryboardStillExclusion', () => {
+    it('keeps rows without a source action and drops storyboard stills', () => {
+      expect(IngredientFilterUtil.buildStoryboardStillExclusion()).toEqual({
+        OR: [
+          { sourceActionId: null },
+          { NOT: { sourceActionId: { startsWith: 'storyboard-still-' } } },
+        ],
+      });
+    });
+  });
+
   describe('buildCharacterFilter', () => {
     it('matches assets linked to any resolved character', () => {
       expect(IngredientFilterUtil.buildCharacterFilter(['p1', 'p2'])).toEqual({

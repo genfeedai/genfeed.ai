@@ -12,7 +12,7 @@ import type {
   GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { ReactNode, RefObject } from 'react';
+import type { ReactNode } from 'react';
 
 /** Look fields the customize panel renders from `useElements`-sourced options. */
 export type GenerationSetupLookFieldKey = Extract<
@@ -45,9 +45,9 @@ export type GenerationSetupFieldSetter = <K extends GenerationSetupFieldKey>(
   value: GenerationSetupValues[K],
 ) => void;
 
+/** Create / Edit switch shown under the Image tab; `isEnabled` means editing. */
 export interface GenerationSetupImageEditingMode {
   isEnabled: boolean;
-  label: string;
   onChange: (next: boolean) => void;
 }
 
@@ -58,79 +58,9 @@ export interface GenerationSetupSystemPreset {
   label: string;
 }
 
-export interface GenerationSetupPopoverProps {
-  showPresets?: boolean;
-  /** One compact entry point for Studio's type and settings. */
-  isIconOnly?: boolean;
-  /** Studio's explicit image editing override; other surfaces omit it. */
-  imageEditing?: GenerationSetupImageEditingMode;
-  showEnhancementSettings?: boolean;
-  align?: 'start' | 'center' | 'end';
-  inputControls?: CrunInputControls;
-  referenceCount?: number;
-  scopeKey: string;
-  setup: GenerationSetup;
-  reasons: Partial<Record<GenerationSetupFieldKey, string>>;
-  capabilities: StudioPlaygroundCapabilities;
-  /** Omitted (or a single entry) on surfaces that lock the type, e.g. agent image-only. */
-  typeOptions: readonly GenerationSetupTypeOption[];
-  models: readonly IModel[];
-  favoriteModelKeys: string[];
-  onFavoriteToggle: (modelKey: string) => void;
-  lookOptions: GenerationSetupLookOptions;
-  presets: readonly IStudioLook[];
-  systemPresets?: readonly GenerationSetupSystemPreset[];
-  isPresetsLoading?: boolean;
-  /** Forwarded to the trigger — see `GenerationSetupTriggerProps.isTypeCommitted`. */
-  isTypeCommitted?: boolean;
-  /** Surface-provided label for the active model and generation settings. */
-  triggerLabel?: string;
-  onSetField: GenerationSetupFieldSetter;
-  onApplyPreset: (preset: IStudioLook) => void;
-  onApplySystemPreset?: (presetId: string) => void;
-  onSavePreset: (label: string) => void;
-  onDeletePreset?: (presetId: string) => void;
-  onResetField: (key: GenerationSetupFieldKey) => void;
-  onResetAll: () => void;
-  onClearPreset: () => void;
-  onTypeChange?: (type: GenerationSetupType) => void;
-  /** Null/undefined disables the credit lock on model rows. */
-  creditsAvailable?: number | null;
-  isDisabled?: boolean;
-  className?: string;
-  buttonRef?: RefObject<HTMLButtonElement | null>;
-  /**
-   * The user's saved Advanced Mode. When provided, the popover shows the
-   * Auto/Advanced button group; the surface decides what Advanced reveals.
-   */
-  advancedMode?: GenerationSetupAdvancedMode;
-  /** Surface-owned model controls rendered at the end of the Output section. */
-  outputControls?: ReactNode;
-}
-
 export interface GenerationSetupAdvancedMode {
   isEnabled: boolean;
   onChange: (next: boolean) => void;
-}
-
-export interface GenerationSetupTriggerProps {
-  isIconOnly?: boolean;
-  setup: GenerationSetup;
-  typeOptions: readonly GenerationSetupTypeOption[];
-  models: readonly IModel[];
-  isOpen: boolean;
-  isDisabled?: boolean;
-  className?: string;
-  /** When false, the chip omits aspect ratio (music / voice / avatar). */
-  hasAspectRatio?: boolean;
-  /**
-   * The surface has committed to `setup.values.type` even though the type
-   * field itself is agent-owned (the agent composer locks direct media once a
-   * model or ratio is picked). The chip then names that type, never "Agent".
-   */
-  isTypeCommitted?: boolean;
-  /** Surface-provided label for the active model and generation settings. */
-  triggerLabel?: string;
 }
 
 export interface GenerationSetupFieldIconProps {
@@ -167,32 +97,33 @@ export interface GenerationSetupSummary {
   selectedModel?: IModel;
 }
 
-/**
- * Advanced mode lays the main setup sections out as toolbar chips, each
- * opening its own section, instead of nesting them in the setup menu.
- */
-export type GenerationSetupSectionChipsProps = Omit<
-  GenerationSetupCustomizePanelProps,
-  'initialSection' | 'onBack'
->;
+/** Chips in the toolbar; each opens only its own section. */
+export type GenerationSetupChipId =
+  | 'brand'
+  | 'look'
+  | 'model'
+  | 'output'
+  | 'presets';
 
 /**
- * Advanced mode's menu rows. Model, Output and Look are toolbar chips
- * (`GenerationSetupSectionChips`), so the menu only carries what the toolbar
- * does not show.
+ * Advanced mode lays the setup out as toolbar chips: Model first, then
+ * `afterModel` (the surface's own pickers), then Output, Look, Brand and
+ * Presets, then `trailing`.
  */
-export interface GenerationSetupFrontDoorProps {
-  activeSection?: GenerationSetupCustomizeSectionId;
-  onCloseSection?: () => void;
-  renderSection?: (section: GenerationSetupCustomizeSectionId) => ReactNode;
+export interface GenerationSetupSectionChipsProps
+  extends Omit<GenerationSetupCustomizePanelProps, 'initialSection'> {
+  /** Releases a pinned preset; shown in the Presets panel. */
+  onClearPreset: () => void;
+  /** Rendered between the Model chip and the Output chip. */
+  afterModel?: ReactNode;
+  inputControls?: CrunInputControls;
+  lookOptions: GenerationSetupLookOptions;
+  /** Surface-owned model controls rendered at the end of the Output menu. */
+  outputControls?: ReactNode;
+  referenceCount?: number;
   showPresets?: boolean;
-  showEnhancementSettings?: boolean;
-  capabilities: StudioPlaygroundCapabilities;
-  isDisabled?: boolean;
-  onCustomize: (section: GenerationSetupCustomizeSectionId) => void;
-  presets: readonly IStudioLook[];
-  systemPresets?: readonly GenerationSetupSystemPreset[];
-  setup: GenerationSetup;
+  /** Rendered after the last chip. */
+  trailing?: ReactNode;
 }
 
 export interface GenerationSetupPresetsSectionProps {
@@ -207,34 +138,46 @@ export interface GenerationSetupPresetsSectionProps {
   setup: GenerationSetup;
 }
 
-export interface GenerationSetupOptionPickerProps {
-  isOpen?: boolean;
-  onOpenChange?: (isOpen: boolean) => void;
-  previewKind?: 'style' | 'mood';
+export interface GenerationSetupMenuOption {
+  description?: string;
+  /** Drawn before the label, e.g. the shape of an aspect ratio. */
+  icon?: ReactNode;
+  isPlatformDefault?: boolean;
   label: string;
+  thumbnailUrl?: string;
   value: string;
-  options: readonly {
-    value: string;
-    label: string;
-    isPlatformDefault?: boolean;
-    description?: string;
-    thumbnailUrl?: string;
-  }[];
-  onValueChange: (value: string) => void;
 }
 
-export type GenerationSetupCustomizeSectionId =
-  | 'brand'
-  | 'look'
-  | 'model'
-  | 'output'
-  | 'presets';
+/** The body of one nested submenu: an optional search box and a preview pane. */
+export interface GenerationSetupSubmenuListProps {
+  /** Appended as a row that returns the field to the agent's pick. */
+  onReset?: () => void;
+  onValueChange: (value: string) => void;
+  options: readonly GenerationSetupMenuOption[];
+  /** Shows the illustration pane for this Look field. */
+  previewKind?: GenerationSetupLookPreviewKind;
+  /** Shows a search box above the options. */
+  isSearchable?: boolean;
+  label: string;
+  value: string;
+}
+
+export type GenerationSetupLookPreviewKind =
+  | 'camera'
+  | 'cameraMovement'
+  | 'lens'
+  | 'lighting'
+  | 'mood'
+  | 'scene'
+  | 'style';
+
+export type GenerationSetupCustomizeSectionId = 'brand' | 'model' | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
+  /** Lets the Presets panel release a pinned preset. */
+  onClearPreset?: () => void;
   typeOptions: readonly GenerationSetupTypeOption[];
   showEnhancementSettings?: boolean;
-  inputControls?: CrunInputControls;
-  referenceCount?: number;
   capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
@@ -246,14 +189,11 @@ export interface GenerationSetupCustomizePanelProps {
   presets: readonly IStudioLook[];
   systemPresets?: readonly GenerationSetupSystemPreset[];
   isDisabled?: boolean;
-  lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];
-  onBack: () => void;
   onFavoriteToggle: (modelKey: string) => void;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSavePreset: (label: string) => void;
   onSetField: GenerationSetupFieldSetter;
-  outputControls?: ReactNode;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
   setup: GenerationSetup;
 }
@@ -269,25 +209,23 @@ export interface GenerationSetupModelSectionProps {
   setup: GenerationSetup;
 }
 
-export interface GenerationSetupLookSectionProps {
+export interface GenerationSetupLookMenuProps {
   lookOptions: GenerationSetupLookOptions;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
-  reasons: Partial<Record<GenerationSetupFieldKey, string>>;
   setup: GenerationSetup;
 }
 
-export interface GenerationSetupOutputSectionProps {
+export interface GenerationSetupOutputMenuProps {
+  capabilities: StudioPlaygroundCapabilities;
   /** Surface-owned model controls rendered after the shared output fields. */
   controls?: ReactNode;
   inputControls?: CrunInputControls;
   /** Catalog models, read for the selected model's clip lengths per resolution. */
   models?: readonly IModel[];
-  referenceCount?: number;
-  capabilities: StudioPlaygroundCapabilities;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
-  reasons: Partial<Record<GenerationSetupFieldKey, string>>;
+  referenceCount?: number;
   setup: GenerationSetup;
 }
 
@@ -305,11 +243,19 @@ export interface GenerationSetupSavePresetRowProps {
   onSavePreset: (label: string) => void;
 }
 
-export interface GenerationSetupTypePickerProps {
-  hasHint?: boolean;
+/** Type buttons, the Create / Edit toggle and the Auto / Advanced switch, inline in the bar. */
+export interface GenerationSetupTypeBarProps {
+  advancedMode?: GenerationSetupAdvancedMode;
+  /** Studio's explicit image editing override; other surfaces omit it. */
   imageEditing?: GenerationSetupImageEditingMode;
   isDisabled?: boolean;
   onTypeChange?: (type: GenerationSetupType) => void;
   setup: GenerationSetup;
+  /** Omitted (or a single entry) on surfaces that lock the type. */
   typeOptions: readonly GenerationSetupTypeOption[];
+}
+
+export interface GenerationSetupResetButtonProps {
+  isDisabled?: boolean;
+  onResetAll: () => void;
 }

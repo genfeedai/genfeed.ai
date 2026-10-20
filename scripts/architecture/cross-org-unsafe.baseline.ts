@@ -19,7 +19,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 249,
+      line: 250,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {

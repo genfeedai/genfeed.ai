@@ -22,6 +22,10 @@ export class BotActivity extends BaseEntity implements IBotActivity {
   declare public processingTimeMs?: number;
   declare public errorMessage?: string;
   declare public skippedReason?: string;
+  declare public draftReplyText?: string;
+  declare public triggerTweetId?: string;
+  declare public triggerTweetText?: string;
+  declare public triggerTweetAuthorUsername?: string;
 
   constructor(data: Partial<IBotActivity> = {}) {
     super(data);

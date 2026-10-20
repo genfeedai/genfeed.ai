@@ -22,15 +22,9 @@ const state = vi.hoisted(() => ({
   homeAppId: null as string | null,
   isLoaded: true,
   isReady: true,
-  organizationHomeAppId: null as string | null,
   setHomeAppId: vi.fn(),
 }));
 
-vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    settings: { defaultHomeAppId: state.organizationHomeAppId },
-  }),
-}));
 vi.mock('@/components/shell/rail-preferences.provider', () => ({
   useRailPreferencesContext: () => ({
     homeAppId: state.homeAppId,
@@ -93,22 +87,10 @@ describe('SettingsHomeAppCard', () => {
     state.homeAppId = null;
     state.isLoaded = true;
     state.isReady = true;
-    state.organizationHomeAppId = null;
     state.setHomeAppId.mockReset();
   });
 
-  it('shows what Default lands on, following the organization', () => {
-    state.organizationHomeAppId = 'agent';
-    render(<SettingsHomeAppCard />);
-
-    expect(screen.getByText('Default (Agent)')).toBeInTheDocument();
-    expect(screen.getByTestId('select')).toHaveAttribute(
-      'data-value',
-      'default',
-    );
-  });
-
-  it('falls back to Workspace as the default', () => {
+  it('shows Workspace as the default', () => {
     render(<SettingsHomeAppCard />);
 
     expect(screen.getByText('Default (Workspace)')).toBeInTheDocument();

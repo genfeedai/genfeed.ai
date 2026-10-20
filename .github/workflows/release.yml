@@ -592,6 +592,18 @@ jobs:
           RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
         run: node scripts/ci/full-suite-evidence.mjs
 
+      # Full Suite does not run Playwright Full or Learning Runtime, and both
+      # have caught regressions that shipped while Full Suite was green
+      # (2026-10-19). They stay out of the `needs` graph (30-60 minutes, and
+      # dispatched on master), so require their green verdict for this exact
+      # SHA here and fail within a minute with the workflow to dispatch.
+      - name: Require browser suite evidence
+        if: ${{ inputs.recovery_run_id == '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        run: node scripts/ci/browser-suite-evidence.mjs
+
   verify-suite:
     name: Full Suite
     if: ${{ inputs.recovery_run_id == '' && needs.validate-release.outputs.suite_verified != 'true' }}

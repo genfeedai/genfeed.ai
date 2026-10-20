@@ -8219,38 +8219,6 @@
     {
       "code": 2783,
       "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupPopover.test.tsx",
-      "fingerprint": "9f886d4d22891800fb69",
-      "message": "'label' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupPopover.test.tsx",
-      "fingerprint": "caae4d147136a1af5e5b",
-      "message": "'key' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupTrigger.test.tsx",
-      "fingerprint": "56458ec92d853993e8e7",
-      "message": "'label' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupTrigger.test.tsx",
-      "fingerprint": "7ddfc863b7d36b2d6860",
-      "message": "'key' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
       "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorModelItem.test.tsx",
       "fingerprint": "a031ff3499d6fb356311",
       "message": "'label' is specified more than once, so this usage will be overwritten.",
