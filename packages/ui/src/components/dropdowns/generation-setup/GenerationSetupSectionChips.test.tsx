@@ -38,6 +38,7 @@ const props: GenerationSetupSectionChipsProps = {
   lookOptions: {},
   models: [],
   onApplyPreset: vi.fn(),
+  onClearPreset: vi.fn(),
   onFavoriteToggle: vi.fn(),
   onResetField: vi.fn(),
   onSavePreset: vi.fn(),

@@ -74,7 +74,6 @@ function renderMenu(
           capabilities={{ ...MUSIC_CAPABILITIES, ...overrides.capabilities }}
           onResetField={onResetField}
           onSetField={onSetField}
-          reasons={{}}
           setup={overrides.setup ?? buildSetup()}
         />
       </DropdownMenuContent>
