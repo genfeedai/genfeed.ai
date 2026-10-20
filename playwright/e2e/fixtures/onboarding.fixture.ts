@@ -22,7 +22,7 @@ import {
 } from '../utils/expert-path-mocks';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
 import { setupOnboardingBrandGuideMocks } from '../utils/onboarding-brand-guide-mocks';
-import { setupOnboardingConversationMocks } from '../utils/onboarding-conversation-mocks';
+import { setupOnboardingFirstDraftsMocks } from '../utils/onboarding-first-drafts-mocks';
 
 /**
  * Onboarding Fixtures for Playwright E2E Tests
@@ -43,6 +43,11 @@ interface OnboardingFixtures {
    */
   onboardingPage: Page;
   desktopOnboardingPage: Page;
+  /**
+   * Signed up from a personal inbox (gmail.com): no brand domain can be read
+   * from the email, so the page asks for a link instead of drafting at once.
+   */
+  personalEmailOnboardingPage: Page;
 
   /**
    * The same page with the bootstrap organization typed `EXPERT`, plus the
@@ -639,17 +644,7 @@ async function startOnboardingSession(
   await setupOnboardingApiMocks(page, progressState, options.email);
   await options.registerExtraMocks?.(page);
   await setupOnboardingBrandGuideMocks(page);
-  await setupOnboardingConversationMocks(page, {
-    organizationId: MOCK_SESSION.organizationId,
-    isExpert: options.accountType === OrganizationCategory.EXPERT,
-    onComplete: () => {
-      progressState.isOnboardingCompleted = true;
-      progressState.completedSteps = ['brand'];
-    },
-    onBrandComplete: () => {
-      progressState.completedSteps = ['brand'];
-    },
-  });
+  await setupOnboardingFirstDraftsMocks(page);
 
   // Bootstrap by navigating to onboarding start
   await page.goto(APP_ROUTES.ONBOARDING.BRAND, {
@@ -682,6 +677,20 @@ export const test = base.extend<OnboardingFixtures>({
         registerExtraMocks: (target) =>
           setupExpertPathApiMocks(target, expertState),
       },
+    );
+
+    await runFixture(page);
+    assertNoBlockedRequests();
+  },
+
+  personalEmailOnboardingPage: async (
+    { page, context, baseURL },
+    runFixture,
+  ) => {
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      { baseURL, email: 'founder@gmail.com' },
     );
 
     await runFixture(page);

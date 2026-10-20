@@ -32,15 +32,12 @@ test.describe('Onboarding Steps', () => {
     });
   }
 
-  test('brand replay opens guide settings without an onboarding form', async ({
+  test('brand replay sends a completed user back into the app', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.ONBOARDING.BRAND);
-    await expect(authenticatedPage).toHaveURL((url) =>
-      url.pathname.endsWith(APP_ROUTES.SETTINGS.BRAND_KIT),
-    );
-    await expect(authenticatedPage.locator('#brand-guide-website')).toHaveCount(
-      0,
+    await expect(authenticatedPage).not.toHaveURL((url) =>
+      url.pathname.startsWith(APP_ROUTES.ONBOARDING.ROOT),
     );
   });
 

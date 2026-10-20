@@ -20,7 +20,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
@@ -33,6 +33,7 @@ export function useFirstDrafts(): FirstDraftsState {
   const { handleStepComplete, steps } = useOnboarding();
   const completeOnboarding = useCompleteOnboarding();
   const searchParams = useSearchParams();
+  const { replace } = useRouter();
 
   const [url, setUrl] = useState('');
   const [phase, setPhase] = useState<FirstDraftsPhase>('url');
@@ -159,10 +160,17 @@ export function useFirstDrafts(): FirstDraftsState {
     });
   }, [completeOnboarding, handleStepComplete, isContinuing, steps.length]);
 
+  // A finished user has nothing to set up here.
+  const isOnboardingCompleted = currentUser?.isOnboardingCompleted === true;
+  useEffect(() => {
+    if (isOnboardingCompleted) replace('/');
+  }, [isOnboardingCompleted, replace]);
+
   // A work-email domain is already a good guess: start without asking.
   useEffect(() => {
     if (
       hasPrefilledRef.current ||
+      isOnboardingCompleted ||
       isLoading ||
       !isBrandScopeResolved ||
       !brandId ||
@@ -184,6 +192,7 @@ export function useFirstDrafts(): FirstDraftsState {
     currentUser,
     isBrandScopeResolved,
     isLoading,
+    isOnboardingCompleted,
     onStart,
     searchParams,
   ]);

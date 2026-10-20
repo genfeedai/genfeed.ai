@@ -6,7 +6,7 @@ import { ExpertOnboardingPage } from '../../pages/expert-onboarding.page';
 /**
  * Expert Path Onboarding E2E (epic #4534)
  *
- * Walks the journey an expert signup takes on an agent-first surface:
+ * Walks the journey an expert signup takes on the web app:
  * `brand → positioning → corpus → first-system → workspace`. Every API call
  * is mocked (see `utils/expert-path-mocks.ts`), so no interview credits, no
  * ingestion worker and no content generation run.
@@ -25,52 +25,12 @@ test.describe('Expert Path Onboarding', () => {
   }) => {
     const expert = new ExpertOnboardingPage(expertOnboardingPage);
 
+    // A work-email domain drafts the first posts without asking anything.
     await expect(
-      expertOnboardingPage.getByRole('heading', {
-        name: 'Your brand link',
-        level: 3,
-        exact: true,
-      }),
+      expertOnboardingPage.getByText('Round 1 twitter draft'),
     ).toBeVisible();
-    // Free-text answers go through the pinned composer (#7089).
     await expertOnboardingPage
-      .getByRole('textbox', { name: 'Conversation prompt' })
-      .fill('https://genfeed.ai');
-    await expertOnboardingPage
-      .getByRole('button', { name: 'Send message', exact: true })
-      .click();
-    for (const title of ['goals', 'platforms', 'cadence', 'tone']) {
-      await expect(
-        expertOnboardingPage.getByRole('heading', {
-          name: title,
-          exact: true,
-          level: 3,
-        }),
-      ).toBeVisible();
-      await expertOnboardingPage
-        .getByRole('button', { name: 'Skip for now', exact: true })
-        .click();
-      await expertOnboardingPage
-        .getByRole('button', { name: 'Skip anyway', exact: true })
-        .click();
-    }
-    await expect(
-      expertOnboardingPage.getByRole('link', { name: 'Continue', exact: true }),
-    ).toBeVisible();
-    await expect(
-      expertOnboardingPage.getByRole('button', {
-        name: 'Create my first post',
-        exact: true,
-      }),
-    ).toHaveCount(0);
-    await expect(
-      expertOnboardingPage.getByRole('button', {
-        name: 'Go to my workspace',
-        exact: true,
-      }),
-    ).toHaveCount(0);
-    await expertOnboardingPage
-      .getByRole('link', { name: 'Continue', exact: true })
+      .getByRole('button', { name: 'Looks right, continue', exact: true })
       .click();
 
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.POSITIONING);

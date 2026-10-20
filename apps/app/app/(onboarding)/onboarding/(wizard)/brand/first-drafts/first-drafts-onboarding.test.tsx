@@ -15,6 +15,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FirstDraftsOnboarding from './first-drafts-onboarding';
 
 const mocks = vi.hoisted(() => ({
+  isCompleted: false,
+  replace: vi.fn(),
   brandId: 'brand-1',
   isBrandScopeResolved: true,
   completeOnboarding: vi.fn(),
@@ -40,7 +42,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 vi.mock('@contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
-    currentUser: { email: mocks.email, id: 'user-1' },
+    currentUser: {
+      email: mocks.email,
+      id: 'user-1',
+      isOnboardingCompleted: mocks.isCompleted,
+    },
     isLoading: false,
   }),
 }));
@@ -62,6 +68,7 @@ vi.mock('@services/onboarding/onboarding.service', () => ({
   },
 }));
 vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.search,
 }));
 vi.mock('../../_expert/use-complete-onboarding.hook', () => ({
@@ -129,6 +136,7 @@ async function startFromLink() {
 describe('FirstDraftsOnboarding', () => {
   beforeEach(() => {
     mocks.brandId = 'brand-1';
+    mocks.isCompleted = false;
     mocks.isBrandScopeResolved = true;
     mocks.email = 'owner@gmail.com';
     mocks.steps = ['brand'];
@@ -173,6 +181,15 @@ describe('FirstDraftsOnboarding', () => {
     expect(
       screen.getByLabelText('Setting up your workspace'),
     ).toBeInTheDocument();
+  });
+
+  it('sends a finished user to the app without drafting', async () => {
+    mocks.isCompleted = true;
+    mocks.email = 'owner@acme.com';
+    render(<FirstDraftsOnboarding />);
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/'));
+    expect(mocks.scanBrand).not.toHaveBeenCalled();
   });
 
   it('turns an @handle into an X profile link', async () => {
