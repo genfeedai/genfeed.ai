@@ -185,7 +185,7 @@ describe('media hold provider and operator recovery', () => {
       );
       expect(f.logger.error).toHaveBeenCalledWith(
         expect.stringContaining('per-render charge cap'),
-        expect.objectContaining({ forgoneCredits: 512 }),
+        expect.objectContaining({ forgoneCredits: 271 }),
       );
     });
 

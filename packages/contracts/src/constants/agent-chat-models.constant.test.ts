@@ -24,15 +24,15 @@ import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant'
 import { MODEL_KEYS } from './model-keys.constant';
 
 describe('calculateAgentExactCredits', () => {
-  it('applies the operator multiplier once, defaulting to 1.7', () => {
-    expect(calculateAgentExactCredits(0.01)).toBe(1.7);
+  it('applies the operator multiplier once, defaulting to 2.0', () => {
+    expect(calculateAgentExactCredits(0.01)).toBe(2);
     expect(calculateAgentExactCredits(0.01, 1.5)).toBe(1.5);
   });
 });
 
 describe('calculateAgentRoundCredits', () => {
   it('derives credits from list price, prompt and completion tokens both', () => {
-    // 10K prompt @ $1/M + 2K completion @ $5/M = $0.02 → ×1.7 = $0.034 → 4 credits.
+    // 10K prompt @ $1/M + 2K completion @ $5/M = $0.02 → ×2.0 = $0.04 → 4 credits.
     expect(
       calculateAgentRoundCredits({
         completionPerMillion: 5,

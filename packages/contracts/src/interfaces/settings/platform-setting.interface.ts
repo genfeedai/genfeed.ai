@@ -168,7 +168,7 @@ export interface IPlatformSetting
 
   /**
    * Sell/cost ratio applied to provider USD for **agent chat** billing. 1.0 =
-   * provider cost, 1.7 = 70% markup on provider cost. See
+   * provider cost, 2.0 = 100% markup on provider cost (50% margin). See
    * `calculateAgentExactCredits` in `@genfeedai/contracts/constants`.
    * Independent of `marginMultiplierGeneration` — see issue #5172.
    */

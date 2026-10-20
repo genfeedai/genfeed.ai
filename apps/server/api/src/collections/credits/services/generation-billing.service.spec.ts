@@ -378,7 +378,7 @@ describe('GenerationBillingService', () => {
         const topUp = queue.queueDeduction.mock.calls[1][0];
         expect(topUp).toEqual(
           expect.objectContaining({
-            amount: 128,
+            amount: 92,
             idempotencyKey: 'media-generation-duration-topup:hold_1',
             metadata: {
               assetId: 'ing_1',
@@ -417,8 +417,8 @@ describe('GenerationBillingService', () => {
             amount: 129,
             metadata: expect.objectContaining({
               durationSettlement: expect.objectContaining({
-                actualCredits: 770,
-                forgoneCredits: 512,
+                actualCredits: 529,
+                forgoneCredits: 271,
               }),
             }),
           }),
@@ -433,7 +433,7 @@ describe('GenerationBillingService', () => {
         expect(logger.error).toHaveBeenCalledWith(
           expect.stringContaining('per-render charge cap'),
           expect.objectContaining({
-            forgoneCredits: 512,
+            forgoneCredits: 271,
             maxChargeCredits: 258,
             reservationId: 'hold_1',
           }),

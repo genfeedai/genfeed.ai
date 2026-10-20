@@ -2117,13 +2117,13 @@ describe('AvatarVideoGenerationService', () => {
         MODEL_KEYS.HEYGEN_AVATAR_V,
         { duration: 10, selectors: { avatar_type: 'digital_twin' } },
       );
-      // $0.12/s x 10 s x 3.33 margin.
+      // $0.12/s x 10 s is $1.20: $1.665 on the first $0.50 + $0.70 x 2.0 taper.
       expect(h.creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
-        expect.objectContaining({ amount: 400 }),
+        expect.objectContaining({ amount: 307 }),
       );
       expect(h.creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 400,
+          amount: 307,
           metadata: expect.objectContaining({
             avatarDurationQuote: expect.objectContaining({
               estimatedSeconds: 10,
@@ -2204,8 +2204,8 @@ describe('AvatarVideoGenerationService', () => {
         ),
       ).resolves.toEqual({
         billingMode: 'platform',
-        // $0.0805/s digital twin x 10 s x 3.33 margin.
-        credits: 269,
+        // $0.0805/s digital twin x 10 s is $0.805: $1.665 + $0.305 x 2.0 taper.
+        credits: 228,
         modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
       });
     });
@@ -2221,8 +2221,8 @@ describe('AvatarVideoGenerationService', () => {
         ),
       ).resolves.toEqual({
         billingMode: 'platform',
-        // $0.0805/s digital twin x 10 s x 3.33 margin.
-        credits: 269,
+        // $0.0805/s digital twin x 10 s is $0.805: $1.665 + $0.305 x 2.0 taper.
+        credits: 228,
         estimatedSeconds: 10,
         modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
       });

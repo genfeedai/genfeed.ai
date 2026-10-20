@@ -270,10 +270,10 @@ describe('AvatarVideoBillingService.quoteRender', () => {
       MODEL_KEYS.HEYGEN_AVATAR_IV,
       { duration: 10, selectors: { avatar_type: 'digital_twin' } },
     );
-    expect(quote.credits).toBe(269);
+    expect(quote.credits).toBe(228);
     expect(quote.durationQuote).toMatchObject({
       estimatedSeconds: 10,
-      snapshot: { costSource: 'reviewed-provider', credits: 269 },
+      snapshot: { costSource: 'reviewed-provider', credits: 228 },
     });
   });
 
@@ -454,8 +454,9 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
         { duration: 300 },
       );
       expect(funding.durationQuote?.estimatedSeconds).toBe(300);
-      // 300 s at 13 credits a second, not the 1 s that "hi" estimates.
-      expect(funding.credits).toBe(3847);
+      // 300 s at $0.0385 a second is $11.55: $1.665 on the first $0.50 plus
+      // $11.05 x 2.0 past the taper knee, not the 1 s that "hi" estimates.
+      expect(funding.credits).toBe(2377);
       expect(probeMediaFromUrl).not.toHaveBeenCalled();
     });
 

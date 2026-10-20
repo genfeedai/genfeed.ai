@@ -8,7 +8,8 @@ import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
 import { MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// $0.0385/s at 3.33x: a 12 s hold is 154 credits, 8 s costs 103, 20 s costs 257.
+// $0.0385/s at 3.33x: a 12 s hold is 154 credits, 8 s costs 103. 20 s is $0.77,
+// past the $0.50 taper knee: $1.665 + $0.27 x 2.0 = 221 credits.
 const HELD = 154;
 
 function reservation(overrides: Record<string, unknown> = {}) {
@@ -81,7 +82,7 @@ describe('settleReservationAtDuration', () => {
   it('settles the whole hold and tops up a longer clip under one key', async () => {
     await expect(
       settleReservationAtDuration(deps, { ...input, actualSeconds: 20 }),
-    ).resolves.toEqual({ settledCredits: HELD, topUpCredits: 103 });
+    ).resolves.toEqual({ settledCredits: HELD, topUpCredits: 67 });
 
     expect(credits.settleReservation).toHaveBeenCalledWith(
       expect.objectContaining({ actualAmount: HELD }),
@@ -91,7 +92,7 @@ describe('settleReservationAtDuration', () => {
     ).toHaveBeenCalledExactlyOnceWith(
       'org-1',
       'user-1',
-      103,
+      67,
       'Remix video (duration top-up)',
       ActivitySource.VIDEO_GENERATION,
       {
@@ -110,7 +111,7 @@ describe('settleReservationAtDuration', () => {
   it('caps the overrun at twice the hold and reports the excess', async () => {
     const logger = { error: vi.fn(), warn: vi.fn() };
 
-    // 60 s costs 770 credits; the render may charge at most 2 x 154 = 308.
+    // 60 s costs 529 credits; the render may charge at most 2 x 154 = 308.
     await expect(
       settleReservationAtDuration(
         { credits: credits as never, logger: logger as never },
@@ -128,7 +129,7 @@ describe('settleReservationAtDuration', () => {
     );
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('per-render charge cap'),
-      expect.objectContaining({ forgoneCredits: 462 }),
+      expect.objectContaining({ forgoneCredits: 221 }),
     );
   });
 
@@ -162,7 +163,7 @@ describe('settleReservationAtDuration', () => {
     expect(credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
       'org-1',
       'user-1',
-      103,
+      67,
       expect.any(String),
       ActivitySource.VIDEO_GENERATION,
       expect.objectContaining({

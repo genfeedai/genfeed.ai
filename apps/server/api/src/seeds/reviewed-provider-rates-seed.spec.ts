@@ -650,9 +650,10 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
     it('prices Avatar V at $0.12 per second for a digital twin only', async () => {
       const { profile } = await seededProfile('heygen/avatar-v');
 
+      // 5 s is $0.60: $1.665 on the first $0.50 plus $0.10 x 2.0 past the taper knee.
       expect(
         quote(profile, 'heygen/avatar-v', 5, 'digital_twin'),
-      ).toMatchObject({ snapshot: { credits: 200 }, status: 'priced' });
+      ).toMatchObject({ snapshot: { credits: 187 }, status: 'priced' });
       expect(
         quote(profile, 'heygen/avatar-v', 5, 'photo_avatar'),
       ).toMatchObject({ status: 'unresolved' });

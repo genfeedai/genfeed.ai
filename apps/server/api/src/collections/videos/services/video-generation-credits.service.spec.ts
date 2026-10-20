@@ -263,7 +263,7 @@ describe('VideoGenerationCreditsService', () => {
     );
 
     expect(request.creditsConfig).toMatchObject({
-      amount: 400,
+      amount: 307,
       deferred: false,
       modelKey: 'kling/model',
       pricingMetadata: {

@@ -1852,7 +1852,7 @@ model PlatformSetting {
   id                         String          @id @default(cuid())
   key                        String          @unique @default("platform")
   marginMultiplierGeneration Float           @default(3.33)
-  marginMultiplierAgentChat  Float           @default(1.7)
+  marginMultiplierAgentChat  Float           @default(2.0)
   marginInputMode            MarginInputMode @default(MARGIN)
   // Typed-decision provider (#4908): "none" | "jev". A plain string rather
   // than a Prisma enum so adding a provider is a contract change, not a

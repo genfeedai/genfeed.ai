@@ -1,4 +1,8 @@
-import { ceilDecimalPricingRatio } from './decimal-pricing';
+import {
+  ceilDecimalPricingRatio,
+  multiplyDecimalPricing,
+  sumDecimalPricing,
+} from './decimal-pricing';
 import { FREE_API_RATE_LIMIT } from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
@@ -192,6 +196,19 @@ export const BASE_MARGIN_PERCENT = 70;
 export const DEFAULT_GENERATION_MARGIN_MULTIPLIER = 3.33;
 /** Shared operator safety cap for every stored margin multiplier. */
 export const MAX_MARGIN_MULTIPLIER = 10;
+/**
+ * Provider cost of one priced line (a render, a batch, a clip) up to which the
+ * full generation multiplier applies. Only the slice of cost above it is
+ * billed at the tapered multiplier, so a $0.40 image keeps 3.33× while a
+ * $3.20 premium clip stops carrying 3.33× on every dollar.
+ */
+export const GENERATION_MARGIN_TAPER_KNEE_USD = 0.5;
+/**
+ * Sell/cost multiplier for the slice of provider cost above the knee, capped
+ * by the operator multiplier so a lower knob can never be raised by the taper.
+ * 2.0 = 50% margin on sell price.
+ */
+export const GENERATION_MARGIN_TAPER_MULTIPLIER = 2;
 
 function formatPricingNumber(value: number): string {
   return value.toLocaleString('en-US');
@@ -239,13 +256,40 @@ export function getRuntimeMarginMultiplier(): number {
 }
 
 /**
+ * Sell price in USD for a provider cost: the full multiplier up to
+ * `GENERATION_MARGIN_TAPER_KNEE_USD`, then the tapered multiplier (never above
+ * the multiplier itself) on the remainder. Exact decimal arithmetic, so a cost
+ * just over the knee never rounds a credit up through float noise.
+ */
+function taperedSellPriceUsd(
+  providerCostUsd: number,
+  marginMultiplier: number,
+): number {
+  if (providerCostUsd <= GENERATION_MARGIN_TAPER_KNEE_USD) {
+    return multiplyDecimalPricing(providerCostUsd, marginMultiplier);
+  }
+  return sumDecimalPricing([
+    multiplyDecimalPricing(GENERATION_MARGIN_TAPER_KNEE_USD, marginMultiplier),
+    multiplyDecimalPricing(
+      sumDecimalPricing([providerCostUsd, -GENERATION_MARGIN_TAPER_KNEE_USD]),
+      Math.min(marginMultiplier, GENERATION_MARGIN_TAPER_MULTIPLIER),
+    ),
+  ]);
+}
+
+/**
  * Apply the operator-configured **generation** margin multiplier to provider
  * cost and return the sell price in credits (1 credit = $0.01).
  *
- * Formula: Sell Price (USD) = providerCostUsd * marginMultiplier
+ * Formula: Sell Price (USD) = min(cost, knee) * marginMultiplier
+ *   + max(cost - knee, 0) * min(marginMultiplier, taperMultiplier)
  * Credits = Sell Price / CREDIT_VALUE_DOLLARS
  *
- * @param providerCostUsd Raw provider cost in USD.
+ * Expensive renders carry a lower multiplier on the cost above the knee
+ * ($0.50), so premium video is not the place where the flat multiplier piles
+ * up the most margin on the output a user is most likely to discard.
+ *
+ * @param providerCostUsd Raw provider cost in USD for one priced line.
  * @param marginMultiplier Sell/cost ratio configured by platform operators in
  *   /admin (see PlatformSetting.marginMultiplierGeneration). 1.0 = provider
  *   cost, 3.33 = 70% margin on sell price. Defaults to the process-scoped
@@ -254,6 +298,7 @@ export function getRuntimeMarginMultiplier(): number {
  *   never zero out pricing.
  * @example applyMargin(0.15) → 50 credits ($0.4995 sell price on $0.15 cost)
  * @example applyMargin(0.50) → 167 credits ($1.665 sell price on $0.50 cost)
+ * @example applyMargin(3.2) → 707 credits ($7.07 on a $3.20 clip, ~55% margin)
  * @example applyMargin(0.15, 1.2) → 18 credits ($0.18 sell price)
  */
 export function applyMargin(
@@ -265,7 +310,7 @@ export function applyMargin(
     DEFAULT_GENERATION_MARGIN_MULTIPLIER,
   );
   const credits = ceilDecimalPricingRatio(
-    [providerCostUsd, safeMultiplier],
+    [taperedSellPriceUsd(providerCostUsd, safeMultiplier)],
     CREDIT_VALUE_DOLLARS,
   );
   return Math.max(credits, 2); // absolute minimum floor
@@ -477,7 +522,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+  if (Object.hasOwn(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 

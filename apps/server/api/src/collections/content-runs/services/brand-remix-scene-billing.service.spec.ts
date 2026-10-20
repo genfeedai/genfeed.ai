@@ -388,8 +388,8 @@ describe('per-second clip settlement (#6933)', () => {
     expect(new Set(topUps.map((call) => call[5]?.idempotencyKey))).toEqual(
       new Set(['reservation-duration-topup:hold-1']),
     );
-    expect(topUps[0]?.[2]).toBe(103);
-    expect(receipt()).toMatchObject({ settledAmount: 257, state: 'settled' });
+    expect(topUps[0]?.[2]).toBe(67);
+    expect(receipt()).toMatchObject({ settledAmount: 221, state: 'settled' });
   });
 
   it('settles a retry that lost its length at the amount it already charged', async () => {

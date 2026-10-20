@@ -254,7 +254,7 @@ describe('authoritative bill-time quote snapshots', () => {
     expect(quote.status).toBe('priced');
     if (quote.status !== 'priced') throw new Error(quote.reason);
     expect(quote.snapshot.providerCostUsd).toBeCloseTo(64.8);
-    expect(quote.snapshot.credits).toBe(21579);
+    expect(quote.snapshot.credits).toBe(13027);
     expect(quote.snapshot.allocatedCredits.reduce((sum, n) => sum + n, 0)).toBe(
       quote.snapshot.credits,
     );

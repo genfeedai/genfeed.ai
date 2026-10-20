@@ -48,12 +48,12 @@ export interface AgentChatModel {
 export const AGENT_CREDIT_USD = 0.01;
 
 /**
- * Default sell/cost ratio for agent chat (70% markup on provider cost).
+ * Default sell/cost ratio for agent chat (100% markup on provider cost).
  * Matches `DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER` in `@genfeedai/pricing` and
  * the `PlatformSetting.marginMultiplierAgentChat` operator default — a
  * separate knob from generation's `marginMultiplierGeneration` (#5172).
  */
-export const AGENT_CREDIT_MARGIN_MULTIPLIER = 1.7;
+export const AGENT_CREDIT_MARGIN_MULTIPLIER = 2;
 
 /**
  * Token envelope of a single LLM round (one request/response pair inside a
@@ -120,7 +120,7 @@ export function calculateAgentRoundCredits(
 /**
  * Exact fractional retail credits for a provider USD charge:
  * cost × operator margin knob. No floor and no rounding beyond float noise —
- * the ledger stores full precision. Defaults to 1.7 (70% markup).
+ * the ledger stores full precision. Defaults to 2.0 (100% markup, 50% margin).
  */
 export function calculateAgentExactCredits(
   providerCostUsd: number,

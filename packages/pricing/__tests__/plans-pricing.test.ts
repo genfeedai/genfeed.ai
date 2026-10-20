@@ -17,6 +17,7 @@ import {
   formatPlanPriceLabel,
   formatPrice,
   formatTierLabel,
+  GENERATION_MARGIN_TAPER_MULTIPLIER,
   getEnterprisePlan,
   getPlanByLabel,
   getPlanByTier,
@@ -161,6 +162,27 @@ describe('applyMargin and runtime margin multiplier (generation)', () => {
     expect(applyMargin(0.15)).toBe(50);
     expect(applyMargin(0.5)).toBe(167);
     expect(applyMargin(0.04)).toBe(14);
+  });
+
+  it('tapers the multiplier on the provider cost above the $0.50 knee', () => {
+    // $0.50 sits on the knee, so it still carries the full 3.33×.
+    expect(applyMargin(0.5)).toBe(167);
+    // $0.40 x 3.33 = $1.332 for a premium second of Veo with audio.
+    expect(applyMargin(0.4)).toBe(134);
+    // $3.20 clip: $1.665 on the first $0.50 + $2.70 x 2.0 = $7.065.
+    expect(applyMargin(3.2)).toBe(707);
+    // Exact decimal split: $0.70 -> $1.665 + $0.20 x 2.0 = $2.065, no float drift.
+    expect(applyMargin(0.7)).toBe(207);
+  });
+
+  it('never lets the taper raise a multiplier below the taper multiplier', () => {
+    expect(applyMargin(3.2, 1.5)).toBe(480);
+    expect(applyMargin(3.2, GENERATION_MARGIN_TAPER_MULTIPLIER)).toBe(640);
+  });
+
+  it('keeps a premium clip at roughly 55% margin', () => {
+    const sellUsd = applyMargin(3.2) * CREDIT_VALUE_DOLLARS;
+    expect(1 - 3.2 / sellUsd).toBeCloseTo(0.55, 1);
   });
 
   it('scales by an explicit margin multiplier', () => {
@@ -314,8 +336,9 @@ describe('pricing constants', () => {
   });
 
   it('scales an avatar clip with its length the way admission holds it', () => {
+    // Avatar V at $1.20 crosses the $0.50 taper knee: $1.665 + $0.70 x 2.0.
     expect(avatarClipCreditRange(10)).toEqual({
-      maxCredits: 400,
+      maxCredits: 307,
       minCredits: 129,
     });
   });

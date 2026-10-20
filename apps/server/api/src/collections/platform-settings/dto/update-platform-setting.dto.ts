@@ -345,7 +345,7 @@ export class UpdatePlatformSettingDto {
 
   @ApiProperty({
     description:
-      'Agent-chat sell/cost ratio applied to provider USD. 1.7 = 70% markup on provider cost.',
+      'Agent-chat sell/cost ratio applied to provider USD. 2.0 = 100% markup on provider cost (50% margin).',
     maximum: MAX_MARGIN_MULTIPLIER,
     minimum: 0.01,
     required: false,

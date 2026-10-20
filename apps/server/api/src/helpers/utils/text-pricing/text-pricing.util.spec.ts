@@ -98,14 +98,14 @@ describe('text-pricing.util', () => {
       pricingType: 'flat',
     };
 
-    // 1,000 prompt + 500 completion tokens: $0.002625 provider cost, x1.7 margin, at $0.01 per credit
+    // 1,000 prompt + 500 completion tokens: $0.002625 provider cost, x2.0 margin, at $0.01 per credit
     expect(
       calculateEstimatedTextCredits(
         geminiFlash,
         'a'.repeat(4_000),
         'b'.repeat(2_000),
       ),
-    ).toBe(0.45);
+    ).toBe(0.53);
     expect(calculateEstimatedTextCredits(geminiFlash, '', '')).toBe(0);
   });
 });

@@ -428,7 +428,7 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
  * Gemini 3.8 Flash list price on OpenRouter (Google paid tier), read
  * 2026-10-14. Prompt $0.75 / completion $3.75 per 1M through 2026-12-31;
  * paid rates double on 2027-01-01. `cost` is one agent-round hold at the
- * 1.7 chat margin (`calculateAgentRoundCredits`), not a per-token bill.
+ * 2.0 chat margin (`calculateAgentRoundCredits`), not a per-token bill.
  * The token columns stay USD per million for readers. Post enhancement
  * quotes the flat `cost` — marking this `per-token` would treat those USD
  * figures as credits per million and hold 1 credit.
