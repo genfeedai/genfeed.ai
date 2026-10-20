@@ -1,11 +1,5 @@
 import type { AgentDockContextValue } from '@genfeedai/props/ui/agent-dock.props';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentDock from './AgentDock';
@@ -112,8 +106,9 @@ describe('AgentDock', () => {
     const scope = screen.getByTestId('agent-dock-scope');
     expect(scope).toHaveTextContent('Acme · Moonrise');
     expect(
-      scope.compareDocumentPosition(screen.getByText('Conversation transcript')) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      scope.compareDocumentPosition(
+        screen.getByText('Conversation transcript'),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
