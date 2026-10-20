@@ -1500,7 +1500,7 @@ describe('UniversalWorkspaceShell', () => {
         container.querySelector('#workspace-context-inspector'),
       ).not.toHaveAttribute('inert');
       expect(
-        screen.getByTestId('workspace-panel-tab-chat-new'),
+        screen.getByTestId('workspace-panel-tab-chat-thread-1'),
       ).toHaveAttribute('aria-selected', 'true');
       expect(
         screen.getByTestId('agent-dock-composer-slot').closest('section'),
@@ -1560,7 +1560,7 @@ describe('UniversalWorkspaceShell', () => {
         await within(region).findByTestId('dock-conversation'),
       ).toBeVisible();
       expect(
-        screen.getByTestId('workspace-panel-tab-chat-new'),
+        screen.getByTestId('workspace-panel-tab-chat-thread-1'),
       ).toHaveAttribute('aria-selected', 'true');
 
       fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-details'));
@@ -1569,7 +1569,9 @@ describe('UniversalWorkspaceShell', () => {
       // The conversation stays mounted behind the Details tab.
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
 
-      fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-chat-new'));
+      fireEvent.mouseDown(
+        screen.getByTestId('workspace-panel-tab-chat-thread-1'),
+      );
       expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
     });
 
@@ -1603,7 +1605,7 @@ describe('UniversalWorkspaceShell', () => {
       fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-details'));
       fireEvent.click(screen.getByTestId('context-sidebar-close'));
       expect(
-        screen.getByTestId('workspace-panel-tab-chat-new'),
+        screen.getByTestId('workspace-panel-tab-chat-thread-1'),
       ).toHaveAttribute('aria-selected', 'true');
 
       fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-details'));
