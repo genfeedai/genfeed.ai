@@ -121,7 +121,7 @@ export function TimelineStreamingRow({
 
         {hasContent ? (
           <div className="min-w-0 px-0 py-0.5">
-            <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-md leading-7 text-foreground">
+            <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-7 text-foreground">
               {streamState.streamingContent}
               {streamState.isStreaming && (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />

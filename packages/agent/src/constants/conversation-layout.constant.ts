@@ -43,7 +43,7 @@ export const AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS =
   '-mx-3 w-[calc(100%+1.5rem)] max-w-none sm:-mx-4 sm:w-[calc(100%+2rem)]';
 
 /** Assistant body — solid foreground so faded /90–/92 type cannot wash out. */
-export const AGENT_ASSISTANT_PROSE_CLASS = 'text-md leading-6 text-foreground';
+export const AGENT_ASSISTANT_PROSE_CLASS = 'text-sm leading-6 text-foreground';
 
 /**
  * Pins the user prompt to the scrollport and paints the canvas behind it so

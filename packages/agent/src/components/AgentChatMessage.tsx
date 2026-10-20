@@ -252,7 +252,7 @@ function AgentChatMessageInner({
             isUser
               ? AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS
               : // Free-text assistant: no card chrome — document flow like T3/chat
-                'w-full max-w-full border-0 bg-transparent py-1 text-md leading-7 text-foreground shadow-none',
+                'w-full max-w-full border-0 bg-transparent py-1 text-sm leading-7 text-foreground shadow-none',
           )}
         >
           <UserPromptCard isUser={isUser}>
@@ -277,7 +277,7 @@ function AgentChatMessageInner({
                     // the track instead of expanding the conversation column.
                     'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
                     isUser
-                      ? 'text-md leading-6 text-foreground [&_p]:my-1'
+                      ? 'text-sm leading-6 text-foreground [&_p]:my-1'
                       : AGENT_ASSISTANT_PROSE_CLASS,
                   )}
                 />
@@ -438,7 +438,7 @@ function UserPromptCard({
     // Accent is the nested-fill step above the card plane: on the dark
     // canvas a bg-card prompt is 1.09:1 and disappears into the page.
     <Card
-      bodyClassName="gap-0 px-3 py-2.5 text-md leading-6 text-foreground"
+      bodyClassName="gap-0 px-3 py-2.5 text-sm leading-6 text-foreground"
       className="w-full bg-accent"
       data-testid="agent-user-prompt"
     >
