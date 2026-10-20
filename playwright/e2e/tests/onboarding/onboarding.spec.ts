@@ -1,4 +1,4 @@
-import { orgPath } from '@e2e/utils/app-chrome';
+import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { setupOnboardingFirstDraftsMocks } from '../../utils/onboarding-first-drafts-mocks';
@@ -27,7 +27,7 @@ test.describe('Output-first onboarding', () => {
       isOnboardingCompleted: true,
     });
     await expect(page).toHaveURL(
-      new RegExp(orgPath(APP_ROUTES.WORKSPACE.OVERVIEW)),
+      new RegExp(brandPath(APP_ROUTES.WORKSPACE.OVERVIEW)),
     );
   });
 
