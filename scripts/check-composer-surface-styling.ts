@@ -36,6 +36,12 @@ const logger = {
 
 const INCLUDE_GLOBS = ['apps/app/**/*.{tsx,jsx}', 'packages/**/*.{tsx,jsx}'];
 
+/** Includes .ts/.js so prop contracts and helpers are scanned for the removed fade API. */
+const SOURCE_GLOBS = [
+  'apps/app/**/*.{ts,tsx,js,jsx}',
+  'packages/**/*.{ts,tsx,js,jsx}',
+];
+
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
@@ -70,7 +76,7 @@ const FLAT_OWNER_EXCLUDE_GLOBS = ['**/*.test.*', '**/*.spec.*'];
 
 /** Shadow, gradient and scrim utilities a flat composer owner may not use. */
 const FLAT_FORBIDDEN_CLASS_PATTERN =
-  /(^|[\s:!])!?(shadow-|bg-gradient|bg-linear|bg-radial|from-|via-|drop-shadow)/;
+  /(^|[\s:!])!?(shadow(?![a-z])|shadow-|drop-shadow|bg-gradient|bg-linear|bg-radial|bg-\[[^\]]*gradient|from-|via-)/;
 
 /** The removed top-fade API must not come back anywhere in product source. */
 const REMOVED_FADE_PATTERN =
@@ -171,11 +177,7 @@ function findFlatOwnerViolations(file: string): IViolation[] {
       );
     }
     for (const literal of literals) {
-      if (
-        literal
-          .split(/\s+/)
-          .some((token) => FLAT_FORBIDDEN_CLASS_PATTERN.test(token))
-      ) {
+      if (FLAT_FORBIDDEN_CLASS_PATTERN.test(literal)) {
         violations.push({
           component: 'composer owner',
           file,
@@ -210,6 +212,10 @@ function findRemovedFadeUsages(file: string): IViolation[] {
 }
 
 const files = globSync(INCLUDE_GLOBS, { ignore: EXCLUDE_GLOBS, nodir: true });
+const sourceFiles = globSync(SOURCE_GLOBS, {
+  ignore: EXCLUDE_GLOBS,
+  nodir: true,
+});
 const ownerFiles = globSync(FLAT_OWNER_GLOBS, {
   ignore: FLAT_OWNER_EXCLUDE_GLOBS,
   nodir: true,
@@ -217,7 +223,7 @@ const ownerFiles = globSync(FLAT_OWNER_GLOBS, {
 const violations = [
   ...files.flatMap(findViolations),
   ...ownerFiles.flatMap(findFlatOwnerViolations),
-  ...files.flatMap(findRemovedFadeUsages),
+  ...sourceFiles.flatMap(findRemovedFadeUsages),
 ];
 
 if (violations.length > 0) {
