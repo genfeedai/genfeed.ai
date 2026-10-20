@@ -38,6 +38,7 @@ import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
 import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { ReplyTargetDiscoveryService } from '@api/services/reply-bot/reply-target-discovery.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
 import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
@@ -53,6 +54,7 @@ import { Module } from '@nestjs/common';
     AuthorReplyLoopService,
     ReplyInboundProcessorService,
     ReplyPostWatchService,
+    ReplyTargetDiscoveryService,
     XActivityWebhookService,
     XActivitySubscriptionService,
 
@@ -108,6 +110,7 @@ import { Module } from '@nestjs/common';
     ReplyInboundProcessorService,
     ReplyIntentClassifierService,
     ReplyPostWatchService,
+    ReplyTargetDiscoveryService,
     XActivityWebhookService,
     XActivitySubscriptionService,
     // Core services

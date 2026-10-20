@@ -7,6 +7,7 @@ import type {
   IDiscordTransportStatus,
   IIngredientNotificationData,
   IRevenueNotificationPayload,
+  IStoryboardNotificationContext,
   IUserCreatedPayload,
 } from '@genfeedai/contracts/interfaces';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
@@ -150,6 +151,7 @@ export class DiscordService {
     category: IngredientCategory,
     cdnUrl: string,
     ingredient: IIngredientNotificationData,
+    storyboard?: IStoryboardNotificationContext,
   ): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
@@ -170,10 +172,17 @@ export class DiscordService {
           ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
           : null;
 
+        const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+        const layoutUrl =
+          storyboard?.layoutPath && appUrl
+            ? `${appUrl}${storyboard.layoutPath}`
+            : null;
+
         const buttons = this.buildIngredientButtons(
           category,
           cdnUrl,
           ingredientManagerUrl,
+          layoutUrl,
         );
 
         const embed: IDiscordEmbed = {
@@ -198,9 +207,45 @@ export class DiscordService {
         const avatarUrl =
           (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
 
+        // A storyboard's stills share one thread; without one they fall back
+        // to the channel like any other generation.
+        let threadId = storyboard
+          ? ((await this.discordBotService.getStoryboardThread({
+              layoutUrl,
+              runId: storyboard.runId,
+              title: storyboard.title,
+            })) ?? undefined)
+          : undefined;
+
+        // The cached thread can be deleted or locked after it was opened:
+        // drop it so the next still opens a fresh one, and post this one to
+        // the channel instead of failing the delivery.
+        const send = async (
+          payload: WebhookMessageCreateOptions,
+        ): Promise<void> => {
+          if (!threadId || !storyboard) {
+            await webhookClient.send(payload);
+            return;
+          }
+          try {
+            await webhookClient.send({ ...payload, threadId });
+          } catch (error: unknown) {
+            this.loggerService.warn(
+              `${url} thread post failed; posting to the channel`,
+              {
+                error: error instanceof Error ? error.message : String(error),
+                runId: storyboard.runId,
+              },
+            );
+            this.discordBotService.evictStoryboardThread(storyboard.runId);
+            threadId = undefined;
+            await webhookClient.send(payload);
+          }
+        };
+
         // A separate video URL message lets Discord embed the video before its details.
         if (category === IngredientCategory.VIDEO) {
-          await webhookClient.send({
+          await send({
             avatarURL: avatarUrl,
             content: cdnUrl,
             username: 'Genfeed.ai',
@@ -220,7 +265,7 @@ export class DiscordService {
           messagePayload.components = [actionRow];
         }
 
-        await webhookClient.send(messagePayload);
+        await send(messagePayload);
 
         this.loggerService.log(`${url} succeeded`, {
           category,
@@ -370,6 +415,7 @@ export class DiscordService {
     category: IngredientCategory,
     cdnUrl: string,
     managerUrl: string | null,
+    storyboardUrl: string | null = null,
   ): ButtonBuilder[] {
     const buttons: ButtonBuilder[] = [];
 
@@ -388,6 +434,15 @@ export class DiscordService {
           .setLabel('View Full Image')
           .setStyle(ButtonStyle.Link)
           .setURL(cdnUrl),
+      );
+    }
+
+    if (storyboardUrl) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel('Open Storyboard')
+          .setStyle(ButtonStyle.Link)
+          .setURL(storyboardUrl),
       );
     }
 

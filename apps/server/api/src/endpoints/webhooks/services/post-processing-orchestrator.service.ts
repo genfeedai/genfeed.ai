@@ -1,9 +1,11 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { StoryboardNotificationContextService } from '@api/endpoints/webhooks/services/storyboard-notification-context.service';
 import { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
+import type { IStoryboardNotificationContext } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -20,6 +22,8 @@ export class PostProcessingOrchestratorService {
     private readonly loggerService: LoggerService,
     @Optional() private readonly evaluationsService?: EvaluationsService,
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly storyboardContext?: StoryboardNotificationContextService,
   ) {}
 
   /**
@@ -42,6 +46,16 @@ export class PostProcessingOrchestratorService {
     ).get(ingredientId);
     if (!url) throw new Error('The ingredient has no authorized media URL');
     return url;
+  }
+
+  /**
+   * The storyboard a generated still or video belongs to, when it is one: its
+   * Discord notification goes to that storyboard's thread.
+   */
+  async findStoryboardContext(
+    ingredient: Parameters<StoryboardNotificationContextService['find']>[0],
+  ): Promise<IStoryboardNotificationContext | null> {
+    return (await this.storyboardContext?.find(ingredient)) ?? null;
   }
 
   /**

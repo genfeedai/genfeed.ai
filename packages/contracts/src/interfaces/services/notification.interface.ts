@@ -156,6 +156,15 @@ export interface IIngredientNotificationPayload {
   category: string;
   cdnUrl: string;
   ingredient: IIngredientNotificationData;
+  storyboard?: IStoryboardNotificationContext;
+}
+
+/** The storyboard a generated still belongs to; its Discord posts share a thread. */
+export interface IStoryboardNotificationContext {
+  runId: string;
+  title: string;
+  /** Path of the storyboard layout in the app, without the app origin. */
+  layoutPath?: string;
 }
 
 export interface IIngredientNotificationData {

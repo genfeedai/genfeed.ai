@@ -165,6 +165,7 @@ describe('ChannelMessageDispatcherService', () => {
         id: 'ingredient-1',
         thumbnailUrl: 'https://t',
       }),
+      undefined,
     );
 
     await dispatcher.dispatch(
@@ -179,6 +180,38 @@ describe('ChannelMessageDispatcherService', () => {
       description: 'A 7-day streak',
       title: 'Streak',
     });
+  });
+
+  it('passes the storyboard context of a still to the Discord service', async () => {
+    const { discord, dispatcher } = makeDispatcher();
+
+    await dispatcher.dispatch(
+      request({
+        action: 'ingredient_notification',
+        payload: {
+          category: IngredientCategory.IMAGE,
+          cdnUrl: 'https://cdn.example.com/i.png',
+          ingredient: { id: 'ingredient-2' },
+          storyboard: {
+            layoutPath: '/org/brand/studio/storyboard/run-1',
+            runId: 'run-1',
+            title: 'Steam shots',
+          },
+        },
+        type: 'discord',
+      }),
+    );
+
+    expect(discord.sendIngredientNotification).toHaveBeenCalledWith(
+      IngredientCategory.IMAGE,
+      'https://cdn.example.com/i.png',
+      expect.objectContaining({ id: 'ingredient-2' }),
+      {
+        layoutPath: '/org/brand/studio/storyboard/run-1',
+        runId: 'run-1',
+        title: 'Steam shots',
+      },
+    );
   });
 
   it('rejects unknown or incomplete Discord messages without retrying', async () => {

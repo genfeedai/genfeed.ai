@@ -8,6 +8,10 @@ import {
 } from '@api/collections/reply-bot-configs/dto/author-reply-loop.dto';
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/reply-bot-configs-query.dto';
+import {
+  AddReplyTargetDto,
+  DiscoverReplyTargetsDto,
+} from '@api/collections/reply-bot-configs/dto/reply-target.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
@@ -23,6 +27,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { ReplyTargetDiscoveryService } from '@api/services/reply-bot/reply-target-discovery.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
@@ -58,6 +63,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
     private readonly replyPostWatchService: ReplyPostWatchService,
+    private readonly replyTargetDiscoveryService: ReplyTargetDiscoveryService,
   ) {
     super(
       loggerService,
@@ -218,6 +224,40 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       platform: body.platform,
       postId: body.postId,
       postPreview: body.postPreview,
+    });
+  }
+
+  /**
+   * Suggest X accounts in the brand's niche worth replying to. Read only.
+   */
+  @Post('warmup/discover-targets')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Suggest X accounts to reply to for warm-up' })
+  discoverReplyTargets(
+    @CurrentUser() user: User,
+    @Body() body: DiscoverReplyTargetsDto,
+  ) {
+    return this.replyTargetDiscoveryService.discover({
+      brandId: body.brandId,
+      maxResults: body.maxResults,
+      organizationId: user.organizationId,
+      query: body.query,
+    });
+  }
+
+  /**
+   * Add an account to the brand's warm-up monitor. The monitor drafts replies
+   * for a person to post; it never posts them.
+   */
+  @Post('warmup/targets')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Monitor an X account for warm-up replies' })
+  addReplyTarget(@CurrentUser() user: User, @Body() body: AddReplyTargetDto) {
+    return this.replyTargetDiscoveryService.addTarget({
+      brandId: body.brandId,
+      organizationId: user.organizationId,
+      userId: user.id,
+      username: body.username,
     });
   }
 

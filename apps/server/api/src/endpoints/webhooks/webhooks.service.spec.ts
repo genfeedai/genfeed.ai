@@ -138,6 +138,8 @@ describe('WebhooksService', () => {
     width: 1920,
   };
 
+  const mockStoryboardContextFind = vi.fn();
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
@@ -283,6 +285,7 @@ describe('WebhooksService', () => {
                 Promise.resolve(url),
             ),
             notifyBotGatewayFailureIfNeeded: vi.fn(),
+            findStoryboardContext: mockStoryboardContextFind,
             notifyBotGatewayIfNeeded: vi.fn(),
             triggerAutoEvaluationIfEnabled: vi.fn(),
           },
@@ -1276,6 +1279,55 @@ describe('WebhooksService', () => {
       expect(autoMergeService.triggerAutoMergeIfReady).toHaveBeenCalledWith(
         expect.objectContaining({ id: mockIngredientId }),
       );
+    });
+  });
+  describe('storyboard Discord notification', () => {
+    type DiscordNotifier = {
+      sendDiscordNotificationAsync(
+        ingredientId: string,
+        category: IngredientCategory,
+        integration: string,
+      ): Promise<void>;
+    };
+    const notify = () =>
+      (service as unknown as DiscordNotifier).sendDiscordNotificationAsync(
+        mockIngredientId,
+        IngredientCategory.IMAGE,
+        'replicate',
+      );
+    const dispatchedPayload = () => {
+      const dispatch = vi.mocked(_notificationsService.dispatch);
+      return dispatch.mock.calls[0][0].messages[0].message.payload;
+    };
+
+    beforeEach(() => {
+      ingredientsService.findOne.mockResolvedValue(
+        mockIngredientDoc as unknown as IngredientDocument,
+      );
+    });
+
+    it('posts a storyboard generation with its storyboard context', async () => {
+      const storyboard = {
+        layoutPath: '/org/acme/studio/storyboard/run-1',
+        runId: 'run-1',
+        title: 'Steam shots',
+      };
+      mockStoryboardContextFind.mockResolvedValue(storyboard);
+
+      await notify();
+
+      expect(mockStoryboardContextFind).toHaveBeenCalledWith(
+        expect.objectContaining({ id: mockIngredientId }),
+      );
+      expect(dispatchedPayload()).toMatchObject({ storyboard });
+    });
+
+    it('keeps the ordinary channel path for other generations', async () => {
+      mockStoryboardContextFind.mockResolvedValue(null);
+
+      await notify();
+
+      expect(dispatchedPayload()).not.toHaveProperty('storyboard');
     });
   });
 });

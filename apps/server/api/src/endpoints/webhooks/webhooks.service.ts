@@ -611,6 +611,9 @@ export class WebhooksService {
       return;
     }
 
+    const storyboard =
+      await this.postProcessingOrchestrator.findStoryboardContext(ingredient);
+
     const ingredientCategory = categoryToMediaType(categoryValue);
     const cdnUrl = await this.postProcessingOrchestrator.authorizeProcessingUrl(
       ingredient.organizationId,
@@ -680,6 +683,7 @@ export class WebhooksService {
                 prompt,
                 thumbnailUrl,
               },
+              ...(storyboard ? { storyboard } : {}),
             },
             type: 'discord',
           },

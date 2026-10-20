@@ -15,6 +15,7 @@ import {
   NewsChannel,
   PermissionFlagsBits,
   TextChannel,
+  type ThreadChannel,
   WebhookClient,
 } from 'discord.js';
 
@@ -28,6 +29,10 @@ interface WebhookCache {
 export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   private client: Client | null = null;
   private readonly webhookCache = new Map<string, WebhookCache>();
+  private readonly storyboardThreads = new Map<
+    string,
+    Promise<string | null>
+  >();
   private isReady = false;
 
   constructor(
@@ -206,6 +211,90 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
       (await this.runtimeSettings.get()).discordChannelIdStudio ?? undefined,
       await this.getWebhookName('Studio'),
     );
+  }
+
+  /**
+   * One public thread per storyboard run in the studio channel, so a run's
+   * stills post together instead of one by one into the channel. The thread is
+   * found again by its run suffix after a restart, and unarchived when a late
+   * still arrives. Resolves null when the thread cannot be made (missing
+   * permission, channel type), so the caller falls back to the channel.
+   */
+  async getStoryboardThread(input: {
+    runId: string;
+    title: string;
+    layoutUrl?: string | null;
+  }): Promise<string | null> {
+    const pending = this.storyboardThreads.get(input.runId);
+    if (pending) return pending;
+    const resolved = this.resolveStoryboardThread(input).then((threadId) => {
+      if (!threadId) this.storyboardThreads.delete(input.runId);
+      return threadId;
+    });
+    if (this.storyboardThreads.size >= 200) this.storyboardThreads.clear();
+    this.storyboardThreads.set(input.runId, resolved);
+    return resolved;
+  }
+
+  /** Forgets a run's thread after a post to it failed, so the next one re-resolves it. */
+  evictStoryboardThread(runId: string): void {
+    this.storyboardThreads.delete(runId);
+  }
+
+  private async resolveStoryboardThread(input: {
+    runId: string;
+    title: string;
+    layoutUrl?: string | null;
+  }): Promise<string | null> {
+    const channelId =
+      (await this.runtimeSettings.get()).discordChannelIdStudio ?? undefined;
+    if (!channelId || !this.client || !this.isReady) return null;
+    const suffix = ` · ${input.runId.slice(-6)}`;
+    const name = `${input.title.slice(0, 100 - suffix.length)}${suffix}`;
+    try {
+      const channel = await this.client.channels.fetch(channelId);
+      if (
+        !channel ||
+        (!(channel instanceof TextChannel) && !(channel instanceof NewsChannel))
+      )
+        return null;
+
+      const active = await channel.threads.fetchActive();
+      let thread: ThreadChannel | undefined = active.threads.find((item) =>
+        item.name.endsWith(suffix),
+      );
+      if (!thread) {
+        const archived = await channel.threads.fetchArchived({ limit: 100 });
+        thread = archived.threads.find((item) => item.name.endsWith(suffix));
+        if (thread) await thread.setArchived(false);
+      }
+      if (thread) return thread.id;
+
+      const anchor = await channel.send({
+        embeds: [
+          {
+            color: 0x00ff00,
+            description: input.layoutUrl
+              ? `[Open the storyboard](${input.layoutUrl})`
+              : undefined,
+            timestamp: new Date().toISOString(),
+            title: `Storyboard: ${input.title}`,
+          },
+        ],
+      });
+      const created = await anchor.startThread({
+        autoArchiveDuration: 1440,
+        name,
+        reason: await this.getWebhookReason(),
+      });
+      return created.id;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `Could not open a Discord thread for storyboard ${input.runId}; posting to the channel instead`,
+        { error: error instanceof Error ? error.message : String(error) },
+      );
+      return null;
+    }
   }
 
   async getUsersWebhook(): Promise<WebhookClient | null> {

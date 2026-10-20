@@ -2,6 +2,7 @@ import type { EvaluationsService } from '@api/collections/evaluations/services/e
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
+import { StoryboardNotificationContextService } from '@api/endpoints/webhooks/services/storyboard-notification-context.service';
 import type { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
 import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
@@ -59,6 +60,35 @@ describe('PostProcessingOrchestratorService', () => {
       loggerService as unknown as LoggerService,
       evaluationsService as unknown as EvaluationsService,
     );
+  });
+
+  describe('findStoryboardContext', () => {
+    const ingredient = { organizationId: 'org-1', sourceActionId: 'x' };
+
+    it('returns the storyboard found for the ingredient', async () => {
+      const storyboard = { runId: 'run-1', title: 'Steam shots' };
+      const withContext = new PostProcessingOrchestratorService(
+        botCallbackResponder as unknown as BotCallbackResponderService,
+        configService as unknown as ConfigService,
+        organizationSettingsService as unknown as OrganizationSettingsService,
+        loggerService as unknown as LoggerService,
+        undefined,
+        undefined,
+        {
+          find: vi.fn().mockResolvedValue(storyboard),
+        } as unknown as StoryboardNotificationContextService,
+      );
+
+      await expect(withContext.findStoryboardContext(ingredient)).resolves.toBe(
+        storyboard,
+      );
+    });
+
+    it('returns null when no storyboard lookup is wired', async () => {
+      await expect(
+        service.findStoryboardContext(ingredient),
+      ).resolves.toBeNull();
+    });
   });
 
   describe('notifyBotGatewayIfNeeded', () => {

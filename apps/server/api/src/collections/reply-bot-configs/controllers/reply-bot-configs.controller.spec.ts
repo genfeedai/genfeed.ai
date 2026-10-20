@@ -9,6 +9,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { ReplyTargetDiscoveryService } from '@api/services/reply-bot/reply-target-discovery.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -45,6 +46,11 @@ describe('ReplyBotConfigsController', () => {
     testReplyGeneration: vi.fn(),
   };
 
+  const mockReplyTargetDiscoveryService = {
+    addTarget: vi.fn(),
+    discover: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReplyBotConfigsController],
@@ -68,6 +74,10 @@ describe('ReplyBotConfigsController', () => {
         {
           provide: ReplyPostWatchService,
           useValue: {},
+        },
+        {
+          provide: ReplyTargetDiscoveryService,
+          useValue: mockReplyTargetDiscoveryService,
         },
       ],
     })
@@ -129,6 +139,49 @@ describe('ReplyBotConfigsController', () => {
         replyBotOrchestratorService.queueOrganizationBots,
       ).toHaveBeenCalledWith('org-123', 'cred-1');
       expect(result).toEqual({ jobId: 'job-abc-123' });
+    });
+  });
+
+  describe('warm-up target discovery', () => {
+    it('suggests targets scoped to the caller organization', async () => {
+      mockReplyTargetDiscoveryService.discover.mockResolvedValue([
+        { followersCount: 5000, username: 'someone' },
+      ]);
+
+      const result = await controller.discoverReplyTargets(mockUser, {
+        brandId: 'brand-123',
+        maxResults: 5,
+        query: 'indie hackers',
+      });
+
+      expect(mockReplyTargetDiscoveryService.discover).toHaveBeenCalledWith({
+        brandId: 'brand-123',
+        maxResults: 5,
+        organizationId: 'org-123',
+        query: 'indie hackers',
+      });
+      expect(result).toEqual([{ followersCount: 5000, username: 'someone' }]);
+    });
+
+    it('adds a monitored target for the caller', async () => {
+      mockReplyTargetDiscoveryService.addTarget.mockResolvedValue({
+        botConfigId: 'bot-1',
+        monitoredAccountId: 'acc-1',
+        username: 'someone',
+      });
+
+      const result = await controller.addReplyTarget(mockUser, {
+        brandId: 'brand-123',
+        username: '@someone',
+      });
+
+      expect(mockReplyTargetDiscoveryService.addTarget).toHaveBeenCalledWith({
+        brandId: 'brand-123',
+        organizationId: 'org-123',
+        userId: 'auth-provider-user',
+        username: '@someone',
+      });
+      expect(result.monitoredAccountId).toBe('acc-1');
     });
   });
 });
