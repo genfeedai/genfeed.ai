@@ -49,6 +49,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
+  AgentThreadMode,
   AgentThreadStatus,
   AgentType,
   isExplicitAgentMediaGenerationMode,
@@ -686,6 +687,16 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       prompt: state.request.content,
     });
     if (!isExplicitAgentMediaGenerationMode(generationMode)) {
+      return null;
+    }
+    // Plan mode promises a plan and estimate before anything runs. This turn
+    // skips the model and charges immediately, so a Plan thread takes the plan
+    // path below instead, whether the media mode was locked or inferred.
+    const thread = await this.agentThreadsService.findOne({
+      id: state.threadId,
+      organizationId: state.organizationId,
+    });
+    if (thread?.mode === AgentThreadMode.PLAN) {
       return null;
     }
     const settings = state.request.generationSettings;

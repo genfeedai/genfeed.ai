@@ -26,6 +26,7 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
 } from '@genfeedai/contracts';
+import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type {
   AgentClipRunIdentity,
   AgentNextStepOption,
@@ -180,7 +181,10 @@ export class AgentPrepareToolHandler {
               ? { harness: params.harness }
               : {}),
             aspectRatio: aspectRatio || '1:1',
-            duration: generationType === 'video' ? duration || 5 : undefined,
+            duration:
+              generationType === 'video'
+                ? duration || DEFAULT_AGENT_VIDEO_DURATION_SECONDS
+                : undefined,
             model,
             prompt,
             ...(useIdentity ? { useIdentity: true } : {}),

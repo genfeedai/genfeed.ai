@@ -1,6 +1,7 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 
 type PrepareHandlerCtor = ConstructorParameters<typeof AgentPrepareToolHandler>;
@@ -96,6 +97,21 @@ describe('AgentPrepareToolHandler.prepareGeneration', () => {
         generationParams: expect.objectContaining({ useIdentity: true }),
         generationType: 'video',
         type: 'generation_action_card',
+      }),
+    );
+  });
+
+  it('shows the duration the video tool will render when none is given (#7680)', async () => {
+    const result = await createHandler().prepareGeneration(
+      { generationType: 'video', prompt: 'Waves on a beach' },
+      ctx,
+    );
+
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        generationParams: expect.objectContaining({
+          duration: DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+        }),
       }),
     );
   });
