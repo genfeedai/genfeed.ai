@@ -8,7 +8,11 @@ import type { Locator, Page, Request } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
-import { selectAdvancedModel } from '../../utils/generation-setup';
+import {
+  confirmGenerationSpend,
+  mockGenerationQuote,
+  selectAdvancedModel,
+} from '../../utils/generation-setup';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 // #6585 / #6691: More opens by pointer and keyboard without selecting the
@@ -77,6 +81,7 @@ async function mountPlayground(page: Page) {
       generationWrites.push(`${request.method()} ${request.url()}`);
   });
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockGenerationQuote(page);
   const image = (id: string) => ({
     id,
     type: 'ingredients',
@@ -353,6 +358,7 @@ test('a rejected submit keeps the prompt for another attempt', async ({
 
   await editor.fill('Keep this prompt after a rejected submit');
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
+  await confirmGenerationSpend(page);
 
   await expect.poll(() => admissions).toBe(1);
   expect(generationWrites).toHaveLength(1);

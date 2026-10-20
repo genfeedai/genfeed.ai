@@ -37,3 +37,47 @@ export async function selectAdvancedModel(
     .first()
     .click();
 }
+
+/**
+ * Studio asks the operator to confirm the price before any paid submit, and
+ * prices Auto or unpriced choices with the server quote
+ * (`POST /v1/router/estimate-generation-credits`, a raw body without a JSON:API
+ * wrapper). Specs that submit a generation answer that quote here so the
+ * confirmation opens instead of a "price could not be confirmed" notice.
+ */
+export async function mockGenerationQuote(
+  page: Page,
+  {
+    credits = 8,
+    routedModelKey,
+  }: { credits?: number; routedModelKey?: string } = {},
+): Promise<void> {
+  await page.route(
+    '**/v1/router/estimate-generation-credits',
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        modelKey?: string;
+      } | null;
+      const modelKey = body?.modelKey ?? routedModelKey;
+      await route.fulfill({
+        json: {
+          credits,
+          isAvailable: true,
+          ...(modelKey ? { modelKey } : {}),
+        },
+      });
+    },
+  );
+}
+
+/** The price confirmation that opens before a paid Studio submit. */
+export function spendConfirmation(page: Page) {
+  return page.getByRole('dialog').filter({ hasText: /Generate for \d/ });
+}
+
+/** Approves the price shown in the Studio confirmation. */
+export async function confirmGenerationSpend(page: Page): Promise<void> {
+  const dialog = spendConfirmation(page);
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Generate', exact: true }).click();
+}
