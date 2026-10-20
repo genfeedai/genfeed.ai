@@ -422,6 +422,58 @@ describe('usePostDetailActions', () => {
     });
   });
 
+  describe('rewrite failure reasons (#7679)', () => {
+    it('shows the reason the API gave', async () => {
+      mockServiceEnhance.mockRejectedValue({
+        errors: [
+          {
+            detail:
+              'The rewrite does not fit the 280-character limit for twitter.',
+            status: '422',
+            title: 'Enhancement failed',
+          },
+        ],
+      });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance('post-1', 'prompt');
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to rewrite. The rewrite does not fit the 280-character limit for twitter.',
+      );
+    });
+
+    it('keeps the generic message for a long provider detail', async () => {
+      mockServiceEnhance.mockRejectedValue({
+        errors: [{ detail: 'x'.repeat(400), status: '500' }],
+      });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance('post-1', 'prompt');
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to rewrite. Try again.',
+      );
+    });
+
+    it('says so when the draft has no text instead of resetting silently', async () => {
+      mockServiceEnhance.mockResolvedValue({ description: '', id: 'post-1' });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance('post-1', 'prompt');
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'The AI returned no text for this rewrite. Try again.',
+      );
+    });
+  });
+
   describe('handlePerTweetEnhance', () => {
     it('does nothing without a post', async () => {
       const { result } = renderHook(() =>
