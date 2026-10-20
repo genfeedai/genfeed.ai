@@ -23,7 +23,7 @@ const NOOP_EDGE_STYLE_MIRROR: EdgeStyleMirror = () => {};
 /** localStorage key the settings store persists to. */
 export const SETTINGS_STORAGE_KEY = 'genfeed-settings';
 
-/** Resolve a stored edge style, migrating the legacy `'bezier'` value. */
+/** Resolve a stored edge style, falling back to the default for unknown values. */
 export function normalizeEdgeStyle(style: unknown): EdgeStyle {
   return style === EdgeStyleEnum.DEFAULT ||
     style === EdgeStyleEnum.SMOOTHSTEP ||

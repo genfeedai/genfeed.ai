@@ -41,7 +41,7 @@ describe('MergeProgressBars', () => {
     const steps = [{ id: '1', label: 'Step 1', status: 'failed' as const }];
 
     const { container } = render(<MergeProgressBars steps={steps} />);
-    const errorIcon = container.querySelector('.text-error');
+    const errorIcon = container.querySelector('.text-destructive');
     expect(errorIcon).toBeInTheDocument();
   });
 

@@ -101,7 +101,7 @@ describe('SettingsSubscriptionPage', () => {
 
     expect(screen.getByText('Plans')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Upgrade to Agencies/i }),
+      screen.getByRole('button', { name: /Upgrade to Scale/i }),
     ).toBeInTheDocument();
   });
 

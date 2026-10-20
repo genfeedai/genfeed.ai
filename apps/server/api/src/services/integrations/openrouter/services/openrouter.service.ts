@@ -137,17 +137,21 @@ export class OpenRouterService {
     };
   }
 
-  async chatCompletion(
+  /**
+   * Some models (e.g. the Gemini product-text fallback) reject
+   * `reasoning.enabled: false` with a 400 "Reasoning is mandatory". Callers that
+   * only want a short answer ask for no reasoning; when the model refuses, retry
+   * once at minimal effort instead of failing the request.
+   */
+  private async postChatCompletion<T>(
     params: OpenRouterChatCompletionParams,
-    apiKeyOverride?: string,
-  ): Promise<OpenRouterChatCompletionResponse> {
-    const apiKey = this.resolveApiKey(apiKeyOverride);
-
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post<OpenRouterChatCompletionResponse>(
+    apiKey: string,
+  ): Promise<T> {
+    const send = (body: OpenRouterChatCompletionParams) =>
+      firstValueFrom(
+        this.httpService.post<T>(
           this.apiUrl,
-          { ...this.withRetentionPolicy(params), stream: false },
+          { ...this.withRetentionPolicy(body), stream: false },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -159,7 +163,38 @@ export class OpenRouterService {
         ),
       );
 
-      return await this.attachExactUsageCost(response.data, apiKey);
+    try {
+      return (await send(params)).data;
+    } catch (error: unknown) {
+      const details = this.getSafeErrorDetails(error);
+      const isReasoningMandatory =
+        params.reasoning?.enabled === false &&
+        details.status === 400 &&
+        /reasoning is mandatory/i.test(details.providerMessage ?? '');
+      if (!isReasoningMandatory) {
+        throw error;
+      }
+      this.loggerService.warn(
+        `${this.constructorName}.chatCompletion model ${params.model} requires reasoning; retrying at minimal effort`,
+      );
+      return (await send({ ...params, reasoning: { effort: 'minimal' } })).data;
+    }
+  }
+
+  async chatCompletion(
+    params: OpenRouterChatCompletionParams,
+    apiKeyOverride?: string,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    const apiKey = this.resolveApiKey(apiKeyOverride);
+
+    try {
+      const data =
+        await this.postChatCompletion<OpenRouterChatCompletionResponse>(
+          params,
+          apiKey,
+        );
+
+      return await this.attachExactUsageCost(data, apiKey);
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletion failed`,
@@ -177,21 +212,7 @@ export class OpenRouterService {
     const apiKey = this.resolveApiKey(apiKeyOverride);
     let response: unknown;
     try {
-      const result = await firstValueFrom(
-        this.httpService.post<unknown>(
-          this.apiUrl,
-          { ...this.withRetentionPolicy(params), stream: false },
-          {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://genfeed.ai',
-              'X-Title': 'Genfeed AI',
-            },
-          },
-        ),
-      );
-      response = result.data;
+      response = await this.postChatCompletion<unknown>(params, apiKey);
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletionWithEvidence failed`,

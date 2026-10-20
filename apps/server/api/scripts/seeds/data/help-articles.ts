@@ -159,9 +159,9 @@ screen as the source of truth before you buy.</p>
 
 <h2>Plans and top-ups</h2>
 <p>Genfeed Cloud has three offers: <strong>Pay As You Go</strong>,
-<strong>Agencies</strong> and <strong>Done for you</strong>.
+<strong>Scale</strong> and <strong>Done for you</strong>.
 Pay As You Go has no monthly subscription; you buy credits when you need them.
-Agencies is a self-serve subscription that includes credits each month, and
+Scale is a self-serve subscription that includes credits each month, and
 Done for you is arranged with Genfeed directly.</p>
 <p>You can add credits to any plan from the Credits page. Choose
 <strong>Add credit</strong>, pick a preset pack or enter a custom amount, and
@@ -274,7 +274,7 @@ in the same menu.</p>
 
 <h2>How many organizations you can have</h2>
 <p>The number of organizations depends on your plan. At the time of writing,
-Pay As You Go includes one organization, and Agencies allows
+Pay As You Go includes one organization, and Scale allows
 more than one. Creating an organization also requires an active subscription.
 Check <a href="${SITE}/pricing">genfeed.ai/pricing</a> for current terms.</p>
 

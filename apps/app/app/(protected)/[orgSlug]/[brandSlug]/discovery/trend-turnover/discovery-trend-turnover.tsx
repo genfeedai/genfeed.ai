@@ -286,7 +286,7 @@ export default function DiscoveryTrendTurnover() {
                   key: 'turnoverRate',
                   render: (item) => (
                     <span
-                      className={`font-mono font-semibold ${item.turnoverRate >= 70 ? 'text-error' : item.turnoverRate >= 40 ? 'text-warning' : 'text-success'}`}
+                      className={`font-mono font-semibold ${item.turnoverRate >= 70 ? 'text-destructive' : item.turnoverRate >= 40 ? 'text-warning' : 'text-success'}`}
                     >
                       {item.turnoverRate}%
                     </span>

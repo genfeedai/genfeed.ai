@@ -16,7 +16,6 @@ import type { DesktopKvService } from './kv.service';
 const LOCAL_USER_ID_KEY = 'local.user.id';
 const LOCAL_DEVICE_ID_KEY = 'local.device.id';
 const LOCAL_BETTER_AUTH_ID_KEY = 'local.user.betterAuthId';
-const LEGACY_LOCAL_AUTH_ID_KEY = ['local.user.', 'auth', 'ProviderId'].join('');
 
 export class LocalIdentityService {
   private betterAuthId: string | null = null;
@@ -26,21 +25,16 @@ export class LocalIdentityService {
   constructor(private readonly database: DesktopKvService) {}
 
   async initialize(): Promise<void> {
-    const [
-      storedLocalUserId,
-      storedLocalDeviceId,
-      storedBetterAuthId,
-      storedLegacyAuthId,
-    ] = await Promise.all([
-      this.database.getValue(LOCAL_USER_ID_KEY),
-      this.database.getValue(LOCAL_DEVICE_ID_KEY),
-      this.database.getValue(LOCAL_BETTER_AUTH_ID_KEY),
-      this.database.getValue(LEGACY_LOCAL_AUTH_ID_KEY),
-    ]);
+    const [storedLocalUserId, storedLocalDeviceId, storedBetterAuthId] =
+      await Promise.all([
+        this.database.getValue(LOCAL_USER_ID_KEY),
+        this.database.getValue(LOCAL_DEVICE_ID_KEY),
+        this.database.getValue(LOCAL_BETTER_AUTH_ID_KEY),
+      ]);
 
     this.localUserId = storedLocalUserId ?? randomUUID();
     this.localDeviceId = storedLocalDeviceId ?? randomUUID();
-    this.betterAuthId = storedBetterAuthId ?? storedLegacyAuthId ?? null;
+    this.betterAuthId = storedBetterAuthId ?? null;
 
     if (!storedLocalUserId) {
       await this.database.setValue(LOCAL_USER_ID_KEY, this.localUserId);

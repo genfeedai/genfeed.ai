@@ -1,11 +1,6 @@
 import { type TurboRunItemStatus, TurboRunStatus } from '@genfeedai/contracts';
 import { get, patch, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface TurboRun {
   id: string;
@@ -57,7 +52,7 @@ export interface TurboRunActionRequest {
 }
 
 export async function createTurboRun(request: CreateTurboRunRequest): Promise<TurboRun> {
-  const response = await post<JsonApiSingleResponse>('/turbo-runs', request);
+  const response = await post<JsonApiDocument>('/turbo-runs', request);
   return flattenSingle<TurboRun>(response);
 }
 
@@ -70,12 +65,12 @@ export async function listTurboRuns(params?: {
   if (params?.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
   const path = qs ? `/turbo-runs?${qs}` : '/turbo-runs';
-  const response = await get<JsonApiCollectionResponse>(path);
+  const response = await get<JsonApiDocument>(path);
   return flattenCollection<TurboRun>(response);
 }
 
 export async function getTurboRun(id: string): Promise<TurboRunDetail> {
-  const response = await get<JsonApiSingleResponse>(`/turbo-runs/${id}`);
+  const response = await get<JsonApiDocument>(`/turbo-runs/${id}`);
   return flattenSingle<TurboRunDetail>(response);
 }
 
@@ -83,11 +78,11 @@ export async function turboRunItemAction(
   turboRunId: string,
   request: TurboRunActionRequest
 ): Promise<void> {
-  await post<JsonApiSingleResponse>(`/turbo-runs/${turboRunId}/items/action`, request);
+  await post<JsonApiDocument>(`/turbo-runs/${turboRunId}/items/action`, request);
 }
 
 export async function cancelTurboRun(turboRunId: string): Promise<void> {
-  await patch<JsonApiSingleResponse>(`/turbo-runs/${turboRunId}`, {
+  await patch<JsonApiDocument>(`/turbo-runs/${turboRunId}`, {
     status: TurboRunStatus.CANCELLED,
   });
 }

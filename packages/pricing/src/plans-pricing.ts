@@ -10,13 +10,13 @@ import { FREE_API_RATE_LIMIT } from './tier-entitlements';
  * - Credits are the user-facing unit of output: 1 credit = $0.01 PAYG.
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Subscriptions sell a better credit rate, not access: included monthly
- *   credits carry a ~20% bonus over the pay-as-you-go rate (Agencies $499 →
+ *   credits carry a ~20% bonus over the pay-as-you-go rate (Scale $499 →
  *   60,000 credits ≈ $600 of PAYG output).
  * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
- *   (Agencies, Enterprise) has unlimited seats. Multi-organization workflows
+ *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
  *   the only output meter (account-sharing can't dodge a usage meter).
- * - BYOK (bring your own provider keys) is an Agencies+ subscription feature: BYOK
+ * - BYOK (bring your own provider keys) is a Scale+ subscription feature: BYOK
  *   generations draw no credits and carry no per-usage fee.
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
@@ -57,11 +57,11 @@ export type PlanTier = 'payg' | 'scale' | 'enterprise';
 export const PLAN_LABELS = {
   enterprise: 'Enterprise',
   payg: 'Pay As You Go',
-  scale: 'Agencies',
+  scale: 'Scale',
 } as const satisfies Record<PlanTier, string>;
 
 export interface PricingPlanProps {
-  /** Display label (e.g., "Agencies", "Enterprise") */
+  /** Display label (e.g., "Scale", "Enterprise") */
   label: string;
   /** Stripe price ID for checkout */
   stripePriceId?: string;
@@ -381,7 +381,7 @@ export const websitePlans: WebsitePlanProps[] = [
 
   // Scale Tier - higher-entry team studio
   {
-    cta: 'Start Agencies',
+    cta: 'Start Scale',
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
@@ -575,9 +575,9 @@ export interface PlanCopyProps {
   includedCreditsValue: string;
   /** Prose price, e.g. "$49/month", "free", "custom". */
   monthlyPrice: string;
-  /** Display name, e.g. "Agencies". */
+  /** Display name, e.g. "Scale". */
   name: string;
-  /** Name plus prose price, e.g. "Agencies ($499/month)". */
+  /** Name plus prose price, e.g. "Scale ($499/month)". */
   nameWithPrice: string;
   /** Compact price label, e.g. "$49/mo", "Free", "Custom". */
   priceLabel: string;

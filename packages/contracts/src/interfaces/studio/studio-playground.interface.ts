@@ -377,6 +377,11 @@ export type StudioGenerateDraftSaveStatus =
  * What the Studio summary shows. Credits only ever come from the server quote
  * admission charges; `unavailableReason` is that quote's code when it declined.
  */
+export interface StudioSubmitOptions {
+  /** The model an Auto choice was priced at; submitted instead of routing again. */
+  pinnedModelKey?: string;
+}
+
 export interface StudioGenerationCostEstimate {
   /** Avatar quotes only: a BYOK render holds no platform credits. */
   billingMode?: 'byok' | 'platform';

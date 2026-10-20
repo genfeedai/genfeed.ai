@@ -156,8 +156,8 @@ export default function TrainingDetail({
       <>
         <Container>
           <Card className="p-12 text-center">
-            <div className="mx-auto mb-4 size-12 rounded-full bg-error/10 flex items-center justify-center">
-              <span className="text-2xl text-error">!</span>
+            <div className="mx-auto mb-4 size-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <span className="text-2xl text-destructive">!</span>
             </div>
 
             <h3 className="text-lg font-semibold text-foreground mb-2">

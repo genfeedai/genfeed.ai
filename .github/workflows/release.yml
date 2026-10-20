@@ -253,6 +253,41 @@ jobs:
             exit 1
           fi
 
+          # A failed earlier dispatch leaves an unpublished draft pinned to the
+          # SHA it ran on, and a plain re-dispatch used to fail on it until
+          # someone deleted it by hand. A draft that was never published, has
+          # no git tag and targets another SHA carries no evidence this run can
+          # reuse, so replace it. Recovery and repair modes keep their own
+          # evidence-bound handling below.
+          if [ -n "${release_json}" ] && \
+             [ "${REPAIR_MODE}" != 'true' ] && \
+             [ "${RECOVERY_MODE}" != 'true' ] && \
+             [ "$(jq -r '.draft' <<<"${release_json}")" = 'true' ] && \
+             [ "$(jq -r '.published_at // ""' <<<"${release_json}")" = '' ] && \
+             [ "$(jq -r '.target_commitish // ""' <<<"${release_json}")" != "${release_sha}" ]; then
+            # --exit-code returns 2 only when the ref is absent. Any other
+            # failure (network, auth) leaves the tag state unknown, so fail
+            # closed without deleting. An existing tag falls through to the
+            # original stale-draft error below.
+            tag_lookup_status=0
+            git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1 || tag_lookup_status=$?
+            if [ "${tag_lookup_status}" -ne 0 ] && [ "${tag_lookup_status}" -ne 2 ]; then
+              echo "::error::Could not check whether tag ${release_tag} exists (git ls-remote exit ${tag_lookup_status}); leaving the stale draft in place."
+              exit 1
+            fi
+            if [ "${tag_lookup_status}" -eq 2 ]; then
+              stale_draft_id="$(jq -r '.id' <<<"${release_json}")"
+              stale_draft_target="$(jq -r '.target_commitish // ""' <<<"${release_json}")"
+              [[ "${stale_draft_id}" =~ ^[0-9]+$ ]] || {
+                echo "::error::Stale draft ${release_tag} has no numeric release ID."
+                exit 1
+              }
+              echo "Deleting stale unpublished draft ${release_tag} (release ${stale_draft_id}) targeting ${stale_draft_target}; recreating it at ${release_sha}."
+              gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${stale_draft_id}"
+              release_json=""
+            fi
+          fi
+
           if [ -n "${release_json}" ]; then
             if [ "${REPAIR_MODE}" = 'true' ]; then
               if [ "$(jq -r '.draft' <<<"${release_json}")" != 'true' ]; then
@@ -556,6 +591,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
         run: node scripts/ci/full-suite-evidence.mjs
+
+      # Full Suite does not run Playwright Full or Learning Runtime, and both
+      # have caught regressions that shipped while Full Suite was green
+      # (2026-10-19). They stay out of the `needs` graph (30-60 minutes, and
+      # dispatched on master), so require their green verdict for this exact
+      # SHA here and fail within a minute with the workflow to dispatch.
+      - name: Require browser suite evidence
+        if: ${{ inputs.recovery_run_id == '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        run: node scripts/ci/browser-suite-evidence.mjs
 
   verify-suite:
     name: Full Suite

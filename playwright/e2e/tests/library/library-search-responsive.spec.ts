@@ -5,6 +5,7 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { openFilterFacet } from '../../utils/filter-menu';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 for (const viewport of [
@@ -69,11 +70,12 @@ for (const viewport of [
     await expect
       .poll(() => new URL(page.url()).searchParams.get('search'))
       .toBeNull();
-    // #6818: type is a Filters choice, not a toolbar menu named Type.
-    await canvas.getByRole('button', { name: 'Filters', exact: true }).click();
-    const image = page
-      .getByRole('group', { name: 'Type', exact: true })
-      .getByRole('button', { name: 'Image', exact: true });
+    // Type is a facet of the shared Filters menu (#7567), a checkable row.
+    const type = await openFilterFacet(page, 'Type', canvas);
+    const image = type.getByRole('menuitemcheckbox', {
+      name: 'Image',
+      exact: true,
+    });
     await image.scrollIntoViewIfNeeded();
     await expect(image).toBeVisible();
     await expect
@@ -89,13 +91,18 @@ for (const viewport of [
         }),
       )
       .toBe(true);
-    await image.click();
+    // The hit test above proves the row is reachable. Commit it from the
+    // keyboard: a mouse move from the Type row to the submenu crosses the
+    // parent menu at 390px, where Radix closes the submenu mid-click.
+    await image.focus();
+    await page.keyboard.press('Enter');
+    // The open menu hides the rest of the page from role queries.
+    await page.keyboard.press('Escape');
     const chip = canvas.getByRole('button', {
       name: 'Remove Image filter',
       exact: true,
     });
     await expect(chip).toBeVisible();
-    await page.keyboard.press('Escape');
     await chip.focus();
     await page.keyboard.press('Enter');
     await expect(chip).toHaveCount(0);

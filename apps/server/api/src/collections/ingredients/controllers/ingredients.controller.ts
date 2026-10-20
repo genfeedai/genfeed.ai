@@ -224,6 +224,7 @@ export class IngredientsController {
           IngredientFilterUtil.buildFolderFilter(query.folderId?.toString()),
           IngredientFilterUtil.buildParentFilter(query.parentId?.toString()),
           IngredientFilterUtil.buildOriginFilter(query.origins),
+          IngredientFilterUtil.buildStoryboardStillExclusion(),
           characterFilter,
           IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
           searchFilter.where,
@@ -300,10 +301,10 @@ export class IngredientsController {
     );
     const brandFilter = libraryBrandWhere(brandId);
 
-    return this.ingredientsService.getLibrarySummary(
-      tenant.organizationId,
-      brandFilter,
-    );
+    return this.ingredientsService.getLibrarySummary(tenant.organizationId, {
+      ...brandFilter,
+      AND: [IngredientFilterUtil.buildStoryboardStillExclusion()],
+    });
   }
 
   @TenantReadPolicy('selected')

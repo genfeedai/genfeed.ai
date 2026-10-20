@@ -113,7 +113,7 @@ export default function VideoTrimTimeline({
           <span
             className={`ml-2 font-mono font-semibold tabular-nums ${
               trimDuration < 2 || trimDuration > 15
-                ? 'text-error'
+                ? 'text-destructive'
                 : 'text-success'
             }`}
           >

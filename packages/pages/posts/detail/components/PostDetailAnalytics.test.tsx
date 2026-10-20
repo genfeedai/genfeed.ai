@@ -7,7 +7,7 @@ import '@testing-library/jest-dom/vitest';
 
 const stats: AnalyticsStat[] = [
   { accent: 'text-info', icon: Eye, label: 'Views', value: '1,204' },
-  { accent: 'text-error', icon: Heart, label: 'Likes', value: '87' },
+  { accent: 'text-destructive', icon: Heart, label: 'Likes', value: '87' },
 ] as unknown as AnalyticsStat[];
 
 describe('PostDetailAnalytics', () => {

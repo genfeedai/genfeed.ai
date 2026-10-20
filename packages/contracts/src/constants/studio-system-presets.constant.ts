@@ -92,6 +92,45 @@ export const STUDIO_SYSTEM_PRESETS = [
       cameraMovement: 'static',
     } satisfies Partial<GenerationSetupValues>,
   },
+  // Edit instructions. An edit keeps the source size and sends the raw
+  // instruction, so these carry no aspect ratio, content template or brand
+  // enrichment, only the wording that goes into the prompt.
+  {
+    key: 'studio-edit-remove-background',
+    label: 'Remove background',
+    type: 'image-edit',
+    description: 'Cut out the subject on a clean white background.',
+    prompt:
+      'Remove the background and place the subject on a clean, plain white background. Keep the subject unchanged.',
+    values: {} satisfies Partial<GenerationSetupValues>,
+  },
+  {
+    key: 'studio-edit-enhance',
+    label: 'Enhance photo',
+    type: 'image-edit',
+    description: 'Better light, color and sharpness, same subject.',
+    prompt:
+      'Improve the lighting, color balance and sharpness of this photo. Keep the subject, composition and details the same.',
+    values: {} satisfies Partial<GenerationSetupValues>,
+  },
+  {
+    key: 'studio-edit-retouch',
+    label: 'Retouch',
+    type: 'image-edit',
+    description: 'Remove blemishes and distractions, change nothing else.',
+    prompt:
+      'Remove blemishes, dust and small distractions. Leave everything else exactly as it is.',
+    values: {} satisfies Partial<GenerationSetupValues>,
+  },
+  {
+    key: 'studio-edit-restyle',
+    label: 'Change style',
+    type: 'image-edit',
+    description: 'Redraw the image as an illustration, same composition.',
+    prompt:
+      'Restyle this image as a clean, modern illustration. Keep the composition and subject recognizable.',
+    values: {} satisfies Partial<GenerationSetupValues>,
+  },
 ] as const;
 
 export type StudioSystemPreset = {
@@ -99,9 +138,8 @@ export type StudioSystemPreset = {
   label: string;
   description: string;
   prompt: string;
-  type: 'image' | 'video';
-  values: Partial<GenerationSetupValues> &
-    Pick<GenerationSetupValues, 'aspectRatio'>;
+  type: 'image' | 'image-edit' | 'video';
+  values: Partial<GenerationSetupValues>;
 };
 
 export function studioSystemPresetId(key: StudioSystemPreset['key']): string {
@@ -123,23 +161,31 @@ export function resolveStudioSystemPresets(
       row.organizationId !== null ||
       row.brandId !== null ||
       row.category !== type ||
-      (type !== 'image' && type !== 'video') ||
+      (type !== 'image' && type !== 'image-edit' && type !== 'video') ||
       !row.label?.trim() ||
       typeof row.prompt !== 'string'
     )
       return [];
     // Older rows can omit the ratio. Invalid persisted ratios are never applied.
-    const aspectRatio = row.aspectRatio || seed.values.aspectRatio;
+    // An edit keeps the source size, so it has no ratio to apply.
+    const seedAspectRatio =
+      'aspectRatio' in seed.values ? seed.values.aspectRatio : undefined;
+    const aspectRatio =
+      type === 'image-edit' ? undefined : row.aspectRatio || seedAspectRatio;
     if (
-      !/^[1-9]\d*(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/.test(aspectRatio) ||
+      (aspectRatio !== undefined &&
+        !/^[1-9]\d*(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/.test(aspectRatio)) ||
       (row.duration != null &&
         (!Number.isFinite(row.duration) ||
           row.duration <= 0 ||
           row.duration > 3600))
     )
       return [];
-    const values: StudioSystemPreset['values'] = { aspectRatio };
-    if (row.duration != null) values.duration = row.duration;
+    const values: StudioSystemPreset['values'] = aspectRatio
+      ? { aspectRatio }
+      : {};
+    if (type !== 'image-edit' && row.duration != null)
+      values.duration = row.duration;
     for (const field of [
       'camera',
       'cameraMovement',
@@ -150,7 +196,8 @@ export function resolveStudioSystemPresets(
       'scene',
       'style',
     ] as const) {
-      if (typeof row[field] === 'string') values[field] = row[field];
+      if (type !== 'image-edit' && typeof row[field] === 'string')
+        values[field] = row[field];
     }
     return [
       {

@@ -2436,4 +2436,19 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     sourceUrl: 'https://replicate.com/wan-video/wan-2.2-i2v-fast',
     verifiedAt: '2026-10-06T09:45:39.143Z',
   },
+  {
+    endpoint: 'wan-video/wan-2.7-t2v',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/wan-video/wan-2.7-t2v',
+    verifiedAt: '2026-10-20T09:15:00.000Z',
+  },
 ];

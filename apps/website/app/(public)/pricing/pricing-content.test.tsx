@@ -50,7 +50,7 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('PricingContent', () => {
-  it('shows PAYG, Agencies and Done for you side by side', () => {
+  it('shows PAYG, Scale and Done for you side by side', () => {
     render(<PricingContent />);
     const payg = screen.getByText('$0.01');
     expect(payg.parentElement).toHaveTextContent('$0.01/credit');
@@ -84,13 +84,11 @@ describe('PricingContent', () => {
     );
   });
 
-  it('lists the subscription features on the Agencies card', () => {
+  it('lists the subscription features on the Scale card', () => {
     render(<PricingContent />);
-    const agencies = within(screen.getByLabelText('Agencies'));
-    expect(agencies.getByText('Brand model training')).toBeInTheDocument();
-    expect(
-      agencies.getByText('Higher API limits and BYOK'),
-    ).toBeInTheDocument();
+    const scale = within(screen.getByLabelText('Scale'));
+    expect(scale.getByText('Brand model training')).toBeInTheDocument();
+    expect(scale.getByText('Higher API limits and BYOK')).toBeInTheDocument();
   });
 
   it('uses the tokenized dark card surface for the featured plan', () => {
@@ -101,7 +99,7 @@ describe('PricingContent', () => {
     );
   });
 
-  it('does not strike through the Agencies price', () => {
+  it('does not strike through the Scale price', () => {
     render(<PricingContent />);
 
     expect(screen.getByText('$499')).not.toHaveClass('line-through');

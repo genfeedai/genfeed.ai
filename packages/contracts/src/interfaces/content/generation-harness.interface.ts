@@ -33,10 +33,10 @@ export type GenerationBrandMode =
  */
 export type GenerationPromptAuthor = 'agent' | 'agent_edited';
 
-export const GENERATION_PROMPT_AUTHORS: readonly GenerationPromptAuthor[] = [
+export const GENERATION_PROMPT_AUTHORS = [
   'agent',
   'agent_edited',
-];
+] as const satisfies readonly GenerationPromptAuthor[];
 
 export interface GenerationHarnessReceipt {
   brandedGenerationReceiptId?: string;

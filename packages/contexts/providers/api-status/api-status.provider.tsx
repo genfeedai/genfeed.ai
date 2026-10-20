@@ -155,8 +155,8 @@ export default function ApiStatusProvider({
       <ApiStatusContext.Provider value={contextValue}>
         <div className="fixed inset-0 flex items-center justify-center bg-background p-4">
           <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto flex items-center justify-center size-16 bg-error/10">
-              <TriangleAlert className="size-8 text-error" />
+            <div className="mx-auto flex items-center justify-center size-16 bg-destructive/10">
+              <TriangleAlert className="size-8 text-destructive" />
             </div>
 
             <div className="space-y-2">

@@ -218,7 +218,7 @@ describe('McpConnectionVerificationService', () => {
         userId: 'user-1',
       }),
     ).resolves.toMatchObject({
-      missingScopes: expect.arrayContaining(['posts:create', 'analytics:read']),
+      missingScopes: expect.arrayContaining(['posts:draft', 'analytics:read']),
       reason: 'invalid_scope',
       status: 'failed',
     });

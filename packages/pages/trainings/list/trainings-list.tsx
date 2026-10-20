@@ -25,7 +25,7 @@ import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
 
-const TRAINING_UPGRADE_TIER_LABEL = 'Agencies';
+const TRAINING_UPGRADE_TIER_LABEL = 'Scale';
 
 function getTrainingHref(training: ITraining): string {
   return `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${training.id}/images`;

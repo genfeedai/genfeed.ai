@@ -374,6 +374,33 @@ describe('useStudioGeneration socket tracking', () => {
     expect(result.current.jobs[0]?.ingredient).toBe(ingredient);
   });
 
+  it('asks the wallet chip to re-read after a submit and after a finished result', async () => {
+    const onRefresh = vi.fn();
+    window.addEventListener('genfeed:topbar-balances:refresh', onRefresh);
+    try {
+      const captured = captureHandler();
+      const { result } = renderStudioGeneration();
+
+      await act(async () => {
+        await result.current.submit('A founder at a desk');
+      });
+      const afterSubmit = onRefresh.mock.calls.length;
+      expect(afterSubmit).toBeGreaterThan(0);
+
+      mockImagesFindOne.mockResolvedValue({
+        cdnUrl: 'https://a/i.png',
+        id: 'img-1',
+        status: IngredientStatus.GENERATED,
+      });
+      await act(async () => {
+        await captured.current?.onSuccess({ id: 'img-1' });
+      });
+      expect(onRefresh.mock.calls.length).toBeGreaterThan(afterSubmit);
+    } finally {
+      window.removeEventListener('genfeed:topbar-balances:refresh', onRefresh);
+    }
+  });
+
   it('keeps result loading recoverable when the finished asset cannot be read', async () => {
     mockImagesFindOne.mockRejectedValue(new Error('403'));
     const captured = captureHandler();
@@ -1663,6 +1690,89 @@ describe('FLUX.3 submission and reusable native recipe', () => {
         outputs: 1,
       }),
     );
+  });
+});
+
+describe('pinned Auto submission', () => {
+  const pinned = 'black-forest-labs/flux-3-image';
+
+  it('submits the model Auto was priced at instead of routing again', async () => {
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['pinned'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel(pinned)],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        aspectRatio: '7:5',
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        outputs: 3,
+        resolution: '2K',
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          'A landscape',
+          {},
+          { pinnedModelKey: pinned },
+        ),
+      ).toBe(true);
+    });
+    const body = mockImagesPost.mock.calls[0]?.[0];
+    expect(body).toMatchObject({
+      aspectRatio: '7:5',
+      model: pinned,
+      outputs: 1,
+      resolution: '1k',
+    });
+    expect(body).toMatchObject({ autoSelectModel: false });
+  });
+
+  it('keeps routing Auto when the priced model is not in the catalog', async () => {
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['unpinned'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel('google/imagen-4')],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      },
+    });
+    await act(async () => {
+      await result.current.submit(
+        'A landscape',
+        {},
+        { pinnedModelKey: pinned },
+      );
+    });
+    expect(mockImagesPost.mock.calls[0]?.[0]).toMatchObject({
+      autoSelectModel: true,
+    });
+  });
+
+  it('does not pin the next submit', async () => {
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['again'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel(pinned)],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      },
+    });
+    await act(async () => {
+      await result.current.submit(
+        'A landscape',
+        {},
+        { pinnedModelKey: pinned },
+      );
+    });
+    await act(async () => {
+      await result.current.submit('Another landscape');
+    });
+    expect(mockImagesPost.mock.calls[1]?.[0]).toMatchObject({
+      autoSelectModel: true,
+    });
   });
 });
 

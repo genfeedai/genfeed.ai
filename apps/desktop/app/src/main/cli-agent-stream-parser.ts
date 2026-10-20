@@ -457,8 +457,7 @@ function readCodexErrorMessage(value: unknown): string | null {
 
 /**
  * Parses `codex exec --json` JSONL (`thread.started`, `item.*`,
- * `turn.completed` / `turn.failed`). The older `{ id, msg }` event envelope
- * is accepted too so older Codex installs keep working.
+ * `turn.completed` / `turn.failed`).
  */
 export function createCodexStreamParser(): CliAgentStreamParser {
   const state = new CliAgentTurnState();
@@ -572,70 +571,6 @@ export function createCodexStreamParser(): CliAgentStreamParser {
     },
   ];
 
-  /** Legacy `{ id, msg: { type, ... } }` envelope from older Codex builds. */
-  const handleLegacyMessage = (message: JsonRecord): CliAgentParsedEvent[] => {
-    switch (readStringField(message, 'type')) {
-      case 'session_configured': {
-        const sessionId = readStringField(message, 'session_id');
-        if (!sessionId) {
-          return [];
-        }
-        state.sessionId = sessionId;
-        const model = readStringField(message, 'model');
-        return [{ ...(model ? { model } : {}), sessionId, type: 'session' }];
-      }
-      case 'agent_message': {
-        const text = readStringField(message, 'message') ?? '';
-        return text
-          ? [
-              ...state.appendText(`legacy-${String(state.text.length)}`, text),
-              { text, type: 'message' },
-            ]
-          : [];
-      }
-      case 'mcp_tool_call_begin': {
-        const invocation = isRecord(message.invocation)
-          ? message.invocation
-          : null;
-        return state.startToolCall(
-          readStringField(message, 'call_id') ?? 'mcp',
-          readStringField(invocation, 'tool') ?? 'tool',
-          invocation?.arguments,
-        );
-      }
-      case 'mcp_tool_call_end': {
-        const result = isRecord(message.result) ? message.result : null;
-        const error = readCodexErrorMessage(result?.Err);
-        return state.finishToolCall(
-          readStringField(message, 'call_id') ?? 'mcp',
-          error ? 'failed' : 'completed',
-          error
-            ? { error }
-            : { resultSummary: summarizeToolResult(result?.Ok) },
-        );
-      }
-      case 'token_count': {
-        const info = isRecord(message.info) ? message.info : null;
-        const total = isRecord(info?.total_token_usage)
-          ? info.total_token_usage
-          : message;
-        latestUsage = readCodexUsage(total);
-        return [];
-      }
-      case 'task_complete':
-        return completeTurn(false);
-      case 'error': {
-        const errorMessage =
-          readStringField(message, 'message') ??
-          'Codex failed to complete the turn.';
-        state.lastError = errorMessage;
-        return completeTurn(true, errorMessage);
-      }
-      default:
-        return [];
-    }
-  };
-
   return {
     getLastError: () => state.lastError,
     getSessionId: () => state.sessionId,
@@ -645,10 +580,6 @@ export function createCodexStreamParser(): CliAgentStreamParser {
       const record = parseJsonLine(line);
       if (!record) {
         return [];
-      }
-
-      if (isRecord(record.msg)) {
-        return handleLegacyMessage(record.msg);
       }
 
       const eventType = readStringField(record, 'type');

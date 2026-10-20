@@ -237,7 +237,7 @@ Debian/Ubuntu, `xcode-select --install` on macOS), and systemd on Linux for
 
 ```bash
 bun install && cp .env.example .env.local
-bun run env:sync local --prune-legacy
+bun run env:sync local
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
 bun run dev:setup                  # once per machine
 bun run dev:backend:min            # then, in a second terminal:

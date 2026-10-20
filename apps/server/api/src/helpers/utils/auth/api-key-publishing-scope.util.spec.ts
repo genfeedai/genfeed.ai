@@ -7,7 +7,7 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('API key publishing scope policy', () => {
-  it.each([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE])(
+  it.each([ApiKeyScope.POSTS_DRAFT])(
     'accepts %s for recording without publish capability',
     (scope) => {
       expect(() =>
@@ -40,21 +40,6 @@ describe('API key publishing scope policy', () => {
         'draft',
       ),
     ).not.toThrow();
-  });
-
-  it('keeps posts:create as a draft-only compatibility alias', () => {
-    expect(() =>
-      assertApiKeyPublishingScope(
-        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
-        'draft',
-      ),
-    ).not.toThrow();
-    expect(() =>
-      assertApiKeyPublishingScope(
-        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
-        'schedule',
-      ),
-    ).toThrow(ForbiddenException);
   });
 
   it.each([
@@ -119,7 +104,7 @@ describe('API key publishing scope policy', () => {
 });
 
 describe('publication credential link API-key policy', () => {
-  it.each([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE])(
+  it.each([ApiKeyScope.POSTS_DRAFT])(
     'accepts %s for linking without publish capability',
     (scope) => {
       expect(() =>

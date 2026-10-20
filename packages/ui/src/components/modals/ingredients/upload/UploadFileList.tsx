@@ -72,7 +72,7 @@ export default function UploadFileList({
               {fileStatus &&
                 fileStatus.status === UploadStatus.FAILED &&
                 fileStatus.error && (
-                  <div className="text-xs text-error opacity-80">
+                  <div className="text-xs text-destructive opacity-80">
                     {fileStatus.error}
                   </div>
                 )}

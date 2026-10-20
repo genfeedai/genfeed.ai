@@ -165,9 +165,10 @@ export default function TrendDetail({
           iconClassName:
             trend.growthRate > 0
               ? 'bg-success/10 text-success'
-              : 'bg-error/10 text-error',
+              : 'bg-destructive/10 text-destructive',
           value: `${trend.growthRate > 0 ? '+' : ''}${trend.growthRate}%`,
-          valueClassName: trend.growthRate > 0 ? 'text-success' : 'text-error',
+          valueClassName:
+            trend.growthRate > 0 ? 'text-success' : 'text-destructive',
         },
         {
           ...metricCopy('viralityScore'),

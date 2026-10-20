@@ -25,7 +25,7 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
 
 /**
  * Cloud-only gate: an ingredient export requested without a watermark (a
- * "clean" original) requires Agencies or above. Branded/watermarked exports stay
+ * "clean" original) requires Scale or above. Branded/watermarked exports stay
  * available to every tier, so the gate only engages for `watermark: false`
  * bodies — free tiers must still be able to render their branded preview.
  *

@@ -4,7 +4,10 @@ import {
   filterTargetsByMediaCapability,
   toValidationMediaFromIngredientIds,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
-import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
+import {
+  PostAccountFanoutService,
+  type PostAccountTarget,
+} from '@api/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
@@ -16,7 +19,10 @@ import {
   BrandPublishPolicyService,
   resolveBrandPolicyDraftFormat,
 } from '@api/services/brand-publish-policy/brand-publish-policy.service';
-import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
+import {
+  type BrandedPublishHold,
+  BrandedPublishHoldService,
+} from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -484,6 +490,41 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     );
   }
 
+  /**
+   * The accounts a publish node posts to. A brand may hold several accounts on
+   * one platform, so a publish node expands into one post per connected
+   * account. They share a groupId so downstream review and notifications still
+   * see a single batch.
+   */
+  private filterPublishTargets(
+    resolvedTargets: PostAccountTarget[],
+    input: {
+      category: PostCategory;
+      ingredients: string[];
+      isScheduling: boolean;
+      workflowId: string;
+    },
+  ): PostAccountTarget[] {
+    // Only filter when this run actually schedules the fan-out — a
+    // caption-only draft is fine to create on every platform, it's
+    // SCHEDULED that the channel contract rejects (#5193). Filtering
+    // before `create()` means a video-only platform in the fan-out is
+    // skipped instead of creating a post the choke point then rejects.
+    if (!input.isScheduling) return resolvedTargets;
+    const { eligible, skipped } = filterTargetsByMediaCapability(
+      resolvedTargets,
+      toValidationMediaFromIngredientIds(input.ingredients, input.category),
+    );
+    if (skipped.length > 0) {
+      this.loggerService.warn('Skipped publish node targets requiring media', {
+        logContext: this.logContext,
+        platforms: skipped.map((target) => target.platform),
+        workflowId: input.workflowId,
+      });
+    }
+    return eligible;
+  }
+
   private registerPublishExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
     const fanoutService = this.postAccountFanoutService;
@@ -515,110 +556,115 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         }
 
         const ingredients = this.helper.extractPublishIngredientIds(media);
-        const hold = scheduledFor
-          ? await this.findTextPublishHold(publishHold, {
+        const holdInput = scheduledFor
+          ? {
               brandId,
               caption,
               ingredients,
               organizationId,
               platforms,
               scheduledFor,
-            })
+            }
           : null;
-        const scheduledSlot = hold ? null : scheduledFor;
-        const postIds: string[] = [];
-        const publishedPlatforms: SocialPlatform[] = [];
-
-        // A brand may hold several accounts on one platform, so a publish node
-        // expands into one post per connected account. They share a groupId so
-        // downstream review and notifications still see a single batch.
+        // The hold is judged before any lock, so the Policy judge's model call
+        // never runs under it.
+        const previewHold = holdInput
+          ? await this.findTextPublishHold(publishHold, holdInput)
+          : null;
+        const category =
+          ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT;
+        // Resolved before any lock: caption variations may need a model call.
         const resolvedTargets = await fanoutService.resolveTargets({
           brandId,
           caption,
           organizationId,
           platforms,
         });
-        const category =
-          ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT;
-        // Only filter when this run actually schedules the fan-out — a
-        // caption-only draft is fine to create on every platform, it's
-        // SCHEDULED that the channel contract rejects (#5193). Filtering
-        // before `create()` means a video-only platform in the fan-out is
-        // skipped instead of creating a post the choke point then rejects.
-        const { eligible: targets, skipped } = scheduledSlot
-          ? filterTargetsByMediaCapability(
-              resolvedTargets,
-              toValidationMediaFromIngredientIds(ingredients, category),
-            )
-          : {
-              eligible: resolvedTargets,
-              skipped: [] as typeof resolvedTargets,
-            };
-        if (skipped.length > 0) {
-          this.loggerService.warn(
-            'Skipped publish node targets requiring media',
-            {
-              logContext: this.logContext,
-              platforms: skipped.map((target) => target.platform),
-              workflowId,
-            },
-          );
-        }
-        const groupId = randomUUID();
+        const publish = async (hold: BrandedPublishHold | null) => {
+          const scheduledSlot = hold ? null : scheduledFor;
+          const postIds: string[] = [];
+          const publishedPlatforms: SocialPlatform[] = [];
 
-        for (const target of targets) {
-          const post = await postsService.create({
-            brandId: brandId,
+          const targets = this.filterPublishTargets(resolvedTargets, {
             category,
-            credentialId: target.credentialId,
-            description: target.caption,
-            groupId,
             ingredients,
-            label: this.helper.buildPostLabel(target.caption),
-            organizationId: organizationId,
-            platform: target.platform,
-            scheduledDate: scheduledSlot ?? undefined,
-            targetExecutionState: scheduledSlot
-              ? TargetExecutionState.SCHEDULED
-              : TargetExecutionState.DRAFT,
-            userId: userId,
-            visibility: PostVisibility.PUBLIC,
-          });
-
-          postIds.push(post.id.toString());
-          if (hold?.reason === 'policy_violation')
-            await brandPublishPolicy?.recordViolations(
-              organizationId,
-              post.id.toString(),
-              hold.violations,
-            );
-
-          const publishedPlatform = target.platform as SocialPlatform;
-          if (!publishedPlatforms.includes(publishedPlatform)) {
-            publishedPlatforms.push(publishedPlatform);
-          }
-        }
-
-        if (triggerSeoOptimization && !scheduledFor && postIds.length > 0) {
-          await this.emitPostPublishedIfSafe({
-            brandId,
-            caption,
-            organizationId,
-            platforms: publishedPlatforms,
-            postIds,
-            targetKeyword: targetKeyword ?? null,
-            userId,
+            isScheduling: Boolean(scheduledSlot),
             workflowId,
           });
-        }
+          const groupId = randomUUID();
 
-        return {
-          ...(hold ? { holdReason: hold.reason } : {}),
-          platforms: publishedPlatforms,
-          postIds,
-          scheduledFor: scheduledSlot,
-          status: hold ? 'held' : scheduledFor ? 'scheduled' : 'queued',
+          for (const target of targets) {
+            const post = await postsService.create({
+              brandId: brandId,
+              category,
+              credentialId: target.credentialId,
+              description: target.caption,
+              groupId,
+              ingredients,
+              label: this.helper.buildPostLabel(target.caption),
+              organizationId: organizationId,
+              platform: target.platform,
+              scheduledDate: scheduledSlot ?? undefined,
+              targetExecutionState: scheduledSlot
+                ? TargetExecutionState.SCHEDULED
+                : TargetExecutionState.DRAFT,
+              userId: userId,
+              visibility: PostVisibility.PUBLIC,
+            });
+
+            postIds.push(post.id.toString());
+            if (hold?.reason === 'policy_violation')
+              await brandPublishPolicy?.recordViolations(
+                organizationId,
+                post.id.toString(),
+                hold.violations,
+              );
+
+            const publishedPlatform = target.platform as SocialPlatform;
+            if (!publishedPlatforms.includes(publishedPlatform)) {
+              publishedPlatforms.push(publishedPlatform);
+            }
+          }
+
+          if (triggerSeoOptimization && !scheduledFor && postIds.length > 0) {
+            await this.emitPostPublishedIfSafe({
+              brandId,
+              caption,
+              organizationId,
+              platforms: publishedPlatforms,
+              postIds,
+              targetKeyword: targetKeyword ?? null,
+              userId,
+              workflowId,
+            });
+          }
+
+          const status: 'held' | 'queued' | 'scheduled' = hold
+            ? 'held'
+            : scheduledFor
+              ? 'scheduled'
+              : 'queued';
+          return {
+            ...(hold ? { holdReason: hold.reason } : {}),
+            platforms: publishedPlatforms,
+            postIds,
+            scheduledFor: scheduledSlot,
+            status,
+          };
         };
+        if (!holdInput || previewHold || !brandPublishPolicy)
+          return publish(previewHold);
+        // The Policy's post caps are counted and the posts scheduled under one
+        // lock, so concurrent publishes cannot both take the last slot.
+        return brandPublishPolicy.withPostCapLock(
+          { brandId, organizationId },
+          async (isLocked) =>
+            publish(
+              isLocked
+                ? await this.findTextPublishHold(publishHold, holdInput)
+                : previewHold,
+            ),
+        );
       },
     );
     engine.registerExecutor(

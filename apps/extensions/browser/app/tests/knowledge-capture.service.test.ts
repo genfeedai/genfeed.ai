@@ -25,7 +25,6 @@ vi.mock('~services/auth.service', () => ({
 import {
   discardKnowledgeCapture,
   enqueueKnowledgeCapture,
-  importLegacyCaptures,
   listCaptureSpaces,
   listKnowledgeCaptures,
   retryKnowledgeCapture,
@@ -235,19 +234,6 @@ describe('canonical extension Knowledge capture', () => {
     ).rejects.toThrow('Ten captures');
     await discardKnowledgeCapture((await listKnowledgeCaptures())[0].id);
     expect(await listKnowledgeCaptures()).toHaveLength(9);
-  });
-
-  it('migrates older ideas only through explicit brand-scoped ingestion', async () => {
-    mocks.store.set('saved_ideas', [
-      { id: 'old', title: 'Earlier idea', url: 'https://example.com' },
-    ]);
-    await importLegacyCaptures('brand-a');
-    expect(mocks.store.get('saved_ideas')).toEqual([]);
-    expect(JSON.parse(mocks.fetch.mock.calls[0][1].body)).toMatchObject({
-      kind: 'URL',
-      title: 'Earlier idea',
-      scope: 'brand',
-    });
   });
 });
 

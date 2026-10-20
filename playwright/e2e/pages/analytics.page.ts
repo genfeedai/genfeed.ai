@@ -31,6 +31,9 @@ export class AnalyticsPage {
   // of AI-generated insights, not charts or metric cards.
   readonly insightsListCard: Locator;
 
+  // Posts page card grid (`AnalyticsPostCard`).
+  readonly postCards: Locator;
+
   // Filters
   readonly dateRangeSelector: Locator;
 
@@ -59,6 +62,7 @@ export class AnalyticsPage {
     });
 
     this.insightsListCard = page.getByTestId('insight-list-card');
+    this.postCards = page.getByTestId('analytics-post-card');
 
     // Filters
     // The layout's `FormDateRangePicker` trigger, labelled with the selected
@@ -74,14 +78,48 @@ export class AnalyticsPage {
   }
 
   /**
-   * A page's own title heading inside `main` (the analytics layout's
-   * `Container` renders each sub-page's label as a heading), so a
-   * render check fails on an empty shell instead of passing on any `main`.
+   * A heading inside `main`. Analytics pages no longer carry a title of their
+   * own (the shell breadcrumb is the only page title), so use this for the
+   * headings that are real content, e.g. a table's section label, or for
+   * pages outside the Analytics layout that still render their own title.
    */
   sectionHeading(name: string): Locator {
     return this.page
       .locator('main')
       .getByRole('heading', { exact: true, name });
+  }
+
+  /**
+   * The page's identity: the leaf of the shell breadcrumb. Pair it with an
+   * assertion on content the page itself renders, so an empty shell still
+   * fails.
+   */
+  breadcrumbLeaf(label: string): Locator {
+    return this.page
+      .getByRole('navigation', { name: 'Breadcrumb' })
+      .getByText(label, { exact: true });
+  }
+
+  /**
+   * The shared "Filters" menu every Analytics page publishes into the subbar
+   * (`AnalyticsFilterMenu`).
+   */
+  get filtersButton(): Locator {
+    return this.page.getByRole('button', { name: /^Filters/ });
+  }
+
+  /**
+   * Choose `option` of the single-choice facet `facet` from the Filters menu.
+   * The menu closes once an option is picked.
+   */
+  async selectFilter(facet: string, option: string): Promise<void> {
+    await this.filtersButton.click();
+    await this.page
+      .getByRole('menuitem', { name: new RegExp(`^${facet}`) })
+      .click();
+    await this.page
+      .getByRole('menuitemradio', { exact: true, name: option })
+      .click();
   }
 
   async goto(): Promise<void> {

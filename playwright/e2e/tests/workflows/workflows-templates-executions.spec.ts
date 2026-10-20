@@ -159,18 +159,37 @@ test.describe('Workflow templates & executions interactions', () => {
       executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
 
-    const detailsLink = authenticatedPage
-      .getByRole('link', { name: 'View Details', exact: true })
+    const detailsHref = brandPath(
+      `${APP_ROUTES.AUTOMATION.RUNS}/${testWorkflowExecutions[0].id}`,
+    );
+    // The run name in the row links to the detail page.
+    const nameLink = authenticatedPage
+      .getByRole('table')
+      .getByRole('link')
       .and(
         authenticatedPage.locator(`[href$="/${testWorkflowExecutions[0].id}"]`),
       );
+    await expect(nameLink).toBeVisible({ timeout: 10_000 });
+    await expect(nameLink).toHaveAttribute('href', detailsHref);
+
+    // Clicking the rest of the row opens the right sidebar, which exposes the
+    // "View Details" deep link. Click the first cell's padding so the click
+    // lands on the row, not on the name link.
+    await authenticatedPage
+      .getByRole('row')
+      .filter({
+        has: authenticatedPage.locator(
+          `a[href$="/${testWorkflowExecutions[0].id}"]`,
+        ),
+      })
+      .getByRole('cell')
+      .first()
+      .click({ position: { x: 4, y: 4 } });
+    const detailsLink = authenticatedPage
+      .getByRole('complementary', { name: 'Selection details' })
+      .getByRole('link', { name: 'View Details', exact: true });
     await expect(detailsLink).toBeVisible({ timeout: 10_000 });
-    await expect(detailsLink).toHaveAttribute(
-      'href',
-      brandPath(
-        `${APP_ROUTES.AUTOMATION.RUNS}/${testWorkflowExecutions[0].id}`,
-      ),
-    );
+    await expect(detailsLink).toHaveAttribute('href', detailsHref);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -207,15 +226,17 @@ test.describe('Workflow templates & executions interactions', () => {
       executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
 
-    const detailsLink = authenticatedPage
-      .getByRole('link', { name: 'View Details', exact: true })
+    // The run name in the row is the link to the detail page.
+    const nameLink = authenticatedPage
+      .getByRole('table')
+      .getByRole('link')
       .and(
         authenticatedPage.locator(`[href$="/${testWorkflowExecutions[0].id}"]`),
       );
-    await expect(detailsLink).toBeVisible();
-    const destination = await detailsLink.getAttribute('href');
+    await expect(nameLink).toBeVisible();
+    const destination = await nameLink.getAttribute('href');
     expect(destination).toMatch(/\/automation\/runs\/[^/]+$/);
-    await detailsLink.click();
+    await nameLink.click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
       .toBe(destination);

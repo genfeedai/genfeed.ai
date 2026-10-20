@@ -53,3 +53,11 @@ export function readOAuthConnectContext(): OAuthConnectContext | null {
     return null;
   }
 }
+
+export function clearOAuthConnectContext(): void {
+  try {
+    sessionStorage.removeItem(OAUTH_CONNECT_CONTEXT_STORAGE_KEY);
+  } catch {
+    // Private mode / blocked storage: nothing was stored to clear.
+  }
+}

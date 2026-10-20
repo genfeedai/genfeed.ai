@@ -24,6 +24,18 @@ const VIDEO_PROMPT_PATTERNS: readonly RegExp[] = [
   /\b(video|film)\s+of\b/i,
 ];
 
+/**
+ * Code-rendered motion is a different pipeline from a provider video model.
+ * Promoting these to VIDEO would silently bill an ordinary provider clip, so
+ * they stay conversation and the agent decides what is available.
+ */
+const CODE_RENDERED_MOTION_PATTERNS: readonly RegExp[] = [
+  /\bmotion[- ]graphics?\b/i,
+  /\bvisual[- ]code\b/i,
+  /\bmotion[- ]renderer\b/i,
+  /\bremotion\b/i,
+];
+
 const IMAGE_PROMPT_PATTERNS: readonly RegExp[] = [
   /\b(generate|create|make|render|draw)\b[\s\S]{0,48}\b(image|picture|photo|pic|illustration|artwork)\b/i,
   /\b(image|picture|photo|illustration|artwork)\s+of\b/i,
@@ -41,6 +53,9 @@ export function inferAgentMediaGenerationModeFromPrompt(
 ): AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO | undefined {
   const text = prompt?.trim() ?? '';
   if (!text) {
+    return undefined;
+  }
+  if (CODE_RENDERED_MOTION_PATTERNS.some((pattern) => pattern.test(text))) {
     return undefined;
   }
   if (VIDEO_PROMPT_PATTERNS.some((pattern) => pattern.test(text))) {

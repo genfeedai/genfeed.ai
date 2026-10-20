@@ -46,7 +46,9 @@ export default function BadgeQuota({
           {currentCount}/{dailyLimit}
         </span>
       </Badge>
-      {isExceeded && <span className="text-xs text-error">Quota exceeded</span>}
+      {isExceeded && (
+        <span className="text-xs text-destructive">Quota exceeded</span>
+      )}
     </div>
   );
 }

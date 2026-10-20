@@ -178,7 +178,7 @@ describe('AnalyticsOutliers', () => {
       '/org/brand/publishing/posts/post-1',
     );
 
-    fireEvent.click(screen.getByText('tiktok'));
+    fireEvent.click(screen.getByText('TikTok'));
 
     const panel = await screen.findByTestId('outlier-baseline-panel');
     expect(screen.getByTestId('rail')).toContainElement(panel);

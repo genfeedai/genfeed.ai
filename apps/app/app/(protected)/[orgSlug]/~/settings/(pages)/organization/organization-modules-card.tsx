@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
-import { MemberRole } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   isOrganizationModuleOffered,
@@ -229,11 +229,21 @@ export default function OrganizationModulesCard() {
                         ORGANIZATION_MODULES[moduleId].requiresSubscription
                       }
                       isShown={isModuleShown(moduleId)}
+                      isSubscriptionRequired={
+                        isBillingEnabled === true &&
+                        ORGANIZATION_MODULES[moduleId].requiresSubscription &&
+                        settings?.hasPaidModuleSubscription === false
+                      }
                       label={translate(`modules.${moduleId}.label`)}
                       moduleId={moduleId}
                       onShownChange={(isShown) => {
                         void changeModule(moduleId, isShown);
                       }}
+                      subscriptionHref={
+                        canManage
+                          ? orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)
+                          : undefined
+                      }
                     />
                   );
                 })}
@@ -285,9 +295,11 @@ function OrganizationModuleTile({
   isDisabled,
   isPaid,
   isShown,
+  isSubscriptionRequired,
   label,
   moduleId,
   onShownChange,
+  subscriptionHref,
 }: OrganizationModuleTileProps) {
   const translate = useTranslations('common.settings.organizationModules');
 
@@ -295,7 +307,7 @@ function OrganizationModuleTile({
     <Card
       bodyClassName="flex h-full flex-col gap-0 p-0"
       className="h-full"
-      data-shown={isShown}
+      data-shown={isShown && !isSubscriptionRequired}
       data-testid={`module-card-${moduleId}`}
     >
       <ExploreAppThumbnail
@@ -316,13 +328,36 @@ function OrganizationModuleTile({
           </div>
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
-        <Switch
-          aria-label={label}
-          isChecked={isShown}
-          isDisabled={isDisabled}
-          label={translate(isShown ? 'shown' : 'hidden')}
-          onCheckedChange={onShownChange}
-        />
+        {isSubscriptionRequired ? (
+          <div
+            className="flex flex-col items-start gap-2"
+            data-testid={`module-upsell-${moduleId}`}
+          >
+            <p className="text-xs text-muted-foreground">
+              {translate('subscriptionRequired')}
+            </p>
+            {subscriptionHref ? (
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                <Link href={subscriptionHref}>
+                  {translate('subscriptionAction')}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <Switch
+            aria-label={label}
+            isChecked={isShown}
+            isDisabled={isDisabled}
+            label={translate(isShown ? 'shown' : 'hidden')}
+            onCheckedChange={onShownChange}
+          />
+        )}
       </div>
     </Card>
   );

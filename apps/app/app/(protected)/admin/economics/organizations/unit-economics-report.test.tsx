@@ -25,6 +25,7 @@ const report: IUnitEconomicsReport = {
   from: '2026-09-01T00:00:00.000Z',
   organizationId: null,
   organizationLabel: null,
+  pagination: { limit: 25, page: 1, pages: 1, total: 2 },
   rows: [
     {
       ...metrics,

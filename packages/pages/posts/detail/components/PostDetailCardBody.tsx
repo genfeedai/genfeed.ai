@@ -128,7 +128,7 @@ export default function PostDetailCardBody({
                     <div className="flex w-full items-center justify-between gap-2">
                       <span>{translate('tweetFieldLabel')}</span>
                       <span
-                        className={`text-xs ${isTweetOverLimit ? 'text-error' : 'text-foreground/60'}`}
+                        className={`text-xs ${isTweetOverLimit ? 'text-destructive' : 'text-foreground/60'}`}
                       >
                         {tweetLength} / {tweetLimit}
                       </span>
@@ -162,8 +162,8 @@ export default function PostDetailCardBody({
               carouselValidation &&
               !carouselValidation.valid &&
               localIngredients.length > 0 && (
-                <div className=" bg-error/10 p-2">
-                  <p className="text-xs text-error font-medium">
+                <div className=" bg-destructive/10 p-2">
+                  <p className="text-xs text-destructive font-medium">
                     {carouselValidation.errors.join('. ')}
                   </p>
                 </div>

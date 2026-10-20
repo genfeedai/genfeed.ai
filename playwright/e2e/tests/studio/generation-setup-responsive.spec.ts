@@ -5,21 +5,35 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
-// #6775: the setup popover opens in Auto, which shows only the output-type
-// grid. Model, Output, Look and the rest (and `Configure Type`) are Advanced.
-function setupDialog(page: Page): Locator {
-  return page.getByRole('dialog').filter({
-    has: page.getByRole('button', { name: 'Auto', exact: true }),
-  });
+// The setup lives in the prompt bar: a type/Auto/Advanced bar, and in Advanced
+// a row of chips (Model, Output, Look, Brand, Presets). There is no popover, so
+// these specs check that the bar and the menus it opens stay reachable.
+function setupModeGroup(page: Page): Locator {
+  return page.getByRole('group', { name: 'Setup mode', exact: true });
 }
 
 async function switchToAdvanced(page: Page): Promise<Locator> {
-  const dialog = setupDialog(page);
-  await dialog.getByRole('button', { name: 'Advanced', exact: true }).click();
+  // Keyboard activation avoids a resting pointer opening a hover menu.
+  const advanced = setupModeGroup(page).getByRole('button', {
+    name: 'Advanced',
+    exact: true,
+  });
+  await advanced.focus();
+  await advanced.press('Enter');
+  const chips = page.getByTestId('generation-setup-section-chips');
   await expect(
-    dialog.getByRole('button', { name: 'Configure Type', exact: true }),
+    chips.getByRole('button', { name: 'Configure Model', exact: true }),
   ).toBeVisible();
-  return dialog;
+  return chips;
+}
+
+async function expectNoHorizontalPageScroll(page: Page): Promise<void> {
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 for (const viewport of [
@@ -51,40 +65,40 @@ for (const viewport of [
         'data-theme',
         theme === 'light' ? 'light' : 'dark',
       );
-      const trigger = page.getByRole('button', { name: /^Generation setup:/ });
-      await trigger.click();
-      const dialog = setupDialog(page);
-      await expect(dialog).toBeVisible();
+      const typeGroup = page.getByRole('group', { name: 'Type', exact: true });
+      await expect(typeGroup).toBeVisible();
       await expect(
-        dialog.getByRole('group', { name: 'Type', exact: true }),
-      ).toBeVisible();
-      const expectWithinViewport = () =>
-        expect
-          .poll(async () => {
-            const bounds = await dialog.boundingBox();
-            return (
-              bounds !== null &&
-              bounds.x >= 16 &&
-              bounds.x + bounds.width <= viewport.width - 16
-            );
-          })
-          .toBe(true);
-      await expectWithinViewport();
+        setupModeGroup(page).getByRole('button', { name: 'Auto', exact: true }),
+      ).toHaveAttribute('aria-pressed', 'true');
 
-      await switchToAdvanced(page);
+      const chips = await switchToAdvanced(page);
       await expect(
-        dialog.getByRole('button', { name: 'Reset all fields to agent' }),
+        page.getByRole('button', { name: 'Reset all fields to agent' }),
       ).toBeVisible();
-      await expectWithinViewport();
+      await expectNoHorizontalPageScroll(page);
+
+      // The Output menu opens inside the viewport.
+      await chips
+        .getByRole('button', { name: 'Configure Output', exact: true })
+        .press('Enter');
+      const menu = page.getByRole('menu').first();
+      await expect(menu).toBeVisible();
+      await expect
+        .poll(async () => {
+          const bounds = await menu.boundingBox();
+          return (
+            bounds !== null &&
+            bounds.x >= 0 &&
+            bounds.x + bounds.width <= viewport.width
+          );
+        })
+        .toBe(true);
       await page.screenshot({
         path: testInfo.outputPath('generation-setup-in-viewport.png'),
       });
 
       await page.keyboard.press('Escape');
-      await expect(dialog).toHaveCount(0);
-      await expect(trigger).toBeFocused();
-      await trigger.click();
-      await expect(dialog).toBeVisible();
+      await expect(menu).toHaveCount(0);
       await expectNoErrorOverlay(page);
     });
   }
@@ -104,36 +118,19 @@ test.describe('200% browser zoom layout', () => {
       await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
         waitUntil: 'domcontentloaded',
       });
-      const trigger = page.getByRole('button', { name: /^Generation setup:/ });
-      await trigger.click();
-      const dialog = setupDialog(page);
-      await expect(dialog).toBeVisible();
       await expect(
-        dialog.getByRole('group', { name: 'Type', exact: true }),
+        page.getByRole('group', { name: 'Type', exact: true }),
       ).toBeInViewport();
-      await switchToAdvanced(page);
-      await expect
-        .poll(async () => {
-          const b = await dialog.boundingBox();
-          return b !== null && b.x >= 0 && b.x + b.width <= width / 2;
-        })
-        .toBe(true);
+      const chips = await switchToAdvanced(page);
+      await expectNoHorizontalPageScroll(page);
+      // The chip row scrolls sideways instead of wrapping off screen; Model
+      // is the first chip, so it must be reachable without scrolling.
       await expect(
-        dialog.getByRole('button', { name: 'Configure Type', exact: true }),
+        chips.getByRole('button', { name: 'Configure Model', exact: true }),
       ).toBeInViewport();
-      await page.keyboard.press('Tab');
-      await expect
-        .poll(() =>
-          dialog.evaluate((element) =>
-            element.contains(document.activeElement),
-          ),
-        )
-        .toBe(true);
       await page.screenshot({
         path: testInfo.outputPath('generation-setup-200-percent.png'),
       });
-      await page.keyboard.press('Escape');
-      await expect(trigger).toBeFocused();
     });
   }
 });
@@ -148,13 +145,16 @@ test.describe('touch generation setup', () => {
     await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
       waitUntil: 'domcontentloaded',
     });
-    const trigger = page.getByRole('button', { name: /^Generation setup:/ });
-    await expect(trigger).toBeVisible();
+    const advanced = setupModeGroup(page).getByRole('button', {
+      name: 'Advanced',
+      exact: true,
+    });
+    await expect(advanced).toBeVisible();
     // The prompt bar settles after first paint (editor and context row load),
     // and a tap before hydration is lost, so measure and tap together and
-    // retry until the popover opens.
+    // retry until Advanced is on.
     await expect(async () => {
-      const target = await trigger.evaluate((element) => {
+      const target = await advanced.evaluate((element) => {
         const b = element.getBoundingClientRect();
         const pseudo = getComputedStyle(element, '::after');
         const x = b.x + b.width / 2;
@@ -182,7 +182,9 @@ test.describe('touch generation setup', () => {
       // whatever sits above the button instead.
       expect(target.isHitOnTrigger, target.hitDescription).toBe(true);
       await page.touchscreen.tap(target.x, target.y);
-      await expect(setupDialog(page)).toBeVisible({ timeout: 3000 });
+      await expect(advanced).toHaveAttribute('aria-pressed', 'true', {
+        timeout: 3000,
+      });
     }).toPass({ timeout: 20_000 });
   });
 });

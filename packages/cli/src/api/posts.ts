@@ -1,5 +1,5 @@
 import { get } from './client';
-import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
+import { flattenCollection, type JsonApiDocument } from './json-api';
 
 export interface Post {
   id: string;
@@ -23,6 +23,6 @@ export async function listPosts(params?: {
   if (params?.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
   const path = qs ? `/posts?${qs}` : '/posts';
-  const response = await get<JsonApiCollectionResponse>(path);
+  const response = await get<JsonApiDocument>(path);
   return flattenCollection<Post>(response);
 }

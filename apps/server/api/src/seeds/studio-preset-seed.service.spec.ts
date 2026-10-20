@@ -29,14 +29,14 @@ describe('StudioPresetSeedService', () => {
     const { prisma, service } = fixture();
     expect(await service.reconcileCatalog()).toEqual({
       unchanged: 0,
-      written: 6,
+      written: STUDIO_SYSTEM_PRESETS.length,
     });
     prisma.preset.findUnique.mockResolvedValue({
       organizationId: null,
       brandId: null,
     });
     expect(await service.reconcileCatalog()).toEqual({
-      unchanged: 6,
+      unchanged: STUDIO_SYSTEM_PRESETS.length,
       written: 0,
     });
     for (const [index, preset] of STUDIO_SYSTEM_PRESETS.entries()) {
@@ -48,11 +48,15 @@ describe('StudioPresetSeedService', () => {
         isActive: true,
         config: {
           key: preset.key,
-          promptTemplate: preset.values.promptTemplate,
+          ...('promptTemplate' in preset.values
+            ? { promptTemplate: preset.values.promptTemplate }
+            : {}),
         },
       });
     }
-    expect(prisma.preset.create).toHaveBeenCalledTimes(6);
+    expect(prisma.preset.create).toHaveBeenCalledTimes(
+      STUDIO_SYSTEM_PRESETS.length,
+    );
   });
   it('does not overwrite a tenant or brand-owned row with a colliding ID', async () => {
     const { prisma, service } = fixture();
@@ -61,7 +65,7 @@ describe('StudioPresetSeedService', () => {
       brandId: 'other-brand',
     });
     expect(await service.reconcileCatalog()).toEqual({
-      unchanged: 6,
+      unchanged: STUDIO_SYSTEM_PRESETS.length,
       written: 0,
     });
     expect(prisma.preset.create).not.toHaveBeenCalled();

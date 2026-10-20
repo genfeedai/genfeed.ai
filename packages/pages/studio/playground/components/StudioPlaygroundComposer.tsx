@@ -35,13 +35,11 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
-import {
-  getDefaultVideoResolution,
-  getVideoResolutionLabel,
-} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { getModelCapabilityByKey } from '@genfeedai/helpers/model-capability.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
+  buildStudioAutoGenerationQuoteRequest,
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
@@ -50,7 +48,10 @@ import type {
   PromptBarContextItem,
 } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
-import type { StudioPlaygroundComposerProps } from '@genfeedai/props/studio/studio-playground.props';
+import type {
+  StudioPlaygroundComposerProps,
+  StudioSpendSource,
+} from '@genfeedai/props/studio/studio-playground.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
@@ -67,6 +68,7 @@ import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/playground/hooks/useStudioLooks';
+import { useStudioSpendConfirmation } from '@pages/studio/playground/hooks/useStudioSpendConfirmation';
 import {
   buildStudioAvatarRequest,
   resolveStudioAvatarScript,
@@ -76,12 +78,12 @@ import {
   hasStudioAvatarSelection,
   hasStudioVoiceSelection,
 } from '@pages/studio/playground/utils/studio-identity-selection';
+import { pinStudioSettingsToModel } from '@pages/studio/playground/utils/studio-pinned-model';
 import {
   buildStudioPromptData,
   resolveModelKey,
 } from '@pages/studio/playground/utils/studio-playground-settings';
 import {
-  getStudioPlaygroundTypeConfig,
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
   resolveStudioPlaygroundCapabilities,
@@ -89,8 +91,9 @@ import {
 import { buildStudioPresetCommands } from '@pages/studio/playground/utils/studio-prompt-commands';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
-import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
+import GenerationSetupResetButton from '@ui/dropdowns/generation-setup/GenerationSetupResetButton';
 import GenerationSetupSectionChips from '@ui/dropdowns/generation-setup/GenerationSetupSectionChips';
+import GenerationSetupTypeBar from '@ui/dropdowns/generation-setup/GenerationSetupTypeBar';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
   applyGenerationSetupPreset,
@@ -196,8 +199,15 @@ export default function StudioPlaygroundComposer({
     onSettingsChange,
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
+  const { confirmSpend, isQuoting } = useStudioSpendConfirmation();
+  const onSubmitRef = useRef(onSubmit);
+  onSubmitRef.current = onSubmit;
+  // Nothing is spent before the operator has seen and confirmed the amount.
   const guardedSubmit = () => {
-    if (!isSubmitBlocked && canSubmitStudioGeneration()) onSubmit();
+    if (isSubmitBlocked || !canSubmitStudioGeneration()) return;
+    confirmSpend({ models, source: spendSource }, (options) =>
+      onSubmitRef.current(options),
+    );
   };
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
@@ -403,33 +413,46 @@ export default function StudioPlaygroundComposer({
           lyrics: displaySettings.lyrics,
         }).duration
       : costPromptData.duration;
+  // The request for the model Studio submits, or for the one Auto was priced
+  // at (`pinnedModelKey`), which is submitted with that model's controls.
+  const buildQuoteRequest = (pinnedModelKey?: string) => {
+    const quoteSettings = pinnedModelKey
+      ? pinStudioSettingsToModel(displaySettings, pinnedModelKey)
+      : displaySettings;
+    const quoteData = pinnedModelKey
+      ? buildStudioPromptData({
+          brandId: '',
+          promptText: '',
+          settings: quoteSettings,
+          type,
+        })
+      : costPromptData;
+    return buildStudioGenerationQuoteRequest({
+      aspectRatio: quoteSettings.aspectRatio,
+      duration: pinnedModelKey ? quoteData.duration : quoteDuration,
+      editSize: hasEditMask ? 'source' : quoteSettings.editSize,
+      referenceUrls: attachedAssets
+        .filter(
+          (asset) =>
+            asset.role === (type === 'image-edit' ? 'editSource' : 'reference'),
+        )
+        .flatMap((asset) =>
+          asset.previewUrl && /^https?:\/\//.test(asset.previewUrl)
+            ? [asset.previewUrl]
+            : [],
+        ),
+      height: quoteData.height,
+      isAudioEnabled: quoteSettings.isAudioEnabled,
+      modelKey: pinnedModelKey ?? quoteModelKey,
+      outputs: quoteData.outputs,
+      resolution: quoteData.resolution,
+      type,
+      width: quoteData.width,
+    });
+  };
   // The server quote admission charges; Studio never recalculates it.
   const serverEstimate = useStudioGenerationEstimate(
-    isServerPricedModel
-      ? buildStudioGenerationQuoteRequest({
-          aspectRatio: displaySettings.aspectRatio,
-          duration: quoteDuration,
-          editSize: hasEditMask ? 'source' : displaySettings.editSize,
-          referenceUrls: attachedAssets
-            .filter(
-              (asset) =>
-                asset.role ===
-                (type === 'image-edit' ? 'editSource' : 'reference'),
-            )
-            .flatMap((asset) =>
-              asset.previewUrl && /^https?:\/\//.test(asset.previewUrl)
-                ? [asset.previewUrl]
-                : [],
-            ),
-          height: costPromptData.height,
-          isAudioEnabled: displaySettings.isAudioEnabled,
-          modelKey: quoteModelKey,
-          outputs: costPromptData.outputs,
-          resolution: costPromptData.resolution,
-          type,
-          width: costPromptData.width,
-        })
-      : null,
+    isServerPricedModel ? buildQuoteRequest() : null,
   );
   // An avatar is quoted for the body Generate submits (script, identity and
   // the resolved engine); until all three exist there is nothing to price.
@@ -491,9 +514,57 @@ export default function StudioPlaygroundComposer({
     isReferenceCombinationInvalid ||
     isKling4KReferenceInvalid ||
     isAwaitingModels ||
+    isQuoting ||
     isListening ||
     isTranscribing ||
     isUploading;
+  // How Generate is priced before it submits: the server quote for a model
+  // Studio can price, the quote a Crun or avatar render already holds, and
+  // nothing for a type with no tariff (voice).
+  const crunSpendQuote =
+    selectedModel?.provider === 'crun' ? crunQuote?.getCurrentQuote() : null;
+  const spendSource: StudioSpendSource =
+    selectedModel?.provider === 'crun'
+      ? crunSpendQuote
+        ? {
+            credits:
+              crunSpendQuote.billingMode === 'byok'
+                ? 0
+                : crunSpendQuote.credits,
+            isByok: crunSpendQuote.billingMode === 'byok',
+            isStillCurrent: () =>
+              crunQuote?.getCurrentQuote()?.quoteId === crunSpendQuote.quoteId,
+            kind: 'known',
+          }
+        : { kind: 'unpriced' }
+      : type === 'avatar'
+        ? estimate.status === 'estimated' && estimate.credits !== null
+          ? {
+              credits: estimate.credits,
+              isByok: estimate.billingMode === 'byok',
+              kind: 'known',
+            }
+          : { kind: 'unpriced' }
+        : type === 'image' ||
+            type === 'image-edit' ||
+            type === 'video' ||
+            type === 'music'
+          ? {
+              autoRequest:
+                isAutoStudioModelKey(settings.modelKey) && type !== 'music'
+                  ? buildStudioAutoGenerationQuoteRequest({
+                      aspectRatio: settings.aspectRatio,
+                      duration: costPromptData.duration,
+                      outputs: costPromptData.outputs,
+                      prioritize: settings.prioritize,
+                      prompt,
+                      type,
+                    })
+                  : null,
+              buildRequest: buildQuoteRequest,
+              kind: 'server',
+            }
+          : { kind: 'unpriced' };
 
   const scope = buildStudioGenerationSetupScope(type);
   const defaults = getDefaultGenerationSetupValues(type);
@@ -782,39 +853,6 @@ export default function StudioPlaygroundComposer({
           : []),
       ];
 
-  const modelLabel = !isModelChoiceVisible
-    ? undefined
-    : isLoadingModels
-      ? translate('summary.modelLoading')
-      : isAutoStudioModelKey(displaySettings.modelKey)
-        ? translate('inspector.autoModel')
-        : selectedModel?.label || translate('summary.modelUnavailable');
-  const resolutionLabel =
-    type === 'video' && costPromptData.resolution
-      ? (getVideoResolutionLabel(
-          displaySettings.modelKey,
-          costPromptData.resolution,
-        ) ?? costPromptData.resolution)
-      : costPromptData.resolution;
-  // Keep the full setup summary in the accessible icon trigger and tooltip.
-  const setupParts = [
-    modelLabel,
-    capabilities.hasAspectRatio || type === 'image-edit'
-      ? displaySettings.aspectRatio
-      : undefined,
-    type === 'image' || type === 'video' ? resolutionLabel : undefined,
-    capabilities.hasDuration && costPromptData.duration
-      ? translate('inspector.durationSeconds', {
-          seconds: costPromptData.duration,
-        })
-      : undefined,
-    capabilities.hasOutputs ? `x${costPromptData.outputs ?? 1}` : undefined,
-  ].filter(Boolean);
-  const setupLabel =
-    !isAutoView && setupParts.length > 0
-      ? setupParts.join(' · ')
-      : typeOptions.find((option) => option.value === type)?.label;
-
   const referenceSources: PromptBarReferenceSource[] = [];
   const addReferenceSource = (
     role: StudioPlaygroundReferenceRole,
@@ -978,6 +1016,37 @@ export default function StudioPlaygroundComposer({
         ) : null}
       </>
     ) : undefined;
+
+  const identityFields = capabilities.hasIdentity ? (
+    <StudioIdentityFields
+      onChange={onSettingsChange}
+      settings={settings}
+      type={type}
+    />
+  ) : null;
+
+  // The last things in the button row: undo for a prompt enhancement, then `+`.
+  const endOfRow = (
+    <>
+      {!isEnhancingPrompt && previousPrompt !== null ? (
+        <Button
+          ariaLabel={translate('undoPromptEnhancement')}
+          className="h-8 shrink-0 px-2 text-xs"
+          label={translate('undo')}
+          onClick={onUndoEnhancePrompt}
+          size={ButtonSize.XS}
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
+        />
+      ) : null}
+      {referenceSources.length > 0 ? (
+        <PromptBarReferenceControls
+          density="compact"
+          sources={referenceSources}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <PromptBarComposer
@@ -1206,117 +1275,76 @@ export default function StudioPlaygroundComposer({
         leadingLabel={translateSetup('promptTools')}
         trailingLabel={translateSetup('generationControls')}
         pinnedLeading={
-          <GenerationSetupPopover
-            // Applying lives in `/` and the context row; saving and
-            // deleting looks stays in the setup popover.
-            showPresets={type === 'image' || type === 'video'}
-            showEnhancementSettings={type === 'image' || type === 'video'}
-            align="start"
-            isIconOnly
-            // Always offered so the Auto type grid keeps the same tiles
-            // whatever type is selected.
-            imageEditing={{
-              isEnabled: type === 'image-edit',
-              label: getStudioPlaygroundTypeConfig('image-edit').label,
-              onChange: (isEditing) =>
-                onTypeChange(isEditing ? 'image-edit' : 'image'),
-            }}
-            triggerLabel={setupLabel}
-            inputControls={inputControls}
-            referenceCount={crunReferenceCount ?? attachedAssets.length}
-            // Every type keeps the Auto/Advanced layout; Avatar just has
-            // no model to choose in Advanced.
+          <GenerationSetupTypeBar
+            // Every type keeps the Auto/Advanced switch; Avatar just has no
+            // model to choose in Advanced.
             advancedMode={{
               isEnabled: isAdvancedMode,
               onChange: handleAdvancedModeChange,
             }}
-            capabilities={capabilities}
-            favoriteModelKeys={favoriteModelKeys}
-            isPresetsLoading={isPresetsLoading}
-            isTypeCommitted
-            lookOptions={lookOptions}
-            models={isModelChoiceVisible ? models : []}
-            onApplyPreset={handleApplyPreset}
-            onApplySystemPreset={handleApplySystemPresetById}
-            onClearPreset={handleClearPreset}
-            onDeletePreset={handleDeletePreset}
-            onFavoriteToggle={onFavoriteToggle}
-            onResetAll={onResetSettings}
-            onResetField={handleResetField}
-            onSavePreset={handleSavePreset}
-            onSetField={handleSetField}
-            outputControls={outputControls}
+            // Editing is a mode of Image, not a type of its own.
+            imageEditing={{
+              isEnabled: type === 'image-edit',
+              onChange: (isEditing) =>
+                onTypeChange(isEditing ? 'image-edit' : 'image'),
+            }}
             onTypeChange={(nextType) => {
-              // The shared popover speaks GenerationSetupType; Studio only
-              // offers its own registry, so anything else is not a Studio pick.
+              // The shared bar speaks GenerationSetupType; Studio only offers
+              // its own registry, so anything else is not a Studio pick.
               if (isStudioPlaygroundType(nextType)) {
                 onTypeChange(nextType);
               }
             }}
-            presets={presets}
-            systemPresets={systemPresetOptions}
-            reasons={reasons}
-            scopeKey={scope}
             setup={setupForComposer}
             typeOptions={typeOptions}
           />
         }
         leading={
-          <>
-            {referenceSources.length > 0 ? (
-              <PromptBarReferenceControls
-                density="compact"
-                sources={referenceSources}
-              />
-            ) : null}
-            {capabilities.hasIdentity ? (
-              <StudioIdentityFields
-                onChange={onSettingsChange}
-                settings={settings}
-                type={type}
-              />
-            ) : null}
-
-            {!isEnhancingPrompt && previousPrompt !== null ? (
-              <Button
-                ariaLabel={translate('undoPromptEnhancement')}
-                className="h-8 shrink-0 px-2 text-xs"
-                label={translate('undo')}
-                onClick={onUndoEnhancePrompt}
-                size={ButtonSize.XS}
-                textTransform="none"
-                variant={ButtonVariant.GHOST}
-              />
-            ) : null}
-            {/* Last, so it takes the free width and compacts first. */}
-            {isAdvancedMode ? (
-              <GenerationSetupSectionChips
-                capabilities={capabilities}
-                favoriteModelKeys={favoriteModelKeys}
-                inputControls={inputControls}
-                isPresetsLoading={isPresetsLoading}
-                lookOptions={lookOptions}
-                models={isModelChoiceVisible ? models : []}
-                onApplyPreset={handleApplyPreset}
-                onApplySystemPreset={handleApplySystemPresetById}
-                onDeletePreset={handleDeletePreset}
-                onFavoriteToggle={onFavoriteToggle}
-                onResetField={handleResetField}
-                onSavePreset={handleSavePreset}
-                onSetField={handleSetField}
-                outputControls={outputControls}
-                presets={presets}
-                systemPresets={systemPresetOptions}
-                reasons={reasons}
-                referenceCount={crunReferenceCount ?? attachedAssets.length}
-                setup={setupForComposer}
-                typeOptions={typeOptions}
-              />
-            ) : null}
-          </>
+          isAdvancedMode ? (
+            <GenerationSetupSectionChips
+              // Model follows the type button; the identity pickers come
+              // next, then Output, Look, Brand and Presets, and `+` ends the row.
+              afterModel={identityFields}
+              capabilities={capabilities}
+              favoriteModelKeys={favoriteModelKeys}
+              inputControls={inputControls}
+              isPresetsLoading={isPresetsLoading}
+              lookOptions={lookOptions}
+              models={isModelChoiceVisible ? models : []}
+              onApplyPreset={handleApplyPreset}
+              onApplySystemPreset={handleApplySystemPresetById}
+              onClearPreset={handleClearPreset}
+              onDeletePreset={handleDeletePreset}
+              onFavoriteToggle={onFavoriteToggle}
+              onResetField={handleResetField}
+              onSavePreset={handleSavePreset}
+              onSetField={handleSetField}
+              outputControls={outputControls}
+              presets={presets}
+              referenceCount={crunReferenceCount ?? attachedAssets.length}
+              showEnhancementSettings={type === 'image' || type === 'video'}
+              showPresets={type === 'image' || type === 'video'}
+              systemPresets={systemPresetOptions}
+              reasons={reasons}
+              setup={setupForComposer}
+              trailing={endOfRow}
+              typeOptions={typeOptions}
+            />
+          ) : (
+            <>
+              {identityFields}
+              {endOfRow}
+            </>
+          )
         }
         trailing={
           <>
+            <GenerationSetupResetButton
+              // Always rendered so Reset all never shifts the Auto/Advanced layout.
+              isDisabled={isAutoView}
+              onResetAll={onResetSettings}
+            />
+
             {onEnhancePrompt && type !== 'image-edit' ? (
               <Button
                 ariaLabel={

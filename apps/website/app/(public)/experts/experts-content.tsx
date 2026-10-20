@@ -232,7 +232,7 @@ export default function ExpertsContent() {
           <div className="grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2">
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
-                <X className="size-4 text-error" />
+                <X className="size-4 text-destructive" />
                 <Text className="text-sm font-bold text-surface">
                   Generic AI post
                 </Text>

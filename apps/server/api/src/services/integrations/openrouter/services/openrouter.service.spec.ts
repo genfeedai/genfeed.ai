@@ -149,6 +149,72 @@ describe('OpenRouterService', () => {
       expect(body.stream).toBe(false);
     });
 
+    describe('when the model makes reasoning mandatory', () => {
+      const reasoningMandatoryError = Object.assign(
+        new Error('Request failed with status code 400'),
+        {
+          response: {
+            data: {
+              error: {
+                code: 400,
+                message:
+                  'Reasoning is mandatory for this endpoint and cannot be disabled.',
+              },
+            },
+            status: 400,
+          },
+        },
+      );
+
+      it('retries once at minimal effort instead of failing', async () => {
+        httpService.post
+          .mockReturnValueOnce(throwError(() => reasoningMandatoryError))
+          .mockReturnValueOnce(of(makeAxiosResponse(mockResponse)));
+
+        const result = await service.chatCompletion({
+          ...defaultParams,
+          reasoning: { enabled: false },
+        });
+
+        expect(result).toEqual(mockResponse);
+        expect(httpService.post).toHaveBeenCalledTimes(2);
+        const retryBody = httpService.post.mock.calls[1][1] as Record<
+          string,
+          unknown
+        >;
+        expect(retryBody.reasoning).toEqual({ effort: 'minimal' });
+      });
+
+      it('does not retry when the caller never disabled reasoning', async () => {
+        httpService.post.mockReturnValue(
+          throwError(() => reasoningMandatoryError),
+        );
+
+        await expect(service.chatCompletion(defaultParams)).rejects.toBe(
+          reasoningMandatoryError,
+        );
+        expect(httpService.post).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not retry unrelated 400 errors', async () => {
+        const otherError = Object.assign(new Error('bad request'), {
+          response: {
+            data: { error: { code: 400, message: 'Invalid model' } },
+            status: 400,
+          },
+        });
+        httpService.post.mockReturnValue(throwError(() => otherError));
+
+        await expect(
+          service.chatCompletion({
+            ...defaultParams,
+            reasoning: { enabled: false },
+          }),
+        ).rejects.toBe(otherError);
+        expect(httpService.post).toHaveBeenCalledTimes(1);
+      });
+    });
+
     it('posts OpenRouter zdr and deny data_collection on first-party requests', async () => {
       httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
 

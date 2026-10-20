@@ -76,6 +76,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -96,6 +97,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -112,6 +114,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -130,6 +133,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -146,6 +150,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -169,6 +174,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -204,6 +210,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -225,6 +232,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onOpenSettings={noop}
         onReconnect={noop}
+        reconnectingCredentialId={null}
         unavailablePlatforms={new Set()}
       />,
     );
@@ -330,6 +338,7 @@ describe('AccountsTable', () => {
           onDisconnect={noop}
           onOpenSettings={noop}
           onReconnect={onReconnect}
+          reconnectingCredentialId={null}
           unavailablePlatforms={new Set()}
         />
         <ContextSidebarOutlet testId="rail" />

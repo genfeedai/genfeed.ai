@@ -153,6 +153,25 @@ describe('MCP setup page', () => {
     expect(html).toContain('Advanced: limit which toolsets load');
   });
 
+  it('advertises the shared Genfeed social share card', () => {
+    const html = renderSetupPage();
+
+    expect(html).toContain(
+      '<meta property="og:image" content="https://genfeed.ai/og/mcp" />',
+    );
+    expect(html).toContain(
+      '<meta name="twitter:image" content="https://genfeed.ai/og/mcp" />',
+    );
+    expect(html).toContain(
+      '<meta name="twitter:card" content="summary_large_image" />',
+    );
+    expect(html).toContain('<meta property="og:image:width" content="1200" />');
+    expect(html).toContain('<meta property="og:image:height" content="630" />');
+    expect(html).toContain(
+      '<meta property="og:url" content="https://mcp.genfeed.ai" />',
+    );
+  });
+
   it('adds cookieless page and control tracking when PostHog is configured', () => {
     vi.stubEnv('POSTHOG_PROJECT_API_KEY', 'phc_test123');
 

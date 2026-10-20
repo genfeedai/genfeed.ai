@@ -294,7 +294,7 @@ export default function AnalyticsOrganizationOverview({
       return 'text-success';
     }
     if (growth < 0) {
-      return 'text-error';
+      return 'text-destructive';
     }
     return '';
   }

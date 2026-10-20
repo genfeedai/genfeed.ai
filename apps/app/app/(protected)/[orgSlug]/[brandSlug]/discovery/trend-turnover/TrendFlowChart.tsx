@@ -63,8 +63,16 @@ export default function TrendFlowChart({
             />
           </linearGradient>
           <linearGradient id="died" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="hsl(var(--error))" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="hsl(var(--error))" stopOpacity={0} />
+            <stop
+              offset="5%"
+              stopColor="hsl(var(--destructive))"
+              stopOpacity={0.3}
+            />
+            <stop
+              offset="95%"
+              stopColor="hsl(var(--destructive))"
+              stopOpacity={0}
+            />
           </linearGradient>
         </defs>
         <CartesianGrid
@@ -110,7 +118,7 @@ export default function TrendFlowChart({
           type="monotone"
           dataKey="died"
           name="Died"
-          stroke="hsl(var(--error))"
+          stroke="hsl(var(--destructive))"
           strokeWidth={1.5}
           fill="url(#died)"
           dot={false}

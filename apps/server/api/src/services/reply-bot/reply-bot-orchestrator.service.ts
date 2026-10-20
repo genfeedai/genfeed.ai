@@ -14,12 +14,26 @@ import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loo
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import {
+  deserializeCandidate,
   mergeReplyContext,
   numberValue,
-  optionalString,
+  type ReplyBotContentRequest,
+  type ReplyBotContentResult,
+  type ReplyBotContentState,
+  type ReplyBotDmState,
+  type ReplyBotRequest,
+  readBotRequest,
+  readContentRequest,
+  readContentState,
+  readDmRequest,
+  readDmState,
+  readForEachResult,
   requiredString,
+  type SerializedReplyCandidate,
+  serializeCandidate,
 } from '@api/services/reply-bot/reply-bot-orchestrator-parsing.util';
 import {
+  isManualReplyRequired,
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
 } from '@api/services/reply-bot/reply-bot-platform.util';
@@ -31,10 +45,7 @@ import {
   buildReplyBotWorkflowDefinition,
   REPLY_BOT_ACTION_IDS,
 } from '@api/services/reply-bot/reply-bot-workflow-definition';
-import {
-  type ReplyCandidate,
-  ReplyCandidatePrefilterService,
-} from '@api/services/reply-bot/reply-candidate-prefilter.service';
+import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { getReplyIntentPersona } from '@api/services/reply-bot/reply-intent.util';
 import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
@@ -53,11 +64,7 @@ import {
   ReplyTone,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
-import type {
-  IReplyBotCredentialData,
-  ReplyIntent,
-  ReplyIntentSource,
-} from '@genfeedai/contracts/interfaces';
+import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -72,60 +79,6 @@ export interface ProcessingResult {
   skipped: number;
   errors: number;
 }
-
-type SerializedReplyCandidate = Omit<ReplyCandidate, 'createdAt'> & {
-  createdAt: string;
-};
-type ReplyBotRequest = {
-  botConfigId: string;
-  credentialId: string;
-  organizationId: string;
-};
-type ReplyBotContentRequest = ReplyBotRequest & {
-  content: SerializedReplyCandidate;
-};
-type ReplyBotContentResult = {
-  dmSent: boolean;
-  error?: boolean;
-  replySent: boolean;
-  skipped: boolean;
-};
-type ReplyBotContentState = ReplyBotContentRequest & {
-  activityId?: string;
-  dmDelayMs: number;
-  dmItems: ReplyBotDmRequest[];
-  dmText?: string;
-  error?: string;
-  intent?: ReplyIntent;
-  /** Present only when a decision answered; 0..1 (#4866). */
-  intentConfidence?: number;
-  intentSource?: ReplyIntentSource;
-  replyContentId?: string;
-  replyContentUrl?: string;
-  replySent: boolean;
-  replyText?: string;
-  skipReason?: BotActivitySkipReason;
-  skipped: boolean;
-  test?: boolean;
-};
-type ReplyBotDmRequest = ReplyBotRequest & {
-  activityId: string;
-  dmText: string;
-  recipientId: string;
-  commentId?: string;
-  replyContentId?: string;
-  replyContentUrl?: string;
-  replyText?: string;
-};
-type ReplyBotDmState = ReplyBotDmRequest & {
-  dmContentId?: string;
-  error?: string;
-  success: boolean;
-};
-type ForEachResult<T> = {
-  count: number;
-  results: Array<{ index: number; result: T }>;
-};
 
 @Injectable()
 export class ReplyBotOrchestratorService implements OnModuleInit {
@@ -295,9 +248,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async finalizeOrganizationAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ProcessingResult[]> {
-    return this.readForEachResult<ProcessingResult>(
-      action.input.batch,
-    ).results.map((entry) => entry.result);
+    return readForEachResult<ProcessingResult>(action.input.batch).results.map(
+      (entry) => entry.result,
+    );
   }
 
   private async fetchCandidatesAction(
@@ -309,7 +262,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     platform: ReplyBotPlatform;
     skipped: number;
   }> {
-    const request = this.readBotRequest(action.input.request);
+    const request = readBotRequest(action.input.request);
     const botConfig = await this.loadBotConfig(request);
     const credential = await this.loadCredential(
       request.credentialId,
@@ -350,7 +303,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         botConfigId: request.botConfigId,
         items: prefilter.candidates.map((contentItem) => ({
           ...request,
-          content: this.serializeCandidate(contentItem),
+          content: serializeCandidate(contentItem),
         })),
         platform,
         skipped: prefilter.skipped,
@@ -370,7 +323,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     action: SystemWorkflowActionRequest,
   ): Promise<ProcessingResult> {
     const state = readRecord(action.input.state);
-    const results = this.readForEachResult<ReplyBotContentResult>(
+    const results = readForEachResult<ReplyBotContentResult>(
       action.input.batch,
     ).results.map((entry) => entry.result);
     return {
@@ -419,7 +372,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async claimContentAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
-    const request = this.readContentRequest(action.input.request);
+    const request = readContentRequest(action.input.request);
     const botConfig = await this.loadBotConfig(request);
     const ownerUserId = this.requireBotOwnerUserId(
       botConfig,
@@ -473,6 +426,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     const activity = await this.botActivitiesService.create({
       replyBotConfigId: botConfig.id,
       botType: botConfig.type,
+      ...(typeof botConfig.brandId === 'string'
+        ? { brandId: botConfig.brandId }
+        : {}),
       ...(classification === undefined
         ? {}
         : {
@@ -554,7 +510,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async generateReplyAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
-    const state = this.readContentState(action.input);
+    const state = readContentState(action.input);
     if (state.skipped || state.error) return state;
     try {
       const botConfig = await this.loadBotConfig(state);
@@ -608,10 +564,13 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async generateDmAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
-    const state = this.readContentState(action.input);
+    const state = readContentState(action.input);
     if (state.skipped || state.error) return state;
     try {
       const botConfig = await this.loadBotConfig(state);
+      if (await this.isManualReply(state, botConfig)) {
+        return state;
+      }
       if (
         botConfig.actionType !== ReplyBotActionType.REPLY_AND_DM &&
         botConfig.actionType !== ReplyBotActionType.DM_ONLY
@@ -647,9 +606,12 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async sendReplyAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
-    const state = this.readContentState(action.input);
+    const state = readContentState(action.input);
     if (state.skipped || state.error || state.test) return state;
     const botConfig = await this.loadBotConfig(state);
+    if (await this.isManualReply(state, botConfig)) {
+      return { ...state, isAwaitingApproval: true };
+    }
     let next = state;
     if (botConfig.actionType !== ReplyBotActionType.DM_ONLY) {
       try {
@@ -659,7 +621,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         );
         const result = await this.botActionExecutorService.postReply(
           credential,
-          this.deserializeCandidate(state.content),
+          deserializeCandidate(state.content),
           requiredString(state.replyText, 'replyText'),
         );
         if (!result.success) {
@@ -706,7 +668,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async finalizeContentAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentResult> {
-    const state = this.readContentState(action.input);
+    const state = readContentState(action.input);
     if (state.skipped)
       return { dmSent: false, replySent: false, skipped: true };
     const activityId = requiredString(state.activityId, 'activityId');
@@ -726,9 +688,27 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         skipped: false,
       };
     }
+    if (state.isAwaitingApproval) {
+      await this.botActivitiesService.updateStatus(
+        activityId,
+        state.organizationId,
+        {
+          draftReplyText: state.replyText,
+          status: BotActivityStatus.AWAITING_APPROVAL,
+        },
+      );
+      const draftedConfig = await this.loadBotConfig(state);
+      await this.processedTweetsService.markAsProcessed(
+        state.content.id,
+        state.organizationId,
+        (draftedConfig.type ?? ReplyBotType.ACCOUNT_MONITOR) as ReplyBotType,
+        state.botConfigId,
+      );
+      this.rateLimitService.incrementCounter(state.botConfigId);
+      return { dmSent: false, replySent: false, skipped: false };
+    }
     const dmScheduled =
-      this.readForEachResult<{ jobId: string }>(action.input.dmDispatch).count >
-      0;
+      readForEachResult<{ jobId: string }>(action.input.dmDispatch).count > 0;
     await this.botActivitiesService.updateStatus(
       activityId,
       state.organizationId,
@@ -774,7 +754,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async sendDmAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotDmState> {
-    const request = this.readDmRequest(action.input.request);
+    const request = readDmRequest(action.input.request);
     try {
       const credential = await this.loadCredential(
         request.credentialId,
@@ -802,7 +782,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async finalizeDmAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotDmState> {
-    const state = this.readDmState(action.input);
+    const state = readDmState(action.input);
     await this.botActivitiesService.updateStatus(
       state.activityId,
       state.organizationId,
@@ -868,7 +848,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     dmText?: string;
     replyText: string;
   }> {
-    const state = this.readContentState(action.input);
+    const state = readContentState(action.input);
     if (state.error) throw new Error(state.error);
     return {
       ...(state.dmText ? { dmText: state.dmText } : {}),
@@ -1014,6 +994,25 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     });
   }
 
+  /**
+   * The platform a reply goes out on is the credential's (the executor routes
+   * on it), so the draft-only rule reads it from there.
+   */
+  private async isManualReply(
+    state: ReplyBotContentState,
+    botConfig: ReplyBotConfigDocument,
+  ): Promise<boolean> {
+    if (botConfig.type !== ReplyBotType.ACCOUNT_MONITOR) return false;
+    const credential = await this.loadCredential(
+      state.credentialId,
+      state.organizationId,
+    );
+    return isManualReplyRequired(
+      botConfig.type,
+      credential.platform ?? botConfig.platform,
+    );
+  }
+
   private async loadCredential(
     credentialId: string,
     organizationId: string,
@@ -1042,76 +1041,6 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     if (!botConfig)
       throw new Error(`Reply bot config ${request.botConfigId} not found`);
     return botConfig;
-  }
-
-  private readBotRequest(value: unknown): ReplyBotRequest {
-    const request = readRecord(value);
-    return {
-      botConfigId: requiredString(request.botConfigId, 'botConfigId'),
-      credentialId: requiredString(request.credentialId, 'credentialId'),
-      organizationId: requiredString(request.organizationId, 'organizationId'),
-    };
-  }
-
-  private readContentRequest(value: unknown): ReplyBotContentRequest {
-    const request = readRecord(value);
-    return {
-      ...this.readBotRequest(request),
-      content: request.content as SerializedReplyCandidate,
-    };
-  }
-
-  private readContentState(
-    input: Record<string, unknown>,
-  ): ReplyBotContentState {
-    const state = readRecord(input.state);
-    return (
-      Object.keys(state).length > 0 ? state : input
-    ) as ReplyBotContentState;
-  }
-
-  private readDmRequest(value: unknown): ReplyBotDmRequest {
-    const request = readRecord(value);
-    const replyContentId = optionalString(request.replyContentId);
-    const replyContentUrl = optionalString(request.replyContentUrl);
-    const replyText = optionalString(request.replyText);
-    return {
-      ...this.readBotRequest(request),
-      activityId: requiredString(request.activityId, 'activityId'),
-      dmText: requiredString(request.dmText, 'dmText'),
-      recipientId: requiredString(request.recipientId, 'recipientId'),
-      commentId: optionalString(request.commentId),
-      ...(replyContentId === undefined ? {} : { replyContentId }),
-      ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
-      ...(replyText === undefined ? {} : { replyText }),
-    };
-  }
-
-  private readDmState(input: Record<string, unknown>): ReplyBotDmState {
-    const state = readRecord(input.state);
-    return (Object.keys(state).length > 0 ? state : input) as ReplyBotDmState;
-  }
-
-  private readForEachResult<T>(value: unknown): ForEachResult<T> {
-    const result = readRecord(value);
-    return {
-      count: numberValue(result.count),
-      results: Array.isArray(result.results)
-        ? (result.results as ForEachResult<T>['results'])
-        : [],
-    };
-  }
-
-  private serializeCandidate(
-    candidate: ReplyCandidate,
-  ): SerializedReplyCandidate {
-    return { ...candidate, createdAt: candidate.createdAt.toISOString() };
-  }
-
-  private deserializeCandidate(
-    candidate: SerializedReplyCandidate,
-  ): ReplyCandidate {
-    return { ...candidate, createdAt: new Date(candidate.createdAt) };
   }
 
   private requireBotOwnerUserId(

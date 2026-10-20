@@ -80,9 +80,9 @@ describe('OutreachCampaignTargetOperationsService', () => {
   it('preserves the campaign not-found category after the scoped lookup', async () => {
     campaignsService.findOneById.mockResolvedValue(null);
 
-    await expect(service.getTargets('missing', user)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.getTargets('missing', user, { limit: 20, page: 1 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(campaignsService.findOneById).toHaveBeenCalledWith(
       'missing',
       organizationId,
@@ -250,7 +250,7 @@ describe('OutreachCampaignTargetOperationsService', () => {
       const query = { limit: 20, page: 1 };
 
       await expect(
-        service.getTargets('campaign_1', user, query as never),
+        service.getTargets('campaign_1', user, query),
       ).resolves.toEqual({
         data: page.docs,
         links: {

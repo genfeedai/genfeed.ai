@@ -57,12 +57,26 @@ test.describe('Workflow Execution Runs', () => {
       await expect(
         row.getByRole('cell', { exact: true, name: execution.duration }),
       ).toBeVisible();
-      await expect(
-        row.getByRole('link', { exact: true, name: 'View Details' }),
-      ).toHaveAttribute(
-        'href',
-        brandPath(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`),
+      const detailsHref = brandPath(
+        `${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`,
       );
+      // The run name links to the detail page...
+      await expect(
+        row.getByRole('link', { exact: true, name: execution.label }),
+      ).toHaveAttribute('href', detailsHref);
+      // ...and clicking the rest of the row opens the right sidebar, which
+      // carries the "View Details" link. Click the first cell's padding so the
+      // click lands on the row, not on the name link.
+      await row
+        .getByRole('cell')
+        .first()
+        .click({ position: { x: 4, y: 4 } });
+      const sidebar = authenticatedPage.getByRole('complementary', {
+        name: 'Selection details',
+      });
+      await expect(
+        sidebar.getByRole('link', { exact: true, name: 'View Details' }),
+      ).toHaveAttribute('href', detailsHref);
     }
   });
 

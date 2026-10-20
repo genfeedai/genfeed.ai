@@ -1,4 +1,8 @@
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+import {
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
@@ -319,7 +323,9 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
         DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({ prompt: 'Built-in rewrite prompt' }),
+        expect.objectContaining({
+          prompt: expect.stringContaining('Built-in rewrite prompt'),
+        }),
         organizationId,
       );
     });
@@ -366,6 +372,105 @@ Tweet 3: Tech innovation is changing the world.`,
         DEFAULT_MINI_TEXT_MODEL,
         expect.objectContaining({ reasoning: { enabled: false } }),
         undefined,
+      );
+    });
+
+    it('refuses an empty completion instead of returning a blank rewrite (#7679)', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        '   ',
+      );
+
+      await expect(
+        service.enhanceDescription(mockPost, { prompt: 'Improve' }, identity),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it('puts the X limit in the prompt and returns a rewrite that fits (#7493)', async () => {
+      const fitting = 'a'.repeat(280);
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        `  ${fitting}  `,
+      );
+
+      const result = await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(result).toBe(fitting);
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledTimes(1);
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.objectContaining({
+          prompt: expect.stringContaining('280 characters max as X counts'),
+        }),
+        organizationId,
+      );
+    });
+
+    it('asks once more when the first rewrite is over the X limit and returns the shorter one (#7493)', async () => {
+      mockReplicateService.generateTextCompletionSync
+        .mockResolvedValueOnce('b'.repeat(300))
+        .mockResolvedValueOnce('Short and complete.');
+
+      const result = await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(result).toBe('Short and complete.');
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledTimes(2);
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenLastCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.objectContaining({
+          prompt: expect.stringContaining('counted 300, over the limit of 280'),
+        }),
+        organizationId,
+      );
+    });
+
+    it('counts X links and emoji by weight when checking the limit (#7493)', async () => {
+      // 140 emoji weigh 280, so 141 is over even though it is far under 280 code points.
+      const overByWeight = '😀'.repeat(141);
+      mockReplicateService.generateTextCompletionSync
+        .mockResolvedValueOnce(overByWeight)
+        .mockResolvedValueOnce('😀'.repeat(140));
+
+      const result = await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(result).toBe('😀'.repeat(140));
+    });
+
+    it('refuses a rewrite that is still over the X limit after the corrective pass (#7493)', async () => {
+      mockReplicateService.generateTextCompletionSync
+        .mockResolvedValueOnce('c'.repeat(300))
+        .mockResolvedValueOnce('d'.repeat(290));
+
+      await expect(
+        service.enhanceDescription(mockPost, { prompt: 'Improve' }, identity),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    });
+
+    it('does not add a length rule for a channel with no known limit', async () => {
+      await service.enhanceDescription(
+        { ...mockPost, platform: 'social media' } as never,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.objectContaining({
+          prompt: expect.not.stringContaining('Length:'),
+        }),
+        organizationId,
       );
     });
 

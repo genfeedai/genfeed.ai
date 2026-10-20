@@ -196,7 +196,7 @@ export default function AnalyticsOrganizationsList({
               org.growth > 0
                 ? 'text-success'
                 : org.growth < 0
-                  ? 'text-error'
+                  ? 'text-destructive'
                   : 'text-foreground/60'
             }`}
           >

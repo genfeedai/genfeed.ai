@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
@@ -12,24 +13,53 @@ import { assertRouteRenders } from '../../utils/route-assertions';
 test.describe('Admin Organization', () => {
   test.setTimeout(60_000);
 
+  // The breadcrumb is the page title, so each admin page renders its title as
+  // the screen-reader-only level-one heading of AdminPageShell. The sort lives
+  // in the subbar, not in a heading inside the content.
   const routes = [
     {
-      heading: 'All Organizations',
+      hasOrganizationsList: true,
       route: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+      title: 'Analytics',
     },
-    { heading: 'All Organizations', route: APP_ROUTES.ADMIN.ORGANIZATION },
-    { heading: 'Folders', route: APP_ROUTES.ADMIN.FOLDERS },
+    {
+      hasOrganizationsList: true,
+      route: APP_ROUTES.ADMIN.ORGANIZATION,
+      title: 'Organizations',
+    },
+    {
+      hasOrganizationsList: false,
+      route: APP_ROUTES.ADMIN.FOLDERS,
+      title: 'Folders',
+    },
   ];
 
-  for (const { heading, route } of routes) {
+  /** The organizations table, or its empty state when the API returns none. */
+  function organizationsListSurface(adminPage: Page): Locator {
+    return adminPage
+      .getByRole('main')
+      .getByRole('columnheader', { exact: true, name: 'Organization' })
+      .or(adminPage.getByRole('main').getByText('No organizations found'));
+  }
+
+  for (const { hasOrganizationsList, route, title } of routes) {
     test(`renders ${route}`, async ({ adminPage }) => {
       await assertRouteRenders(adminPage, route);
 
       await expect(
         adminPage
           .getByRole('main')
-          .getByRole('heading', { exact: true, name: heading }),
+          .getByRole('heading', { exact: true, level: 1, name: title }),
       ).toBeVisible();
+
+      if (hasOrganizationsList) {
+        await expect(
+          adminPage.getByRole('combobox', {
+            name: 'Sort organization analytics',
+          }),
+        ).toBeVisible();
+        await expect(organizationsListSurface(adminPage)).toBeVisible();
+      }
     });
   }
 
@@ -46,12 +76,16 @@ test.describe('Admin Organization', () => {
     await expect(
       adminPage
         .getByRole('main')
-        .getByRole('heading', { exact: true, name: 'All Organizations' }),
+        .getByRole('heading', { exact: true, level: 1, name: 'Organizations' }),
     ).toBeVisible();
+    await expect(organizationsListSurface(adminPage)).toBeVisible();
     await expect(
       adminPage
         .getByRole('main')
         .getByRole('heading', { exact: true, name: 'Analytics' }),
+    ).toHaveCount(0);
+    await expect(
+      adminPage.getByRole('main').getByRole('tab', { name: 'Brands' }),
     ).toHaveCount(0);
   });
 

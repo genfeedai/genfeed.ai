@@ -31,7 +31,12 @@ const SCORE_THRESHOLDS = [
     min: 50,
     text: 'text-warning',
   },
-  { bar: 'bg-error', bg: 'bg-error/20 text-error', min: 0, text: 'text-error' },
+  {
+    bar: 'bg-destructive',
+    bg: 'bg-destructive/20 text-destructive',
+    min: 0,
+    text: 'text-destructive',
+  },
 ] as const;
 
 function getScoreColors(score: number): {
@@ -325,7 +330,9 @@ export default function EvaluationCard({
           </>
         ) : null}
         {isFailed && !isRunning ? (
-          <p className="text-xs text-error">{translate('evaluationFailed')}</p>
+          <p className="text-xs text-destructive">
+            {translate('evaluationFailed')}
+          </p>
         ) : null}
       </div>
     );
@@ -438,7 +445,7 @@ function EvaluationCardContent({
   if (evaluationData?.status === Status.FAILED) {
     return (
       <>
-        <div className="flex items-center gap-3 text-error mb-4">
+        <div className="flex items-center gap-3 text-destructive mb-4">
           <span className="text-sm">Evaluation failed. Please try again.</span>
         </div>
         {!isPublished && (
@@ -497,7 +504,7 @@ function EvaluationCardContent({
           className={cn(
             'p-2 text-sm',
             flags.severity === EvaluationSeverity.CRITICAL
-              ? 'bg-error/10 border border-error/30 text-error'
+              ? 'bg-destructive/10 border border-destructive/30 text-destructive'
               : flags.severity === EvaluationSeverity.WARNING
                 ? 'bg-warning/10 border border-warning/30 text-warning'
                 : 'bg-info/10 border border-info/30 text-info',
@@ -591,14 +598,14 @@ function EvaluationCardContent({
             )}
             {(analysis?.weaknesses?.length ?? 0) > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-error mb-2">
+                <h4 className="text-xs font-medium text-destructive mb-2">
                   Weaknesses
                 </h4>
                 <ul className="space-y-1.5">
                   {analysis?.weaknesses?.slice(0, 3).map((w) => (
                     <li
                       key={w}
-                      className="text-xs text-foreground/70 pl-3 border-l-2 border-error/30"
+                      className="text-xs text-foreground/70 pl-3 border-l-2 border-destructive/30"
                     >
                       {w}
                     </li>

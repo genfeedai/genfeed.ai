@@ -92,17 +92,19 @@ export class PostsPage {
     );
 
     // Content library filters (toolbar rendered by
-    // PublishingContentLibraryToolbar). The type/channel Selects keep a
-    // stable aria-label; the status multiselect's accessible name is its
+    // PublishingContentLibraryToolbar). The type Select and the channel menu
+    // (a plain button opening the shared DropdownChannel, not a combobox)
+    // keep a stable aria-label; the status multiselect's accessible name is its
     // placeholder text since none of our fixtures pre-select a real status
     // option (the legacy `publicationState` bucket values, e.g.
     // 'not-posted', never match a real status option value).
     this.contentTypeFilterTrigger = page.locator(
       'button[role="combobox"][aria-label="Content type"]',
     );
-    this.channelFilterTrigger = page.locator(
-      'button[role="combobox"][aria-label="Channel"]',
-    );
+    this.channelFilterTrigger = page.getByRole('button', {
+      exact: true,
+      name: 'Channel',
+    });
     this.statusFilterTrigger = page.getByRole('button', {
       name: 'All statuses',
     });

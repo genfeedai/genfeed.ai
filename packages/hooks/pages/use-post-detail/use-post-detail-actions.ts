@@ -11,6 +11,7 @@ import type {
   PostUpdateInput,
 } from '@genfeedai/services/content/posts.service';
 import type { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
+import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
@@ -68,6 +69,9 @@ export interface UsePostDetailActionsReturn {
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
   ) => Promise<string[] | null>;
 }
+
+/** A longer detail is a provider or stack message, not copy for the user. */
+const REWRITE_ERROR_DETAIL_MAX_LENGTH = 200;
 
 function requirePostId(post: IPost): string {
   if (typeof post.id !== 'string' || post.id.length === 0) {
@@ -352,10 +356,24 @@ export function usePostDetailActions({
         const draft = await service.enhance(actionPostId, prompt, tone, {
           isDraft: true,
         });
-        return draft.description || null;
+        if (!draft.description) {
+          notificationsService.error(
+            'The AI returned no text for this rewrite. Try again.',
+          );
+          return null;
+        }
+        return draft.description;
       } catch (err) {
         logger.error('AI rewrite failed', err);
-        notificationsService.error('Failed to rewrite. Try again.');
+        // The API names why (no price for the model, a draft that cannot fit the
+        // channel limit, an empty answer). Without it the failure reads as a
+        // silent reset of the input.
+        const reason = getJsonApiErrorMember(err)?.detail?.trim();
+        notificationsService.error(
+          reason && reason.length <= REWRITE_ERROR_DETAIL_MAX_LENGTH
+            ? `Failed to rewrite. ${reason}`
+            : 'Failed to rewrite. Try again.',
+        );
         return null;
       } finally {
         setEnhancingPostId(null);

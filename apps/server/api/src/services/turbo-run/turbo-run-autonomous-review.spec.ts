@@ -555,4 +555,25 @@ describe('Autonomous review transaction boundary', () => {
       [expect.objectContaining({ postId: 'post-1' }), f.tx],
     ]);
   });
+  it('evaluates the brand Policy caps and schedules the post in the same transaction (#7458)', async () => {
+    const f = fixture();
+    f.policy.resolveForPost.mockResolvedValue({
+      reviewTimeoutHours: 24,
+      result: { decision: AgentPublishDecision.PERMITTED },
+    });
+    await f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1', true);
+    // The evaluation that counts the caps takes the brand lock in this
+    // transaction, which stays open until the SCHEDULED write commits.
+    expect(f.policy.resolveForPost.mock.calls).toContainEqual([
+      expect.objectContaining({ postId: 'post-1' }),
+      f.tx,
+    ]);
+    expect(f.lifecycle.transition).toHaveBeenCalledWith(
+      expect.objectContaining({ nextState: TargetExecutionState.SCHEDULED }),
+      f.tx,
+    );
+    expect(f.approvals.createForCurrentPost).toHaveBeenCalledWith(
+      expect.objectContaining({ transaction: f.tx }),
+    );
+  });
 });

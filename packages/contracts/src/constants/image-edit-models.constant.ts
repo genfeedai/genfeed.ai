@@ -20,6 +20,13 @@ export const IMAGE_EDIT_MODEL_KEYS: readonly string[] = [
   MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
   MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
 ];
+/**
+ * The registry default for instruction-based editing (#5808). Studio selects it
+ * explicitly; Auto is a separate, deliberate choice that routes between the
+ * editing models by prompt and priority.
+ */
+export const DEFAULT_IMAGE_EDIT_MODEL_KEY: string =
+  MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
 export const IMAGE_EDIT_MAX_SOURCES = 5;
 export const IMAGE_EDIT_MAX_OUTPUTS = 8;
 export const IMAGE_EDIT_QUALITY = 'medium';

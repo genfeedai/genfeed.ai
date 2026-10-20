@@ -89,7 +89,6 @@ function buildSourcesController() {
         ingestWorkflow as never,
         { refresh: vi.fn() } as never,
       ),
-      { run: vi.fn() } as never,
       {
         refresh: vi.fn(),
         setPolicy: vi.fn(),

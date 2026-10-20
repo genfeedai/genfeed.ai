@@ -44,7 +44,7 @@ export default function MergeProgressBars({
             {/* Status Icon - Larger */}
             <div className="flex-shrink-0 size-8 flex items-center justify-center">
               {isCompleted && <CircleCheck className="size-8 text-success" />}
-              {isFailed && <CircleX className="size-8 text-error" />}
+              {isFailed && <CircleX className="size-8 text-destructive" />}
               {isActive && <Spinner size={ComponentSize.MD} />}
               {isPending && (
                 <div className="size-6 rounded-full border-2 border-white/[0.08]" />
@@ -58,7 +58,7 @@ export default function MergeProgressBars({
                   'text-lg font-semibold mb-2',
                   isActive && 'text-primary',
                   isCompleted && 'text-success',
-                  isFailed && 'text-error',
+                  isFailed && 'text-destructive',
                   isPending && 'text-foreground/60',
                 )}
               >
@@ -83,7 +83,7 @@ export default function MergeProgressBars({
               )}
               {isFailed && (
                 <div className="w-full bg-background rounded-full h-3 overflow-hidden shadow-inner">
-                  <div className="h-full bg-error w-full shadow-sm" />
+                  <div className="h-full bg-destructive w-full shadow-sm" />
                 </div>
               )}
               {isPending && (

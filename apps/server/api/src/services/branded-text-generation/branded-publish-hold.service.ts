@@ -24,7 +24,7 @@ type HoldPrisma = Pick<
 
 type HoldPolicy = Pick<
   BrandPublishPolicyService,
-  'buildEvaluation' | 'describePost' | 'recordViolations'
+  'buildEvaluation' | 'describePost' | 'recordViolations' | 'withPostCapLock'
 >;
 
 export type BrandedPublishHoldReason =
@@ -217,7 +217,16 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
       transaction,
     );
     if (!facts) return null;
-    const hold = await evaluatePolicyHold(this.policy, facts, transaction);
+    let hold = await evaluatePolicyHold(this.policy, facts, transaction);
+    // Outside a transaction the post is already scheduled, so the caps are
+    // counted again behind any publish that is still writing its own post
+    // under the brand lock (#7458). A transaction takes the lock itself.
+    if (!hold && !transaction)
+      hold = await this.policy.withPostCapLock(
+        { brandId: facts.brandId, organizationId },
+        async (isLocked) =>
+          isLocked ? evaluatePolicyHold(this.policy, facts) : null,
+      );
     await this.policy.recordViolations(
       organizationId,
       postId,

@@ -963,7 +963,7 @@ function WarmupAccountDetail({
           </ol>
         )}
         {account.diagnostics?.error ? (
-          <p className="mt-4 bg-error/10 p-3 text-sm text-error">
+          <p className="mt-4 bg-destructive/10 p-3 text-sm text-destructive">
             {account.diagnostics.error}
           </p>
         ) : null}

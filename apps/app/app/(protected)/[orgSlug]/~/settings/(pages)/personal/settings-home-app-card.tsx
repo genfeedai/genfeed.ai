@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   DEFAULT_HOME_APP_ID,
   isRailAppId,
@@ -22,19 +21,15 @@ const DEFAULT_HOME_VALUE = 'default';
 /**
  * Settings → Personal: the app this member lands on after signing in. It
  * draws from the same list the rail does, so it never offers an app the
- * member cannot open. Default follows the organization, then Workspace.
+ * member cannot open. Default is Workspace.
  */
 export default function SettingsHomeAppCard() {
   const translate = useTranslations('common.settings.profile.homeApp');
   const translateRail = useTranslations('common.appRail');
-  const { settings } = useBrand();
   const { apps, isReady } = useAvailableRailApps();
   const { homeAppId, isLoaded, setHomeAppId } = useRailPreferencesContext();
 
-  const organizationHomeAppId = settings?.defaultHomeAppId;
-  const defaultApp =
-    apps.find((app) => app.id === organizationHomeAppId) ??
-    apps.find((app) => app.id === DEFAULT_HOME_APP_ID);
+  const defaultApp = apps.find((app) => app.id === DEFAULT_HOME_APP_ID);
   const selectedValue =
     homeAppId && isRailAppId(homeAppId) && apps.some((a) => a.id === homeAppId)
       ? homeAppId

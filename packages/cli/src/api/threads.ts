@@ -1,11 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { get, patch, post } from '@/api/client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from '@/api/json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from '@/api/json-api';
 
 const AGENT_THREADS_ENDPOINT = '/agent/threads';
 
@@ -140,7 +135,7 @@ export async function listThreads(status?: string): Promise<AgentThread[]> {
   }
 
   const qs = query.toString();
-  const response = await get<JsonApiCollectionResponse>(
+  const response = await get<JsonApiDocument>(
     qs ? `${AGENT_THREADS_ENDPOINT}?${qs}` : AGENT_THREADS_ENDPOINT
   );
   return flattenCollection<AgentThread>(response);
@@ -149,8 +144,8 @@ export async function listThreads(status?: string): Promise<AgentThread[]> {
 export async function getThread(threadId: string, signal?: AbortSignal): Promise<AgentThread> {
   const path = `${AGENT_THREADS_ENDPOINT}/${threadId}`;
   const response = signal
-    ? await get<JsonApiSingleResponse>(path, { signal })
-    : await get<JsonApiSingleResponse>(path);
+    ? await get<JsonApiDocument>(path, { signal })
+    : await get<JsonApiDocument>(path);
   return flattenSingle<AgentThread>(response);
 }
 
@@ -158,14 +153,14 @@ export async function getThreadMessages(
   threadId: string,
   limit = 20
 ): Promise<AgentThreadMessage[]> {
-  const response = await get<JsonApiCollectionResponse>(
+  const response = await get<JsonApiDocument>(
     `${AGENT_THREADS_ENDPOINT}/${threadId}/messages?limit=${limit}`
   );
   return flattenCollection<AgentThreadMessage>(response);
 }
 
 export async function archiveThread(threadId: string): Promise<AgentThread> {
-  const response = await patch<JsonApiSingleResponse>(`${AGENT_THREADS_ENDPOINT}/${threadId}`, {
+  const response = await patch<JsonApiDocument>(`${AGENT_THREADS_ENDPOINT}/${threadId}`, {
     status: 'archived',
   });
   return flattenSingle<AgentThread>(response);
@@ -175,7 +170,7 @@ export async function updateThreadContext(
   threadId: string,
   input: { brandId?: string | null; expectedContextVersion: number }
 ): Promise<AgentThread> {
-  const response = await patch<JsonApiSingleResponse>(
+  const response = await patch<JsonApiDocument>(
     `${AGENT_THREADS_ENDPOINT}/${threadId}/context`,
     input
   );

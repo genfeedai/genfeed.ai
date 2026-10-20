@@ -1,6 +1,6 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import type { JsonApiCollectionResponse } from '../../src/api/json-api';
+import type { JsonApiDocument } from '../../src/api/json-api';
 import { flattenCollection } from '../../src/api/json-api';
 import { createTestClient, hasCredentials, testConfig } from './setup';
 
@@ -17,20 +17,18 @@ describe.skipIf(!hasCredentials)('integration/library', () => {
   const orgId = testConfig?.organizationId ?? '';
 
   it('GET /organizations/:orgId/ingredients returns JSON:API collection', async () => {
-    const response = await client<JsonApiCollectionResponse>(
-      `/organizations/${orgId}/ingredients?limit=5`,
-      { method: 'GET' }
-    );
+    const response = await client<JsonApiDocument>(`/organizations/${orgId}/ingredients?limit=5`, {
+      method: 'GET',
+    });
 
     expect(response.data).toBeDefined();
     expect(Array.isArray(response.data)).toBe(true);
   }, 15_000);
 
   it('flattened ingredients have id, category, and status', async () => {
-    const response = await client<JsonApiCollectionResponse>(
-      `/organizations/${orgId}/ingredients?limit=5`,
-      { method: 'GET' }
-    );
+    const response = await client<JsonApiDocument>(`/organizations/${orgId}/ingredients?limit=5`, {
+      method: 'GET',
+    });
 
     const items = flattenCollection<Ingredient>(response);
 
@@ -45,7 +43,7 @@ describe.skipIf(!hasCredentials)('integration/library', () => {
   }, 15_000);
 
   it('category filter works', async () => {
-    const response = await client<JsonApiCollectionResponse>(
+    const response = await client<JsonApiDocument>(
       `/organizations/${orgId}/ingredients?limit=5&category=image`,
       { method: 'GET' }
     );
@@ -60,10 +58,9 @@ describe.skipIf(!hasCredentials)('integration/library', () => {
   }, 15_000);
 
   it('JSON:API response has correct resource structure', async () => {
-    const response = await client<JsonApiCollectionResponse>(
-      `/organizations/${orgId}/ingredients?limit=1`,
-      { method: 'GET' }
-    );
+    const response = await client<JsonApiDocument>(`/organizations/${orgId}/ingredients?limit=1`, {
+      method: 'GET',
+    });
 
     if (response.data.length > 0) {
       const resource = response.data[0];

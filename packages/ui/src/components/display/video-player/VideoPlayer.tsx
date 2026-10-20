@@ -88,6 +88,11 @@ function VideoOverlayContent({
   return null;
 }
 
+/** A streamed or unfinished file reports `Infinity` or `NaN`; treat that as unknown. */
+function readFiniteDuration(element: HTMLVideoElement): number {
+  return Number.isFinite(element.duration) ? element.duration : 0;
+}
+
 export default function VideoPlayer({
   ariaLabel = 'Video player',
   mediaClassName,
@@ -133,7 +138,16 @@ export default function VideoPlayer({
     setHasError(false);
     setIsMetadataLoaded(false);
     setShowLoader(Boolean(src) && !mediaProps.poster);
-  }, [src, mediaProps.poster]);
+    // This effect runs after commit. A cached or already-loaded element can
+    // have fired `loadedmetadata` before it, and no later event would restore
+    // what the reset above just cleared, leaving `0:10 / 0:00`.
+    const element = resolvedVideoRef.current;
+    if (element && element.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      setDuration(readFiniteDuration(element));
+      setIsMetadataLoaded(true);
+      setShowLoader(false);
+    }
+  }, [src, mediaProps.poster, resolvedVideoRef]);
 
   useEffect(() => {
     if (!isActive) resolvedVideoRef.current?.pause();
@@ -220,24 +234,21 @@ export default function VideoPlayer({
         }
         onLoadedMetadata={(event) => {
           handleLoadedMetadata();
-          setDuration(
-            Number.isFinite(event.currentTarget.duration)
-              ? event.currentTarget.duration
-              : 0,
-          );
+          setDuration(readFiniteDuration(event.currentTarget));
           setIsMuted(event.currentTarget.muted);
           mediaProps.onLoadedMetadata?.(event);
         }}
         onDurationChange={(event) => {
-          setDuration(
-            Number.isFinite(event.currentTarget.duration)
-              ? event.currentTarget.duration
-              : 0,
-          );
+          setDuration(readFiniteDuration(event.currentTarget));
           mediaProps.onDurationChange?.(event);
         }}
         onTimeUpdate={(event) => {
-          if (hasControls) setCurrentTime(event.currentTarget.currentTime);
+          if (hasControls) {
+            setCurrentTime(event.currentTarget.currentTime);
+            // Playing proves the media has a length; never keep showing 0.
+            const known = readFiniteDuration(event.currentTarget);
+            if (known > 0) setDuration(known);
+          }
           mediaProps.onTimeUpdate?.(event);
         }}
         onPlay={(event) => {

@@ -182,6 +182,11 @@ export interface IBotActivity {
   processingTimeMs?: number;
   errorMessage?: string;
   skippedReason?: string;
+  /** Draft waiting for a person to post it (`awaiting_approval`). */
+  draftReplyText?: string;
+  triggerTweetId?: string;
+  triggerTweetText?: string;
+  triggerTweetAuthorUsername?: string;
 }
 
 export interface IBotActivityStats {
@@ -191,4 +196,26 @@ export interface IBotActivityStats {
   skipped: number;
   failed: number;
   avgProcessingTimeMs: number;
+}
+
+/** Tenant scope of a warm-up reply queue call. */
+export interface IAssistedReplyScope {
+  brandId?: string | null;
+  organizationId: string;
+}
+
+export interface IAssistedReplyUsage {
+  awaiting: number;
+  dailyCap: number;
+  minGapMinutes: number;
+  /** When the next reply may be posted, or null if it can go now. */
+  nextAllowedAt: string | null;
+  postedToday: number;
+  remainingToday: number;
+}
+
+export interface IAssistedReplyOpenResult {
+  /** X's reply composer, prefilled. Nothing is sent until the person posts. */
+  intentUrl: string;
+  targetUrl: string;
 }

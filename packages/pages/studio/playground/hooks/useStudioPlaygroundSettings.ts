@@ -10,7 +10,6 @@ import {
   getDefaultGenerationSetupValues,
   STUDIO_CLEARABLE_SETUP_KEYS,
   STUDIO_RESIDUAL_SETTINGS_KEYS,
-  seedGenerationSetupFromLegacyStudioSettings,
   splitStudioSettingsPatch,
   studioSettingsFieldsToGenerationSetupPatch,
 } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
@@ -79,9 +78,7 @@ function applyBridgedPatch(
  * `GenerationSetupPopover` drives Studio; the 7 residual fields with no
  * shared-store equivalent (`avatarPhotoUrl`, `blacklist`, `folder`,
  * `isAudioEnabled`, `speech`, `tags`, `voiceId`) stay local, persisted
- * exactly as before via `studio-playground-storage`. On mount, legacy
- * persisted settings are migrated into the shared store once (idempotent,
- * diff-based — see `seedGenerationSetupFromLegacyStudioSettings`).
+ * exactly as before via `studio-playground-storage`.
  */
 export function useStudioPlaygroundSettings(): UseStudioPlaygroundSettingsReturn {
   const [type, setTypeState] = useState<StudioPlaygroundType>(
@@ -100,16 +97,12 @@ export function useStudioPlaygroundSettings(): UseStudioPlaygroundSettingsReturn
   const setup = setupByScope[scope];
   const values = normalizeGenerationSetupValues(setup?.values ?? defaults);
 
-  // Runs once on mount only: rehydrates the residual local settings and
-  // migrates legacy values into the shared store. The migration is
-  // idempotent (never clobbers an existing scope), so re-running it on every
-  // render would be redundant.
+  // Runs once on mount only: rehydrates the residual local settings.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const persisted = readStudioPlaygroundState();
     setTypeState(persisted.type);
     setResidualByType(persisted.settingsByType);
-    seedGenerationSetupFromLegacyStudioSettings(persisted);
     setIsHydrated(true);
   }, []);
 

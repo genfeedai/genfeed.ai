@@ -31,3 +31,12 @@ export function creditTransactionOptions(
 
   return Object.keys(supplied).length > 0 ? supplied : undefined;
 }
+
+/**
+ * Serializable isolation is required for the read-modify-write balance
+ * cores: at the default ReadCommitted level two concurrent transactions can
+ * both read the same balance and double-spend.
+ */
+export const BALANCE_TX_OPTIONS = {
+  isolationLevel: 'Serializable',
+} as const;

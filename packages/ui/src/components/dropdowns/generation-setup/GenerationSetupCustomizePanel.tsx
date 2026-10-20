@@ -4,60 +4,49 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { GenerationSetupCustomizePanelProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupBrandSection from '@ui/dropdowns/generation-setup/GenerationSetupBrandSection';
 import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
-import GenerationSetupLookSection from '@ui/dropdowns/generation-setup/GenerationSetupLookSection';
 import GenerationSetupModelSection from '@ui/dropdowns/generation-setup/GenerationSetupModelSection';
-import GenerationSetupOutputSection from '@ui/dropdowns/generation-setup/GenerationSetupOutputSection';
 import GenerationSetupPresetsSection from '@ui/dropdowns/generation-setup/GenerationSetupPresetsSection';
 import { Button } from '@ui/primitives/button';
-import { ArrowLeft, Undo2 } from 'lucide-react';
+import { Pin, Undo2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+/**
+ * One chip's panel (Model, Brand or Presets). The chip that opened it is the
+ * only way in, so there is no back button: the header names the section.
+ */
 export default function GenerationSetupCustomizePanel({
   typeOptions,
   capabilities,
-  inputControls,
-  referenceCount,
   creditsAvailable,
   favoriteModelKeys,
   initialSection,
   isPresetsLoading,
   onApplyPreset,
   onApplySystemPreset,
+  onClearPreset,
   onDeletePreset,
   presets,
   systemPresets,
   isDisabled = false,
-  lookOptions,
   models,
-  onBack,
   onFavoriteToggle,
   onResetField,
   onSavePreset,
   onSetField,
-  outputControls,
   reasons,
   setup,
   showEnhancementSettings,
 }: GenerationSetupCustomizePanelProps) {
   const translate = useTranslations('agent.generationSetup');
-  const scopedLookOptions =
-    inputControls?.mediaKind === 'video'
-      ? { ...lookOptions, resolution: [] }
-      : lookOptions;
   const resolvedSection = initialSection;
+  const pinnedPreset = setup.presetId
+    ? (presets.find((preset) => preset.id === setup.presetId) ??
+      systemPresets?.find((preset) => preset.id === setup.presetId))
+    : undefined;
 
   return (
     <div className="flex min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-border px-2 py-1.5">
-        <Button
-          ariaLabel={translate('backToSetup')}
-          className="size-7 shrink-0 p-0"
-          icon={<ArrowLeft className="size-3.5" />}
-          onClick={onBack}
-          size={ButtonSize.ICON}
-          variant={ButtonVariant.GHOST}
-        />
-
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-border px-3 py-1.5">
         {resolvedSection === 'model' ? (
           <GenerationSetupFieldIcon
             fieldKey="modelKey"
@@ -113,30 +102,6 @@ export default function GenerationSetupCustomizePanel({
           />
         ) : null}
 
-        {resolvedSection === 'look' ? (
-          <GenerationSetupLookSection
-            lookOptions={scopedLookOptions}
-            onResetField={onResetField}
-            onSetField={onSetField}
-            reasons={reasons}
-            setup={setup}
-          />
-        ) : null}
-
-        {resolvedSection === 'output' ? (
-          <GenerationSetupOutputSection
-            controls={outputControls}
-            inputControls={inputControls}
-            models={models}
-            referenceCount={referenceCount}
-            capabilities={capabilities}
-            onResetField={onResetField}
-            onSetField={onSetField}
-            reasons={reasons}
-            setup={setup}
-          />
-        ) : null}
-
         {resolvedSection === 'brand' ? (
           <GenerationSetupBrandSection
             capabilities={capabilities}
@@ -146,6 +111,27 @@ export default function GenerationSetupCustomizePanel({
             setup={setup}
             showEnhancementSettings={showEnhancementSettings}
           />
+        ) : null}
+        {resolvedSection === 'presets' && setup.presetId && onClearPreset ? (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1 text-xs">
+            <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+              <Pin aria-hidden="true" className="size-3.5 shrink-0" />
+              <span className="truncate">
+                {translate('pinned', {
+                  label: pinnedPreset?.label ?? translate('presets'),
+                })}
+              </span>
+            </span>
+            <Button
+              ariaLabel={translate('unpinPreset')}
+              className="size-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+              icon={<X className="size-3" />}
+              isDisabled={isDisabled}
+              onClick={onClearPreset}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+            />
+          </div>
         ) : null}
         {resolvedSection === 'presets' ? (
           <GenerationSetupPresetsSection

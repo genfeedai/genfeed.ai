@@ -1,10 +1,5 @@
 import { del, get, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface Template {
   id: string;
@@ -50,17 +45,17 @@ export async function listTemplates(params?: {
   if (params?.sort) query.set('sort', params.sort);
   const qs = query.toString();
   const path = qs ? `/templates?${qs}` : '/templates';
-  const response = await get<JsonApiCollectionResponse>(path);
+  const response = await get<JsonApiDocument>(path);
   return flattenCollection<Template>(response);
 }
 
 export async function getTemplate(id: string): Promise<Template> {
-  const response = await get<JsonApiSingleResponse>(`/templates/${id}`);
+  const response = await get<JsonApiDocument>(`/templates/${id}`);
   return flattenSingle<Template>(response);
 }
 
 export async function createTemplate(request: CreateTemplateRequest): Promise<Template> {
-  const response = await post<JsonApiSingleResponse>('/templates', request);
+  const response = await post<JsonApiDocument>('/templates', request);
   return flattenSingle<Template>(response);
 }
 
@@ -68,17 +63,17 @@ export async function fillTemplate(
   id: string,
   request: UseTemplateRequest
 ): Promise<{ content: string }> {
-  const response = await post<JsonApiSingleResponse>(`/templates/${id}/use`, request);
+  const response = await post<JsonApiDocument>(`/templates/${id}/use`, request);
   return flattenSingle<{ content: string }>(response);
 }
 
 export async function getPopularTemplates(limit = 10): Promise<Template[]> {
-  const response = await get<JsonApiCollectionResponse>(`/templates?sort=popular&limit=${limit}`);
+  const response = await get<JsonApiDocument>(`/templates?sort=popular&limit=${limit}`);
   return flattenCollection<Template>(response);
 }
 
 export async function suggestTemplates(prompt: string): Promise<TemplateSuggestion[]> {
-  const response = await post<JsonApiCollectionResponse>('/templates/suggest', { prompt });
+  const response = await post<JsonApiDocument>('/templates/suggest', { prompt });
   return flattenCollection<TemplateSuggestion>(response);
 }
 

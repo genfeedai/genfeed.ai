@@ -18,6 +18,8 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AsyncState } from '@props/shared';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
+import { OrganizationsService } from '@services/organization/organizations.service';
+import { BrandsService } from '@services/social/brands.service';
 import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -67,19 +69,34 @@ function toAsyncState<T>({
   return { data, status: 'success' };
 }
 
-async function fetchPublicationTotal(
-  getReleaseGroups: () => Promise<ReleaseGroupsService>,
-  brandId: string | undefined,
-  publicationState: 'posted' | 'not-posted',
-): Promise<number> {
-  const service = await getReleaseGroups();
-  const page = await service.findAllPage({
-    ...toBrandListParams({ brandId }),
-    limit: 1,
-    page: 1,
-    publicationState,
-  });
-  return page.total;
+/**
+ * Counts with the endpoint the Posts list reads (`GET /posts`), so the KPI and
+ * the list it links to agree. The release-group query only lists targets that
+ * already have a destination account, which leaves out drafts saved without
+ * one. The Calendar and Queue sections keep using release groups.
+ */
+async function fetchPublicationTotal({
+  brandId,
+  getBrands,
+  getOrganizations,
+  organizationId,
+  publicationState,
+}: {
+  brandId: string | undefined;
+  getBrands: () => Promise<BrandsService>;
+  getOrganizations: () => Promise<OrganizationsService>;
+  organizationId: string | undefined;
+  publicationState: 'posted' | 'not-posted';
+}): Promise<number> {
+  const query = { limit: 1, page: 1, publicationState };
+  if (brandId) {
+    const brands = await getBrands();
+    return (await brands.findBrandPostsPage(brandId, query)).total;
+  }
+  if (!organizationId) return 0;
+  const organizations = await getOrganizations();
+  return (await organizations.findOrganizationPostsPage(organizationId, query))
+    .total;
 }
 
 export default function PublishingOverviewPage() {
@@ -99,6 +116,12 @@ export default function PublishingOverviewPage() {
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
   );
+  const getBrandsService = useAuthedService((token: string) =>
+    BrandsService.getInstance(token),
+  );
+  const getOrganizationsService = useAuthedService((token: string) =>
+    OrganizationsService.getInstance(token),
+  );
   const getCredentialsService = useAuthedService((token: string) =>
     CredentialsService.getInstance(token),
   );
@@ -116,14 +139,26 @@ export default function PublishingOverviewPage() {
     enabled: isCollectionReady,
     queryKey: ['publish-overview-not-posted-total', organizationId, brandId],
     queryFn: () =>
-      fetchPublicationTotal(getReleaseGroupsService, brandId, 'not-posted'),
+      fetchPublicationTotal({
+        brandId,
+        getBrands: getBrandsService,
+        getOrganizations: getOrganizationsService,
+        organizationId,
+        publicationState: 'not-posted',
+      }),
   });
 
   const publishedTotalQuery = useQuery({
     enabled: isCollectionReady,
     queryKey: ['publish-overview-published-total', organizationId, brandId],
     queryFn: () =>
-      fetchPublicationTotal(getReleaseGroupsService, brandId, 'posted'),
+      fetchPublicationTotal({
+        brandId,
+        getBrands: getBrandsService,
+        getOrganizations: getOrganizationsService,
+        organizationId,
+        publicationState: 'posted',
+      }),
   });
 
   const now = useMemo(() => new Date(), []);

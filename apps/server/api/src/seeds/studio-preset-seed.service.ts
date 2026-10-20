@@ -53,8 +53,11 @@ export class StudioPresetSeedService {
       select: { organizationId: true, brandId: true },
     });
     if (existing) return false;
-    const category =
-      preset.type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO;
+    const category = {
+      image: ModelCategory.IMAGE,
+      'image-edit': ModelCategory.IMAGE_EDIT,
+      video: ModelCategory.VIDEO,
+    }[preset.type];
     const config = {
       key: preset.key,
       label: preset.label,

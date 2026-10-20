@@ -27,8 +27,6 @@ const authEvents = {
 };
 const commandRegistrationCalls: Array<{
   analyticsProvider: unknown;
-  galleryProvider: unknown;
-  presetsProvider: unknown;
   statusBar: unknown;
   templatesProvider: unknown;
 }> = [];
@@ -191,8 +189,6 @@ mock.module('@/commands', () => ({
     _context: ExtensionContextLike,
     providers: {
       analyticsProvider: unknown;
-      galleryProvider: unknown;
-      presetsProvider: unknown;
       statusBar: unknown;
       templatesProvider: unknown;
     },
@@ -206,8 +202,6 @@ mock.module('./commands', () => ({
     _context: ExtensionContextLike,
     providers: {
       analyticsProvider: unknown;
-      galleryProvider: unknown;
-      presetsProvider: unknown;
       statusBar: unknown;
       templatesProvider: unknown;
     },
@@ -266,20 +260,6 @@ mock.module('./views/analytics-view.provider', () => ({
   AnalyticsViewProvider: createViewProviderMock('genfeed.analyticsView'),
 }));
 
-mock.module('@views/gallery-view.provider', () => ({
-  GalleryViewProvider: createViewProviderMock('genfeed.galleryView'),
-}));
-mock.module('./views/gallery-view.provider', () => ({
-  GalleryViewProvider: createViewProviderMock('genfeed.galleryView'),
-}));
-
-mock.module('@views/presets-view.provider', () => ({
-  PresetsViewProvider: createViewProviderMock('genfeed.presetsView'),
-}));
-mock.module('./views/presets-view.provider', () => ({
-  PresetsViewProvider: createViewProviderMock('genfeed.presetsView'),
-}));
-
 mock.module('@views/templates-view.provider', () => ({
   TemplatesViewProvider: createViewProviderMock('genfeed.templatesView'),
 }));
@@ -307,8 +287,6 @@ describe('activate', () => {
     expect(authEvents.initializeCalls).toBe(1);
     expect(authEvents.loadStoredAuthCalls).toBe(1);
     expect(registeredViewProviders).toEqual([
-      'genfeed.presetsView',
-      'genfeed.galleryView',
       'genfeed.templatesView',
       'genfeed.analyticsView',
     ]);

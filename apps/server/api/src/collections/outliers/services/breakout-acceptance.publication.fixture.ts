@@ -185,8 +185,8 @@ export function buildDeliveryHarness(
       },
     } as unknown as Deps[6],
     {
-      emitLegacyPostFailed: async () => undefined,
-      emitLegacyPostPublished: async () => undefined,
+      emitPostFailed: async () => undefined,
+      emitPostPublished: async () => undefined,
     } as unknown as Deps[7],
     scheduler,
     { schedulePostWatch: async () => ({ scheduled: 0 }) } as unknown as Deps[9],

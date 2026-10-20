@@ -41,6 +41,7 @@ function createMockContext(
     dragError: null,
     endFrame: null,
     enhancePrompt: vi.fn(),
+    filteredBlacklists: [],
     filteredCameraMovements: [],
     filteredCameras: [],
     filteredFontFamilies: [],

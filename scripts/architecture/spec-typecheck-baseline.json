@@ -58,7 +58,7 @@
     },
     {
       "code": 2741,
-      "count": 8,
+      "count": 7,
       "file": "packages/agent/src/components/AgentChatMessageCards.spec.tsx",
       "fingerprint": "827e8cb506d7b2409f79",
       "message": "Property 'title' is missing in type '{ id: string; type: \"content_preview_card\"; tweets: string[]; images: string[]; ctas: { label: string; action: string; payload: { prompt: string; }; }[]; }' but required in type 'AgentUiAction'.",
@@ -830,46 +830,6 @@
       "file": "packages/ui/src/components/lazy/modal/LazyModal.tsx",
       "fingerprint": "a2070866c3d8101756c2",
       "message": "Cannot find module '@pages/members/invite/ModalMember' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "32afa7c62d4d54e33ac3",
-      "message": "Cannot find module '@pages/brands/components/system-prompt/BrandDetailSystemPrompt' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "375309ec7bd50b28e4ee",
-      "message": "Cannot find module '@pages/brands/components/overview/BrandDetailOverview' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "4bba9729b3104dd70bfa",
-      "message": "Cannot find module '@pages/brands/components/banner/BrandDetailBanner' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "f1e8e456b72122f6919c",
-      "message": "Cannot find module '@pages/brands/components/detail-sidebar/BrandDetailSidebar' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx",
-      "fingerprint": "b7f4765181dd6354f22f",
-      "message": "Parameter 'isPublic' implicitly has an 'any' type.",
       "workspace": "agent"
     },
     {
@@ -2030,14 +1990,6 @@
       "file": "apps/server/api/src/collections/templates/controllers/templates.controller.spec.ts",
       "fingerprint": "94cb369fb7ad1921b30c",
       "message": "Type '\"email\"' is not assignable to type 'TemplateCategory | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 7,
-      "file": "apps/server/api/src/collections/trainings/controllers/operations/trainings-operations.controller.spec.ts",
-      "fingerprint": "319102cbbc801ee5e5b9",
-      "message": "Argument of type 'Request' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type 'Request' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 99 more.",
       "workspace": "api"
     },
     {
@@ -4262,14 +4214,6 @@
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/overview/AutomationOverviewPage.test.tsx",
       "fingerprint": "56c2a6ac30d11e8a6dba",
       "message": "Class 'MockIntersectionObserver' incorrectly implements interface 'IntersectionObserver'.   Property 'scrollMargin' is missing in type 'MockIntersectionObserver' but required in type 'IntersectionObserver'.",
-      "workspace": "app"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/RunHistoryList.test.tsx",
-      "fingerprint": "e091d4d07b708959fc1d",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
       "workspace": "app"
     },
     {
@@ -6737,14 +6681,6 @@
       "workspace": "pages"
     },
     {
-      "code": 2741,
-      "count": 8,
-      "file": "packages/pages/brands/components/integrations/AccountsTable.test.tsx",
-      "fingerprint": "174809e07da2db9eb1f7",
-      "message": "Property 'reconnectingCredentialId' is missing in type '{ accountHealth: never[]; connections: BrandDetailSocialConnection[]; onConnectAccount: () => void; onDisconnect: () => void; onOpenSettings: () => void; onReconnect: () => void; unavailablePlatforms: Set<...>; }' but required in type 'AccountsTableProps'.",
-      "workspace": "pages"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "packages/pages/brands/components/sidebar/BrandDetailReferencesCard.test.tsx",
@@ -6798,14 +6734,6 @@
       "file": "packages/pages/posts/[id]/ingredient-posts.test.tsx",
       "fingerprint": "28279d5feda70e99c2d1",
       "message": "Type '{ id: string; page: number; ingredient: Ingredient & { totalPosts?: number | undefined; totalViews?: number | undefined; }; posts: never[]; }' is not assignable to type 'IntrinsicAttributes & IngredientPostsProps'.   Property 'page' does not exist on type 'IntrinsicAttributes & IngredientPostsProps'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "packages/pages/posts/detail/PostDetailOverlay.test.tsx",
-      "fingerprint": "b81d976ea37715e543ee",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
       "workspace": "pages"
     },
     {
@@ -6974,14 +6902,6 @@
       "file": "packages/services/ads/ad-watched-advertisers.service.test.ts",
       "fingerprint": "b46105aca94546fde13e",
       "message": "Type 'MockHttpClient' is not assignable to type 'AxiosInstance & MockHttpClient'.   Type 'MockHttpClient' is missing the following properties from type 'AxiosInstance': create, defaults, interceptors, getUri, and 9 more.",
-      "workspace": "services"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/services/ads/saved-ads.service.test.ts",
-      "fingerprint": "7880e317e74fedd59147",
-      "message": "Type 'MockHttpClient' is not assignable to type 'AxiosInstance & MockHttpClient'.   Type 'MockHttpClient' is missing the following properties from type 'AxiosInstance': create, defaults, interceptors, getUri, and 8 more.",
       "workspace": "services"
     },
     {
@@ -8299,38 +8219,6 @@
     {
       "code": 2783,
       "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupPopover.test.tsx",
-      "fingerprint": "9f886d4d22891800fb69",
-      "message": "'label' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupPopover.test.tsx",
-      "fingerprint": "caae4d147136a1af5e5b",
-      "message": "'key' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupTrigger.test.tsx",
-      "fingerprint": "56458ec92d853993e8e7",
-      "message": "'label' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
-      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupTrigger.test.tsx",
-      "fingerprint": "7ddfc863b7d36b2d6860",
-      "message": "'key' is specified more than once, so this usage will be overwritten.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2783,
-      "count": 1,
       "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorModelItem.test.tsx",
       "fingerprint": "a031ff3499d6fb356311",
       "message": "'label' is specified more than once, so this usage will be overwritten.",
@@ -8646,14 +8534,6 @@
       "file": "packages/ui/src/components/modals/actions/ModalActions.test.tsx",
       "fingerprint": "8ba10d9d5e38146a1d47",
       "message": "Property 'children' is missing in type '{}' but required in type 'ModalActionsProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/brand/ModalBrand.test.tsx",
-      "fingerprint": "dd7d727f6d7ae0d8f434",
-      "message": "Type '\"brand\"' is not assignable to type 'Scope'. Did you mean 'Scope.BRAND'?",
       "workspace": "ui"
     },
     {

@@ -102,7 +102,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
     expect(vercel).toContain(
       `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY)=/`,
     );
-    expect(vercel).toContain('Production Agencies checkout is not configured.');
+    expect(vercel).toContain('Production Scale checkout is not configured.');
     expect(vercel).toContain(
       `printf '%s' "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY" | grep -Eq '^price_[A-Za-z0-9]+$'`,
     );
@@ -110,5 +110,49 @@ describe('hosted SaaS Vercel deployment contract', () => {
     expect(vercel).not.toContain(
       'echo "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY"',
     );
+  });
+});
+
+describe('hosted SaaS rollback contract', () => {
+  test('rolls back only through the public deploy lane, from master', async () => {
+    const rollback = await workflow('rollback-hosted-saas.yml');
+
+    expect(rollback).toContain(
+      'uses: ./.github/workflows/deploy-hosted-saas.yml',
+    );
+    expect(rollback).toContain('Rollbacks must run from refs/heads/master');
+    expect(rollback).not.toContain('allow_rollback');
+    expect(rollback).not.toContain('image_tag');
+    expect(rollback).not.toMatch(/tofu |aws rds|restore-db/);
+  });
+
+  test('restores a published stable release older than the latest one', async () => {
+    const rollback = await workflow('rollback-hosted-saas.yml');
+
+    expect(rollback).toContain('.draft == false and .prerelease == false');
+    expect(rollback).toContain('is not a published stable release');
+    expect(rollback).toContain('is already the latest stable release');
+    expect(rollback).toContain('A rollback needs a reason.');
+  });
+
+  test('passes user input through env, never into the script text', async () => {
+    const rollback = await workflow('rollback-hosted-saas.yml');
+
+    expect(rollback).toContain('REQUESTED_TAG: ${{ inputs.target_tag }}');
+    expect(rollback).toContain('REASON: ${{ inputs.reason }}');
+    const interpolations = rollback
+      .split('\n')
+      .filter((line) => line.includes('${{ inputs.'));
+    expect(interpolations.length).toBeGreaterThan(0);
+    for (const line of interpolations) {
+      expect(line).toMatch(/^(run-name: |\s+[A-Z_]+: )/);
+    }
+  });
+
+  test('points a failed post-deploy smoke at the rollback workflow', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+
+    expect(core).toContain('Rollback hosted SaaS');
+    expect(core).toContain('docs/operations/rollback.md');
   });
 });
