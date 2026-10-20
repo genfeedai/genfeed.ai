@@ -30,6 +30,8 @@ export enum ReplyBotActionType {
 export enum BotActivityStatus {
   PENDING = 'pending',
   PROCESSING = 'processing',
+  /** Drafted for a person to review and post themselves (X account monitors). */
+  AWAITING_APPROVAL = 'awaiting_approval',
   COMPLETED = 'completed',
   FAILED = 'failed',
   SKIPPED = 'skipped',
@@ -43,4 +45,5 @@ export enum BotActivitySkipReason {
   ALREADY_PROCESSED = 'already_processed',
   BOT_PAUSED = 'bot_paused',
   OUTSIDE_SCHEDULE = 'outside_schedule',
+  DISMISSED = 'dismissed',
 }

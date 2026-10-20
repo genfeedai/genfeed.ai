@@ -192,3 +192,25 @@ export interface IBotActivityStats {
   failed: number;
   avgProcessingTimeMs: number;
 }
+
+/** Tenant scope of a warm-up reply queue call. */
+export interface IAssistedReplyScope {
+  brandId?: string | null;
+  organizationId: string;
+}
+
+export interface IAssistedReplyUsage {
+  awaiting: number;
+  dailyCap: number;
+  minGapMinutes: number;
+  /** When the next reply may be posted, or null if it can go now. */
+  nextAllowedAt: string | null;
+  postedToday: number;
+  remainingToday: number;
+}
+
+export interface IAssistedReplyOpenResult {
+  /** X's reply composer, prefilled. Nothing is sent until the person posts. */
+  intentUrl: string;
+  targetUrl: string;
+}

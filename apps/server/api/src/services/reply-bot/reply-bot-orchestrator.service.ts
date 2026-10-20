@@ -20,6 +20,7 @@ import {
   requiredString,
 } from '@api/services/reply-bot/reply-bot-orchestrator-parsing.util';
 import {
+  isManualReplyRequired,
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
 } from '@api/services/reply-bot/reply-bot-platform.util';
@@ -100,6 +101,8 @@ type ReplyBotContentState = ReplyBotContentRequest & {
   /** Present only when a decision answered; 0..1 (#4866). */
   intentConfidence?: number;
   intentSource?: ReplyIntentSource;
+  /** Reply drafted for a person to post; nothing was sent to the platform. */
+  isAwaitingApproval?: boolean;
   replyContentId?: string;
   replyContentUrl?: string;
   replySent: boolean;
@@ -473,6 +476,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     const activity = await this.botActivitiesService.create({
       replyBotConfigId: botConfig.id,
       botType: botConfig.type,
+      ...(typeof botConfig.brandId === 'string'
+        ? { brandId: botConfig.brandId }
+        : {}),
       ...(classification === undefined
         ? {}
         : {
@@ -612,6 +618,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     if (state.skipped || state.error) return state;
     try {
       const botConfig = await this.loadBotConfig(state);
+      if (await this.isManualReply(state, botConfig)) {
+        return state;
+      }
       if (
         botConfig.actionType !== ReplyBotActionType.REPLY_AND_DM &&
         botConfig.actionType !== ReplyBotActionType.DM_ONLY
@@ -650,6 +659,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     const state = this.readContentState(action.input);
     if (state.skipped || state.error || state.test) return state;
     const botConfig = await this.loadBotConfig(state);
+    if (await this.isManualReply(state, botConfig)) {
+      return { ...state, isAwaitingApproval: true };
+    }
     let next = state;
     if (botConfig.actionType !== ReplyBotActionType.DM_ONLY) {
       try {
@@ -725,6 +737,25 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         replySent: state.replySent,
         skipped: false,
       };
+    }
+    if (state.isAwaitingApproval) {
+      await this.botActivitiesService.updateStatus(
+        activityId,
+        state.organizationId,
+        {
+          draftReplyText: state.replyText,
+          status: BotActivityStatus.AWAITING_APPROVAL,
+        },
+      );
+      const draftedConfig = await this.loadBotConfig(state);
+      await this.processedTweetsService.markAsProcessed(
+        state.content.id,
+        state.organizationId,
+        (draftedConfig.type ?? ReplyBotType.ACCOUNT_MONITOR) as ReplyBotType,
+        state.botConfigId,
+      );
+      this.rateLimitService.incrementCounter(state.botConfigId);
+      return { dmSent: false, replySent: false, skipped: false };
     }
     const dmScheduled =
       this.readForEachResult<{ jobId: string }>(action.input.dmDispatch).count >
@@ -1012,6 +1043,25 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       );
       return included && !excluded;
     });
+  }
+
+  /**
+   * The platform a reply goes out on is the credential's (the executor routes
+   * on it), so the draft-only rule reads it from there.
+   */
+  private async isManualReply(
+    state: ReplyBotContentState,
+    botConfig: ReplyBotConfigDocument,
+  ): Promise<boolean> {
+    if (botConfig.type !== ReplyBotType.ACCOUNT_MONITOR) return false;
+    const credential = await this.loadCredential(
+      state.credentialId,
+      state.organizationId,
+    );
+    return isManualReplyRequired(
+      botConfig.type,
+      credential.platform ?? botConfig.platform,
+    );
   }
 
   private async loadCredential(
