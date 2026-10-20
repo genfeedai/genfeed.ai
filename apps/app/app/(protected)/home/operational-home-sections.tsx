@@ -26,6 +26,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import {
   getActivityDescription,
   getActivityDestinationPath,
@@ -121,7 +122,7 @@ function ErrorLine({
 function EmptyLine({ description }: { description: ReactNode }) {
   return (
     <div
-      className="px-4 py-3 text-sm text-muted-foreground sm:px-5"
+      className="flex flex-1 items-center px-4 py-3 text-sm text-muted-foreground sm:px-5"
       data-testid="workspace-empty-state"
     >
       {description}
@@ -811,9 +812,12 @@ function ActivitySurface({
 }) {
   const translate = useTranslations('common');
   const activityMessageFormatter = useActivityMessageFormatter();
+  // Brand pages (`/:org/:brand/…`) read only that brand's activity; the
+  // org-level home (`/:org/~/…`) has no brand and reads the organization feed.
+  const { brandId } = useCollectionScope();
   const { filteredActivities, isError, isLoading, refresh } = useActivities({
     limit: ACTIVITY_ROW_LIMIT,
-    scope: PageScope.ORGANIZATION,
+    scope: brandId ? PageScope.BRAND : PageScope.ORGANIZATION,
   });
   const recentActivities = filteredActivities.slice(0, ACTIVITY_ROW_LIMIT);
 

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   ActivityKey,
   CredentialPlatform,
+  PageScope,
   ReleaseStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -29,6 +30,8 @@ type ReviewInboxItem =
 const mocks = vi.hoisted(() => ({
   activities: [] as IActivity[],
   activityIsError: false,
+  activityOptions: undefined as { scope?: string } | undefined,
+  collectionBrandId: 'brand_1' as string | undefined,
   accessState: { organizationId: 'org_1' } as {
     organizationId?: string;
   } | null,
@@ -146,22 +149,34 @@ vi.mock('@providers/access-state/access-state.provider', () => ({
   useAccessState: () => ({ accessState: mocks.accessState }),
 }));
 
-vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
-  useActivities: () => ({
-    activities: mocks.activities,
-    activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
-    clearCompletedActivities: vi.fn(),
-    error: null,
-    filter: '',
-    filteredActivities: mocks.activities,
-    isError: mocks.activityIsError,
-    isLoading: false,
-    isRefreshing: false,
-    markActivitiesAsRead: vi.fn(),
-    refresh: mocks.activityRefresh,
-    setFilter: vi.fn(),
-    toggleActivityRead: vi.fn(),
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({
+    brandId: mocks.collectionBrandId,
+    isReady: true,
+    organizationId: 'org_1',
+    pageScope: mocks.collectionBrandId ? 'brand' : 'org',
   }),
+}));
+
+vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
+  useActivities: (options: { scope?: string }) => {
+    mocks.activityOptions = options;
+    return {
+      activities: mocks.activities,
+      activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
+      clearCompletedActivities: vi.fn(),
+      error: null,
+      filter: '',
+      filteredActivities: mocks.activities,
+      isError: mocks.activityIsError,
+      isLoading: false,
+      isRefreshing: false,
+      markActivitiesAsRead: vi.fn(),
+      refresh: mocks.activityRefresh,
+      setFilter: vi.fn(),
+      toggleActivityRead: vi.fn(),
+    };
+  },
 }));
 
 vi.mock('next-intl', async () => {
@@ -264,6 +279,8 @@ describe('OperationalHomeContent', () => {
     mocks.activities = [];
     mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
+    mocks.activityOptions = undefined;
+    mocks.collectionBrandId = 'brand_1';
     mocks.publications = [];
     mocks.publicationsIsError = false;
     mocks.publicationsIsLoading = false;
@@ -409,6 +426,20 @@ describe('OperationalHomeContent', () => {
         subject: 'image',
       }),
     );
+  });
+
+  it('reads only the selected brand activity on a brand page', () => {
+    render(<OperationalHomeContent />);
+
+    expect(mocks.activityOptions?.scope).toBe(PageScope.BRAND);
+  });
+
+  it('reads the organization activity feed on the org-level home', () => {
+    mocks.collectionBrandId = undefined;
+
+    render(<OperationalHomeContent />);
+
+    expect(mocks.activityOptions?.scope).toBe(PageScope.ORGANIZATION);
   });
 
   it('uses the access-state organization fallback for connection status', () => {
