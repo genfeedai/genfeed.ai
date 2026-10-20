@@ -304,13 +304,6 @@ export function AgentChatContainerThreadView({
             data-testid="agent-column-composer"
             ref={columnFooterRef}
           >
-            {hasContentBehindComposer ? (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 bottom-full h-8 bg-gradient-to-t from-background to-transparent"
-                data-composer-top-fade="true"
-              />
-            ) : null}
             {!isAtBottom ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
                 <Button
