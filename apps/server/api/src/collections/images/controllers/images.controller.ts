@@ -175,6 +175,7 @@ export class ImagesController {
             ],
           },
           IngredientFilterUtil.buildOriginFilter(query.origins),
+          IngredientFilterUtil.buildStoryboardStillExclusion(),
         ],
       },
       orderBy: { createdAt: -1 },

@@ -59,6 +59,9 @@ vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
     })),
     buildOriginFilter: vi.fn(() => ({})),
     buildParentFilter: vi.fn(() => ({})),
+    buildStoryboardStillExclusion: vi.fn(() => ({
+      OR: [{ sourceActionId: null }],
+    })),
     buildTagFilter: vi.fn(() => ({})),
     buildTrainingFilter: vi.fn(() => ({})),
   },
@@ -245,6 +248,13 @@ describe('ImagesController', () => {
         where: { AND: unknown[] };
       };
       expect(aggregate.where.AND).toContainEqual(originFilter);
+      // Storyboard sketch stills stay out of the latest list too.
+      expect(
+        IngredientFilterUtil.buildStoryboardStillExclusion,
+      ).toHaveBeenCalled();
+      expect(aggregate.where.AND).toContainEqual({
+        OR: [{ sourceActionId: null }],
+      });
     });
 
     it('does not share a latest-image cache entry between origins', () => {
@@ -345,6 +355,10 @@ describe('ImagesController', () => {
       };
       // A sibling of the OR (user-owned | brand defaults), not inside one branch.
       expect(aggregate.where.AND).toContainEqual(originFilter);
+      // Storyboard sketch stills never reach the Library image list.
+      expect(aggregate.where.AND).toContainEqual({
+        OR: [{ sourceActionId: null }],
+      });
     });
   });
 

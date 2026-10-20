@@ -144,7 +144,7 @@ jobs:
             fi
 
             if ! printf '%s' "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY" | grep -Eq '^price_[A-Za-z0-9]+$'; then
-              echo "::error::Production Agencies checkout is not configured."
+              echo "::error::Production Scale checkout is not configured."
               exit 1
             fi
 

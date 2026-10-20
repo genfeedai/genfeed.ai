@@ -22,7 +22,7 @@ export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
 
 const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   [SubscriptionTier.FREE]: 'Free',
-  [SubscriptionTier.SCALE]: 'Agencies',
+  [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
 };
 
@@ -153,7 +153,7 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
 
 /**
  * Marketing CTAs hand off a subscription plan as a human-readable slug
- * (e.g. `/sign-up?plan=scale` for the website Agencies card). The checkout
+ * (e.g. `/sign-up?plan=scale` for the website Scale card). The checkout
  * endpoint only accepts Stripe price ids — `CreateCheckoutSessionDto` enforces
  * `^price_...$` — so a raw slug would be rejected (400) before checkout is ever
  * created. Resolve known subscription slugs to their configured
@@ -164,8 +164,6 @@ export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
   const { scale } = EnvironmentService.plans;
 
   return {
-    // Website Agencies card === internal Scale tier.
-    agencies: scale,
     scale,
   };
 }

@@ -210,38 +210,22 @@ describe('rail app order', () => {
 describe('resolveHomeAppId', () => {
   const availableAppIds = ['workspace', 'agent', 'playground'];
 
-  it('prefers the member, then the organization, then Workspace', () => {
+  it('prefers the member, then Workspace', () => {
     expect(
-      resolveHomeAppId({
-        availableAppIds,
-        organizationHomeAppId: 'agent',
-        userHomeAppId: 'playground',
-      }),
+      resolveHomeAppId({ availableAppIds, userHomeAppId: 'playground' }),
     ).toBe('playground');
-    expect(
-      resolveHomeAppId({
-        availableAppIds,
-        organizationHomeAppId: 'agent',
-        userHomeAppId: null,
-      }),
-    ).toBe('agent');
+    expect(resolveHomeAppId({ availableAppIds, userHomeAppId: null })).toBe(
+      DEFAULT_HOME_APP_ID,
+    );
     expect(resolveHomeAppId({ availableAppIds })).toBe(DEFAULT_HOME_APP_ID);
   });
 
   it('skips a choice that is unavailable or unknown', () => {
-    expect(
-      resolveHomeAppId({
-        availableAppIds,
-        organizationHomeAppId: 'agent',
-        userHomeAppId: 'turbo',
-      }),
-    ).toBe('agent');
-    expect(
-      resolveHomeAppId({
-        availableAppIds,
-        organizationHomeAppId: 'studio',
-        userHomeAppId: 'turbo',
-      }),
-    ).toBe('workspace');
+    expect(resolveHomeAppId({ availableAppIds, userHomeAppId: 'turbo' })).toBe(
+      DEFAULT_HOME_APP_ID,
+    );
+    expect(resolveHomeAppId({ availableAppIds, userHomeAppId: 'studio' })).toBe(
+      DEFAULT_HOME_APP_ID,
+    );
   });
 });

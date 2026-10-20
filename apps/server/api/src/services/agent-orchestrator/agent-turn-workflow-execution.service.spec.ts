@@ -9,6 +9,7 @@ import {
   ActionOrigin,
   AgentAutonomyMode,
   AgentMessageRole,
+  AgentThreadMode,
 } from '@genfeedai/contracts';
 import {
   GenerationEntryAttribution,
@@ -16,7 +17,11 @@ import {
 } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { describe, expect, it, vi } from 'vitest';
 
-function setup(source = 'proactive', priorMessageCount = 0) {
+function setup(
+  source = 'proactive',
+  priorMessageCount = 0,
+  threadMode?: AgentThreadMode,
+) {
   const prisma = {
     agentThread: {
       findFirst: vi.fn().mockResolvedValue({
@@ -63,7 +68,12 @@ function setup(source = 'proactive', priorMessageCount = 0) {
   const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
     prisma,
     { findOne: vi.fn().mockResolvedValue({}) },
-    { findOne: vi.fn().mockResolvedValue({ title: 'Agent' }) },
+    {
+      findOne: vi.fn().mockResolvedValue({
+        title: 'Agent',
+        ...(threadMode ? { mode: threadMode } : {}),
+      }),
+    },
     {
       addMessage: vi.fn(),
       countMessages: vi.fn().mockResolvedValue(priorMessageCount),
@@ -514,5 +524,54 @@ describe('thread title seeding', () => {
       expect.objectContaining({ seedTitle: '' }),
       expect.anything(),
     );
+  });
+});
+
+describe('immediate media turns', () => {
+  const mediaState = {
+    organizationId: 'org',
+    request: {
+      content: 'Create and render a five-second branded video',
+      generationMode: 'video',
+      source: 'api',
+    },
+    threadId: 'thread',
+    userId: 'user',
+  };
+
+  async function runMediaTurn(threadMode?: AgentThreadMode) {
+    const { service } = setup('api', 0, threadMode);
+    const executeUiAction = vi
+      .spyOn(service, 'executeUiAction')
+      .mockResolvedValue({
+        creditsUsed: 0,
+        message: { content: 'Video generation accepted.', metadata: {} },
+        threadId: 'thread',
+      } as never);
+    const result = await (
+      service as unknown as {
+        tryExecuteMediaTurn: (
+          state: unknown,
+          context: unknown,
+        ) => Promise<unknown>;
+      }
+    ).tryExecuteMediaTurn(mediaState, workflowContext);
+    return { executeUiAction, result };
+  }
+
+  it('does not charge a Plan thread before the plan is approved (#7680)', async () => {
+    const { executeUiAction, result } = await runMediaTurn(
+      AgentThreadMode.PLAN,
+    );
+    expect(result).toBeNull();
+    expect(executeUiAction).not.toHaveBeenCalled();
+  });
+
+  it('still runs a locked video turn outside Plan mode', async () => {
+    const { executeUiAction, result } = await runMediaTurn(
+      AgentThreadMode.AUTO,
+    );
+    expect(result).not.toBeNull();
+    expect(executeUiAction).toHaveBeenCalledTimes(1);
   });
 });

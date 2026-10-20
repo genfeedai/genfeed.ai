@@ -5,7 +5,7 @@
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
  *   Pay As You Go (free)                   → FREE               → API at 60/min, solo, 1 org
- *   Agencies                               → SCALE              → API, unlimited seats/orgs
+ *   Scale                               → SCALE              → API, unlimited seats/orgs
  *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
  * Enforcement lives in the API:
@@ -80,7 +80,7 @@ export const SINGLE_ORGANIZATION_LIMIT = 1;
 /** API ceiling for the free (Pay As You Go) tier, in requests per minute. */
 export const FREE_API_RATE_LIMIT = 60;
 
-/** Fixed API ceiling for the Agencies (Scale) tier. */
+/** Fixed API ceiling for the Scale tier. */
 export const SCALE_API_RATE_LIMIT = 600;
 
 /**

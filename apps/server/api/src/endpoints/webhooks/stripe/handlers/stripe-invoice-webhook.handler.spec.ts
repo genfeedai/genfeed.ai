@@ -524,7 +524,7 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(supportService.upsertSubscriptionLead).not.toHaveBeenCalled();
     });
 
-    it('grants the verified yearly allocation for a yearly Agencies subscription', async () => {
+    it('grants the verified yearly allocation for a yearly Scale subscription', async () => {
       billingService.resolve.mockResolvedValue({
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: {

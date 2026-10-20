@@ -119,7 +119,6 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
     isVisible?: boolean;
     layoutMode?: string;
     maxWidth?: string;
-    showTopFade?: boolean;
     topContent?: ReactNode;
   }) {
     if (props.isVisible === false) {
@@ -131,7 +130,6 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
         className={props.className}
         data-layout-mode={props.layoutMode}
         data-max-width={props.maxWidth}
-        data-show-top-fade={props.showTopFade ? 'true' : 'false'}
         ref={props.containerRef}
       >
         {props.topContent}
@@ -1329,9 +1327,6 @@ describe('AgentChatContainer', () => {
     );
 
     expect(promptBarContainers.length).toBe(1);
-    expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
-    );
   });
 
   it('keeps legacy generation actions out of the docked composer', () => {
@@ -1426,9 +1421,6 @@ describe('AgentChatContainer', () => {
     );
 
     expect(promptBarContainers.length).toBe(1);
-    expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
-    );
   });
 
   it('renders a full-width rail composer in the inspector portal', () => {
@@ -1455,7 +1447,6 @@ describe('AgentChatContainer', () => {
       '[data-layout-mode="inflow"][data-max-width="full"]',
     );
     expect(portaled).not.toBeNull();
-    expect(portaled?.getAttribute('data-show-top-fade')).toBe('false');
     // The dock composer is a sibling, so reserving its height again wastes transcript space.
     expect(
       container.querySelector('[data-composer-padding="20"]'),
@@ -1491,9 +1482,7 @@ describe('AgentChatContainer', () => {
       container.querySelector('[data-composer-padding="128"]'),
     ).not.toBeNull();
     expect(
-      portalTarget.querySelector(
-        '[data-layout-mode="inflow"][data-show-top-fade="false"]',
-      ),
+      portalTarget.querySelector('[data-layout-mode="inflow"]'),
     ).not.toBeNull();
 
     portalTarget.remove();
@@ -1583,9 +1572,6 @@ describe('AgentChatContainer', () => {
     );
 
     expect(promptBarContainers.length).toBe(1);
-    expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
-    );
   });
 
   it('uses an inflow prompt bar layout on the empty state when the workspace requests viewport anchoring', () => {
@@ -1606,9 +1592,6 @@ describe('AgentChatContainer', () => {
     );
 
     expect(promptBarContainers.length).toBe(1);
-    expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
-    );
   });
 
   it('recovers a missing onboarding card over REST when the socket is offline', async () => {
@@ -1793,9 +1776,6 @@ describe('AgentChatContainer', () => {
     );
 
     expect(promptBarContainers.length).toBe(1);
-    expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
-    );
   });
 
   it('shows a loading state while a thread is being hydrated', () => {

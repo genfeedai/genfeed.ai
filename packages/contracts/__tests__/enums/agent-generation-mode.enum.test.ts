@@ -54,6 +54,8 @@ describe('inferAgentMediaGenerationModeFromPrompt', () => {
     'write a tweet about apples',
     'imagine if we doubled posting cadence',
     'schedule the draft for Friday',
+    'Create and render a five-second branded motion graphics video using the motion/visual-code renderer',
+    'make a remotion clip with simple shapes',
     '',
   ])('leaves %s as conversation', (prompt) => {
     expect(inferAgentMediaGenerationModeFromPrompt(prompt)).toBeUndefined();

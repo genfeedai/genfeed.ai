@@ -750,7 +750,7 @@ export class StripeService {
 
     try {
       // Determine if this is a subscription or one-time payment.
-      // Tier pricing: Agencies/Scale ($499/mo), Enterprise (custom).
+      // Tier pricing: Scale ($499/mo), Enterprise (custom).
       const subscriptionPriceIds = [
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),

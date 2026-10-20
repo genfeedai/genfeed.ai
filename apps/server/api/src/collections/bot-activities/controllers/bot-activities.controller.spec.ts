@@ -5,6 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { BotActivitiesController } from '@api/collections/bot-activities/controllers/bot-activities.controller';
+import { AssistedReplyQueueService } from '@api/collections/bot-activities/services/assisted-reply-queue.service';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -30,6 +31,15 @@ describe('BotActivitiesController', () => {
             findOne: vi.fn(),
             findWithFilters: vi.fn(),
             getStats: vi.fn(),
+          },
+        },
+        {
+          provide: AssistedReplyQueueService,
+          useValue: {
+            dismiss: vi.fn(),
+            getUsage: vi.fn(),
+            markPosted: vi.fn(),
+            open: vi.fn(),
           },
         },
         {

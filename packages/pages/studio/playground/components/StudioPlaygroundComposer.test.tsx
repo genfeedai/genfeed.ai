@@ -139,7 +139,7 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
-const generationSetupPopoverMocks = vi.hoisted(() => ({
+const setupBarMocks = vi.hoisted(() => ({
   props: {} as Record<string, unknown>,
 }));
 
@@ -150,16 +150,60 @@ vi.mock('@providers/promptbar/promptbar.context', () => ({
   usePromptBarContext: () => ({ presets: presetCatalogMocks.presets }),
 }));
 
-vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
+const spendMocks = vi.hoisted(() => ({
+  estimateGenerationCredits: vi.fn(),
+  openConfirm: vi.fn(),
+}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({ useConfirmModal: () => ({ openConfirm: spendMocks.openConfirm }) }),
+);
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    estimateGenerationCredits: spendMocks.estimateGenerationCredits,
+  }),
+}));
+
+// The type bar, the Advanced chips and the reset button all hand their props
+// to one object, so a test reads the setup surface without caring which of the
+// three owns a prop. Chips only mount in Advanced mode.
+vi.mock('@ui/dropdowns/generation-setup/GenerationSetupTypeBar', () => ({
   default: (props: Record<string, unknown>) => {
-    generationSetupPopoverMocks.props = props;
+    Object.assign(setupBarMocks.props, props);
+    const setup = props.setup as { values: { type: string } };
+    const options = props.typeOptions as { label: string; value: string }[];
     return (
-      <>
-        <button type="button" aria-label="Setup">
-          {props.triggerLabel as string}
-        </button>
+      <button type="button" aria-label="Setup">
+        {options.find((option) => option.value === setup.values.type)?.label}
+      </button>
+    );
+  },
+}));
+
+vi.mock('@ui/dropdowns/generation-setup/GenerationSetupSectionChips', () => ({
+  default: (props: Record<string, unknown>) => {
+    Object.assign(setupBarMocks.props, props);
+    return (
+      <div data-testid="generation-setup-section-chips">
+        {props.afterModel as React.ReactNode}
         {props.outputControls as React.ReactNode}
-      </>
+        {props.trailing as React.ReactNode}
+      </div>
+    );
+  },
+}));
+
+vi.mock('@ui/dropdowns/generation-setup/GenerationSetupResetButton', () => ({
+  default: (props: { isDisabled?: boolean; onResetAll: () => void }) => {
+    setupBarMocks.props.onResetAll = props.onResetAll;
+    setupBarMocks.props.isResetDisabled = props.isDisabled;
+    return (
+      <button
+        type="button"
+        aria-label="Reset all"
+        disabled={props.isDisabled}
+        onClick={props.onResetAll}
+      />
     );
   },
 }));
@@ -347,13 +391,17 @@ describe('StudioPlaygroundComposer', () => {
       isDeleted: false,
       organizationId: null,
       brandId: null,
-      category:
-        preset.type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO,
+      category: {
+        image: ModelCategory.IMAGE,
+        'image-edit': ModelCategory.IMAGE_EDIT,
+        video: ModelCategory.VIDEO,
+      }[preset.type],
       label: preset.label,
       description: preset.description,
       prompt: preset.prompt,
       ...preset.values,
     }));
+    setupBarMocks.props = {};
     runtimeMocks.snapshot = { status: 'web', context: null };
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
@@ -366,6 +414,8 @@ describe('StudioPlaygroundComposer', () => {
     });
     vi.clearAllMocks();
     avatarEstimateMocks.resolve.mockReset();
+    spendMocks.estimateGenerationCredits.mockReset();
+    spendMocks.openConfirm.mockReset();
   });
 
   it('shows the selected settings in the picker and keeps library access in the context menu', () => {
@@ -386,9 +436,6 @@ describe('StudioPlaygroundComposer', () => {
         settings={{ ...settings, modelKey: 'banana' }}
         type="image"
       />,
-    );
-    expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
-      'Nano Banana 2 Lite · 1:1 · 1K · x1',
     );
     expect(
       screen.queryByRole('button', { name: /browse library/i }),
@@ -432,13 +479,44 @@ describe('StudioPlaygroundComposer', () => {
       expect(screen.getByTestId('studio-generation-summary').textContent).toBe(
         '120',
       );
-      expect(generationSetupPopoverMocks.props.models).toEqual([]);
-      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
-        hasModelSelection: true,
-      });
-      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+      // Auto has no model chips: the bar is only the type, Auto and Advanced.
+      expect(
+        screen.queryByTestId('generation-setup-section-chips'),
+      ).not.toBeInTheDocument();
+      expect(setupBarMocks.props.advancedMode).toMatchObject({
         isEnabled: false,
       });
+    });
+
+    it('keeps Reset all in the bar, dimmed in Auto and live in Advanced', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      const view = render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          prompt="A green apple"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      // Same button in both modes, so switching never moves the other controls.
+      expect(screen.getByRole('button', { name: 'Reset all' })).toBeDisabled();
+
+      advancedModeMocks.isAdvancedMode = true;
+      view.rerender(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          prompt="A green apple"
+          settings={settings}
+          type="image"
+        />,
+      );
+      const reset = screen.getByRole('button', { name: 'Reset all' });
+      expect(reset).toBeEnabled();
+      fireEvent.click(reset);
+      expect(baseProps.onResetSettings).toHaveBeenCalledOnce();
     });
 
     it('keeps the Auto/Advanced picker and the same type tiles for Avatar', () => {
@@ -452,10 +530,10 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+      expect(setupBarMocks.props.advancedMode).toMatchObject({
         isEnabled: false,
       });
-      expect(generationSetupPopoverMocks.props.imageEditing).toMatchObject({
+      expect(setupBarMocks.props.imageEditing).toMatchObject({
         isEnabled: false,
       });
     });
@@ -476,10 +554,10 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+      expect(setupBarMocks.props.capabilities).toMatchObject({
         hasModelSelection: true,
       });
-      expect(generationSetupPopoverMocks.props.models).toEqual(engines);
+      expect(setupBarMocks.props.models).toEqual(engines);
     });
 
     it('offers the speech models for Voice in Advanced and none in Auto', () => {
@@ -498,10 +576,10 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+      expect(setupBarMocks.props.capabilities).toMatchObject({
         hasModelSelection: true,
       });
-      expect(generationSetupPopoverMocks.props.models).toEqual(speechModels);
+      expect(setupBarMocks.props.models).toEqual(speechModels);
 
       advancedModeMocks.isAdvancedMode = false;
       view.rerender(
@@ -514,8 +592,10 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      expect(generationSetupPopoverMocks.props.models).toEqual([]);
-      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+      expect(
+        screen.queryByTestId('generation-setup-section-chips'),
+      ).not.toBeInTheDocument();
+      expect(setupBarMocks.props.advancedMode).toMatchObject({
         isEnabled: false,
       });
     });
@@ -533,7 +613,7 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      const advancedMode = generationSetupPopoverMocks.props.advancedMode as {
+      const advancedMode = setupBarMocks.props.advancedMode as {
         onChange: (next: boolean) => void;
       };
       act(() => advancedMode.onChange(false));
@@ -651,7 +731,7 @@ describe('StudioPlaygroundComposer', () => {
     expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
   });
 
-  it('renders the unified GenerationSetupPopover', () => {
+  it('renders the type bar with the studio type registry', () => {
     const onTypeChange = vi.fn();
 
     render(
@@ -675,10 +755,8 @@ describe('StudioPlaygroundComposer', () => {
       screen.queryByRole('button', { name: 'Identity' }),
     ).not.toBeInTheDocument();
 
-    expect(generationSetupPopoverMocks.props).toEqual(
+    expect(setupBarMocks.props).toEqual(
       expect.objectContaining({
-        isTypeCommitted: true,
-        scopeKey: 'studio:image',
         typeOptions: [
           { label: 'Image', value: 'image' },
           { label: 'Video', value: 'video' },
@@ -691,7 +769,7 @@ describe('StudioPlaygroundComposer', () => {
 
     // The shared popover emits GenerationSetupType. Studio forwards only its own
     // registry, so an agent-only `text` pick never reaches the Studio handler.
-    const emitTypeChange = generationSetupPopoverMocks.props.onTypeChange as (
+    const emitTypeChange = setupBarMocks.props.onTypeChange as (
       type: string,
     ) => void;
     emitTypeChange('video');
@@ -700,7 +778,7 @@ describe('StudioPlaygroundComposer', () => {
     expect(onTypeChange).toHaveBeenCalledWith('video');
     expect(
       (
-        generationSetupPopoverMocks.props.capabilities as {
+        setupBarMocks.props.capabilities as {
           hasIdentity: boolean;
         }
       ).hasIdentity,
@@ -782,7 +860,7 @@ describe('StudioPlaygroundComposer', () => {
           type="image"
         />,
       );
-      const props = generationSetupPopoverMocks.props as {
+      const props = setupBarMocks.props as {
         onSetField: GenerationSetupFieldSetter;
         onTypeChange: (type: GenerationSetupValues['type']) => void;
         setup: GenerationSetup;
@@ -813,7 +891,7 @@ describe('StudioPlaygroundComposer', () => {
       expect(preserved?.values.modelKey).toBe('studio/preset-model');
       expect(preserved?.values.aspectRatio).toBe('16:9');
       expect(preserved?.values.outputs).toBe(4);
-      const outgoing = generationSetupPopoverMocks.props as {
+      const outgoing = setupBarMocks.props as {
         setup: GenerationSetup;
       };
       expect(outgoing.setup.presetId).toBe('preset-image');
@@ -1138,7 +1216,7 @@ describe('StudioPlaygroundComposer', () => {
     );
   });
 
-  it('wires field, preset, and reset callbacks from the popover to the shared store', () => {
+  it('wires field, preset, and reset callbacks from the setup bar to the shared store', () => {
     render(
       <StudioPlaygroundComposer
         {...baseProps}
@@ -1149,7 +1227,7 @@ describe('StudioPlaygroundComposer', () => {
     );
 
     const defaults = getDefaultGenerationSetupValues('image');
-    const props = generationSetupPopoverMocks.props as {
+    const props = setupBarMocks.props as {
       onApplyPreset: (preset: { id: string }) => void;
       onClearPreset: () => void;
       onDeletePreset: (id: string) => void;
@@ -1200,7 +1278,7 @@ describe('StudioPlaygroundComposer', () => {
     expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
   });
 
-  it('offers the system templates for the type in the setup popover and applies one', () => {
+  it('offers the system templates for the type in the setup chips and applies one', () => {
     render(
       <StudioPlaygroundComposer
         {...baseProps}
@@ -1209,7 +1287,7 @@ describe('StudioPlaygroundComposer', () => {
         type="image"
       />,
     );
-    const props = generationSetupPopoverMocks.props as {
+    const props = setupBarMocks.props as {
       onApplySystemPreset: (id: string) => void;
       systemPresets: { id: string; label: string }[];
     };
@@ -1250,6 +1328,36 @@ describe('StudioPlaygroundComposer', () => {
       getDefaultGenerationSetupValues('image'),
     );
     expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+  });
+
+  it('offers edit instructions in the slash menu in edit mode and keeps the generation size (#7494)', () => {
+    const onContextChange = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt=""
+        settings={getDefaultStudioPlaygroundSettings('image-edit')}
+        type="image-edit"
+      />,
+    );
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.map((command) => command.label)).toEqual(
+      expect.arrayContaining(['Remove background', 'Enhance photo']),
+    );
+    expect(context.commands.some((command) => command.label === 'Banner')).toBe(
+      false,
+    );
+    const removeBackground = STUDIO_SYSTEM_PRESETS.find(
+      (preset) => preset.key === 'studio-edit-remove-background',
+    );
+    selectSlashPreset(onContextChange, 'Remove background', '');
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith(
+      removeBackground?.prompt,
+    );
+    const applied = storeMocks.applyPreset.mock.lastCall?.[2];
+    expect(applied).toMatchObject({ type: 'image-edit' });
+    expect(applied).not.toHaveProperty('aspectRatio');
   });
 
   it('fills an empty video prompt from a template without choosing a model', () => {
@@ -1421,7 +1529,7 @@ describe('StudioPlaygroundComposer', () => {
         type="image"
       />,
     );
-    expect(generationSetupPopoverMocks.props.showPresets).toBe(true);
+    expect(setupBarMocks.props.showPresets).toBe(true);
     const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
     expect(context.commands.map((command) => command.label)).not.toEqual(
       expect.arrayContaining([
@@ -1593,9 +1701,6 @@ describe('StudioPlaygroundComposer', () => {
         'duration',
       );
       expect(screen.getByText('~8')).toBeVisible();
-      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
-        hasDuration: false,
-      });
 
       rerender(
         <StudioPlaygroundComposer
@@ -1670,7 +1775,7 @@ describe('StudioPlaygroundComposer', () => {
     );
 
     const defaults = getDefaultGenerationSetupValues('video');
-    const props = generationSetupPopoverMocks.props as {
+    const props = setupBarMocks.props as {
       onSetField: (key: string, value: unknown) => void;
     };
 
@@ -1836,11 +1941,10 @@ describe('StudioPlaygroundComposer', () => {
         screen.getByRole('group', { name: 'Generation controls' }),
       ).queryByRole('button', { name: 'Setup' }),
     ).toBeNull();
-    expect(generationSetupPopoverMocks.props.isIconOnly).toBe(true);
-    expect(generationSetupPopoverMocks.props.showPresets).toBe(true);
+    expect(setupBarMocks.props.showPresets).toBe(true);
     expect(promptTools.queryByRole('button', { name: 'Presets' })).toBeNull();
 
-    const imageEditing = generationSetupPopoverMocks.props
+    const imageEditing = setupBarMocks.props
       .imageEditing as GenerationSetupImageEditingMode;
     expect(imageEditing.isEnabled).toBe(false);
     imageEditing.onChange(true);
@@ -1855,10 +1959,9 @@ describe('StudioPlaygroundComposer', () => {
         type="image-edit"
       />,
     );
-    const editing = generationSetupPopoverMocks.props
-      .imageEditing as typeof imageEditing;
+    const editing = setupBarMocks.props.imageEditing as typeof imageEditing;
     expect(editing.isEnabled).toBe(true);
-    expect(generationSetupPopoverMocks.props.typeOptions).toContainEqual({
+    expect(setupBarMocks.props.typeOptions).toContainEqual({
       label: 'Image',
       value: 'image-edit',
     });
@@ -2052,9 +2155,7 @@ describe('StudioPlaygroundComposer', () => {
       expect(
         promptTools.getByRole('button', { name: 'Setup' }),
       ).toBeInTheDocument();
-      expect(generationSetupPopoverMocks.props.showEnhancementSettings).toBe(
-        true,
-      );
+      expect(setupBarMocks.props.showEnhancementSettings).toBe(true);
       expect(
         screen.queryByRole('button', { name: 'Prompt enhancement settings' }),
       ).not.toBeInTheDocument();
@@ -2154,7 +2255,6 @@ describe('StudioPlaygroundComposer', () => {
       screen.getByLabelText('Estimate available after model selection'),
     ).toBeVisible();
     expect(screen.getByLabelText('120 available')).toBeVisible();
-    expect(screen.getByText('Auto · 1:1 · 1K · x1')).toBeVisible();
     Object.assign(walletMocks, {
       balance: null,
       isLoaded: false,
@@ -2192,7 +2292,6 @@ describe('StudioPlaygroundComposer', () => {
     expect(
       screen.queryByLabelText('Balance unavailable'),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Auto · 1:1 · 1K · x1')).toBeVisible();
   });
 
   it('updates image count, setup and total, and blocks Generate when admission would refuse the price', () => {
@@ -2237,7 +2336,6 @@ describe('StudioPlaygroundComposer', () => {
       />,
     );
     expect(screen.getByText('~24')).toBeVisible();
-    expect(screen.getByText('Imagen 4 · 9:16 · 2K · x3')).toBeVisible();
     estimateMocks.resolve.mockReturnValue({
       credits: null,
       status: 'unavailable',
@@ -2346,6 +2444,168 @@ describe('StudioPlaygroundComposer', () => {
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
   });
 
+  describe('spend confirmation', () => {
+    const imagen = {
+      category: ModelCategory.IMAGE,
+      cost: 8,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+
+    it('asks the server for the price and confirms it before anything is submitted', async () => {
+      spendMocks.estimateGenerationCredits.mockResolvedValue({
+        credits: 64,
+        isAvailable: true,
+        modelKey: imagen.key,
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: imagen.key }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() => expect(spendMocks.openConfirm).toHaveBeenCalled());
+      expect(spendMocks.estimateGenerationCredits).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'image',
+          modelKey: imagen.key,
+        }),
+        expect.any(AbortSignal),
+      );
+      const dialog = spendMocks.openConfirm.mock.calls[0][0];
+      expect(dialog.label).toContain('64');
+      expect(dialog.message).toContain('64');
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+
+      act(() => dialog.onConfirm());
+      expect(baseProps.onSubmit).toHaveBeenCalledTimes(1);
+      expect(baseProps.onSubmit).toHaveBeenCalledWith(undefined);
+    });
+
+    it('prices Auto at the model it routes to and submits that model pinned', async () => {
+      spendMocks.estimateGenerationCredits.mockResolvedValue({
+        credits: 8,
+        isAvailable: true,
+        modelKey: imagen.key,
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: AUTO_MODEL_OPTION_VALUE }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() => expect(spendMocks.openConfirm).toHaveBeenCalled());
+      expect(spendMocks.estimateGenerationCredits).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          category: 'image',
+          prompt: 'A product photo',
+        }),
+        expect.any(AbortSignal),
+      );
+      expect(spendMocks.estimateGenerationCredits).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ modelKey: imagen.key }),
+        expect.any(AbortSignal),
+      );
+      const dialog = spendMocks.openConfirm.mock.calls[0][0];
+      expect(dialog.message).toContain('Imagen 4');
+
+      act(() => dialog.onConfirm());
+      expect(baseProps.onSubmit).toHaveBeenCalledWith({
+        pinnedModelKey: imagen.key,
+      });
+    });
+
+    it('submits nothing when the server cannot price the generation', async () => {
+      spendMocks.estimateGenerationCredits.mockResolvedValue({
+        credits: null,
+        isAvailable: false,
+        modelKey: null,
+        unavailableReason: 'PRICING_UNRESOLVED',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: imagen.key }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() =>
+        expect(spendMocks.estimateGenerationCredits).toHaveBeenCalled(),
+      );
+      expect(spendMocks.openConfirm).not.toHaveBeenCalled();
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('submits nothing when the price request fails', async () => {
+      spendMocks.estimateGenerationCredits.mockRejectedValue(
+        new Error('network'),
+      );
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: imagen.key }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() =>
+        expect(spendMocks.estimateGenerationCredits).toHaveBeenCalled(),
+      );
+      expect(spendMocks.openConfirm).not.toHaveBeenCalled();
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('submits a voice generation directly, since it has no tariff to confirm', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Read this aloud"
+          settings={{
+            ...settings,
+            voiceId: 'voice-1',
+            voiceRef: {
+              provider: VoiceProvider.ELEVENLABS,
+              voiceId: 'voice-1',
+            } as never,
+          }}
+          type="voice"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      expect(spendMocks.estimateGenerationCredits).not.toHaveBeenCalled();
+      expect(spendMocks.openConfirm).not.toHaveBeenCalled();
+      expect(baseProps.onSubmit).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('sends the audio toggle with a video estimate request', () => {
     const model = {
       category: ModelCategory.VIDEO,
@@ -2410,7 +2670,6 @@ describe('StudioPlaygroundComposer', () => {
         screen.getByLabelText('Estimate available after model selection'),
       ).toBeVisible();
       expect(estimateMocks.resolve).not.toHaveBeenCalled();
-      expect(screen.getByText('Auto · 1:1 · x3')).toBeVisible();
     });
     it('shows the source ratio and does not label Auto with an image-generation default', () => {
       const imageDefault = {
@@ -2433,7 +2692,6 @@ describe('StudioPlaygroundComposer', () => {
           type="image-edit"
         />,
       );
-      expect(screen.getByText('Auto · 16:9 · x1')).toBeVisible();
       expect(screen.queryByText(/Nano Banana/)).not.toBeInTheDocument();
     });
     it('does not inherit the default FLUX restrictions in Auto', () => {
@@ -2604,7 +2862,7 @@ describe('FLUX.3 composer controls', () => {
       screen.getByRole('button', { name: 'Add context' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
-    expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+    expect(setupBarMocks.props.capabilities).toMatchObject({
       hasOutputs: false,
       hasAspectRatio: false,
     });

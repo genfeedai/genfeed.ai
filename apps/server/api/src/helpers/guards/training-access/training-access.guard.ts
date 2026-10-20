@@ -22,7 +22,7 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
 }
 
 /**
- * Cloud-only gate: custom model training (LoRA) requires Agencies or above.
+ * Cloud-only gate: custom model training (LoRA) requires Scale or above.
  * Self-hosted / community deployments always allow training.
  */
 @Injectable()

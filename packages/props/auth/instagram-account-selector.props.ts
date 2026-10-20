@@ -3,7 +3,10 @@ export interface InstagramAccountSelectorProps {
   credentialId: string;
   /** Called once the chosen account has been persisted. */
   onConnected: () => void;
-  /** Shown as a "Go back" action in the error and empty states, when provided. */
+  /**
+   * Aborts the connection without saving. Shown as "Go back" in the error and
+   * empty states and as "Cancel" beside the confirm button, when provided.
+   */
   onBack?: () => void;
   onError?: (message: string) => void;
 }

@@ -54,6 +54,7 @@ const COMMAND_ICONS: Record<string, ReactElement> = {
   ideas: <Lightbulb className="size-4" />,
   look: <Bookmark className="size-4" />,
   image: <Image className="size-4" />,
+  'image-edit': <Wand className="size-4" />,
   interview: <Mic className="size-4" />,
   optimization: <Wand className="size-4" />,
   remix: <Undo2 className="size-4" />,

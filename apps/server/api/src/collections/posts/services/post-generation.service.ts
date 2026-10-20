@@ -35,8 +35,18 @@ import type {
   PostDraftGenerationInput,
   PostDraftGenerationResult,
 } from '@genfeedai/contracts/interfaces';
+import {
+  describePlatformTextLimit,
+  getPlatformTextLimit,
+  measurePlatformText,
+} from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from
@@ -215,29 +225,65 @@ export class PostGenerationService {
       );
     }
 
-    // Use PromptBuilderService to build prompt with templates and brand context
-    const { input } = await this.promptBuilderService.buildPrompt(
-      DEFAULT_MINI_TEXT_MODEL,
-      {
-        maxTokens: TEXT_GENERATION_LIMITS.postEnhancement,
-        modelCategory: ModelCategory.TEXT,
-        prompt,
-        systemPromptTemplate: systemPromptKey,
-        temperature: 0.8,
-        useTemplate: false,
-      },
-      identity.organizationId,
-    );
-
     // A short rewrite needs no reasoning. A reasoning default model would
     // otherwise spend the token budget thinking and cut the post off mid-sentence.
-    return this.replicateService.generateTextCompletionSync(
-      DEFAULT_MINI_TEXT_MODEL,
-      isOpenRouterTextModel(DEFAULT_MINI_TEXT_MODEL)
-        ? { ...input, reasoning: { enabled: false } }
-        : input,
-      byokApiKeyOverride,
-    );
+    const complete = async (promptText: string): Promise<string> => {
+      // Use PromptBuilderService to build prompt with templates and brand context
+      const { input } = await this.promptBuilderService.buildPrompt(
+        DEFAULT_MINI_TEXT_MODEL,
+        {
+          maxTokens: TEXT_GENERATION_LIMITS.postEnhancement,
+          modelCategory: ModelCategory.TEXT,
+          prompt: promptText,
+          systemPromptTemplate: systemPromptKey,
+          temperature: 0.8,
+          useTemplate: false,
+        },
+        identity.organizationId,
+      );
+      const completion = await this.replicateService.generateTextCompletionSync(
+        DEFAULT_MINI_TEXT_MODEL,
+        isOpenRouterTextModel(DEFAULT_MINI_TEXT_MODEL)
+          ? { ...input, reasoning: { enabled: false } }
+          : input,
+        byokApiKeyOverride,
+      );
+      return (completion ?? '').trim();
+    };
+
+    const limit = getPlatformTextLimit(platform);
+    const limitRule = describePlatformTextLimit(platform);
+    const firstPrompt = limitRule
+      ? `${prompt}\n\nLength: ${limitRule}. The rewrite must be a complete post that fits, not a cut-off one.`
+      : prompt;
+
+    let rewrite = await complete(firstPrompt);
+    if (!rewrite) {
+      this.logger.warn(
+        `Post rewrite returned no text for platform ${platform} (model ${DEFAULT_MINI_TEXT_MODEL})`,
+      );
+      throw new ServiceUnavailableException(
+        'The AI returned no text for this rewrite. Try again.',
+      );
+    }
+
+    if (limit !== undefined) {
+      const length = measurePlatformText(rewrite, platform);
+      if (length > limit) {
+        // One corrective pass that names the measured overrun, then refuse:
+        // a post over the limit cannot be published as written.
+        rewrite = await complete(
+          `${firstPrompt}\n\nYour previous attempt counted ${length}, over the limit of ${limit}. Rewrite it shorter, keeping it a complete post, and return only the post text.`,
+        );
+        if (!rewrite || measurePlatformText(rewrite, platform) > limit) {
+          throw new UnprocessableEntityException(
+            `The rewrite does not fit the ${limit}-character limit for ${platform}. Shorten the instruction or the draft and try again.`,
+          );
+        }
+      }
+    }
+
+    return rewrite;
   }
 
   /** Generate hook variations for a topic/platform. Throws on AI failure; caller maps the error onto the HTTP boundary. */

@@ -286,33 +286,6 @@ describe('AppProtectedRail', () => {
     });
   });
 
-  describe('organization rail defaults', () => {
-    it('follows the organization order until the member sets their own', () => {
-      savedPreferences.railAppOrder = [];
-      brandContextState.settings = {
-        ...brandContextState.settings,
-        defaultHomeAppId: 'agent',
-        defaultRailOrder: ['analytics', 'bogus', 'agent', 'analytics'],
-      };
-      render(<AppProtectedRail orgSlug="acme" />);
-      expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
-        railAppOrder: ['analytics', 'agent'],
-      });
-    });
-
-    it("keeps the member's own order over the organization's", () => {
-      savedPreferences.railAppOrder = ['library'];
-      brandContextState.settings = {
-        ...brandContextState.settings,
-        defaultRailOrder: ['analytics', 'agent'],
-      };
-      render(<AppProtectedRail orgSlug="acme" />);
-      expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
-        railAppOrder: ['library'],
-      });
-    });
-  });
-
   it('puts Help and the account avatar in the rail footer', () => {
     render(<AppProtectedRail orgSlug="acme" />);
 

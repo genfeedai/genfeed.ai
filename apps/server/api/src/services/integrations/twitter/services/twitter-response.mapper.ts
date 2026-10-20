@@ -109,6 +109,7 @@ interface TwitterAnalyticsTweet {
   id?: string;
   non_public_metrics?: TwitterMetrics;
   organic_metrics?: TwitterMetrics;
+  promoted_metrics?: TwitterMetrics;
   public_metrics?: TwitterMetrics;
 }
 
@@ -117,6 +118,11 @@ export interface TwitterAnalyticsResponse {
   includes?: {
     media?: TwitterMediaItem[];
   };
+  /**
+   * The authenticated account's pinned post. `undefined` means the lookup did
+   * not run or failed; `null` means the account has no pinned post.
+   */
+  pinnedTweetId?: string | null;
 }
 
 export interface TwitterAnalyticsResult {
@@ -200,6 +206,7 @@ export class TwitterResponseMapper {
     return this.mapTweetAnalytics(
       result.data?.[0],
       result.includes?.media ?? [],
+      result.pinnedTweetId,
     );
   }
 
@@ -224,7 +231,10 @@ export class TwitterResponseMapper {
         return item ? [item] : [];
       });
 
-      analyticsByTweet.set(tweet.id, this.mapTweetAnalytics(tweet, media));
+      analyticsByTweet.set(
+        tweet.id,
+        this.mapTweetAnalytics(tweet, media, result.pinnedTweetId),
+      );
     }
 
     return analyticsByTweet;
@@ -241,6 +251,7 @@ export class TwitterResponseMapper {
   private mapTweetAnalytics(
     tweet: TwitterAnalyticsTweet | undefined,
     media: TwitterMediaItem[],
+    pinnedTweetId?: string | null,
   ): TwitterAnalyticsResult {
     const metrics = tweet?.public_metrics ?? {};
     const nonPublicMetrics = tweet?.non_public_metrics ?? {};
@@ -257,6 +268,7 @@ export class TwitterResponseMapper {
         ...nonPublicMetrics,
         ...organicMetrics,
         view_count: videoViews ?? metrics.view_count,
+        ...this.learningProvenance(tweet, pinnedTweetId),
       },
       {
         views: 'view_count',
@@ -296,6 +308,39 @@ export class TwitterResponseMapper {
       quotes: metrics.quote_count || 0,
       retweets: metrics.retweet_count || 0,
       views: learningMetrics.metrics.views?.value ?? 0,
+    };
+  }
+
+  /**
+   * Learning rewards only count organic, unpinned posts, and treat an
+   * unproven flag as ineligible, so each flag is set only when X proved it.
+   * Promoted metrics exist only for promoted posts, and private metrics are
+   * served only to the author's own user token, so a post that returned
+   * private metrics without promoted ones was organic. A post served without
+   * private metrics leaves `isPaid` unknown.
+   */
+  private learningProvenance(
+    tweet: TwitterAnalyticsTweet | undefined,
+    pinnedTweetId: string | null | undefined,
+  ): { isPaid?: boolean; isPinned?: boolean } {
+    if (!tweet?.id) {
+      return {};
+    }
+
+    const hasPrivateMetrics =
+      tweet.non_public_metrics != null || tweet.organic_metrics != null;
+    let isPaid: boolean | undefined;
+    if (tweet.promoted_metrics != null) {
+      isPaid = true;
+    } else if (hasPrivateMetrics) {
+      isPaid = false;
+    }
+
+    return {
+      ...(isPaid === undefined ? {} : { isPaid }),
+      ...(pinnedTweetId === undefined
+        ? {}
+        : { isPinned: tweet.id === pinnedTweetId }),
     };
   }
 

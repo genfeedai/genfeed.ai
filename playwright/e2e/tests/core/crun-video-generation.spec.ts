@@ -11,6 +11,7 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import { brandPath } from '../../utils/app-chrome';
+import { confirmGenerationSpend } from '../../utils/generation-setup';
 import {
   assertNoErrorBoundaryFallback,
   expectNoErrorOverlay,
@@ -410,9 +411,20 @@ async function installFixture(
   await editor.fill('A ceramic bird on a desk');
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
-async function expectGenerationSetup(page: Page, summary: string) {
-  const setup = page.getByRole('button', { name: /^Generation setup:/ });
-  await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
+// The setup summary is spread over the chips: Model carries the model name and
+// Output the ratio, duration and count. A narrow bar drops the chip text, so
+// read the summary from the title, which the chip always keeps.
+async function expectGenerationSetup(
+  page: Page,
+  summary: { model: string; output: string },
+) {
+  const chips = page.getByTestId('generation-setup-section-chips');
+  await expect(
+    chips.getByRole('button', { name: 'Configure Model', exact: true }),
+  ).toHaveAttribute('title', `Model: ${summary.model}`);
+  await expect(
+    chips.getByRole('button', { name: 'Configure Output', exact: true }),
+  ).toHaveAttribute('title', `Output: ${summary.output}`);
 }
 // Advanced mode lists Model/Output/Look as chips in the prompt-bar toolbar;
 // each chip opens only its own section.
@@ -422,16 +434,14 @@ async function openConfiguration(page: Page, section: string) {
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
-// #6775: per-model Crun controls live in the Output chip's popover (Advanced
+// #6775: per-model Crun controls live in the Output chip's menu (Advanced
 // mode), not in the prompt-bar toolbar itself.
 async function openOutputControls(page: Page) {
   await openConfiguration(page, 'Output');
 }
 async function closeGenerationSetup(page: Page) {
   await page.keyboard.press('Escape');
-  await expect(
-    page.getByRole('dialog', { name: 'Output', exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('menu')).toHaveCount(0);
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {
   const generate = page
@@ -550,6 +560,7 @@ for (const key of [klingKey, veoKey]) {
     });
     await expect(generate).toBeEnabled();
     await generate.dblclick();
+    await confirmGenerationSpend(page);
     await expect.poll(() => fixture.consumes.length).toBe(1);
     const quote = fixture.previews.at(-1);
     expect(quote?.crunControls).toEqual({
@@ -601,7 +612,10 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
   expect(fixture.previews.at(-1)?.crunControls).not.toHaveProperty(
     'aspectRatio',
   );
-  await expectGenerationSetup(page, 'Kling 2.5 Turbo Pro · 16:9 · 5s');
+  await expectGenerationSetup(page, {
+    model: 'Kling 2.5 Turbo Pro',
+    output: '16:9 · 5s',
+  });
   await openConfiguration(page, 'Output');
   await expect(
     page.getByText('Aspect ratio comes from the frames', { exact: true }),
@@ -665,6 +679,7 @@ test('expired video admission reports the error and never retries automatically'
       response.status() === 409,
   );
   await generate.click();
+  await confirmGenerationSpend(page);
   await rejection;
   const errorToast = page
     .locator('[data-sonner-toast][data-type="error"]')

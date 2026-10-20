@@ -12,7 +12,26 @@ vi.mock('twitter-api-v2', () => ({
   }),
 }));
 
-const PRIVATE_FIELDS = 'public_metrics,non_public_metrics,organic_metrics';
+const PRIVATE_FIELDS =
+  'public_metrics,non_public_metrics,organic_metrics,promoted_metrics';
+
+/** Serves `users/me` from `pinned` and queues the `tweets` responses in order. */
+function mockUserClient(
+  tweetResponses: unknown[],
+  pinned: unknown = { data: { id: 'me' } },
+) {
+  const queue = [...tweetResponses];
+  mockUserGet.mockImplementation(async (path: string) => {
+    if (path === 'users/me') {
+      if (pinned instanceof Error) throw pinned;
+      return pinned;
+    }
+    return queue.length > 1 ? queue.shift() : queue[0];
+  });
+}
+
+const tweetsCalls = () =>
+  mockUserGet.mock.calls.filter(([path]) => path === 'tweets');
 
 function tweet(id: string, extra: Record<string, unknown> = {}) {
   return {
@@ -51,21 +70,23 @@ describe('TwitterAnalyticsService', () => {
   });
 
   it('uses an OAuth2 user client and requests the private metrics', async () => {
-    mockUserGet.mockResolvedValue({
-      data: [
-        tweet('t1', {
-          non_public_metrics: { impression_count: 1200 },
-          organic_metrics: { impression_count: 1000 },
-        }),
-      ],
-    });
+    mockUserClient([
+      {
+        data: [
+          tweet('t1', {
+            non_public_metrics: { impression_count: 1200 },
+            organic_metrics: { impression_count: 1000 },
+          }),
+        ],
+      },
+    ]);
 
     const result = await service.getMediaAnalyticsBatch(['t1'], 'oauth2-token');
 
     expect(TwitterApi).toHaveBeenCalledWith('oauth2-token');
     expect(resolveDefaultClient).not.toHaveBeenCalled();
     expect(bearerGet).not.toHaveBeenCalled();
-    expect(mockUserGet).toHaveBeenCalledOnce();
+    expect(tweetsCalls()).toHaveLength(1);
     expect(mockUserGet).toHaveBeenCalledWith('tweets', {
       expansions: 'attachments.media_keys',
       ids: 't1',
@@ -115,19 +136,20 @@ describe('TwitterAnalyticsService', () => {
   });
 
   it('re-reads posts X withheld private metrics for with public metrics', async () => {
-    mockUserGet
-      .mockResolvedValueOnce({
+    mockUserClient([
+      {
         data: [tweet('recent', { organic_metrics: { impression_count: 900 } })],
         errors: [{ resource_id: 'old', title: 'Field Authorization Error' }],
-      })
-      .mockResolvedValueOnce({ data: [tweet('old')] });
+      },
+      { data: [tweet('old')] },
+    ]);
 
     const result = await service.getMediaAnalyticsBatch(
       ['recent', 'old'],
       'oauth2-token',
     );
 
-    expect(mockUserGet).toHaveBeenCalledTimes(2);
+    expect(tweetsCalls()).toHaveLength(2);
     expect(mockUserGet).toHaveBeenLastCalledWith('tweets', {
       expansions: 'attachments.media_keys',
       ids: 'old',
@@ -136,5 +158,119 @@ describe('TwitterAnalyticsService', () => {
     });
     expect(result.get('recent')?.impressions).toBe(900);
     expect(result.get('old')?.impressions).toBe(300);
+  });
+
+  describe('learning provenance', () => {
+    const ownerMetrics = { organic_metrics: { impression_count: 900 } };
+
+    it('marks owner-served, unpromoted, unpinned posts organic', async () => {
+      mockUserClient([{ data: [tweet('t1', ownerMetrics)] }], {
+        data: { id: 'me', pinned_tweet_id: 'other' },
+      });
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      expect(mockUserGet).toHaveBeenCalledWith('users/me', {
+        'user.fields': 'pinned_tweet_id',
+      });
+      const learning = result.get('t1')?.learningMetrics;
+      expect(learning?.isPaid).toBe(false);
+      expect(learning?.isPinned).toBe(false);
+    });
+
+    it('flags promoted posts as paid', async () => {
+      mockUserClient([
+        {
+          data: [
+            tweet('t1', {
+              ...ownerMetrics,
+              promoted_metrics: { impression_count: 50 },
+            }),
+          ],
+        },
+      ]);
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      expect(result.get('t1')?.learningMetrics?.isPaid).toBe(true);
+    });
+
+    it('flags the pinned post as pinned', async () => {
+      mockUserClient([{ data: [tweet('t1', ownerMetrics)] }], {
+        data: { id: 'me', pinned_tweet_id: 't1' },
+      });
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      expect(result.get('t1')?.learningMetrics?.isPinned).toBe(true);
+    });
+
+    it('treats an account without a pinned post as unpinned', async () => {
+      mockUserClient([{ data: [tweet('t1', ownerMetrics)] }]);
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      expect(result.get('t1')?.learningMetrics?.isPinned).toBe(false);
+    });
+
+    it('leaves pinned status unknown when the lookup fails', async () => {
+      mockUserClient(
+        [{ data: [tweet('t1', ownerMetrics)] }],
+        new Error('rate limited'),
+      );
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      const learning = result.get('t1')?.learningMetrics;
+      expect(learning?.isPinned).toBeUndefined();
+      expect(learning?.isPaid).toBe(false);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('leaves paid status unknown for posts served without private metrics', async () => {
+      mockUserClient([
+        {
+          data: [tweet('recent', ownerMetrics)],
+          errors: [{ resource_id: 'old', title: 'Field Authorization Error' }],
+        },
+        { data: [tweet('old')] },
+      ]);
+
+      const result = await service.getMediaAnalyticsBatch(
+        ['recent', 'old'],
+        'token',
+      );
+
+      expect(result.get('recent')?.learningMetrics?.isPaid).toBe(false);
+      expect(result.get('old')?.learningMetrics?.isPaid).toBeUndefined();
+    });
+
+    it('treats null metric groups as absent, never as evidence', async () => {
+      mockUserClient([
+        {
+          data: [
+            tweet('t1', {
+              non_public_metrics: null,
+              organic_metrics: null,
+              promoted_metrics: null,
+            }),
+          ],
+        },
+      ]);
+
+      const result = await service.getMediaAnalyticsBatch(['t1'], 'token');
+
+      expect(result.get('t1')?.learningMetrics?.isPaid).toBeUndefined();
+    });
+
+    it('never claims organic from the app bearer', async () => {
+      bearerGet.mockResolvedValue({ data: [tweet('t1')] });
+
+      const result = await service.getMediaAnalyticsBatch(['t1']);
+
+      const learning = result.get('t1')?.learningMetrics;
+      expect(learning?.isPaid).toBeUndefined();
+      expect(learning?.isPinned).toBeUndefined();
+    });
   });
 });

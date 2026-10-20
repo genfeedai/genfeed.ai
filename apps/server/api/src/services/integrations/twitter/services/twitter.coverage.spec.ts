@@ -1185,14 +1185,16 @@ describe('TwitterService (coverage)', () => {
       const result = await service.getMediaAnalytics('tid', 'user-at');
 
       expect(TwitterApi).toHaveBeenCalledWith('user-at');
-      expect(mockV2Get).toHaveBeenCalledOnce();
       expect(mockV2Get).toHaveBeenCalledWith(
         'tweets',
         expect.objectContaining({
           'tweet.fields':
-            'public_metrics,non_public_metrics,organic_metrics,attachments',
+            'public_metrics,non_public_metrics,organic_metrics,promoted_metrics,attachments',
         }),
       );
+      expect(mockV2Get).toHaveBeenCalledWith('users/me', {
+        'user.fields': 'pinned_tweet_id',
+      });
       expect(result.likes).toBe(10);
       expect(result.retweets).toBe(4);
     });

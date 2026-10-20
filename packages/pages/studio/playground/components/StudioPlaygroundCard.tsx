@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   IngredientStatus,
   ViewType,
 } from '@genfeedai/contracts';
@@ -12,6 +13,7 @@ import type {
   IMetadata,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
+import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioPlaygroundCardProps } from '@genfeedai/props/studio/studio-playground.props';
@@ -21,6 +23,7 @@ import { studioAssetAccessibleLabel } from '@pages/studio/playground/utils/studi
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import TileBadge from '@ui/display/badge/Badge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
@@ -34,6 +37,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   AlertTriangle,
+  Film,
   GitBranch,
   ImageOff,
   ImagePlus,
@@ -212,6 +216,13 @@ export default function StudioPlaygroundCard({
   const unbrandedMode =
     brandMode === 'raw' || brandMode === 'provisional_brand'
       ? brandMode
+      : undefined;
+
+  const isVideo = VIDEO_TYPES.has(job.type);
+  const ingredientMetadata = job.ingredient?.metadata;
+  const videoDuration =
+    isVideo && typeof ingredientMetadata === 'object'
+      ? ingredientMetadata?.duration
       : undefined;
 
   const handleMediaError = useCallback(() => {
@@ -559,22 +570,36 @@ export default function StudioPlaygroundCard({
             reference, clips and source. */}
         {isListView ? (
           renderDetails(!job.ingredient)
-        ) : job.ingredient ? (
-          <>
-            {unbrandedMode ? (
-              <BrandModeBadge
-                brandMode={unbrandedMode}
-                className="pointer-events-none absolute top-1.5 left-1.5 z-10"
-              />
-            ) : null}
-            <IngredientTileOverlays
-              ingredient={job.ingredient}
-              isReviewEnabled
-              onReviewUpdated={assetActions.onRefresh}
-            />
-          </>
         ) : (
-          renderHoverDetails(true)
+          <>
+            {/* Always visible, so a still poster never reads as an image. */}
+            {isVideo || (job.ingredient && unbrandedMode) ? (
+              <div className="pointer-events-none absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
+                {isVideo ? (
+                  <TileBadge
+                    icon={<Film aria-hidden="true" className="size-3" />}
+                    size={ComponentSize.SM}
+                    variant="slate"
+                  >
+                    <span className="sr-only">{translate('videoBadge')}</span>
+                    {videoDuration ? formatDuration(videoDuration) : null}
+                  </TileBadge>
+                ) : null}
+                {job.ingredient && unbrandedMode ? (
+                  <BrandModeBadge brandMode={unbrandedMode} />
+                ) : null}
+              </div>
+            ) : null}
+            {job.ingredient ? (
+              <IngredientTileOverlays
+                ingredient={job.ingredient}
+                isReviewEnabled
+                onReviewUpdated={assetActions.onRefresh}
+              />
+            ) : (
+              renderHoverDetails(true)
+            )}
+          </>
         )}
       </article>
     );

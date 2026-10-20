@@ -10,7 +10,12 @@ import type { Route, WebSocketRoute } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
-import { selectAdvancedModel } from '../../utils/generation-setup';
+import {
+  confirmGenerationSpend,
+  mockGenerationQuote,
+  selectAdvancedModel,
+  spendConfirmation,
+} from '../../utils/generation-setup';
 
 const pixel = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=',
@@ -36,6 +41,7 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
     Object.assign(window, { __playwright_socket_fixture: true }),
   );
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockGenerationQuote(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   let socket: WebSocketRoute | undefined;
   await page.routeWebSocket('**/socket.io/**', (connection) => {
@@ -262,8 +268,12 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
     currentId = `feedback-result-${i}`;
     admission = undefined;
     await editor.fill(`Fixture sample ${i}`);
-    await observe('[data-testid^="studio-asset-submitting-"]', 'pending');
     await page.getByRole('button', { name: 'Generate', exact: true }).click();
+    // The price confirmation is the operator's decision, so the timer starts at
+    // the confirming click and measures only what the product controls.
+    await expect(spendConfirmation(page)).toBeVisible();
+    await observe('[data-testid^="studio-asset-submitting-"]', 'pending');
+    await confirmGenerationSpend(page);
     pending.push(await readDuration());
     await expect.poll(() => Boolean(admission)).toBe(true);
     await admission?.fulfill({

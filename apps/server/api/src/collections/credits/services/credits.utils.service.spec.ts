@@ -19,7 +19,7 @@ import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditsUtilsService', () => {
-  const loggerService = { error: vi.fn(), log: vi.fn() };
+  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const prisma = {
     brand: { findFirst: vi.fn() },
     creditTransaction: { findFirst: vi.fn() },
@@ -858,6 +858,96 @@ describe('CreditsUtilsService', () => {
         service.checkOrganizationCreditsAvailable('org_1', 0),
       ).resolves.toBe(true);
       expect(freeTrialService.isTrialExpired).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('wallet balance events', () => {
+    const reserveInput = {
+      actorUserId: 'user_1',
+      amount: 64,
+      description: 'Video',
+      idempotencyKey: 'reserve-1',
+      organizationId: 'org_1',
+      source: ActivitySource.VIDEO_GENERATION,
+      workloadId: 'ingredient_1',
+      workloadType: 'media-generation',
+    };
+
+    it('publishes the spendable balance once a hold lowers it', async () => {
+      const service = buildService();
+      creditReservationService.reserve.mockResolvedValueOnce({ id: 'res_1' });
+      creditBalanceService.getOrCreateBalance.mockResolvedValueOnce({
+        balance: 100,
+        billingAccountId: 'ba_1',
+        heldAmount: 64,
+        id: 'bal_1',
+        organizationId: 'org_1',
+        version: 2,
+      });
+
+      await service.reserveCredits(reserveInput);
+
+      expect(websocketService.emit).toHaveBeenCalledWith('/credits/org_1', {
+        balance: 36,
+      });
+      expect(
+        creditReservationService.reserve.mock.invocationCallOrder[0],
+      ).toBeLessThan(websocketService.emit.mock.invocationCallOrder[0]);
+    });
+
+    it('publishes the settled snapshot balance', async () => {
+      const service = buildService();
+      creditReservationService.settle.mockResolvedValueOnce({
+        available: 36,
+        held: 0,
+        settled: 36,
+      });
+
+      await service.settleReservation({
+        actualAmount: 64,
+        organizationId: 'org_1',
+        reservationId: 'res_1',
+      } as Parameters<CreditsUtilsService['settleReservation']>[0]);
+
+      expect(websocketService.emit).toHaveBeenCalledWith('/credits/org_1', {
+        balance: 36,
+      });
+    });
+
+    it('publishes the refunded balance when a hold is released', async () => {
+      const service = buildService();
+      creditReservationService.release.mockResolvedValueOnce({
+        available: 100,
+        held: 0,
+        settled: 100,
+      });
+
+      await service.releaseReservation({
+        organizationId: 'org_1',
+        reservationId: 'res_1',
+      } as Parameters<CreditsUtilsService['releaseReservation']>[0]);
+
+      expect(websocketService.emit).toHaveBeenCalledWith('/credits/org_1', {
+        balance: 100,
+      });
+    });
+
+    it('never fails billing when the balance event cannot be published', async () => {
+      const service = buildService();
+      creditReservationService.release.mockResolvedValueOnce({
+        available: 100,
+        held: 0,
+        settled: 100,
+      });
+      websocketService.emit.mockRejectedValueOnce(new Error('redis down'));
+
+      await expect(
+        service.releaseReservation({
+          organizationId: 'org_1',
+          reservationId: 'res_1',
+        } as Parameters<CreditsUtilsService['releaseReservation']>[0]),
+      ).resolves.toMatchObject({ available: 100 });
+      expect(loggerService.warn).toHaveBeenCalled();
     });
   });
 

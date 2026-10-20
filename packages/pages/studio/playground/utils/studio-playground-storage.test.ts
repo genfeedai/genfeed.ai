@@ -1,4 +1,5 @@
 import { RouterPriority } from '@genfeedai/contracts';
+import { DEFAULT_IMAGE_EDIT_MODEL_KEY } from '@genfeedai/contracts/constants';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { describe, expect, it } from 'vitest';
 import {
@@ -10,7 +11,7 @@ import {
 } from './studio-playground-storage';
 
 describe('getDefaultStudioPlaygroundState', () => {
-  it('seeds every type with brand enrichment on and auto routing', () => {
+  it('seeds every type with brand enrichment on, auto routing, and Ideogram 4.5 for editing', () => {
     const state = getDefaultStudioPlaygroundState();
 
     expect(state.type).toBe('image');
@@ -23,9 +24,13 @@ describe('getDefaultStudioPlaygroundState', () => {
       'voice',
     ]);
 
-    for (const settings of Object.values(state.settingsByType)) {
+    for (const [type, settings] of Object.entries(state.settingsByType)) {
       expect(settings.brandingMode).toBe('brand');
-      expect(settings.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
+      expect(settings.modelKey).toBe(
+        type === 'image-edit'
+          ? DEFAULT_IMAGE_EDIT_MODEL_KEY
+          : AUTO_MODEL_OPTION_VALUE,
+      );
       expect(settings.prioritize).toBe(RouterPriority.BALANCED);
     }
   });

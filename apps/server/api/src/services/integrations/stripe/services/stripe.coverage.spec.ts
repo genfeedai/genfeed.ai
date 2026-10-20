@@ -157,7 +157,7 @@ describe('StripeService — coverage spec', () => {
   });
 
   describe('production subscription price validation', () => {
-    it('accepts the configured Agencies price when its Stripe data matches the tier contract', async () => {
+    it('accepts the configured Scale price when its Stripe data matches the tier contract', async () => {
       const retrieve = vi
         .spyOn(service.stripe.prices, 'retrieve')
         .mockResolvedValue({
@@ -181,7 +181,7 @@ describe('StripeService — coverage spec', () => {
       );
     });
 
-    it('accepts an otherwise valid Agencies price without credit metadata so the published tier fallback applies', async () => {
+    it('accepts an otherwise valid Scale price without credit metadata so the published tier fallback applies', async () => {
       vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
         active: true,
         currency: 'usd',
@@ -205,34 +205,31 @@ describe('StripeService — coverage spec', () => {
         'wrong credit grant',
         { metadata: { included_monthly_credits: '8000' } },
       ],
-    ])(
-      'fails closed for a Agencies price with %s',
-      async (_label, override) => {
-        vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
-          active: true,
-          currency: 'usd',
-          id: 'scale_id',
-          metadata: { included_monthly_credits: '60000' },
-          recurring: { interval: 'month', interval_count: 1 },
-          unit_amount: 49_900,
-          ...override,
-        } as unknown as Stripe.Response<Stripe.Price>);
+    ])('fails closed for a Scale price with %s', async (_label, override) => {
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+        active: true,
+        currency: 'usd',
+        id: 'scale_id',
+        metadata: { included_monthly_credits: '60000' },
+        recurring: { interval: 'month', interval_count: 1 },
+        unit_amount: 49_900,
+        ...override,
+      } as unknown as Stripe.Response<Stripe.Price>);
 
-        const error = await service
-          .validateSubscriptionPriceForTier('scale_id', 'scale')
-          .catch((caught: unknown) => caught);
+      const error = await service
+        .validateSubscriptionPriceForTier('scale_id', 'scale')
+        .catch((caught: unknown) => caught);
 
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe(
-          'Production subscription price configuration is invalid',
-        );
-        expect(JSON.stringify(loggerMock.error.mock.calls)).not.toContain(
-          'scale_id',
-        );
-      },
-    );
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe(
+        'Production subscription price configuration is invalid',
+      );
+      expect(JSON.stringify(loggerMock.error.mock.calls)).not.toContain(
+        'scale_id',
+      );
+    });
 
-    it('fails production startup when the Agencies price is missing without calling Stripe', async () => {
+    it('fails production startup when the Scale price is missing without calling Stripe', async () => {
       const configGet = buildConfigGet();
       configGet.mockImplementation((key: string) => {
         if (key === 'NODE_ENV') return 'production';
@@ -249,7 +246,7 @@ describe('StripeService — coverage spec', () => {
       expect(retrieve).not.toHaveBeenCalled();
     });
 
-    it('fails production startup when the Agencies price identifier is malformed', async () => {
+    it('fails production startup when the Scale price identifier is malformed', async () => {
       const configGet = buildConfigGet();
       configGet.mockImplementation((key: string) => {
         if (key === 'NODE_ENV') return 'production';

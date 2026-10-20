@@ -17,6 +17,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { TOPBAR_BALANCES_REFRESH_EVENT } from '@hooks/data/billing/use-topbar-balances/request-topbar-balances-refresh';
 import { useDesktopRuntimeContext } from '@hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -33,9 +34,6 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 /** A socket balance is optimistic; reconcile it against the API shortly after. */
 const SOCKET_RECONCILE_DELAY_MS = 1500;
 const TOPBAR_BALANCES_STALE_TIME_MS = 30_000;
-
-/** Any surface can ask the shell to re-read the wallet after spending credits. */
-const REFRESH_EVENT = 'genfeed:topbar-balances:refresh';
 
 /** A cancelled or deliberately silenced request is not worth a log line. */
 interface OptionalBalanceRequestError {
@@ -171,6 +169,11 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
       }
     },
     queryKey,
+    // A tab left open while another one spends credits misses the socket event
+    // whenever its connection was asleep. Coming back to it re-reads a wallet
+    // older than the stale window, so the chip is right without a reload.
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
     // A balance chip does not earn a second round trip when the first fails.
     // The socket and the refresh event both recover it.
     retry: false,
@@ -233,10 +236,10 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
       if (isEnabled && isCurrentScope()) void refetch();
     };
 
-    window.addEventListener(REFRESH_EVENT, handleRefresh);
+    window.addEventListener(TOPBAR_BALANCES_REFRESH_EVENT, handleRefresh);
 
     return () => {
-      window.removeEventListener(REFRESH_EVENT, handleRefresh);
+      window.removeEventListener(TOPBAR_BALANCES_REFRESH_EVENT, handleRefresh);
     };
   }, [isEnabled, refetch, isCurrentScope]);
 

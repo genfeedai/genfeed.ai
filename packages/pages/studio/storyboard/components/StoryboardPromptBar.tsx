@@ -25,7 +25,6 @@ export default function StoryboardPromptBar({
       className="pt-6"
       layoutMode="sticky-bottom"
       maxWidth="4xl"
-      showTopFade
       topContent={
         error ? (
           <div className="mb-2 flex flex-wrap items-center gap-2">

@@ -20,6 +20,8 @@ export interface BotActivityDocument extends Omit<BotActivity, 'data'> {
   intentSource?: ReplyIntentSource;
   /** Queued for a person rather than auto-replied or auto-skipped (#4866). */
   isIntentNeedsReview?: boolean;
+  /** Reply drafted for a person to post (`awaiting_approval`). */
+  draftReplyText?: string;
   processedAt?: Date | null;
   replyText?: string;
   replyTweetId?: string;
@@ -27,5 +29,8 @@ export interface BotActivityDocument extends Omit<BotActivity, 'data'> {
   replyTweetUrl?: string;
   skipReason?: string;
   status?: string;
+  triggerTweetAuthorUsername?: string;
+  triggerTweetId?: string;
+  triggerTweetText?: string;
   [key: string]: unknown;
 }

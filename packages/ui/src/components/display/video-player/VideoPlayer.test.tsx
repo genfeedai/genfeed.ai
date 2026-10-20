@@ -143,6 +143,58 @@ describe('VideoPlayer', () => {
     expect(requestFullscreen).toHaveBeenCalledOnce();
   });
 
+  describe('total duration when metadata is already loaded (#7682)', () => {
+    function stubLoadedMedia(duration: number, readyState = 4) {
+      vi.spyOn(HTMLMediaElement.prototype, 'duration', 'get').mockReturnValue(
+        duration,
+      );
+      vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(
+        readyState,
+      );
+    }
+
+    it('shows the real total and enables seeking when loadedmetadata fired before mount settled', () => {
+      stubLoadedMedia(10.125);
+      render(<VideoPlayer src="https://cdn.test/done.mp4" />);
+
+      const slider = screen.getByRole('slider', { name: 'Seek video' });
+      expect(slider).toHaveAttribute('aria-valuemax', '10.125');
+      expect(slider).not.toBeDisabled();
+      expect(screen.getByText(/\/ 0:10/)).toBeInTheDocument();
+    });
+
+    it('re-syncs when the source changes on an already loaded element', () => {
+      stubLoadedMedia(10.125);
+      const { rerender } = render(<VideoPlayer src="https://cdn.test/a.mp4" />);
+      rerender(<VideoPlayer src="https://cdn.test/a.mp4?grant=2" />);
+
+      expect(
+        screen.getByRole('slider', { name: 'Seek video' }),
+      ).toHaveAttribute('aria-valuemax', '10.125');
+    });
+
+    it('keeps the total once playback has ended', () => {
+      stubLoadedMedia(10.125);
+      render(<VideoPlayer src="https://cdn.test/done.mp4" />);
+      const video = screen.getByLabelText('Video player') as HTMLVideoElement;
+      video.currentTime = 10.125;
+      fireEvent.timeUpdate(video);
+      fireEvent.ended(video);
+
+      expect(screen.getByText(/0:10 \/ 0:10/)).toBeInTheDocument();
+    });
+
+    it('shows no total while the media length is still unknown', () => {
+      stubLoadedMedia(Number.POSITIVE_INFINITY);
+      render(<VideoPlayer src="https://cdn.test/stream.webm" />);
+
+      expect(
+        screen.getByRole('slider', { name: 'Seek video' }),
+      ).toHaveAttribute('aria-valuemax', '1');
+      expect(screen.getByText(/\/ 0:00/)).toBeInTheDocument();
+    });
+  });
+
   it('keeps silent previews control-free and resets failed state when the source changes', () => {
     const onError = vi.fn();
     const { rerender } = render(

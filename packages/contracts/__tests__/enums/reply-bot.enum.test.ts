@@ -63,8 +63,8 @@ describe('reply-bot.enum', () => {
   });
 
   describe('BotActivityStatus', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(BotActivityStatus)).toHaveLength(5);
+    it('should have 6 members', () => {
+      expect(Object.values(BotActivityStatus)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
@@ -73,12 +73,13 @@ describe('reply-bot.enum', () => {
       expect(BotActivityStatus.COMPLETED).toBe('completed');
       expect(BotActivityStatus.FAILED).toBe('failed');
       expect(BotActivityStatus.SKIPPED).toBe('skipped');
+      expect(BotActivityStatus.AWAITING_APPROVAL).toBe('awaiting_approval');
     });
   });
 
   describe('BotActivitySkipReason', () => {
-    it('should have 6 members', () => {
-      expect(Object.values(BotActivitySkipReason)).toHaveLength(6);
+    it('should have 7 members', () => {
+      expect(Object.values(BotActivitySkipReason)).toHaveLength(7);
     });
 
     it('should have correct values', () => {
@@ -88,6 +89,7 @@ describe('reply-bot.enum', () => {
       expect(BotActivitySkipReason.ALREADY_PROCESSED).toBe('already_processed');
       expect(BotActivitySkipReason.BOT_PAUSED).toBe('bot_paused');
       expect(BotActivitySkipReason.OUTSIDE_SCHEDULE).toBe('outside_schedule');
+      expect(BotActivitySkipReason.DISMISSED).toBe('dismissed');
     });
   });
 });

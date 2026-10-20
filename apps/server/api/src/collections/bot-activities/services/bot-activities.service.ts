@@ -9,7 +9,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { BotActivityStatus } from '@genfeedai/contracts';
+import { BotActivitySkipReason, BotActivityStatus } from '@genfeedai/contracts';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -409,6 +409,7 @@ export class BotActivitiesService extends BaseService<
     id: string,
     organizationId: string,
     updateData: {
+      draftReplyText?: string;
       status?: BotActivityStatus;
       replyTweetId?: string;
       replyTweetUrl?: string;
@@ -421,6 +422,9 @@ export class BotActivitiesService extends BaseService<
   ): Promise<BotActivityDocument | null> {
     const update: Record<string, unknown> = {};
 
+    if (updateData.draftReplyText !== undefined) {
+      update.draftReplyText = updateData.draftReplyText;
+    }
     if (updateData.status !== undefined) {
       update.status = updateData.status;
     }
@@ -447,5 +451,97 @@ export class BotActivitiesService extends BaseService<
     }
 
     return this.patchActivity(scopedWhere(organizationId, { id }), update);
+  }
+
+  private manualReplyWhere(
+    organizationId: string,
+    brandId: string | null | undefined,
+    extra: Prisma.BotActivityWhereInput = {},
+  ): Prisma.BotActivityWhereInput {
+    return scopedWhere(organizationId, {
+      ...(brandId ? { brandId } : {}),
+      AND: [
+        { data: { equals: BotActivityStatus.COMPLETED, path: ['status'] } },
+        { data: { equals: true, path: ['isManuallyPosted'] } },
+      ],
+      ...extra,
+    });
+  }
+
+  /** Drafts waiting for a person to review and post them. */
+  countAwaitingApproval(
+    organizationId: string,
+    brandId: string | null | undefined,
+  ): Promise<number> {
+    return this.delegate.count({
+      where: scopedWhere(organizationId, {
+        ...(brandId ? { brandId } : {}),
+        data: { equals: BotActivityStatus.AWAITING_APPROVAL, path: ['status'] },
+      }),
+    });
+  }
+
+  /**
+   * Replies a person posted from the queue since `since`. Counted from the
+   * database so a restart can never reset the daily cap.
+   */
+  countManuallyPostedSince(
+    organizationId: string,
+    brandId: string | null | undefined,
+    since: Date,
+  ): Promise<number> {
+    return this.delegate.count({
+      where: this.manualReplyWhere(organizationId, brandId, {
+        updatedAt: { gte: since },
+      }),
+    });
+  }
+
+  async findLatestManuallyPostedAt(
+    organizationId: string,
+    brandId: string | null | undefined,
+  ): Promise<Date | null> {
+    const latest = (await this.delegate.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      where: this.manualReplyWhere(organizationId, brandId),
+    })) as { updatedAt: Date } | null;
+
+    return latest?.updatedAt ?? null;
+  }
+
+  /** The person edited the draft before opening it in X. */
+  updateDraft(
+    id: string,
+    organizationId: string,
+    draftReplyText: string,
+  ): Promise<BotActivityDocument | null> {
+    return this.patchActivity(scopedWhere(organizationId, { id }), {
+      draftReplyText,
+    });
+  }
+
+  /** The person posted the reply themselves in X. */
+  markManuallyPosted(
+    id: string,
+    organizationId: string,
+    replyText: string,
+  ): Promise<BotActivityDocument | null> {
+    return this.patchActivity(scopedWhere(organizationId, { id }), {
+      isManuallyPosted: true,
+      processedAt: new Date(),
+      replyTweetText: replyText,
+      status: BotActivityStatus.COMPLETED,
+    });
+  }
+
+  markDismissed(
+    id: string,
+    organizationId: string,
+  ): Promise<BotActivityDocument | null> {
+    return this.patchActivity(scopedWhere(organizationId, { id }), {
+      processedAt: new Date(),
+      skipReason: BotActivitySkipReason.DISMISSED,
+      status: BotActivityStatus.SKIPPED,
+    });
   }
 }

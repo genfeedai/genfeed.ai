@@ -20,11 +20,13 @@ interface TwitterApiErrorShape {
 const PUBLIC_METRIC_FIELDS = 'public_metrics';
 
 /**
- * `non_public_metrics` and `organic_metrics` need a user-context token and only
- * cover the authenticating account's own posts from the last 30 days.
+ * `non_public_metrics`, `organic_metrics` and `promoted_metrics` need a
+ * user-context token and only cover the authenticating account's own posts
+ * from the last 30 days. `promoted_metrics` is returned only for promoted
+ * posts, which is how organic posts are told apart from paid ones.
  */
 const USER_CONTEXT_METRIC_FIELDS =
-  'public_metrics,non_public_metrics,organic_metrics';
+  'public_metrics,non_public_metrics,organic_metrics,promoted_metrics';
 
 export class TwitterAnalyticsService {
   constructor(
@@ -105,8 +107,9 @@ export class TwitterAnalyticsService {
     // public metrics, so request them again without the private fields.
     const returnedIds = new Set((response.data ?? []).map((tweet) => tweet.id));
     const missingIds = tweetIds.filter((id) => !returnedIds.has(id));
+    const pinnedTweetId = await this.fetchPinnedTweetId(client);
     if (missingIds.length === 0) {
-      return response;
+      return { ...response, pinnedTweetId };
     }
 
     const fallback = await this.requestTweetMetrics(
@@ -122,7 +125,29 @@ export class TwitterAnalyticsService {
           ...(fallback.includes?.media ?? []),
         ],
       },
+      pinnedTweetId,
     };
+  }
+
+  /**
+   * Pinned posts are excluded from learning, so a failed lookup resolves to
+   * `undefined` (unknown) instead of failing the metrics collection.
+   */
+  private async fetchPinnedTweetId(
+    client: TwitterApi,
+  ): Promise<string | null | undefined> {
+    try {
+      const response = await client.v2.get<{
+        data?: { pinned_tweet_id?: string };
+      }>('users/me', { 'user.fields': 'pinned_tweet_id' });
+      return response.data?.pinned_tweet_id ?? null;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        'Twitter pinned post lookup failed; pinned status stays unknown',
+        error,
+      );
+      return undefined;
+    }
   }
 
   private requestTweetMetrics(
