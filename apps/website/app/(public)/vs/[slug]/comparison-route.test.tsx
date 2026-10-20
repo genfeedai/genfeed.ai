@@ -1,4 +1,7 @@
-import { getAllCompetitorSlugs } from '@data/competitors.data';
+import {
+  getAllCompetitorSlugs,
+  getCompetitorBySlug,
+} from '@data/competitors.data';
 import {
   Children,
   isValidElement,
@@ -6,10 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { describe, expect, it } from 'vitest';
-import {
-  formatCompetitorSlug,
-  getCompetitorBySlugCached,
-} from './competitor-loader';
+import { getCompetitorBySlugCached } from './competitor-loader';
 import Page, { generateMetadata, generateStaticParams } from './page';
 
 const EMPTY_PARENT = Promise.resolve({}) as unknown as Parameters<
@@ -31,11 +31,7 @@ function readJsonLdScripts(element: ReactNode): unknown[] {
     .map((script) => JSON.parse(String(script.props.children)));
 }
 
-describe('formatCompetitorSlug', () => {
-  it('title-cases every dash-separated word', () => {
-    expect(formatCompetitorSlug('opus-clip')).toBe('Opus Clip');
-  });
-});
+const KNOWN_NAME = getCompetitorBySlug(KNOWN_SLUG)?.name ?? '';
 
 describe('getCompetitorBySlugCached', () => {
   it('resolves a known slug and returns undefined for an unknown one', async () => {
@@ -60,7 +56,7 @@ describe('generateMetadata', () => {
       EMPTY_PARENT,
     );
 
-    const name = formatCompetitorSlug(KNOWN_SLUG);
+    const name = KNOWN_NAME;
     expect(String(meta.title)).toContain(`Genfeed vs ${name}`);
     expect(meta.description).toContain(name);
     expect(meta.alternates?.canonical).toContain(`/vs/${KNOWN_SLUG}`);
@@ -102,7 +98,7 @@ describe('comparison page route', () => {
       { itemListElement: Array<{ name: string }> },
     ];
 
-    const name = formatCompetitorSlug(KNOWN_SLUG);
+    const name = KNOWN_NAME;
     expect(comparisonJsonLd.about).toEqual({
       '@type': 'Thing',
       name: 'Genfeed',
@@ -121,6 +117,29 @@ describe('comparison page route', () => {
       'Comparisons',
       `vs ${name}`,
     ]);
+  });
+
+  it('uses the competitor display name, not the title-cased slug', async () => {
+    const meta = await generateMetadata(
+      { params: Promise.resolve({ slug: 'opus-clip' }) },
+      EMPTY_PARENT,
+    );
+
+    expect(String(meta.title)).toContain('Genfeed vs Opus Clip');
+  });
+
+  it('adds an FAQPage script built from the comparison data', async () => {
+    const element = await Page({
+      params: Promise.resolve({ slug: KNOWN_SLUG }),
+    });
+
+    const faq = readJsonLdScripts(element)[2] as {
+      '@type': string;
+      mainEntity: unknown[];
+    };
+
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity).toHaveLength(3);
   });
 
   it('answers with a 404 for an unknown competitor', async () => {

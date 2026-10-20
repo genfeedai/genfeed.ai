@@ -1,12 +1,10 @@
+import { buildComparisonFaqJsonLd } from '@data/comparison-faq-jsonld';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import ComparisonPage from '@public/vs/[slug]/comparison-page';
-import {
-  formatCompetitorSlug,
-  getCompetitorBySlugCached,
-} from '@public/vs/[slug]/competitor-loader';
+import { getCompetitorBySlugCached } from '@public/vs/[slug]/competitor-loader';
 import { EnvironmentService } from '@services/core/environment.service';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -22,7 +20,12 @@ export async function generateMetadata(
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { slug } = await params;
-  const competitorName = formatCompetitorSlug(slug);
+  const competitor = await getCompetitorBySlugCached(slug);
+  if (!competitor) {
+    notFound();
+  }
+
+  const competitorName = competitor.name;
   const title = `Genfeed vs ${competitorName} (2026): AI Content Platform Comparison`;
   const description = `Compare Genfeed with ${competitorName}. See how AI-powered content generation, pricing, features, and capabilities stack up side by side.`;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
@@ -63,7 +66,7 @@ export default async function Page({
     notFound();
   }
 
-  const competitorName = formatCompetitorSlug(slug);
+  const competitorName = competitor.name;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
   const description = `Compare Genfeed with ${competitorName}. See how AI-powered content generation, pricing, features, and capabilities stack up side by side.`;
 
@@ -115,6 +118,9 @@ export default async function Page({
       </script>
       <script type="application/ld+json">
         {stringifyJsonLd(breadcrumbJsonLd)}
+      </script>
+      <script type="application/ld+json">
+        {stringifyJsonLd(buildComparisonFaqJsonLd(competitor))}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <ComparisonPage competitor={competitor} />
