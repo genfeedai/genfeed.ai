@@ -60,18 +60,29 @@ test.describe('Agent dock', () => {
       await expect(
         dock.getByRole('textbox', { name: 'Conversation prompt' }),
       ).toBeVisible();
-      // The panel runs the full window height and sits beside the page.
+      // The panel starts under the full-width topbar, runs to the window
+      // bottom, and sits beside the page.
       const canvas = page.getByRole('region', {
         name: 'Primary workspace canvas',
       });
-      const [canvasBox, panelBox] = await Promise.all([
+      const [canvasBox, panelBox, topbarBox] = await Promise.all([
         canvas.boundingBox(),
         page.locator('#workspace-context-inspector').boundingBox(),
+        page.getByTestId('app-topbar-shell').boundingBox(),
       ]);
       expect(panelBox?.x ?? 0).toBeGreaterThanOrEqual(
         (canvasBox?.x ?? 0) + (canvasBox?.width ?? 0) - 1,
       );
-      expect(panelBox?.y ?? 1).toBeLessThanOrEqual(1);
+      const topbarBottom = (topbarBox?.y ?? 0) + (topbarBox?.height ?? 0);
+      expect(Math.abs((panelBox?.y ?? 0) - topbarBottom)).toBeLessThanOrEqual(
+        1,
+      );
+      expect(
+        (topbarBox?.x ?? 0) + (topbarBox?.width ?? 0),
+      ).toBeGreaterThanOrEqual((panelBox?.x ?? 0) + (panelBox?.width ?? 0) - 1);
+      expect(
+        (panelBox?.y ?? 0) + (panelBox?.height ?? 0),
+      ).toBeGreaterThanOrEqual(899);
 
       await page.keyboard.press(shortcut);
       await expect(dock).toHaveCount(0);
