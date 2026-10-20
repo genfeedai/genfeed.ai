@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /**
  * Pick a model in Advanced mode. Auto delegates routing, so an explicit model
