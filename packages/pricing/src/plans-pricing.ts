@@ -522,7 +522,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.hasOwn(PLAN_LABELS, tier)) {
+  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 
