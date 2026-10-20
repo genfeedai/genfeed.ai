@@ -235,7 +235,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       connect_social_account: '/settings/brands',
       generate_first_image: '/settings/api-keys',
       generate_first_video: '/settings/api-keys',
-      publish_first_post: '/agent/onboarding',
+      publish_first_post: '/agent/new',
     });
   });
 
