@@ -186,7 +186,7 @@ test.describe('Workflow templates & executions interactions', () => {
       .first()
       .click({ position: { x: 4, y: 4 } });
     const detailsLink = authenticatedPage
-      .getByRole('complementary', { name: 'Selection details' })
+      .getByRole('complementary', { name: 'Side panel' })
       .getByRole('link', { name: 'View Details', exact: true });
     await expect(detailsLink).toBeVisible({ timeout: 10_000 });
     await expect(detailsLink).toHaveAttribute('href', detailsHref);

@@ -84,7 +84,7 @@ test.describe('Campaign setup and responsive actions', () => {
       });
       // Nothing is selected, so no right column narrows the canvas.
       await expect(
-        page.getByRole('complementary', { name: 'Selection details' }),
+        page.getByRole('complementary', { name: 'Side panel' }),
       ).toBeHidden();
       const bounds = await canvas.boundingBox();
       if (!bounds) throw new Error('Campaign canvas has no visible bounds');
