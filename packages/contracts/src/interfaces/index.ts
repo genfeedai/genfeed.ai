@@ -269,6 +269,7 @@ export * from './notifications/system-notification-destination.interface';
 export * from './notifications/workspace-inbox-read.interface';
 export * from './onboarding/onboarding.interface';
 export * from './onboarding/onboarding-answers.interface';
+export * from './onboarding/onboarding-first-drafts.interface';
 export * from './onboarding/onboarding-journey.interface';
 export * from './onboarding/onboarding-wizard.interface';
 export * from './onboarding/signup-prefill.interface';

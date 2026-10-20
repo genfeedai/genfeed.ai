@@ -242,7 +242,7 @@ describe('OrgLandingContent', () => {
     ).toHaveAttribute('href', '/acme/moonrise/agent');
   });
 
-  it('routes incomplete Community users to the agent onboarding surface before a seeded project', async () => {
+  it('routes incomplete Community users to the onboarding page before a seeded project', async () => {
     mocks.currentUserState.currentUser = {
       id: 'user_1',
       isOnboardingCompleted: false,
@@ -260,7 +260,7 @@ describe('OrgLandingContent', () => {
     render(<OrgLandingContent />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
@@ -287,7 +287,7 @@ describe('OrgLandingContent', () => {
     });
   });
 
-  it('routes incomplete SaaS users to the agent onboarding surface', async () => {
+  it('routes incomplete SaaS users to the onboarding page', async () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -306,7 +306,7 @@ describe('OrgLandingContent', () => {
     render(<OrgLandingContent />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
@@ -510,7 +510,7 @@ describe('OrgLandingContent', () => {
     expect(screen.getByTestId('org-landing-redirecting')).toBeInTheDocument();
     expect(screen.queryByTestId('org-brands')).toBeNull();
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 });

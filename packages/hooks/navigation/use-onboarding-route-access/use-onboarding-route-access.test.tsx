@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useOnboardingRouteAccess } from './use-onboarding-route-access';
 
 const state = vi.hoisted(() => ({
-  isAgentFirst: true,
+  isSingleStep: true,
   accountType: 'CREATOR',
   steps: [] as string[],
   hasBilling: false,
@@ -16,7 +16,7 @@ const state = vi.hoisted(() => ({
   hasBrand: true,
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
-  hasAgentFirstOnboarding: () => state.isAgentFirst,
+  hasSingleStepOnboarding: () => state.isSingleStep,
   isCloudDeployment: () => false,
 }));
 vi.mock('@genfeedai/config/license', () => ({
@@ -59,12 +59,9 @@ vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ isLoaded: true, isSignedIn: true }),
 }));
-vi.mock('@hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
-  useFeatureFlag: () => true,
-}));
-describe('agent-first route access', () => {
+describe('onboarding route access', () => {
   beforeEach(() => {
-    state.isAgentFirst = true;
+    state.isSingleStep = true;
     state.accountType = 'CREATOR';
     state.steps = [];
     state.hasBilling = false;
@@ -75,28 +72,28 @@ describe('agent-first route access', () => {
     state.isSuperAdmin = false;
     state.hasBrand = true;
   });
-  it('allows the conversation before the brand step is complete', () => {
+  it('allows the onboarding page before the brand step is complete', () => {
     const { result } = renderHook(() =>
-      useOnboardingRouteAccess('/acme/~/agent/onboarding/thread-1'),
+      useOnboardingRouteAccess('/onboarding/brand'),
     );
     expect(result.current).toEqual({ canRender: true, redirectTarget: null });
   });
-  it('sends first-run workspace access to the conversation', () => {
+  it('sends first-run workspace access to the onboarding page', () => {
     const { result } = renderHook(() =>
       useOnboardingRouteAccess('/acme/brand/workspace'),
     );
-    expect(result.current.redirectTarget).toBe('/acme/~/agent/onboarding');
+    expect(result.current.redirectTarget).toBe('/onboarding/brand');
   });
-  it('resumes experts at positioning after the brand handoff', () => {
+  it('resumes experts at positioning after the brand step', () => {
     state.accountType = 'EXPERT';
     state.steps = ['brand'];
     const { result } = renderHook(() =>
-      useOnboardingRouteAccess('/acme/~/agent/onboarding'),
+      useOnboardingRouteAccess('/acme/brand/workspace'),
     );
     expect(result.current.redirectTarget).toBe('/onboarding/positioning');
   });
-  it('preserves the classic wizard on agent-off surfaces', () => {
-    state.isAgentFirst = false;
+  it('preserves the classic wizard on Desktop', () => {
+    state.isSingleStep = false;
     const { result } = renderHook(() =>
       useOnboardingRouteAccess('/acme/brand/workspace'),
     );
@@ -116,7 +113,7 @@ describe('agent-first route access', () => {
       '/acme/~/settings/members',
       '/acme/~/settings/credits',
     ];
-    it('keeps every route reachable in agent-first mode', () => {
+    it('keeps every route reachable on the single-step surface', () => {
       for (const path of readablePaths) {
         const { result } = renderHook(() => useOnboardingRouteAccess(path));
         expect(result.current).toEqual({
@@ -125,8 +122,8 @@ describe('agent-first route access', () => {
         });
       }
     });
-    it('keeps every route reachable on agent-off surfaces too', () => {
-      state.isAgentFirst = false;
+    it('keeps every route reachable on Desktop too', () => {
+      state.isSingleStep = false;
       for (const path of readablePaths) {
         const { result } = renderHook(() => useOnboardingRouteAccess(path));
         expect(result.current).toEqual({
@@ -145,18 +142,16 @@ describe('agent-first route access', () => {
   });
   it('never paywalls mid-onboarding, even with no credits and billing on', () => {
     state.hasBilling = true;
-    const conversation = renderHook(() =>
-      useOnboardingRouteAccess('/acme/~/agent/onboarding/thread-1'),
+    const onboarding = renderHook(() =>
+      useOnboardingRouteAccess('/onboarding/brand'),
     );
-    expect(conversation.result.current).toEqual({
+    expect(onboarding.result.current).toEqual({
       canRender: true,
       redirectTarget: null,
     });
     const workspace = renderHook(() =>
       useOnboardingRouteAccess('/acme/brand/workspace'),
     );
-    expect(workspace.result.current.redirectTarget).toBe(
-      '/acme/~/agent/onboarding',
-    );
+    expect(workspace.result.current.redirectTarget).toBe('/onboarding/brand');
   });
 });

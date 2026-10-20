@@ -41,6 +41,48 @@ describe('OnboardingService', () => {
     await expect(service.getStatus()).rejects.toThrow('down');
   });
 
+  it('scanBrand POSTs the link and returns the scan result', async () => {
+    const scan = { status: 'scanned', summary: { name: 'Acme' } };
+    http.post.mockResolvedValue(axiosResponse(scan));
+    const signal = new AbortController().signal;
+
+    const result = await service.scanBrand('brand-1', 'acme.co', signal);
+
+    expect(http.post).toHaveBeenCalledWith(
+      'brands/brand-1/scan',
+      { url: 'acme.co' },
+      { signal },
+    );
+    expect(result).toEqual(scan);
+  });
+
+  it('generateDrafts POSTs the retry context and returns the drafts', async () => {
+    const drafts = {
+      drafts: [],
+      imageUrl: null,
+      requestKey: null,
+      status: 'unavailable',
+    };
+    http.post.mockResolvedValue(axiosResponse(drafts));
+
+    const result = await service.generateDrafts('brand-1', {
+      context: { audience: 'Founders' },
+      previousRequestKey: 'key-1',
+    });
+
+    expect(http.post).toHaveBeenCalledWith(
+      'brands/brand-1/drafts',
+      { context: { audience: 'Founders' }, previousRequestKey: 'key-1' },
+      { signal: undefined },
+    );
+    expect(result).toEqual(drafts);
+  });
+
+  it('generateDrafts rethrows failures', async () => {
+    http.post.mockRejectedValue(new Error('down'));
+    await expect(service.generateDrafts('brand-1', {})).rejects.toThrow('down');
+  });
+
   it('getInstallReadiness GETs the readiness payload', async () => {
     const readiness = { authMode: 'none', billingMode: 'oss_local' };
     http.get.mockResolvedValue(axiosResponse(readiness));

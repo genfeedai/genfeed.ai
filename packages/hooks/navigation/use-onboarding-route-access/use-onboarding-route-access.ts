@@ -1,15 +1,12 @@
 'use client';
 
 import {
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   isCloudDeployment,
 } from '@genfeedai/config/deployment';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  getBrandOrganizationAccountType,
-  getBrandOrganizationSlug,
-} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { getBrandOrganizationAccountType } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { MemberRole } from '@genfeedai/contracts';
 import {
@@ -19,12 +16,9 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useMemo } from 'react';
 
 export function useOnboardingRouteAccess(pathname: string) {
-  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
-  const isAgentModuleEnabled = useFeatureFlag('agent');
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
@@ -62,10 +56,10 @@ export function useOnboardingRouteAccess(pathname: string) {
       return null;
     }
 
-    // Agent-first onboarding is the /agent/onboarding conversation. Waiting on
-    // accessState here deadlocks first-login users whose brand context has not
-    // resolved an organizationId yet — the access query never enables, this
-    // guard spins forever, and the agent surface never mounts.
+    // Single-page onboarding. Waiting on accessState here deadlocks first-login
+    // users whose brand context has not resolved an organizationId yet — the
+    // access query never enables, this guard spins forever, and the page never
+    // mounts.
     if (!accessState) {
       return null;
     }
@@ -81,12 +75,11 @@ export function useOnboardingRouteAccess(pathname: string) {
         return null;
       }
 
-      if (hasAgentFirstOnboarding(isAgentModuleEnabled)) {
+      if (hasSingleStepOnboarding()) {
         const href = resolveForcedOnboardingHref({
           accountType: getBrandOrganizationAccountType(brand),
           completedSteps: currentUser.onboardingStepsCompleted,
-          hasAgentFirstOnboarding: true,
-          orgSlug: getBrandOrganizationSlug(brand),
+          hasSingleStepOnboarding: true,
         });
         return pathname === href || pathname.startsWith(`${href}/`)
           ? null
@@ -129,11 +122,9 @@ export function useOnboardingRouteAccess(pathname: string) {
     isSuperAdmin,
     isUserLoading,
     needsOnboarding,
-    isAgentModuleEnabled,
   ]);
 
-  const canRenderWithoutAccessState =
-    hasAgentFirstOnboarding(isAgentModuleEnabled);
+  const canRenderWithoutAccessState = hasSingleStepOnboarding();
 
   const canRender = !(
     !effectiveIsAuthLoaded ||

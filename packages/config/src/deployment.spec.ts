@@ -4,7 +4,7 @@ import {
   getClientSurface,
   getDeployment,
   getDeploymentFromReader,
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   hostnameFromUrl,
   isCloudDeployment,
   isCommunity,
@@ -222,22 +222,14 @@ describe('deployment axes', () => {
     [undefined, undefined, true],
     [undefined, '1', false],
   ] as const)(
-    'maps cloud=%s desktop=%s to agent-first onboarding=%s',
+    'maps cloud=%s desktop=%s to single-step onboarding=%s',
     (cloudFlag, desktopFlag, expected) => {
       vi.stubEnv('GENFEED_CLOUD', cloudFlag);
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', desktopFlag);
 
-      expect(hasAgentFirstOnboarding()).toBe(expected);
+      expect(hasSingleStepOnboarding()).toBe(expected);
     },
   );
-
-  it('takes the classic wizard when the Admin agent module is off (#5468)', () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
-
-    expect(hasAgentFirstOnboarding(true)).toBe(true);
-    expect(hasAgentFirstOnboarding(false)).toBe(false);
-  });
 });
 
 describe('getDeploymentFromReader', () => {

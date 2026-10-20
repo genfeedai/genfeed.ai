@@ -1,6 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
+  OnboardingDraftsDto,
+  OnboardingScanDto,
+} from '@api/endpoints/onboarding/dto/onboarding-first-drafts.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
+import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -35,6 +42,8 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 @UseGuards(RolesGuard)
 export class OnboardingController {
   constructor(
+    private readonly brandsService: BrandsService,
+    private readonly firstDraftsService: OnboardingFirstDraftsService,
     private readonly onboardingService: OnboardingService,
     readonly _loggerService: LoggerService,
   ) {}
@@ -125,5 +134,39 @@ export class OnboardingController {
   })
   setPrefix(@Body() dto: SetPrefixDto, @CurrentUser() user: User) {
     return this.onboardingService.setPrefix(user, dto.prefix);
+  }
+
+  /** Read a public link and prefill the brand from it. */
+  @Post('brands/:brandId/scan')
+  @HttpCode(200)
+  @ApiOperation({
+    description:
+      'Reads one public link about the brand and prefills its identity. A failed read is reported in the body, not as an error.',
+    summary: 'Scan a brand link during onboarding',
+  })
+  async scanBrand(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+    @Body() dto: OnboardingScanDto,
+  ) {
+    await verifyBrandAccess(this.brandsService, brandId, user);
+    return this.firstDraftsService.scan(user, brandId, dto.url);
+  }
+
+  /** Draft one post each for X, Instagram, TikTok and LinkedIn with a shared image. */
+  @Post('brands/:brandId/drafts')
+  @HttpCode(200)
+  @ApiOperation({
+    description:
+      'Writes first drafts for the brand with a cheap text model and one shared image. Optional context from the retry round is saved on the brand. Nothing is published.',
+    summary: 'Generate first drafts during onboarding',
+  })
+  async generateDrafts(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+    @Body() dto: OnboardingDraftsDto,
+  ) {
+    await verifyBrandAccess(this.brandsService, brandId, user);
+    return this.firstDraftsService.generate(user, brandId, dto);
   }
 }

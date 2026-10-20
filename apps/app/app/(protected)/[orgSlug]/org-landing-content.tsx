@@ -4,7 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   isCloudDeployment,
 } from '@genfeedai/config/deployment';
 import { ButtonVariant, MemberRole, ViewType } from '@genfeedai/contracts';
@@ -18,7 +18,6 @@ import {
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
@@ -164,8 +163,6 @@ function BrandRow({ brand, href }: OrgLandingBrandItemProps) {
 }
 
 export default function OrgLandingContent() {
-  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
-  const isAgentModuleEnabled = useFeatureFlag('agent');
   const translate = useTranslations('pages.organizationLanding');
   const { brands, isReady, isBrandScopeResolved } = useBrand();
   const { accessState } = useAccessState();
@@ -213,9 +210,7 @@ export default function OrgLandingContent() {
         resolveForcedOnboardingHref({
           accountType,
           completedSteps: currentUser.onboardingStepsCompleted ?? [],
-          hasAgentFirstOnboarding:
-            hasAgentFirstOnboarding(isAgentModuleEnabled),
-          orgSlug,
+          hasSingleStepOnboarding: hasSingleStepOnboarding(),
         }),
       );
       return;
@@ -238,10 +233,8 @@ export default function OrgLandingContent() {
     isCurrentUserLoading,
     isHomeAppResolved,
     isReady,
-    orgSlug,
     primaryBrandSlug,
     replace,
-    isAgentModuleEnabled,
   ]);
 
   const isResolving = !isReady || isCurrentUserLoading || !currentUser;

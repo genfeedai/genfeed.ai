@@ -31,13 +31,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
-  hasAgentFirstOnboarding: () => true,
-}));
-vi.mock('@hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
-  useFeatureFlag: () => true,
-}));
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ getToken: vi.fn() }),
+  hasSingleStepOnboarding: () => true,
 }));
 
 import OnboardingRootPage from './page';
@@ -57,13 +51,11 @@ describe('OnboardingRootPage routing', () => {
     vi.clearAllMocks();
   });
 
-  it('opens brand settings when every onboarding step is already complete', async () => {
+  it('opens the app when every onboarding step is already complete', async () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/brand/settings/brand-kit',
-      );
+      expect(mocks.replace).toHaveBeenCalledWith('/');
     });
     expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/summary');
   });
@@ -77,7 +69,7 @@ describe('OnboardingRootPage routing', () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 });

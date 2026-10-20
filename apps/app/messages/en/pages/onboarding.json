@@ -170,5 +170,72 @@
   "providers": {
     "keyValidationNotice": "Use real keys only. Organization → API Keys checks each key with the provider before saving, so placeholder values are rejected; keys in your .env file are read when the container starts.",
     "openRouterDescription": "Required for text generation and the agent. Set OPENROUTER_API_KEY in your .env."
+  },
+  "firstDrafts": {
+    "url": {
+      "title": "See your first posts in a minute",
+      "description": "Paste your website, X profile or link page. We read it and draft posts for X, Instagram, TikTok and LinkedIn.",
+      "label": "Website or profile",
+      "placeholder": "yoursite.com or @yourhandle",
+      "submit": "Create my first posts",
+      "noWebsite": "I don't have a link yet"
+    },
+    "working": {
+      "scanning": "Reading your brand…",
+      "drafting": "Writing your posts and image…"
+    },
+    "review": {
+      "title": "Your first posts",
+      "description": "Drafted from {brand}. Nothing is published until you connect an account and approve it.",
+      "descriptionNoBrand": "Nothing is published until you connect an account and approve it.",
+      "round": "Round {round} of {max}",
+      "looksRight": "Looks right, continue",
+      "notRight": "This doesn't look right",
+      "unavailable": "We couldn't draft posts right now. You can continue and create them in your workspace.",
+      "partial": "Some channels didn't come back. You can continue and create the rest in your workspace.",
+      "continueAnyway": "Continue to my workspace",
+      "videoNote": "Video renders after you approve the script."
+    },
+    "platforms": {
+      "twitter": "X",
+      "instagram": "Instagram",
+      "tiktok": "TikTok video script",
+      "linkedin": "LinkedIn"
+    },
+    "imageAlt": "Generated image for {platform}",
+    "context": {
+      "title": "Tell us what we missed",
+      "description": "A few details so the next posts sound like you. Everything is optional.",
+      "descriptionNoWebsite": "No link yet? A few details are enough to draft your first posts.",
+      "audience": {
+        "label": "Who are the posts for?",
+        "placeholder": "Founders who ship fast"
+      },
+      "offer": {
+        "label": "What do you sell or offer?",
+        "placeholder": "A scheduling tool for creators"
+      },
+      "goals": {
+        "label": "What should the posts do?",
+        "grow": "Grow my audience",
+        "sell": "Sell my product",
+        "authority": "Build authority"
+      },
+      "tone": {
+        "label": "Tone",
+        "keep": "Keep my voice",
+        "casual": "More casual",
+        "professional": "More professional"
+      },
+      "suggested": "Suggested from your site",
+      "scanFailed": "We couldn't read that link, so tell us a bit about the brand instead.",
+      "submit": "Redo my posts"
+    },
+    "errors": {
+      "generate": "We couldn't draft your posts. Check your connection and try again.",
+      "continue": "We couldn't finish setup. Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "loading": "Setting up your workspace"
   }
 }

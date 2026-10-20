@@ -1,5 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
+  IOnboardingDraftContext,
+  IOnboardingFirstDraftsResult,
+  IOnboardingScanResult,
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
 } from '@genfeedai/contracts/interfaces';
@@ -103,6 +106,47 @@ export class OnboardingService extends HTTPBaseService {
       return response.data;
     } catch (error) {
       logger.error('GET /install-readiness failed', error);
+      throw error;
+    }
+  }
+
+  /** Read a public link about the brand and prefill it. A failed read is a result, not an error. */
+  async scanBrand(
+    brandId: string,
+    url: string,
+    signal?: AbortSignal,
+  ): Promise<IOnboardingScanResult> {
+    try {
+      const response = await this.instance.post<IOnboardingScanResult>(
+        `brands/${brandId}/scan`,
+        { url },
+        { signal },
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('POST /brands/:brandId/scan failed', error);
+      throw error;
+    }
+  }
+
+  /** Draft one post each for X, Instagram, TikTok and LinkedIn with one shared image. */
+  async generateDrafts(
+    brandId: string,
+    body: {
+      context?: IOnboardingDraftContext;
+      previousRequestKey?: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    try {
+      const response = await this.instance.post<IOnboardingFirstDraftsResult>(
+        `brands/${brandId}/drafts`,
+        body,
+        { signal },
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('POST /brands/:brandId/drafts failed', error);
       throw error;
     }
   }

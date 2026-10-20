@@ -1,11 +1,18 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
+import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+
+vi.mock('@api/collections/brands/controllers/brand-access.helpers', () => ({
+  verifyBrandAccess: vi.fn(),
+}));
 
 /**
  * The resource-shaped write routes (brand-setup, brand-name, brand confirm,
@@ -16,6 +23,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 describe('OnboardingController', () => {
   let controller: OnboardingController;
   let onboardingService: vi.Mocked<OnboardingService>;
+  let firstDraftsService: vi.Mocked<OnboardingFirstDraftsService>;
 
   const mockUser: User = {
     id: 'user_123',
@@ -35,6 +43,11 @@ describe('OnboardingController', () => {
             setPrefix: vi.fn(),
           },
         },
+        { provide: BrandsService, useValue: {} },
+        {
+          provide: OnboardingFirstDraftsService,
+          useValue: { generate: vi.fn(), scan: vi.fn() },
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -50,6 +63,9 @@ describe('OnboardingController', () => {
 
     controller = module.get<OnboardingController>(OnboardingController);
     onboardingService = module.get(OnboardingService);
+    firstDraftsService = module.get(OnboardingFirstDraftsService);
+    vi.mocked(verifyBrandAccess).mockReset();
+    vi.mocked(verifyBrandAccess).mockResolvedValue({} as never);
   });
 
   it('should be defined', () => {
@@ -137,6 +153,57 @@ describe('OnboardingController', () => {
         dto.prefix,
       );
       expect(result).toEqual(mockResponse);
+    });
+  });
+  describe('first drafts', () => {
+    it('verifies brand access before scanning a link', async () => {
+      firstDraftsService.scan.mockResolvedValue({ status: 'failed' } as never);
+
+      await controller.scanBrand(mockUser, 'brand_1', {
+        url: 'https://acme.co',
+      });
+
+      expect(verifyBrandAccess).toHaveBeenCalledWith(
+        expect.anything(),
+        'brand_1',
+        mockUser,
+      );
+      expect(firstDraftsService.scan).toHaveBeenCalledWith(
+        mockUser,
+        'brand_1',
+        'https://acme.co',
+      );
+    });
+
+    it('verifies brand access before generating drafts', async () => {
+      firstDraftsService.generate.mockResolvedValue({
+        drafts: [],
+        imageUrl: null,
+        requestKey: null,
+        status: 'unavailable',
+      });
+
+      await controller.generateDrafts(mockUser, 'brand_1', {});
+
+      expect(verifyBrandAccess).toHaveBeenCalledWith(
+        expect.anything(),
+        'brand_1',
+        mockUser,
+      );
+      expect(firstDraftsService.generate).toHaveBeenCalledWith(
+        mockUser,
+        'brand_1',
+        {},
+      );
+    });
+
+    it('does not touch another tenant brand when access is refused', async () => {
+      vi.mocked(verifyBrandAccess).mockRejectedValue(new Error('Not found'));
+
+      await expect(
+        controller.generateDrafts(mockUser, 'brand_other', {}),
+      ).rejects.toThrow('Not found');
+      expect(firstDraftsService.generate).not.toHaveBeenCalled();
     });
   });
 });

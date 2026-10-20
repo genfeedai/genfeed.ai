@@ -1,12 +1,9 @@
 'use client';
 
-import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
+import { hasSingleStepOnboarding } from '@genfeedai/config/deployment';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  getBrandOrganizationAccountType,
-  getBrandOrganizationSlug,
-} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { getBrandOrganizationAccountType } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type { OnboardingStepKey } from '@genfeedai/contracts/constants';
 import {
@@ -18,7 +15,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type { OnboardingProviderProps } from '@genfeedai/props/onboarding/onboarding-provider.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';
@@ -47,8 +43,6 @@ export function useOnboarding(): IOnboardingContextValue {
 export default function OnboardingProvider({
   children,
 }: OnboardingProviderProps) {
-  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
-  const isAgentModuleEnabled = useFeatureFlag('agent');
   const router = useRouter();
   const pathname = usePathname();
   const { getToken } = useAuthIdentity();
@@ -67,9 +61,9 @@ export default function OnboardingProvider({
     () =>
       resolveOnboardingSteps({
         accountType,
-        hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
+        hasSingleStepOnboarding: hasSingleStepOnboarding(),
       }),
-    [accountType, isAgentModuleEnabled],
+    [accountType],
   );
 
   // Derive current step from URL — success page bypasses step tracking
@@ -109,8 +103,7 @@ export default function OnboardingProvider({
         await service.updateOnboarding(currentUser.id, payload);
         // A saved step must not re-serve the 60s client bootstrap snapshot —
         // that is what left `onboardingStepsCompleted` stale and bounced a
-        // first-login operator back to `/onboarding/brand` from the agent
-        // handoff the step just unlocked.
+        // first-login operator back to `/onboarding/brand`.
         clearClientProtectedBootstrapCache();
         await refetchUser();
       } catch (error) {
@@ -121,11 +114,6 @@ export default function OnboardingProvider({
       }
     },
     [currentUser, getService, refetchUser],
-  );
-
-  const agentOnboardingOrgSlug = useMemo(
-    () => getBrandOrganizationSlug(selectedBrand ?? brands[0]) || null,
-    [brands, selectedBrand],
   );
 
   const handleStepComplete = useCallback(
@@ -148,15 +136,10 @@ export default function OnboardingProvider({
       await saveProgress(payload, shouldContinue);
       if (shouldContinue?.() === false) return;
 
-      // Every other caller of the onboarding href helpers supplies the org
-      // slug so the agent handoff lands on the canonical
-      // `/${orgSlug}/~/agent/onboarding` route directly. Without it the bare
-      // path only resolves through a proxy canonicalization hop.
       const nextHref = resolveOnboardingContinueHref({
         accountType,
         completedStep: stepKey,
-        hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
-        orgSlug: agentOnboardingOrgSlug,
+        hasSingleStepOnboarding: hasSingleStepOnboarding(),
       });
 
       if (nextHref === APP_ROUTES.ROOT) {
@@ -166,14 +149,7 @@ export default function OnboardingProvider({
 
       router.push(nextHref);
     },
-    [
-      accountType,
-      agentOnboardingOrgSlug,
-      currentUser,
-      saveProgress,
-      router,
-      isAgentModuleEnabled,
-    ],
+    [accountType, currentUser, saveProgress, router],
   );
 
   const handleSkip = useCallback(

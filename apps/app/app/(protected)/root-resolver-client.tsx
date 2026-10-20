@@ -4,17 +4,15 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   isCloudDeployment,
 } from '@genfeedai/config/deployment';
 import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -30,8 +28,6 @@ const WORKSPACE_RESOLUTION_TIMEOUT_MS = 8_000;
 
 export default function ProtectedRootResolver() {
   const translate = useTranslations('pages.organizationLanding');
-  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
-  const isAgentModuleEnabled = useFeatureFlag('agent');
   const {
     brands,
     isReady,
@@ -58,7 +54,7 @@ export default function ProtectedRootResolver() {
 
   useEffect(() => {
     if (
-      !hasAgentFirstOnboarding(isAgentModuleEnabled) ||
+      !hasSingleStepOnboarding() ||
       isReady ||
       isAccessStateLoading ||
       isCurrentUserLoading ||
@@ -81,7 +77,6 @@ export default function ProtectedRootResolver() {
     isCurrentUserLoading,
     isReady,
     needsWorkspaceAction,
-    isAgentModuleEnabled,
   ]);
 
   useEffect(() => {
@@ -110,30 +105,13 @@ export default function ProtectedRootResolver() {
     hasStartedRef.current = true;
 
     if (!hasCompletedOnboarding) {
-      const agentOrgSlug = resolveOperationalHomeScope({
-        accessOrganizationId: accessState?.organizationId,
-        brands,
-        organizationId,
-        selectedBrand,
-      }).orgSlug;
-      if (
-        hasAgentFirstOnboarding(isAgentModuleEnabled) &&
-        hasCompletedBrandOnboardingStep(completedSteps) &&
-        !agentOrgSlug
-      ) {
-        setNeedsWorkspaceAction(true);
-        return;
-      }
-
       replace(
         resolveForcedOnboardingHref({
           accountType: getBrandOrganizationAccountType(
             selectedBrand ?? brands[0],
           ),
           completedSteps,
-          hasAgentFirstOnboarding:
-            hasAgentFirstOnboarding(isAgentModuleEnabled),
-          orgSlug: agentOrgSlug,
+          hasSingleStepOnboarding: hasSingleStepOnboarding(),
         }),
       );
       return;
@@ -178,7 +156,6 @@ export default function ProtectedRootResolver() {
     resolveHomeHref,
     searchParams,
     selectedBrand,
-    isAgentModuleEnabled,
   ]);
 
   if (hasNoBrandAccess)

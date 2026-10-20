@@ -1,5 +1,4 @@
 'use client';
-import OnboardingRootPage from '@app/(onboarding)/onboarding/(wizard)/page';
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import {
   type BrandContextType,
@@ -8,7 +7,7 @@ import {
 import { getBrandOrganizationId } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   isDesktopClient,
 } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -21,7 +20,6 @@ import type {
   BrandGuideScope,
 } from '@genfeedai/props/onboarding/brand-guide.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { UsersService } from '@services/organization/users.service';
@@ -32,6 +30,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import BrandGuidePanel from './brand-guide-panel';
+import FirstDraftsOnboarding from './first-drafts/first-drafts-onboarding';
 
 function authorizedScope(context: BrandContextType): BrandGuideScope | null {
   const {
@@ -226,9 +225,12 @@ function BrandContentContent() {
   );
 }
 export default function BrandContent() {
-  const isAgentModuleEnabled = useFeatureFlag('agent');
-  if (hasAgentFirstOnboarding(isAgentModuleEnabled))
-    return <OnboardingRootPage />;
+  if (hasSingleStepOnboarding())
+    return (
+      <Suspense fallback={null}>
+        <FirstDraftsOnboarding />
+      </Suspense>
+    );
   return (
     <Suspense fallback={null}>
       <BrandContentContent />

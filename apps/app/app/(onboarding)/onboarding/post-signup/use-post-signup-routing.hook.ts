@@ -10,7 +10,7 @@ import {
 } from '@app/(public)/auth-callback-url';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
@@ -23,7 +23,6 @@ import type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-si
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
@@ -55,8 +54,6 @@ const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 const SIGNUP_ATTRIBUTION_TIMEOUT_MS = 2_000;
 
 export function usePostSignupRouting(): PostSignupRoutingState {
-  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
-  const isAgentModuleEnabled = useFeatureFlag('agent');
   const { getToken } = useAuthIdentity();
   const { user: authUser } = useAuthUser();
   const { currentUser, isLoading } = useCurrentUser();
@@ -88,20 +85,19 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     setRoutingAttempt((attempt) => attempt + 1);
   }, []);
 
-  // Resolve the active organization slug so we can build the org-scoped agent
-  // onboarding route. Missing SaaS scope returns to the protected bootstrap,
-  // never to the classic wizard.
-  const resolveActiveOrgSlug = useCallback(async (): Promise<string | null> => {
+  // Apply the account type picked on the signup CTA to the active organization
+  // before onboarding starts, so the brand step already knows if it is Expert.
+  const applyRequestedAccountType = useCallback(async (): Promise<void> => {
     const token = await resolveAuthToken(getToken);
     if (!token) {
-      return null;
+      return;
     }
 
     const organizations = await OrganizationsService.getInstance(token)
       .getMyOrganizations()
       .catch((error) => {
         logger.error(
-          'Failed to resolve organizations for agent onboarding routing',
+          'Failed to resolve organizations for onboarding account type',
           error,
         );
         return [];
@@ -130,7 +126,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         }
       }
     }
-    return activeOrganization?.slug ?? null;
   }, [getToken, requestedAccountType]);
 
   // Checkout returns use the same surface-specific onboarding destination.
@@ -144,27 +139,20 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return '/';
     }
 
-    const orgSlug = hasAgentFirstOnboarding(isAgentModuleEnabled)
-      ? await resolveActiveOrgSlug()
-      : null;
+    if (hasSingleStepOnboarding()) {
+      await applyRequestedAccountType();
+    }
 
     return resolveForcedOnboardingHref({
       accountType:
         requestedAccountType ??
         localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
-      brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
       completedSteps,
-      hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
-      orgSlug,
+      hasSingleStepOnboarding: hasSingleStepOnboarding(),
     });
-  }, [
-    currentUser,
-    resolveActiveOrgSlug,
-    isAgentModuleEnabled,
-    requestedAccountType,
-  ]);
+  }, [currentUser, applyRequestedAccountType, requestedAccountType]);
 
-  // Cloud and Community start in the conversation; Desktop keeps the wizard.
+  // Cloud and Community land on the single output-first page; Desktop keeps the wizard.
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
@@ -175,25 +163,18 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return '/';
     }
 
-    const orgSlug = hasAgentFirstOnboarding(isAgentModuleEnabled)
-      ? await resolveActiveOrgSlug()
-      : null;
+    if (hasSingleStepOnboarding()) {
+      await applyRequestedAccountType();
+    }
 
     return resolveForcedOnboardingHref({
       accountType:
         requestedAccountType ??
         localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
-      brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
       completedSteps,
-      hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
-      orgSlug,
+      hasSingleStepOnboarding: hasSingleStepOnboarding(),
     });
-  }, [
-    currentUser,
-    resolveActiveOrgSlug,
-    isAgentModuleEnabled,
-    requestedAccountType,
-  ]);
+  }, [currentUser, applyRequestedAccountType, requestedAccountType]);
 
   // A signup CTA's account type (e.g. Expert) survives cross-device magic
   // links through the callback URL; keep it for the brand step.

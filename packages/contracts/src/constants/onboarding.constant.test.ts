@@ -8,6 +8,8 @@ import {
   hasCompletedBrandOnboardingStep,
   isExpertAccountType,
   isOnboardingStepKey,
+  ONBOARDING_DRAFT_PLATFORMS,
+  ONBOARDING_MAX_DRAFT_ROUNDS,
   ONBOARDING_STEP_LABELS,
   ONBOARDING_STEPS,
   PERSONAL_EMAIL_DOMAINS,
@@ -65,97 +67,93 @@ describe('onboarding.constant', () => {
       expect(hasCompletedBrandOnboardingStep(['brand'])).toBe(true);
     });
 
-    it('sends Cloud continue from brand into the agent conversation', () => {
+    it('leaves onboarding after the single web step', () => {
       expect(
         resolveOnboardingContinueHref({
           completedStep: 'brand',
-          hasAgentFirstOnboarding: true,
-          orgSlug: 'acme',
+          hasSingleStepOnboarding: true,
         }),
-      ).toBe('/acme/~/agent/onboarding');
+      ).toBe('/');
     });
 
     it('keeps Desktop continue from brand on the shared providers step', () => {
       expect(
         resolveOnboardingContinueHref({
           completedStep: 'brand',
-          hasAgentFirstOnboarding: false,
+          hasSingleStepOnboarding: false,
         }),
       ).toBe('/onboarding/providers');
     });
 
-    it('keeps the wizard tail sequenced on agent-first surfaces', () => {
-      // Cloud walks an operator through brand only, but providers and summary
-      // stay reachable on their own; continuing from providers must not drop
-      // straight to the root.
+    it('sequences the Desktop wizard tail and then leaves onboarding', () => {
       expect(
         resolveOnboardingContinueHref({
           completedStep: 'providers',
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: false,
         }),
       ).toBe('/onboarding/summary');
       expect(
         resolveOnboardingContinueHref({
           completedStep: 'summary',
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: false,
         }),
       ).toBe('/');
     });
 
-    it('sends incomplete Cloud users directly to the conversation', () => {
+    it('sends incomplete web users to the single onboarding page', () => {
       expect(
         resolveForcedOnboardingHref({
-          brandDomain: 'acme.co',
           completedSteps: [],
-          hasAgentFirstOnboarding: true,
-          orgSlug: 'acme',
+          hasSingleStepOnboarding: true,
         }),
-      ).toBe('/acme/~/agent/onboarding');
+      ).toBe('/onboarding/brand');
     });
 
-    it('forces Cloud users who already confirmed brand into the agent', () => {
-      expect(
-        resolveForcedOnboardingHref({
-          completedSteps: ['brand'],
-          hasAgentFirstOnboarding: true,
-          orgSlug: 'acme',
-        }),
-      ).toBe('/acme/~/agent/onboarding');
-    });
-
-    it.each([OrganizationCategory.EXPERT, OrganizationCategory.CREATOR])(
-      'starts %s in the conversation before brand completion',
-      (accountType) => {
+    it('never sends a web user to a removed agent conversation', () => {
+      for (const accountType of [
+        undefined,
+        OrganizationCategory.CREATOR,
+        OrganizationCategory.AGENCY,
+      ]) {
         expect(
           resolveForcedOnboardingHref({
             accountType,
-            completedSteps: [],
-            hasAgentFirstOnboarding: true,
-            orgSlug: 'acme',
+            completedSteps: ['brand'],
+            hasSingleStepOnboarding: true,
           }),
-        ).toBe('/acme/~/agent/onboarding');
-        expect(
-          resolveForcedOnboardingHref({
-            accountType,
-            hasAgentFirstOnboarding: true,
-          }),
-        ).toBe('/agent/onboarding');
-      },
-    );
+        ).not.toContain('agent');
+      }
+    });
 
     it('resumes Desktop at the first incomplete wizard step', () => {
       expect(
         resolveForcedOnboardingHref({
           completedSteps: ['brand'],
-          hasAgentFirstOnboarding: false,
+          hasSingleStepOnboarding: false,
         }),
       ).toBe('/onboarding/providers');
     });
 
-    it('adds auto-brand resume when a stored brand domain is available', () => {
-      expect(buildOnboardingResumeHref('brand', 'acme.co')).toBe(
-        '/onboarding/brand?auto=true',
+    it('builds the resume href for a step', () => {
+      expect(buildOnboardingResumeHref('brand')).toBe('/onboarding/brand');
+      expect(buildOnboardingResumeHref('providers')).toBe(
+        '/onboarding/providers',
       );
+    });
+  });
+
+  describe('first drafts', () => {
+    it('drafts for X, Instagram, TikTok and LinkedIn', () => {
+      expect(ONBOARDING_DRAFT_PLATFORMS).toEqual([
+        'twitter',
+        'instagram',
+        'tiktok',
+        'linkedin',
+      ]);
+    });
+
+    it('allows at most two draft rounds', () => {
+      expect(ONBOARDING_MAX_DRAFT_ROUNDS).toBe(2);
     });
   });
 
@@ -184,43 +182,42 @@ describe('onboarding.constant', () => {
       expect(
         resolveOnboardingSteps({
           accountType: expert,
-          hasAgentFirstOnboarding: false,
+          hasSingleStepOnboarding: false,
         }),
       ).toEqual(EXPERT_ONBOARDING_STEPS);
       expect(
         resolveOnboardingSteps({
           accountType: expert,
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: true,
         }),
       ).toEqual(['brand', 'positioning', 'corpus']);
       expect(
         resolveOnboardingSteps({
           accountType: OrganizationCategory.AGENCY,
-          hasAgentFirstOnboarding: false,
+          hasSingleStepOnboarding: false,
         }),
       ).toEqual(ONBOARDING_STEPS);
       expect(
         resolveOnboardingSteps({
           accountType: OrganizationCategory.AGENCY,
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: true,
         }),
       ).toEqual(['brand']);
     });
 
-    it('routes an expert from brand to positioning instead of the agent', () => {
+    it('routes an expert from brand to positioning', () => {
       expect(
         resolveOnboardingContinueHref({
           accountType: expert,
           completedStep: 'brand',
-          hasAgentFirstOnboarding: true,
-          orgSlug: 'acme',
+          hasSingleStepOnboarding: true,
         }),
       ).toBe('/onboarding/positioning');
       expect(
         resolveOnboardingContinueHref({
           accountType: expert,
           completedStep: 'positioning',
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: true,
         }),
       ).toBe('/onboarding/corpus');
     });
@@ -230,21 +227,21 @@ describe('onboarding.constant', () => {
         resolveOnboardingContinueHref({
           accountType: expert,
           completedStep: 'corpus',
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: true,
         }),
       ).toBe('/onboarding/first-system');
       expect(
         resolveOnboardingContinueHref({
           accountType: expert,
           completedStep: 'corpus',
-          hasAgentFirstOnboarding: false,
+          hasSingleStepOnboarding: false,
         }),
       ).toBe('/onboarding/providers');
       expect(
         resolveOnboardingContinueHref({
           accountType: expert,
           completedStep: 'summary',
-          hasAgentFirstOnboarding: false,
+          hasSingleStepOnboarding: false,
         }),
       ).toBe('/onboarding/first-system');
     });
@@ -257,14 +254,14 @@ describe('onboarding.constant', () => {
         resolveForcedOnboardingHref({
           accountType: expert,
           completedSteps: ['brand', 'positioning'],
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: true,
         }),
       ).toBe('/onboarding/corpus');
       expect(
         resolveForcedOnboardingHref({
           accountType: expert,
           completedSteps: ['brand', 'positioning', 'corpus'],
-          hasAgentFirstOnboarding: true,
+          hasSingleStepOnboarding: true,
         }),
       ).toBe('/onboarding/first-system');
     });

@@ -231,15 +231,11 @@ export function isCommunity(): boolean {
 }
 
 /**
- * Deployment modes whose *post-brand* onboarding runs inside the agent
- * workspace. SaaS cut over in #1726 and Community in #1835. Every surface
- * still shares `/onboarding/brand` first. The desktop client keeps the
- * classic providers/summary wizard after brand until #2380.
- *
- * Pass the Admin `agent` module flag (#5468): with Agent switched off the
- * agent handoff would land on a 404, so every surface takes the classic
- * wizard instead. Omitting it keeps the deployment default.
+ * Whether onboarding is the single `/onboarding` page: the operator links a
+ * website, reviews the first drafts and is done. Every surface but the desktop
+ * client works this way; desktop keeps the classic providers/summary wizard
+ * after the brand step.
  */
-export function hasAgentFirstOnboarding(isAgentModuleEnabled = true): boolean {
-  return isAgentModuleEnabled && !isDesktopClient();
+export function hasSingleStepOnboarding(): boolean {
+  return !isDesktopClient();
 }

@@ -68,7 +68,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: () => mocks.desktop,
-  hasAgentFirstOnboarding: () => false,
+  hasSingleStepOnboarding: () => false,
 }));
 vi.mock(
   '@genfeedai/hooks/feature-flags/use-feature-flag/use-feature-flag',

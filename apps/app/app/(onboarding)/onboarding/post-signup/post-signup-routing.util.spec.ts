@@ -53,25 +53,17 @@ describe('deriveBrandNameFromDomain', () => {
 });
 
 describe('buildOnboardingResumeHref', () => {
-  it('adds auto-brand resume when a stored brand domain is available', () => {
-    expect(buildOnboardingResumeHref('brand', 'acme.co')).toBe(
-      '/onboarding/brand?auto=true',
-    );
-  });
-
-  it('keeps other onboarding steps unchanged', () => {
-    expect(buildOnboardingResumeHref('providers', 'acme.co')).toBe(
+  it('builds the resume href for a step', () => {
+    expect(buildOnboardingResumeHref('brand')).toBe('/onboarding/brand');
+    expect(buildOnboardingResumeHref('providers')).toBe(
       '/onboarding/providers',
     );
   });
 
   it('appends checkout return markers without dropping existing query params', () => {
     expect(
-      appendCheckoutReturnParams(
-        '/onboarding/brand?auto=true',
-        'plan-checkout',
-      ),
-    ).toBe('/onboarding/brand?auto=true&checkout=completed&checkoutKind=plan');
+      appendCheckoutReturnParams('/onboarding/brand', 'plan-checkout'),
+    ).toBe('/onboarding/brand?checkout=completed&checkoutKind=plan');
 
     expect(
       appendCheckoutReturnParams('/onboarding/providers', 'credits-checkout'),

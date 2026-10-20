@@ -1,5 +1,6 @@
 import { OrganizationCategory } from '..';
-import { APP_ROUTES, createOrganizationAppRoute } from './routes.constant';
+import type { OnboardingDraftPlatform } from '../interfaces/onboarding/onboarding-first-drafts.interface';
+import { APP_ROUTES } from './routes.constant';
 
 /**
  * Ordered onboarding gate steps — used by the wizard, guard, and resume logic.
@@ -43,21 +44,23 @@ export function isExpertAccountType(
 }
 
 /**
- * Wizard steps for an account type on the current surface. Agent-first
- * surfaces (Cloud, Community) never render the provider/summary steps, so the
- * Expert Path there is `brand → positioning → corpus → first-system`.
+ * Wizard steps for an account type on the current surface. The web app
+ * (Cloud, Community) collects the brand and shows the first drafts on one page,
+ * so a non-expert never sees the provider/summary steps there and the Expert
+ * Path is `brand → positioning → corpus → first-system`. Desktop keeps the
+ * classic provider/summary wizard.
  */
 export function resolveOnboardingSteps(input: {
   accountType?: OrganizationCategory | string | null;
-  hasAgentFirstOnboarding: boolean;
+  hasSingleStepOnboarding: boolean;
 }): readonly OnboardingStepKey[] {
   if (isExpertAccountType(input.accountType)) {
-    return input.hasAgentFirstOnboarding
+    return input.hasSingleStepOnboarding
       ? EXPERT_ONBOARDING_STEPS.slice(0, 3)
       : EXPERT_ONBOARDING_STEPS;
   }
 
-  return input.hasAgentFirstOnboarding
+  return input.hasSingleStepOnboarding
     ? ONBOARDING_STEPS.slice(0, 1)
     : ONBOARDING_STEPS;
 }
@@ -99,56 +102,28 @@ export function getResumeStep(
   return steps[steps.length - 1] ?? 'summary';
 }
 
-export function buildOnboardingResumeHref(
-  resumeStep: string,
-  brandDomain?: string | null,
-): string {
-  if (resumeStep === 'brand' && brandDomain?.trim()) {
-    return `${APP_ROUTES.ONBOARDING.BRAND}?auto=true`;
-  }
-
+export function buildOnboardingResumeHref(resumeStep: string): string {
   return `${APP_ROUTES.ONBOARDING.ROOT}/${resumeStep}`;
 }
 
-function resolveAgentOnboardingHref(orgSlug?: string | null): string {
-  return orgSlug
-    ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
-    : APP_ROUTES.AGENT.ONBOARDING;
-}
-
 /**
- * Where to send the operator after they finish a wizard step.
- * Cloud / Community leave the brand form for the agent conversation;
- * Desktop continues the classic wizard so both surfaces share one brand page.
+ * Where to send the operator after they finish a wizard step. The last step of
+ * the resolved list leaves onboarding for the workspace; an Expert finishing
+ * their last wizard step lands on the first-system screen.
  */
 export function resolveOnboardingContinueHref(input: {
   accountType?: OrganizationCategory | string | null;
   completedStep: OnboardingStepKey;
-  hasAgentFirstOnboarding: boolean;
-  orgSlug?: string | null;
+  hasSingleStepOnboarding: boolean;
 }): string {
-  const isExpert = isExpertAccountType(input.accountType);
-  if (
-    !isExpert &&
-    input.completedStep === 'brand' &&
-    input.hasAgentFirstOnboarding
-  ) {
-    return resolveAgentOnboardingHref(input.orgSlug);
-  }
-
-  // Agent-first surfaces walk a cloud operator through brand only, but the
-  // wizard tail stays reachable on its own (Desktop, and an operator who comes
-  // back to it). Sequencing the classic path off the resolved list dropped
-  // `providers → summary` there, so only the Expert Path — whose tail is its
-  // own first-system screen — sequences off the resolved steps.
-  const steps = isExpert ? resolveOnboardingSteps(input) : ONBOARDING_STEPS;
+  const steps = resolveOnboardingSteps(input);
   const stepIndex = steps.indexOf(input.completedStep);
   if (stepIndex >= 0 && stepIndex < steps.length - 1) {
     const nextStep = steps[stepIndex + 1];
     return `${APP_ROUTES.ONBOARDING.ROOT}/${nextStep}`;
   }
 
-  if (isExpert) {
+  if (isExpertAccountType(input.accountType)) {
     return APP_ROUTES.ONBOARDING.FIRST_SYSTEM;
   }
 
@@ -158,40 +133,23 @@ export function resolveOnboardingContinueHref(input: {
 /**
  * Forced first-run destination while onboarding is still incomplete.
  * Completed users review their guide in settings. Experts resume positioning
- * only after the conversation completes the brand step.
+ * once the brand step is done.
  */
 export function resolveForcedOnboardingHref(input: {
   accountType?: OrganizationCategory | string | null;
-  brandDomain?: string | null;
   completedSteps?: readonly string[] | null;
-  hasAgentFirstOnboarding: boolean;
-  orgSlug?: string | null;
+  hasSingleStepOnboarding: boolean;
 }): string {
+  const steps = resolveOnboardingSteps(input);
+  const completedSteps = input.completedSteps ?? [];
   if (
-    input.hasAgentFirstOnboarding &&
-    (!isExpertAccountType(input.accountType) ||
-      !hasCompletedBrandOnboardingStep(input.completedSteps))
+    isExpertAccountType(input.accountType) &&
+    steps.every((step) => completedSteps.includes(step))
   ) {
-    return resolveAgentOnboardingHref(input.orgSlug);
+    return APP_ROUTES.ONBOARDING.FIRST_SYSTEM;
   }
 
-  if (isExpertAccountType(input.accountType)) {
-    const steps = resolveOnboardingSteps(input);
-    const completedSteps = input.completedSteps ?? [];
-    if (steps.every((step) => completedSteps.includes(step))) {
-      return APP_ROUTES.ONBOARDING.FIRST_SYSTEM;
-    }
-
-    return buildOnboardingResumeHref(
-      getResumeStep(completedSteps, steps),
-      input.brandDomain,
-    );
-  }
-
-  return buildOnboardingResumeHref(
-    getResumeStep(input.completedSteps ?? undefined),
-    input.brandDomain,
-  );
+  return buildOnboardingResumeHref(getResumeStep(completedSteps, steps));
 }
 
 /**
@@ -238,6 +196,17 @@ export const EXPERT_SETUP_CARD_STEPS = [
 export type SetupCardStepKey =
   | (typeof SETUP_CARD_STEPS)[number]['key']
   | (typeof EXPERT_SETUP_CARD_STEPS)[number]['key'];
+
+/** Channels the first run drafts one post for, in display order. */
+export const ONBOARDING_DRAFT_PLATFORMS: readonly OnboardingDraftPlatform[] = [
+  'twitter',
+  'instagram',
+  'tiktok',
+  'linkedin',
+];
+
+/** Rounds of drafts a new user sees: the first pass and one retry with context. */
+export const ONBOARDING_MAX_DRAFT_ROUNDS = 2;
 
 /**
  * Personal email domains that require manual brand URL input.

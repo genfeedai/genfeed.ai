@@ -1,7 +1,7 @@
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   isCloudDeployment,
   isDesktopClient,
 } from '@genfeedai/config/deployment';
@@ -14,7 +14,6 @@ import {
   isExpertAccountType,
   isPersonalSettingsPath,
   ONBOARDING_STEPS,
-  parsePlatformFlags,
   parseScopedAppPath,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
@@ -579,40 +578,6 @@ const bootstrapByRequest = new WeakMap<
   Map<string, Promise<BootstrapRead>>
 >();
 
-const PLATFORM_FLAGS_CACHE_TTL_MS = 15_000;
-let agentModuleFlagCache: { expiresAtMs: number; isEnabled: boolean } | null =
-  null;
-
-/**
- * The Admin `agent` module flag (#5468), read only while an onboarding
- * redirect is being decided and cached like the API's settings (15s). With
- * Agent off, onboarding takes the classic wizard instead of an agent handoff
- * that would 404. An unreachable API keeps the default (on), as the app does.
- */
-async function readIsAgentModuleEnabled(): Promise<boolean> {
-  if (agentModuleFlagCache && Date.now() < agentModuleFlagCache.expiresAtMs) {
-    return agentModuleFlagCache.isEnabled;
-  }
-
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/public/platform-flags`, {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) {
-      return true;
-    }
-    const isEnabled = parsePlatformFlags(await response.json()).agent;
-    agentModuleFlagCache = {
-      expiresAtMs: Date.now() + PLATFORM_FLAGS_CACHE_TTL_MS,
-      isEnabled,
-    };
-    return isEnabled;
-  } catch {
-    return true;
-  }
-}
-
 async function fetchBootstrap(token: string): Promise<BootstrapRead> {
   try {
     const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
@@ -857,7 +822,7 @@ async function readOnboardingRedirectState(
 }
 
 /**
- * Experts resume their wizard only after the conversation completes brand setup.
+ * Experts resume their wizard only after the brand step is done.
  */
 function resolveExpertOnboardingRedirectPath(
   onboardingState: OnboardingRedirectState,
@@ -872,141 +837,8 @@ function resolveExpertOnboardingRedirectPath(
   return resolveForcedOnboardingHref({
     accountType: onboardingState.accountType,
     completedSteps: onboardingState.completedSteps,
-    hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+    hasSingleStepOnboarding: hasSingleStepOnboarding(),
   });
-}
-
-// Matches the org-scoped agent onboarding surface and its threaded children,
-// e.g. `/acme/~/agent/onboarding` and `/acme/~/agent/onboarding/<threadId>`.
-const AGENT_ONBOARDING_PATH_RE = /^\/[^/]+\/~\/agent\/onboarding(?:\/|$)/;
-
-function isAgentOnboardingPath(pathname: string): boolean {
-  return AGENT_ONBOARDING_PATH_RE.test(pathname);
-}
-
-// Resolve the org-scoped agent onboarding destination for an incomplete user.
-// SaaS uses this route unconditionally. If slug resolution is temporarily
-// unavailable, callers keep the user inside the protected agent-first bootstrap
-// instead of switching to the classic wizard.
-async function resolveAgentOnboardingRedirect(
-  token: string,
-  cacheKey?: string | null,
-  req?: NextRequest,
-): Promise<{
-  cookieValue: string | null;
-  orgSlug: string;
-  path: string;
-} | null> {
-  const resolution = await resolveActiveWorkspaceSlugs(
-    bootstrapScopeAuthority(token, req),
-    cacheKey,
-    req,
-    { skipSlugCookie: true },
-  );
-  if (!resolution) {
-    return null;
-  }
-
-  const { cookieValue, slugs } = resolution;
-  return {
-    cookieValue,
-    orgSlug: slugs.orgSlug,
-    path: `/${slugs.orgSlug}/~/agent/onboarding`,
-  };
-}
-
-function getAgentOnboardingOrgSlug(pathname: string): string | null {
-  const match = pathname.match(/^\/([^/]+)\/~\/agent\/onboarding(?:\/|$)/);
-  return match?.[1] ?? null;
-}
-
-// Wizard routes that stay reachable in every mode. `post-signup` owns the
-// provisioning handoff (including the managed-checkout return), and the
-// Expert Path steps run on every surface.
-const MODE_AGNOSTIC_ONBOARDING_PATHS = [
-  APP_ROUTES.ONBOARDING.POST_SIGNUP,
-  APP_ROUTES.ONBOARDING.POSITIONING,
-  APP_ROUTES.ONBOARDING.CORPUS,
-  APP_ROUTES.ONBOARDING.FIRST_SYSTEM,
-] as const;
-
-/**
- * True for a classic wizard path that an agent-first mode should never render.
- */
-function isClassicWizardPath(pathname: string): boolean {
-  if (!hasAgentFirstOnboarding()) {
-    return false;
-  }
-
-  if (
-    MODE_AGNOSTIC_ONBOARDING_PATHS.some(
-      (path) => pathname === path || pathname.startsWith(`${path}/`),
-    )
-  ) {
-    return false;
-  }
-
-  return (
-    pathname === ONBOARDING_PATH || pathname.startsWith(`${ONBOARDING_PATH}/`)
-  );
-}
-
-/**
- * Send a signed-in agent-first user from the classic wizard to the agent
- * onboarding surface, keeping unresolved scope in the protected bootstrap.
- */
-async function redirectSignedInUserToAgentOnboarding(
-  req: NextRequest,
-  token: string,
-  cacheKey?: string | null,
-): Promise<NextResponse | null> {
-  const onboardingState = await readOnboardingRedirectState(token, req);
-  if (onboardingState.isAvailable === false) return null;
-  if (
-    onboardingState.isCompleted ||
-    ONBOARDING_STEPS.every((step) =>
-      onboardingState.completedSteps.includes(step),
-    )
-  ) {
-    const resolution = await resolveActiveWorkspaceSlugs(
-      bootstrapScopeAuthority(token, req),
-      cacheKey,
-      req,
-      { preferAvailableBrand: true, skipSlugCookie: true },
-    );
-    const slugs = resolution?.slugs;
-    return redirectDroppingSearch(
-      req,
-      slugs?.brandSlug
-        ? `/${slugs.orgSlug}/${slugs.brandSlug}${APP_ROUTES.SETTINGS.BRAND_KIT}`
-        : slugs?.orgSlug
-          ? `/${slugs.orgSlug}/~${APP_ROUTES.SETTINGS.BRANDS}`
-          : APP_ROUTES.SETTINGS.BRAND_KIT,
-    );
-  }
-
-  const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
-  if (expertPath) {
-    return onboardingState.shouldRedirect
-      ? redirectDroppingSearch(req, expertPath)
-      : null;
-  }
-
-  const agentOnboarding = await resolveAgentOnboardingRedirect(
-    token,
-    cacheKey,
-    req,
-  );
-  if (!agentOnboarding) {
-    return redirectDroppingSearch(req, APP_ROUTES.AGENT.ONBOARDING);
-  }
-
-  const response = redirectDroppingSearch(req, agentOnboarding.path);
-  if (agentOnboarding.cookieValue) {
-    setSlugCookie(response, agentOnboarding.cookieValue);
-  }
-
-  return response;
 }
 
 type CanonicalResolution = {
@@ -1278,32 +1110,10 @@ async function redirectSignedInUserToDefaultRoute(
 
   const onboardingState = await readOnboardingRedirectState(token, req);
   if (onboardingState.shouldRedirect) {
-    if (
-      !isDesktopSurface &&
-      hasAgentFirstOnboarding(await readIsAgentModuleEnabled())
-    ) {
-      const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
-      if (expertPath) {
-        return redirectDroppingSearch(req, expertPath);
-      }
-
-      const agentOnboarding = await resolveAgentOnboardingRedirect(
-        token,
-        cacheKey,
-        req,
-      );
-      if (agentOnboarding) {
-        const response = redirectDroppingSearch(req, agentOnboarding.path);
-        if (agentOnboarding.cookieValue) {
-          setSlugCookie(response, agentOnboarding.cookieValue);
-        }
-        return response;
-      }
-
-      return redirectDroppingSearch(req, '/');
-    }
-
-    return redirectDroppingSearch(req, ONBOARDING_PATH);
+    const expertPath = isDesktopSurface
+      ? null
+      : resolveExpertOnboardingRedirectPath(onboardingState);
+    return redirectDroppingSearch(req, expertPath ?? ONBOARDING_PATH);
   }
 
   const resolved = await resolveCanonicalProtectedPath(
@@ -1444,23 +1254,6 @@ async function routeBetterAuthRequest(
       return redirectToLoginPreservingDestination(req);
     }
 
-    // Agent-first users enter the conversation from root, brand and classic
-    // wizard routes. Completed users review their guide in brand settings.
-    if (
-      hasSession &&
-      isClassicWizardPath(pathname) &&
-      (await readIsAgentModuleEnabled())
-    ) {
-      const token = await getBetterAuthBearerToken(req);
-      const response = token
-        ? await redirectSignedInUserToAgentOnboarding(req, token, sessionCookie)
-        : null;
-
-      if (response) {
-        return response;
-      }
-    }
-
     return NextResponse.next();
   }
 
@@ -1495,60 +1288,8 @@ async function routeBetterAuthRequest(
   if (options.isDesktopSurface !== true) {
     const onboardingState = await readOnboardingRedirectState(token, req);
     if (onboardingState.shouldRedirect) {
-      if (!hasAgentFirstOnboarding(await readIsAgentModuleEnabled())) {
-        return redirectPreservingSearch(req, ONBOARDING_PATH);
-      }
-
       const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
-      if (expertPath) {
-        return redirectPreservingSearch(req, expertPath);
-      }
-
-      // The agent onboarding surface is itself a protected route — stay there
-      // throughout first-run. If the URL org is a leftover stub (or a stale slug
-      // cookie), move the user onto their membership org.
-      if (isAgentOnboardingPath(pathname)) {
-        const agentOnboarding = await resolveAgentOnboardingRedirect(
-          token,
-          sessionCookie,
-          req,
-        );
-        const pathOrgSlug = getAgentOnboardingOrgSlug(pathname);
-        if (
-          agentOnboarding &&
-          pathOrgSlug &&
-          pathOrgSlug !== agentOnboarding.orgSlug
-        ) {
-          const rest = pathname.replace(/^\/[^/]+/, '');
-          const response = redirectPreservingSearch(
-            req,
-            `/${agentOnboarding.orgSlug}${rest}`,
-          );
-          if (agentOnboarding.cookieValue) {
-            setSlugCookie(response, agentOnboarding.cookieValue);
-          }
-          return response;
-        }
-
-        return NextResponse.next();
-      }
-
-      const agentOnboarding = await resolveAgentOnboardingRedirect(
-        token,
-        sessionCookie,
-        req,
-      );
-      if (agentOnboarding) {
-        const response = redirectPreservingSearch(req, agentOnboarding.path);
-        if (agentOnboarding.cookieValue) {
-          setSlugCookie(response, agentOnboarding.cookieValue);
-        }
-        return response;
-      }
-
-      return pathname === '/'
-        ? NextResponse.next()
-        : redirectPreservingSearch(req, '/');
+      return redirectPreservingSearch(req, expertPath ?? ONBOARDING_PATH);
     }
   }
 

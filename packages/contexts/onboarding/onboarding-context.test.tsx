@@ -59,10 +59,10 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   }),
 }));
 
-const hasAgentFirstOnboardingMock = vi.hoisted(() => vi.fn(() => true));
+const hasSingleStepOnboardingMock = vi.hoisted(() => vi.fn(() => true));
 
 vi.mock('@genfeedai/config/deployment', () => ({
-  hasAgentFirstOnboarding: () => hasAgentFirstOnboardingMock(),
+  hasSingleStepOnboarding: () => hasSingleStepOnboardingMock(),
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
@@ -110,7 +110,7 @@ describe('OnboardingProvider', () => {
     boundary.currentUser = { id: 'usr_123', onboardingStepsCompleted: [] };
     boundary.brands = [];
     boundary.selectedBrand = undefined;
-    hasAgentFirstOnboardingMock.mockReturnValue(true);
+    hasSingleStepOnboardingMock.mockReturnValue(true);
     getBetterAuthTokenMock.mockResolvedValue(null);
     getTokenMock.mockResolvedValue('session-token');
     refetchUserMock.mockResolvedValue(undefined);
@@ -140,13 +140,13 @@ describe('OnboardingProvider', () => {
         onboardingStepsCompleted: ['brand'],
       });
       expect(refetchUserMock).toHaveBeenCalledTimes(1);
-      expect(pushMock).toHaveBeenCalledWith('/agent/onboarding');
-      expect(replaceMock).not.toHaveBeenCalled();
+      expect(replaceMock).toHaveBeenCalledWith('/');
+      expect(pushMock).not.toHaveBeenCalled();
     });
   });
 
   it('keeps Desktop on the shared providers step after brand', async () => {
-    hasAgentFirstOnboardingMock.mockReturnValue(false);
+    hasSingleStepOnboardingMock.mockReturnValue(false);
 
     render(
       <OnboardingProvider>
@@ -202,22 +202,13 @@ function CompletionProbe({
     </>
   );
 }
-function scopedBrand(
-  slug?: string,
-): import('@genfeedai/models/organization/brand.model').Brand {
-  return {
-    id: 'brand',
-    organization: { slug, accountType: 'CREATOR' },
-  } as unknown as import('@genfeedai/models/organization/brand.model').Brand;
-}
-
 describe('guarded onboarding completion boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     boundary.currentUser = { id: 'usr_123', onboardingStepsCompleted: [] };
     boundary.brands = [];
     boundary.selectedBrand = undefined;
-    hasAgentFirstOnboardingMock.mockReturnValue(true);
+    hasSingleStepOnboardingMock.mockReturnValue(true);
     getBetterAuthTokenMock.mockResolvedValue(null);
     getTokenMock.mockResolvedValue('session-token');
     refetchUserMock.mockResolvedValue(undefined);
@@ -356,38 +347,7 @@ describe('guarded onboarding completion boundaries', () => {
       });
       expect(boundary.clearCache).toHaveBeenCalledTimes(1);
       expect(refetchUserMock).toHaveBeenCalledTimes(1);
-      expect(pushMock).toHaveBeenCalledExactlyOnceWith('/agent/onboarding');
-    },
-  );
-  it.each([
-    'missing selected slug',
-    'present selected slug',
-    'absent selected brand',
-  ] as const)(
-    'uses the selected organization slug policy for %s',
-    async (scenario) => {
-      boundary.brands = [scopedBrand('first-org')];
-      boundary.selectedBrand =
-        scenario === 'absent selected brand'
-          ? undefined
-          : scopedBrand(
-              scenario === 'present selected slug' ? 'selected-org' : undefined,
-            );
-      render(
-        <OnboardingProvider>
-          <StepCompleteControl />
-        </OnboardingProvider>,
-      );
-      fireEvent.click(
-        await screen.findByRole('button', { name: 'Complete step' }),
-      );
-      const href =
-        scenario === 'missing selected slug'
-          ? '/agent/onboarding'
-          : `/${scenario === 'present selected slug' ? 'selected-org' : 'first-org'}/~/agent/onboarding`;
-      await waitFor(() =>
-        expect(pushMock).toHaveBeenCalledExactlyOnceWith(href),
-      );
+      expect(replaceMock).toHaveBeenCalledExactlyOnceWith('/');
     },
   );
 });

@@ -10,7 +10,7 @@ export {
   getClientSurface,
   getDeployment,
   getDeploymentFromReader,
-  hasAgentFirstOnboarding,
+  hasSingleStepOnboarding,
   hostnameFromUrl,
   isCloudDeployment,
   isCommunity,

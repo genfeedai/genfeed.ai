@@ -252,11 +252,11 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
-  it('routes incomplete Community users to the agent onboarding surface', async () => {
+  it('routes incomplete Community users to the onboarding page', async () => {
     mocks.currentUserState.currentUser = {
       id: 'user_1',
       isOnboardingCompleted: false,
@@ -272,7 +272,7 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
@@ -332,7 +332,7 @@ describe('ProtectedRootResolver', () => {
     );
   });
 
-  it('routes incomplete SaaS users to the agent onboarding surface', async () => {
+  it('routes incomplete SaaS users to the onboarding page', async () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -349,11 +349,11 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
-  it('waits for brand readiness before resolving the agent organization', async () => {
+  it('waits for brand readiness before resolving the organization', async () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.brandState.isReady = false;
     mocks.currentUserState.currentUser = {
@@ -376,7 +376,7 @@ describe('ProtectedRootResolver', () => {
     rerender(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
