@@ -7,6 +7,7 @@
  *   catalog (the same registry read as `/models`), never a hand-kept key list.
  */
 import { renderAgentConnectMarkdown } from '@data/agent-clients.data';
+import { BEST_LISTS } from '@data/best-lists.data';
 import { competitors } from '@data/competitors.data';
 import { FAQ_CATEGORIES } from '@data/faq.data';
 import { integrations } from '@data/integrations.data';
@@ -126,6 +127,33 @@ function appendPublicSurfaces(lines: string[], isDetailed: boolean): void {
     }
     lines.push(
       `- [Genfeed vs ${competitor.name}](${BASE_URL}/vs/${competitor.slug}): ${competitor.tagline}`,
+    );
+  }
+  lines.push('');
+
+  lines.push('## Guides');
+  lines.push('');
+  lines.push(
+    `Best-of guides that group AI content tools by the job they do. The index is ${BASE_URL}/best. Each URL below is a live page.`,
+  );
+  lines.push('');
+  if (!isDetailed) {
+    lines.push(
+      `- [Best AI content tools](${BASE_URL}/best): Index of the guides`,
+    );
+  }
+  for (const list of BEST_LISTS) {
+    if (isDetailed) {
+      lines.push(`### ${list.heading}`);
+      lines.push('');
+      lines.push(list.description);
+      lines.push('');
+      lines.push(`URL: ${BASE_URL}/best/${list.slug}`);
+      lines.push('');
+      continue;
+    }
+    lines.push(
+      `- [${list.heading}](${BASE_URL}/best/${list.slug}): ${list.description}`,
     );
   }
   lines.push('');

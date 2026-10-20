@@ -1,5 +1,6 @@
 import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { getAllAgentClientSlugs } from '@data/agent-clients.data';
+import { getAllBestListSlugs } from '@data/best-lists.data';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { helpArticleSlugs } from '@data/help-articles.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
@@ -273,6 +274,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
       url: 'https://genfeed.ai/vs',
     },
+    {
+      changeFrequency: 'monthly',
+      priority: 0.8,
+      url: 'https://genfeed.ai/best',
+    },
     // The HTML directory behind the footer's bottom bar: it links every hub so
     // no indexable page depends on the (deliberately short) footer nav.
     {
@@ -330,6 +336,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
       url: `https://genfeed.ai/vs/${slug}`,
+    }),
+  );
+
+  const bestListRoutes: MetadataRoute.Sitemap = getAllBestListSlugs().map(
+    (slug) => ({
+      changeFrequency: 'monthly',
+      priority: 0.8,
+      url: `https://genfeed.ai/best/${slug}`,
     }),
   );
 
@@ -400,6 +414,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...agentClientChannelRoutes,
     ...productRoutes,
     ...competitorRoutes,
+    ...bestListRoutes,
     ...integrationRoutes,
     ...useCaseRoutes,
     ...articleRoutes,
