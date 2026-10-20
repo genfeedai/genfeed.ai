@@ -123,11 +123,13 @@ test.describe('200% browser zoom layout', () => {
       ).toBeInViewport();
       const chips = await switchToAdvanced(page);
       await expectNoHorizontalPageScroll(page);
-      // The chip row scrolls sideways instead of wrapping off screen; Model
-      // is the first chip, so it must be reachable without scrolling.
+      // The chip row scrolls sideways instead of running off screen; Model is
+      // the first chip, so it must be reachable without scrolling. When the
+      // type bar leaves no room beside it the chips wrap to their own line,
+      // so the whole chip has to be on screen, not just a sliver of it.
       await expect(
         chips.getByRole('button', { name: 'Configure Model', exact: true }),
-      ).toBeInViewport();
+      ).toBeInViewport({ ratio: 1 });
       await page.screenshot({
         path: testInfo.outputPath('generation-setup-200-percent.png'),
       });
