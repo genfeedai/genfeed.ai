@@ -228,6 +228,9 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
   }, [id, data.approvalId, getService, updateNodeData]);
 
   const isPending = data.approvalStatus === ReviewGateStatus.PENDING;
+  const isRejected = data.approvalStatus === ReviewGateStatus.REJECTED;
+  const isErrorShownAsRejectionReason =
+    isRejected && data.error === data.rejectionReason;
   const hasReviewInput = Boolean(data.inputMedia || data.inputCaption);
   const showApprovalButtons =
     isPending && hasReviewInput && Boolean(data.approvalId);
@@ -360,7 +363,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         </div>
       )}
 
-      {data.approvalStatus === ReviewGateStatus.REJECTED && (
+      {isRejected && (
         <div className="text-xs text-red-500">
           {data.rejectionReason || 'No reason provided'}
         </div>
@@ -376,7 +379,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         </HelpText>
       )}
 
-      {data.error && (
+      {data.error && !isErrorShownAsRejectionReason && (
         <div className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-red-300">
           {data.error}
         </div>

@@ -370,6 +370,29 @@ describe('ReviewGateNode', () => {
     );
   });
 
+  it('shows a rejection once when the execution error repeats the reason', () => {
+    renderReviewGate({
+      approvalId: 'approval-1',
+      approvalStatus: ReviewGateStatus.REJECTED,
+      error: 'Rejected via review gate',
+      rejectionReason: 'Rejected via review gate',
+    });
+
+    expect(screen.getAllByText('Rejected via review gate')).toHaveLength(1);
+  });
+
+  it('keeps a different execution error next to the rejection reason', () => {
+    renderReviewGate({
+      approvalId: 'approval-1',
+      approvalStatus: ReviewGateStatus.REJECTED,
+      error: 'Execution stopped',
+      rejectionReason: 'Rejected via review gate',
+    });
+
+    expect(screen.getByText('Rejected via review gate')).toBeVisible();
+    expect(screen.getByText('Execution stopped')).toBeVisible();
+  });
+
   it('handles missing execution context and approval failures', async () => {
     mocks.workflowId = null;
     renderReviewGate({
