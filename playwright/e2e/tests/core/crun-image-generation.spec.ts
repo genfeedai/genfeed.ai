@@ -328,9 +328,19 @@ async function installFixture(
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
 
-async function expectGenerationSetup(page: Page, summary: string) {
-  const setup = page.getByRole('button', { name: /^Generation setup:/ });
-  await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
+// The setup summary is spread over the chips: Model carries the model name and
+// Output the ratio, duration and count.
+async function expectGenerationSetup(
+  page: Page,
+  summary: { model: string; output: string },
+) {
+  const chips = page.getByTestId('generation-setup-section-chips');
+  await expect(
+    chips.getByRole('button', { name: 'Configure Model', exact: true }),
+  ).toContainText(summary.model);
+  await expect(
+    chips.getByRole('button', { name: 'Configure Output', exact: true }),
+  ).toContainText(summary.output);
 }
 // Advanced mode lists Model/Output/Look as chips in the prompt-bar toolbar;
 // each chip opens only its own section.
@@ -340,14 +350,25 @@ async function openConfiguration(page: Page, section: string) {
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
-async function backToSetup(page: Page) {
-  await page
-    .getByRole('button', { name: 'Back to setup', exact: true })
-    .click();
+async function closeOpenPanel(page: Page) {
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('menu')).toHaveCount(0);
 }
-async function selectValue(page: Page, label: string, value: string) {
-  await page.getByRole('combobox', { name: label, exact: true }).click();
-  await page.getByRole('option', { name: value, exact: true }).click();
+// Output and Look are nested menus: open the chip, point at the field's row,
+// then pick from the list that opens beside it.
+async function selectMenuValue(
+  page: Page,
+  chip: string,
+  field: string,
+  value: string,
+) {
+  await openConfiguration(page, chip);
+  await page.getByRole('menuitem', { name: new RegExp(`^${field}`) }).hover();
+  await page
+    .getByRole('group', { name: field, exact: true })
+    .getByRole('menuitem', { name: new RegExp(`^${value}(\\s|$)`) })
+    .click();
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {
   const shell = page.getByTestId('studio-playground-composer-shell');
@@ -413,8 +434,8 @@ for (const key of [nanoKey, seedreamKey]) {
     await expectGenerationSetup(
       page,
       key === nanoKey
-        ? 'Nano Banana Pro · 1:1 · 1K · x1'
-        : 'Seedream 4.5 · 16:9 · 2K · x1',
+        ? { model: 'Nano Banana Pro', output: '1:1 · x1' }
+        : { model: 'Seedream 4.5', output: '16:9 · x1' },
     );
     await openConfiguration(page, 'Model');
     await page
@@ -427,20 +448,19 @@ for (const key of [nanoKey, seedreamKey]) {
         name: new RegExp(key === nanoKey ? 'Nano Banana Pro' : 'Seedream 4.5'),
       })
       .click();
-    await backToSetup(page);
-    await openConfiguration(page, 'Look');
-    await selectValue(page, 'Resolution', '4K');
-    await backToSetup(page);
+    await closeOpenPanel(page);
+    await selectMenuValue(page, 'Look', 'Resolution', '4K');
+    await selectMenuValue(page, 'Output', 'Aspect ratio', '21:9');
+    // Auto stays a choice; without a reference the model's own `auto` value is
+    // not offered, so Auto hands the ratio back to the agent instead.
     await openConfiguration(page, 'Output');
-    await selectValue(page, 'Aspect ratio', '21:9');
-    await page
-      .getByRole('combobox', { name: 'Aspect ratio', exact: true })
-      .click();
+    await page.getByRole('menuitem', { name: /^Aspect ratio/ }).hover();
     await expect(
-      page.getByRole('option', { name: 'auto', exact: true }),
-    ).toHaveCount(0);
-    await page.keyboard.press('Escape');
-    await page.keyboard.press('Escape');
+      page
+        .getByRole('group', { name: 'Aspect ratio', exact: true })
+        .getByRole('menuitem', { name: 'Auto', exact: true }),
+    ).toBeVisible();
+    await closeOpenPanel(page);
     await expectSubmitTooltip(page, '3 credits');
     const generate = fixture.composer.getByRole('button', {
       name: 'Generate',

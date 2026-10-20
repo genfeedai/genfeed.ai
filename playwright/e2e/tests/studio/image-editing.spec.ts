@@ -230,9 +230,7 @@ for (const { model, editing } of [
     await selectAdvancedModel(page, flux ? 'FLUX.3' : 'Ideogram');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    await expect(
-      page.getByRole('button', { name: /^Generation setup:/ }),
-    ).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     if (flux) {
       await expect(page.getByLabel('FLUX resolution')).toBeVisible();
       await expect(page.getByLabel('Editing seed')).toHaveCount(0);
