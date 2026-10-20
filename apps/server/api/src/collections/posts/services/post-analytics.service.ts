@@ -23,6 +23,7 @@ import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analyt
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import {
+  CREDENTIAL_PLATFORM,
   type InstagramPostMetrics,
   mapBreakoutExposureMetrics,
   mapDailyPostMetrics,
@@ -53,18 +54,6 @@ import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-
-const CREDENTIAL_PLATFORM = {
-  FACEBOOK: 'FACEBOOK' as CredentialPlatform,
-  INSTAGRAM: 'INSTAGRAM' as CredentialPlatform,
-  LINKEDIN: 'LINKEDIN' as CredentialPlatform,
-  MASTODON: 'MASTODON' as CredentialPlatform,
-  PINTEREST: 'PINTEREST' as CredentialPlatform,
-  THREADS: 'THREADS' as CredentialPlatform,
-  TIKTOK: 'TIKTOK' as CredentialPlatform,
-  TWITTER: 'TWITTER' as CredentialPlatform,
-  YOUTUBE: 'YOUTUBE' as CredentialPlatform,
-};
 
 @Injectable()
 export class PostAnalyticsService extends BaseService<

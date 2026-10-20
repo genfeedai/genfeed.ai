@@ -226,6 +226,43 @@ function readBreakoutRemixPayload(
   return remixQuery ? { brandId: payload.brandId, remixQuery } : null;
 }
 
+function breakoutRemixInboxItem<
+  A,
+  R extends {
+    event: { eventKey: string };
+    id: string;
+    occurredAt: Date;
+    readAt: Date | null;
+    topic: string;
+  },
+>(input: {
+  activity: A;
+  brandSlug: string | undefined;
+  orgSlug: string;
+  remix: BreakoutRemixInboxPayload;
+  row: R;
+}) {
+  const { activity, brandSlug, orgSlug, remix, row } = input;
+  return {
+    id: row.id,
+    topic: row.topic,
+    occurredAt: row.occurredAt,
+    readAt: row.readAt,
+    outcome: 'completed' as const,
+    severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+    activity,
+    sourceHref: brandSlug
+      ? inboxSourceHref(
+          orgSlug,
+          brandSlug,
+          `${APP_ROUTES.ANALYTICS.POSTS}?${remix.remixQuery}`,
+        )
+      : null,
+    sourceLabel: null,
+    failure: null,
+  };
+}
+
 /**
  * Brand slugs for `social.reply` and breakout-offer rows, limited to brands the
  * member may open.
@@ -432,26 +469,13 @@ export class NotificationInboxService {
         row.event.payload,
       );
       if (breakoutRemix) {
-        const brandSlug = inboxBrandSlugs.get(breakoutRemix.brandId);
-        return {
-          id: row.id,
-          topic: row.topic,
-          occurredAt: row.occurredAt,
-          readAt: row.readAt,
-          outcome: 'completed' as const,
-          severity:
-            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+        return breakoutRemixInboxItem({
           activity: readInboxActivity(organizationId, row.activity),
-          sourceHref: brandSlug
-            ? inboxSourceHref(
-                member.organization.slug,
-                brandSlug,
-                `${APP_ROUTES.ANALYTICS.POSTS}?${breakoutRemix.remixQuery}`,
-              )
-            : null,
-          sourceLabel: null,
-          failure: null,
-        };
+          brandSlug: inboxBrandSlugs.get(breakoutRemix.brandId),
+          orgSlug: member.organization.slug,
+          remix: breakoutRemix,
+          row,
+        });
       }
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);
