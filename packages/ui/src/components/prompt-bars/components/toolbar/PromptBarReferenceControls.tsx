@@ -23,7 +23,6 @@ import { type ChangeEvent, type ReactElement, useContext, useRef } from 'react';
 export interface PromptBarReferenceControlsProps {
   accept?: string;
   className?: string;
-  density?: 'compact' | 'default';
   isAttachmentDisabled?: boolean;
   isLibraryDisabled?: boolean;
   label?: string;
@@ -40,7 +39,6 @@ export interface PromptBarReferenceControlsProps {
 export default function PromptBarReferenceControls({
   accept = 'image/*,video/*,audio/*',
   className,
-  density = 'default',
   isAttachmentDisabled = false,
   isLibraryDisabled = false,
   label,
@@ -65,7 +63,6 @@ export default function PromptBarReferenceControls({
     controls.videoRules?.referenceMode === 'none'
   )
     return null;
-  const controlSize = density === 'compact' ? 'size-8' : 'size-9';
   const menuLabel = label ?? translate('addContext');
   const menuSources: readonly PromptBarReferenceSource[] = sources ?? [
     {
@@ -157,11 +154,9 @@ export default function PromptBarReferenceControls({
             ariaLabel={triggerLabel ?? translate('addContext')}
             className={cn(
               'shrink-0',
-              triggerLabel ? 'h-8 gap-1.5 px-2' : controlSize,
+              triggerLabel ? 'h-8 gap-1.5 px-2' : 'size-8',
             )}
-            icon={
-              <Plus className={density === 'compact' ? 'size-3.5' : 'size-4'} />
-            }
+            icon={<Plus className="size-3.5" />}
             isDisabled={isMenuDisabled}
             size={triggerLabel ? ButtonSize.SM : ButtonSize.ICON}
             tooltip={triggerLabel ?? translate('addContext')}

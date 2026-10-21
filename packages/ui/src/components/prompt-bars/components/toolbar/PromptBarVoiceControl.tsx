@@ -8,7 +8,6 @@ import type { ReactElement } from 'react';
 
 export interface PromptBarVoiceControlProps {
   className?: string;
-  density?: 'compact' | 'default';
   isDisabled?: boolean;
   /**
    * Primary when the mic owns the send slot (empty composer); a plain icon
@@ -24,7 +23,6 @@ export interface PromptBarVoiceControlProps {
 /** Shared voice state machine for every conversational prompt bar. */
 export default function PromptBarVoiceControl({
   className,
-  density = 'default',
   isDisabled = false,
   isPrimary = true,
   isListening,
@@ -32,11 +30,7 @@ export default function PromptBarVoiceControl({
   onStartListening,
   onStopListening,
 }: PromptBarVoiceControlProps): ReactElement {
-  const controlClass = cn(
-    'shrink-0 min-h-0 min-w-0 p-0',
-    density === 'compact' ? 'size-8' : 'size-9',
-    className,
-  );
+  const controlClass = cn('size-8 shrink-0 min-h-0 min-w-0 p-0', className);
 
   if (isTranscribing) {
     return (
@@ -68,7 +62,7 @@ export default function PromptBarVoiceControl({
         variant={ButtonVariant.GHOST}
         withWrapper={false}
       >
-        <Mic className={density === 'compact' ? 'size-3.5' : 'size-4'} />
+        <Mic className="size-3.5" />
         <span
           aria-hidden="true"
           className="absolute right-0.5 top-0.5 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
@@ -81,7 +75,7 @@ export default function PromptBarVoiceControl({
     <Button
       ariaLabel="Start voice input"
       className={controlClass}
-      icon={<Mic className={density === 'compact' ? 'size-3.5' : 'size-4'} />}
+      icon={<Mic className="size-3.5" />}
       isDisabled={isDisabled}
       onClick={onStartListening}
       size={ButtonSize.ICON}

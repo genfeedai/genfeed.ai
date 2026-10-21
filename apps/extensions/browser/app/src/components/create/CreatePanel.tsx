@@ -267,12 +267,10 @@ function GenerateSection({
           value={generatePrompt}
         />
         <PromptBarToolbar
-          density="compact"
           leading={null}
           trailing={
             <PromptBarSendButton
               ariaLabel="Run Generate"
-              density="compact"
               isDisabled={isRunning || !generatePrompt.trim()}
               isLoading={isRunning && currentAction === 'generate'}
               onClick={onGenerate}

@@ -56,7 +56,7 @@ const PromptOutputsButton = memo(function PromptOutputsButton({
     <Button
       label={`${form.watch('outputs') || 1}x`}
       variant={ButtonVariant.GHOST}
-      className="h-9 px-2.5 gap-1 tabular-nums"
+      className="h-8 px-2.5 gap-1 tabular-nums"
       tooltip="Number of outputs"
       tooltipPosition="top"
       icon={
@@ -367,7 +367,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
-                className="h-9 gap-2 px-2 pr-2.5 text-muted-foreground hover:text-foreground"
+                className="h-8 gap-2 px-2 pr-2.5 text-muted-foreground hover:text-foreground"
                 tooltip={
                   references.length > 1
                     ? `${references.length} references selected`
@@ -490,7 +490,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
                 }
                 className={cn(
-                  'h-9 px-3 transition-colors duration-300 flex-shrink-0',
+                  'h-8 px-3 transition-colors duration-300 flex-shrink-0',
                   isRecording && 'animate-pulse',
                 )}
                 isDisabled={isGenerateBlocked || isProcessing}
@@ -515,7 +515,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltip="Stop"
                 tooltipPosition="top"
                 ariaLabel="Stop generation"
-                className={cn('transition-colors duration-300', 'size-9 p-0')}
+                className={cn('transition-colors duration-300', 'size-8 p-0')}
                 data-testid="stop-generation-button"
               />
             ) : null}
@@ -541,7 +541,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   ? `${generateLabel} (Queue)`
                   : generateLabel
               }
-              className={cn('transition-colors duration-300', 'size-9 p-0')}
+              className={cn('transition-colors duration-300', 'size-8 p-0')}
               data-testid="generate-button"
             />
           </div>

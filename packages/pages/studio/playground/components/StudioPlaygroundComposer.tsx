@@ -1072,10 +1072,7 @@ export default function StudioPlaygroundComposer({
         />
       ) : null}
       {referenceSources.length > 0 ? (
-        <PromptBarReferenceControls
-          density="compact"
-          sources={referenceSources}
-        />
+        <PromptBarReferenceControls sources={referenceSources} />
       ) : null}
     </>
   );
@@ -1303,7 +1300,6 @@ export default function StudioPlaygroundComposer({
         </p>
       ) : null}
       <PromptBarToolbar
-        density="compact"
         leadingLabel={translateSetup('promptTools')}
         trailingLabel={translateSetup('generationControls')}
         leading={
@@ -1424,7 +1420,6 @@ export default function StudioPlaygroundComposer({
             ) : null}
 
             <PromptBarSubmitSlot
-              density="compact"
               isEmpty={isPromptEmpty}
               isListening={isListening}
               isTranscribing={isTranscribing}
@@ -1452,7 +1447,6 @@ export default function StudioPlaygroundComposer({
                         ? 'cursor-not-allowed opacity-50'
                         : undefined
                     }
-                    density="compact"
                     isAriaDisabled={Boolean(isSubmitBlocked)}
                     onClick={guardedSubmit}
                   />

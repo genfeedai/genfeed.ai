@@ -760,12 +760,10 @@ function MotionWorkspace() {
                     </p>
                   )}
                 <PromptBarToolbar
-                  density="compact"
                   leading={
                     <>
                       <PromptBarCompactSelect
                         ariaLabel={t('inputMode')}
-                        density="compact"
                         onChange={updateMode}
                         options={modeOptions}
                         value={mode}
@@ -773,7 +771,6 @@ function MotionWorkspace() {
                       {!project && (
                         <PromptBarCompactSelect
                           ariaLabel={t('model')}
-                          density="compact"
                           onChange={updateModel}
                           options={modelOptions}
                           value={modelKey}
@@ -842,7 +839,6 @@ function MotionWorkspace() {
                         )}
                       <PromptBarSendButton
                         ariaLabel={t('getQuote')}
-                        density="compact"
                         isDisabled={isQuoteBlocked}
                         onClick={submitFromEditor}
                         tooltip={t('getQuote')}

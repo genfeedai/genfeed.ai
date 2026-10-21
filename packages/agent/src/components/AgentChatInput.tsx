@@ -298,8 +298,6 @@ export function AgentChatInput({
           onStopListening={stopListening}
           showStop={Boolean(showStop)}
           willQueueFollowUp={willQueueFollowUp}
-          // The dock rail is narrow — use compact icon-only toolbar density.
-          density={isCompact || isDock ? 'compact' : 'default'}
         />
       </PromptBarComposer>
 

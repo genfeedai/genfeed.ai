@@ -271,11 +271,9 @@ export default function ModalArticle({
                 className="min-h-16"
               />
               <PromptBarToolbar
-                density="compact"
                 leading={
                   <PromptBarCompactSelect
                     ariaLabel="Number of Articles"
-                    density="compact"
                     isDisabled={isSubmitting}
                     options={ARTICLE_COUNT_OPTIONS}
                     value={count || '1'}
@@ -287,7 +285,6 @@ export default function ModalArticle({
                 trailing={
                   <PromptBarSendButton
                     ariaLabel={generateLabel}
-                    density="compact"
                     isDisabled={isSubmitDisabled}
                     isLoading={isSubmitting}
                     onClick={submitFromPrompt}

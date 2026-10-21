@@ -27,12 +27,10 @@ export function WorkspaceTaskToolbar({
 
   return (
     <PromptBarToolbar
-      density="compact"
       leading={
         <>
           <PromptBarCompactSelect
             ariaLabel={translate('outputType')}
-            density="compact"
             isDisabled={taskMode !== 'standard'}
             options={presets.map((preset) => ({
               label: preset.label,
@@ -45,7 +43,6 @@ export function WorkspaceTaskToolbar({
           />
           <PromptBarCompactSelect
             ariaLabel={translate('taskMode')}
-            density="compact"
             options={modeOptions.map((mode) => ({
               label: mode.label,
               value: mode.id,

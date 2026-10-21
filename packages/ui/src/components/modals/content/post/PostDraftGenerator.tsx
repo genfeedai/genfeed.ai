@@ -128,12 +128,10 @@ export default function PostDraftGenerator({
           className="min-h-12"
         />
         <PromptBarToolbar
-          density="compact"
           leading={null}
           trailing={
             <PromptBarSendButton
               ariaLabel={generateLabel}
-              density="compact"
               isDisabled={!canGenerate}
               isLoading={isGenerating}
               onClick={() => void generate()}

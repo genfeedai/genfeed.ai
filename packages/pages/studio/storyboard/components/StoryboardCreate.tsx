@@ -239,7 +239,6 @@ export default function StoryboardCreate() {
               />
             ) : null}
             <PromptBarToolbar
-              density="compact"
               leading={
                 mode === 'brief' ? (
                   <>
@@ -256,7 +255,6 @@ export default function StoryboardCreate() {
                     />
                     <PromptBarCompactSelect
                       ariaLabel={translate('formatAria')}
-                      density="compact"
                       isDisabled={isCreating}
                       options={FORMAT_OPTIONS}
                       value={format}
@@ -271,7 +269,6 @@ export default function StoryboardCreate() {
                     />
                     <PromptBarCompactSelect
                       ariaLabel={translate('runtimeBudget')}
-                      density="compact"
                       isDisabled={isCreating}
                       options={budgetOptions}
                       value={budget}
@@ -283,7 +280,6 @@ export default function StoryboardCreate() {
               trailing={
                 <PromptBarSendButton
                   ariaLabel={saveLabel}
-                  density="compact"
                   isDisabled={isCreating || !valid}
                   isLoading={isCreating}
                   onClick={() => void submit()}

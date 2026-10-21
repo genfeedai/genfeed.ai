@@ -1024,9 +1024,9 @@ export function usePromptBarState({
   }, [watchedFormat]);
 
   const controlClass =
-    'h-9 px-2.5 gap-1.5 flex-shrink-0 !border-transparent !bg-transparent !shadow-none text-muted-foreground hover:!bg-hover hover:!text-foreground';
+    'h-8 px-2.5 gap-1.5 flex-shrink-0 !border-transparent !bg-transparent !shadow-none text-muted-foreground hover:!bg-hover hover:!text-foreground';
   const iconButtonClass =
-    'size-9 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-muted-foreground hover:!bg-hover hover:!text-foreground';
+    'size-8 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-muted-foreground hover:!bg-hover hover:!text-foreground';
   const textareaRegister = form.register('text');
 
   const {

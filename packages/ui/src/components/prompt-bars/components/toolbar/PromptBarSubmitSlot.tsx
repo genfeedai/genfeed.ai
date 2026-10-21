@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSubmitSlotProps } from '@genfeedai/props/prompt-bars/prompt-bar-toolbar.props';
 import { Button } from '@ui/primitives/button';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
@@ -17,7 +16,6 @@ import type { ReactElement } from 'react';
  *   beside send as a secondary icon so dictation can keep appending.
  */
 export default function PromptBarSubmitSlot({
-  density = 'default',
   isDisabled = false,
   isEmpty,
   isListening,
@@ -35,7 +33,6 @@ export default function PromptBarSubmitSlot({
   if (isListening || isTranscribing) {
     return (
       <PromptBarVoiceControl
-        density={density}
         isDisabled={isDisabled}
         isListening={isListening}
         isTranscribing={isTranscribing}
@@ -48,7 +45,6 @@ export default function PromptBarSubmitSlot({
   if (isVoiceAvailable && isEmpty && !showStop) {
     return (
       <PromptBarVoiceControl
-        density={density}
         isDisabled={isDisabled}
         isListening={false}
         isTranscribing={false}
@@ -62,7 +58,6 @@ export default function PromptBarSubmitSlot({
     <>
       {isVoiceAvailable && !showStop && send ? (
         <PromptBarVoiceControl
-          density={density}
           isDisabled={isDisabled}
           isListening={false}
           isPrimary={false}
@@ -74,10 +69,7 @@ export default function PromptBarSubmitSlot({
       {showStop && onStop ? (
         <Button
           ariaLabel={resolvedStopLabel}
-          className={cn(
-            'shrink-0 min-h-0 min-w-0 p-0',
-            density === 'compact' ? 'size-8' : 'size-9',
-          )}
+          className="size-8 shrink-0 min-h-0 min-w-0 p-0"
           icon={
             <Square aria-hidden className="size-2.5 fill-current stroke-none" />
           }

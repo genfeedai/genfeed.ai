@@ -13,7 +13,6 @@ export interface PromptBarSendButtonProps
   ariaLabel: string;
   /** Extra classes merged onto the button (e.g. a blocked/dimmed state). */
   className?: string;
-  density?: 'compact' | 'default';
   /** Defaults to the shared up-arrow. */
   icon?: ReactNode;
   /** Keeps the button clickable but announces it as unavailable. */
@@ -34,7 +33,6 @@ export interface PromptBarCompactSelectOption {
 
 export interface PromptBarCompactSelectProps {
   ariaLabel: string;
-  density?: 'compact' | 'default';
   isDisabled?: boolean;
   onChange: (value: string) => void;
   options: ReadonlyArray<PromptBarCompactSelectOption>;

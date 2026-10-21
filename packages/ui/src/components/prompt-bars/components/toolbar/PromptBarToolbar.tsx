@@ -15,7 +15,6 @@ import type { ReactElement } from 'react';
  */
 export default function PromptBarToolbar({
   className,
-  density = 'default',
   leading,
   leadingLabel,
   trailing,
@@ -24,8 +23,7 @@ export default function PromptBarToolbar({
   return (
     <div
       className={cn(
-        'mt-2 flex min-w-0 flex-wrap items-center justify-between gap-1',
-        density === 'compact' ? 'min-h-8' : 'min-h-9',
+        'mt-2 flex min-h-8 min-w-0 flex-wrap items-center justify-between gap-1',
         className,
       )}
       data-prompt-bar-toolbar=""

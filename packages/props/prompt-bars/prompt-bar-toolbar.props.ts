@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 export interface PromptBarToolbarProps {
   className?: string;
-  density?: 'compact' | 'default';
   /** Left group: `+` menu, the surface's leading chip, then surface tools. */
   leading: ReactNode;
   leadingLabel?: string;
@@ -12,7 +11,6 @@ export interface PromptBarToolbarProps {
 }
 
 export interface PromptBarSubmitSlotProps {
-  density?: 'compact' | 'default';
   isDisabled?: boolean;
   /** Nothing to submit yet — the mic owns the slot when voice is available. */
   isEmpty: boolean;
