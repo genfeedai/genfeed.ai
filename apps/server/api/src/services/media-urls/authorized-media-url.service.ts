@@ -34,7 +34,10 @@ import {
 } from '@nestjs/common';
 
 /** Brand kit assets that identify a brand rather than carry generated media. */
-const BRAND_IDENTITY_CATEGORIES = [AssetCategory.LOGO, AssetCategory.BANNER];
+const BRAND_IDENTITY_CATEGORIES: AssetCategory[] = [
+  AssetCategory.LOGO,
+  AssetCategory.BANNER,
+];
 
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
 @Injectable()
