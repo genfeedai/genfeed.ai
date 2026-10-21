@@ -78,3 +78,19 @@ export interface FirstDraftsScheduleProps {
   likedDrafts: IOnboardingFirstDraft[];
   onFinish: () => void;
 }
+
+/** What survives the provider redirect of an account connect. */
+export interface FirstDraftsScheduleResume {
+  brandId: string;
+  likedPostIds: string[];
+  result: IOnboardingFirstDraftsResult;
+}
+
+export interface FirstDraftsScheduleState {
+  connect: (platform: string) => void;
+  error: 'connect' | 'schedule' | null;
+  isLoading: boolean;
+  isScheduling: boolean;
+  rows: ScheduleRow[];
+  schedule: () => void;
+}

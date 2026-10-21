@@ -3,6 +3,7 @@
 import { PostCategory } from '@genfeedai/contracts';
 import type {
   FirstDraftsScheduleProps,
+  FirstDraftsScheduleState,
   ScheduleRow,
 } from '@genfeedai/props/onboarding/first-drafts.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -29,15 +30,6 @@ function slotFor(index: number): string {
   return slot.toISOString();
 }
 
-interface ScheduleStepState {
-  connect: (platform: string) => void;
-  error: 'connect' | 'schedule' | null;
-  isLoading: boolean;
-  isScheduling: boolean;
-  rows: ScheduleRow[];
-  schedule: () => void;
-}
-
 /**
  * Which liked drafts can go out now (an account is connected), which need a
  * connection first, and the one action that schedules every ready draft.
@@ -49,7 +41,7 @@ export function useScheduleStep({
 }: Pick<
   FirstDraftsScheduleProps,
   'brandId' | 'imageIngredientId' | 'likedDrafts'
->): ScheduleStepState {
+>): FirstDraftsScheduleState {
   const { getToken } = useAuthIdentity();
   const connectPlatform = usePlatformOAuthConnect({
     brandId,
@@ -63,7 +55,7 @@ export function useScheduleStep({
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [error, setError] = useState<ScheduleStepState['error']>(null);
+  const [error, setError] = useState<FirstDraftsScheduleState['error']>(null);
 
   useEffect(() => {
     const controller = new AbortController();
