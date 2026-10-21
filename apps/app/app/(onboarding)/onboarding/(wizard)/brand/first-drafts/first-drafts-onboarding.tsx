@@ -105,7 +105,7 @@ export default function FirstDraftsOnboarding() {
                 />
               ))}
             </div>
-            {drafts.some((draft) => draft.isProvisional) ? (
+            {state.canRetry && drafts.some((draft) => draft.isProvisional) ? (
               <p role="status" className="text-sm text-muted-foreground">
                 {t('review.generic')}
               </p>

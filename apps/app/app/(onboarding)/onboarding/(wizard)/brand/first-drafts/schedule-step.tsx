@@ -23,10 +23,14 @@ export default function ScheduleStep(props: FirstDraftsScheduleProps) {
     );
   }
 
-  const readyCount = state.rows.filter((row) => row.state === 'ready').length;
+  const readyCount = state.rows.filter(
+    (row) => row.state === 'ready' || row.state === 'failed',
+  ).length;
   const isDone =
-    state.rows.length > 0 &&
-    state.rows.every((row) => row.state === 'scheduled');
+    state.rows.some((row) => row.state === 'scheduled') &&
+    state.rows.every(
+      (row) => row.state === 'scheduled' || row.state === 'unsupported',
+    );
 
   return (
     <div className="flex flex-col gap-6">

@@ -139,7 +139,12 @@ export function useScheduleStep({
         const posts = PostsService.getInstance(token);
         const releases = ReleaseGroupsService.getInstance(token);
         for (const row of rows) {
-          if (row.state !== 'ready' || !row.credentialId) continue;
+          // A failed row is retried; a scheduled or unconnected one is left alone.
+          if (
+            (row.state !== 'ready' && row.state !== 'failed') ||
+            !row.credentialId
+          )
+            continue;
           try {
             await posts.patch(row.draft.postId, {
               credentialId: row.credentialId,

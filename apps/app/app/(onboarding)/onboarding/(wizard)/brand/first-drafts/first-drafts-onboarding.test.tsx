@@ -466,4 +466,59 @@ describe('FirstDraftsOnboarding', () => {
       await screen.findByRole('button', { name: 'Go to my workspace' }),
     ).toBeInTheDocument();
   });
+
+  it('retries a post that failed to schedule', async () => {
+    mocks.listReadiness.mockResolvedValue([
+      { canSchedule: true, credentialId: 'cred-x', providerKey: 'twitter' },
+    ]);
+    mocks.scheduleTarget.mockRejectedValueOnce(new Error('boom'));
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getAllByRole('button', { name: "I'd post this" })[0],
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Connect and schedule 1 post',
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Schedule 1 post' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "couldn't schedule",
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule 1 post' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Go to my workspace' }),
+    ).toBeInTheDocument();
+    expect(mocks.scheduleTarget).toHaveBeenCalledTimes(2);
+  });
+
+  it('finishes once everything schedulable is scheduled, even with a TikTok script liked', async () => {
+    mocks.listReadiness.mockResolvedValue([
+      { canSchedule: true, credentialId: 'cred-x', providerKey: 'twitter' },
+    ]);
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    const likes = screen.getAllByRole('button', { name: "I'd post this" });
+    fireEvent.click(likes[0]);
+    fireEvent.click(likes[2]);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Connect and schedule 2 posts',
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Schedule 1 post' }),
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'Go to my workspace' }),
+    ).toBeInTheDocument();
+  });
 });
