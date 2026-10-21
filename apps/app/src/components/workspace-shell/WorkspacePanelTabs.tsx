@@ -5,7 +5,7 @@ import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import type { WorkspacePanelTabsProps } from '@props/ui/workspace-panel.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { Maximize2, PanelRightClose, SquarePen } from 'lucide-react';
+import { Maximize2, SquarePen, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import AgentDockThreadMenu from './AgentDockThreadMenu';
 
@@ -108,7 +108,7 @@ export default function WorkspacePanelTabs({
         <Button
           ariaLabel={translate('close')}
           data-testid="workspace-panel-close"
-          icon={<PanelRightClose className="size-4" />}
+          icon={<X className="size-4" />}
           onClick={onClose}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}

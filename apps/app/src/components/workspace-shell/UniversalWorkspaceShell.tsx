@@ -1007,8 +1007,8 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-transition-duration',
       `${isInspectorResizing ? 0 : SIDEBAR_TRANSITION_DURATION_MS}ms`,
     );
-    // Open, the panel attaches to the page block. The panel's left border is
-    // the divider; this flag makes the block flush with the panel.
+    // Open, the panel is its own card beside the page block. This flag adds
+    // the gap between the two cards to the block's right margin.
     layoutRoot.dataset.inspectorOpen = String(isPanelOpen);
 
     return () => {
@@ -1168,25 +1168,25 @@ function UniversalWorkspaceShellContent({
             </section>
           </div>
 
-          {/* The side panel starts under the topbar, level with the page
-              block, and clips its fixed-width contents as it closes. */}
+          {/* The side panel is a detached card: it starts under the topbar,
+              level with the page block, keeps its own border and rounding,
+              and clips its fixed-width contents as it closes. */}
           <aside
             // Nothing open: the empty, zero-width column is not a landmark.
             aria-hidden={isPanelOpen ? undefined : true}
             aria-label={translateSidePanel('label')}
             className={cn(
-              'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-card xl:flex',
-              // The panel's left border is the divider with the page block.
-              isPanelOpen && 'border-l border-border-strong',
+              'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
+              isPanelOpen && 'border border-border',
             )}
             id="workspace-context-inspector"
             data-motion="layout"
             inert={!isPanelOpen}
             ref={inspectorRef}
             style={{
-              bottom: 0,
+              bottom: 'var(--shell-inset, 0px)',
               minWidth: inspectorRailWidth,
-              right: 0,
+              right: 'var(--shell-inset, 0px)',
               top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
               transition: isInspectorResizing
                 ? 'none'
