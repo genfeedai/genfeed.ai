@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { PanelLeft } from 'lucide-react';
+import { Wand2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -39,9 +39,7 @@ export default function GenerationHarnessSettingsPopover({
           className={className}
           ariaLabel={translate('settings')}
           tooltip={translate('settings')}
-          icon={
-            <PanelLeft aria-hidden="true" className="size-4 stroke-[1.75]" />
-          }
+          icon={<Wand2 aria-hidden="true" className="size-4 stroke-[1.75]" />}
           isDisabled={isDisabled}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}

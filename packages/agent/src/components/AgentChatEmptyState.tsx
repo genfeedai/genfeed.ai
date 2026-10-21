@@ -126,9 +126,9 @@ export function AgentChatEmptyState({
   if (isDock) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-          <div className="flex flex-col gap-5">
-            <div className="w-full text-left">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6">
+          <div className="my-auto flex flex-col gap-5">
+            <div className="w-full text-center">
               <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
                 {emptyStateTitle}
               </h2>
@@ -148,10 +148,12 @@ export function AgentChatEmptyState({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-6">
+      {/* Centered on the whole content area (not just the space above the
+          composer); the cap keeps a tall block scrolling clear of the bar. */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6">
         <div
           className={cn(
-            'mx-auto flex w-full max-w-2xl flex-col items-center gap-5',
+            'pointer-events-auto flex max-h-[calc(100%-10rem)] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto',
             isWideLayout && 'md:max-w-3xl',
           )}
         >
@@ -169,7 +171,7 @@ export function AgentChatEmptyState({
         </div>
       </div>
       {isComposerVisible ? (
-        <div className="shrink-0 px-4 pb-4 md:px-6">
+        <div className="mt-auto shrink-0 px-4 pb-4 md:px-6">
           <PromptBarContainer
             className={cn(
               'mx-auto w-full max-w-2xl',
