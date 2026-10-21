@@ -176,7 +176,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/analytics/accounts/:id': 'Account',
   '/:orgSlug/~/analytics/brands/:id': 'Brand Details',
   '/:orgSlug/~/automation': 'Overview',
-  '/:orgSlug/~/explore': 'Explore',
+  '/:orgSlug/~/plugins': 'Plugins',
   '/:orgSlug/:brandSlug/automation/agents': 'Agents',
   '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automation/content-runs/:runId': 'Content Run',
@@ -583,12 +583,12 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(['/:orgSlug/~/explore'], {
-    fallback: '/:orgSlug/~/explore',
+  ...registerRoutes(['/:orgSlug/~/plugins'], {
+    fallback: '/:orgSlug/~/plugins',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'organization',
-    surfaceKey: 'explore',
+    surfaceKey: 'plugins',
     telemetryClass: 'product',
   }),
   ...registerRoutes(['/:orgSlug/~/automation'], {

@@ -141,7 +141,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
       PUBLISHING: '/settings/publishing',
     },
     SIGN_UP: '/signup',
-    EXPLORE: { ROOT: '/explore' },
+    PLUGINS: { ROOT: '/plugins' },
     WORKSPACE: {
       ACTIVITY: '/workspace/activity',
       OVERVIEW: '/workspace/overview',
@@ -273,8 +273,8 @@ describe('AppProtectedRail', () => {
         surface: 'desktop',
       }),
     );
-    // The Explore link lives in the topbar, not the rail.
-    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('exploreHref');
+    // The Plugins link lives in the topbar, not the rail.
+    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('pluginsHref');
     // The member's order and pins flow in and out through the shared context.
     expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
       hiddenAppIds: ['library'],

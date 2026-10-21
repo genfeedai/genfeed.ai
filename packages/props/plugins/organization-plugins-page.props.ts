@@ -5,8 +5,8 @@ import type {
 } from '@genfeedai/contracts/constants';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
-/** One native app in the Store (#5502), with its resolved state for the member. */
-export interface ExploreAppEntry {
+/** One native app in Plugins (#5502), with its resolved state for the member. */
+export interface PluginAppEntry {
   appId: NativeSecondaryAppId;
   description: string;
   icon: IconComponent;
@@ -18,13 +18,13 @@ export interface ExploreAppEntry {
   state: NativeAppAvailabilityState;
 }
 
-/** Store shelves an app is filed under; the filter chips mirror these. */
-export type ExploreCategoryId = 'create' | 'publish' | 'automate';
+/** Categories an app is filed under; the category filter mirrors these. */
+export type PluginCategoryId = 'create' | 'publish' | 'automate';
 
-export type ExploreFilterId = 'all' | ExploreCategoryId;
+export type PluginFilterId = 'all' | PluginCategoryId;
 
 /** Abstract mini-illustration drawn on an app's thumbnail. */
-export type ExploreThumbnailArt =
+export type PluginThumbnailArt =
   | 'flow'
   | 'frames'
   | 'inbox'
@@ -37,31 +37,28 @@ export type ExploreThumbnailArt =
   | 'trend'
   | 'trim';
 
-export type ExploreThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
+export type PluginThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
 
-export type ExploreThumbnailSize = 'compact' | 'featured' | 'standard';
+export type PluginThumbnailSize = 'compact' | 'standard';
 
-/** Store-only presentation data for one native app, keyed by app id. */
-export interface ExploreAppCatalogEntry {
-  art: ExploreThumbnailArt;
-  category: ExploreCategoryId;
-  isFeatured: boolean;
+/** Plugins-only presentation data for one native app, keyed by app id. */
+export interface PluginAppCatalogEntry {
+  art: PluginThumbnailArt;
+  category: PluginCategoryId;
   /** Real artwork; replaces the designed tile once an image exists. */
   thumbnailSrc?: string;
-  tone: ExploreThumbnailTone;
+  tone: PluginThumbnailTone;
 }
 
-export interface ExploreAppThumbnailProps {
+export interface PluginAppThumbnailProps {
   appId: OrganizationModuleId;
   icon: IconComponent;
   label: string;
-  size: ExploreThumbnailSize;
+  size: PluginThumbnailSize;
 }
 
-export interface ExploreAppCardProps {
-  app: ExploreAppEntry;
-  /** `featured` is the larger hero card; the testid prefix keeps both findable. */
-  variant?: 'featured' | 'standard';
+export interface PluginAppRowProps {
+  app: PluginAppEntry;
   /** Set after the last install or uninstall request for this app failed. */
   failedAction: 'install' | 'uninstall' | null;
   isPending: boolean;
@@ -73,7 +70,7 @@ export interface ExploreAppCardProps {
   subscriptionHref: string;
 }
 
-export interface ExploreAppAccessNoteProps
-  extends Pick<ExploreAppCardProps, 'manageModulesHref' | 'subscriptionHref'> {
-  state: ExploreAppEntry['state'];
+export interface PluginAppAccessNoteProps
+  extends Pick<PluginAppRowProps, 'manageModulesHref' | 'subscriptionHref'> {
+  state: PluginAppEntry['state'];
 }

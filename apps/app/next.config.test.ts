@@ -265,15 +265,25 @@ describe('app next.config', () => {
     );
   });
 
-  it('redirects the retired Store routes to Explore', async () => {
+  it('redirects the retired Explore and Store routes to Plugins', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/explore',
+      destination: '/:orgSlug/~/plugins',
+      permanent: true,
+      source: '/:orgSlug/~/explore',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/~/plugins/:path*',
+      permanent: true,
+      source: '/:orgSlug/~/explore/:path*',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/~/plugins',
       permanent: true,
       source: '/:orgSlug/~/store',
     });
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/explore/:path*',
+      destination: '/:orgSlug/~/plugins/:path*',
       permanent: true,
       source: '/:orgSlug/~/store/:path*',
     });

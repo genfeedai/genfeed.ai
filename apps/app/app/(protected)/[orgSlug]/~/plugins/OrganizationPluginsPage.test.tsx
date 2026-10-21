@@ -57,7 +57,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/~/explore',
+  usePathname: () => '/acme/~/plugins',
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('next-intl', async () => {
@@ -65,8 +65,8 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { default: OrganizationExplorePage } = await import(
-  './OrganizationExplorePage'
+const { default: OrganizationPluginsPage } = await import(
+  './OrganizationPluginsPage'
 );
 
 /** Admin → Flags as the release migration leaves it. */
@@ -78,16 +78,14 @@ const RELEASED_FLAGS = {
 };
 
 function card(appId: string): HTMLElement {
-  return screen.getByTestId(`explore-app-${appId}`);
+  return screen.getByTestId(`plugins-app-${appId}`);
 }
 
-function appState(appId: string): string | null | undefined {
-  return card(appId)
-    .querySelector('[data-app-state]')
-    ?.getAttribute('data-app-state');
+function appState(appId: string): string | null {
+  return card(appId).getAttribute('data-app-state');
 }
 
-describe('OrganizationExplorePage (#5502)', () => {
+describe('OrganizationPluginsPage (#5502)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.brand.selectedBrand = { slug: 'moonrise' };
@@ -106,75 +104,95 @@ describe('OrganizationExplorePage (#5502)', () => {
   });
 
   it('lists released apps for customers and omits unreleased ones', () => {
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
     expect(
       screen
-        .getAllByTestId(/^explore-app-/)
+        .getAllByTestId(/^plugins-app-/)
         .map((element) => element.dataset.testid),
     ).toEqual([
-      'explore-app-playground',
-      'explore-app-storyboard',
-      'explore-app-turbo',
-      'explore-app-discovery',
+      'plugins-app-playground',
+      'plugins-app-storyboard',
+      'plugins-app-turbo',
+      'plugins-app-discovery',
     ]);
   });
 
-  it('shows featured apps, your installed apps and category shelves', () => {
-    // Turbo ships switched off, and a turned-off app is not headlined, so the
-    // organization turns it on to see all three featured apps.
-    mocks.brand.settings = {
-      hasOrganizationBilling: true,
-      hasPaidModuleSubscription: true,
-      moduleOverrides: { turbo: true },
-    };
-    render(<OrganizationExplorePage />);
+  it('lists installed apps first and the rest by category', () => {
+    render(<OrganizationPluginsPage />);
 
+    // Only the installed, openable app is listed under Installed; it is not
+    // repeated in the catalog below.
     expect(
-      within(screen.getByTestId('explore-featured'))
-        .getAllByTestId(/^explore-featured-/)
+      within(screen.getByTestId('plugins-installed'))
+        .getAllByTestId(/^plugins-app-/)
+        .map((element) => element.dataset.testid),
+    ).toEqual(['plugins-app-playground']);
+    expect(
+      within(screen.getByTestId('plugins-apps'))
+        .getAllByTestId(/^plugins-app-/)
         .map((element) => element.dataset.testid),
     ).toEqual([
-      'explore-featured-playground',
-      'explore-featured-storyboard',
-      'explore-featured-turbo',
+      'plugins-app-storyboard',
+      'plugins-app-turbo',
+      'plugins-app-discovery',
     ]);
-    // Every card, featured or not, leads with its app thumbnail.
-    for (const appId of ['playground', 'storyboard', 'turbo']) {
+    // Every row leads with its app thumbnail.
+    for (const appId of ['playground', 'storyboard', 'discovery']) {
       expect(
-        within(screen.getByTestId(`explore-featured-${appId}`)).getByTestId(
-          `explore-thumbnail-${appId}`,
-        ),
+        within(card(appId)).getByTestId(`plugins-thumbnail-${appId}`),
       ).toBeInTheDocument();
     }
-    expect(
-      within(card('discovery')).getByTestId('explore-thumbnail-discovery'),
-    ).toBeInTheDocument();
-    // Only the installed, openable app is listed under Your apps; no usage
-    // counts exist, so nothing claims to be "most used".
-    expect(
-      within(screen.getByTestId('explore-yours'))
-        .getAllByTestId(/^explore-yours-/)
-        .map((element) => element.dataset.testid),
-    ).toEqual(['explore-yours-playground']);
-    expect(screen.getByTestId('explore-category-create')).toBeInTheDocument();
-    expect(screen.getByTestId('explore-category-publish')).toBeInTheDocument();
-    expect(screen.queryByTestId('explore-category-automate')).toBeNull();
+    expect(screen.getByTestId('plugins-category-create')).toBeInTheDocument();
+    expect(screen.getByTestId('plugins-category-publish')).toBeInTheDocument();
+    expect(screen.queryByTestId('plugins-category-automate')).toBeNull();
+    expect(screen.queryByTestId('plugins-empty')).toBeNull();
   });
 
-  it('filters the shelves with the category chips', async () => {
+  it('narrows the list with the search box', async () => {
     const user = userEvent.setup();
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
-    await user.click(screen.getByRole('button', { name: 'Publish & grow' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search plugins' }),
+      'story',
+    );
 
-    expect(screen.queryByTestId('explore-featured')).toBeNull();
-    expect(screen.queryByTestId('explore-category-create')).toBeNull();
     expect(
       screen
-        .getAllByTestId(/^explore-app-/)
+        .getAllByTestId(/^plugins-app-/)
         .map((element) => element.dataset.testid),
-    ).toEqual(['explore-app-discovery']);
+    ).toEqual(['plugins-app-storyboard']);
+
+    await user.clear(screen.getByRole('textbox', { name: 'Search plugins' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search plugins' }),
+      'zzzz',
+    );
+
+    expect(screen.queryAllByTestId(/^plugins-app-/)).toHaveLength(0);
+    expect(screen.getByTestId('plugins-empty')).toHaveTextContent(
+      'No plugins match your search.',
+    );
+  });
+
+  it('filters the catalog by category', async () => {
+    const user = userEvent.setup();
+    render(<OrganizationPluginsPage />);
+
+    await user.click(screen.getByRole('button', { name: /Filters/ }));
+    screen.getByRole('menuitem', { name: /Category/ }).focus();
+    await user.keyboard('{ArrowRight}');
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Publish & grow' }),
+    );
+
+    expect(screen.queryByTestId('plugins-category-create')).toBeNull();
+    expect(
+      screen
+        .getAllByTestId(/^plugins-app-/)
+        .map((element) => element.dataset.testid),
+    ).toEqual(['plugins-app-discovery']);
   });
 
   it('lists every native app for an organization on release preview', () => {
@@ -184,21 +202,21 @@ describe('OrganizationExplorePage (#5502)', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: {},
     };
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
-    expect(screen.getAllByTestId(/^explore-app-/)).toHaveLength(9);
+    expect(screen.getAllByTestId(/^plugins-app-/)).toHaveLength(9);
   });
 
   it('opens an installed app and installs one that is not installed', async () => {
     const user = userEvent.setup();
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
     expect(
-      within(card('playground')).getByRole('link', { name: 'Open' }),
+      within(card('playground')).getByRole('link', { name: 'Open Playground' }),
     ).toHaveAttribute('href', '/acme/moonrise/studio/playground');
     await user.click(
       within(card('storyboard')).getByRole('button', {
-        name: 'Install Storyboard',
+        name: 'Add Storyboard',
       }),
     );
     expect(mocks.install).toHaveBeenCalledWith('storyboard');
@@ -207,16 +225,16 @@ describe('OrganizationExplorePage (#5502)', () => {
   it('explains a failed install without showing the app as installed', async () => {
     mocks.install.mockResolvedValue(false);
     const user = userEvent.setup();
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
     await user.click(
       within(card('storyboard')).getByRole('button', {
-        name: 'Install Storyboard',
+        name: 'Add Storyboard',
       }),
     );
     await waitFor(() =>
       expect(within(card('storyboard')).getByRole('alert')).toHaveTextContent(
-        "Couldn't install Storyboard. Try again.",
+        "Couldn't add Storyboard. Try again.",
       ),
     );
     expect(appState('storyboard')).toBe('not-installed');
@@ -228,13 +246,11 @@ describe('OrganizationExplorePage (#5502)', () => {
       hasPaidModuleSubscription: false,
       moduleOverrides: { turbo: false },
     };
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
     expect(appState('turbo')).toBe('organization-disabled');
-    // A turned-off app is not headlined in Featured; it stays on its shelf.
-    expect(screen.queryByTestId('explore-featured-turbo')).toBeNull();
     expect(
-      within(card('turbo')).getByRole('button', { name: 'Install Turbo' }),
+      within(card('turbo')).getByRole('button', { name: 'Add Turbo' }),
     ).toBeDisabled();
     expect(
       within(card('turbo')).getByRole('link', {
@@ -249,23 +265,23 @@ describe('OrganizationExplorePage (#5502)', () => {
 
   it('does not list apps switched off by the platform', () => {
     mocks.flags = { ...RELEASED_FLAGS, studio: true, storyboard: false };
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
-    expect(screen.queryByTestId('explore-app-storyboard')).toBeNull();
+    expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
     expect(appState('playground')).toBe('installed');
   });
 
   it('lists an app once it is released in Admin → Flags', () => {
     mocks.flags = { ...RELEASED_FLAGS, release_clips: true };
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
     expect(card('clips')).toBeInTheDocument();
-    expect(screen.queryByTestId('explore-app-motion')).toBeNull();
+    expect(screen.queryByTestId('plugins-app-motion')).toBeNull();
   });
 
   it('shows the workflow library only while Automation is installed and eligible', () => {
-    const { rerender } = render(<OrganizationExplorePage />);
-    expect(screen.queryByTestId('explore-workflows')).toBeNull();
+    const { rerender } = render(<OrganizationPluginsPage />);
+    expect(screen.queryByTestId('plugins-workflows')).toBeNull();
 
     mocks.brand.settings = {
       hasOrganizationBilling: true,
@@ -274,9 +290,9 @@ describe('OrganizationExplorePage (#5502)', () => {
       moduleOverrides: { automation: true },
     };
     mocks.installed.installedAppIds = ['playground', 'automation'];
-    rerender(<OrganizationExplorePage />);
+    rerender(<OrganizationPluginsPage />);
     expect(
-      within(screen.getByTestId('explore-workflows')).getByRole('link', {
+      within(screen.getByTestId('plugins-workflows')).getByRole('link', {
         name: 'Open workflow library',
       }),
     ).toHaveAttribute(
@@ -290,18 +306,18 @@ describe('OrganizationExplorePage (#5502)', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
     };
-    rerender(<OrganizationExplorePage />);
-    expect(screen.queryByTestId('explore-workflows')).toBeNull();
+    rerender(<OrganizationPluginsPage />);
+    expect(screen.queryByTestId('plugins-workflows')).toBeNull();
   });
 
   it('reports a failed read instead of inventing installations', () => {
     mocks.installed.status = 'error';
     mocks.installed.installedAppIds = [];
-    render(<OrganizationExplorePage />);
+    render(<OrganizationPluginsPage />);
 
     expect(
       screen.getByText(
-        "Couldn't load your apps. Reload the page to try again.",
+        "Couldn't load your plugins. Reload the page to try again.",
       ),
     ).toBeInTheDocument();
     expect(appState('playground')).toBe('not-installed');

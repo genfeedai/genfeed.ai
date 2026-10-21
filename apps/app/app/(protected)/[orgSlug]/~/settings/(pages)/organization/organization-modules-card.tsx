@@ -31,21 +31,21 @@ import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ExploreAppThumbnail from '@/components/explore/ExploreAppThumbnail';
+import PluginAppThumbnail from '@/components/plugins/PluginAppThumbnail';
 import {
-  EXPLORE_APP_CATALOG,
-  STORE_CATEGORY_IDS,
-} from '@/components/explore/explore-app-catalog';
+  PLUGIN_APP_CATALOG,
+  PLUGIN_CATEGORY_IDS,
+} from '@/components/plugins/plugin-app-catalog';
 
 /**
  * Settings → Modules: which apps the organization shows its members, laid
- * out on Explore's shelves. A switch only hides an app; work through the
+ * out on Plugins's shelves. A switch only hides an app; work through the
  * API and MCP keeps running. Modules switched off for the platform or not
  * released to the organization are not listed (Admin → Flags owns both).
  */
 export default function OrganizationModulesCard() {
   const translate = useTranslations('common.settings.organizationModules');
-  const translateExplore = useTranslations('common.explore');
+  const translatePlugins = useTranslations('common.plugins');
   const { organizationId } = useBrand();
   const { isLoading, refresh, settings } = useOrganization();
   const { flags } = useFeatureFlagContext();
@@ -198,19 +198,19 @@ export default function OrganizationModulesCard() {
           </Button>
         </div>
       ) : (
-        STORE_CATEGORY_IDS.map((categoryId) => {
+        PLUGIN_CATEGORY_IDS.map((categoryId) => {
           const moduleIds = offeredModuleIds.filter(
-            (moduleId) => EXPLORE_APP_CATALOG[moduleId].category === categoryId,
+            (moduleId) => PLUGIN_APP_CATALOG[moduleId].category === categoryId,
           );
           return (
             <CollectionSection
               key={categoryId}
               data-testid={`modules-category-${categoryId}`}
-              description={translateExplore(
+              description={translatePlugins(
                 `categoryDescriptions.${categoryId}`,
               )}
               itemCount={moduleIds.length}
-              title={translateExplore(`categories.${categoryId}`)}
+              title={translatePlugins(`categories.${categoryId}`)}
             >
               <CollectionGrid>
                 {moduleIds.map((moduleId) => {
@@ -310,7 +310,7 @@ function OrganizationModuleTile({
       data-shown={isShown && !isSubscriptionRequired}
       data-testid={`module-card-${moduleId}`}
     >
-      <ExploreAppThumbnail
+      <PluginAppThumbnail
         appId={moduleId}
         icon={icon}
         label={label}

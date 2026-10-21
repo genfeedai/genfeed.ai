@@ -2469,15 +2469,19 @@
     "insufficientCredits": "Not enough credits to rewrite the remaining items.",
     "cancelled": "Rewrite stopped. {count, plural, =0 {No captions were rewritten.} one {# caption was rewritten.} other {# captions were rewritten.}}"
   },
-  "explore": {
-    "title": "Explore",
-    "description": "Install apps into your own setup. Installing never changes your organization's access or starts any work.",
-    "appsTitle": "Apps",
-    "featuredTitle": "Featured",
-    "yoursTitle": "Your apps",
-    "yoursDescription": "Installed apps you can open now, pinned ones first.",
+  "plugins": {
+    "title": "Plugins",
+    "search": "Search plugins",
+    "installedTitle": "Installed",
+    "catalogTitle": "Plugins",
     "pinned": "Pinned",
     "filterAll": "All",
+    "filters": {
+      "menu": "Filters",
+      "category": "Category",
+      "clear": "Clear filters",
+      "activeCount": "{count, plural, one {# filter active} other {# filters active}}"
+    },
     "categories": {
       "create": "Create",
       "publish": "Publish & grow",
@@ -2488,15 +2492,16 @@
       "publish": "Research what works and keep up with your audience.",
       "automate": "Run workflows and programs on your content."
     },
+    "noMatches": "No plugins match your search.",
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",
-    "install": "Install",
-    "uninstall": "Uninstall",
+    "install": "Add",
+    "uninstall": "Remove",
     "open": "Open",
-    "installFailed": "Couldn't install {app}. Try again.",
-    "uninstallFailed": "Couldn't uninstall {app}. Try again.",
-    "loadFailed": "Couldn't load your apps. Reload the page to try again.",
+    "installFailed": "Couldn't add {app}. Try again.",
+    "uninstallFailed": "Couldn't remove {app}. Try again.",
+    "loadFailed": "Couldn't load your plugins. Reload the page to try again.",
     "loadingApp": "Loading app",
     "organizationDisabled": "Hidden by your organization.",
     "manageModules": "Organization settings",
@@ -2506,7 +2511,7 @@
   },
   "appRail": {
     "apps": "Apps",
-    "launcher": "Explore",
+    "launcher": "Plugins",
     "search": "Search apps",
     "noApps": "No apps installed yet.",
     "noMatches": "No matching apps.",

@@ -317,11 +317,28 @@ const config = createAppNextConfig({
       source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
     },
 
-    // Explore was the Store (#5502). Keep bookmarked and shared links working.
+    // Plugins was Explore, and before that the Store (#5502). Keep bookmarked
+    // and shared links working.
     {
       destination: createOrganizationAppRoute(
         ':orgSlug',
-        APP_ROUTES.EXPLORE.ROOT,
+        APP_ROUTES.PLUGINS.ROOT,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/explore'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        `${APP_ROUTES.PLUGINS.ROOT}/:path*`,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/explore/:path*'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.PLUGINS.ROOT,
       ),
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/store'),
@@ -329,7 +346,7 @@ const config = createAppNextConfig({
     {
       destination: createOrganizationAppRoute(
         ':orgSlug',
-        `${APP_ROUTES.EXPLORE.ROOT}/:path*`,
+        `${APP_ROUTES.PLUGINS.ROOT}/:path*`,
       ),
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/store/:path*'),

@@ -32,7 +32,7 @@ const RailPreferencesContext = createContext<RailPreferencesContextValue>({
 });
 
 /**
- * The member's rail pins, hidden apps, order and home app, shared by the rail and Explore so a change
+ * The member's rail pins, hidden apps, order and home app, shared by the rail and Plugins so a change
  * made in either shows in the other without a reload.
  */
 export function RailPreferencesProvider({ children }: { children: ReactNode }) {

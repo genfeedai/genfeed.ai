@@ -291,7 +291,7 @@ test.describe('Studio Editor', () => {
   });
 
   test.describe('Studio Editor Navigation', () => {
-    test('should open Explore from the topbar Apps link', async ({
+    test('should open Plugins from the topbar Apps link', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -300,10 +300,10 @@ test.describe('Studio Editor', () => {
       await assertRouteRenders(authenticatedPage, studioPage.url);
 
       // Studio tools are separate apps (#5502): the topbar's Apps icon opens
-      // Explore (formerly the Store), where members install and pin them.
+      // Plugins (formerly the Store), where members install and pin them.
       await authenticatedPage.getByTestId('topbar-apps-link').click();
 
-      await expect(authenticatedPage).toHaveURL(/\/explore(?:[/?#]|$)/);
+      await expect(authenticatedPage).toHaveURL(/\/plugins(?:[/?#]|$)/);
       await expectNoErrorOverlay(authenticatedPage);
     });
 
