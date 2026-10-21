@@ -336,6 +336,47 @@ describe('MCP Apps card contract', () => {
     expect(one?.cards).toHaveLength(1);
   });
 
+  it('gives each brand its logo and a Select action', () => {
+    const view = buildCardView('get_brands', {
+      brands: [
+        {
+          id: 'b1',
+          label: 'Acme',
+          logo: {
+            category: 'LOGO',
+            cdnUrl: 'https://cdn.genfeed.ai/logos/acme.png?sig=1',
+            id: 'asset-1',
+          },
+          slug: 'acme',
+        },
+        { id: 'b2', label: 'Beta', logo: { cdnUrl: 'javascript:alert(1)' } },
+      ],
+    });
+
+    expect(view?.cards[0]).toMatchObject({
+      actions: [{ brandId: 'b1', kind: 'select_brand', label: 'Select' }],
+      avatarUrl: 'https://cdn.genfeed.ai/logos/acme.png?sig=1',
+    });
+    expect(view?.cards[1].avatarUrl).toBeUndefined();
+  });
+
+  it('keeps signed logo URLs out of the data the model reads', () => {
+    const logo = { cdnUrl: 'https://cdn.genfeed.ai/a.png', id: 'asset-1' };
+    const result = withCardResult('get_brands', {
+      content: [],
+      structuredContent: {
+        data: { brands: [{ id: 'b1', label: 'Acme', logo }] },
+      },
+    });
+
+    expect(result.structuredContent?.data).toEqual({
+      brands: [{ id: 'b1', label: 'Acme' }],
+    });
+    expect(result.structuredContent?.genfeedCards.cards[0].avatarUrl).toBe(
+      logo.cdnUrl,
+    );
+  });
+
   it('builds the workspace card from the organizations and the active brands', () => {
     const data = {
       activeOrganizationId: 'org-b',

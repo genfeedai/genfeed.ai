@@ -1,5 +1,6 @@
 import type {
   McpCard,
+  McpCardAction,
   McpOrganizationSwitcher,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
@@ -25,13 +26,24 @@ export interface CardPreviewProps {
   item: McpCard;
   bridge: PreviewBridge;
   openImage(src: string, title: string, trigger: HTMLElement): void;
+  /** The brand the user picked in this view, if any. */
+  selectedId?: string;
+  onAction(action: McpCardAction, item: McpCard): void;
+}
+export interface SummaryCardProps {
+  item: McpCard;
+  bridge: PreviewBridge;
+  isSelected: boolean;
+  onAction(action: McpCardAction, item: McpCard): void;
+  when: string;
 }
 export interface ImagePreview {
   src: string;
   title: string;
   trigger: HTMLElement;
 }
-export interface MediaPreviewProps extends CardPreviewProps {
+export interface MediaPreviewProps
+  extends Pick<CardPreviewProps, 'bridge' | 'item' | 'openImage'> {
   onError(): void;
 }
 export interface DescriptionProps {

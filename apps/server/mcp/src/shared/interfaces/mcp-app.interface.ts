@@ -37,6 +37,14 @@ export interface McpCardFact {
   value: string;
 }
 
+/** A button on a card; the view runs it through the host. */
+export interface McpCardAction {
+  kind: 'select_brand';
+  /** The brand the action selects. */
+  brandId: string;
+  label: string;
+}
+
 export interface McpCard {
   id: string;
   title: string;
@@ -47,6 +55,9 @@ export interface McpCard {
   date: string;
   url?: string;
   thumbnailUrl?: string;
+  /** Brand logo or account avatar shown at the head of a summary card. */
+  avatarUrl?: string;
+  actions?: McpCardAction[];
   /** Labelled values of a summary card, in display order. */
   facts?: McpCardFact[];
   /** Media kinds attached to a post (image, video, audio), in order. */

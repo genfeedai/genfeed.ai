@@ -29,6 +29,27 @@ describe('serializeAgentBrand', () => {
     });
   });
 
+  it('keeps only the id and URL of a brand logo', () => {
+    expect(
+      serializeAgentBrand({
+        id: 'brand-1',
+        logo: {
+          category: 'LOGO',
+          cdnUrl: 'https://cdn.example/logo.png',
+          cloudObjectKey: 'must-not-leak',
+          id: 'asset-1',
+        },
+      }).logo,
+    ).toEqual({
+      category: 'LOGO',
+      cdnUrl: 'https://cdn.example/logo.png',
+      id: 'asset-1',
+    });
+    expect(
+      serializeAgentBrand({ id: 'brand-1', logo: { id: 'asset-1' } }),
+    ).not.toHaveProperty('logo');
+  });
+
   it('falls back label to name and name to label', () => {
     expect(serializeAgentBrand({ id: 'brand-2', name: 'Acme' })).toMatchObject({
       label: 'Acme',

@@ -408,7 +408,15 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
   };
 }
 
-/** `get_brands`: one card per brand, named, with the brand's own description. */
+/** The brand's logo URL, when the API signed one for this caller. */
+function brandLogoUrl(row: Record<string, unknown>): string | undefined {
+  return safeCardUrl(text(record(row.logo), 'cdnUrl'));
+}
+
+/**
+ * `get_brands`: one card per brand, with its logo, its own description and a
+ * Select button that tells the host which brand the conversation works with.
+ */
 function buildBrandsView(data: Record<string, unknown>): McpCardView {
   const rows = Array.isArray(data.brands)
     ? data.brands
@@ -417,21 +425,39 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
       : [];
   const cards = rows.slice(0, 24).map((value) => {
     const row = record(value);
-    return summaryCard(
-      text(row, 'label', 'name') || 'Brand',
-      [...fact('Handle', text(row, 'slug'))],
-      {
-        description: text(row, 'description', 'text').slice(0, 400),
-        id: text(row, 'id'),
-        status: row.isActive === true ? 'Active' : '',
-      },
-    );
+    const id = text(row, 'id');
+    const title = text(row, 'label', 'name') || 'Brand';
+    return summaryCard(title, [...fact('Handle', text(row, 'slug'))], {
+      ...(id
+        ? { actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }] }
+        : {}),
+      avatarUrl: brandLogoUrl(row),
+      description: text(row, 'description', 'text').slice(0, 400),
+      id,
+      status: row.isActive === true ? 'Active' : '',
+    });
   });
   return {
     cards,
     layout: 'cards',
     title: 'Brands',
     total: rows.length,
+  };
+}
+
+/**
+ * Signed logo URLs belong to the card, not to the model: they are long and
+ * expire. The card view is built first, then the logos leave the data.
+ */
+export function withoutBrandLogos(data: Record<string, unknown>) {
+  const strip = (value: unknown) => {
+    const { logo: _logo, ...rest } = record(value);
+    return rest;
+  };
+  return {
+    ...data,
+    ...(Array.isArray(data.brands) ? { brands: data.brands.map(strip) } : {}),
+    ...(data.brand ? { brand: strip(data.brand) } : {}),
   };
 }
 
@@ -458,8 +484,14 @@ function buildOrganizationsView(data: Record<string, unknown>): McpCardView {
     .slice(0, 24)
     .map((value) => {
       const row = record(value);
+      const id = text(row, 'id');
       return summaryCard(text(row, 'label', 'name') || 'Brand', [], {
-        id: text(row, 'id'),
+        ...(id
+          ? {
+              actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }],
+            }
+          : {}),
+        id,
       });
     });
   return {
@@ -602,6 +634,12 @@ export function withCardResult<T extends McpAppResult>(
   if (!view) return result;
   return {
     ...result,
-    structuredContent: { ...result.structuredContent, genfeedCards: view },
+    structuredContent: {
+      ...result.structuredContent,
+      ...(name === 'get_brands'
+        ? { data: withoutBrandLogos(record(result.structuredContent.data)) }
+        : {}),
+      genfeedCards: view,
+    },
   };
 }

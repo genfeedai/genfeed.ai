@@ -70,6 +70,11 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
             'Return only this brand: its id, slug, name or label. Omit to list all brands in the organization.',
           type: 'string',
         },
+        includeLogo: {
+          description:
+            'Include each brand logo URL. Brand cards set this themselves; leave it off otherwise.',
+          type: 'boolean',
+        },
       },
       type: 'object',
     },
