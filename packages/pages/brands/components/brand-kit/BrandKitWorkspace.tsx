@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 
 import type { BrandKitWorkspaceProps } from '@props/pages/brand-kit-workspace.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
@@ -62,27 +62,24 @@ export default function BrandKitWorkspace({
     </div>
   ) : null;
   return (
-    <div
-      className="flex min-w-0 flex-col gap-5"
-      data-control-baseline="32px"
-      data-scale-role="product"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
-        <Tabs
-          activeTab={tab}
-          onTabChange={onTabChange}
-          ariaLabel={t('sectionsLabel')}
-          fullWidth={false}
-          className="ml-0"
-          listClassName="ml-0"
-          tabs={[
-            { id: 'overview', label: t('overview') },
-            { id: 'visual', label: t('visual') },
-            { id: 'voice', label: t('voice') },
-            { id: 'strategy', label: t('strategy') },
-          ]}
-        />
-        <div className="flex items-center gap-2">
+    <Container
+      label={t('settingsAriaLabel')}
+      titleVisibility="sr-only"
+      moduleChrome
+      headerTabs={{
+        activeTab: tab,
+        onTabChange,
+        ariaLabel: t('sectionsLabel'),
+        fullWidth: false,
+        tabs: [
+          { id: 'overview', label: t('overview') },
+          { id: 'visual', label: t('visual') },
+          { id: 'voice', label: t('voice') },
+          { id: 'strategy', label: t('strategy') },
+        ],
+      }}
+      right={
+        <>
           <Button
             variant={ButtonVariant.SECONDARY}
             onClick={onScan}
@@ -113,8 +110,14 @@ export default function BrandKitWorkspace({
             </DropdownMenuContent>
           </DropdownMenu>
           <Button onClick={() => setIsReviewOpen(true)}>{t('review')}</Button>
-        </div>
-      </div>
+        </>
+      }
+    >
+    <div
+      className="flex min-w-0 flex-col gap-5"
+      data-control-baseline="32px"
+      data-scale-role="product"
+    >
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -175,5 +178,6 @@ export default function BrandKitWorkspace({
         </SheetContent>
       </Sheet>
     </div>
+    </Container>
   );
 }

@@ -1,7 +1,7 @@
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import type { BrandOsSettingsCardProps } from '@props/pages/brand-os-settings.props';
-import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandKitPage from './content';
 
@@ -122,9 +122,28 @@ vi.mock('@pages/brands/components/sidebar/BrandWatermarkSettings', () => ({
 vi.mock('@ui/cards/brand-completeness-card/BrandCompletenessCard', () => ({
   default: () => <p>Completeness</p>,
 }));
-vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
+vi.mock('@ui/layout/container/Container', async () => {
+  const { default: Tabs } = await import('@ui/navigation/tabs/Tabs');
+  return {
+    default: ({
+      children,
+      headerTabs,
+      right,
+    }: {
+      children: ReactNode;
+      headerTabs?: ComponentProps<typeof Tabs>;
+      right?: ReactNode;
+    }) => (
+      <div>
+        <div data-testid="subbar">
+          {headerTabs ? <Tabs {...headerTabs} /> : null}
+          {right}
+        </div>
+        {children}
+      </div>
+    ),
+  };
+});
 describe('Brand Kit workspace', () => {
   beforeEach(() => {
     mocks.role = 'owner';
@@ -149,6 +168,21 @@ describe('Brand Kit workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Review changes' }));
     expect(screen.getByText('Revision history and export')).toBeInTheDocument();
   });
+  it('puts the section tabs and actions in the shared subbar, not in the content', () => {
+    render(<BrandKitPage />);
+    const subbar = within(screen.getByTestId('subbar'));
+    expect(subbar.getAllByRole('tab')).toHaveLength(4);
+    expect(
+      subbar.getByRole('button', { name: 'Scan website' }),
+    ).toBeInTheDocument();
+    expect(
+      subbar.getByRole('button', { name: 'Brand Kit actions' }),
+    ).toBeInTheDocument();
+    expect(
+      subbar.getByRole('button', { name: 'Review changes' }),
+    ).toBeInTheDocument();
+  });
+
   it('retains captured drafts and read-only member scan access without revision write callbacks', () => {
     mocks.role = 'member';
     try {

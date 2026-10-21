@@ -114,7 +114,7 @@ export default function BrandKitPage() {
   );
 
   return (
-    <Container fullWidth>
+    <>
       <BrandOsSettingsCard
         key={brandId}
         brandId={brandId}
@@ -223,6 +223,6 @@ export default function BrandKitPage() {
           </BrandKitReviewActionsProvider>
         </SheetContent>
       </Sheet>
-    </Container>
+    </>
   );
 }
