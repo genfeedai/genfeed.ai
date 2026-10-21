@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   type BrandAccessActor,
   BrandAccessService,
@@ -93,11 +94,14 @@ export class BrandLifecycleService {
         // fallback we would otherwise pick.
         const liveBrands = await tx.brand.findMany({
           orderBy: { createdAt: 'asc' },
-          select: { id: true },
+          select: { id: true, slug: true },
           where: { isDeleted: false, organizationId },
         });
 
-        if (!liveBrands.some((candidate) => candidate.id === id)) {
+        const brandToDelete = liveBrands.find(
+          (candidate) => candidate.id === id,
+        );
+        if (!brandToDelete) {
           throw new NotFoundException('Brand', id);
         }
 
@@ -136,7 +140,11 @@ export class BrandLifecycleService {
         }
 
         const deleted = await tx.brand.update({
-          data: { isDeleted: true },
+          data: {
+            deletedSlug: brandToDelete.slug,
+            isDeleted: true,
+            slug: `deleted-${randomUUID()}`,
+          },
           where: { id, isDeleted: false, organizationId },
         });
 

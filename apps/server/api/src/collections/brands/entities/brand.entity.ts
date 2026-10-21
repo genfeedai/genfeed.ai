@@ -21,6 +21,7 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly music?: string;
 
   declare readonly slug: string;
+  declare readonly deletedSlug: BrandDocument['deletedSlug'];
   declare readonly label: string;
   declare readonly description: string;
   declare readonly text: BrandDocument['text']; // system prompt for the brand

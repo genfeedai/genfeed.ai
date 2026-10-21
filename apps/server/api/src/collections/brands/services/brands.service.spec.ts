@@ -2277,7 +2277,7 @@ describe('BrandsService', () => {
       });
     });
 
-    it('treats a soft-deleted brand slug as reserved by the global unique constraint', async () => {
+    it('treats any retained legacy deleted slug as reserved by the global unique constraint', async () => {
       delegate.findFirst
         .mockResolvedValueOnce({ id: 'brand_deleted', isDeleted: true })
         .mockResolvedValueOnce(null);
