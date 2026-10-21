@@ -606,4 +606,27 @@ describe('Brand', () => {
       expect(brand.linkedinDeepLink).toBeUndefined();
     });
   });
+  describe('server-provided media urls', () => {
+    it('accepts logoUrl and bannerUrl from the API payload without throwing', () => {
+      const brand = new Brand({
+        bannerUrl: 'https://cdn.example/banner.png',
+        id: 'brand-123',
+        logoUrl: 'https://cdn.example/logo.png',
+      } as Partial<IBrand>);
+
+      expect(brand.logoUrl).toBe('https://cdn.example/logo.png');
+      expect(brand.bannerUrl).toBe('https://cdn.example/banner.png');
+    });
+
+    it('treats null urls as absent', () => {
+      const brand = new Brand({
+        bannerUrl: null,
+        id: 'brand-123',
+        logoUrl: null,
+      } as unknown as Partial<IBrand>);
+
+      expect(brand.logoUrl).toBeUndefined();
+      expect(brand.bannerUrl).toBeUndefined();
+    });
+  });
 });

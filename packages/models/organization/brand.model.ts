@@ -16,6 +16,13 @@ import { Asset } from '@models/ingredients/asset.model';
 import { Link } from '@models/social/link.model';
 
 export class Brand extends BaseBrand {
+  // The API serializes `logoUrl` / `bannerUrl` on brand resources. They are
+  // derived getters here, so BaseEntity's Object.assign would throw on them
+  // ("Cannot set property logoUrl ... which has only a getter") and every
+  // brand response, e.g. the brand switch PATCH, would fail to parse.
+  declare private serverLogoUrl?: string | null;
+  declare private serverBannerUrl?: string | null;
+
   constructor(partial: Partial<IBrand>) {
     super(partial);
 
@@ -63,6 +70,9 @@ export class Brand extends BaseBrand {
   }
 
   get logoUrl(): string | undefined {
+    if (this.serverLogoUrl) {
+      return this.serverLogoUrl;
+    }
     if (!this.logo) {
       return undefined;
     }
@@ -71,11 +81,22 @@ export class Brand extends BaseBrand {
     );
   }
 
+  set logoUrl(value: string | null | undefined) {
+    this.serverLogoUrl = value;
+  }
+
   get bannerUrl(): string | undefined {
+    if (this.serverBannerUrl) {
+      return this.serverBannerUrl;
+    }
     if (!this.banner) {
       return undefined;
     }
     return `${EnvironmentService.cdnUrl}/banners/${this.banner.id}`;
+  }
+
+  set bannerUrl(value: string | null | undefined) {
+    this.serverBannerUrl = value;
   }
 
   get primaryReferenceUrl(): string | undefined {
