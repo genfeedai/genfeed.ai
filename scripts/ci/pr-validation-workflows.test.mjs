@@ -968,8 +968,9 @@ test('bundle report publishing isolates write credentials from PR build code', (
   }
 });
 
-test('dataset diagnostic freezes inspected control before the exact candidate checkout', () => {
-  const workflow = readWorkflow('dataset-diagnostic.yml');
+test('dataset job freezes inspected control before the exact candidate checkout', () => {
+  const entrypoint = readWorkflow('dataset-diagnostic.yml');
+  const workflow = readWorkflow('_dataset-acceptance.yml');
   for (const field of ['USER', 'PASSWORD']) {
     const service = workflow.match(
       new RegExp(`^ {10}POSTGRES_${field}: (.+)$`, 'm'),
@@ -981,12 +982,12 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
     assert.equal(job, service);
   }
   assert.match(workflow, /uses: \.\/\.control-actions\/setup-bun-env/);
-  assert.match(workflow, /^ {2}workflow_dispatch:/m);
+  assert.match(entrypoint, /^ {2}workflow_dispatch:/m);
   assert.doesNotMatch(
-    workflow,
+    entrypoint,
     /^ {2}(?:pull_request|push|schedule|workflow_call):/m,
   );
-  assert.match(workflow, /^ {4}timeout-minutes: 20$/m);
+  assert.match(workflow, /inputs.group == 'dataset-scale' && 40 \|\| 20/);
   assert.match(
     workflow,
     /RUNTIME_ACCEPTANCE_JOB_STARTED_MS=\$\(date \+%s%3N\)/,
@@ -1007,11 +1008,11 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
   );
   assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$CANDIDATE_SHA"/);
-  assert.match(workflow, /default: smoke/);
-  assert.match(workflow, /options:\s*- smoke\s*- profile/);
+  assert.match(entrypoint, /default: smoke/);
+  assert.match(entrypoint, /options:\s*- smoke\s*- profile/);
   assert.match(
-    workflow,
-    /DATASET_GROUP: \$\{\{ inputs\.mode == 'profile' && 'dataset-diagnostic' \|\| 'dataset-smoke' \}\}/,
+    entrypoint,
+    /group: \$\{\{ inputs\.mode == 'profile' && 'dataset-diagnostic' \|\| 'dataset-smoke' \}\}/,
   );
   assert.match(workflow, /--group "\$DATASET_GROUP"/);
   assert.match(workflow, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
@@ -1124,7 +1125,7 @@ test('final visual proof uses separate bounded isolation and connected jobs with
   );
   assert.match(isolation, /timeout-minutes: 25/);
   assert.match(connected, /timeout-minutes: 105/);
-  const diagnostic = readWorkflow('dataset-diagnostic.yml');
+  const diagnostic = readWorkflow('_dataset-acceptance.yml');
   for (const field of ['USER', 'PASSWORD']) {
     const expected = diagnostic.match(
       new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
@@ -1349,7 +1350,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
     full,
     /partition: \$\{\{ steps\.partition\.outputs\.partition \}\}/,
   );
-  const diagnostic = readWorkflow('dataset-diagnostic.yml');
+  const diagnostic = readWorkflow('_dataset-acceptance.yml');
   for (const [job, group, minutes, redis] of [
     ['agent-production-acceptance', 'agent-production', 20, true],
     ['brand-acceptance', 'brand-acceptance', 30, false],
@@ -1729,8 +1730,7 @@ test('diagnostic inputs stay dispatch-only and isolate concurrency from ordinary
 test('runtime acceptance workflows upload plaintext evidence without a public key variable', () => {
   for (const fileName of [
     'e2e.yml',
-    'dataset-diagnostic.yml',
-    'dataset-scale.yml',
+    '_dataset-acceptance.yml',
     'visual-code-isolation.yml',
   ]) {
     const workflow = readWorkflow(fileName);

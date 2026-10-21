@@ -17,6 +17,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import {
   AGENT_PRODUCTION_FILES,
@@ -428,6 +429,346 @@ test('deployment requires exact 10k smoke evidence and never accepts the weekly 
   assert.throws(() => parseDatasetRecords(lines(tooSlow), 'smoke'));
 });
 
+const DATASET_WORKFLOW = new URL(
+  '../../.github/workflows/_dataset-acceptance.yml',
+  import.meta.url,
+);
+
+function datasetExpression(value, context) {
+  return value.replace(/\$\{\{ (.+?) \}\}/g, (_match, expression) =>
+    runInNewContext(expression, context),
+  );
+}
+
+test('dataset entrypoints route smoke, profile and weekly/manual scale to one bounded job', async () => {
+  const shared = await readFile(DATASET_WORKFLOW, 'utf8');
+  assert.match(shared, /^on:\n {2}workflow_call:/m);
+  assert.doesNotMatch(shared, /workflow_dispatch:|schedule:|secrets:|: write/);
+  assert.deepEqual(
+    [...shared.split('permissions:')[0].matchAll(/^ {6}(\w+):$/gm)].map(
+      (match) => match[1],
+    ),
+    ['group', 'candidate_sha'],
+  );
+  for (const [file, job, mode, candidate, group, lane, minutes, name] of [
+    [
+      'dataset-diagnostic.yml',
+      'diagnostic',
+      'smoke',
+      SHA,
+      'dataset-smoke',
+      'dataset-diagnostic',
+      20,
+      'Bounded Dataset Diagnostic',
+    ],
+    [
+      'dataset-diagnostic.yml',
+      'diagnostic',
+      'profile',
+      SHA,
+      'dataset-diagnostic',
+      'dataset-diagnostic',
+      20,
+      'Bounded Dataset Diagnostic',
+    ],
+    [
+      'dataset-scale.yml',
+      'scale',
+      undefined,
+      SHA,
+      'dataset-scale',
+      'dataset-scale',
+      40,
+      'Weekly 100k Dataset Scale',
+    ],
+    [
+      'dataset-scale.yml',
+      'scale',
+      undefined,
+      '',
+      'dataset-scale',
+      'dataset-scale',
+      40,
+      'Weekly 100k Dataset Scale',
+    ],
+  ]) {
+    const entry = await readFile(
+      new URL(`../../.github/workflows/${file}`, import.meta.url),
+      'utf8',
+    );
+    assert.match(entry, new RegExp(`^jobs:\\n {2}${job}:`, 'm'));
+    const scale = job === 'scale';
+    assert.ok(
+      entry.startsWith(`name: Dataset ${scale ? 'Scale' : 'Diagnostic'}\n`),
+    );
+    assert.ok(entry.includes(`group: dataset-${job}-\${{ github.ref }}`));
+    assert.match(entry, /cancel-in-progress: false/);
+    assert.match(entry, /permissions:\n {6}contents: read/);
+    assert.match(entry, scale ? /required: false/ : /required: true/);
+    assert.equal((entry.match(/uses:/g) ?? []).length, 1);
+    assert.match(
+      entry,
+      /uses: \.\/\.github\/workflows\/_dataset-acceptance.yml/,
+    );
+    assert.doesNotMatch(entry, /steps:|services:|runs-on:|secrets:/);
+    const context = {
+      inputs: { mode, candidate_sha: candidate },
+      github: { sha: CONTROL },
+    };
+    const routed = Object.fromEntries(
+      ['group', 'candidate_sha'].map((key) => [
+        key,
+        datasetExpression(
+          entry.match(new RegExp(`^ {6}${key}: (.+)$`, 'm'))?.[1] ?? '',
+          context,
+        ),
+      ]),
+    );
+    assert.deepEqual(routed, { group, candidate_sha: candidate || CONTROL });
+    const sharedContext = { inputs: routed };
+    assert.equal(
+      datasetExpression(
+        shared.match(/^ {4}timeout-minutes: (.+)$/m)[1],
+        sharedContext,
+      ),
+      String(minutes),
+    );
+    assert.equal(
+      datasetExpression(shared.match(/^ {4}name: (.+)$/m)[1], sharedContext),
+      name,
+    );
+    assert.equal(
+      datasetExpression(
+        shared.match(/^ {6}DATASET_LANE: (.+)$/m)[1],
+        sharedContext,
+      ),
+      lane,
+    );
+    const evidenceContext = {
+      ...sharedContext,
+      env: { DATASET_LANE: lane },
+      runner: { temp: '/runner-temp' },
+    };
+    const upload = shared.split('- name: Retain dataset evidence\n')[1];
+    assert.equal(
+      datasetExpression(upload.match(/^ {10}name: (.+)$/m)[1], evidenceContext),
+      `${lane}-${candidate || CONTROL}`,
+    );
+    assert.deepEqual(
+      [...upload.matchAll(/^ {12}(\$\{\{ runner.temp \}\}.+)$/gm)].map(
+        (match) => datasetExpression(match[1], evidenceContext),
+      ),
+      [
+        `/runner-temp/${lane}/public/receipt.json`,
+        `/runner-temp/${lane}/public/evidence.json`,
+      ],
+    );
+    assert.match(shared, /CANDIDATE_SHA: \$\{\{ inputs.candidate_sha \}\}/);
+    assert.match(shared, /DATASET_GROUP: \$\{\{ inputs.group \}\}/);
+    for (const invalid of ['', 'master', 'A'.repeat(40), `${SHA};true`]) {
+      assert.throws(() =>
+        parseArguments([
+          'preflight',
+          '--repo',
+          '/repo',
+          '--state',
+          '/state',
+          '--candidate-sha',
+          invalid,
+          '--control-sha',
+          CONTROL,
+          '--group',
+          group,
+        ]),
+      );
+    }
+  }
+});
+
+test('dataset group boundary accepts only three groups before creating deadline or state metadata', async (t) => {
+  const shared = await readFile(DATASET_WORKFLOW, 'utf8');
+  const anchor = shared
+    .split('- name: Anchor acceptance job deadline\n')[1]
+    ?.split('\n      - name:')[0];
+  assert.ok(anchor);
+  const script = anchor.split('        run: |\n')[1].replace(/^ {10}/gm, '');
+  for (const group of [
+    'dataset-smoke',
+    'dataset-diagnostic',
+    'dataset-scale',
+    '',
+    'final',
+    'dataset-scale\nfinal',
+    '../dataset-scale',
+    'dataset-scale; touch unexpected',
+  ]) {
+    const root = await fixture(t);
+    const output = path.join(root, 'github-env');
+    const result = spawnSync('bash', ['-c', script], {
+      encoding: 'utf8',
+      cwd: root,
+      env: {
+        ...process.env,
+        DATASET_GROUP: group,
+        DATASET_LANE:
+          group === 'dataset-scale' ? 'dataset-scale' : 'dataset-diagnostic',
+        RUNNER_TEMP: root,
+        GITHUB_ENV: output,
+      },
+    });
+    if (
+      ['dataset-smoke', 'dataset-diagnostic', 'dataset-scale'].includes(group)
+    ) {
+      assert.equal(result.status, 0, result.stderr);
+      const metadata = await readFile(output, 'utf8');
+      assert.match(metadata, /^RUNTIME_ACCEPTANCE_JOB_STARTED_MS=/m);
+      assert.ok(
+        metadata.includes(
+          `ACCEPTANCE_STATE=${root}/${group === 'dataset-scale' ? 'dataset-scale' : 'dataset-diagnostic'}\n`,
+        ),
+      );
+      assert.ok(
+        metadata.includes(
+          `CONTROL_RUNNER=${root}/runtime-acceptance-control.mjs\n`,
+        ),
+      );
+    } else {
+      assert.notEqual(result.status, 0, group);
+      await assert.rejects(lstat(output));
+    }
+    await assert.rejects(lstat(path.join(root, 'unexpected')));
+  }
+});
+
+test('shared dataset job keeps control, candidate and guarded evidence boundaries in order', async () => {
+  const shared = await readFile(DATASET_WORKFLOW, 'utf8');
+  assert.deepEqual(
+    [...shared.matchAll(/^ {6}- name: (.+)$/gm)].map((match) => match[1]),
+    [
+      'Anchor acceptance job deadline',
+      'Checkout inspected control source',
+      'Setup preflight Node.js 24.x',
+      'Validate control identity and freeze controller',
+      'Checkout exact dataset candidate',
+      'Require exact candidate checkout',
+      'Restore inspected setup action',
+      'Setup Bun environment',
+      'Build packages',
+      'Run bounded dataset acceptance with frozen controller',
+      'Seal available dataset evidence',
+      'Retain dataset evidence',
+    ],
+  );
+  const step = (name) =>
+    shared.split(`- name: ${name}\n`)[1].split('\n      - name:')[0];
+  for (const [name, ref] of [
+    ['Checkout inspected control source', 'github.sha'],
+    ['Checkout exact dataset candidate', 'inputs.candidate_sha'],
+  ]) {
+    assert.ok(step(name).includes(`ref: \${{ ${ref} }}`));
+    assert.match(step(name), /persist-credentials: false/);
+    assert.match(
+      step(name),
+      /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/,
+    );
+  }
+  assert.match(shared, /CONTROL_SHA: \$\{\{ github.sha \}\}/);
+  assert.match(step('Setup preflight Node.js 24.x'), /node-version: '24.x'/);
+  const preflight = step('Validate control identity and freeze controller');
+  assert.match(preflight, /id: preflight/);
+  assert.match(
+    preflight,
+    /preflight --repo "\$ACCEPTANCE_REPO" --state "\$ACCEPTANCE_STATE" --candidate-sha "\$CANDIDATE_SHA" --control-sha "\$CONTROL_SHA" --group "\$DATASET_GROUP"\n {10}test ! -e "\$CONTROL_RUNNER"\n {10}umask 077\n {10}cp scripts\/ci\/runtime-acceptance.mjs "\$CONTROL_RUNNER"\n {10}cp -R \.github\/actions\/setup-bun-env "\$RUNNER_TEMP\/setup-bun-env-control"/,
+  );
+  assert.match(
+    step('Build packages'),
+    /run: bunx turbo run build --filter="\.\/packages\/\*"/,
+  );
+  assert.match(
+    step('Run bounded dataset acceptance with frozen controller'),
+    /RUNTIME_ACCEPTANCE_POSTGRES_ID: \$\{\{ job.services.postgres.id \}\}/,
+  );
+  const invocation =
+    '--repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"';
+  assert.ok(
+    step('Run bounded dataset acceptance with frozen controller').includes(
+      `run: node "$CONTROL_RUNNER" "$DATASET_GROUP" ${invocation}`,
+    ),
+  );
+  const seal = step('Seal available dataset evidence');
+  assert.ok(seal.includes(`run: node "$CONTROL_RUNNER" seal ${invocation}`));
+  assert.match(
+    seal,
+    /if: always\(\) && steps.preflight.outputs.prepared == 'true'/,
+  );
+  const upload = step('Retain dataset evidence');
+  assert.match(
+    upload,
+    /if: always\(\) && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'/,
+  );
+  assert.match(
+    upload,
+    /uses: actions\/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9/,
+  );
+  assert.match(upload, /retention-days: 7\n {10}if-no-files-found: error/);
+  assert.match(shared, /image: pgvector\/pgvector:pg17/);
+  assert.match(
+    shared,
+    /POSTGRES_DB: test\n {10}POSTGRES_USER: genfeed\n {10}POSTGRES_PASSWORD: genfeed_local/,
+  );
+  assert.match(shared, /- 5432:5432/);
+  assert.match(
+    shared,
+    /--health-cmd "pg_isready -U genfeed -d test"\n {10}--health-interval 5s\n {10}--health-timeout 5s\n {10}--health-retries 10/,
+  );
+  assert.doesNotMatch(
+    shared,
+    /continue-on-error|secrets:|: write|persist-credentials: true/,
+  );
+});
+
+test('shared dataset candidate check rejects mismatched HEAD and each absent or symlink fixture', async (t) => {
+  const shared = await readFile(DATASET_WORKFLOW, 'utf8');
+  const check = shared
+    .split('- name: Require exact candidate checkout\n')[1]
+    .split('\n      - name:')[0];
+  const script = check.split('        run: |\n')[1].replace(/^ {10}/gm, '');
+  const { repo, options } = await preflightFixture(t);
+  const directory = path.join(
+    repo,
+    'apps/server/api/src/collections/content-learning/services',
+  );
+  await mkdir(directory, { recursive: true });
+  const files = [
+    'learning-dataset.service.ts',
+    'learning-dataset-graph.service.ts',
+    'learning-dataset.service.spec.ts',
+    'learning-dataset.postgres.spec.ts',
+    'learning-dataset-publication.fixture.ts',
+    'learning-dataset-scale.fixture.ts',
+  ];
+  for (const file of files)
+    await writeFile(path.join(directory, file), 'synthetic fixture');
+  const run = (candidate = options['candidate-sha']) =>
+    spawnSync('bash', ['-c', script], {
+      cwd: repo,
+      env: { ...process.env, CANDIDATE_SHA: candidate },
+      encoding: 'utf8',
+    });
+  assert.equal(run().status, 0);
+  assert.notEqual(run(SHA).status, 0);
+  for (const file of files) {
+    const location = path.join(directory, file);
+    await rm(location);
+    assert.notEqual(run().status, 0, `missing ${file}`);
+    await symlink(path.join(repo, 'fixture'), location);
+    assert.notEqual(run().status, 0, `symlink ${file}`);
+    await rm(location);
+    await writeFile(location, 'synthetic fixture');
+  }
+  assert.equal(run().status, 0);
+});
+
 test('100k scale workflow is weekly/manual and separate from deployment acceptance', async () => {
   const workflow = await readFile(
     new URL('../../.github/workflows/dataset-scale.yml', import.meta.url),
@@ -436,14 +777,16 @@ test('100k scale workflow is weekly/manual and separate from deployment acceptan
   assert.match(workflow, /schedule:\s*- cron: '17 3 \* \* 0'/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /workflow_call:|workflow_run:|push:/);
-  assert.match(workflow, /timeout-minutes: 40/);
-  assert.match(workflow, /--group dataset-scale/);
-  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-scale/);
+  const shared = await readFile(DATASET_WORKFLOW, 'utf8');
+  assert.match(shared, /inputs.group == 'dataset-scale' && 40 \|\| 20/);
+  assert.match(workflow, /^ {6}group: dataset-scale$/m);
+  assert.match(shared, /--group "\$DATASET_GROUP"/);
+  assert.match(shared, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
   assert.match(
     workflow,
-    /CANDIDATE_SHA: \$\{\{ inputs.candidate_sha \|\| github.sha \}\}/,
+    /candidate_sha: \$\{\{ inputs.candidate_sha \|\| github.sha \}\}/,
   );
-  assert.match(workflow, /if-no-files-found: error/);
+  assert.match(shared, /if-no-files-found: error/);
   const controller = await readFile(CLI_PATH, 'utf8');
   assert.match(
     controller,
@@ -6230,11 +6573,8 @@ for (const failure of [
     assert.equal(fixture.calls.includes('save'), false);
   });
 
-test('dataset diagnostic resolves setup action from the control revision', async () => {
-  const workflow = await readFile(
-    new URL('../../.github/workflows/dataset-diagnostic.yml', import.meta.url),
-    'utf8',
-  );
+test('shared dataset job resolves setup action from the control revision', async () => {
+  const workflow = await readFile(DATASET_WORKFLOW, 'utf8');
   const setup = workflow
     .split('- name: Setup Bun environment')[1]
     ?.split('\n      - name:')[0];

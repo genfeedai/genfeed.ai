@@ -835,6 +835,8 @@ const UI_TEST_MESSAGES = {
       },
       description:
         'Improve image and video prompts automatically. These preferences apply in Studio and all connected agents.',
+      enhancementFailedHint:
+        'Brand enhancement failed, so this was generated from your prompt as typed. Any selected skills or Knowledge were not applied.',
       enhancementSkipped: 'Enhancement skipped',
       inherit: 'Inherit',
       loading: 'Loading settings…',

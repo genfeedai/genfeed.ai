@@ -1,17 +1,18 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
-import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import {
+  type MediaPromptEnhancementInput,
+  MediaPromptEnhancementService,
+} from '@api/services/harness/media-prompt-enhancement.service';
 import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
-import { MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE } from '@genfeedai/contracts/constants';
 import { brandOfferingSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -259,33 +260,32 @@ describe('MediaPromptEnhancementService', () => {
     expect(JSON.stringify(receipt)).not.toContain('Internal routing hint');
   });
 
-  describe('stops instead of degrading to the raw prompt', () => {
+  describe('falls back to the original prompt when enhancement fails', () => {
     const sensitive = 'private prompt and brand guidance from provider error';
+    const fallbackMessage =
+      'Media prompt brand enhancement failed; generating with the original prompt';
 
-    async function stopOf(
-      run: Promise<unknown>,
-    ): Promise<MediaPromptBrandEnhancementException> {
-      const error = await run.then(
-        () => undefined,
-        (caught: unknown) => caught,
-      );
-      expect(error).toBeInstanceOf(MediaPromptBrandEnhancementException);
-      return error as MediaPromptBrandEnhancementException;
+    function skippedReceipt() {
+      return {
+        originalPrompt: input.prompt,
+        enhancedPrompt: input.prompt,
+        brandId: 'brand',
+        brandMode: 'raw',
+        status: 'skipped',
+        isEnhancementFailed: true,
+        source: 'brand',
+        appliedPacks: [],
+      };
     }
 
-    it('stops with a typed 502 and never calls the model when the harness brief is unavailable', async () => {
+    it('returns a failed-enhancement receipt and never calls the model when the harness brief is unavailable', async () => {
       const { service, harness, promptEnhancement } = setup();
       harness.resolveBrief.mockResolvedValue(null);
-      const error = await stopOf(service.enhance(input));
-      expect(error.stage).toBe('brief');
-      expect(error.getStatus()).toBe(502);
-      expect(error.getResponse()).toMatchObject({
-        code: MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
-      });
+      await expect(service.enhance(input)).resolves.toEqual(skippedReceipt());
       expect(promptEnhancement.enhance).not.toHaveBeenCalled();
     });
 
-    it('logs which integrity check failed without any brand content', async () => {
+    it('warns which integrity check failed without any brand content', async () => {
       const { service, snapshots, logger } = setup();
       snapshots.preview.mockRejectedValue(
         new BrandIdentityIntegrityError(
@@ -293,10 +293,9 @@ describe('MediaPromptEnhancementService', () => {
           'generationRules.0',
         ),
       );
-      const error = await stopOf(service.enhance(input));
-      expect(error.stage).toBe('brand_identity');
+      await expect(service.enhance(input)).resolves.toEqual(skippedReceipt());
       expect(logger.warn).toHaveBeenCalledWith(
-        'Media prompt brand enhancement failed; generation stopped',
+        fallbackMessage,
         expect.objectContaining({
           integrityDetail: 'generationRules.0',
           integrityReason: 'rules_schema_invalid',
@@ -305,13 +304,12 @@ describe('MediaPromptEnhancementService', () => {
       );
     });
 
-    it('stops when no brand identity can be pinned and runs no enhancement work', async () => {
+    it('generates with the original prompt when no brand identity can be pinned and runs no enhancement work', async () => {
       const { service, snapshots, harness, promptEnhancement } = setup();
       snapshots.preview.mockRejectedValue(
         new ConflictException('brand_identity_unavailable'),
       );
-      const error = await stopOf(service.enhance(input));
-      expect(error.stage).toBe('brand_identity');
+      await expect(service.enhance(input)).resolves.toEqual(skippedReceipt());
       expect(harness.resolveBrief).not.toHaveBeenCalled();
       expect(promptEnhancement.enhance).not.toHaveBeenCalled();
     });
@@ -323,7 +321,7 @@ describe('MediaPromptEnhancementService', () => {
       'response',
       'receipt',
     ] as const)(
-      'stops and logs only sanitized diagnostics for %s failures',
+      'falls back and logs only sanitized diagnostics for %s failures',
       async (stage) => {
         const { service, harness, promptEnhancement, packs, modes, logger } =
           setup();
@@ -339,35 +337,35 @@ describe('MediaPromptEnhancementService', () => {
           );
         if (stage === 'receipt')
           packs.listLoadedPackVersions.mockRejectedValue(new Error(sensitive));
-        const error = await stopOf(
-          service.enhance({
-            ...input,
-            prompt: sensitive,
-            model: sensitive,
-            contentType: 'video',
-          }),
-        );
-        expect(error.stage).toBe(stage);
-        expect(JSON.stringify(error.getResponse())).not.toContain(sensitive);
+        const receipt = await service.enhance({
+          ...input,
+          prompt: sensitive,
+          model: sensitive,
+          contentType: 'video',
+        });
+        expect(receipt).toMatchObject({
+          brandMode: 'raw',
+          enhancedPrompt: sensitive,
+          isEnhancementFailed: true,
+          status: 'skipped',
+        });
         const diagnostics = {
           contentType: 'video',
           model: 'admin/default-text',
           stage,
           error: expect.any(String),
         };
-        const message =
-          'Media prompt brand enhancement failed; generation stopped';
         if (stage === 'provider') {
           // An unreachable text model is an operator configuration error.
           expect(logger.error).toHaveBeenCalledExactlyOnceWith(
-            message,
+            fallbackMessage,
             undefined,
             diagnostics,
           );
           expect(logger.warn).not.toHaveBeenCalled();
         } else {
           expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
-            message,
+            fallbackMessage,
             diagnostics,
           );
           expect(logger.error).not.toHaveBeenCalled();
@@ -386,20 +384,46 @@ describe('MediaPromptEnhancementService', () => {
       promptEnhancement.enhance.mockRejectedValue(
         new PromptEnhancementResponseError(),
       );
-      const error = await stopOf(service.enhance(input));
-      expect(error.stage).toBe('response');
+      await expect(service.enhance(input)).resolves.toEqual(skippedReceipt());
       expect(logger.warn).toHaveBeenCalledWith(
-        'Media prompt brand enhancement failed; generation stopped',
+        fallbackMessage,
         expect.objectContaining({ stage: 'response' }),
       );
     });
 
-    it('does not hide an authorization failure behind an enhancement stop', async () => {
+    it('does not hide an authorization failure behind a fallback', async () => {
       const { service, modes } = setup();
       const denied = new ForbiddenException('Brand access denied');
       modes.resolve.mockRejectedValue(denied);
       await expect(service.enhance(input)).rejects.toBe(denied);
     });
+
+    it.each<
+      [
+        string,
+        Pick<
+          MediaPromptEnhancementInput,
+          'knowledgeSelection' | 'requestedSkillSlugs'
+        >,
+      ]
+    >([
+      ['a skill', { requestedSkillSlugs: ['cinema'] }],
+      ['Knowledge', { knowledgeSelection: { sourceIds: ['source-1'] } }],
+    ])(
+      'falls back and drops the pick when the request picked %s',
+      async (_label, pick) => {
+        const { service, harness, promptEnhancement } = setup();
+        harness.resolveBrief.mockResolvedValue(null);
+        await expect(
+          service.enhance({ ...input, ...pick }),
+        ).resolves.toMatchObject({
+          enhancedPrompt: input.prompt,
+          isEnhancementFailed: true,
+          status: 'skipped',
+        });
+        expect(promptEnhancement.enhance).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('brand identity', () => {
