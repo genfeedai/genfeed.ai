@@ -388,6 +388,15 @@ export class RouterService {
     let score = 0;
     const { prioritize = 'balanced' } = options;
 
+    // Image Fastest/Lowest Cost must not be overturned by prompt, quality or
+    // default bonuses. Keep the existing priority tiers and numeric cost fallback.
+    if (
+      options.category === ModelCategory.IMAGE &&
+      (prioritize === 'speed' || prioritize === 'cost')
+    ) {
+      return this.scorePriority(model, prioritize);
+    }
+
     score += this.scorePriority(model, prioritize);
     score += this.scoreQualityTier(model, prioritize);
     score += this.scoreAnalysisMatch(model, analysis);
