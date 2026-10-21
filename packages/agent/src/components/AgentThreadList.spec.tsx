@@ -1,5 +1,6 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import {
   type AgentRunRecord,
   IDLE_RUN,
@@ -464,7 +465,10 @@ describe('AgentThreadList', () => {
       expect(storeState.threads).toEqual([]);
     });
 
-    expect(apiService.archiveThread).toHaveBeenCalledWith('conv-1');
+    expect(apiService.archiveThread).toHaveBeenCalledWith(
+      'conv-1',
+      expect.any(AbortSignal),
+    );
   });
 
   it('renders each thread title as a link to its route', async () => {
@@ -652,7 +656,10 @@ describe('AgentThreadList', () => {
       expect(storeState.threads).toEqual([]);
     });
 
-    expect(apiService.unarchiveThread).toHaveBeenCalledWith('conv-1');
+    expect(apiService.unarchiveThread).toHaveBeenCalledWith(
+      'conv-1',
+      expect.any(AbortSignal),
+    );
   });
 
   it('forks a thread from the thread actions menu and navigates to the new thread', async () => {
@@ -691,6 +698,34 @@ describe('AgentThreadList', () => {
     expect(storeState.threads[0]?.id).toBe('conv-2');
   });
 
+  it('retains the rename editor and requires explicit retry after a missing-thread update', async () => {
+    const thread = createThread('conv-1', 'Deleted while editing');
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      updateThread: vi.fn().mockRejectedValue(
+        new AgentApiRequestError({
+          message: 'Thread not found',
+          status: 404,
+        }),
+      ),
+    });
+    render(<AgentThreadList apiService={apiService as never} />);
+    fireEvent.contextMenu(await screen.findByText('Deleted while editing'));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Rename/i }));
+    const input = screen.getByRole('textbox', {
+      name: 'Rename Deleted while editing',
+    });
+    fireEvent.change(input, { target: { value: 'Keep my unsent title' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready.',
+    );
+    expect(input).toHaveValue('Keep my unsent title');
+    fireEvent.blur(input);
+    expect(apiService.updateThread).toHaveBeenCalledTimes(1);
+    expect(storeState.activeThreadId).toBeNull();
+  });
+
   it('renames a thread from the thread actions menu', async () => {
     const thread = createThread('conv-1', 'Rename me');
     const renamedThread = { ...thread, title: 'Renamed thread' };
@@ -717,9 +752,13 @@ describe('AgentThreadList', () => {
     fireEvent.keyDown(renameInput, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(apiService.updateThread).toHaveBeenCalledWith('conv-1', {
-        title: 'Renamed thread',
-      });
+      expect(apiService.updateThread).toHaveBeenCalledWith(
+        'conv-1',
+        {
+          title: 'Renamed thread',
+        },
+        expect.any(AbortSignal),
+      );
     });
 
     expect(storeState.threads[0]?.title).toBe('Renamed thread');
@@ -859,7 +898,10 @@ describe('AgentThreadList', () => {
     );
 
     await waitFor(() => {
-      expect(apiService.pinThread).toHaveBeenCalledWith('conv-2');
+      expect(apiService.pinThread).toHaveBeenCalledWith(
+        'conv-2',
+        expect.any(AbortSignal),
+      );
     });
 
     expect(storeState.threads[0]?.id).toBe('conv-2');

@@ -20,6 +20,10 @@
     "outputs": "Outputs",
     "placeholder": "Ask for help with content, review, or planning..."
   },
+  "threadRecovery": {
+    "failed": "Could not update this thread. Your draft is kept. Try again when you are ready.",
+    "unavailable": "This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready."
+  },
   "threadList": {
     "agent": "Agent",
     "fork": "Fork thread",

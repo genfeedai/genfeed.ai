@@ -6,6 +6,7 @@ import {
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
+import { AgentThreadUpdateNotice } from '@genfeedai/agent/components/AgentThreadUpdateNotice';
 import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -82,6 +83,7 @@ export function AgentPanel({
     catalog: runtimeCatalog,
     onRuntimeChange: handleRuntimeChange,
     selectedRuntime,
+    updateFailure,
   } = useAgentRuntimeSelection({ apiService, isActive });
 
   const activeThread = useMemo(
@@ -179,7 +181,12 @@ export function AgentPanel({
         </div>
       }
       subtitle="Terminal, runtime routing, and generated outputs"
-      chatContent={terminalContent}
+      chatContent={
+        <>
+          <AgentThreadUpdateNotice failure={updateFailure} />
+          {terminalContent}
+        </>
+      }
       outputsContent={AGENT_PANEL_OUTPUTS_CONTENT}
     />
   );

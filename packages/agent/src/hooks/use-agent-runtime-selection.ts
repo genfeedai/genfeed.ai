@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  type AgentThreadUpdateFailure,
+  useAgentThreadUpdate,
+} from '@genfeedai/agent/hooks/use-agent-thread-update';
 import { useDesktopLocalTools } from '@genfeedai/agent/hooks/use-desktop-local-tools';
 import type {
   AgentRuntimeCatalog,
@@ -24,6 +28,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export interface AgentRuntimeSelection {
   catalog: AgentRuntimeCatalog;
+  updateFailure: AgentThreadUpdateFailure | null;
   /** True when a local Claude Code / Codex runtime can run on this desktop. */
   hasDesktopCliRuntimes: boolean;
   onRuntimeChange: (runtime: AgentRuntimeOption) => void;
@@ -54,6 +59,7 @@ export function useAgentRuntimeSelection(params: {
   isActive?: boolean;
 }): AgentRuntimeSelection {
   const { apiService, isActive = true } = params;
+  const { failure: updateFailure, runUpdate } = useAgentThreadUpdate();
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const threads = useAgentChatStore((s) => s.threads);
   const updateThread = useAgentChatStore((s) => s.updateThread);
@@ -119,53 +125,58 @@ export function useAgentRuntimeSelection(params: {
     return resolveThreadRuntimeOption({ catalog, thread: activeThread });
   }, [activeThread, activeThreadId, catalog, draftRuntime]);
 
+  const draftKeyToPersist = draftRuntime?.key;
+  const draftModelToPersist = draftRuntime?.requestedModel;
+  const confirmedRuntimeKey = activeThread?.runtimeKey;
+  const confirmedRequestedModel = activeThread?.requestedModel;
+
+  // A failed application waits for an explicit runtime choice, even if the
+  // thread list refreshes while the deleted conversation remains selected.
   // A runtime picked before the thread existed applies once it is created.
   useEffect(() => {
-    if (!activeThreadId || !draftRuntime) {
+    if (!activeThreadId || draftKeyToPersist === undefined || updateFailure) {
       return;
     }
 
-    const currentThread = threads.find(
-      (thread) => thread.id === activeThreadId,
-    );
     if (
-      currentThread?.runtimeKey === draftRuntime.key &&
-      (currentThread?.requestedModel || '') === draftRuntime.requestedModel
+      confirmedRuntimeKey === draftKeyToPersist &&
+      (confirmedRequestedModel || '') === draftModelToPersist
     ) {
       setDraftRuntimeKey(null);
       return;
     }
 
-    updateThread(activeThreadId, {
-      requestedModel: draftRuntime.requestedModel || undefined,
-      runtimeKey: draftRuntime.key || undefined,
-    });
-
     const controller = new AbortController();
-    apiService
-      .updateThread(
-        activeThreadId,
-        // Empty strings clear a previous runtime server-side.
-        {
-          requestedModel: draftRuntime.requestedModel,
-          runtimeKey: draftRuntime.key,
-        },
-        controller.signal,
-      )
-      .then(() => {
-        if (!controller.signal.aborted) {
-          setDraftRuntimeKey(null);
-        }
-      })
-      .catch(() => undefined);
+    void runUpdate(
+      activeThreadId,
+      (signal) =>
+        apiService.updateThread(
+          activeThreadId,
+          {
+            requestedModel: draftModelToPersist,
+            runtimeKey: draftKeyToPersist,
+          },
+          signal,
+        ),
+      { signal: controller.signal },
+    ).then((updated) => {
+      if (updated && !controller.signal.aborted) {
+        updateThread(activeThreadId, updated);
+        setDraftRuntimeKey(null);
+      }
+    });
 
     return () => controller.abort();
   }, [
     activeThreadId,
     apiService,
-    draftRuntime,
+    draftKeyToPersist,
+    draftModelToPersist,
+    confirmedRuntimeKey,
+    confirmedRequestedModel,
+    runUpdate,
     setDraftRuntimeKey,
-    threads,
+    updateFailure,
     updateThread,
   ]);
 
@@ -176,25 +187,21 @@ export function useAgentRuntimeSelection(params: {
         return;
       }
 
-      updateThread(activeThreadId, {
-        requestedModel: runtime.requestedModel || undefined,
-        runtimeKey: runtime.key || undefined,
-      });
-
-      const controller = new AbortController();
-      void apiService
-        .updateThread(
+      setDraftRuntimeKey(null);
+      void runUpdate(activeThreadId, (signal) =>
+        apiService.updateThread(
           activeThreadId,
-          // Empty strings clear a previous runtime server-side.
           {
             requestedModel: runtime.requestedModel,
             runtimeKey: runtime.key,
           },
-          controller.signal,
-        )
-        .catch(() => undefined);
+          signal,
+        ),
+      ).then((updated) => {
+        if (updated) updateThread(activeThreadId, updated);
+      });
     },
-    [activeThreadId, apiService, setDraftRuntimeKey, updateThread],
+    [activeThreadId, apiService, runUpdate, setDraftRuntimeKey, updateThread],
   );
 
   const switchToHosted = useCallback(
@@ -216,6 +223,7 @@ export function useAgentRuntimeSelection(params: {
 
   return {
     catalog,
+    updateFailure,
     hasDesktopCliRuntimes: catalog.options.some((option) =>
       isDesktopCliRuntimeKey(option.key),
     ),

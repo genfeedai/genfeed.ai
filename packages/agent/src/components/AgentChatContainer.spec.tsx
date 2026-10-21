@@ -1,6 +1,7 @@
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
   type AgentChatMessage as AgentChatMessageType,
+  type AgentWorkEvent,
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -264,7 +265,9 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
             <button
               key={cta.label}
               type="button"
-              onClick={() => props.onUiAction?.(cta.action, cta.payload)}
+              onClick={() => {
+                if (cta.action) props.onUiAction?.(cta.action, cta.payload);
+              }}
             >
               {cta.label}
             </button>
@@ -402,7 +405,7 @@ type StoreState = {
   uiActionStatesByThread: Record<string, Record<string, unknown>>;
   upsertThread: ReturnType<typeof vi.fn>;
   updateThread: ReturnType<typeof vi.fn>;
-  workEvents: [];
+  workEvents: AgentWorkEvent[];
 };
 
 function setRun(patch: Partial<AgentRunRecord>): void {
@@ -1097,9 +1100,35 @@ describe('AgentChatContainer', () => {
       ).toHaveAttribute('href', 'genfeedai-desktop://thread/thread-1');
     });
 
-    it('switches the thread to the hosted runtime through the runtime selection path', () => {
+    it('shows recoverable missing-thread feedback after a failed runtime update', async () => {
       const apiService = createApiService({
-        updateThread: vi.fn().mockResolvedValue({}),
+        updateThread: vi.fn().mockRejectedValue(
+          new AgentApiRequestError({
+            message: 'Thread not found',
+            source: 'api',
+            status: 404,
+          }),
+        ),
+      });
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+      fireEvent.click(screen.getByText('switchToHosted'));
+      expect(await screen.findByText('unavailable')).toHaveAttribute(
+        'role',
+        'alert',
+      );
+      expect(apiService.updateThread).toHaveBeenCalledTimes(1);
+      expect(storeState.activeThreadId).toBe('thread-1');
+      expect(sendStreaming).not.toHaveBeenCalled();
+    });
+
+    it('switches the thread to the hosted runtime through the runtime selection path', async () => {
+      const apiService = createApiService({
+        updateThread: vi.fn().mockResolvedValue({
+          requestedModel: '',
+          runtimeKey: 'hosted/genfeed',
+        }),
       });
 
       render(
@@ -1108,10 +1137,12 @@ describe('AgentChatContainer', () => {
 
       fireEvent.click(screen.getByText('switchToHosted'));
 
-      expect(storeState.updateThread).toHaveBeenCalledWith('thread-1', {
-        requestedModel: undefined,
-        runtimeKey: 'hosted/genfeed',
-      });
+      await waitFor(() =>
+        expect(storeState.updateThread).toHaveBeenCalledWith('thread-1', {
+          requestedModel: '',
+          runtimeKey: 'hosted/genfeed',
+        }),
+      );
       expect(apiService.updateThread).toHaveBeenCalledWith(
         'thread-1',
         { requestedModel: '', runtimeKey: 'hosted/genfeed' },

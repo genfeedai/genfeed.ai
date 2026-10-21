@@ -53,7 +53,7 @@ interface AgentThreadListRowProps {
     element: HTMLButtonElement | null,
   ) => void;
   onRenameDraftChange: (value: string) => void;
-  onSubmitRename: (thread: AgentThread) => void;
+  onSubmitRename: (thread: AgentThread, isExplicit?: boolean) => void;
   onCancelRename: () => void;
   onTogglePinned: (thread: AgentThread) => void;
   onForkThread: (thread: AgentThread) => void;
@@ -181,7 +181,7 @@ export function AgentThreadListRow({
             className="min-w-0 flex-1"
             value={renameDraft}
             onBlur={() => {
-              onSubmitRename(conv);
+              onSubmitRename(conv, false);
             }}
             onChange={(event) => {
               onRenameDraftChange(event.target.value);
@@ -303,7 +303,16 @@ export function AgentThreadListRow({
               <Ellipsis className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent
+            align="end"
+            className="w-48"
+            onCloseAutoFocus={(event) => {
+              if (renamingThreadId === conv.id) {
+                event.preventDefault();
+                renameInputRef.current?.focus();
+              }
+            }}
+          >
             <DropdownMenuItem
               onSelect={() => {
                 onTogglePinned(conv);

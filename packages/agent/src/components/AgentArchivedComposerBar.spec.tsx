@@ -1,3 +1,4 @@
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentArchivedComposerBar } from './AgentArchivedComposerBar';
@@ -85,5 +86,20 @@ describe('AgentArchivedComposerBar', () => {
     expect(
       await screen.findByText('Could not unarchive this thread. Try again.'),
     ).toBeInTheDocument();
+  });
+  it('shows missing-thread recovery when deletion wins an unarchive update', async () => {
+    const onUnarchive = vi
+      .fn()
+      .mockRejectedValue(
+        new AgentApiRequestError({ message: 'Thread not found', status: 404 }),
+      );
+    render(<AgentArchivedComposerBar onUnarchive={onUnarchive} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Unarchive thread' }));
+    expect(
+      await screen.findByText(
+        'This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready.',
+      ),
+    ).toHaveAttribute('role', 'alert');
+    expect(onUnarchive).toHaveBeenCalledTimes(1);
   });
 });

@@ -23,6 +23,7 @@ function buildSelection(
 
   return {
     catalog,
+    updateFailure: null,
     hasDesktopCliRuntimes: false,
     onRuntimeChange: vi.fn(),
     runtimeNotice: catalog.localToolNotice,

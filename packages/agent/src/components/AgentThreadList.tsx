@@ -1,3 +1,4 @@
+import { AgentThreadUpdateNotice } from '@genfeedai/agent/components/AgentThreadUpdateNotice';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ConversationSidebarSection } from '@genfeedai/ui';
@@ -46,6 +47,7 @@ export function AgentThreadList({
     isLoading,
     authError,
     loadError,
+    updateFailure,
     viewStatus,
     openMenuThreadId,
     renamingThreadId,
@@ -138,8 +140,8 @@ export function AgentThreadList({
         menuButtonRefs.current[threadId] = element;
       }}
       onRenameDraftChange={setRenameDraft}
-      onSubmitRename={(thread) => {
-        handleSubmitRename(thread).catch(() => undefined);
+      onSubmitRename={(thread, isExplicit) => {
+        handleSubmitRename(thread, isExplicit).catch(() => undefined);
       }}
       onCancelRename={handleCancelRename}
       onTogglePinned={(thread) => {
@@ -198,6 +200,7 @@ export function AgentThreadList({
       className="flex h-full min-h-0 flex-col"
       data-testid="agent-thread-list"
     >
+      <AgentThreadUpdateNotice failure={updateFailure} />
       <AgentThreadListErrorBanner
         authError={authError}
         loadError={loadError}
