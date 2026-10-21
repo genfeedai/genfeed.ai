@@ -56,8 +56,19 @@ env:
   TZ: UTC
 
 jobs:
+  # Independent frontend graph: fork PRs retain read-only measurements even
+  # when the test planner refuses untrusted code. Heavy reusable callers must
+  # not repeat the bundle run already owned by the direct PR event.
+  bundle-size:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft && inputs.run_heavy_tests != true
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/_bundle-size.yml
+    secrets: inherit
+
   # Trust, heavy tier, test plan, and spec-typecheck scope in one runner slot.
-  # Every job below needs this one, so an untrusted fork PR (the trust step
+  # Every test job below needs this one, so an untrusted fork PR (the trust step
   # fails the job) skips the whole graph and the Tests Gate fails closed.
   plan:
     name: Plan

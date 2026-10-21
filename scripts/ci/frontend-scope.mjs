@@ -11,7 +11,7 @@ const GLOBAL_INPUTS = [
   /^scripts\/(?:env[^/]*\.ts|collect-bundle-manifest\.ts|compare-bundle-manifests\.ts)$/,
   /^scripts\/ci\/frontend-scope\./,
   /^\.github\/actions\/(?:setup-bun-env|setup-playwright-app|detect-frontend-scope)\//,
-  /^\.github\/workflows\/(?:bundle-size|link-check)\.yml$/,
+  /^\.github\/workflows\/(?:ci|_bundle-size|bundle-size|link-check)\.yml$/,
 ];
 
 export function affectedFrontends(changedFiles, workspaces) {

@@ -25,7 +25,6 @@ import './selfhosted-schedule-readiness.test.mjs';
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
-  'bundle-size.yml',
   'ci.yml',
   'curated-action-catalog.yml',
   'link-check.yml',
@@ -539,7 +538,6 @@ test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
 test('draft pull requests run no CI until marked ready', () => {
   for (const [fileName, jobId] of [
     ['ci.yml', 'plan'],
-    ['bundle-size.yml', 'detect'],
     ['link-check.yml', 'detect'],
     ['playwright-pr-smoke.yml', 'detect'],
   ]) {
@@ -948,10 +946,128 @@ test('pins mocked core E2E builds to Community mode', () => {
   assert.match(setup, /E2E_COVERAGE: '1'/);
 });
 
+test('bundle graph keeps fork measurements independent and skips drafts and duplicate heavy callers', () => {
+  const ci = readWorkflow('ci.yml');
+  const shared = readWorkflow('_bundle-size.yml');
+  const caller = jobBlock(ci, 'bundle-size', 'ci.yml');
+  const detect = jobBlock(shared, 'detect', '_bundle-size.yml');
+  const measure = jobBlock(shared, 'measure', '_bundle-size.yml');
+  const comment = jobBlock(shared, 'comment', '_bundle-size.yml');
+  const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
+  const evaluate = (expression, context) => {
+    assert.ok(expression, 'missing workflow condition');
+    return runInNewContext(expression, context);
+  };
+  for (const event of [
+    'pull_request',
+    'push',
+    'workflow_dispatch',
+    'merge_group',
+  ]) {
+    for (const draft of [false, true]) {
+      for (const fork of [false, true]) {
+        for (const heavy of [undefined, false, true]) {
+          const github = {
+            event_name: event,
+            repository: 'example/repo',
+            event: {
+              pull_request: {
+                draft,
+                head: {
+                  repo: { full_name: fork ? 'fork/repo' : 'example/repo' },
+                },
+              },
+            },
+          };
+          assert.equal(
+            evaluate(condition(caller), {
+              github,
+              inputs: { run_heavy_tests: heavy },
+            }),
+            event === 'pull_request' && !draft && heavy !== true,
+          );
+          assert.equal(
+            evaluate(condition(detect), { github }),
+            event !== 'pull_request' || !draft,
+          );
+          assert.equal(
+            evaluate(condition(comment), { github }),
+            event === 'pull_request' && !fork,
+          );
+          for (const frontend of ['true', 'false']) {
+            assert.equal(
+              evaluate(condition(measure), {
+                needs: { detect: { outputs: { frontend } } },
+              }),
+              frontend === 'true',
+            );
+          }
+        }
+      }
+    }
+  }
+  assert.doesNotMatch(caller, /needs:/);
+  assert.match(detect, /permissions:\n {6}contents: read/);
+  assert.doesNotMatch(detect, /: write/);
+  assert.doesNotMatch(
+    shared,
+    /^concurrency:/m,
+    'caller owns cancellation without nested self-cancellation',
+  );
+  assert.doesNotMatch(shared, /^ {2}(?:pull_request|push|workflow_dispatch):/m);
+  assert.match(shared, /^ {2}workflow_call:/m);
+  // No cross-run download or fabricated workflow identity may bridge this move.
+  assert.doesNotMatch(comment, /run-id:|github-token:|repository:/);
+  assert.doesNotMatch(shared, /GITHUB_WORKFLOW:|GITHUB_RUN_ID:/);
+});
+
+test('serializer diagnostic upload accepts only completed same-repo app proofs from an uncancelled run', () => {
+  const shared = readWorkflow('_bundle-size.yml');
+  const upload = shared
+    .split('      - name: Upload request serializer proof\n')[1]
+    ?.split('\n      #')[0];
+  const expression = upload?.match(/if: \$\{\{ (.+) \}\}/)?.[1];
+  assert.ok(expression);
+  for (const outcome of ['success', 'failure', 'skipped', 'cancelled', '']) {
+    for (const cancelled of [false, true]) {
+      for (const app of ['app', 'website']) {
+        for (const event of ['pull_request', 'push', 'workflow_dispatch']) {
+          for (const fork of [false, true]) {
+            const actual = runInNewContext(expression, {
+              cancelled: () => cancelled,
+              steps: { serializer_proof: { outcome } },
+              matrix: { app },
+              github: {
+                event_name: event,
+                repository: 'example/repo',
+                event: {
+                  pull_request: {
+                    head: {
+                      repo: { full_name: fork ? 'fork/repo' : 'example/repo' },
+                    },
+                  },
+                },
+              },
+            });
+            assert.equal(
+              actual,
+              !cancelled &&
+                ['success', 'failure'].includes(outcome) &&
+                app === 'app' &&
+                event === 'pull_request' &&
+                !fork,
+            );
+          }
+        }
+      }
+    }
+  }
+});
+
 test('bundle report publishing isolates write credentials from PR build code', () => {
-  const workflow = readWorkflow('bundle-size.yml');
-  const measure = jobBlock(workflow, 'measure', 'bundle-size.yml');
-  const comment = jobBlock(workflow, 'comment', 'bundle-size.yml');
+  const workflow = readWorkflow('_bundle-size.yml');
+  const measure = jobBlock(workflow, 'measure', '_bundle-size.yml');
+  const comment = jobBlock(workflow, 'comment', '_bundle-size.yml');
   assert.match(measure, /permissions:\n {6}contents: read\n {4}strategy:/);
   assert.doesNotMatch(measure, /: write/);
   assert.match(measure, /uses: actions\/upload-artifact@/);

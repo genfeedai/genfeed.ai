@@ -136,8 +136,25 @@ test('Playwright tiers share build setup without enabling auth bypass for real s
   assert.match(authed, /api-endpoint: http:\/\/localhost:3010\/v1/);
 });
 
+test('bundle PR execution belongs to CI while master and manual keep their entrypoint', () => {
+  const entrypoint = read('.github/workflows/bundle-size.yml');
+  assert.doesNotMatch(entrypoint, /^ {2}pull_request:/m);
+  assert.match(entrypoint, /^ {2}push:\n {4}branches: \[master\]/m);
+  assert.match(entrypoint, /^ {2}workflow_dispatch:/m);
+  assert.match(entrypoint, /uses: \.\/\.github\/workflows\/_bundle-size\.yml/);
+  const ci = read('.github/workflows/ci.yml');
+  const bundle = ci.match(/^ {2}bundle-size:\n((?: {4}.*(?:\n|$)|\n)+)/m)?.[1];
+  assert.ok(bundle, 'CI must call the bundle graph');
+  assert.match(bundle, /uses: \.\/\.github\/workflows\/_bundle-size\.yml/);
+  assert.doesNotMatch(
+    bundle,
+    /needs:/,
+    'bundle scope is independent of the CI trust/test planner',
+  );
+});
+
 test('frontend measurements and comments use the same affected consumers', () => {
-  const bundle = read('.github/workflows/bundle-size.yml');
+  const bundle = read('.github/workflows/_bundle-size.yml');
   assert.match(bundle, /uses: \.\/\.github\/actions\/detect-frontend-scope/);
   assert.equal(
     bundle.match(/app: \$\{\{ fromJSON\(needs.detect.outputs.apps\) \}\}/g)
