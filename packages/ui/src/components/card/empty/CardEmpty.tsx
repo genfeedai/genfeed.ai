@@ -54,7 +54,7 @@ export function CardEmptyContent({
         />
       )}
 
-      {label && <p className={cn(SIZE_CLASSES[size].title)}>{label}</p>}
+      {label && <h2 className={cn(SIZE_CLASSES[size].title)}>{label}</h2>}
 
       {description && (
         <p
