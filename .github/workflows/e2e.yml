@@ -128,13 +128,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Setup Bun environment and build packages
+        uses: ./.github/actions/build-e2e-packages
         with:
           install-command: "bun install"
-
-      - name: Build packages
-        run: bunx turbo run build --filter="./packages/*"
 
       # Provision the schema on the ephemeral Postgres service container.
       # The E2E suite assumes a migrated DB (it truncates + reseeds per test,
@@ -202,13 +199,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Setup Bun environment and build packages
+        uses: ./.github/actions/build-e2e-packages
         with:
           install-command: "bun install"
-
-      - name: Build packages
-        run: bunx turbo run build --filter="./packages/*"
 
       - name: Apply Prisma migrations to test DB
         run: bun x prisma migrate deploy
@@ -291,13 +285,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Setup Bun environment and build packages
+        uses: ./.github/actions/build-e2e-packages
         with:
           install-command: "bun install"
-
-      - name: Build packages
-        run: bunx turbo run build --filter="./packages/*"
 
       - name: Apply Prisma migrations to test DB
         run: bun x prisma migrate deploy
@@ -558,10 +549,8 @@ jobs:
       - name: Validate final prerequisites before dependency setup
         id: preflight
         run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group final
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      - name: Build packages
-        run: bunx turbo run build --filter="./packages/*"
+      - name: Setup Bun environment and build packages
+        uses: ./.github/actions/build-e2e-packages
       - name: Run serial runtime acceptance
         env:
           RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}

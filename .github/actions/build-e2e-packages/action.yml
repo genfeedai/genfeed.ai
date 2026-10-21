@@ -1,0 +1,20 @@
+name: Build E2E Packages
+description: Install the E2E toolchain and dependencies, then build all shared packages.
+
+inputs:
+  install-command:
+    description: Dependency installation command for the selected E2E tier
+    required: false
+    default: 'bun install --frozen-lockfile'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun environment
+      uses: ./.github/actions/setup-bun-env
+      with:
+        install-command: ${{ inputs.install-command }}
+
+    - name: Build packages
+      shell: bash
+      run: bunx turbo run build --filter="./packages/*"
