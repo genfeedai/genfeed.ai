@@ -508,8 +508,6 @@ config.turbopack = {
       : './app/serwist/serwist-asset.reader.ts',
     '@components/buttons/refresh/button-refresh/ButtonRefresh':
       '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
-    '@components/cards/KpiCard':
-      './packages/components/admin/cards/KpiCard.tsx',
     '@components/lazy/lazy-modal.admin':
       './packages/components/admin/lazy/lazy-modal.admin.ts',
     '@components/lazy/modal/LazyModal':
@@ -524,8 +522,6 @@ config.turbopack = {
       './packages/components/admin/modals/ModalRole.tsx',
     '@components/modals/ModalSubscription':
       './packages/components/admin/modals/ModalSubscription.tsx',
-    '@components/social/SocialLinks':
-      './packages/components/admin/social/SocialLinks.tsx',
     '@genfeedai/actions': '../../packages/actions/src/index.ts',
     '@genfeedai/agent': '../../packages/agent/src/index.ts',
     '@genfeedai/client': '../../packages/client/src/index.ts',
