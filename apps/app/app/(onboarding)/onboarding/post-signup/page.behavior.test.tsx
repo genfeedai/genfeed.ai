@@ -94,6 +94,7 @@ vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
       firstName: 'Local',
       fullName: 'Local User',
       id: 'user-123',
+      imageIngredientId: null,
       imageUrl: null,
       lastName: 'User',
       primaryEmailAddress: { emailAddress: 'local@example.com' },

@@ -6,6 +6,7 @@ import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ONBOARDING_MAX_DRAFT_ROUNDS } from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftContext,
+  IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
 } from '@genfeedai/contracts/interfaces';
@@ -15,16 +16,23 @@ import type {
   FirstDraftsPhase,
   FirstDraftsState,
   FirstDraftsWorkingStep,
+  FirstDraftVerdict,
 } from '@genfeedai/props/onboarding/first-drafts.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
 import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
-import { toOnboardingLink } from './first-drafts.util';
+import {
+  clearScheduleResume,
+  readScheduleResume,
+  saveScheduleResume,
+  toOnboardingLink,
+} from './first-drafts.util';
 
 export function useFirstDrafts(): FirstDraftsState {
   const { getToken } = useAuthIdentity();
@@ -46,6 +54,9 @@ export function useFirstDrafts(): FirstDraftsState {
   const [round, setRound] = useState(0);
   const [error, setError] = useState<FirstDraftsError | null>(null);
   const [isContinuing, setIsContinuing] = useState(false);
+  const [verdicts, setVerdicts] = useState<
+    Readonly<Record<string, FirstDraftVerdict>>
+  >({});
   const controllerRef = useRef<AbortController | null>(null);
   const hasPrefilledRef = useRef(false);
 
@@ -146,10 +157,54 @@ export function useFirstDrafts(): FirstDraftsState {
     [brandId, draft, getService],
   );
 
+  const likedDrafts = (result?.drafts ?? []).filter(
+    (item) => verdicts[item.postId] === 'up',
+  );
+
+  /** The answer is the member's explicit rating of the generation, saved on its receipt. */
+  const onVerdict = useCallback(
+    (item: IOnboardingFirstDraft, verdict: FirstDraftVerdict) => {
+      if (!brandId) return;
+      const previous = verdicts[item.postId];
+      setVerdicts((current) => ({ ...current, [item.postId]: verdict }));
+      void (async () => {
+        try {
+          const token = await resolveAuthToken(getToken);
+          if (!token) throw new Error('Not authenticated');
+          await BrandedGenerationReceiptsService.getInstance(
+            token,
+          ).rateFeedback(brandId, item.receiptId, {
+            rating: verdict,
+            reasons: [],
+          });
+        } catch (caught) {
+          logger.error('Failed to save the draft verdict', caught);
+          setVerdicts((current) => {
+            const { [item.postId]: _dropped, ...rest } = current;
+            return previous ? { ...rest, [item.postId]: previous } : rest;
+          });
+        }
+      })();
+    },
+    [brandId, getToken, verdicts],
+  );
+
+  const onSchedule = useCallback(() => {
+    if (!brandId || !result) return;
+    // Connecting an account leaves the page, so keep what was liked.
+    saveScheduleResume({
+      brandId,
+      likedPostIds: likedDrafts.map((item) => item.postId),
+      result,
+    });
+    setPhase('schedule');
+  }, [brandId, likedDrafts, result]);
+
   const onContinue = useCallback(() => {
     if (isContinuing) return;
     setIsContinuing(true);
     setError(null);
+    clearScheduleResume();
     // The Expert path continues into its own steps; everyone else is done.
     const finish =
       steps.length > 1 ? handleStepComplete('brand') : completeOnboarding();
@@ -165,6 +220,22 @@ export function useFirstDrafts(): FirstDraftsState {
   useEffect(() => {
     if (isOnboardingCompleted) replace('/');
   }, [isOnboardingCompleted, replace]);
+
+  // Coming back from connecting an account: resume the drafts that were liked.
+  const isScheduleReturn = searchParams.get('step') === 'schedule';
+  useEffect(() => {
+    if (!isScheduleReturn || hasPrefilledRef.current || !brandId) return;
+    const resume = readScheduleResume(brandId);
+    if (!resume) return;
+    hasPrefilledRef.current = true;
+    setResult(resume.result);
+    setVerdicts(
+      Object.fromEntries(
+        resume.likedPostIds.map((postId) => [postId, 'up' as const]),
+      ),
+    );
+    setPhase('schedule');
+  }, [brandId, isScheduleReturn]);
 
   // A work-email domain is already a good guess: start without asking.
   useEffect(() => {
@@ -203,8 +274,11 @@ export function useFirstDrafts(): FirstDraftsState {
     error,
     isContinuing,
     isScanFailed: scan?.status === 'failed',
+    likedDrafts,
     onContinue,
     onNotRight: () => setPhase('context'),
+    onSchedule,
+    onVerdict,
     onSkipLink: () => setPhase('context'),
     onStart,
     onSubmitContext,
@@ -214,6 +288,7 @@ export function useFirstDrafts(): FirstDraftsState {
     round,
     scan,
     url,
+    verdicts,
     workingStep,
   };
 }

@@ -11,6 +11,9 @@ vi.mock(
 vi.mock(
   '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers',
   () => ({
+    readMediaResponseString: vi.fn(
+      (value: { data?: { id?: string } }) => value.data?.id,
+    ),
     readUsableCdnAssetUrl: vi.fn(),
     toMediaResponseRecord: vi.fn((value: unknown) => value),
   }),
@@ -59,7 +62,10 @@ describe('OnboardingFirstDraftsService', () => {
         };
       },
     );
-    gateway.generateImage.mockResolvedValue({ url: 'x' });
+    gateway.generateImage.mockResolvedValue({
+      data: { id: 'ing_1' },
+      url: 'x',
+    });
     vi.mocked(readUsableCdnAssetUrl).mockReturnValue(
       'https://cdn.example.com/a.png',
     );
@@ -127,6 +133,7 @@ describe('OnboardingFirstDraftsService', () => {
         'linkedin',
       ]);
       expect(result.imageUrl).toBe('https://cdn.example.com/a.png');
+      expect(result.imageIngredientId).toBe('ing_1');
       expect(result.requestKey).toBe(result.drafts[0]?.requestKey);
       expect(gateway.generateImage).toHaveBeenCalledTimes(1);
     });
@@ -197,6 +204,7 @@ describe('OnboardingFirstDraftsService', () => {
 
       await expect(service.generate(user, 'brand_1', {})).resolves.toEqual({
         drafts: [],
+        imageIngredientId: null,
         imageUrl: null,
         requestKey: null,
         status: 'unavailable',

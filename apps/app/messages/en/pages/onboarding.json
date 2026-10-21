@@ -194,7 +194,10 @@
       "unavailable": "We couldn't draft posts right now. You can continue and create them in your workspace.",
       "partial": "Some channels didn't come back. You can continue and create the rest in your workspace.",
       "continueAnyway": "Continue to my workspace",
-      "videoNote": "Video renders after you approve the script."
+      "videoNote": "Video renders after you approve the script.",
+      "schedule": "Connect and schedule {count, plural, one {# post} other {# posts}}",
+      "generic": "We didn't have much to go on, so these are generic. Say what's wrong and we'll redo them.",
+      "skipScheduling": "Skip scheduling, continue"
     },
     "platforms": {
       "twitter": "X",
@@ -234,8 +237,30 @@
     "errors": {
       "generate": "We couldn't draft your posts. Check your connection and try again.",
       "continue": "We couldn't finish setup. Check your connection and try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "connect": "We couldn't start the connection. Try again.",
+      "schedule": "We couldn't schedule some posts. Try again, or finish in your workspace."
     },
-    "loading": "Setting up your workspace"
+    "loading": "Setting up your workspace",
+    "verdict": {
+      "label": "Would you post this?",
+      "up": "I'd post this",
+      "down": "Not for me"
+    },
+    "schedule": {
+      "title": "Connect and schedule",
+      "description": "Connect the accounts for the posts you'd use. We schedule them for the next few days. You can change any time later.",
+      "connect": "Connect {platform}",
+      "when": "Goes out {date}",
+      "submit": "Schedule {count, plural, one {# post} other {# posts}}",
+      "skip": "Skip for now",
+      "finish": "Go to my workspace",
+      "state": {
+        "ready": "Account connected",
+        "scheduled": "Scheduled",
+        "failed": "Couldn't schedule",
+        "unsupported": "Create it in your workspace"
+      }
+    }
   }
 }

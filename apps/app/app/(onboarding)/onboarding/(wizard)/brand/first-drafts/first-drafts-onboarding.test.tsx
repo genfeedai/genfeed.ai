@@ -24,6 +24,12 @@ const mocks = vi.hoisted(() => ({
   handleStepComplete: vi.fn(),
   generateDrafts: vi.fn(),
   scanBrand: vi.fn(),
+  rateFeedback: vi.fn(),
+  listReadiness: vi.fn(),
+  patchPost: vi.fn(),
+  ensureFromPost: vi.fn(),
+  scheduleTarget: vi.fn(),
+  connectPlatform: vi.fn(),
   search: new URLSearchParams(),
   steps: ['brand'] as string[],
 }));
@@ -67,6 +73,31 @@ vi.mock('@services/onboarding/onboarding.service', () => ({
     }),
   },
 }));
+vi.mock('@services/ai/branded-generation-receipts.service', () => ({
+  BrandedGenerationReceiptsService: {
+    getInstance: () => ({ rateFeedback: mocks.rateFeedback }),
+  },
+}));
+vi.mock('@services/organization/credentials.service', () => ({
+  CredentialsService: {
+    getInstance: () => ({ listBrandPublishingReadiness: mocks.listReadiness }),
+  },
+}));
+vi.mock('@services/content/posts.service', () => ({
+  PostsService: { getInstance: () => ({ patch: mocks.patchPost }) },
+}));
+vi.mock('@services/content/release-groups.service', () => ({
+  ReleaseGroupsService: {
+    getInstance: () => ({
+      ensureFromPost: mocks.ensureFromPost,
+      scheduleTarget: mocks.scheduleTarget,
+    }),
+  },
+}));
+vi.mock(
+  '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  () => ({ usePlatformOAuthConnect: () => mocks.connectPlatform }),
+);
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.search,
@@ -118,6 +149,7 @@ function drafts(
         text: `${platform} draft text`,
       }),
     ),
+    imageIngredientId: 'ingredient-1',
     imageUrl: 'https://cdn.example.com/a.png',
     requestKey: 'key-twitter',
     status,
@@ -145,7 +177,14 @@ describe('FirstDraftsOnboarding', () => {
     mocks.handleStepComplete.mockResolvedValue(undefined);
     mocks.scanBrand.mockResolvedValue(SCANNED);
     mocks.generateDrafts.mockResolvedValue(drafts());
+    mocks.rateFeedback.mockResolvedValue({});
+    mocks.listReadiness.mockResolvedValue([]);
+    mocks.connectPlatform.mockResolvedValue(undefined);
+    mocks.patchPost.mockResolvedValue({});
+    mocks.ensureFromPost.mockResolvedValue({ id: 'group-1' });
+    mocks.scheduleTarget.mockResolvedValue({});
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -305,6 +344,7 @@ describe('FirstDraftsOnboarding', () => {
   it('lets the user continue when nothing could be drafted', async () => {
     mocks.generateDrafts.mockResolvedValue({
       drafts: [],
+      imageIngredientId: null,
       imageUrl: null,
       requestKey: null,
       status: 'unavailable',
@@ -331,5 +371,99 @@ describe('FirstDraftsOnboarding', () => {
       "We couldn't draft your posts",
     );
     expect(screen.getByRole('textbox')).toHaveValue('acme.co');
+  });
+
+  it('saves a would-use answer as a rating on the draft receipt', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: "I'd post this" })[0],
+    );
+
+    await waitFor(() =>
+      expect(mocks.rateFeedback).toHaveBeenCalledWith(
+        'brand-1',
+        'receipt-twitter',
+        { rating: 'up', reasons: [] },
+      ),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Connect and schedule 1 post' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Skip scheduling, continue' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers no scheduling until a draft is liked', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Not for me' })[0]);
+
+    await waitFor(() => expect(mocks.rateFeedback).toHaveBeenCalled());
+    expect(
+      screen.queryByRole('button', { name: /Connect and schedule/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks to connect the account of a liked draft', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getAllByRole('button', { name: "I'd post this" })[0],
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Connect and schedule 1 post',
+      }),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect X' }));
+
+    expect(mocks.connectPlatform).toHaveBeenCalledWith('twitter');
+  });
+
+  it('schedules the liked draft once its account is connected', async () => {
+    mocks.listReadiness.mockResolvedValue([
+      { canSchedule: true, credentialId: 'cred-x', providerKey: 'twitter' },
+    ]);
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getAllByRole('button', { name: "I'd post this" })[0],
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Connect and schedule 1 post',
+      }),
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Schedule 1 post' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.scheduleTarget).toHaveBeenCalledWith(
+        'group-1',
+        'post-twitter',
+        expect.any(String),
+      ),
+    );
+    expect(mocks.patchPost).toHaveBeenCalledWith(
+      'post-twitter',
+      expect.objectContaining({
+        credentialId: 'cred-x',
+        ingredients: ['ingredient-1'],
+      }),
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Go to my workspace' }),
+    ).toBeInTheDocument();
   });
 });
