@@ -20,7 +20,11 @@ export default function GenerationHarnessReceipt({
             {translate('brandModeHint.provisional_brand')}
           </p>
         ) : null}
-        {receipt.brandMode === 'raw' ? (
+        {receipt.isEnhancementFailed ? (
+          <p className="text-xs text-warning">
+            {translate('enhancementFailedHint')}
+          </p>
+        ) : receipt.brandMode === 'raw' ? (
           <p className="text-xs text-muted-foreground">
             {translate('brandModeHint.raw')}
           </p>

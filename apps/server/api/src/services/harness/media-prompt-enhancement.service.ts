@@ -1,8 +1,4 @@
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
-import {
-  MediaPromptBrandEnhancementException,
-  type MediaPromptBrandEnhancementStage,
-} from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
@@ -59,6 +55,13 @@ export interface MediaPromptEnhancementInput {
   /** An explicit Knowledge pick; absent means automatic brand retrieval. */
   knowledgeSelection?: KnowledgeSelection;
 }
+
+type MediaPromptEnhancementStage =
+  | 'brand_identity'
+  | 'brief'
+  | 'provider'
+  | 'response'
+  | 'receipt';
 
 function brandOfferingCorpus(
   snapshot: BrandIdentitySnapshotV1,
@@ -152,7 +155,7 @@ export class MediaPromptEnhancementService {
         );
       return receipt;
     }
-    let stage: MediaPromptBrandEnhancementStage = 'brand_identity';
+    let stage: MediaPromptEnhancementStage = 'brand_identity';
     try {
       const { mode, snapshot } = await this.resolveBrandIdentity(input);
       stage = 'brief';
@@ -224,7 +227,7 @@ export class MediaPromptEnhancementService {
         stage,
         error: error instanceof Error ? error.message : String(error),
         // Which integrity check failed (a reason code and a schema path, never
-        // brand content), so the next 502 of this kind is diagnosable.
+        // brand content), so the next failure of this kind is diagnosable.
         ...(error instanceof BrandIdentityIntegrityError
           ? {
               integrityDetail: error.detail,
@@ -232,24 +235,13 @@ export class MediaPromptEnhancementService {
             }
           : {}),
       };
-      // An explicit skill or Knowledge pick only reaches the prompt through
-      // enhancement, so it cannot be dropped silently; everything else
-      // generates with the prompt as typed.
-      const isFallback = !requestedSkillSlugs?.length && !knowledgeSelection;
-      const message = isFallback
-        ? 'Media prompt brand enhancement failed; generating with the original prompt'
-        : 'Media prompt brand enhancement failed; generation stopped';
+      const message =
+        'Media prompt brand enhancement failed; generating with the original prompt';
       // A provider failure means the configured text model is unreachable:
       // an operator configuration problem, not a per-request hiccup.
       if (stage === 'provider') this.logger.error(message, undefined, failure);
       else this.logger.warn(message, failure);
-      if (isFallback) return receipt;
-      throw new MediaPromptBrandEnhancementException(
-        stage,
-        error instanceof BrandIdentityIntegrityError
-          ? { detail: error.detail, reason: error.reason }
-          : { reason: error instanceof Error ? error.name : undefined },
-      );
+      return { ...receipt, isEnhancementFailed: true };
     }
   }
 

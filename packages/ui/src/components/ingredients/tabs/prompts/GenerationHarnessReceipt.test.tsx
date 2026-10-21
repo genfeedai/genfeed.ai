@@ -142,4 +142,24 @@ describe('GenerationHarnessReceipt', () => {
     expect(screen.queryByText('Not branded')).not.toBeInTheDocument();
     expect(screen.queryByText('Provisional brand')).not.toBeInTheDocument();
   });
+
+  it('tells the member when enhancement failed and the prompt went as typed', () => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{
+          originalPrompt: 'A cat',
+          enhancedPrompt: 'A cat',
+          status: 'skipped',
+          isEnhancementFailed: true,
+          brandMode: 'raw',
+          source: 'brand',
+          brandId: 'brand-1',
+          appliedPacks: [],
+        }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(screen.getByText(/Brand enhancement failed/)).toBeInTheDocument();
+    expect(screen.queryByText(/exactly as typed/)).not.toBeInTheDocument();
+  });
 });

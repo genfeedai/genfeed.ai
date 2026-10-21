@@ -49,10 +49,11 @@ export interface GenerationHarnessReceipt {
   /**
    * A receipt is either `applied` or `skipped`: enhancement off, an explicit
    * `raw` opt-out, or a failed enhancement that fell back to the prompt as
-   * typed. A request with an explicit skill or Knowledge pick still stops
-   * instead, since the pick cannot be honored without enhancement.
+   * typed (`isEnhancementFailed`).
    */
   status: 'applied' | 'skipped';
+  /** Enhancement was on but failed, so the prompt, and any skill or Knowledge pick, was not applied. */
+  isEnhancementFailed?: boolean;
   /** Absent on receipts written before brand modes existed. */
   brandMode?: GenerationBrandMode;
   /** Absent when the member wrote the prompt. */

@@ -1,6 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
-import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
@@ -11,7 +10,6 @@ import {
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
-import { MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE } from '@genfeedai/contracts/constants';
 import { brandOfferingSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -263,8 +261,6 @@ describe('MediaPromptEnhancementService', () => {
     const sensitive = 'private prompt and brand guidance from provider error';
     const fallbackMessage =
       'Media prompt brand enhancement failed; generating with the original prompt';
-    const stopMessage =
-      'Media prompt brand enhancement failed; generation stopped';
 
     function skippedReceipt() {
       return {
@@ -273,23 +269,13 @@ describe('MediaPromptEnhancementService', () => {
         brandId: 'brand',
         brandMode: 'raw',
         status: 'skipped',
+        isEnhancementFailed: true,
         source: 'brand',
         appliedPacks: [],
       };
     }
 
-    async function stopOf(
-      run: Promise<unknown>,
-    ): Promise<MediaPromptBrandEnhancementException> {
-      const error = await run.then(
-        () => undefined,
-        (caught: unknown) => caught,
-      );
-      expect(error).toBeInstanceOf(MediaPromptBrandEnhancementException);
-      return error as MediaPromptBrandEnhancementException;
-    }
-
-    it('returns a skipped receipt and never calls the model when the harness brief is unavailable', async () => {
+    it('returns a failed-enhancement receipt and never calls the model when the harness brief is unavailable', async () => {
       const { service, harness, promptEnhancement } = setup();
       harness.resolveBrief.mockResolvedValue(null);
       await expect(service.enhance(input)).resolves.toEqual(skippedReceipt());
@@ -357,6 +343,7 @@ describe('MediaPromptEnhancementService', () => {
         expect(receipt).toMatchObject({
           brandMode: 'raw',
           enhancedPrompt: sensitive,
+          isEnhancementFailed: true,
           status: 'skipped',
         });
         const diagnostics = {
@@ -412,21 +399,18 @@ describe('MediaPromptEnhancementService', () => {
       ['a skill', { requestedSkillSlugs: ['cinema'] }],
       ['Knowledge', { knowledgeSelection: { sourceIds: ['source-1'] } }],
     ] as const)(
-      'still stops with a typed 502 when the request picked %s',
+      'falls back and drops the pick when the request picked %s',
       async (_label, pick) => {
-        const { service, harness, promptEnhancement, logger } = setup();
+        const { service, harness, promptEnhancement } = setup();
         harness.resolveBrief.mockResolvedValue(null);
-        const error = await stopOf(service.enhance({ ...input, ...pick }));
-        expect(error.stage).toBe('brief');
-        expect(error.getStatus()).toBe(502);
-        expect(error.getResponse()).toMatchObject({
-          code: MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
+        await expect(
+          service.enhance({ ...input, ...pick }),
+        ).resolves.toMatchObject({
+          enhancedPrompt: input.prompt,
+          isEnhancementFailed: true,
+          status: 'skipped',
         });
         expect(promptEnhancement.enhance).not.toHaveBeenCalled();
-        expect(logger.warn).toHaveBeenCalledWith(
-          stopMessage,
-          expect.objectContaining({ stage: 'brief' }),
-        );
       },
     );
   });
