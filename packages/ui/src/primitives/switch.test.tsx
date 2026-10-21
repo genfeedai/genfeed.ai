@@ -24,7 +24,7 @@ describe('Switch', () => {
 
     expect(root.className).toContain('justify-start');
     expect(root.className).toContain(
-      'data-[state=unchecked]:[&>span]:!translate-x-0.5',
+      'data-[state=unchecked]:[&>span]:!translate-x-0',
     );
     expect(root.className).toContain(
       'data-[state=checked]:[&>span]:!translate-x-4',
@@ -39,6 +39,9 @@ describe('Switch', () => {
     expect(root.className).toContain(
       'data-[state=checked]:[&>span]:!bg-primary-foreground',
     );
+    expect(root.className).toContain('enabled:active:[&>span]:!w-5');
+    expect(root.className).toContain('motion-reduce:[&>span]:!transition-none');
+    expect(root.className).toContain('translate_300ms_cubic-bezier');
     expect(root.className).toContain('focus-visible:ring-ring');
     expect(root.className).not.toMatch(/(?:bg|ring)-(?:white|black)/);
   });

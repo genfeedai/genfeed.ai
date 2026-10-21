@@ -28,15 +28,21 @@ export interface SwitchProps extends SwitchBaseProps {
  * Force semantic track/thumb contrast + travel off parent `data-state` so
  * on/off always slides left ↔ right in both Light and Dark. Do not center the
  * thumb with flex — translate owns position.
+ *
+ * Motion: the thumb travels with a slight spring overshoot, colors fade on the
+ * standard ease, and pressing an enabled switch stretches the thumb (the
+ * checked thumb is re-anchored to the right edge) so the toggle feels physical.
  */
 const SWITCH_CONTRAST_CLASSNAME = cn(
   'justify-start',
   'data-[state=unchecked]:!bg-muted-foreground data-[state=checked]:!bg-primary',
-  'data-[state=unchecked]:[&>span]:!translate-x-0.5',
+  'data-[state=unchecked]:[&>span]:!translate-x-0',
   'data-[state=checked]:[&>span]:!translate-x-4',
   'data-[state=unchecked]:[&>span]:!bg-background',
   'data-[state=checked]:[&>span]:!bg-primary-foreground',
-  '[&>span]:!transition-transform [&>span]:!duration-200 [&>span]:!ease-out',
+  '[&>span]:![transition:translate_300ms_cubic-bezier(0.34,1.56,0.64,1),width_200ms_cubic-bezier(0.32,0.72,0,1),background-color_200ms_cubic-bezier(0.32,0.72,0,1)]',
+  'enabled:active:[&>span]:!w-5 data-[state=checked]:enabled:active:[&>span]:!translate-x-3',
+  'motion-reduce:[&>span]:!transition-none',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 );
 
@@ -57,7 +63,7 @@ function Switch({
   const switchElement = (
     <SwitchPrimitives.Root
       className={cn(
-        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50',
         SWITCH_CONTRAST_CLASSNAME,
         switchClassName,
         className,
@@ -73,7 +79,7 @@ function Switch({
       }}
       ref={ref}
     >
-      <SwitchPrimitives.Thumb className="pointer-events-none block size-4 rounded-full shadow-lg ring-0 transition-transform" />
+      <SwitchPrimitives.Thumb className="pointer-events-none block size-4 rounded-full shadow-lg ring-0" />
     </SwitchPrimitives.Root>
   );
 
