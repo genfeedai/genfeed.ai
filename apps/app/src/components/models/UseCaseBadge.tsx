@@ -15,5 +15,3 @@ export function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
     </span>
   );
 }
-
-export default UseCaseBadge;
