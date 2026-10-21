@@ -180,5 +180,3 @@ export function NodeSelect({
     </div>
   );
 }
-
-export default NodeSelect;

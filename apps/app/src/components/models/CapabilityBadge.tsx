@@ -22,5 +22,3 @@ export function CapabilityBadge({
     </span>
   );
 }
-
-export default CapabilityBadge;

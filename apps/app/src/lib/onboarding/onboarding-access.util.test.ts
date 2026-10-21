@@ -216,6 +216,56 @@ describe('persistOnboardingHandoffParams', () => {
     );
   });
 
+  it.each([
+    ['500', '500'],
+    [' \t00500\n ', '500'],
+    ['0001', '1'],
+    ['9007199254740993', '9007199254740992'],
+    ['1000000000000000000000', '1e+21'],
+    ['9'.repeat(309), 'Infinity'],
+    [null, null],
+    [undefined, null],
+    ['', null],
+    [' \t\n ', null],
+    ['0', null],
+    ['000', null],
+    ['-500', null],
+    ['+500', null],
+    ['5.00', null],
+    ['500abc', null],
+    ['5e2', null],
+    ['5 00', null],
+    ['５００', null],
+    ['٥٠٠', null],
+  ])('persists credits %j as %j', (credits, expected) => {
+    const params = new URLSearchParams();
+    if (credits != null) {
+      params.set('credits', credits);
+    }
+    const storage = memoryStorage();
+
+    persistOnboardingHandoffParams(params, storage);
+
+    expect(storage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits)).toBe(
+      expected,
+    );
+  });
+
+  it.each(['', '0', '-500', '+500', '5.00', '500abc'])(
+    'preserves stored credits when a later handoff has invalid credits %j',
+    (credits) => {
+      const storage = memoryStorage({
+        [ONBOARDING_STORAGE_KEYS.selectedCredits]: '250',
+      });
+
+      persistOnboardingHandoffParams(new URLSearchParams({ credits }), storage);
+
+      expect(storage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits)).toBe(
+        '250',
+      );
+    },
+  );
+
   it('ignores invalid access mode and malformed credit values', () => {
     const storedValues = new Map<string, string>();
 

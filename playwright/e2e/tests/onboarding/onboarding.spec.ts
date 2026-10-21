@@ -17,6 +17,12 @@ test.describe('Output-first onboarding', () => {
       page.getByRole('heading', { name: 'X', level: 2 }),
     ).toBeVisible();
     await expect(page.getByRole('textbox')).toHaveCount(0);
+    await expect(
+      page.getByText("We couldn't create the shared image.", { exact: false }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Some channels didn't come back.", { exact: false }),
+    ).toHaveCount(0);
 
     const completed = page.waitForRequest(
       (request) =>

@@ -13,6 +13,7 @@ import type { AuthCallbackURLOptions } from '@genfeedai/props/auth/auth-callback
 import {
   extractBrandDomain,
   parseOnboardingAccountType,
+  parsePositiveInteger,
   parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -80,17 +81,6 @@ function getExplicitAuthCallbackURL(
   return resolveAuthContinuation(callbackURL);
 }
 
-function parsePositiveIntegerParam(value?: string | null): string | null {
-  const normalizedValue = value?.trim();
-
-  if (!normalizedValue || !/^\d+$/.test(normalizedValue)) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(normalizedValue, 10);
-  return parsed > 0 ? String(parsed) : null;
-}
-
 export function parseBrandOsPreviewToken(value?: string | null): string | null {
   const token = value?.trim();
   return token && BRAND_OS_TOKEN_PATTERN.test(token) ? token : null;
@@ -109,9 +99,7 @@ function buildPostSignupCallbackURL(
 ): string {
   const params = new URLSearchParams();
   const selectedPlan = resolveSelectedPlanParam(searchParams.get('plan'));
-  const selectedCredits = parsePositiveIntegerParam(
-    searchParams.get('credits'),
-  );
+  const selectedCredits = parsePositiveInteger(searchParams.get('credits'));
   const brandDomain = extractBrandDomain(searchParams.get('brandDomain'));
   const brandName = searchParams.get('brandName')?.trim();
   const brandOsToken = parseBrandOsPreviewToken(

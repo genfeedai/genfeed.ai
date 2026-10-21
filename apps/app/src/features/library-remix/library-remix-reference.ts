@@ -4,14 +4,8 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import {
   buildContextualRemixHref,
-  CONTEXTUAL_REMIX_SOURCE_QUERY_KEY,
-  CONTEXTUAL_REMIX_SOURCE_VERSION_QUERY_KEY,
   encodeContextualRemixSource,
 } from '@genfeedai/utils/url/contextual-remix-url.util';
-
-export const LIBRARY_REMIX_SOURCE_QUERY_KEY = CONTEXTUAL_REMIX_SOURCE_QUERY_KEY;
-export const LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY =
-  CONTEXTUAL_REMIX_SOURCE_VERSION_QUERY_KEY;
 
 export type LibraryArtifactReference = Extract<
   AgentArtifactReference,

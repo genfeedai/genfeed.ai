@@ -59,6 +59,42 @@ describe('auth callback URL helpers', () => {
     );
   });
 
+  it.each([
+    ['500', '500'],
+    [' \t00500\n ', '500'],
+    ['0001', '1'],
+    ['9007199254740993', '9007199254740992'],
+    ['1000000000000000000000', '1e+21'],
+    ['9'.repeat(309), 'Infinity'],
+    [null, null],
+    [undefined, null],
+    ['', null],
+    [' \t\n ', null],
+    ['0', null],
+    ['000', null],
+    ['-500', null],
+    ['+500', null],
+    ['5.00', null],
+    ['500abc', null],
+    ['5e2', null],
+    ['5 00', null],
+    ['５００', null],
+    ['٥٠٠', null],
+  ])('normalizes credits %j in the callback to %j', (credits, expected) => {
+    const params = new URLSearchParams();
+    if (credits != null) {
+      params.set('credits', credits);
+    }
+
+    const callback = getAuthCallbackURL(params, {
+      includeOnboardingHandoffParams: true,
+    });
+    const url = new URL(callback, SERVER_FALLBACK_ORIGIN);
+
+    expect(url.pathname).toBe('/onboarding/post-signup');
+    expect(url.searchParams.get('credits')).toBe(expected);
+  });
+
   it('forwards normalized signup attribution on the post-signup callback', () => {
     expect(
       getAuthCallbackURL(
