@@ -163,18 +163,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Present credit pack payment options to the user as a UI action card. Shows pricing tiers with a checkout button.',
-    name: 'present_payment_options',
-    parameters: {
-      properties: {},
-      required: [],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
       'Save content, examples, preferences, or winners into agent memory and optionally route them to brand knowledge.',
     name: 'capture_memory',
     parameters: {

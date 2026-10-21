@@ -59,7 +59,6 @@ export const PRODUCT_RESULT_CARD_TYPES = new Set<AgentUiAction['type']>([
   'ingredient_picker_card',
   'engagement_opportunity_card',
   'credits_balance_card',
-  'payment_cta_card',
   'oauth_connect_card',
   'bot_created_card',
   'livestream_bot_status_card',

@@ -36,17 +36,6 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
-  it('keeps the zero-cost Expert handoff a direct agent-only onboarding tool', () => {
-    expect(getToolByName('complete_brand_onboarding_step')).toMatchObject({
-      creditCost: 0,
-      mutationPolicy: 'direct',
-    });
-    expect(
-      CURATED_ACTION_CATALOG.find(
-        (tool) => tool.name === 'complete_brand_onboarding_step',
-      )?.surfaces,
-    ).toEqual(['agent']);
-  });
   it('creates brands directly and reads scan status without mutation', () => {
     expect(getToolByName('create_brand_from_url')).toMatchObject({
       creditCost: 1,
@@ -77,13 +66,9 @@ describe('mutation policy map', () => {
     );
   });
 
-  it('classifies durable work-object presentation as a write without changing payment presentation', () => {
+  it('classifies durable work-object presentation as a write', () => {
     expect(toolRequiresMutationPolicy('present_work_object')).toBe(true);
     expect(getToolByName('present_work_object')?.mutationPolicy).toBe('direct');
-    expect(toolRequiresMutationPolicy('present_payment_options')).toBe(false);
-    expect(
-      getToolByName('present_payment_options')?.mutationPolicy,
-    ).toBeUndefined();
   });
 
   it('declares a policy for every canonical write tool', () => {

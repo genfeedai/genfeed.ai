@@ -62,10 +62,6 @@ const STANDALONE_CASES: Array<[string, Partial<AgentUiAction>]> = [
   ['completion_summary_card', { summaryText: 'Done!' }],
   ['oauth_connect_card', { platform: 'instagram' }],
   ['content_preview_card', { content: 'Preview body' }],
-  [
-    'payment_cta_card',
-    { packs: [{ credits: 100, label: 'Starter', price: '$5' }] },
-  ],
   ['analytics_snapshot_card', { metrics: [] }],
   ['ads_search_results_card', { items: [] }],
   ['ad_detail_summary_card', {}],

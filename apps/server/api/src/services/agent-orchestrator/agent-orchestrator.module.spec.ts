@@ -15,7 +15,7 @@ type ConfirmationFactoryProvider = {
 };
 
 describe('AgentOrchestratorModule', () => {
-  it('provides shared user-access cache invalidation for the expert handoff', () => {
+  it('imports the shared common module', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.IMPORTS, AgentOrchestratorModule),
     ).toContain(CommonModule);

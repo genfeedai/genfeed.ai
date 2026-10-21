@@ -145,19 +145,6 @@ describe('AgentWorkspacePageShell', () => {
     expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/credits');
   });
 
-  it('routes credit pack selection to Credits in OSS mode', () => {
-    render(<AgentWorkspacePageShell />);
-
-    const props = agentFullPageSpy.mock.calls[0]?.[0] as {
-      onSelectCreditPack: (pack: { label: string }) => void;
-    };
-    props.onSelectCreditPack({ label: 'Pro' });
-
-    expect(pushMock).toHaveBeenCalledWith(
-      '/test-org/~/settings/credits?pack=pro',
-    );
-  });
-
   it('creates workspace follow-up tasks through the shared workspace service', async () => {
     render(<AgentWorkspacePageShell />);
 

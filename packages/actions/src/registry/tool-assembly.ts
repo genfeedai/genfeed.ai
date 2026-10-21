@@ -54,7 +54,6 @@ const UI_ACTION_MAP: Partial<
   prepare_clip_workflow_run: 'clip_workflow_run_card',
   prepare_generation: 'generation_action_card',
   prepare_workflow_trigger: 'workflow_trigger_card',
-  present_payment_options: 'payment_cta_card',
   rename_brand: 'brand_identity_confirmation_card',
   schedule_post: 'schedule_post_card',
   select_ingredient: 'ingredient_picker_card',

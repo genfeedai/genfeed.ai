@@ -6,7 +6,7 @@ import {
 import type { CuratedActionName } from '@genfeedai/actions';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 function resolveToolNames(): CuratedActionName[] {
   return buildToolDefinitions(undefined, resolveBlockedTools()).map(
@@ -14,44 +14,14 @@ function resolveToolNames(): CuratedActionName[] {
   );
 }
 
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
-describe('self-hosted tool boundary', () => {
-  it('blocks payment options on self-hosted turns', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-
-    const tools = resolveToolNames();
-
-    expect(tools).not.toContain('present_payment_options');
-    expect(tools).toContain('generate_monthly_content');
-  });
-
-  it('blocks onboarding-only tools on cloud turns', () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-
-    const tools = resolveToolNames();
-
-    expect(resolveBlockedTools()).toEqual([
-      'complete_brand_onboarding_step',
-      'scan_brand_url',
-    ]);
-    expect(tools).toContain('present_payment_options');
-    expect(tools).toContain('generate_monthly_content');
-  });
-
-  it('blocks onboarding-only writes in both deployment modes', () => {
-    for (const cloud of [undefined, '1']) {
-      vi.stubEnv('GENFEED_CLOUD', cloud);
-      expect(resolveToolNames()).not.toContain('scan_brand_url');
-      expect(resolveToolNames()).not.toContain(
-        'complete_brand_onboarding_step',
-      );
-      // In-flow brand context answers save through the same tool; its
-      // handler accepts only fields the conversation asked on a card.
-      expect(resolveToolNames()).toContain('save_onboarding_answers');
-    }
+describe('onboarding-only tool boundary', () => {
+  it('blocks URL scans from the agent tool list', () => {
+    expect(resolveBlockedTools()).toEqual(['scan_brand_url']);
+    expect(resolveToolNames()).not.toContain('scan_brand_url');
+    // In-flow brand context answers save through the same tool; its
+    // handler accepts only fields the conversation asked on a card.
+    expect(resolveToolNames()).toContain('save_onboarding_answers');
+    expect(resolveToolNames()).toContain('generate_monthly_content');
   });
 
   it('keeps onboarding-only tools out of a general allow-list', () => {
@@ -65,8 +35,8 @@ describe('self-hosted tool boundary', () => {
 
   it('applies blocked tools after an allow-list', () => {
     const tools = buildToolDefinitions(
-      ['present_payment_options', 'create_brand'],
-      ['present_payment_options'],
+      ['scan_brand_url', 'create_brand'],
+      ['scan_brand_url'],
     ).map((tool) => tool.function.name);
 
     expect(tools).toEqual(['create_brand']);

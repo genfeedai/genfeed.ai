@@ -30,11 +30,6 @@ interface AgentFullPageProps {
   }) => void | Promise<void>;
   /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
   onOpenInStudio?: (studioUrl: string) => void;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
   onNavigateToBilling?: () => void;
   userRole?: MemberRole;
 }
@@ -50,7 +45,6 @@ export function AgentFullPage({
   onOAuthConnect,
   onBrandCreate,
   onOpenInStudio,
-  onSelectCreditPack,
   userRole,
 }: AgentFullPageProps): ReactElement {
   const translate = useTranslations('agent.fullPage');
@@ -122,7 +116,6 @@ export function AgentFullPage({
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
               onOpenInStudio={onOpenInStudio}
-              onSelectCreditPack={onSelectCreditPack}
               onUnarchive={handleUnarchiveActiveThread}
               isWideLayout
               promptBarLayoutMode="surface-fixed"

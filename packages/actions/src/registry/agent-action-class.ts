@@ -60,7 +60,6 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'generate_clips',
   'generate_turbo_content',
   'generate_monthly_content',
-  'generate_onboarding_content',
   'transform_media',
   'execute_workflow',
 ]);

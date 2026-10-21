@@ -45,7 +45,6 @@ export function AgentChatContainer({
   onBrandCreate,
   onOpenInStudio,
   onCreateFollowUpTasks,
-  onSelectCreditPack,
   onSelectIngredient,
   onUnarchive,
   isStreaming = false,
@@ -405,7 +404,6 @@ export function AgentChatContainer({
             onRequestPlanChanges={container.handleRequestPlanChanges}
             onRetry={container.handleRetry}
             onRetryLastFailedRun={handleRetryLastFailedRun}
-            onSelectCreditPack={onSelectCreditPack}
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
             padBottomForComposer={

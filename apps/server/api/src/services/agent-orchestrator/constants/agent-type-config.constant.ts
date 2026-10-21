@@ -107,11 +107,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
     defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...getToolsForSurface('agent')
-        .filter(
-          (tool) =>
-            tool.name !== 'complete_brand_onboarding_step' &&
-            tool.name !== 'scan_brand_url',
-        )
+        .filter((tool) => tool.name !== 'scan_brand_url')
         .map((tool) => tool.name),
       'capture_memory',
       'list_ads_research',

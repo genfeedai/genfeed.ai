@@ -12,11 +12,6 @@ interface AgentOverlayProps {
   apiService: AgentApiService;
   onNavigateToBilling?: () => void;
   onOAuthConnect?: (platform: string) => void;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
 }
 
 /**
@@ -27,7 +22,6 @@ export function AgentOverlay({
   apiService,
   onNavigateToBilling,
   onOAuthConnect,
-  onSelectCreditPack,
 }: AgentOverlayProps): ReactElement | null {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -84,7 +78,6 @@ export function AgentOverlay({
           apiService={apiService}
           onNavigateToBilling={onNavigateToBilling}
           onOAuthConnect={onOAuthConnect}
-          onSelectCreditPack={onSelectCreditPack}
         />
       </aside>
     </>

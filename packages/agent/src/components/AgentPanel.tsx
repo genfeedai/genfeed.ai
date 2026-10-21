@@ -27,11 +27,6 @@ interface AgentPanelProps {
   isActive?: boolean;
   onNavigateToBilling?: () => void;
   onOAuthConnect?: (platform: string) => void | Promise<void>;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
 }
 
 type AgentRailTab = 'chat' | 'outputs';
