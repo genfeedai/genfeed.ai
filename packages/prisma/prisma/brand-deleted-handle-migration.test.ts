@@ -74,6 +74,51 @@ describe.skipIf(!connectionString)(
         VALUES ('conflict', 'org-two', 'keep-live')
       `),
         ).rejects.toMatchObject({ code: '23505' });
+
+        const { rows: legacyDeletion } = await client.query(`
+        UPDATE "brands" SET "isDeleted" = true WHERE "id" = 'live'
+        RETURNING "slug", "deletedSlug"
+      `);
+        expect(legacyDeletion).toEqual([
+          {
+            slug: expect.stringMatching(/^deleted-[0-9a-f-]{36}$/),
+            deletedSlug: 'keep-live',
+          },
+        ]);
+        await client.query(`
+        INSERT INTO "brands" ("id", "organizationId", "slug")
+        VALUES ('replacement-live', 'org-one', 'keep-live')
+      `);
+        const { rows: repeatedDeletion } = await client.query(`
+        UPDATE "brands" SET "isDeleted" = true WHERE "id" = 'live'
+        RETURNING "slug", "deletedSlug"
+      `);
+        expect(repeatedDeletion).toEqual(legacyDeletion);
+
+        const modernSlug = `deleted-${randomUUID()}`;
+        const { rows: modernDeletion } = await client.query(
+          `UPDATE "brands"
+         SET "isDeleted" = true, "deletedSlug" = "slug", "slug" = $1
+         WHERE "id" = 'replacement-live'
+         RETURNING "slug", "deletedSlug"`,
+          [modernSlug],
+        );
+        expect(modernDeletion).toEqual([
+          { slug: modernSlug, deletedSlug: 'keep-live' },
+        ]);
+
+        await client.query('BEGIN');
+        await client.query(`
+        UPDATE "brands" SET "isDeleted" = true WHERE "id" = 'replacement-one'
+      `);
+        await client.query('ROLLBACK');
+        const { rows: rolledBack } = await client.query(`
+        SELECT "slug", "isDeleted", "deletedSlug" FROM "brands"
+        WHERE "id" = 'replacement-one'
+      `);
+        expect(rolledBack).toEqual([
+          { slug: 'released-one', isDeleted: false, deletedSlug: null },
+        ]);
       } finally {
         await client.query('ROLLBACK');
         await client.query('RESET search_path');
