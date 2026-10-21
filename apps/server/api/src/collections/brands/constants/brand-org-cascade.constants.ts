@@ -1040,6 +1040,9 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'LlmVendorCost',
   'MediaVendorCost',
   'Member',
+  // One-time code that carries the consented defaultBrandId onto a session key;
+  // single-column Brand reference like ApiKey, and it expires in a minute.
+  'McpOAuthAuthCode',
   // Composite brand foreign keys cascade organizationId with the brand row.
   'BreakoutBaselineReceipt',
   'BreakoutResponse',
@@ -1102,6 +1105,7 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'llm_vendor_costs',
   'media_vendor_costs',
   'members',
+  'mcp_oauth_auth_codes',
   'breakout_baseline_receipts',
   'breakout_response_outputs',
   'breakout_responses',
