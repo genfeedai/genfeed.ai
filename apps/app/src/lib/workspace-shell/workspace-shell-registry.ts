@@ -13,6 +13,7 @@ import type {
   WorkspaceShellScopeRequirement,
   WorkspaceShellSurfaceKey,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
+import { parseInternalHref } from '@/lib/workspace-shell/workspace-shell-url.util';
 
 export type {
   ResolvedWorkspaceShellRoute,
@@ -1352,16 +1353,7 @@ const COMPILED_ROUTE_INVENTORY = Object.freeze(
 );
 
 function getPathname(value: string): string | null {
-  try {
-    const url = new URL(value, 'https://workspace.genfeed.invalid');
-    if (url.origin !== 'https://workspace.genfeed.invalid') {
-      return null;
-    }
-
-    return url.pathname;
-  } catch {
-    return null;
-  }
+  return parseInternalHref(value)?.pathname ?? null;
 }
 
 function decodeRouteParam(value: string): string {
