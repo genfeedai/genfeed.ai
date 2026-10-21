@@ -33,12 +33,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
-/** Brand kit assets that identify a brand rather than carry generated media. */
-const BRAND_IDENTITY_CATEGORIES: AssetCategory[] = [
-  AssetCategory.LOGO,
-  AssetCategory.BANNER,
-];
-
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
 @Injectable()
 export class AuthorizedMediaUrlService {
@@ -649,6 +643,12 @@ export class AuthorizedMediaUrlService {
     return { expiresAt: null, id, purpose, state, url: null };
   }
 }
+
+/** Brand kit assets that identify a brand rather than carry generated media. */
+const BRAND_IDENTITY_CATEGORIES: AssetCategory[] = [
+  AssetCategory.LOGO,
+  AssetCategory.BANNER,
+];
 
 /** Stored key of a brand asset, or null when it is not a plain relative object key. */
 function trustedAssetKey(key: string | null): string | null {
