@@ -15,4 +15,19 @@ describe('MediaPromptBrandEnhancementException', () => {
       title: 'Brand prompt enhancement failed',
     });
   });
+
+  it('carries the stage and integrity reason as a cause, outside the response', () => {
+    const error = new MediaPromptBrandEnhancementException('brand_identity', {
+      detail: 'generationRules.0',
+      reason: 'rules_schema_invalid',
+    });
+    expect(error.cause).toEqual(
+      new Error(
+        'stage=brand_identity reason=rules_schema_invalid detail=generationRules.0',
+      ),
+    );
+    expect(JSON.stringify(error.getResponse())).not.toContain(
+      'rules_schema_invalid',
+    );
+  });
 });

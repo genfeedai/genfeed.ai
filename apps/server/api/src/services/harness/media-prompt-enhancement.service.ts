@@ -238,7 +238,12 @@ export class MediaPromptEnhancementService {
       // an operator configuration problem, not a per-request hiccup.
       if (stage === 'provider') this.logger.error(message, undefined, failure);
       else this.logger.warn(message, failure);
-      throw new MediaPromptBrandEnhancementException(stage);
+      throw new MediaPromptBrandEnhancementException(
+        stage,
+        error instanceof BrandIdentityIntegrityError
+          ? { detail: error.detail, reason: error.reason }
+          : { reason: error instanceof Error ? error.name : undefined },
+      );
     }
   }
 
