@@ -719,6 +719,16 @@ describe('MCP setup page', () => {
       expect(document.title).toBe('Genfeed MCP Server — connect any AI agent');
     });
 
+    it('keeps every tab link focusable and the default title consistent without JavaScript', () => {
+      const document = new JSDOM(renderSetupPage()).window.document;
+      const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+
+      expect(tabs.some((tab) => tab.hasAttribute('tabindex'))).toBe(false);
+      expect(
+        document.querySelector('#tab-claude-code')?.getAttribute('data-title'),
+      ).toBe(document.title);
+    });
+
     it('opens the requested tab and names it in the title and share URL', () => {
       const html = renderSetupPage('codex');
       const document = new JSDOM(html).window.document;

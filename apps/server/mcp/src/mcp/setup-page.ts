@@ -428,13 +428,13 @@ export function renderSetupPage(
     SETUP_TABS.find((tab) => tab.id === activeTabId) ?? SETUP_TABS[0];
   const isDefaultTab = activeTab.id === DEFAULT_SETUP_TAB_ID;
   const pageTitle = (tab: SetupTab): string =>
-    `${tab.label} setup — Genfeed MCP Server`;
-  const activePageTitleSafe = escapeHtml(
-    isDefaultTab ? SETUP_PAGE_TITLE : pageTitle(activeTab),
-  );
+    tab.id === DEFAULT_SETUP_TAB_ID
+      ? SETUP_PAGE_TITLE
+      : `${tab.label} setup — Genfeed MCP Server`;
+  const activePageTitleSafe = escapeHtml(pageTitle(activeTab));
   const tabsMarkup = SETUP_TABS.map((tab) => {
     const isActive = tab.id === activeTab.id;
-    return `<a class="tab" id="tab-${tab.id}" href="${tab.path}" role="tab" aria-selected="${isActive}" aria-controls="panel-${tab.id}" data-tab="${tab.id}" data-title="${escapeHtml(pageTitle(tab))}"${isActive ? '' : ' tabindex="-1"'}>${renderTabLogos(tab.logos)}${escapeHtml(tab.label)}</a>`;
+    return `<a class="tab" id="tab-${tab.id}" href="${tab.path}" role="tab" aria-selected="${isActive}" aria-controls="panel-${tab.id}" data-tab="${tab.id}" data-title="${escapeHtml(pageTitle(tab))}">${renderTabLogos(tab.logos)}${escapeHtml(tab.label)}</a>`;
   }).join('\n        ');
   const panelClass = (id: SetupTabId): string =>
     id === activeTab.id ? 'tabpanel is-active' : 'tabpanel';
@@ -1172,6 +1172,11 @@ ${postHogSnippet}
       selectTab(tabs[nextIndex]);
     });
   });
+
+  // Links are all focusable without JavaScript; the script switches them to
+  // roving tabindex (arrow keys move between tabs) once it runs.
+  var initialTab = document.querySelector('[role="tab"][aria-selected="true"]');
+  if (initialTab) setActiveTab(initialTab.getAttribute('data-tab'));
 
   if (typeof window !== 'undefined') {
     window.addEventListener('popstate', function () {
