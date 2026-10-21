@@ -37,7 +37,7 @@ export default function PlatformAnalyticsBreakdown({
   return (
     <Card className={className}>
       <div className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Platform Breakdown</h3>
+        <h2 className="text-lg font-semibold mb-4">Platform Breakdown</h2>
         <div className="space-y-4">
           {Object.entries(platforms).map(([platform, stats]) => (
             <div

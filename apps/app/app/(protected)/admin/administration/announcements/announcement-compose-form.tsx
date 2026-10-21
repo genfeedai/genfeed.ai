@@ -27,7 +27,7 @@ export default function AnnouncementComposeForm({
         </label>
         <Textarea
           id="announcement-body"
-          className="w-full min-h-[160px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none transition-colors"
+          className="w-full min-h-[160px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-y focus:outline-none transition-colors"
           placeholder="Write your announcement here — supports Markdown for Discord…"
           value={form.body}
           onChange={(e) => onFieldChange('body', e.target.value)}
@@ -47,7 +47,7 @@ export default function AnnouncementComposeForm({
         <div className="relative">
           <Textarea
             id="announcement-tweet"
-            className="w-full min-h-[100px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none transition-colors"
+            className="w-full min-h-[100px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-y focus:outline-none transition-colors"
             placeholder="Short version for Twitter/X…"
             value={form.tweetText}
             onChange={(e) => onFieldChange('tweetText', e.target.value)}
@@ -55,7 +55,7 @@ export default function AnnouncementComposeForm({
           />
           <span
             className={`absolute bottom-2 right-3 text-xs tabular-nums ${
-              tweetOverLimit ? 'text-destructive' : 'text-foreground/40'
+              tweetOverLimit ? 'text-destructive' : 'text-muted-foreground'
             }`}
           >
             {tweetCharCount}/{TWEET_MAX_CHARS}
@@ -93,7 +93,7 @@ export default function AnnouncementComposeForm({
             <Input
               id="discord-channel-id"
               type="text"
-              className="w-full max-w-xs bg-background shadow-border px-3 py-1.5 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none transition-colors"
+              className="w-full max-w-xs bg-background shadow-border px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
               placeholder="e.g. 1234567890"
               value={form.discordChannelId}
               onChange={(e) =>

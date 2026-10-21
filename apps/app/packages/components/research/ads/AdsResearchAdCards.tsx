@@ -98,7 +98,7 @@ export function AdGridCard({
           </div>
 
           <div className="rounded-md bg-background-tertiary px-3 py-2 text-right">
-            <div className="text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {getMetricLabel(metric)}
             </div>
             <div className="text-lg font-semibold text-foreground">
@@ -230,7 +230,7 @@ export function AdTableRow({
       <TableCell className="px-4 py-3 text-sm text-foreground/60">
         {item.channel !== AdsChannel.ALL ? item.channel : '—'}
       </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/40">
+      <TableCell className="px-4 py-3 text-sm text-muted-foreground">
         {item.accountName || '—'}
       </TableCell>
       <TableCell className="px-4 py-3">
@@ -284,7 +284,7 @@ export function AdsResearchAdGrid({
 
   if (ads.length === 0 && !isLoading) {
     return (
-      <div className="py-8 text-center text-sm text-foreground/40">
+      <div className="py-8 text-center text-sm text-muted-foreground">
         {search.trim()
           ? translate('emptySearch')
           : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')}
@@ -349,31 +349,31 @@ export function AdsResearchAdTable({
       <Table className="w-full text-left">
         <TableHeader>
           <TableRow className="border-b border-border bg-card">
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('platform')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('title')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('source')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {getMetricLabel(metric)}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('ctr')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('running')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('channel')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('account')}
             </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {translate('saved')}
             </TableHead>
           </TableRow>
@@ -383,7 +383,7 @@ export function AdsResearchAdTable({
             <TableRow>
               <TableCell
                 colSpan={9}
-                className="px-4 py-8 text-center text-sm text-foreground/40"
+                className="px-4 py-8 text-center text-sm text-muted-foreground"
               >
                 {search.trim()
                   ? translateSwipeFile('emptySearch')

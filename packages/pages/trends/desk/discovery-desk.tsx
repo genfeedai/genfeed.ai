@@ -475,7 +475,7 @@ export default function DiscoveryDesk() {
             view={ViewType.GRID}
           />
         ) : isLoading ? (
-          <div className="py-8 text-sm text-foreground/40">
+          <div className="py-8 text-sm text-muted-foreground">
             {translateDesk('loading')}
           </div>
         ) : null}

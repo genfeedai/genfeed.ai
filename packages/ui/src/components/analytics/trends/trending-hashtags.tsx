@@ -61,7 +61,7 @@ export function TrendingHashtags({
       <div className={`text-center py-12 ${className}`}>
         <Hash className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No trending hashtags found</p>
-        <p className="text-sm text-foreground/40 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           {selectedPlatform
             ? 'Try selecting a different platform'
             : 'Check back later for trending hashtags'}

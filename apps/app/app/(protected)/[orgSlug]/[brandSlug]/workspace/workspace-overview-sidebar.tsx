@@ -85,7 +85,9 @@ export function WorkspaceOverviewSidebar({
         ))}
       </div>
     ) : (
-      <p className="text-sm text-foreground/45">{translate('noActiveTasks')}</p>
+      <p className="text-sm text-muted-foreground">
+        {translate('noActiveTasks')}
+      </p>
     );
 
   const historyContent =
@@ -163,7 +165,7 @@ export function WorkspaceOverviewSidebar({
                       {item.format}
                       {item.platform ? ` on ${item.platform}` : ''}
                     </p>
-                    <p className="text-xs text-foreground/40">
+                    <p className="text-xs text-muted-foreground">
                       <ClientFormattedDate value={item.createdAt} />
                     </p>
                     {item.continuityQa ? (
@@ -230,13 +232,13 @@ export function WorkspaceOverviewSidebar({
                     ReviewDecision.REQUEST_CHANGES ? (
                     <ClipboardCheck className="size-5 text-amber-300" />
                   ) : (
-                    <Inbox className="size-5 text-foreground/40" />
+                    <Inbox className="size-5 text-muted-foreground" />
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-foreground/45">
+            <p className="text-sm text-muted-foreground">
               {translate('recentOutputsEmpty')}
             </p>
           )}

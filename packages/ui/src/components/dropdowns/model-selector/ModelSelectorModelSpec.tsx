@@ -17,7 +17,7 @@ function titleCase(value: string): string {
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/40">
+      <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         {label}
       </span>
       <span className="min-w-0 flex-1 text-xs font-normal text-foreground/80 tabular-nums">

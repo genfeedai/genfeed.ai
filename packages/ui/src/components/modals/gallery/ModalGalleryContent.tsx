@@ -121,7 +121,7 @@ export default function ModalGalleryContent({
         })}
 
         <p className="text-foreground/60">{emptyMessage}</p>
-        <p className="text-sm text-foreground/40 mt-2">
+        <p className="text-sm text-muted-foreground mt-2">
           Generate some{' '}
           {category === IngredientCategory.VIDEO
             ? 'videos'

@@ -347,7 +347,7 @@ function TaskStatusIcon({ status }: { status: ComposerTaskStatus }) {
       aria-hidden
       className={cn(
         'size-3.5',
-        status === 'cancelled' ? 'text-foreground/20' : 'text-foreground/30',
+        status === 'cancelled' ? 'text-foreground/20' : 'text-muted-foreground',
       )}
     />
   );
@@ -655,7 +655,7 @@ export function AgentComposerStatusStack({
                       'min-w-0 flex-1 truncate text-xs leading-5',
                       task.status === 'active' && 'animate-text-shimmer',
                       task.status === 'completed' || task.status === 'cancelled'
-                        ? 'text-foreground/38'
+                        ? 'text-muted-foreground'
                         : 'text-foreground/78',
                     )}
                   >

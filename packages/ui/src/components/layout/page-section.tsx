@@ -27,7 +27,7 @@ function PageSection({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             {title && (
-              <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+              <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             )}
             {description && (
               <p className="text-sm text-foreground/60">{description}</p>

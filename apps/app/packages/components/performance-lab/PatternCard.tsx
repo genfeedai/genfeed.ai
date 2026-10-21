@@ -80,7 +80,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
           <Badge variant={typeVariant}>{typeLabel}</Badge>
           <Badge variant="ghost">{sourceLabel}</Badge>
         </div>
-        <span className="text-2xs text-foreground/40 font-mono">
+        <span className="text-2xs text-muted-foreground font-mono">
           n={pattern.sampleSize}
         </span>
       </div>
@@ -110,7 +110,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
       {/* Example texts */}
       {previewExamples.length > 0 && (
         <div className="space-y-1.5">
-          <span className="text-2xs text-foreground/40 uppercase tracking-wider">
+          <span className="text-2xs text-muted-foreground uppercase tracking-wider">
             Examples
           </span>
           <ul className="space-y-1">

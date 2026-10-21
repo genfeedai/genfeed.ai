@@ -1,6 +1,5 @@
 {
   "title": "Motion",
-  "description": "Create animated visuals from a prompt or React source, then export them to your Library.",
   "newProject": "New project",
   "projects": "Visual projects",
   "loading": "Loading…",

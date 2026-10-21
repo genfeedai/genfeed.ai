@@ -68,7 +68,7 @@ export default function MenuItem({
             'size-5 shrink-0',
             isActive
               ? 'text-foreground'
-              : 'text-foreground/42 group-hover:text-foreground/78',
+              : 'text-muted-foreground group-hover:text-foreground/78',
           ]
         : [
             'size-8 rounded border border-border bg-background-secondary text-foreground/78',
@@ -78,7 +78,7 @@ export default function MenuItem({
           ]
       : isActive
         ? 'text-foreground'
-        : 'text-foreground/42 group-hover:text-foreground/78',
+        : 'text-muted-foreground group-hover:text-foreground/78',
   );
 
   const iconNode = renderedIcon ? (
@@ -145,7 +145,7 @@ export default function MenuItem({
           </Badge>
         ) : null}
         {shouldRenderCount ? (
-          <span className="ml-auto shrink-0 text-2xs font-medium tabular-nums text-foreground/40">
+          <span className="ml-auto shrink-0 text-2xs font-medium tabular-nums text-muted-foreground">
             {count}
           </span>
         ) : null}

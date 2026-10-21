@@ -240,9 +240,9 @@ export function AdsResearchWatchlistPanel({
       ) : null}
 
       {isLoading ? (
-        <p className="text-xs text-foreground/45">{translate('loading')}</p>
+        <p className="text-xs text-muted-foreground">{translate('loading')}</p>
       ) : advertisers.length === 0 ? (
-        <p className="text-xs text-foreground/45">{translate('empty')}</p>
+        <p className="text-xs text-muted-foreground">{translate('empty')}</p>
       ) : (
         <ul className="space-y-2">
           {advertisers.map((advertiser) => (

@@ -29,7 +29,7 @@ export function WorkspaceTaskFacecamPanel({
           Facecam settings
         </p>
         {isLoading ? (
-          <span className="text-2xs text-foreground/40">
+          <span className="text-2xs text-muted-foreground">
             Loading avatars & voices…
           </span>
         ) : null}

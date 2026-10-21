@@ -86,7 +86,7 @@ export function WorkspaceTaskOutputsCard({
                             <p className="font-medium text-foreground">
                               {getWorkspaceLinkedOutputTitle(output)}
                             </p>
-                            <p className="text-xs text-foreground/40">
+                            <p className="text-xs text-muted-foreground">
                               {output.category ?? outputType}
                               {output.id === group.root.id
                                 ? ' · parent'
@@ -106,7 +106,7 @@ export function WorkspaceTaskOutputsCard({
                           </p>
                         ) : null}
 
-                        <p className="mt-2 text-xs text-foreground/40">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           ID: {output.id}
                         </p>
 

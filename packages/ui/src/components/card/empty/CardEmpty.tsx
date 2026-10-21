@@ -47,19 +47,19 @@ export function CardEmptyContent({
           icon={Icon}
           className="mb-3 rounded-full p-2.5 ring-1 ring-inset ring-border/60"
           iconClassName={cn(
-            'text-foreground/40',
+            'text-muted-foreground',
             SIZE_CLASSES[size].icon,
             iconClassName,
           )}
         />
       )}
 
-      {label && <h3 className={cn(SIZE_CLASSES[size].title)}>{label}</h3>}
+      {label && <p className={cn(SIZE_CLASSES[size].title)}>{label}</p>}
 
       {description && (
         <p
           className={cn(
-            'max-w-xs text-xs leading-5 text-foreground/45',
+            'max-w-xs text-xs leading-5 text-muted-foreground',
             hasAction && 'mb-3',
           )}
         >

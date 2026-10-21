@@ -34,7 +34,7 @@ const VALUE_SKELETON: Record<MetricCardSize, string> = {
 };
 
 const LABEL_CLASS =
-  'text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35';
+  'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
 
 const VALUE_CLASS =
   'font-semibold tracking-[-0.03em] tabular-nums text-foreground';
@@ -144,14 +144,16 @@ const MetricCard = memo(function MetricCard({
             'inline-flex items-center gap-1 text-xs font-medium tabular-nums',
             isPositiveTrend && 'text-success',
             isNegativeTrend && 'text-destructive',
-            !isPositiveTrend && !isNegativeTrend && 'text-foreground/45',
+            !isPositiveTrend && !isNegativeTrend && 'text-muted-foreground',
           )}
         >
           {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
           {isPositiveTrend ? '+' : ''}
           {Math.round(trend * 10) / 10}%
           {trendLabel ? (
-            <span className="font-normal text-foreground/40">{trendLabel}</span>
+            <span className="font-normal text-muted-foreground">
+              {trendLabel}
+            </span>
           ) : null}
         </span>
       ) : null}

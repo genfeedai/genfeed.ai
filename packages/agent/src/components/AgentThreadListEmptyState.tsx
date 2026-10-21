@@ -42,7 +42,7 @@ export function AgentThreadListEmptyState({
           <p className="text-sm font-medium text-foreground/70">
             Failed to load threads
           </p>
-          <p className="text-xs text-foreground/40">
+          <p className="text-xs text-muted-foreground">
             Check your connection and try again.
           </p>
         </div>
@@ -65,11 +65,11 @@ export function AgentThreadListEmptyState({
           <div className="absolute right-2 top-2">{actions}</div>
         ) : null}
         <div className="flex size-10 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-border">
-          <MessageSquare className="size-5 text-foreground/30" />
+          <MessageSquare className="size-5 text-muted-foreground" />
         </div>
         <div>
           <p className="text-sm font-medium text-foreground/50">No threads</p>
-          <p className="mt-0.5 text-xs text-foreground/30">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Start one to get going
           </p>
         </div>

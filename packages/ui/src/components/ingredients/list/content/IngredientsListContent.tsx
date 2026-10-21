@@ -124,7 +124,7 @@ function IngredientTableVideoPreview({
       ref={ref}
       role="img"
       aria-label={label}
-      className="relative flex size-10 items-center justify-center overflow-hidden rounded-md bg-foreground/6 text-foreground/45"
+      className="relative flex size-10 items-center justify-center overflow-hidden rounded-md bg-foreground/6 text-muted-foreground"
     >
       {!isReady || hasError ? (
         <Film className="size-4" data-testid="ingredient-preview-fallback" />
@@ -227,7 +227,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
     return (
       <div
         aria-label={label}
-        className="flex size-10 items-center justify-center rounded-md bg-foreground/6 text-foreground/45"
+        className="flex size-10 items-center justify-center rounded-md bg-foreground/6 text-muted-foreground"
         data-testid="ingredient-preview-fallback"
         role="img"
       >
@@ -318,7 +318,7 @@ function IngredientLedgerAssetCell({
           </span>
         ) : promptText ? (
           <span
-            className="truncate text-xs text-foreground/45"
+            className="truncate text-xs text-muted-foreground"
             title={promptText}
           >
             {promptText}
@@ -534,7 +534,7 @@ export default function IngredientsListContent({
           ingredient.tags && ingredient.tags.length > 0 ? (
             <IngredientTagChips max={1} tags={ingredient.tags} />
           ) : (
-            <span className="text-foreground/35">—</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -545,7 +545,7 @@ export default function IngredientsListContent({
           const modelLabel = getIngredientModelLabel(ingredient);
 
           if (!modelLabel) {
-            return <span className="text-foreground/35">—</span>;
+            return <span className="text-muted-foreground">—</span>;
           }
 
           const providerLabel = getIngredientProviderLabel(ingredient);
@@ -556,7 +556,7 @@ export default function IngredientsListContent({
                 {modelLabel}
               </span>
               {providerLabel ? (
-                <span className="truncate text-xs text-foreground/45">
+                <span className="truncate text-xs text-muted-foreground">
                   {providerLabel}
                 </span>
               ) : null}
@@ -572,7 +572,7 @@ export default function IngredientsListContent({
           const sizeLabel = getIngredientSizeLabel(ingredient);
 
           if (!sizeLabel) {
-            return <span className="text-foreground/35">—</span>;
+            return <span className="text-muted-foreground">—</span>;
           }
 
           return (
@@ -595,7 +595,7 @@ export default function IngredientsListContent({
             : null;
 
           if (!createdAt || Number.isNaN(createdAt.getTime())) {
-            return <span className="text-foreground/35">—</span>;
+            return <span className="text-muted-foreground">—</span>;
           }
 
           return (
@@ -876,7 +876,7 @@ export default function IngredientsListContent({
 
           {viewMode === 'grid' && nonVisualIngredients.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
+              <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 {translate('otherAssets')}
               </h3>
               <AppTable

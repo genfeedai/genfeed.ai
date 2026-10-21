@@ -123,7 +123,7 @@ const HERO_PROOF_ITEMS = BEFORE_AFTER.map((item) => ({
   label: item.label,
   value: (
     <>
-      <span className="text-foreground/40 line-through">{item.before}</span>{' '}
+      <span className="text-muted-foreground line-through">{item.before}</span>{' '}
       {'->'} {item.after}
     </>
   ),

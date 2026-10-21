@@ -115,7 +115,7 @@ export function OverviewTrendsPanel({
                 {trend.topic}
               </span>
 
-              <span className="shrink-0 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/45">
+              <span className="shrink-0 text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {formatViralityScore(trend.viralityScore)}
               </span>
             </div>

@@ -100,12 +100,12 @@ export function AgentChatMessageFooter({
       )}
     >
       {isUser ? (
-        <div className="flex min-w-0 items-center gap-1.5 text-foreground/38">
+        <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
           {keyListItems(metaItems, (item) => item).map(
             ({ item, key }, index) => (
               <span key={key} className="inline-flex items-center">
                 {index > 0 ? (
-                  <span className="mr-1.5 text-foreground/30">•</span>
+                  <span className="mr-1.5 text-muted-foreground">•</span>
                 ) : null}
                 {index === 0 ? <time>{item}</time> : item}
               </span>

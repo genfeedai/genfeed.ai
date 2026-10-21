@@ -975,7 +975,7 @@ function WarmupAccountDetail({
 function DetailRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="grid gap-1">
-      <dt className="text-xs uppercase tracking-wide text-foreground/40">
+      <dt className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
       <dd className="break-all text-foreground">{value ?? 'Pending'}</dd>

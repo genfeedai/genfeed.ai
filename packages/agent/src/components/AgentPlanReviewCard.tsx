@@ -62,7 +62,7 @@ export function AgentPlanReviewCard({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Proposed plan
           </p>
           <p className="mt-1 text-sm text-foreground/70">{statusLabel}</p>
@@ -109,7 +109,7 @@ export function AgentPlanReviewCard({
           onChange={(event) => setRevisionNote(event.target.value)}
           disabled={isBusy}
           placeholder="Add feedback if you want the plan revised"
-          className="min-h-24 border-border bg-background-secondary px-4 py-3 placeholder:text-foreground/35 focus:border-primary/35"
+          className="min-h-24 border-border bg-background-secondary px-4 py-3 placeholder:text-muted-foreground focus:border-primary/35"
         />
         <div className="flex flex-wrap gap-2">
           <Button

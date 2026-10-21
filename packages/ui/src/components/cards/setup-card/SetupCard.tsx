@@ -24,7 +24,7 @@ export default function SetupCard() {
         <span className="text-2xs font-semibold text-foreground/60">
           Complete setup
         </span>
-        <span className="text-2xs font-medium text-foreground/30 tabular-nums">
+        <span className="text-2xs font-medium text-muted-foreground tabular-nums">
           {completedCount}/{totalCount}
         </span>
       </div>
@@ -45,7 +45,7 @@ export default function SetupCard() {
             className={cn(
               'flex items-center gap-2.5 px-2 py-1.5 text-xs transition-colors duration-150',
               step.isCompleted
-                ? 'text-foreground/30'
+                ? 'text-muted-foreground'
                 : 'text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground/80',
             )}
           >

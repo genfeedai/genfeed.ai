@@ -24,7 +24,7 @@ const GenerationReceiptMediaPreview = dynamic(
   {
     ssr: false,
     loading: () => (
-      <ImageIcon aria-hidden="true" className="size-5 text-foreground/30" />
+      <ImageIcon aria-hidden="true" className="size-5 text-muted-foreground" />
     ),
   },
 );
@@ -68,11 +68,17 @@ export default function GenerationReceiptListItem({
         {media ? (
           <GenerationReceiptMediaPreview ingredient={media} label={kindLabel} />
         ) : kind === 'video' ? (
-          <Film aria-hidden="true" className="size-5 text-foreground/30" />
+          <Film aria-hidden="true" className="size-5 text-muted-foreground" />
         ) : kind === 'image' ? (
-          <ImageIcon aria-hidden="true" className="size-5 text-foreground/30" />
+          <ImageIcon
+            aria-hidden="true"
+            className="size-5 text-muted-foreground"
+          />
         ) : (
-          <FileText aria-hidden="true" className="size-5 text-foreground/30" />
+          <FileText
+            aria-hidden="true"
+            className="size-5 text-muted-foreground"
+          />
         )}
       </div>
       <div className="min-w-0 flex-1 space-y-1">

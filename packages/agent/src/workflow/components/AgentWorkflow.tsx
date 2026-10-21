@@ -49,7 +49,7 @@ function ClarifyingView() {
         <h2 className="text-sm font-semibold text-foreground/90">
           Questions from agent
         </h2>
-        <span className="text-xs text-foreground/40 ml-auto">
+        <span className="text-xs text-muted-foreground ml-auto">
           {questions.filter((q) => q.answer).length}/{questions.length} answered
         </span>
       </div>
@@ -62,7 +62,7 @@ function ClarifyingView() {
         />
       ) : questions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-foreground/10 p-6 text-center">
-          <p className="text-sm text-foreground/40">
+          <p className="text-sm text-muted-foreground">
             Waiting for agent to ask questions…
           </p>
         </div>
@@ -127,7 +127,7 @@ function CompleteView() {
         <Sparkles className="size-6 text-success" />
       </div>
       <p className="text-sm font-medium text-success">Workflow complete</p>
-      <p className="text-xs text-foreground/40 text-center max-w-xs">
+      <p className="text-xs text-muted-foreground text-center max-w-xs">
         All phases finished. Review the transition log for the full audit trail.
       </p>
     </div>

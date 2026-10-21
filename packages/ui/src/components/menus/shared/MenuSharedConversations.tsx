@@ -60,7 +60,7 @@ export default function MenuSharedConversations({
             onMouseEnter={prefetchNewAgentThreadHref}
             className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
-            <Plus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
+            <Plus className="size-4 text-muted-foreground group-hover:text-foreground/78" />
             <span className="text-sm font-medium tracking-[-0.01em] text-foreground/88">
               New Thread
             </span>
@@ -68,7 +68,7 @@ export default function MenuSharedConversations({
               <Kbd
                 variant="ghost"
                 className={cn(
-                  'ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-foreground/36 transition-opacity duration-200',
+                  'ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-muted-foreground transition-opacity duration-200',
                   hoverRevealClassName({ isInteractive: false }),
                 )}
               >

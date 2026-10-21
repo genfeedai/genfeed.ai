@@ -79,7 +79,7 @@ export default function StreakCard() {
                 'h-7 rounded border text-2xs flex items-center justify-center',
                 count > 0
                   ? 'border-foreground/30 bg-foreground/25 text-foreground'
-                  : 'border-border bg-foreground/[0.03] text-foreground/35',
+                  : 'border-border bg-foreground/[0.03] text-muted-foreground',
               )}
               title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
             >
@@ -102,7 +102,7 @@ export default function StreakCard() {
         <span>
           {currentStreak > 0 ? 'Open streak view' : 'Start your streak today'}
         </span>
-        <span className="text-foreground/40">View</span>
+        <span className="text-muted-foreground">View</span>
       </Link>
     </Card>
   );

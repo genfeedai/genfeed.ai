@@ -253,7 +253,7 @@ export default function AnalyticsPlatformDetail({
                       />
                     ) : (
                       <div className="size-16 bg-muted flex items-center justify-center">
-                        <Video className="size-6 text-foreground/30" />
+                        <Video className="size-6 text-muted-foreground" />
                       </div>
                     )}
                     <div className="max-w-xs">

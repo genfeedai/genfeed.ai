@@ -86,7 +86,7 @@ function FoldersSidebar({
               'flex size-5 shrink-0 items-center justify-center transition-colors duration-200',
               isSelected
                 ? 'text-foreground'
-                : 'text-foreground/42 group-hover:text-foreground/78',
+                : 'text-muted-foreground group-hover:text-foreground/78',
             )}
           >
             {hasDisclosure ? null : <Folder className="size-4" />}
@@ -119,7 +119,7 @@ function FoldersSidebar({
             <Button
               aria-expanded={isOpen}
               ariaLabel={`${isOpen ? 'Collapse' : 'Expand'} ${folder.label}`}
-              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground"
+              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
               onClick={() => toggleFolder(folder.id)}
               size={ButtonSize.ICON}
               textTransform="none"
@@ -148,13 +148,13 @@ function FoldersSidebar({
     return (
       <div className="mt-3">
         <div className="mb-1 flex items-center justify-between gap-1 px-1">
-          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
+          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
             Folders
           </span>
           {onCreateFolder ? (
             <Button
               ariaLabel="New folder"
-              className="size-6 shrink-0 p-0 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground"
+              className="size-6 shrink-0 p-0 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
               onClick={onCreateFolder}
               size={ButtonSize.ICON}
               textTransform="none"

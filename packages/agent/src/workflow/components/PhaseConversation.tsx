@@ -51,7 +51,7 @@ function MessageBubble({
         </div>
         <p
           className={cn(
-            'text-2xs text-foreground/30 mt-1',
+            'text-2xs text-muted-foreground mt-1',
             isAgent ? 'text-left' : 'text-right',
           )}
         >
@@ -78,7 +78,7 @@ function PhaseSection({ phase }: { phase: WorkflowPhase }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-foreground/10" />
-        <span className="text-2xs font-medium text-foreground/30 uppercase tracking-wider px-2">
+        <span className="text-2xs font-medium text-muted-foreground uppercase tracking-wider px-2">
           {PHASE_LABELS[phase]}
         </span>
         <div className="h-px flex-1 bg-foreground/10" />
@@ -113,7 +113,7 @@ function PhaseConversationInner() {
       className="flex max-h-[400px] flex-col gap-4 overflow-y-auto rounded-xl border border-foreground/5 bg-background-secondary p-3"
     >
       {messages.length === 0 ? (
-        <p className="text-sm text-foreground/30 text-center py-6">
+        <p className="text-sm text-muted-foreground text-center py-6">
           No messages yet
         </p>
       ) : (

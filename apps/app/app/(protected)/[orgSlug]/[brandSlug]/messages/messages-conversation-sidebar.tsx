@@ -227,13 +227,13 @@ function ConversationRow({
             {participantLabel}
           </span>
           {relativeTime ? (
-            <span className="shrink-0 text-2xs tabular-nums text-foreground/34">
+            <span className="shrink-0 text-2xs tabular-nums text-muted-foreground">
               {relativeTime}
             </span>
           ) : null}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-2xs text-foreground/42">
+          <span className="min-w-0 flex-1 truncate text-2xs text-muted-foreground">
             {conversation.latestMessageText || 'No message preview available'}
           </span>
           {conversation.unreadCount > 0 ? (
@@ -242,7 +242,7 @@ function ConversationRow({
             </span>
           ) : null}
         </span>
-        <span className="mt-1 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-foreground/30">
+        <span className="mt-1 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">
           <span className="shrink-0 uppercase tracking-wider">
             {conversation.conversationType === SocialConversationType.DM
               ? 'DM'
@@ -539,7 +539,7 @@ export function MessagesConversationSidebar({
               <p className="text-sm font-medium text-foreground/60">
                 {emptyStateTitle}
               </p>
-              <p className="text-xs leading-5 text-foreground/38">
+              <p className="text-xs leading-5 text-muted-foreground">
                 {emptyStateBody}
               </p>
             </div>
@@ -659,7 +659,7 @@ export function MessagesConversationSidebar({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
-          <span className="flex-1 text-center text-xs text-foreground/38">
+          <span className="flex-1 text-center text-xs text-muted-foreground">
             {translate('pagination.conversationPage', {
               page: pagination.page,
               pages: pagination.totalPages,

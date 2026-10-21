@@ -256,8 +256,8 @@ export function AgentInputRequestOverlay({
               }
               className={
                 isComposer
-                  ? 'min-h-16 resize-none border-border bg-background px-3 py-2 text-xs placeholder:text-foreground/35 focus:border-primary/50'
-                  : 'min-h-20 resize-none border-border bg-background px-3 py-2 text-sm placeholder:text-foreground/35 focus:border-primary/50'
+                  ? 'min-h-16 resize-none border-border bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:border-primary/50'
+                  : 'min-h-20 resize-none border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:border-primary/50'
               }
             />
           </div>

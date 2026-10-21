@@ -77,7 +77,7 @@ export default function ReleaseRailRow({
         style={{ backgroundColor: tagColor }}
       />
 
-      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-secondary text-[10px] text-foreground/40">
+      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-secondary text-[10px] text-muted-foreground">
         {thumbnail ? (
           <Image
             unoptimized
@@ -139,7 +139,7 @@ export default function ReleaseRailRow({
         ) : null}
       </div>
 
-      <div className="w-28 shrink-0 text-right text-xs text-foreground/45">
+      <div className="w-28 shrink-0 text-right text-xs text-muted-foreground">
         {nextInstant
           ? translate('nextAt', {
               time: formatDateInTimezone(nextInstant, browserTimezone, 'short'),

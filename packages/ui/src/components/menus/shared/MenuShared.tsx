@@ -122,7 +122,7 @@ export default function MenuShared({
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
           >
-            <ArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+            <ArrowLeft className="size-4 text-muted-foreground transition-colors duration-200 group-hover:text-foreground/78" />
             <span className="text-sm font-medium tracking-[-0.01em] text-foreground/88">
               {backLabel ?? 'Back'}
             </span>

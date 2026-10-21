@@ -42,9 +42,9 @@ function TableSectionHeading({
   return (
     <div className="mb-3">
       {label ? (
-        <h3 className="truncate text-sm font-semibold text-foreground">
+        <h2 className="truncate text-sm font-semibold text-foreground">
           {label}
-        </h3>
+        </h2>
       ) : null}
       {description ? (
         <p className="text-xs text-foreground/55">{description}</p>

@@ -120,7 +120,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
                 key={capability.id}
                 role="img"
                 aria-label={capability.label}
-                className="shrink-0 text-foreground/40"
+                className="shrink-0 text-muted-foreground"
               >
                 <CapabilityIcon className="size-3.5" aria-hidden />
               </span>
@@ -152,7 +152,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
               '-my-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-accent lg:my-0 lg:size-6',
               isFavorite
                 ? 'text-foreground'
-                : 'text-foreground/20 hover:text-foreground/40',
+                : 'text-foreground/20 hover:text-muted-foreground',
             )}
           >
             <Star className={cn('size-3.5', isFavorite && 'fill-current')} />

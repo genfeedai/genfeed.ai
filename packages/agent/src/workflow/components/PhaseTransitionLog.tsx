@@ -77,7 +77,7 @@ function PhaseTransitionLogInner() {
                 key={t.id}
                 className="flex items-center gap-3 px-3 py-2 text-xs"
               >
-                <span className="text-foreground/30 font-mono w-16 shrink-0">
+                <span className="text-muted-foreground font-mono w-16 shrink-0">
                   {time}
                 </span>
                 <TriggerIcon

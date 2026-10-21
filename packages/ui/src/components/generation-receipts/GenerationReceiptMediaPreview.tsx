@@ -60,9 +60,9 @@ export default function GenerationReceiptMediaPreview({
         unoptimized={!canOptimizeImageSource(imageUrl)}
       />
     ) : isVideo ? (
-      <Film aria-hidden="true" className="size-5 text-foreground/30" />
+      <Film aria-hidden="true" className="size-5 text-muted-foreground" />
     ) : (
-      <ImageIcon aria-hidden="true" className="size-5 text-foreground/30" />
+      <ImageIcon aria-hidden="true" className="size-5 text-muted-foreground" />
     );
   return assetUrl ? (
     <Link

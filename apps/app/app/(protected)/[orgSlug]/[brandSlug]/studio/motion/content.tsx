@@ -427,12 +427,6 @@ function MotionWorkspace() {
     <Container label={t('title')} titleVisibility="sr-only">
       <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside className="space-y-4">
-          <div>
-            <h1 className="gen-heading-sm">{t('title')}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {t('description')}
-            </p>
-          </div>
           {isModuleWorkEnabled && (
             <Button asChild variant={ButtonVariant.SECONDARY}>
               <Link href={href(APP_ROUTES.STUDIO.MOTION)}>

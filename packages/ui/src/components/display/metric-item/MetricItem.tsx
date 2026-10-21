@@ -15,7 +15,7 @@ export default function MetricItem({
 }: MetricItemProps) {
   return (
     <div className={cn(className)}>
-      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35">
+      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {analyticsMetric ? (
           <AnalyticsMetricLabel metric={analyticsMetric}>
             {label}

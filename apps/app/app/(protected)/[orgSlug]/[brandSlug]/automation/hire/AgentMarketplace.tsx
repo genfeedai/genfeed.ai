@@ -133,7 +133,7 @@ export default function AgentMarketplace({
                 }
               }}
             >
-              <p className="text-xs text-foreground/45">
+              <p className="text-xs text-muted-foreground">
                 {isActivating
                   ? translate('activating')
                   : translate('creditsPerDay', {

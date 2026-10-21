@@ -62,7 +62,7 @@ function CompactStat({
 }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/40">
+      <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </span>
       <span className="text-sm font-semibold tabular-nums text-foreground">
@@ -384,7 +384,7 @@ export default function AdsResearchPageClient() {
       ) : null}
 
       {hasCredentials && results.summary.reviewPolicy ? (
-        <p className="mb-4 text-xs text-foreground/45">
+        <p className="mb-4 text-xs text-muted-foreground">
           {translate('reviewPolicy')}
         </p>
       ) : null}

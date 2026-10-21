@@ -50,7 +50,7 @@ export function WorkspaceTaskQueueCard({
             ))}
           </div>
         ) : (
-          <p className="px-4 py-3 text-sm text-foreground/45 sm:px-5">
+          <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
             No tasks yet. Start the first one from New Task.
           </p>
         )}

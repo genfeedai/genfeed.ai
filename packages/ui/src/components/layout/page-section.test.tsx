@@ -96,10 +96,10 @@ describe('PageSection', () => {
       expect(screen.getByTestId('custom-title')).toBeInTheDocument();
     });
 
-    it('title renders as h3', () => {
+    it('title renders as h2', () => {
       render(<PageSection title="Title">Content</PageSection>);
       const title = screen.getByRole('heading');
-      expect(title.tagName).toBe('H3');
+      expect(title.tagName).toBe('H2');
     });
 
     it('has correct title styles', () => {

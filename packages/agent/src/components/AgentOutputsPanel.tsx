@@ -188,9 +188,9 @@ export function AgentOutputsPanel({
       >
         <div className="gen-shell-empty-state w-full max-w-sm rounded-[1.75rem] px-6 py-7">
           <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-2xl">
-            <Image className="size-6 text-foreground/38" />
+            <Image className="size-6 text-muted-foreground" />
           </div>
-          <p className="mt-4 text-2xs font-semibold uppercase tracking-[0.22em] text-foreground/38">
+          <p className="mt-4 text-2xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             Outputs
           </p>
           <h2 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-foreground">

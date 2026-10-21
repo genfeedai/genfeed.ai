@@ -74,7 +74,7 @@ function GroupRow({
           className={cn(
             'flex-1 text-xs',
             isComplete
-              ? 'text-foreground/30 line-through'
+              ? 'text-muted-foreground line-through'
               : 'text-foreground/60',
           )}
         >
@@ -87,7 +87,7 @@ function GroupRow({
               style={{ width: `${group.score}%` }}
             />
           </div>
-          <span className="w-7 text-right text-2xs font-medium text-foreground/30 tabular-nums">
+          <span className="w-7 text-right text-2xs font-medium text-muted-foreground tabular-nums">
             {group.score}%
           </span>
         </div>
@@ -99,7 +99,7 @@ function GroupRow({
             <Link
               key={field.key}
               href={href(field.href)}
-              className="flex items-center gap-2 rounded px-2 py-1 text-2xs text-foreground/45 transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground/70"
+              className="flex items-center gap-2 rounded px-2 py-1 text-2xs text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground/70"
             >
               <ChevronRight className="size-3 flex-shrink-0 text-foreground/15" />
               {field.label}
@@ -131,7 +131,7 @@ export default function BrandCompletenessCard({
         <span className="text-2xs font-semibold text-foreground/60">
           Brand context
         </span>
-        <span className="text-2xs font-medium text-foreground/30 tabular-nums">
+        <span className="text-2xs font-medium text-muted-foreground tabular-nums">
           {result.overallScore}%
         </span>
       </div>
@@ -152,7 +152,7 @@ export default function BrandCompletenessCard({
       </div>
 
       {/* Hint */}
-      <p className="mt-3 text-2xs leading-relaxed text-foreground/30">
+      <p className="mt-3 text-2xs leading-relaxed text-muted-foreground">
         Filling in brand context improves AI content quality.
       </p>
 

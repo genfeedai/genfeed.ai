@@ -84,15 +84,18 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
             unoptimized={!canOptimizeImageSource(previewUrl)}
           />
         ) : isVideo ? (
-          <Film aria-hidden="true" className="size-5 text-foreground/30" />
+          <Film aria-hidden="true" className="size-5 text-muted-foreground" />
         ) : (
-          <ImageOff aria-hidden="true" className="size-5 text-foreground/30" />
+          <ImageOff
+            aria-hidden="true"
+            className="size-5 text-muted-foreground"
+          />
         )}
       </div>
       <span
         className={cn(
           'truncate text-xs',
-          isTrashed ? 'italic text-foreground/45' : 'text-foreground/78',
+          isTrashed ? 'italic text-muted-foreground' : 'text-foreground/78',
         )}
         title={label}
       >
@@ -135,12 +138,12 @@ export default function IngredientLineageStrip({
       aria-label={translate(SECTION_LABEL_KEYS[direction])}
       className={cn('flex min-w-0 flex-col gap-2', className)}
     >
-      <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+      <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
         {translate(SECTION_LABEL_KEYS[direction])}
       </h4>
 
       {hasError && items.length === 0 ? (
-        <p className="text-xs text-foreground/45" role="alert">
+        <p className="text-xs text-muted-foreground" role="alert">
           {translate('lineageError')}
         </p>
       ) : (
@@ -152,7 +155,7 @@ export default function IngredientLineageStrip({
       )}
 
       {hiddenCount > 0 ? (
-        <p className="text-xs text-foreground/45">
+        <p className="text-xs text-muted-foreground">
           {translate('hiddenCount', { count: hiddenCount })}
         </p>
       ) : null}

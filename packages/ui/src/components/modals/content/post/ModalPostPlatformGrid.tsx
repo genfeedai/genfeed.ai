@@ -54,7 +54,7 @@ export default function ModalPostPlatformGrid({
                 <div className="flex items-center gap-2 flex-1">
                   {Icon && (
                     <Icon
-                      className={`size-4 ${hasCredential ? color : 'text-foreground/30'}`}
+                      className={`size-4 ${hasCredential ? color : 'text-muted-foreground'}`}
                     />
                   )}
                   {hasCredential && (

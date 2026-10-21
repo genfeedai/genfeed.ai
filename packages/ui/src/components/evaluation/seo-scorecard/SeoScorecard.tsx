@@ -289,7 +289,7 @@ export default function SeoScorecard({
               )}
             >
               {resolvedScore}
-              <span className="text-xs font-medium text-foreground/40">
+              <span className="text-xs font-medium text-muted-foreground">
                 /100
               </span>
             </span>
@@ -416,7 +416,7 @@ export default function SeoScorecard({
             )}
           >
             {resolvedScore}
-            <span className="text-base font-medium text-foreground/40">
+            <span className="text-base font-medium text-muted-foreground">
               /100
             </span>
           </div>

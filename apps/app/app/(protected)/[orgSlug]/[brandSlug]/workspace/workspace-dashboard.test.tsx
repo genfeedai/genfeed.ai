@@ -201,7 +201,7 @@ describe('workspace dashboard sections', () => {
       expect(screen.getByText(translate('recentTasks.title'))).toBeVisible();
       expect(container.textContent).not.toContain('NaN');
       const timestamps = container.querySelectorAll(
-        'span[class~="text-foreground/35"]',
+        'span[class~="text-muted-foreground"]',
       );
       expect(timestamps).toHaveLength(2);
       for (const timestamp of timestamps)

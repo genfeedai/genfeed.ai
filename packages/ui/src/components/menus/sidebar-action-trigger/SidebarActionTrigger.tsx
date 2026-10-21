@@ -48,7 +48,7 @@ export default function SidebarActionTrigger({
         className,
       )}
     >
-      <span className="flex size-4 shrink-0 items-center justify-center text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78">
+      <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors duration-200 group-hover:text-foreground/78">
         {hoverIcon}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200">

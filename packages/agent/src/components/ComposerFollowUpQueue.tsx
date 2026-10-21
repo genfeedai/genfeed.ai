@@ -50,7 +50,7 @@ export function ComposerFollowUpQueue({
       role="region"
     >
       <div className="flex min-w-0 items-center gap-1 px-1 py-0.5">
-        <p className="min-w-0 flex-1 truncate text-2xs font-medium uppercase tracking-wide text-foreground/45">
+        <p className="min-w-0 flex-1 truncate text-2xs font-medium uppercase tracking-wide text-muted-foreground">
           {translate('count', { count: queue.length })}
           {isBusy ? ` · ${translate('sendNowHint')}` : null}
         </p>

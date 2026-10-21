@@ -34,7 +34,7 @@ function buildQualityOptions(subscriptionTier?: SubscriptionTier) {
       badgeVariant: isLocked ? ('warning' as const) : undefined,
       description: isLocked ? 'Requires a higher plan' : option.description,
       icon: isLocked ? (
-        <Lock className="size-4 text-foreground/30" />
+        <Lock className="size-4 text-muted-foreground" />
       ) : undefined,
       key: option.value,
       label: option.label,

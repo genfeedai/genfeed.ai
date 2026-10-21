@@ -388,13 +388,13 @@ export default function AgentCampaignsPage() {
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
           <div className="flex size-12 items-center justify-center rounded-full border border-border bg-foreground/[0.02]">
-            <LayoutDashboard className="size-6 text-foreground/30" />
+            <LayoutDashboard className="size-6 text-muted-foreground" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground/60">
               No programs yet
             </p>
-            <p className="mt-1 text-xs text-foreground/35">
+            <p className="mt-1 text-xs text-muted-foreground">
               Create your first multi-agent program to coordinate content
               production.
             </p>

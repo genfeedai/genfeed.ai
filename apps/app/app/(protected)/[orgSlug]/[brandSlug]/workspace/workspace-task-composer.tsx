@@ -108,7 +108,7 @@ export function WorkspaceTaskComposer({
           </PromptBarComposer>
 
           {taskMode !== 'standard' ? (
-            <p className="text-xs text-foreground/35">
+            <p className="text-xs text-muted-foreground">
               {
                 TASK_MODE_OPTIONS.find((mode) => mode.id === taskMode)
                   ?.description

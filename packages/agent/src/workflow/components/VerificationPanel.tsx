@@ -73,7 +73,7 @@ function VerificationPanelInner() {
           <CircleCheck
             className={cn(
               'size-5',
-              allPassed ? 'text-success' : 'text-foreground/40',
+              allPassed ? 'text-success' : 'text-muted-foreground',
             )}
           />
           <h2 className="text-sm font-semibold text-foreground/90">
@@ -96,7 +96,7 @@ function VerificationPanelInner() {
 
       {evidence.length === 0 ? (
         <div className="rounded-lg border border-dashed border-foreground/10 p-6 text-center">
-          <p className="text-sm text-foreground/40">
+          <p className="text-sm text-muted-foreground">
             Waiting for verification evidence from the agent…
           </p>
         </div>

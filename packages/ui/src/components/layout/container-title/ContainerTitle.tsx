@@ -40,7 +40,7 @@ export default function ContainerTitle({
       {hasBreadcrumb ? (
         <nav
           aria-label="Breadcrumb"
-          className="mt-1 flex items-center gap-1.5 text-xs text-foreground/45"
+          className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"
         >
           {activeGroupId ? (
             <span className="truncate">{activeGroupId}</span>

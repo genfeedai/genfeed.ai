@@ -117,7 +117,7 @@ export default function CollapsibleGroup({
       <div className={cn('mt-3', className)}>
         <div
           className={cn(
-            'flex w-full items-center px-1 pb-2 pt-1 text-foreground/30',
+            'flex w-full items-center px-1 pb-2 pt-1 text-muted-foreground',
             headerClassName,
           )}
         >
@@ -135,7 +135,7 @@ export default function CollapsibleGroup({
     <div className={cn('mt-3', className)}>
       <div
         className={cn(
-          'group/collapsible flex w-full items-center px-1 pb-2 pt-1 text-foreground/30',
+          'group/collapsible flex w-full items-center px-1 pb-2 pt-1 text-muted-foreground',
           headerClassName,
         )}
       >

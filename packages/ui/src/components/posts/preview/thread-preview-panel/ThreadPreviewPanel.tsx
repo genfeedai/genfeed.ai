@@ -105,7 +105,7 @@ function PostPreviewItem({
               {textContent}
             </p>
           ) : (
-            <p className="text-sm text-foreground/40 italic">Empty post</p>
+            <p className="text-sm text-muted-foreground italic">Empty post</p>
           )}
           {media.map((ingredient) => (
             <PostPreviewMedia key={ingredient.id} ingredient={ingredient} />

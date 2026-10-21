@@ -50,7 +50,7 @@ function ConnectionStatusLine({
     return (
       <div
         aria-live="polite"
-        className="flex items-center justify-end gap-2 text-xs text-foreground/45"
+        className="flex items-center justify-end gap-2 text-xs text-muted-foreground"
         role="status"
       >
         <Skeleton height={12} variant="text" width={160} />

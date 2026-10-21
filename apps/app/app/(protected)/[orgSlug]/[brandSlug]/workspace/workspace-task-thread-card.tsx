@@ -33,7 +33,7 @@ export function WorkspaceTaskThreadCard({
                     {formatWorkspaceEventLabel(event)}
                   </p>
                   <ClientFormattedDate
-                    className="text-xs text-foreground/40"
+                    className="text-xs text-muted-foreground"
                     value={event.timestamp}
                   />
                 </div>

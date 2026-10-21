@@ -462,6 +462,6 @@ describe('Motion quote review', () => {
   it('renders when the catalog payload omits models', () => {
     Reflect.deleteProperty(mocks.catalog, 'models');
     expect(() => render(<MotionContent />)).not.toThrow();
-    expect(screen.getByRole('heading', { name: 'title' })).toBeVisible();
+    expect(screen.getByRole('complementary')).toBeVisible();
   });
 });

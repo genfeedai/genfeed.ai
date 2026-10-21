@@ -92,7 +92,7 @@ const HERO_PROOF = (
       label: metric.label,
       value: (
         <>
-          <span className="text-foreground/40 line-through">
+          <span className="text-muted-foreground line-through">
             {metric.before}
           </span>{' '}
           {'->'} {metric.after}

@@ -390,7 +390,7 @@ export default function AgentWorkflowRunDialog({
                     {slot.required ? ' *' : ''}
                   </span>
                   {slot.description ? (
-                    <p className="text-xs text-foreground/45">
+                    <p className="text-xs text-muted-foreground">
                       {slot.description}
                     </p>
                   ) : null}
@@ -423,7 +423,7 @@ export default function AgentWorkflowRunDialog({
                       {input.label}
                       {input.required ? ' *' : ''}
                     </span>
-                    <span className="truncate text-foreground/40">
+                    <span className="truncate text-muted-foreground">
                       {extraInputs[input.key]?.trim() ||
                         (input.filledValue != null && input.filledValue !== ''
                           ? String(input.filledValue)

@@ -97,7 +97,7 @@ function QuestionCardInner({
             placeholder="Type your answer..."
             rows={3}
             className={cn(
-              'bg-foreground/5 border-foreground/10 text-foreground/90 placeholder:text-foreground/30 resize-none',
+              'bg-foreground/5 border-foreground/10 text-foreground/90 placeholder:text-muted-foreground resize-none',
               (disabled || isAnswered) && 'opacity-60',
             )}
           />

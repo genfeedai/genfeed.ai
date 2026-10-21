@@ -112,7 +112,7 @@ export default function IngredientTagsControl({
       aria-label={translate('sectionLabel')}
       className="flex flex-col gap-2"
     >
-      <div className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+      <div className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
         {translate('sectionLabel')}
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -147,7 +147,9 @@ export default function IngredientTagsControl({
         />
       </div>
       {assetTags.length === 0 ? (
-        <p className="text-xs text-foreground/45">{translate('emptyHint')}</p>
+        <p className="text-xs text-muted-foreground">
+          {translate('emptyHint')}
+        </p>
       ) : null}
     </section>
   );

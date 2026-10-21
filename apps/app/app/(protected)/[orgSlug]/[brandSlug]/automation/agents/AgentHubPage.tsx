@@ -551,7 +551,7 @@ export default function AgentHubPage() {
     >
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-foreground/30">
+          <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-muted-foreground">
             <Users className="size-8" />
           </span>
           <div>

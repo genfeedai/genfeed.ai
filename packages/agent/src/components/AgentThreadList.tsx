@@ -207,7 +207,7 @@ export function AgentThreadList({
 
       {showTitle ? (
         <div className="flex w-full items-center gap-2 px-3 py-1.5">
-          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
+          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
             Conversations
           </span>
         </div>
@@ -244,7 +244,7 @@ export function AgentThreadList({
             <p className="text-sm text-foreground/50">
               No matching conversations
             </p>
-            <p className="mt-1 text-xs text-foreground/30">
+            <p className="mt-1 text-xs text-muted-foreground">
               Try another search.
             </p>
           </div>

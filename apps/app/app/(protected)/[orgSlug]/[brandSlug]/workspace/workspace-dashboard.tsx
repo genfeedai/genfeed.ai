@@ -319,7 +319,7 @@ export function DashboardRecentActivity({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="h-auto px-0 text-2xs font-normal text-foreground/45 hover:bg-transparent"
+          className="h-auto px-0 text-2xs font-normal text-muted-foreground hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
             {translate('recentViewAll')}
@@ -353,7 +353,7 @@ export function DashboardRecentActivity({
                 meta={formatTaskEventLabel(task)}
                 title={task.title}
                 trailing={
-                  <span className="text-2xs text-foreground/35">
+                  <span className="text-2xs text-muted-foreground">
                     {formatRunTime(
                       task.updatedAt ?? task.createdAt,
                       translateTime,
@@ -365,7 +365,7 @@ export function DashboardRecentActivity({
           })}
         </div>
       ) : (
-        <p className="px-4 py-6 text-center text-xs text-foreground/45 sm:px-5">
+        <p className="px-4 py-6 text-center text-xs text-muted-foreground sm:px-5">
           {translate('recentActivity.empty')}
         </p>
       )}
@@ -408,7 +408,7 @@ export function DashboardRecentTasks({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="h-auto px-0 text-2xs font-normal text-foreground/45 hover:bg-transparent"
+          className="h-auto px-0 text-2xs font-normal text-muted-foreground hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
             {translate('recentViewAll')}
@@ -432,7 +432,7 @@ export function DashboardRecentTasks({
               meta={task.status.replaceAll('_', ' ')}
               title={task.title}
               trailing={
-                <span className="text-2xs text-foreground/35">
+                <span className="text-2xs text-muted-foreground">
                   {formatRunTime(
                     task.updatedAt ?? task.createdAt,
                     translateTime,
@@ -443,7 +443,7 @@ export function DashboardRecentTasks({
           ))}
         </div>
       ) : (
-        <p className="px-4 py-6 text-center text-xs text-foreground/45 sm:px-5">
+        <p className="px-4 py-6 text-center text-xs text-muted-foreground sm:px-5">
           {translate('recentTasks.empty')}
         </p>
       )}

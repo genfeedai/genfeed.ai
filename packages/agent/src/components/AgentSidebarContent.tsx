@@ -35,7 +35,7 @@ export function AgentSidebarContent({
           className="group flex h-8 w-full cursor-pointer items-center gap-2.5 rounded px-2.5 py-1.5 text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="Back to overview"
         >
-          <ArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+          <ArrowLeft className="size-4 text-muted-foreground transition-colors duration-200 group-hover:text-foreground/78" />
           <span className="text-sm font-medium tracking-[-0.01em] text-foreground/88">
             {translate('title')}
           </span>

@@ -112,7 +112,7 @@ const InsightListCard = memo(function InsightListCard({
                 </ul>
               )}
 
-              <div className="flex items-center gap-3 mt-2 text-xs text-foreground/40">
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                 <ClientDateTime
                   value={insight.createdAt}
                   format={(date) =>
@@ -135,7 +135,7 @@ const InsightListCard = memo(function InsightListCard({
                 className="p-1 rounded-full hover:bg-muted/50 transition-colors"
                 ariaLabel={translate('dismissAriaLabel')}
               >
-                <X className="size-4 text-foreground/40" />
+                <X className="size-4 text-muted-foreground" />
               </Button>
             )}
           </div>

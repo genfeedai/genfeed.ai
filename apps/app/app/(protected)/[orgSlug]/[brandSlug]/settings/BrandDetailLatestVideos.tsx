@@ -50,7 +50,7 @@ export default function BrandDetailLatestVideos({
           <p className="text-sm font-medium text-foreground/70">
             No videos yet
           </p>
-          <p className="max-w-xs text-xs leading-5 text-foreground/45">
+          <p className="max-w-xs text-xs leading-5 text-muted-foreground">
             Generate a video for this brand to populate this strip.
           </p>
           <Button

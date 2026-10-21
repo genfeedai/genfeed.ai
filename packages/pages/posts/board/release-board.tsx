@@ -420,7 +420,7 @@ export default function ReleaseBoard({
                 <span className="gen-label-sm text-foreground/60">
                   {translate(`columns.${column}`)}
                 </span>
-                <span className="text-xs text-foreground/45">
+                <span className="text-xs text-muted-foreground">
                   {columnReleases.length}
                 </span>
                 {column === 'review' ? (

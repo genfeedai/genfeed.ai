@@ -98,14 +98,9 @@ export default function SettingsHelpPage() {
 
   return (
     <div className="flex flex-col gap-8 pb-8">
-      <div className="space-y-2">
-        <Heading as="h1" size="lg">
-          {translate('title')}
-        </Heading>
-        <Text as="p" color="muted" size="sm">
-          {translate('description')}
-        </Text>
-      </div>
+      <Heading as="h1" size="lg" className="sr-only">
+        {translate('title')}
+      </Heading>
       <section aria-labelledby="help-learning-path" className="space-y-3">
         <Heading as="h2" id="help-learning-path" size="md">
           {translate('learningPath')}

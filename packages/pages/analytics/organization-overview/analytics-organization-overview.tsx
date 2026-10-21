@@ -166,7 +166,7 @@ function OrganizationMetricStrip({
             {isLoading ? (
               <Skeleton variant="text" height={12} className="mt-2 w-28" />
             ) : (
-              <p className="mt-1.5 text-2xs text-foreground/45">
+              <p className="mt-1.5 text-2xs text-muted-foreground">
                 {metric.accent}
               </p>
             )}

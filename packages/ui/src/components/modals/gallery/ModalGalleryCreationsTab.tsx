@@ -29,7 +29,7 @@ export default function ModalGalleryCreationsTab({
       <div className="text-center py-12">
         <Image className="text-5xl text-foreground/20 mx-auto mb-3" />
         <p className="text-foreground/60">No creations yet</p>
-        <p className="text-sm text-foreground/40 mt-2">
+        <p className="text-sm text-muted-foreground mt-2">
           Generate some images to see them here
         </p>
       </div>

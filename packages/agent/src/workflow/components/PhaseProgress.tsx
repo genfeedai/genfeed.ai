@@ -35,7 +35,7 @@ function PhaseStep({
           'bg-success/10 text-success hover:bg-success/10 cursor-pointer',
         isCurrent &&
           'bg-foreground/10 text-foreground ring-1 ring-foreground/20',
-        isFuture && 'text-foreground/30',
+        isFuture && 'text-muted-foreground',
         canRollback && 'hover:ring-1 hover:ring-emerald-500/30',
       )}
     >

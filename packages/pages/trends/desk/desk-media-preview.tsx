@@ -74,7 +74,7 @@ export default function DeskMediaPreview({
           onError={() => setFailedThumbnail(thumbnail)}
         />
       ) : (
-        <div className="flex size-full items-center justify-center text-foreground/40">
+        <div className="flex size-full items-center justify-center text-muted-foreground">
           {getPlatformIcon(item.platform, 'size-8')}
         </div>
       )}

@@ -16,7 +16,7 @@ export const SWITCHER_LABEL_CLASSNAME =
   'min-w-0 flex-1 truncate text-left text-sm font-semibold leading-none text-foreground';
 
 export const SWITCHER_CHEVRON_CLASSNAME =
-  'size-3.5 flex-shrink-0 text-foreground/45 transition-transform duration-200';
+  'size-3.5 flex-shrink-0 text-muted-foreground transition-transform duration-200';
 
 /**
  * One shell for brand trigger + clear — single chip, not two boxes.
@@ -37,7 +37,7 @@ export const SWITCHER_COMPOSITE_TRIGGER_CLASSNAME =
  */
 export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
   'flex h-8 w-7 flex-shrink-0 items-center justify-center rounded-r-md border-l',
-  'text-foreground/45 transition-[opacity,color,background-color,border-color] duration-150',
+  'text-muted-foreground transition-[opacity,color,background-color,border-color] duration-150',
   'hover:bg-foreground/[0.06] hover:text-foreground',
   'focus-visible:outline-none focus-visible:ring-0',
   'disabled:cursor-not-allowed disabled:opacity-50',

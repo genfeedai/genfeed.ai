@@ -779,7 +779,7 @@ export function AgentCliTerminalControls({
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-        <span className="min-w-[4.5rem] max-w-[10rem] truncate text-2xs text-foreground/42">
+        <span className="min-w-[4.5rem] max-w-[10rem] truncate text-2xs text-muted-foreground">
           {status}
         </span>
 
@@ -866,7 +866,7 @@ export function AgentCliTerminalControls({
             <span className="hidden max-w-[5rem] truncate lg:inline">
               {activePreset.label}
             </span>
-            <ChevronDown className="size-3 text-foreground/42" />
+            <ChevronDown className="size-3 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">

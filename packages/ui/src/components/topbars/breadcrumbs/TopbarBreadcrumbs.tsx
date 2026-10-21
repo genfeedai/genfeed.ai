@@ -82,7 +82,7 @@ export default function TopbarBreadcrumbs({
       ) : null}
 
       {groupLabel && (breadcrumbParentLabel || breadcrumbPageLabel) ? (
-        <span aria-hidden="true" className="select-none text-foreground/30">
+        <span aria-hidden="true" className="select-none text-muted-foreground">
           /
         </span>
       ) : null}
@@ -97,7 +97,10 @@ export default function TopbarBreadcrumbs({
             <span className={segmentClass}>{breadcrumbParentLabel}</span>
           )}
           {breadcrumbPageLabel ? (
-            <span aria-hidden="true" className="select-none text-foreground/30">
+            <span
+              aria-hidden="true"
+              className="select-none text-muted-foreground"
+            >
               /
             </span>
           ) : null}

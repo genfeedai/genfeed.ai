@@ -45,12 +45,12 @@ export default function IngredientPromptBlock({
       className={cn('flex min-w-0 flex-col gap-2', className)}
     >
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+        <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
           {translate('prompt')}
         </h4>
         <Button
           ariaLabel={translate('copyPrompt')}
-          className="size-6 text-foreground/45 hover:text-foreground"
+          className="size-6 text-muted-foreground hover:text-foreground"
           icon={<Copy className="size-3.5" />}
           onClick={() => ClipboardService.getInstance().copyToClipboard(text)}
           size={ButtonSize.ICON}

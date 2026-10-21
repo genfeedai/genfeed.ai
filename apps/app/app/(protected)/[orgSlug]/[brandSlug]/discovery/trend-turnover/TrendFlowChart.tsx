@@ -40,7 +40,7 @@ export default function TrendFlowChart({
 
   if (data.length === 0) {
     return (
-      <div className="flex h-72 items-center justify-center text-sm text-foreground/40">
+      <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
         {translate('empty')}
       </div>
     );

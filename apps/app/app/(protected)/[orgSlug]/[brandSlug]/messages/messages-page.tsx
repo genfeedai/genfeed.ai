@@ -887,7 +887,7 @@ export default function MessagesPage() {
                     ? 'Select a conversation'
                     : 'Connect accounts to start your inbox'}
                 </p>
-                <p className="max-w-sm text-xs leading-5 text-foreground/38">
+                <p className="max-w-sm text-xs leading-5 text-muted-foreground">
                   {hasConnectedAccounts
                     ? 'Review the thread, draft a response with the agent, then send or resolve it here.'
                     : 'Comments and direct messages from your connected social channels will appear in the conversation list.'}

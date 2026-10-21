@@ -81,7 +81,7 @@ export default function MessagesReplyComposer({
                 {participantLabel}
               </span>
             </p>
-            <p className="text-2xs text-foreground/45">
+            <p className="text-2xs text-muted-foreground">
               {translate('replyComposer.description')}{' '}
               {availability.canSendDm
                 ? 'DM is available for this thread.'

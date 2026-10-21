@@ -1470,7 +1470,7 @@ export default function BrandKitReviewCard({
             <p className="text-sm font-medium text-foreground/70">
               {BRAND_KIT_REVIEW_COPY.noDraft}
             </p>
-            <p className="text-xs leading-5 text-foreground/45">
+            <p className="text-xs leading-5 text-muted-foreground">
               {formatDraftPrompt(brand.label)}
             </p>
           </div>

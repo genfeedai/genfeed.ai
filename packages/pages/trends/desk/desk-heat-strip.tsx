@@ -111,9 +111,9 @@ export default function DeskHeatStrip({
             withWrapper={false}
           >
             {getPlatformIcon(platform, 'size-3.5')}
-            <span className="text-foreground/45">{count}</span>
+            <span className="text-muted-foreground">{count}</span>
             {topVelocity > 0 ? (
-              <span className="text-foreground/45">
+              <span className="text-muted-foreground">
                 ·{' '}
                 {translateCard('velocityPerHour', {
                   value: formatCompactNumber(topVelocity),

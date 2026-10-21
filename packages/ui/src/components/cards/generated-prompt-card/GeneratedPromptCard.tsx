@@ -74,7 +74,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         className={cn(
           'absolute top-3 right-3 z-10',
           'rounded-md p-1',
-          'text-foreground/30 hover:text-foreground/70',
+          'text-muted-foreground hover:text-foreground/70',
           'bg-foreground/[0.04] hover:bg-foreground/[0.1]',
           'transition-[color,background-color,opacity] duration-200',
           hoverRevealClassName(),

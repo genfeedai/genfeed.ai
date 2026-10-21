@@ -95,14 +95,9 @@ export default function AboutContent() {
 
   return (
     <Card bodyClassName="space-y-6">
-      <div>
-        <h1 id="about-title" className="text-xl font-semibold">
-          {translate('title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {translate('description')}
-        </p>
-      </div>
+      <h1 id="about-title" className="sr-only">
+        {translate('title')}
+      </h1>
       <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">{translate('version')}</dt>

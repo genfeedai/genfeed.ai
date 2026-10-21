@@ -240,7 +240,7 @@ export function AgentThreadListRow({
               )}
               {conv.isPinned ? (
                 <Pin
-                  className="size-3 shrink-0 -rotate-45 text-foreground/42"
+                  className="size-3 shrink-0 -rotate-45 text-muted-foreground"
                   aria-label={translate('pinned')}
                 />
               ) : null}
@@ -256,7 +256,7 @@ export function AgentThreadListRow({
               </span>
             </div>
             {preview ? (
-              <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">
+              <div className="mt-0.5 min-w-0 truncate text-2xs text-muted-foreground">
                 {preview}
               </div>
             ) : null}
@@ -291,7 +291,7 @@ export function AgentThreadListRow({
               withWrapper={false}
               ariaLabel={`Thread actions for ${conv.title || 'thread'}`}
               className={cn(
-                'pointer-events-auto size-7 rounded-md p-1 text-foreground/42 transition-opacity hover:bg-foreground/[0.06] hover:text-foreground/78',
+                'pointer-events-auto size-7 rounded-md p-1 text-muted-foreground transition-opacity hover:bg-foreground/[0.06] hover:text-foreground/78',
                 shouldShowActions
                   ? 'pointer-events-auto opacity-100'
                   : hoverRevealClassName(),

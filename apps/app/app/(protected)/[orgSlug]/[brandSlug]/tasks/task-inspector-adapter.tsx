@@ -45,7 +45,7 @@ function TaskCommentRow({ comment }: { comment: TaskComment }) {
           <span className="font-medium text-foreground">
             {isAgent ? 'Agent' : 'User'}
           </span>
-          <span className="text-foreground/45">
+          <span className="text-muted-foreground">
             {getRelativeTime(comment.createdAt)}
           </span>
         </div>
@@ -144,7 +144,7 @@ function TaskDetailComments({ task }: { task: Task }) {
 
   return (
     <section className="flex flex-col gap-3 px-6 py-4">
-      <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+      <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
         {translate('comments', { count: comments.length })}
       </h4>
       {comments.length > 0 ? (
@@ -154,7 +154,9 @@ function TaskDetailComments({ task }: { task: Task }) {
           ))}
         </ol>
       ) : (
-        <p className="text-xs text-foreground/45">{translate('noComments')}</p>
+        <p className="text-xs text-muted-foreground">
+          {translate('noComments')}
+        </p>
       )}
     </section>
   );

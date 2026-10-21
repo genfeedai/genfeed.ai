@@ -203,7 +203,7 @@ function PlanUpgradePrompt({
               </div>
               <div className="text-2xl font-bold mb-3">
                 {TIER_PRICES[tier]}
-                <span className="text-xs font-normal text-foreground/40">
+                <span className="text-xs font-normal text-muted-foreground">
                   /mo
                 </span>
               </div>
@@ -217,7 +217,7 @@ function PlanUpgradePrompt({
                       key={q}
                       className="flex items-center gap-2 text-xs text-foreground/60"
                     >
-                      <Check className="size-3 text-foreground/30" />
+                      <Check className="size-3 text-muted-foreground" />
                       {label} quality
                     </li>
                   );

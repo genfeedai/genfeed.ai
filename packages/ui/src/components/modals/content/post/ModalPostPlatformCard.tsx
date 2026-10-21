@@ -82,7 +82,7 @@ export default function ModalPostPlatformCard({
           {Icon && (
             <Icon
               className={`size-4 ${
-                hasCredential ? color : 'text-foreground/40'
+                hasCredential ? color : 'text-muted-foreground'
               }`}
             />
           )}

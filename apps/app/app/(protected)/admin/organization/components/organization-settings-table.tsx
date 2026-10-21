@@ -219,13 +219,13 @@ export function OrganizationSettingsTable({
           <Table className="table table-zebra w-full">
             <TableHeader>
               <TableRow className="border-b border-border">
-                <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
+                <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Setting
                 </TableHead>
-                <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
+                <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Value
                 </TableHead>
-                <TableHead className="px-4 py-3 text-right text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
+                <TableHead className="px-4 py-3 text-right text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Actions
                 </TableHead>
               </TableRow>

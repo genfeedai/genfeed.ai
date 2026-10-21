@@ -166,7 +166,7 @@ export default function TopbarPublicDesktopDropdown({
         // shortest column as a tall empty box.
         <div className="min-w-0 self-start" key={groupLabel}>
           {groupLabel && (
-            <div className="px-3 pb-2 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/45">
+            <div className="px-3 pb-2 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
               {groupLabel}
             </div>
           )}

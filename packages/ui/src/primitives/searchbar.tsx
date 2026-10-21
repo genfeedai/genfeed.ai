@@ -363,7 +363,7 @@ export default function Searchbar({
         placeholder={placeholder}
         className={cn(
           sizeClass,
-          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-foreground/40',
+          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-muted-foreground',
           'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
           showIcon && (isCollapsible ? 'pl-8' : 'pl-10'),
           showClearButton && displayedValue && 'pr-8',

@@ -79,7 +79,7 @@ function LibraryCanvasNodeComponent({
           onError={() => setFailedSrc(src)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs text-foreground/40">
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
           {translate('noPreview')}
         </div>
       )}

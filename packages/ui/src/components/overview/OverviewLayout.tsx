@@ -64,14 +64,7 @@ export function OverviewContent({
 
       {actionsLayout === 'cards' && cards.length > 0 ? (
         <section>
-          <div className="mb-5 space-y-1">
-            <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
-              Launch
-            </p>
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
-              {actionsTitle}
-            </h2>
-          </div>
+          <h2 className="sr-only">{actionsTitle}</h2>
           <CollectionGrid data-testid="overview-quick-actions" maxColumns={4}>
             {cards.map((card) => (
               <Card
@@ -82,7 +75,7 @@ export function OverviewContent({
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
-                      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35">
+                      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
                         {card.label}
                       </p>
                       <p className="max-w-[16rem] text-sm leading-6 text-foreground/60">

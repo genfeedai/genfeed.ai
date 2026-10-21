@@ -322,7 +322,7 @@ function SwitcherItem({
 }
 
 const TRAILING_ACTION_CLASSNAME = cn(
-  'flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+  'flex size-7 flex-shrink-0 items-center justify-center rounded text-muted-foreground transition-colors duration-150',
   'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 );
 

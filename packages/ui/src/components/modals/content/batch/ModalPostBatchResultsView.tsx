@@ -66,7 +66,7 @@ export default function ModalPostBatchResultsView({
                 case 'submitting':
                   return 'text-info';
                 default:
-                  return 'text-foreground/40';
+                  return 'text-muted-foreground';
               }
             };
 

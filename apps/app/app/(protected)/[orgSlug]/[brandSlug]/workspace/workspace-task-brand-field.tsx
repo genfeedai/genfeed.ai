@@ -33,7 +33,7 @@ export function WorkspaceTaskBrandField({
           Type @ to target a brand.
         </div>
       )}
-      <p className="text-xs text-foreground/35">
+      <p className="text-xs text-muted-foreground">
         Targeting{' '}
         <span className="font-medium text-foreground/55">
           {selectedTargetBrandLabel}

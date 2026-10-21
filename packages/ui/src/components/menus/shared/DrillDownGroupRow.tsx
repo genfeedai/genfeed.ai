@@ -84,7 +84,7 @@ export default function DrillDownGroupRow({
       >
         {group.group}
       </span>
-      <ChevronRight className="size-4 text-foreground/30" />
+      <ChevronRight className="size-4 text-muted-foreground" />
     </>
   );
 

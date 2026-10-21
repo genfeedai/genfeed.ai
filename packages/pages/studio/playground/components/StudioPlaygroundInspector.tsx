@@ -561,7 +561,7 @@ export default function StudioPlaygroundInspector({
         <div className="flex flex-col gap-3">
           {siblingJobs.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <p className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+              <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
                 {translate('inspector.runSiblings')}
               </p>
               <ul className="flex flex-col gap-1">
@@ -585,7 +585,7 @@ export default function StudioPlaygroundInspector({
             </p>
           ) : children.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <p className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+              <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
                 {translate('inspector.childAssets')}
               </p>
               <ul className="flex flex-col gap-1">

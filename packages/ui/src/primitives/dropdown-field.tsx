@@ -310,7 +310,7 @@ export default function DropdownField({
             ))}
 
             {filteredItems.length === 0 && searchTerm && (
-              <div className="py-4 text-center text-sm text-foreground/40">
+              <div className="py-4 text-center text-sm text-muted-foreground">
                 No results found for &quot;{searchTerm}&quot;
               </div>
             )}
