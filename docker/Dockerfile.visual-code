@@ -1,4 +1,4 @@
-FROM node:24-slim AS toolchain
+FROM node:24.22.1-slim AS toolchain
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates unzip \
     && curl -fsSL https://bun.sh/install | bash \
     && cp /root/.bun/bin/bun /usr/local/bin/bun \
