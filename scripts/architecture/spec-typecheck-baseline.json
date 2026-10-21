@@ -18,22 +18,6 @@
     },
     {
       "code": 2322,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentChatContainer.spec.tsx",
-      "fingerprint": "ab8b010edfd9f04d4c93",
-      "message": "Type '[{ createdAt: string; detail: string; event: AgentWorkEventType; id: string; label: string; runId: string; status: AgentWorkEventStatus; threadId: string; toolName: string; }]' is not assignable to type '[]'.   Source has 1 element(s) but target allows only 0.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentChatContainer.spec.tsx",
-      "fingerprint": "90d1528bded6dc7160e4",
-      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'.   Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2322,
       "count": 3,
       "file": "packages/agent/src/components/AgentChatInput.spec.tsx",
       "fingerprint": "3efca02b0f8382613e85",
