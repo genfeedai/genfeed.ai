@@ -678,7 +678,11 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).toBeInTheDocument();
     expect(aside).toHaveAttribute('inert');
     expect(aside).toHaveAttribute('aria-hidden', 'true');
-    expect(aside).toHaveStyle({ minWidth: '0px', width: '0px', right: '0px' });
+    expect(aside).toHaveStyle({
+      minWidth: '0px',
+      width: '0px',
+      right: 'var(--shell-inset, 0px)',
+    });
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
