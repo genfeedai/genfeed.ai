@@ -47,13 +47,6 @@ export default mergeConfig(
           ),
         },
         {
-          find: /^@components\/cards\/KpiCard$/,
-          replacement: path.resolve(
-            __dirname,
-            './packages/components/admin/cards/KpiCard.tsx',
-          ),
-        },
-        {
           find: /^@components\/lazy\/lazy-modal.admin$/,
           replacement: path.resolve(
             __dirname,
@@ -100,13 +93,6 @@ export default mergeConfig(
           replacement: path.resolve(
             __dirname,
             './packages/components/admin/modals/ModalSubscription.tsx',
-          ),
-        },
-        {
-          find: /^@components\/social\/SocialLinks$/,
-          replacement: path.resolve(
-            __dirname,
-            './packages/components/admin/social/SocialLinks.tsx',
           ),
         },
         {
