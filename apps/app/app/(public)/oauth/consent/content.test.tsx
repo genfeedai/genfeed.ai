@@ -13,6 +13,7 @@ const resolveAuthTokenMock = vi.fn();
 const redirectMock = vi.fn();
 const loginPropsMock = vi.fn();
 const getMyOrganizationsMock = vi.fn();
+const findOrganizationBrandsMock = vi.fn();
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -33,7 +34,10 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 
 vi.mock('@services/organization/organizations.service', () => ({
   OrganizationsService: {
-    getInstance: () => ({ getMyOrganizations: () => getMyOrganizationsMock() }),
+    getInstance: () => ({
+      findOrganizationBrands: (id: string) => findOrganizationBrandsMock(id),
+      getMyOrganizations: () => getMyOrganizationsMock(),
+    }),
   },
 }));
 
@@ -249,6 +253,43 @@ describe('OAuthConsentPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
+  });
+
+  it('defaults the brand to the one already selected in the account', async () => {
+    getMyOrganizationsMock.mockResolvedValue([
+      {
+        brand: { id: 'brand-2', label: 'Second brand' },
+        id: 'org-1',
+        isActive: true,
+        label: 'First workspace',
+      },
+    ]);
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', label: 'First brand' },
+      { id: 'brand-2', label: 'Second brand' },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    const picker = await screen.findByLabelText('Brand');
+    await waitFor(() => expect(picker).toHaveValue('brand-2'));
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(findOrganizationBrandsMock).toHaveBeenCalledWith('org-1');
+    expect(lastDecisionBody()).toMatchObject({ brandId: 'brand-2' });
+  });
+
+  it('sends no brand when the user keeps all brands', async () => {
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', label: 'First brand' },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    const picker = await screen.findByLabelText('Brand');
+    await waitFor(() => expect(picker).toHaveValue('brand-1'));
+    fireEvent.change(picker, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).not.toHaveProperty('brandId');
   });
 
   it('shows the sole organization and grants it without another step', async () => {

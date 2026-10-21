@@ -180,6 +180,10 @@
       }
     },
     "consent": {
+      "brand": {
+        "allBrands": "All brands (organization-wide, no default brand)",
+        "label": "Brand"
+      },
       "organization": {
         "empty": "You need an active organization membership to authorize access.",
         "error": "Organizations could not be loaded. Reload this page to try again.",

@@ -104,6 +104,7 @@ export default function OAuthConsentContent() {
   const translateOrganization = useTranslations(
     'common.oauth.consent.organization',
   );
+  const translateBrand = useTranslations('common.oauth.consent.brand');
   const searchParams = useSearchParams();
   const { getToken, isLoaded, isSignedIn } = useAuthIdentity();
   const controllerRef = useRef<AbortController | null>(null);
@@ -117,6 +118,10 @@ export default function OAuthConsentContent() {
     Awaited<ReturnType<OrganizationsService['getMyOrganizations']>>
   >([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
+  const [brands, setBrands] = useState<{ id: string; label: string }[]>([]);
+  // Empty = no default brand: organization-wide reads only.
+  const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false);
   const [isSwitchingAllowed, setIsSwitchingAllowed] = useState(false);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
   const [organizationError, setOrganizationError] = useState<string | null>(
@@ -220,6 +225,58 @@ export default function OAuthConsentContent() {
     translateOrganization,
   ]);
 
+  // Offer the selected organization's brands, starting on the one the user
+  // already has selected there, so an MCP client can generate without being
+  // told which brand to use.
+  useEffect(() => {
+    if (!selectedOrganizationId) {
+      setBrands([]);
+      setSelectedBrandId('');
+      return;
+    }
+    const controller = new AbortController();
+    setIsLoadingBrands(true);
+    setBrands([]);
+    setSelectedBrandId('');
+
+    async function loadBrands(): Promise<void> {
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token) {
+          return;
+        }
+        const available = await OrganizationsService.getInstance(
+          token,
+        ).findOrganizationBrands(selectedOrganizationId);
+        if (controller.signal.aborted) {
+          return;
+        }
+        const options = available.map((brand) => ({
+          id: brand.id,
+          label: brand.label,
+        }));
+        setBrands(options);
+        const currentBrandId = organizations.find(
+          (organization) => organization.id === selectedOrganizationId,
+        )?.brand?.id;
+        setSelectedBrandId(
+          options.some((brand) => brand.id === currentBrandId)
+            ? (currentBrandId ?? '')
+            : (options[0]?.id ?? ''),
+        );
+      } catch {
+        // No brand list: stay on "all brands"; the connection still works for
+        // organization-wide reads and for calls that name a brand.
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingBrands(false);
+        }
+      }
+    }
+    void loadBrands();
+    return () => controller.abort();
+  }, [getToken, organizations, selectedOrganizationId]);
+
   useEffect(
     () => () => {
       controllerRef.current?.abort();
@@ -272,6 +329,7 @@ export default function OAuthConsentContent() {
                 ? isSwitchingAllowed
                 : undefined,
             approved,
+            brandId: approved && selectedBrandId ? selectedBrandId : undefined,
             client_id: searchParams.get('client_id'),
             code_challenge: searchParams.get('code_challenge'),
             code_challenge_method: searchParams.get('code_challenge_method'),
@@ -438,6 +496,23 @@ export default function OAuthConsentContent() {
                     {organizations.map((organization) => (
                       <option key={organization.id} value={organization.id}>
                         {organization.label}
+                      </option>
+                    ))}
+                  </SelectField>
+                )}
+
+                {selectedOrganizationId && brands.length > 0 && (
+                  <SelectField
+                    isDisabled={consentState.isSubmitting || isLoadingBrands}
+                    label={translateBrand('label')}
+                    name="consent-brand"
+                    value={selectedBrandId}
+                    onChange={(event) => setSelectedBrandId(event.target.value)}
+                  >
+                    <option value="">{translateBrand('allBrands')}</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.label}
                       </option>
                     ))}
                   </SelectField>

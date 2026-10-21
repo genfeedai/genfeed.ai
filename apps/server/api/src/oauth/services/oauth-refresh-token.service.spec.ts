@@ -39,6 +39,7 @@ type RefreshTokenRow = {
 };
 
 type ApiKeyRow = {
+  defaultBrandId?: string | null;
   expiresAt: Date | null;
   id: string;
   isRevoked: boolean;
@@ -392,6 +393,23 @@ describe('OAuthRefreshTokenService', () => {
         }),
         organizationId: 'org-1',
       }),
+      'mcp',
+    );
+  });
+
+  it('keeps the consented default brand across rotation', async () => {
+    const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const original = seedApiKey({ defaultBrandId: 'brand-1' });
+    seedRefreshToken('refresh-plain-token-original', {
+      apiKeyId: original.id,
+    });
+
+    await service.refresh(refreshGrant('refresh-plain-token-original'));
+
+    expect(apiKeysService.rotateWithKey).toHaveBeenCalledWith(
+      original.id,
+      expect.objectContaining({ defaultBrandId: 'brand-1' }),
       'mcp',
     );
   });

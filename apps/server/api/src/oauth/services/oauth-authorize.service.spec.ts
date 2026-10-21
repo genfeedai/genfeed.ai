@@ -100,7 +100,22 @@ function buildHarness() {
     }),
   } as unknown as ConfigService;
   const organizations = [makeOrganization('org-1')];
+  const brands = [{ id: 'brand-1', organizationId: 'org-1' }];
   const prisma = {
+    brand: {
+      findFirst: vi.fn(
+        async ({
+          where,
+        }: {
+          where: { id: string; isDeleted: false; organizationId: string };
+        }) =>
+          brands.find(
+            (brand) =>
+              brand.id === where.id &&
+              brand.organizationId === where.organizationId,
+          ) ?? null,
+      ),
+    },
     organization: {
       findMany: vi.fn().mockImplementation(async (args: unknown) => {
         membershipContexts.push(getTenantContext()?.organizationId);
@@ -290,6 +305,53 @@ describe('OAuthAuthorizeService', () => {
     expect(refreshTokenService.issue).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
     );
+  });
+
+  it('carries the consented brand onto the session key', async () => {
+    const { apiKeysService, prisma, service } = buildHarness();
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({ brandId: 'brand-1' }),
+    );
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ defaultBrandId: 'brand-1' }),
+    });
+    await service.exchangeToken({
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get(
+        'code',
+      ) as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource,
+    });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultBrandId: 'brand-1' }),
+      'mcp',
+    );
+  });
+
+  it('leaves the key without a default brand when none is chosen', async () => {
+    const { prisma, service } = buildHarness();
+    await service.decideAuthorization(makeUser(), decision());
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ defaultBrandId: null }),
+    });
+    expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('rejects a brand outside the selected organization', async () => {
+    const { prisma, service } = buildHarness();
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({ brandId: 'foreign-brand' }),
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_request' }),
+    });
+    expect(prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
   });
 
   it.each([

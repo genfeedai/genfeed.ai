@@ -55,6 +55,7 @@ type McpOAuthAuthCodeRecord = {
   canSwitchOrganizations: boolean;
   clientId: string;
   codeChallenge: string;
+  defaultBrandId: string | null;
   expiresAt: Date;
   id: string;
   organizationId: string;
@@ -183,6 +184,19 @@ export class OAuthAuthorizeService {
       );
     }
 
+    if (dto.brandId) {
+      const brand = await this.prisma.brand.findFirst({
+        select: { id: true },
+        where: { id: dto.brandId, isDeleted: false, organizationId },
+      });
+      if (!brand) {
+        throw oauthError(
+          'invalid_request',
+          'Choose a brand that belongs to the selected organization',
+        );
+      }
+    }
+
     const scopes = this.withMembershipAdminScope(
       this.clampScopes(dto.scope, resource),
       resource,
@@ -211,6 +225,7 @@ export class OAuthAuthorizeService {
         codeChallenge: dto.code_challenge,
         codeChallengeMethod: dto.code_challenge_method,
         codeHash: hashToken(code),
+        defaultBrandId: dto.brandId ?? null,
         expiresAt,
         organizationId,
         redirectUri: new URL(dto.redirect_uri).toString(),
@@ -274,6 +289,7 @@ export class OAuthAuthorizeService {
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey(
       {
         category: ApiKeyCategory.GENFEEDAI,
+        defaultBrandId: record.defaultBrandId ?? undefined,
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',

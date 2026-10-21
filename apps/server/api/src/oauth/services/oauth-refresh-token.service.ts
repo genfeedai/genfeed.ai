@@ -185,6 +185,8 @@ export class OAuthRefreshTokenService {
       apiKey.id,
       {
         category: ApiKeyCategory.GENFEEDAI,
+        // The brand chosen at consent survives every rotation.
+        defaultBrandId: apiKey.defaultBrandId ?? undefined,
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',
