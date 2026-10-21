@@ -2,6 +2,7 @@ import type { AgentApiService } from '@genfeedai/agent';
 import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
@@ -103,15 +104,28 @@ vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
   }),
 }));
 
+const messages = {
+  agent: {
+    threadRecovery: {
+      failed:
+        'Could not update this thread. Your draft is kept. Try again when you are ready.',
+      unavailable:
+        'This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready.',
+    },
+  },
+};
+
 function renderAgentPanel(apiService: AgentApiService) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { gcTime: 0, retry: false } },
   });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <AgentPanel apiService={apiService} />
-    </QueryClientProvider>,
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <QueryClientProvider client={queryClient}>
+        <AgentPanel apiService={apiService} />
+      </QueryClientProvider>
+    </NextIntlClientProvider>,
   );
 }
 

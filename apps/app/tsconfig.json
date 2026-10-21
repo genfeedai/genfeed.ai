@@ -12,9 +12,6 @@
       "@components/buttons/refresh/button-refresh/ButtonRefresh": [
         "../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx"
       ],
-      "@components/cards/KpiCard": [
-        "./packages/components/admin/cards/KpiCard.tsx"
-      ],
       "@components/lazy/lazy-modal.admin": [
         "./packages/components/admin/lazy/lazy-modal.admin.ts"
       ],
@@ -38,9 +35,6 @@
       ],
       "@components/modals/ModalSubscription": [
         "./packages/components/admin/modals/ModalSubscription.tsx"
-      ],
-      "@components/social/SocialLinks": [
-        "./packages/components/admin/social/SocialLinks.tsx"
       ],
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"],

@@ -30,5 +30,3 @@ export function NodeTextarea({
     </div>
   );
 }
-
-export default NodeTextarea;
