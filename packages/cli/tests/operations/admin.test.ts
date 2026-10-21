@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   filterPricingRows,
   findPendingVersion,
+  findPricingFixTargets,
+  fixModelPricing,
   readOrganizationAppsReport,
   seedArticles,
   seedTemplates,
@@ -123,6 +125,21 @@ describe('operations/admin', () => {
     expect(findPendingVersion(data, 'missing')).toBeUndefined();
   });
 
+  it('finds the rows a pricing fix acts on, by id or key', () => {
+    const data = report([
+      row({ attentionLevel: 'red', id: 'a', key: 'x/a' }),
+      row({ attentionLevel: 'orange', id: 'b', key: 'x/b' }),
+      row({ id: 'c', isRateApprovalAvailable: true, key: 'x/c' }),
+      row({ id: 'd', key: 'x/d' }),
+    ]);
+
+    expect(findPricingFixTargets(data).map((entry) => entry.id)).toEqual(['a', 'b', 'c']);
+    expect(findPricingFixTargets(data, ['x/c', 'a', 'd']).map((entry) => entry.id)).toEqual([
+      'a',
+      'c',
+    ]);
+  });
+
   describe('one-off triggers', () => {
     beforeEach(() => {
       adminPost.mockReset();
@@ -135,6 +152,16 @@ describe('operations/admin', () => {
         { jobId: 'job-1', provider: 'fal' },
       ]);
       expect(adminPost).toHaveBeenCalledWith('/admin/model-pricing/sync', { provider: 'fal' });
+    });
+
+    it('posts the pricing fix for the given models, or for all when none', async () => {
+      const result = { approved: [], changed: [], repaired: [], syncQueued: [], unresolved: [] };
+      adminPost.mockResolvedValue(result);
+
+      await expect(fixModelPricing(['m1'])).resolves.toBe(result);
+      expect(adminPost).toHaveBeenCalledWith('/admin/model-pricing/fix', { modelIds: ['m1'] });
+      await fixModelPricing();
+      expect(adminPost).toHaveBeenLastCalledWith('/admin/model-pricing/fix', {});
     });
 
     it('posts the article seed input as given', async () => {

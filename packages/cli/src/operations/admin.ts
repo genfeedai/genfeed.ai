@@ -3,6 +3,7 @@ import type {
   AdminModelPricingRow,
   IOrganizationAppsReport,
   ModelPricingAttentionLevel,
+  ModelPricingFixResult,
 } from '@genfeedai/contracts/interfaces';
 import { adminGet, adminPatch, adminPost } from '@/api/admin-client';
 import { flattenSingle, type JsonApiDocument } from '@/api/json-api';
@@ -116,6 +117,30 @@ export async function syncProviderPrices(provider: PriceSyncProvider): Promise<Q
     provider,
   });
   return result.queued;
+}
+
+/**
+ * "Fix pricing" from the admin app: re-apply the reviewed rate sheet to models
+ * it prices, approve pending provider rates, and queue the import for models
+ * with no rates. Every model that needs it when no ids are given.
+ */
+export function fixModelPricing(modelIds?: readonly string[]): Promise<ModelPricingFixResult> {
+  return adminPost<ModelPricingFixResult>(
+    '/admin/model-pricing/fix',
+    modelIds?.length ? { modelIds } : {}
+  );
+}
+
+/** Report rows `fix` acts on: anything red, or with an approvable pending rate. */
+export function findPricingFixTargets(
+  report: AdminModelPricingReport,
+  models: readonly string[] = []
+): AdminModelPricingRow[] {
+  return report.rows.filter(
+    (row) =>
+      (row.isRateApprovalAvailable || row.attentionLevel !== null) &&
+      (models.length === 0 || models.includes(row.id) || models.includes(row.key))
+  );
 }
 
 export function seedArticles(input: ArticlesSeedInput): Promise<ArticlesSeedSummary> {

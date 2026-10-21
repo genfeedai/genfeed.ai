@@ -132,6 +132,135 @@ describe('mapReplicateBillingTiers', () => {
     });
   });
 
+  it('maps flat per-run prices to one request rate beside the per-unit ones', () => {
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              { metric: 'run_count', price: '$0.015', type: 'fixed' },
+              {
+                metric: 'image_input_megapixel_count',
+                price: '$0.015',
+                title: 'per input image megapixel',
+                type: 'per-unit',
+              },
+              {
+                metric: 'image_output_megapixel_count',
+                price: '$0.015',
+                title: 'per output image megapixel',
+                type: 'per-unit',
+              },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toEqual({
+      rates: [
+        {
+          component: 'request',
+          unit: 'request',
+          unitPriceUsd: 0.015,
+          when: {},
+        },
+        {
+          component: 'input-megapixel',
+          unit: 'input-megapixel',
+          unitPriceUsd: 0.015,
+          when: {},
+        },
+        {
+          component: 'output',
+          isPerOutput: true,
+          unit: 'megapixel',
+          unitPriceUsd: 0.015,
+          when: {},
+        },
+      ],
+      selectorKeys: [],
+      status: 'ok',
+    });
+    // `fixed` is only a per-run price; any other metric must still be per-unit.
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              { metric: 'video_output_count', price: '$1', type: 'fixed' },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toEqual({
+      reason: 'unsupported_price_type:fixed',
+      status: 'failed',
+    });
+  });
+
+  it('maps per-character and per-audio-second prices', () => {
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              {
+                metric: 'character_input_count',
+                price: '$0.02',
+                title: 'per thousand input characters',
+                type: 'per-unit',
+              },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toMatchObject({
+      rates: [
+        {
+          component: 'character',
+          unit: 'character',
+          unitPriceUsd: 0.00002,
+          when: {},
+        },
+      ],
+      status: 'ok',
+    });
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              {
+                metric: 'audio_output_duration_seconds',
+                price: '$2',
+                title: 'per thousand seconds of output audio',
+                type: 'per-unit',
+              },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toMatchObject({
+      rates: [
+        {
+          component: 'output',
+          isPerOutput: true,
+          unit: 'second',
+          unitPriceUsd: 0.002,
+          when: {},
+        },
+      ],
+      status: 'ok',
+    });
+  });
+
   it('fails on an unreadable or zero price rather than guessing', () => {
     expect(
       mapReplicateBillingTiers(

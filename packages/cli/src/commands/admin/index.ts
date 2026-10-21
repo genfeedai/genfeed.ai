@@ -10,6 +10,8 @@ import {
   approveSystemBrand,
   filterPricingRows,
   findPendingVersion,
+  findPricingFixTargets,
+  fixModelPricing,
   type PriceSyncProvider,
   readOrganizationAppsReport,
   readPricingReport,
@@ -180,6 +182,44 @@ async function runPricingApprove(
   print(formatSuccess(`Approved pending rates for ${row?.key ?? modelId}`));
 }
 
+async function runPricingFix(models: string[], options: { yes?: boolean }): Promise<void> {
+  const report = await readPricingReport();
+  const targets = findPricingFixTargets(report, models);
+  if (targets.length === 0) {
+    print(formatSuccess('No models need pricing fixes'));
+    return;
+  }
+
+  print(formatHeader(`Fix pricing for ${targets.length} models\n`));
+  for (const row of targets) {
+    const action = row.isRateApprovalAvailable
+      ? chalk.cyan('approve pending rates')
+      : chalk.dim('re-apply the rate sheet or queue the provider import');
+    print(`${row.key} ${chalk.dim(`(${row.provider})`)} ${action}`);
+    for (const attention of row.attention) print(chalk.dim(`         ${attention.reason}`));
+  }
+
+  if (!options.yes) {
+    print(
+      chalk.dim(
+        '\nDry run. Approving pending rates changes what customers are charged. Re-run with --yes to fix.'
+      )
+    );
+    return;
+  }
+
+  const result = await fixModelPricing(targets.map((row) => row.id));
+  for (const [label, entries] of [
+    ['Re-applied the rate sheet', result.repaired],
+    ['Approved pending rates', result.approved],
+    ['Queued the provider import', result.syncQueued],
+    ['Changed while fixing, run again', result.changed],
+  ] as const)
+    for (const entry of entries) print(formatSuccess(`${label}: ${entry.key}`));
+  for (const entry of result.unresolved)
+    print(formatWarning(`Needs a manual rate: ${entry.key} (${entry.reason})`));
+}
+
 const PRICE_SYNC_PROVIDERS: readonly PriceSyncProvider[] = ['all', 'fal', 'replicate'];
 
 async function runPricingSync(options: { provider?: string }): Promise<void> {
@@ -305,7 +345,7 @@ function wrap(action: () => Promise<void>): () => Promise<void> {
 
 function createPricingCommand(): Command {
   return new Command('pricing')
-    .description('Review and approve provider price changes')
+    .description('Review, fix and approve provider price changes')
     .addCommand(
       new Command('report')
         .description('Show model pricing and what needs review')
@@ -328,6 +368,21 @@ function createPricingCommand(): Command {
         .action(async (options: { provider?: string }) => {
           try {
             await runPricingSync(options);
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
+      new Command('fix')
+        .description(
+          'Re-apply the reviewed rate sheet, approve pending rates and queue imports (dry run unless --yes)'
+        )
+        .argument('[models...]', 'Model ids or keys (every model that needs it when omitted)')
+        .option('--yes', 'Fix instead of previewing')
+        .action(async (models: string[], options: { yes?: boolean }) => {
+          try {
+            await runPricingFix(models, options);
           } catch (error) {
             handleError(error);
           }

@@ -162,7 +162,11 @@ const METRIC_UNITS: ReadonlyMap<string, MetricUnit> = new Map<
 >(
   Object.entries({
     audio_output_count: { unit: 'output' },
+    audio_output_duration_seconds: { isPerOutput: true, unit: 'second' },
+    character_input_count: { unit: 'character' },
     image_output_count: { unit: 'output' },
+    // A flat price per prediction, billed once however many outputs it makes.
+    run_count: { unit: 'request' },
     image_input_megapixel_count: { unit: 'input-megapixel' },
     token_input_count: { unit: 'input-token' },
     token_output_count: { unit: 'output-token' },
@@ -362,7 +366,7 @@ export function mapReplicateBillingTiers(
         };
       if (
         rawPrice.type !== undefined &&
-        rawPrice.type !== 'per-unit' &&
+        rawPrice.type !== (metric.unit === 'request' ? 'fixed' : 'per-unit') &&
         !metric.unit.endsWith('-token')
       )
         return {
@@ -383,7 +387,10 @@ export function mapReplicateBillingTiers(
       // Labelled by billed unit, as the rate sheet labels them, so the same
       // prices read as the same rates whichever source stated them.
       const component =
-        metric.unit.endsWith('-token') || metric.unit.startsWith('input-')
+        metric.unit.endsWith('-token') ||
+        metric.unit.startsWith('input-') ||
+        metric.unit === 'request' ||
+        metric.unit === 'character'
           ? metric.unit
           : 'output';
       const identity = JSON.stringify([
