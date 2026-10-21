@@ -693,7 +693,7 @@ function CardPreview({
         isLabelWrapped
         bodyClassName="gap-3"
         headerAction={
-          isPost && current.status ? (
+          !isMedia && current.status ? (
             <Badge variant="outline" className="status">
               {current.status}
             </Badge>
@@ -720,7 +720,7 @@ function CardPreview({
             </Text>
           </div>
         ) : isMedia && !failed ? (
-          <div className="media-preview">
+          <div className="media-preview overflow-hidden rounded-lg bg-muted/40">
             {current.kind === 'media' ? (
               <Text as="p" size="sm" color="muted">
                 No inline preview for this file.
@@ -756,11 +756,19 @@ function CardPreview({
           <Description content={current.description} bridge={bridge} />
         )}
         {!isPost && !isMedia && (
-          <Text size="xs" color="muted">
-            {[current.kind, current.platform, current.status, current.id, when]
-              .filter(Boolean)
-              .join(' · ')}
-          </Text>
+          <div className="meta flex flex-wrap items-center gap-2">
+            <Badge variant="outline">
+              {current.kind.charAt(0).toUpperCase() + current.kind.slice(1)}
+            </Badge>
+            {current.platform && (
+              <Badge variant="outline">{platformName(current.platform)}</Badge>
+            )}
+            {when && (
+              <Text size="xs" color="muted">
+                {when}
+              </Text>
+            )}
+          </div>
         )}
         {isMedia &&
           !current.isPending &&
@@ -1113,6 +1121,13 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   <Card
                     labelAs="h2"
                     isLabelWrapped
+                    className={
+                      day.date === localDayKey(new Date())
+                        ? 'ring-1 ring-primary/50'
+                        : day.posts.length
+                          ? undefined
+                          : 'opacity-80'
+                    }
                     bodyClassName="min-h-24 gap-2"
                     headerAction={
                       day.date === localDayKey(new Date()) ? (
@@ -1128,20 +1143,30 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                     {day.posts.length ? (
                       day.posts.map((post) => (
                         <div
-                          className="slot space-y-1"
+                          className="slot space-y-1 rounded-lg bg-muted/40 p-2"
                           key={post.id || `${post.date}-${post.description}`}
                         >
-                          <Text size="xs" color="muted">
-                            {formatDate(post.date, { timeStyle: 'short' })} ·{' '}
-                            {platformName(post.platform)}
-                          </Text>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {post.platform && (
+                              <Badge variant="outline">
+                                {platformName(post.platform)}
+                              </Badge>
+                            )}
+                            <Text size="xs" color="muted">
+                              {formatDate(post.date, { timeStyle: 'short' })}
+                            </Text>
+                          </div>
                           <Text as="p" size="sm" className="line-clamp-3">
                             {post.description || post.title}
                           </Text>
                         </div>
                       ))
                     ) : (
-                      <Text size="xs" color="muted">
+                      <Text
+                        size="xs"
+                        color="muted"
+                        className="rounded-lg border border-dashed border-border p-2 text-center"
+                      >
                         Nothing scheduled
                       </Text>
                     )}

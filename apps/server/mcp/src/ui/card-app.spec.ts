@@ -598,7 +598,7 @@ it('files calendar posts under the viewer-local day of their time', () => {
     (day) => day.textContent?.includes('Late post'),
   );
   expect(column?.querySelector('h2')?.textContent).toContain(label);
-  expect(column?.querySelector('.slot span')?.textContent).toContain(
+  expect(column?.querySelector('.slot')?.textContent).toContain(
     local.toLocaleString(undefined, { timeStyle: 'short' }),
   );
 });
@@ -1032,4 +1032,20 @@ describe('brand gallery', () => {
         ),
     ).toHaveLength(1);
   });
+});
+
+it('shows article cards with a status badge and kind chip, not raw identifiers', () => {
+  result('get_articles', [
+    {
+      articleId: 'article-123',
+      description: 'A launch post',
+      status: 'draft',
+      title: 'Launch day',
+    },
+  ]);
+
+  const article = document.querySelector('article.content-card');
+  expect(article?.querySelector('.status')?.textContent).toBe('draft');
+  expect(article?.querySelector('.meta')?.textContent).toContain('Article');
+  expect(article?.textContent).not.toContain('article-123');
 });
