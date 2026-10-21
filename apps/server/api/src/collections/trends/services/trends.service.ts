@@ -23,6 +23,7 @@ import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/tr
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
 import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import {
@@ -70,6 +71,7 @@ export class TrendsService {
     private readonly trendVideoService: TrendVideoService,
     private readonly trendQueryService: TrendQueryService,
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
+    private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -685,7 +687,7 @@ export class TrendsService {
         ...options,
         limit: 100,
       }),
-      this.trendVideoService.getBrandNicheVideos(organizationId, brandId),
+      this.trendBrandNicheVideoService.get(organizationId, brandId),
     ]);
     const candidates = globalVideos.filter(isPlatformAllowed).map((video) => ({
       topic: [
@@ -750,7 +752,7 @@ export class TrendsService {
     ) {
       return 0;
     }
-    return this.trendVideoService.fetchAndCacheBrandNicheVideos(
+    return this.trendBrandNicheVideoService.fetchAndCache(
       organizationId,
       brandId,
       queries,
