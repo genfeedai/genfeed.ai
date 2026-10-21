@@ -993,7 +993,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     bridge
       .request('ui/message', {
         role: 'user',
-        content: { type: 'text', text: message },
+        content: [{ type: 'text', text: message }],
       })
       .then((result) => {
         if (record(result).isError) throw new Error('blocked');

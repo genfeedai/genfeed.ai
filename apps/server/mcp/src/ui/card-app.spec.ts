@@ -962,7 +962,7 @@ describe('brand gallery', () => {
       )
       .find((data) => data.method === 'ui/message');
     expect(call?.params).toMatchObject({
-      content: { text: expect.stringContaining('brandId brand-2') },
+      content: [{ text: expect.stringContaining('brandId brand-2') }],
       role: 'user',
     });
     // The member-written brand name never reaches the user-role message.
