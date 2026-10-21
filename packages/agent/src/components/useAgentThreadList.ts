@@ -10,6 +10,7 @@ import {
   getErrorMessage,
   hasRenderableThreadId,
   isAuthError,
+  isThreadGoneError,
   keepNewerRunStatus,
   sortThreads,
 } from './agent-thread-list.helpers';
@@ -474,10 +475,18 @@ export function useAgentThreadList({
           setThreads(currentThreads.filter((item) => item.id !== thread.id));
         }
       } catch (error) {
-        logger.error('Failed to archive thread', {
-          error,
-          threadId: thread.id,
-        });
+        if (isThreadGoneError(error)) {
+          setThreads(
+            useAgentChatStore
+              .getState()
+              .threads.filter((item) => item.id !== thread.id),
+          );
+        } else {
+          logger.error('Failed to archive thread', {
+            error,
+            threadId: thread.id,
+          });
+        }
       } finally {
         setOpenMenuThreadId(null);
       }

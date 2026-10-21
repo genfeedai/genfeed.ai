@@ -41,6 +41,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -453,7 +454,7 @@ export class AgentThreadsController {
         userId,
         isDeleted: false,
       });
-      if (!owned) throw new BadRequestException('Thread not found.');
+      if (!owned) throw new NotFoundException('Thread not found.');
       const updated =
         body.status === AgentThreadStatus.ARCHIVED
           ? await this.agentThreadsService.archiveThread(

@@ -1,4 +1,5 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type { StatusKey } from '@genfeedai/ui';
@@ -267,6 +268,11 @@ export function isAuthError(error: unknown): boolean {
   return (
     error.message.includes('401') || error.message.includes('Unauthorized')
   );
+}
+
+/** The API no longer has the thread, so a row for it is stale, not a failure. */
+export function isThreadGoneError(error: unknown): boolean {
+  return error instanceof AgentApiRequestError && error.status === 404;
 }
 
 /**

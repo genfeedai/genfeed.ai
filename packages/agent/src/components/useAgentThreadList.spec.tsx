@@ -1,4 +1,5 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
@@ -268,6 +269,27 @@ describe('useAgentThreadList', () => {
 
     expect(apiService.archiveThread).toHaveBeenCalledWith('t-1');
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
+  });
+
+  it('drops the row without reporting an error when the thread is already gone', async () => {
+    const apiService = makeApiService({
+      archiveThread: vi.fn().mockRejectedValue(
+        new AgentApiRequestError({
+          message: 'Failed to update thread: 404 - Thread not found.',
+          status: 404,
+        }),
+      ),
+    });
+    const { result } = renderThreadList(apiService);
+    await waitFor(() => expect(result.current.threads).toHaveLength(1));
+    vi.mocked(logger.error).mockClear();
+
+    await act(async () => {
+      await result.current.handleArchiveFromMenu(makeThread('t-1'));
+    });
+
+    expect(useAgentChatStore.getState().threads).toHaveLength(0);
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it('archiving the active thread keeps it with archived status and navigates away', async () => {

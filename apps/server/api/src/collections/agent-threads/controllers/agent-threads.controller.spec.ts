@@ -9,6 +9,7 @@ import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.dec
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { NotFoundException } from '@nestjs/common';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -585,7 +586,7 @@ describe('AgentThreadsController', () => {
           { mode: 'auto' as never },
           mockUser,
         ),
-      ).rejects.toThrow();
+      ).rejects.toBeInstanceOf(NotFoundException);
       expect(service.findOne).toHaveBeenCalledWith({
         id: 'foreign',
         organizationId: 'org_current',
