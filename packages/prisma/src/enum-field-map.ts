@@ -1196,6 +1196,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'defaultImageToVideoModel',
       'defaultMusicModel',
       'defaultVideoModel',
+      'deletedSlug',
       'description',
       'fontFamily',
       'id',

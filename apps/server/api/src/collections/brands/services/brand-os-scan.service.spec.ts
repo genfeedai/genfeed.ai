@@ -130,6 +130,7 @@ function harness(initial: BrandOsRevision[] = []) {
       updatedAt: NOW,
       userId: null,
       slug: BRAND,
+      deletedSlug: null,
       isDefault: false,
       scope: 'USER',
       isActive: true,

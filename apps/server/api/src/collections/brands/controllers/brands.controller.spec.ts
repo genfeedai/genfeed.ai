@@ -872,6 +872,7 @@ describe('BrandsController', () => {
           defaultImageToVideoModel: null,
           defaultMusicModel: null,
           defaultVideoModel: null,
+          deletedSlug: null,
           fontFamily: 'MONTSERRAT_BLACK',
           isActive: true,
           isDefault: false,
