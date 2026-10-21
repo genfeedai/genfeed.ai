@@ -68,15 +68,15 @@ export default function AdminContextSidebar() {
         aria-hidden={activeSidebar ? undefined : true}
         aria-label={translate('label')}
         className={cn(
-          'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
-          isOpen && 'border-y border-r border-border',
+          'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
+          isOpen && 'border border-border',
         )}
         data-motion="layout"
         inert={!isOpen}
         ref={railRef}
         style={{
           bottom: 'var(--shell-inset, 0px)',
-          right: 0,
+          right: 'var(--shell-inset, 0px)',
           top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
           transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
           width: isOpen ? ADMIN_SIDEBAR_WIDTH : 0,

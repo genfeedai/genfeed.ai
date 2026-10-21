@@ -879,6 +879,38 @@ describe('AgentWorkspaceToolHandler.getBrands', () => {
     ).toEqual(['b1', 'b2']);
   });
 
+  it('attaches logos only when includeLogo is set', async () => {
+    const attach = vi.fn().mockResolvedValue([
+      {
+        ...docs[0],
+        logo: {
+          category: 'LOGO',
+          cdnUrl: 'https://cdn.example/a.png',
+          id: 'l1',
+        },
+      },
+    ]);
+    const withLogos = buildHandler({
+      brands: {
+        attachBrandKitAssetRelations: attach,
+        findAll: vi.fn().mockResolvedValue({ docs: [docs[0]] }),
+      },
+    });
+
+    const plain = await withLogos.getBrands({}, baseCtx);
+    expect(attach).not.toHaveBeenCalled();
+    expect(
+      (plain.data as { brands: Record<string, unknown>[] }).brands[0],
+    ).not.toHaveProperty('logo');
+
+    const result = await withLogos.getBrands({ includeLogo: true }, baseCtx);
+    expect(attach).toHaveBeenCalledWith([docs[0]], 'org-1');
+    expect(
+      (result.data as { brands: { logo: { cdnUrl: string } }[] }).brands[0].logo
+        .cdnUrl,
+    ).toBe('https://cdn.example/a.png');
+  });
+
   it.each(['b2', 'BETA', 'beta co'])(
     'returns the one brand matched by %s',
     async (brandId) => {

@@ -15,6 +15,7 @@ import {
   type IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import {
+  readMediaResponseString,
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
@@ -182,6 +183,7 @@ export class OnboardingFirstDraftsService {
     if (!xDraft) {
       return {
         drafts: [],
+        imageIngredientId: null,
         imageUrl: null,
         requestKey: null,
         status: 'unavailable',
@@ -191,7 +193,7 @@ export class OnboardingFirstDraftsService {
     const otherPlatforms = ONBOARDING_DRAFT_PLATFORMS.filter(
       (platform) => platform !== 'twitter',
     ) as Exclude<OnboardingDraftPlatform, 'twitter'>[];
-    const [imageUrl, others] = await Promise.all([
+    const [image, others] = await Promise.all([
       this.generateImage({
         brandName,
         description,
@@ -230,10 +232,16 @@ export class OnboardingFirstDraftsService {
       ),
     ];
     const status: OnboardingFirstDraftsStatus =
-      drafts.length === ONBOARDING_DRAFT_PLATFORMS.length && imageUrl
+      drafts.length === ONBOARDING_DRAFT_PLATFORMS.length && image.url
         ? 'ready'
         : 'partial';
-    return { drafts, imageUrl, requestKey: xDraft.requestKey, status };
+    return {
+      drafts,
+      imageIngredientId: image.ingredientId,
+      imageUrl: image.url,
+      requestKey: xDraft.requestKey,
+      status,
+    };
   }
 
   private describeContext(context?: OnboardingDraftContextDto): string {
@@ -326,14 +334,14 @@ export class OnboardingFirstDraftsService {
     };
   }
 
-  /** One cost-priority image for the posts that carry one; null when it fails. */
+  /** One cost-priority image for the posts that carry one; nulls when it fails. */
   private async generateImage(input: {
     brandName: string;
     description: string;
     direction: string;
     identity: { brandId: string; organizationId: string; userId: string };
     tweet: string;
-  }): Promise<string | null> {
+  }): Promise<{ ingredientId: string | null; url: string | null }> {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
@@ -360,18 +368,20 @@ export class OnboardingFirstDraftsService {
           principal: input.identity,
         }),
       );
-      return (
-        readUsableCdnAssetUrl(
-          response,
-          this.configService.ingredientsEndpoint,
-        ) ?? null
-      );
+      return {
+        ingredientId: readMediaResponseString(response, 'id') ?? null,
+        url:
+          readUsableCdnAssetUrl(
+            response,
+            this.configService.ingredientsEndpoint,
+          ) ?? null,
+      };
     } catch (error: unknown) {
       this.loggerService.warn('Onboarding image generation failed', {
         brandId: input.identity.brandId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return null;
+      return { ingredientId: null, url: null };
     }
   }
 }

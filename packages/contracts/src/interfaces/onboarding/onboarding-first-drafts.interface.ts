@@ -46,6 +46,8 @@ export type OnboardingFirstDraftsStatus = 'ready' | 'partial' | 'unavailable';
 
 export interface IOnboardingFirstDraftsResult {
   drafts: IOnboardingFirstDraft[];
+  /** Library id of the shared image, attached to a post when it is scheduled. */
+  imageIngredientId: string | null;
   /** The one image shared by the X, Instagram and LinkedIn drafts. */
   imageUrl: string | null;
   /** Request key of the X draft, passed back to link a regeneration to it. */

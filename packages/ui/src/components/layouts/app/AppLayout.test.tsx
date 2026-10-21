@@ -309,7 +309,9 @@ describe('AppLayout', () => {
     expect(panel).toHaveClass(
       'bg-background',
       'md:mb-[var(--shell-inset)]',
-      'xl:mr-[var(--workspace-inspector-width,0px)]',
+      'md:mr-[var(--shell-inset)]',
+      'xl:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset))]',
+      'xl:[[data-inspector-open=true]_&]:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset)*2)]',
       'md:flex-row',
       'md:overflow-hidden',
       'md:rounded-lg',
@@ -317,7 +319,13 @@ describe('AppLayout', () => {
       'md:border-border',
     );
     expect(panel).not.toHaveClass('md:ml-[var(--shell-inset)]');
-    expect(panel).not.toHaveClass('md:mr-[var(--shell-inset)]');
+    // The block keeps its border and rounding when the inspector opens.
+    expect(panel).not.toHaveClass(
+      'xl:[[data-inspector-open=true]_&]:rounded-none',
+      'xl:[[data-inspector-open=true]_&]:border-r-0',
+      'xl:[[data-inspector-open=true]_&]:border-b-0',
+      'xl:[[data-inspector-open=true]_&]:mb-0',
+    );
     expect(panel).toHaveAttribute('data-motion', 'layout');
     expect(panel.style.transition).toContain('margin-right');
     expect(panel).toContainElement(sidebar);

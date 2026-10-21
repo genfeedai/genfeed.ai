@@ -3,6 +3,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   McpCalendarDay,
   McpCard,
+  McpCardAction,
   McpCardMedia,
   McpCardView,
   McpOrganizationSwitcher,
@@ -16,6 +17,7 @@ import type {
   PendingResponse,
   PreviewBridge,
   PreviewProps,
+  SummaryCardProps,
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import uiMessages from '@preview-messages/ui';
@@ -23,6 +25,7 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -98,6 +101,21 @@ function card(value: unknown): McpCard | undefined {
     url: safeUrl(row.url),
     thumbnailUrl: safeUrl(row.thumbnailUrl),
     mediaUrl: safeUrl(row.mediaUrl),
+    avatarUrl: safeUrl(row.avatarUrl),
+    actions: Array.isArray(row.actions)
+      ? row.actions.slice(0, 4).flatMap((value) => {
+          const item = record(value);
+          return item.kind === 'select_brand' && text(item.brandId)
+            ? [
+                {
+                  kind: 'select_brand' as const,
+                  brandId: text(item.brandId),
+                  label: text(item.label) || 'Select',
+                },
+              ]
+            : [];
+        })
+      : undefined,
     author: {
       name: text(record(row.author).name),
       handle: text(record(row.author).handle),
@@ -373,7 +391,123 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
     );
   return null;
 }
-function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
+function initials(value: string) {
+  const letters = value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase());
+  return letters.join('') || '?';
+}
+function SummaryCard({
+  item,
+  bridge,
+  isActionPending,
+  isSelected,
+  onAction,
+  when,
+}: SummaryCardProps) {
+  const avatar = safeUrl(item.avatarUrl);
+  const avatarUrl =
+    avatar &&
+    (mediaUrl(avatar, bridge.origins) || isAccountAvatarOrigin(new URL(avatar)))
+      ? avatar
+      : undefined;
+  const hasIdentity = Boolean(item.actions?.length || item.avatarUrl);
+  const handle = item.facts?.find((fact) => fact.label === 'Handle')?.value;
+  const facts = (item.facts || []).filter(
+    (fact) => !hasIdentity || fact.label !== 'Handle',
+  );
+  return (
+    <article className="content-card min-w-0">
+      <div
+        data-testid="preview-card"
+        className="flex h-full flex-col gap-3 rounded-card bg-card p-4 text-card-foreground shadow-border"
+      >
+        <div className="flex items-start gap-3">
+          {hasIdentity && (
+            <Avatar className="size-11 rounded-xl">
+              {avatarUrl && (
+                <AvatarImage
+                  src={avatarUrl}
+                  alt=""
+                  className="rounded-xl object-cover"
+                  onLoadingStatusChange={() => bridge.resize()}
+                />
+              )}
+              <AvatarFallback className="rounded-xl text-sm font-semibold">
+                {initials(item.title)}
+              </AvatarFallback>
+            </Avatar>
+          )}
+          <div className="min-w-0 flex-1">
+            <Heading as="h2" size="sm" className="break-words">
+              {item.title}
+            </Heading>
+            {hasIdentity && handle && (
+              <Text as="p" size="xs" color="muted" className="truncate">
+                @{handle.replace(/^@/, '')}
+              </Text>
+            )}
+          </div>
+          {item.status && (
+            <Badge variant="outline" className="status shrink-0">
+              {item.status}
+            </Badge>
+          )}
+        </div>
+        {item.description && (
+          <Description content={item.description} bridge={bridge} />
+        )}
+        {facts.length ? (
+          <dl className="facts grid gap-1">
+            {facts.map((fact) => (
+              <div key={fact.label} className="flex flex-wrap gap-x-2">
+                <Text as="dt" size="sm" color="muted">
+                  {fact.label}
+                </Text>
+                <Text as="dd" size="sm" className="break-words">
+                  {fact.value}
+                </Text>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {when && (
+          <Text size="xs" color="muted">
+            {when}
+          </Text>
+        )}
+        {item.actions?.length ? (
+          <div className="media-actions mt-auto flex flex-wrap gap-2 pt-1">
+            {item.actions.map((action) => (
+              <Button
+                key={`${action.kind}-${action.brandId}`}
+                variant={
+                  isSelected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
+                }
+                withWrapper={false}
+                isDisabled={isSelected || isActionPending}
+                ariaLabel={`${action.label} ${item.title}`}
+                onClick={() => onAction(action)}
+              >
+                {isSelected ? 'Selected' : action.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+function CardPreview({
+  item,
+  bridge,
+  openImage,
+  selectedId,
+  isActionPending = false,
+  onAction,
+}: CardPreviewProps) {
   const { current, exhausted } = usePendingCard(item, bridge);
   const [failed, setFailed] = useState(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result resets the media error state.
@@ -408,6 +542,17 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
       }}
     />
   );
+  if (current.kind === 'summary')
+    return (
+      <SummaryCard
+        item={current}
+        bridge={bridge}
+        isActionPending={isActionPending}
+        isSelected={Boolean(selectedId) && current.id === selectedId}
+        onAction={onAction}
+        when={when}
+      />
+    );
   if (isPost) {
     const avatar = safeUrl(current.author?.avatarUrl);
     const avatarUrl =
@@ -548,7 +693,7 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
         isLabelWrapped
         bodyClassName="gap-3"
         headerAction={
-          (isPost || current.kind === 'summary') && current.status ? (
+          !isMedia && current.status ? (
             <Badge variant="outline" className="status">
               {current.status}
             </Badge>
@@ -575,7 +720,7 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
             </Text>
           </div>
         ) : isMedia && !failed ? (
-          <div className="media-preview">
+          <div className="media-preview overflow-hidden rounded-lg bg-muted/40">
             {current.kind === 'media' ? (
               <Text as="p" size="sm" color="muted">
                 No inline preview for this file.
@@ -607,38 +752,23 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
           <Heading as="p" size="2xl" className="metric">
             {current.description}
           </Heading>
-        ) : current.kind === 'summary' ? (
-          <>
-            <Description content={current.description} bridge={bridge} />
-            {current.facts?.length ? (
-              <dl className="facts grid gap-1">
-                {current.facts.map((item) => (
-                  <div key={item.label} className="flex flex-wrap gap-x-2">
-                    <Text as="dt" size="sm" color="muted">
-                      {item.label}
-                    </Text>
-                    <Text as="dd" size="sm" className="break-words">
-                      {item.value}
-                    </Text>
-                  </div>
-                ))}
-              </dl>
-            ) : null}
+        ) : (
+          <Description content={current.description} bridge={bridge} />
+        )}
+        {!isPost && !isMedia && (
+          <div className="meta flex flex-wrap items-center gap-2">
+            <Badge variant="outline">
+              {current.kind.charAt(0).toUpperCase() + current.kind.slice(1)}
+            </Badge>
+            {current.platform && (
+              <Badge variant="outline">{platformName(current.platform)}</Badge>
+            )}
             {when && (
               <Text size="xs" color="muted">
                 {when}
               </Text>
             )}
-          </>
-        ) : (
-          <Description content={current.description} bridge={bridge} />
-        )}
-        {!isPost && !isMedia && current.kind !== 'summary' && (
-          <Text size="xs" color="muted">
-            {[current.kind, current.platform, current.status, current.id, when]
-              .filter(Boolean)
-              .join(' · ')}
-          </Text>
+          </div>
         )}
         {isMedia &&
           !current.isPending &&
@@ -801,6 +931,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
   const [switched, setSwitched] = useState<McpCardView | undefined>();
   const [isSwitching, setIsSwitching] = useState(false);
   const [switchError, setSwitchError] = useState('');
+  const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [pendingBrandId, setPendingBrandId] = useState('');
+  const isSelectingRef = useRef(false);
   const resultView = useMemo(() => readView(result), [result]);
   const view = switched ?? resultView;
   const [image, setImage] = useState<ImagePreview | null>(null);
@@ -815,6 +948,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     setImage(null);
     setSwitched(undefined);
     setSwitchError('');
+    setSelectedBrandId('');
     bridge.resize();
   }, [result, bridge]);
   const days = localCalendarDays(view?.calendar?.days || []);
@@ -857,6 +991,32 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         bridge.resize();
       });
   }
+  function runAction(action: McpCardAction) {
+    // One selection message per click, however fast the clicks come.
+    if (isSelectingRef.current) return;
+    isSelectingRef.current = true;
+    setPendingBrandId(action.brandId);
+    // The brand name is member-written text; the message names only the id.
+    const message = `Use the brand with brandId ${action.brandId} for everything we do in this conversation. Pass that brandId to every tool that takes one.`;
+    bridge
+      .request('ui/message', {
+        role: 'user',
+        content: [{ type: 'text', text: message }],
+      })
+      .then((result) => {
+        if (record(result).isError) throw new Error('blocked');
+        setSelectedBrandId(action.brandId);
+      })
+      .catch(() =>
+        bridge.notify(
+          `This client could not send the selection. Tell your assistant: ${message}`,
+        ),
+      )
+      .finally(() => {
+        isSelectingRef.current = false;
+        setPendingBrandId('');
+      });
+  }
   function openImage(src: string, title: string, trigger: HTMLElement) {
     returnFocus.current = trigger;
     setImage({ src, title, trigger });
@@ -882,9 +1042,14 @@ function Preview({ result, notice, bridge }: PreviewProps) {
               : 'mb-3 flex items-baseline justify-between gap-3'
           }
         >
-          <Heading as="h1" size="md" id="title">
-            {view?.title || 'Genfeed content'}
-          </Heading>
+          <div className="flex min-w-0 items-center gap-2">
+            <Heading as="h1" size="md" id="title">
+              {view?.title || 'Genfeed content'}
+            </Heading>
+            {view &&
+              ['cards', 'organizations'].includes(view.layout) &&
+              view.total > 1 && <Badge variant="outline">{view.total}</Badge>}
+          </div>
           <Text size="xs" color="muted">
             GENFEED
           </Text>
@@ -956,6 +1121,13 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   <Card
                     labelAs="h2"
                     isLabelWrapped
+                    className={
+                      day.date === localDayKey(new Date())
+                        ? 'ring-1 ring-primary/50'
+                        : day.posts.length
+                          ? undefined
+                          : 'opacity-80'
+                    }
                     bodyClassName="min-h-24 gap-2"
                     headerAction={
                       day.date === localDayKey(new Date()) ? (
@@ -971,20 +1143,30 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                     {day.posts.length ? (
                       day.posts.map((post) => (
                         <div
-                          className="slot space-y-1"
+                          className="slot space-y-1 rounded-lg bg-muted/40 p-2"
                           key={post.id || `${post.date}-${post.description}`}
                         >
-                          <Text size="xs" color="muted">
-                            {formatDate(post.date, { timeStyle: 'short' })} ·{' '}
-                            {platformName(post.platform)}
-                          </Text>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {post.platform && (
+                              <Badge variant="outline">
+                                {platformName(post.platform)}
+                              </Badge>
+                            )}
+                            <Text size="xs" color="muted">
+                              {formatDate(post.date, { timeStyle: 'short' })}
+                            </Text>
+                          </div>
                           <Text as="p" size="sm" className="line-clamp-3">
                             {post.description || post.title}
                           </Text>
                         </div>
                       ))
                     ) : (
-                      <Text size="xs" color="muted">
+                      <Text
+                        size="xs"
+                        color="muted"
+                        className="rounded-lg border border-dashed border-border p-2 text-center"
+                      >
                         Nothing scheduled
                       </Text>
                     )}
@@ -1000,6 +1182,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   item={item}
                   bridge={bridge}
                   openImage={openImage}
+                  selectedId={selectedBrandId}
+                  isActionPending={Boolean(pendingBrandId)}
+                  onAction={runAction}
                 />
               ))}
         </div>

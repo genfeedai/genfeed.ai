@@ -46,6 +46,10 @@ import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { HttpException, Inject, Injectable, Optional } from '@nestjs/common';
 
 type AgentBrandsServiceLike = {
+  attachBrandKitAssetRelations?: (
+    brands: Record<string, unknown>[],
+    organizationId: string,
+  ) => Promise<Record<string, unknown>[]>;
   findAll: (
     query: Record<string, unknown>,
     options: Record<string, unknown>,
@@ -200,6 +204,7 @@ export class AgentWorkspaceToolHandler {
 
   private async listAccessibleBrands(
     ctx: ToolExecutionContext,
+    options: { hasLogos?: boolean } = {},
   ): Promise<AgentBrandSerializedData[]> {
     const brandWhere = isCloudDeployment()
       ? await this.brandAccessService.predicate({
@@ -214,9 +219,17 @@ export class AgentWorkspaceToolHandler {
       },
       {},
     );
-    return serializeAgentBrands(
-      (brands.docs as Record<string, unknown>[] | undefined) ?? [],
-    );
+    const docs = (brands.docs as Record<string, unknown>[] | undefined) ?? [];
+    // Logos are Asset rows, not brand columns: attach them only for callers
+    // that render them, so agent threads do not carry signed URLs.
+    const decorated =
+      options.hasLogos && this.brandsService.attachBrandKitAssetRelations
+        ? await this.brandsService.attachBrandKitAssetRelations(
+            docs.map((doc) => ({ ...doc })),
+            ctx.organizationId,
+          )
+        : docs;
+    return serializeAgentBrands(decorated);
   }
 
   /**
@@ -250,12 +263,15 @@ export class AgentWorkspaceToolHandler {
    * `get_brands`: every brand in the organization, or the one matching
    * `brand` by id, slug, name or label. The lookup is a plain `brand` field,
    * not `brandId`, so it never collides with thread brand-scope checks.
+   * `includeLogo` adds each brand's logo for clients that render brand cards.
    */
   async getBrands(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const serialized = await this.listAccessibleBrands(ctx);
+    const serialized = await this.listAccessibleBrands(ctx, {
+      hasLogos: params.includeLogo === true,
+    });
 
     const requested = readRequiredString(params.brand);
     if (!requested) {

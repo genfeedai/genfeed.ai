@@ -598,7 +598,7 @@ it('files calendar posts under the viewer-local day of their time', () => {
     (day) => day.textContent?.includes('Late post'),
   );
   expect(column?.querySelector('h2')?.textContent).toContain(label);
-  expect(column?.querySelector('.slot span')?.textContent).toContain(
+  expect(column?.querySelector('.slot')?.textContent).toContain(
     local.toLocaleString(undefined, { timeStyle: 'short' }),
   );
 });
@@ -919,4 +919,133 @@ describe('organization switcher', () => {
     expect(document.body.textContent).toContain('Beta Studio');
     expect(document.body.textContent).not.toContain('Acme Main');
   });
+});
+
+describe('brand gallery', () => {
+  const brands = [
+    {
+      id: 'brand-1',
+      isActive: true,
+      label: 'Acme Main',
+      logo: { cdnUrl: 'https://cdn.genfeed.ai/acme.png', id: 'asset-1' },
+      slug: 'acme',
+    },
+    { id: 'brand-2', label: 'Acme Labs', slug: 'labs' },
+  ];
+
+  it('shows the logo or initials and a Select button per brand', () => {
+    result('get_brands', { brands });
+
+    const cards = document.querySelectorAll('[data-testid="preview-card"]');
+    expect(cards).toHaveLength(2);
+    expect(cards[0].textContent).toContain('@acme');
+    expect(cards[1].textContent).toContain('AL');
+    expect(
+      [...document.querySelectorAll('button')].map((button) =>
+        button.getAttribute('aria-label'),
+      ),
+    ).toEqual(['Select Acme Main', 'Select Acme Labs']);
+  });
+
+  it('tells the host which brand to use and marks it selected', async () => {
+    result('get_brands', { brands });
+
+    document
+      .querySelector<HTMLButtonElement>('button[aria-label="Select Acme Labs"]')
+      ?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(
+        ([data]) => data as { id?: number; method?: string; params?: unknown },
+      )
+      .find((data) => data.method === 'ui/message');
+    expect(call?.params).toMatchObject({
+      content: [{ text: expect.stringContaining('brandId brand-2') }],
+      role: 'user',
+    });
+    // The member-written brand name never reaches the user-role message.
+    expect(JSON.stringify(call?.params)).not.toContain('Acme Labs');
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window.parent,
+        data: { jsonrpc: '2.0', id: call?.id, result: {} },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(
+      document.querySelector<HTMLButtonElement>(
+        'button[aria-label="Select Acme Labs"]',
+      )?.textContent,
+    ).toBe('Selected');
+  });
+
+  it('falls back to a line the user can paste when the host refuses', async () => {
+    result('get_brands', { brands });
+
+    document
+      .querySelector<HTMLButtonElement>('button[aria-label="Select Acme Main"]')
+      ?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(([data]) => data as { id?: number; method?: string })
+      .find((data) => data.method === 'ui/message');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window.parent,
+        data: {
+          jsonrpc: '2.0',
+          id: call?.id,
+          error: { code: -32601, message: 'Method not supported' },
+        },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(document.querySelector('#notice')?.textContent).toContain(
+      'brandId brand-1',
+    );
+  });
+
+  it('sends one selection while a previous one is still pending', async () => {
+    result('get_brands', { brands });
+
+    const button = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Select Acme Main"]',
+    );
+    button?.click();
+    button?.click();
+    document
+      .querySelector<HTMLButtonElement>('button[aria-label="Select Acme Labs"]')
+      ?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(
+      vi
+        .mocked(window.parent.postMessage)
+        .mock.calls.filter(
+          ([data]) => (data as { method?: string }).method === 'ui/message',
+        ),
+    ).toHaveLength(1);
+  });
+});
+
+it('shows article cards with a status badge and kind chip, not raw identifiers', () => {
+  result('get_articles', [
+    {
+      articleId: 'article-123',
+      description: 'A launch post',
+      status: 'draft',
+      title: 'Launch day',
+    },
+  ]);
+
+  const article = document.querySelector('article.content-card');
+  expect(article?.querySelector('.status')?.textContent).toBe('draft');
+  expect(article?.querySelector('.meta')?.textContent).toContain('Article');
+  expect(article?.textContent).not.toContain('article-123');
 });

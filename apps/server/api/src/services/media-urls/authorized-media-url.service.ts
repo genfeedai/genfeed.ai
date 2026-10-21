@@ -24,6 +24,7 @@ import type {
   MediaResourceProjection,
 } from '@genfeedai/contracts/interfaces';
 import { hasCleanExportAccess } from '@genfeedai/pricing';
+import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
@@ -434,40 +435,55 @@ export class AuthorizedMediaUrlService {
     assetIds: readonly string[],
   ): Promise<MediaAssetProjection[]> {
     if (assetIds.length === 0) return [];
-    if (!(await this.hasCleanAccess(scope.organizationId))) {
-      return assetIds.map((assetId) => ({ assetId, url: null }));
-    }
+    const hasCleanAccess = await this.hasCleanAccess(scope.organizationId);
+    // Brand identity (logo, banner) is not generated media: it renders in the
+    // brand switcher on every plan and for every brand the member can open, so
+    // it skips the clean-access and selected-brand gates. Everything else
+    // stays gated.
     const assets = await this.prisma.asset.findMany({
       select: {
         id: true,
+        category: true,
         cloudObjectKey: true,
         parentBrandId: true,
+        parentType: true,
         userId: true,
       },
       where: {
         id: { in: [...assetIds].slice(0, 500) },
         parentOrgId: scope.organizationId,
         isDeleted: false,
+        ...(hasCleanAccess
+          ? {}
+          : {
+              category: { in: BRAND_IDENTITY_CATEGORIES },
+              parentType: AssetParent.BRAND,
+            }),
       },
     });
-    return assets.map((asset) => {
+    const visible = new Map<string, MediaAssetProjection>(
+      assetIds.map((assetId) => [assetId, { assetId, url: null }]),
+    );
+    for (const asset of assets) {
+      const isBrandIdentity =
+        asset.parentType === AssetParent.BRAND &&
+        BRAND_IDENTITY_CATEGORIES.includes(asset.category);
+      const key = trustedAssetKey(asset.cloudObjectKey);
       if (
-        !asset.cloudObjectKey ||
-        (scope.brandId &&
+        !key ||
+        (!isBrandIdentity &&
+          scope.brandId &&
           asset.parentBrandId !== scope.brandId &&
           asset.userId !== scope.userId)
       ) {
-        return { assetId: asset.id, url: null };
+        continue;
       }
-      const key = trustedAssetKey(asset.cloudObjectKey);
-      if (!key) {
-        return { assetId: asset.id, url: null };
-      }
-      return {
+      visible.set(asset.id, {
         assetId: asset.id,
         url: this.grant(asset.id, key, 'preview').url,
-      };
-    });
+      });
+    }
+    return [...visible.values()];
   }
 
   async readSources(
@@ -627,6 +643,12 @@ export class AuthorizedMediaUrlService {
     return { expiresAt: null, id, purpose, state, url: null };
   }
 }
+
+/** Brand kit assets that identify a brand rather than carry generated media. */
+const BRAND_IDENTITY_CATEGORIES: AssetCategory[] = [
+  AssetCategory.LOGO,
+  AssetCategory.BANNER,
+];
 
 /** Stored key of a brand asset, or null when it is not a plain relative object key. */
 function trustedAssetKey(key: string | null): string | null {

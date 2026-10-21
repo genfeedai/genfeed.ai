@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { ONBOARDING_MAX_DRAFT_ROUNDS } from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
@@ -10,6 +11,7 @@ import Spinner from '@ui/primitives/spinner';
 import { useTranslations } from 'next-intl';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
+import ScheduleStep from './schedule-step';
 import { useFirstDrafts } from './use-first-drafts';
 
 /**
@@ -20,6 +22,7 @@ import { useFirstDrafts } from './use-first-drafts';
 export default function FirstDraftsOnboarding() {
   const t = useTranslations('pages.onboarding.firstDrafts');
   const state = useFirstDrafts();
+  const { brandId } = useBrand();
 
   if (!state.isReady) {
     return (
@@ -49,6 +52,18 @@ export default function FirstDraftsOnboarding() {
         isWebsiteMissing={state.scan === null}
         offerSuggestions={state.scan?.summary?.suggestions?.offers ?? []}
         onSubmit={state.onSubmitContext}
+      />
+    );
+  }
+
+  if (state.phase === 'schedule' && state.result) {
+    return (
+      <ScheduleStep
+        brandId={brandId}
+        imageIngredientId={state.result.imageIngredientId}
+        isFinishing={state.isContinuing}
+        likedDrafts={state.likedDrafts}
+        onFinish={state.onContinue}
       />
     );
   }
@@ -85,9 +100,16 @@ export default function FirstDraftsOnboarding() {
                   key={draft.postId}
                   draft={draft}
                   imageUrl={imageUrl}
+                  onVerdict={state.onVerdict}
+                  verdict={state.verdicts[draft.postId]}
                 />
               ))}
             </div>
+            {state.canRetry && drafts.some((draft) => draft.isProvisional) ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t('review.generic')}
+              </p>
+            ) : null}
             {status === 'partial' ? (
               <p role="status" className="text-sm text-muted-foreground">
                 {t('review.partial')}
@@ -103,14 +125,28 @@ export default function FirstDraftsOnboarding() {
         ) : null}
 
         <div className="flex flex-wrap gap-3">
+          {state.likedDrafts.length > 0 ? (
+            <Button
+              label={t('review.schedule', { count: state.likedDrafts.length })}
+              isDisabled={state.isContinuing}
+              onClick={state.onSchedule}
+            />
+          ) : null}
           <Button
             label={
               status === 'unavailable'
                 ? t('review.continueAnyway')
-                : t('review.looksRight')
+                : state.likedDrafts.length > 0
+                  ? t('review.skipScheduling')
+                  : t('review.looksRight')
             }
             isLoading={state.isContinuing}
             onClick={state.onContinue}
+            variant={
+              state.likedDrafts.length > 0
+                ? ButtonVariant.GHOST
+                : ButtonVariant.DEFAULT
+            }
           />
           {state.canRetry && status !== 'unavailable' ? (
             <Button

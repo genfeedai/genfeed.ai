@@ -8,7 +8,7 @@
 # ==================================================
 # Stage 1: Toolchain
 # ==================================================
-FROM node:24-slim AS toolchain
+FROM node:24.22.1-slim AS toolchain
 
 # Docker cannot read `.bun-version` before selecting/installing its toolchain.
 # The unpinned installer intentionally mirrors that rolling policy, and the CI
@@ -284,7 +284,7 @@ RUN node -r tsconfig-paths/register \
 # ==================================================
 # Stage 6: Production - Runtime image
 # ==================================================
-FROM node:24-slim AS production
+FROM node:24.22.1-slim AS production
 
 # Install system dependencies for Bun, FFmpeg, the tesseract OCR engine used by
 # media perception (#4879), and the pinned Remotion Chrome Headless Shell

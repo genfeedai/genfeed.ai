@@ -678,7 +678,11 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).toBeInTheDocument();
     expect(aside).toHaveAttribute('inert');
     expect(aside).toHaveAttribute('aria-hidden', 'true');
-    expect(aside).toHaveStyle({ minWidth: '0px', width: '0px', right: '0px' });
+    expect(aside).toHaveStyle({
+      minWidth: '0px',
+      width: '0px',
+      right: 'var(--shell-inset, 0px)',
+    });
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
@@ -755,17 +759,22 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: attached to the page block. The panel's left border is the
-    // divider; the panel starts under the full-width topbar.
+    // Open: a detached card beside the page block, with its own border and
+    // rounding; the panel starts under the full-width topbar.
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('400px');
-    expect(aside).toHaveClass('bg-card', 'border-l', 'border-border-strong');
-    expect(aside).not.toHaveClass('rounded-r-lg', 'border-y', 'border-r');
+    expect(aside).toHaveClass(
+      'bg-background',
+      'rounded-lg',
+      'border',
+      'border-border',
+    );
+    expect(aside).not.toHaveClass('border-l', 'border-border-strong');
     expect(aside).toHaveStyle({
-      bottom: '0px',
-      right: '0px',
+      bottom: 'var(--shell-inset, 0px)',
+      right: 'var(--shell-inset, 0px)',
       top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
       width: '400px',
     });
@@ -798,7 +807,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('0px');
-    expect(aside).not.toHaveClass('border-l');
+    expect(aside).not.toHaveClass('border');
     expect(aside).toHaveStyle({
       minWidth: '0px',
       width: '0px',
