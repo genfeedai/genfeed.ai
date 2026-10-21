@@ -232,12 +232,18 @@ export class MediaPromptEnhancementService {
             }
           : {}),
       };
-      const message =
-        'Media prompt brand enhancement failed; generation stopped';
+      // An explicit skill or Knowledge pick only reaches the prompt through
+      // enhancement, so it cannot be dropped silently; everything else
+      // generates with the prompt as typed.
+      const isFallback = !requestedSkillSlugs?.length && !knowledgeSelection;
+      const message = isFallback
+        ? 'Media prompt brand enhancement failed; generating with the original prompt'
+        : 'Media prompt brand enhancement failed; generation stopped';
       // A provider failure means the configured text model is unreachable:
       // an operator configuration problem, not a per-request hiccup.
       if (stage === 'provider') this.logger.error(message, undefined, failure);
       else this.logger.warn(message, failure);
+      if (isFallback) return receipt;
       throw new MediaPromptBrandEnhancementException(
         stage,
         error instanceof BrandIdentityIntegrityError

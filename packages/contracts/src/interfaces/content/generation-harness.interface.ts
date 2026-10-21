@@ -47,9 +47,10 @@ export interface GenerationHarnessReceipt {
   /** Exclusions the enhancer asked for; dispatched only to models with a native negative prompt. */
   negativePrompt?: string;
   /**
-   * Enhancement never degrades silently: when brand enhancement fails the
-   * request stops before any paid call, so a receipt is either `applied` or
-   * `skipped` (enhancement off, or an explicit `raw` opt-out).
+   * A receipt is either `applied` or `skipped`: enhancement off, an explicit
+   * `raw` opt-out, or a failed enhancement that fell back to the prompt as
+   * typed. A request with an explicit skill or Knowledge pick still stops
+   * instead, since the pick cannot be honored without enhancement.
    */
   status: 'applied' | 'skipped';
   /** Absent on receipts written before brand modes existed. */
