@@ -100,10 +100,37 @@ def check_biome_config(root: Path, result: ValidationResult) -> dict | None:
     try:
         with open(config_path) as f:
             content = f.read()
-            # Remove comments for jsonc
-            content = re.sub(r'//.*$', '', content, flags=re.MULTILINE)
-            content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
-            config = json.loads(content)
+            # Mask comments outside strings, preserving token boundaries and lines.
+            cleaned = list(content)
+            in_string = False
+            index = 0
+            while index < len(content):
+                char = content[index]
+                if in_string:
+                    if char == '\\':
+                        index += 2
+                        continue
+                    if char == '"':
+                        in_string = False
+                elif char == '"':
+                    in_string = True
+                elif content.startswith('//', index):
+                    while index < len(content) and content[index] not in '\r\n':
+                        cleaned[index] = ' '
+                        index += 1
+                    continue
+                elif content.startswith('/*', index):
+                    end = content.find('*/', index + 2)
+                    if end == -1:
+                        raise json.JSONDecodeError('Unterminated comment', content, index)
+                    end += 2
+                    while index < end:
+                        if content[index] not in '\r\n':
+                            cleaned[index] = ' '
+                        index += 1
+                    continue
+                index += 1
+            config = json.loads(''.join(cleaned))
     except json.JSONDecodeError as e:
         result.add_issue('error', config_path.name, f'Invalid JSON: {e}')
         return None
