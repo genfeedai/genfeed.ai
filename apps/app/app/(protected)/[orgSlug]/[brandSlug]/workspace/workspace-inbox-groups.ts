@@ -1,5 +1,5 @@
 import type { Task } from '@services/management/tasks.service';
-import { isToday, isYesterday } from 'date-fns';
+import { isSameDay, subDays } from 'date-fns';
 
 export type WorkspaceInboxGroupKey = 'today' | 'yesterday' | 'earlier';
 
@@ -21,11 +21,11 @@ export function getWorkspaceInboxGroupKey(
 
   const date = new Date(timestamp);
 
-  if (isToday(date) || date.getTime() > now.getTime()) {
+  if (isSameDay(date, now) || date.getTime() > now.getTime()) {
     return 'today';
   }
 
-  return isYesterday(date) ? 'yesterday' : 'earlier';
+  return isSameDay(date, subDays(now, 1)) ? 'yesterday' : 'earlier';
 }
 
 /**
