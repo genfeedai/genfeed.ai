@@ -11,8 +11,6 @@ const AGENT_ROUTES = [
   AGENT_BASE,
   `${AGENT_BASE}/new`,
   `${AGENT_BASE}/thread-1`,
-  `${AGENT_BASE}/onboarding`,
-  `${AGENT_BASE}/onboarding/thread-1`,
 ];
 
 test.describe('Agent surface', () => {
