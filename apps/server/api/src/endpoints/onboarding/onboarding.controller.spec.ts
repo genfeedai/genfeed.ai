@@ -178,6 +178,7 @@ describe('OnboardingController', () => {
     it('verifies brand access before generating drafts', async () => {
       firstDraftsService.generate.mockResolvedValue({
         drafts: [],
+        imageIngredientId: null,
         imageUrl: null,
         requestKey: null,
         status: 'unavailable',
