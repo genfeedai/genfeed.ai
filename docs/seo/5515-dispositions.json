@@ -1091,7 +1091,7 @@
       "observed": "146 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Buffer comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1102,7 +1102,7 @@
       "observed": "147 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Jasper comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1113,7 +1113,7 @@
       "observed": "151 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Runway comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1179,7 +1179,7 @@
       "observed": "150 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Canva comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1190,7 +1190,7 @@
       "observed": "151 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "CapCut comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1201,7 +1201,7 @@
       "observed": "147 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Descript comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1212,7 +1212,7 @@
       "observed": "145 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "HeyGen comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1223,7 +1223,7 @@
       "observed": "149 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "InVideo comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1234,7 +1234,7 @@
       "observed": "151 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Lumen5 comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1245,7 +1245,7 @@
       "observed": "151 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Opus Clip comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1256,7 +1256,7 @@
       "observed": "148 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Pictory comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
@@ -1267,7 +1267,7 @@
       "observed": "149 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Synthesia comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
       "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
