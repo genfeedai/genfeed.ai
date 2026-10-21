@@ -4,7 +4,10 @@ import { BrandIdentityIntegrityError } from '@api/services/branded-generation-re
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import {
+  type MediaPromptEnhancementInput,
+  MediaPromptEnhancementService,
+} from '@api/services/harness/media-prompt-enhancement.service';
 import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
@@ -395,10 +398,18 @@ describe('MediaPromptEnhancementService', () => {
       await expect(service.enhance(input)).rejects.toBe(denied);
     });
 
-    it.each([
+    it.each<
+      [
+        string,
+        Pick<
+          MediaPromptEnhancementInput,
+          'knowledgeSelection' | 'requestedSkillSlugs'
+        >,
+      ]
+    >([
       ['a skill', { requestedSkillSlugs: ['cinema'] }],
       ['Knowledge', { knowledgeSelection: { sourceIds: ['source-1'] } }],
-    ] as const)(
+    ])(
       'falls back and drops the pick when the request picked %s',
       async (_label, pick) => {
         const { service, harness, promptEnhancement } = setup();
