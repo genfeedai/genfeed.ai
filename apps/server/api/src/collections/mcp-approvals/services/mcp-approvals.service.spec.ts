@@ -200,6 +200,21 @@ describe('McpApprovalsService', () => {
       });
       expect(brandAccess.assert).not.toHaveBeenCalled();
     });
+
+    it('denies a key a publishing approval that has no brand binding', async () => {
+      mcpApproval.findFirst.mockResolvedValue({
+        toolName: 'create_post',
+        arguments: { confirmed: false },
+      });
+      await expect(
+        service.findStatusForActor('approval-1', {
+          ...actor,
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_DRAFT],
+        }),
+      ).rejects.toThrow('Approval is not bound to a brand');
+      expect(brandAccess.assert).not.toHaveBeenCalled();
+    });
   });
 
   describe('server-prepared generation quote persistence', () => {

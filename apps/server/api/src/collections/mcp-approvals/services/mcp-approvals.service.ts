@@ -294,6 +294,15 @@ export class McpApprovalsService extends BaseService<
     // request is the ambient default (the key's default brand, else any brand
     // in the organization), not a grant. Only the brand the approval was
     // issued for is checked, against the actor's real brand access.
+    // A publishing approval with no brand binding cannot be tied to a brand
+    // the key owner may act on, so a key never sees it as approved.
+    if (
+      user.isApiKey &&
+      !approvalBrand &&
+      isPublishingMcpApprovalTool(approval.toolName)
+    ) {
+      throw new ForbiddenException('Approval is not bound to a brand');
+    }
     const brandIds = user.isApiKey
       ? [approvalBrand]
       : [user.brandId, approvalBrand];
