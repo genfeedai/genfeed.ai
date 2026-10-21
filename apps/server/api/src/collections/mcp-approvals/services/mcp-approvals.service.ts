@@ -290,15 +290,15 @@ export class McpApprovalsService extends BaseService<
       throw new ForbiddenException();
     const approvalBrand =
       typeof args.brandId === 'string' ? args.brandId : undefined;
-    if (user.isApiKey && user.brandId && approvalBrand !== user.brandId) {
-      throw new ForbiddenException(
-        'Approval brand is outside the connected key scope',
-      );
-    }
+    // An API key carries no brand restriction: `user.brandId` on a key
+    // request is the ambient default (the key's default brand, else any brand
+    // in the organization), not a grant. Only the brand the approval was
+    // issued for is checked, against the actor's real brand access.
+    const brandIds = user.isApiKey
+      ? [approvalBrand]
+      : [user.brandId, approvalBrand];
     for (const brandId of new Set(
-      [user.brandId, approvalBrand].filter((brandId): brandId is string =>
-        Boolean(brandId),
-      ),
+      brandIds.filter((brandId): brandId is string => Boolean(brandId)),
     )) {
       await this.brandAccess.assert(actor, brandId);
     }

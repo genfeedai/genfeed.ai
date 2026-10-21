@@ -154,7 +154,24 @@ describe('McpApprovalsService', () => {
       ).rejects.toThrow('Brand access denied');
     });
 
-    it('denies a key connected to another brand', async () => {
+    it('checks the approval brand, not the key ambient brand, for API keys', async () => {
+      await service.findStatusForActor('approval-1', {
+        ...actor,
+        isApiKey: true,
+        scopes: [ApiKeyScope.POSTS_DRAFT],
+        brandId: 'brand-2',
+      });
+      expect(brandAccess.assert).toHaveBeenCalledTimes(1);
+      expect(brandAccess.assert).toHaveBeenCalledWith(
+        expect.anything(),
+        'brand-1',
+      );
+    });
+
+    it('denies a key whose owner has no access to the approval brand', async () => {
+      brandAccess.assert.mockRejectedValueOnce(
+        new Error('Brand access denied'),
+      );
       await expect(
         service.findStatusForActor('approval-1', {
           ...actor,
@@ -162,7 +179,7 @@ describe('McpApprovalsService', () => {
           scopes: [ApiKeyScope.POSTS_DRAFT],
           brandId: 'brand-2',
         }),
-      ).rejects.toThrow('Approval brand is outside');
+      ).rejects.toThrow('Brand access denied');
     });
 
     it('rechecks the underlying publishing operation scope', async () => {
@@ -182,20 +199,6 @@ describe('McpApprovalsService', () => {
         }),
       });
       expect(brandAccess.assert).not.toHaveBeenCalled();
-    });
-
-    it('denies a connected brand key when legacy consent has no brand binding', async () => {
-      mcpApproval.findFirst.mockResolvedValue({
-        toolName: 'create_post',
-        arguments: { confirmed: false },
-      });
-      await expect(
-        service.findStatusForActor('approval-1', {
-          ...actor,
-          isApiKey: true,
-          scopes: [ApiKeyScope.POSTS_DRAFT],
-        }),
-      ).rejects.toThrow('Approval brand is outside');
     });
   });
 
