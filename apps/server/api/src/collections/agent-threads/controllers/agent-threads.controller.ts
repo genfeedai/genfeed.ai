@@ -11,6 +11,7 @@ import {
   resolveAgentThreadOrganizationId,
 } from '@api/collections/agent-threads/utils/agent-thread-identity.util';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -41,7 +42,6 @@ import {
   Body,
   Controller,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -454,7 +454,7 @@ export class AgentThreadsController {
         userId,
         isDeleted: false,
       });
-      if (!owned) throw new NotFoundException('Thread not found.');
+      if (!owned) throw new NotFoundException('Thread', threadId);
       const updated =
         body.status === AgentThreadStatus.ARCHIVED
           ? await this.agentThreadsService.archiveThread(
