@@ -98,6 +98,33 @@ describe('media delivery response projection', () => {
     expect(paid).not.toContain('logo-original');
   });
 
+  it('keeps the brand logo for plans without clean access but withholds references', () => {
+    const response = {
+      brands: [
+        {
+          id: testId('brand', 1),
+          slug: 'test',
+          logo: {
+            id: assetId,
+            category: 'LOGO',
+            cdnUrl: 'https://cdn.example/logo-original.png',
+          },
+          references: [{ id: 'ref-1', cdnUrl: 'https://cdn.example/ref.png' }],
+        },
+      ],
+    };
+    const [brand] = (
+      projectMediaResponse(response, [], false, [
+        { assetId, url: 'https://cdn.example/authorized-logo.png' },
+      ]) as { brands: Record<string, unknown>[] }
+    ).brands;
+    expect(brand.logo).toMatchObject({
+      cdnUrl: 'https://cdn.example/authorized-logo.png',
+    });
+    expect(brand.logoUrl).toBe('https://cdn.example/authorized-logo.png');
+    expect(brand.references).toBeNull();
+  });
+
   it('does not rewrite arbitrary strings or the authorized upload PUT capability', () => {
     const response = {
       prompt: 'https://provider.example/a?b#c%2F',

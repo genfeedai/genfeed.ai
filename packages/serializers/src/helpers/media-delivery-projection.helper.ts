@@ -90,6 +90,14 @@ function assetIdentity(record: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+function projectedAssetUrl(asset: unknown): string | null {
+  if (!isPlainObjectRecord(asset)) return null;
+  const attributes = isPlainObjectRecord(asset.attributes)
+    ? asset.attributes
+    : asset;
+  return typeof attributes.cdnUrl === 'string' ? attributes.cdnUrl : null;
+}
+
 function walkRecords(
   value: unknown,
   visit: (record: Record<string, unknown>) => void,
@@ -181,14 +189,13 @@ export function projectMediaResponse(
         (typeof input.slug === 'string' &&
           ('logo' in input || 'banner' in input)))
     ) {
-      for (const field of [
-        'logoUrl',
-        'bannerUrl',
-        'logo',
-        'banner',
-        'references',
-      ])
-        fields[field] = null;
+      // The logo and banner are brand identity, not generated media: their
+      // asset records were already projected above (signed for the brand's own
+      // members, null when unavailable), so only the original reference images
+      // stay withheld. The derived URL follows the projected logo.
+      fields.references = null;
+      fields.logoUrl = projectedAssetUrl(fields.logo);
+      fields.bannerUrl = projectedAssetUrl(fields.banner);
     } else if (
       !hasCleanAccess &&
       (input.type === 'organization-setting' ||

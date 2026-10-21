@@ -160,13 +160,38 @@ describe('AuthorizedMediaUrlService', () => {
       service.issueServerAssetUrls(organizationId, ['asset-1']),
     ).rejects.toThrow('signing is unavailable');
   });
-  it('keeps non-entitled asset originals unavailable without reading or signing their keys', async () => {
+  it('keeps non-entitled asset originals unavailable but signs brand identity', async () => {
     const { service, prisma, urls } = await setup();
     expect(await service.projectAssets(scope, ['asset-1'])).toEqual([
       { assetId: 'asset-1', url: null },
     ]);
-    expect(prisma.asset.findMany).not.toHaveBeenCalled();
+    // Free plans only ever look up brand logos and banners.
+    expect(prisma.asset.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: { in: ['LOGO', 'BANNER'] },
+          parentType: 'BRAND',
+        }),
+      }),
+    );
     expect(urls.buildUrl).not.toHaveBeenCalled();
+
+    prisma.asset.findMany.mockResolvedValue([
+      {
+        id: 'asset-1',
+        category: 'LOGO',
+        cloudObjectKey: 'logos/asset-1.png',
+        parentBrandId: testId('brand', 2),
+        parentType: 'BRAND',
+        userId: null,
+      },
+    ] as never);
+    const [logo] = await service.projectAssets(
+      { ...scope, brandId: testId('brand', 1) },
+      ['asset-1'],
+    );
+    expect(urls.buildUrl).toHaveBeenCalledWith('logos/asset-1.png');
+    expect(logo.url).toContain('signed=1');
   });
 
   beforeEach(() => vi.mocked(isCloudDeployment).mockReturnValue(true));
