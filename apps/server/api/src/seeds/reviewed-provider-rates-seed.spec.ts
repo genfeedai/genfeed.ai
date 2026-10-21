@@ -209,6 +209,36 @@ describe('reviewed provider rates seed', () => {
       });
     });
 
+    it('replaces a contract an operator approved and records who re-applied it', async () => {
+      const prisma = harness(
+        modelRow({ reviewedProviderContractVersion: 'operator-approved' }),
+        {
+          pricing: {},
+          reviewedAt: new Date('2026-12-01T00:00:00Z'),
+          reviewedBy: 'user-1',
+        },
+      );
+
+      const written = await seedReviewedProviderRates(
+        prisma as never,
+        [hailuo],
+        undefined,
+        { reviewedBy: 'operator-2' },
+      );
+
+      expect(written).toBe(1);
+      const upsert = prisma.modelProviderContract.upsert.mock.calls[0]?.[0];
+      expect(upsert.create).toMatchObject({
+        reviewStatus: 'approved',
+        reviewedBy: 'operator-2',
+      });
+      expect(prisma.model.updateMany.mock.calls[0]?.[0].data).toMatchObject({
+        providerSyncFailureCode: null,
+        reviewedBy: 'operator-2',
+        reviewedProviderContractVersion: hailuoVersion,
+      });
+    });
+
     it('repairs a contract whose dimensions went stale after the provider schema gained a toggle', async () => {
       const prisma = harness(
         modelRow({
