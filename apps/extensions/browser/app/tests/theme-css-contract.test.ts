@@ -106,7 +106,7 @@ describe('browser extension theme CSS contract', () => {
 
   it('keeps ordinary extension chrome on semantic colors', () => {
     expect(readSource('src/components/settings/AutoFillToggle.tsx')).toContain(
-      'bg-primary-foreground',
+      '@ui/primitives/switch',
     );
     expect(readSource('src/components/ui/ButtonSpinner.tsx')).toContain(
       'text-primary-foreground',
