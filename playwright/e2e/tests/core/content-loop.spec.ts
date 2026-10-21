@@ -183,23 +183,11 @@ test.describe('Core Content Loop', () => {
     await expect(analyticsPage.mainContent).toBeVisible();
     // First-run orgs with no connected accounts render the empty overview
     // instead of KPI/leaderboard chrome (QA 2026-09-09).
-    try {
-      await expect(
-        authenticatedPage.getByRole('heading', {
-          name: /^(Top Posts|Connect accounts to see analytics)$/,
-        }),
-      ).toBeVisible();
-    } catch (error) {
-      // TEMP DIAGNOSTIC
-      const headings = await authenticatedPage
-        .getByRole('heading')
-        .allInnerTexts();
-      const bodyText = await authenticatedPage.locator('body').innerText();
-      process.stdout.write(
-        `DIAG url=${authenticatedPage.url()} headings=${JSON.stringify(headings)} body=${JSON.stringify(bodyText.slice(0, 1500))}\n`,
-      );
-      throw error;
-    }
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: /^(Top Posts|Connect accounts to see analytics)$/,
+      }),
+    ).toBeVisible();
 
     await mockPostDetail(authenticatedPage, contentLoopPost);
     await authenticatedPage.goto(
