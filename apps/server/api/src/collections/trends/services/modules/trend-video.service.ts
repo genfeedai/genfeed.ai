@@ -25,6 +25,8 @@ import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const BRAND_NICHE_VIDEOS_LIMIT = 30;
+
 /** Separator that cannot appear in a platform id or external id. */
 const TREND_KEY_SEPARATOR = '\u0000';
 
@@ -37,6 +39,8 @@ export class TrendVideoService {
   private readonly CACHE_PREFIX = 'trends';
   private readonly READ_CACHE_TTL_SECONDS = 1800; // 30 minutes
   private readonly TREND_SIGNAL_DOCUMENT_TTL_SECONDS = 48 * 60 * 60;
+  // Scoped refresh runs twice a day; keep the snapshot across a missed run.
+  private readonly BRAND_NICHE_TTL_SECONDS = 36 * 60 * 60;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -160,6 +164,84 @@ export class TrendVideoService {
       `No cached viral videos available for ${platform || 'all'}; skipping live Apify fetch on read path`,
     );
     return [];
+  }
+
+  private brandNicheVideosKey(organizationId: string, brandId: string): string {
+    return this.cacheService.generateKey(
+      `${this.CACHE_PREFIX}:brand-niche-videos`,
+      organizationId,
+      brandId,
+    );
+  }
+
+  /**
+   * Search TikTok for a brand's niche queries and keep the results for that
+   * organization and brand only. They are deliberately not written to the
+   * shared trending-video table: that table has no tenant column and feeds the
+   * global market view.
+   */
+  async fetchAndCacheBrandNicheVideos(
+    organizationId: string,
+    brandId: string,
+    queries: string[],
+    limit: number = BRAND_NICHE_VIDEOS_LIMIT,
+  ): Promise<number> {
+    if (!organizationId || !brandId || queries.length === 0) {
+      return 0;
+    }
+
+    const videos = await this.apifyService.searchTikTokByQueries(
+      queries,
+      { limit },
+      { organizationId, origin: 'social-source' },
+    );
+    const expiresAt = new Date(
+      Date.now() + this.BRAND_NICHE_TTL_SECONDS * 1000,
+    );
+    const seen = new Set<string>();
+    const stored: TrendingVideoDocument[] = [];
+    for (const video of videos) {
+      if (!video.externalId || seen.has(video.externalId)) continue;
+      seen.add(video.externalId);
+      stored.push({
+        ...video,
+        expiresAt,
+        isCurrent: true,
+        lastSeenAt: new Date(),
+      } as unknown as TrendingVideoDocument);
+    }
+
+    // An empty result must not wipe the last good snapshot.
+    if (stored.length === 0) {
+      return 0;
+    }
+    const isCached = await this.cacheService.set(
+      this.brandNicheVideosKey(organizationId, brandId),
+      stored,
+      {
+        tags: ['trends', 'videos', `videos:brand:${brandId}`],
+        ttl: this.BRAND_NICHE_TTL_SECONDS,
+      },
+    );
+    if (!isCached) {
+      return 0;
+    }
+    this.loggerService.log(
+      `Cached ${stored.length} niche videos for brand ${brandId}`,
+    );
+    return stored.length;
+  }
+
+  async getBrandNicheVideos(
+    organizationId: string,
+    brandId: string,
+  ): Promise<TrendingVideoDocument[]> {
+    if (!organizationId || !brandId) return [];
+    return (
+      (await this.cacheService.get<TrendingVideoDocument[]>(
+        this.brandNicheVideosKey(organizationId, brandId),
+      )) ?? []
+    );
   }
 
   /**

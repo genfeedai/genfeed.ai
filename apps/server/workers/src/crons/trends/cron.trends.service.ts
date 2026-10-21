@@ -190,20 +190,74 @@ export class CronTrendsService implements OnModuleInit {
       },
     });
 
+    const preferences = await this.prisma.trendPreferences.findMany({
+      select: { brandId: true, config: true, organizationId: true },
+      where: { brandId: { not: null }, isDeleted: false },
+    });
+
+    // A brand is searched on TikTok when it set niche keywords, hashtags or
+    // categories, or has a connected TikTok account (then its description
+    // supplies the query). Never every brand: each run is billed.
+    const nicheBrands = new Map<string, ScopedTrendRefreshTask>();
+    for (const preference of preferences) {
+      if (
+        preference.brandId &&
+        preference.organizationId &&
+        this.hasNicheSignals(preference.config)
+      ) {
+        nicheBrands.set(preference.brandId, {
+          brandId: preference.brandId,
+          dataset: 'niche-videos',
+          organizationId: preference.organizationId,
+          platform: 'tiktok',
+        });
+      }
+    }
+    for (const credential of credentials) {
+      if (
+        credential.platform === PrismaCredentialPlatform.TIKTOK &&
+        credential.brandId &&
+        credential.organizationId &&
+        !nicheBrands.has(credential.brandId)
+      ) {
+        nicheBrands.set(credential.brandId, {
+          brandId: credential.brandId,
+          dataset: 'niche-videos',
+          organizationId: credential.organizationId,
+          platform: 'tiktok',
+        });
+      }
+    }
+
     return {
-      items: credentials.flatMap((credential) => {
-        const platform = fromPrismaCredentialPlatform(credential.platform);
-        return credential.organizationId && credential.brandId && platform
-          ? [
-              {
-                brandId: credential.brandId,
-                organizationId: credential.organizationId,
-                platform,
-              },
-            ]
-          : [];
-      }),
+      items: [
+        ...credentials.flatMap((credential) => {
+          const platform = fromPrismaCredentialPlatform(credential.platform);
+          return credential.organizationId && credential.brandId && platform
+            ? [
+                {
+                  brandId: credential.brandId,
+                  organizationId: credential.organizationId,
+                  platform,
+                },
+              ]
+            : [];
+        }),
+        ...nicheBrands.values(),
+      ],
     };
+  }
+
+  private hasNicheSignals(config: unknown): boolean {
+    if (typeof config !== 'object' || config === null) return false;
+    const record = config as Record<string, unknown>;
+    return ['categories', 'hashtags', 'keywords'].some((key) => {
+      const value = record[key];
+      return (
+        Array.isArray(value) &&
+        value.some((item) => typeof item === 'string' && item.trim())
+      );
+    });
   }
 
   private async fetchScopedTrendTask(
@@ -211,6 +265,16 @@ export class CronTrendsService implements OnModuleInit {
   ): Promise<{ count: number; platform: string }> {
     if (!task?.organizationId || !task.brandId || !task.platform) {
       throw new BadRequestException('Scoped trend refresh task is invalid');
+    }
+
+    if (task.dataset === 'niche-videos') {
+      return {
+        count: await this.trendsService.fetchAndCacheBrandNicheVideos(
+          task.organizationId,
+          task.brandId,
+        ),
+        platform: task.platform,
+      };
     }
 
     const trends = await this.trendsService.fetchAndCachePlatformTrends(

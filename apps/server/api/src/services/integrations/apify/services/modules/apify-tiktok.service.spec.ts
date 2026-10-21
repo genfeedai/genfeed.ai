@@ -554,6 +554,55 @@ describe('ApifyTikTokService', () => {
     });
   });
 
+  describe('searchTikTokByQueries()', () => {
+    it('searches the Top results for the queries and tags each video with its query', async () => {
+      mockBaseService.runActor.mockResolvedValue([
+        makeTikTokVideo({ id: 'v1', searchQuery: 'ai influencers' }),
+        makeTikTokVideo({ id: 'v2' }),
+      ]);
+
+      const result = await service.searchTikTokByQueries(
+        ['ai influencers', ' ugc '],
+        { limit: 30 },
+      );
+
+      expect(mockBaseService.runActor).toHaveBeenCalledWith(
+        'clockworks/tiktok-scraper',
+        {
+          resultsPerPage: 15,
+          searchQueries: ['ai influencers', 'ugc'],
+          searchSection: '',
+        },
+      );
+      expect(result.map((video) => video.nicheQuery)).toEqual([
+        'ai influencers',
+        'ai influencers',
+      ]);
+    });
+
+    it('bills the organization through the hosted runner when a context is given', async () => {
+      researchRunner.run.mockResolvedValue([makeTikTokVideo()]);
+
+      await service.searchTikTokByQueries(['ai influencers'], undefined, {
+        organizationId: 'org-1',
+        origin: 'social-source',
+      });
+
+      expect(researchRunner.run).toHaveBeenCalledWith(
+        'org-1',
+        'clockworks/tiktok-scraper',
+        expect.objectContaining({ searchQueries: ['ai influencers'] }),
+        { requestScope: 'social-source-hosted', tokenMode: 'hosted-only' },
+      );
+      expect(mockBaseService.runActor).not.toHaveBeenCalled();
+    });
+
+    it('skips the actor run when there is no query', async () => {
+      expect(await service.searchTikTokByQueries(['  '])).toEqual([]);
+      expect(mockBaseService.runActor).not.toHaveBeenCalled();
+    });
+  });
+
   describe('searchTikTokByHashtag()', () => {
     it('should search by hashtag stripping the # prefix', async () => {
       mockBaseService.runActor.mockResolvedValue([]);

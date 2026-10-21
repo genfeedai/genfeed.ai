@@ -44,6 +44,8 @@ export type TrendsMaintenanceRequest = {
 
 export type ScopedTrendRefreshTask = {
   brandId: string;
+  /** `niche-videos` searches the brand's own keywords instead of native trends. */
+  dataset?: 'niche-videos';
   organizationId: string;
   platform: string;
 };
@@ -242,7 +244,7 @@ export function buildScopedTrendTaskWorkflowDefinition(): SystemWorkflowGraphDef
       ],
     },
     description:
-      'Refreshes one connected account scope through native providers only.',
+      "Refreshes one connected account scope through native providers, or one brand's niche TikTok search.",
     label: 'Scoped Native Trend Task',
     resultNodeId: 'fetch-scoped',
     version: 1,
