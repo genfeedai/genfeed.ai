@@ -22,6 +22,8 @@ async function openLibrary(page: Page): Promise<void> {
     waitUntil: 'domcontentloaded',
   });
   await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeVisible();
+  // The topbar renders before the lazy shell registers the dock shortcuts.
+  await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeEnabled();
 }
 
 test.describe('Agent dock', () => {
@@ -96,12 +98,25 @@ test.describe('Agent dock', () => {
   }) => {
     await page.setViewportSize({ height: 900, width: 1440 });
     await openLibrary(page);
+    const dock = page.getByRole('region', { name: 'Agent' });
+    const toggle = page.getByTestId('topbar-agent-dock-toggle');
     await page.keyboard.press('Meta+j');
-    await expect(page.getByRole('region', { name: 'Agent' })).toBeVisible();
+    await expect(dock).toBeVisible();
 
     await page.reload({ waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('region', { name: 'Agent' })).toBeVisible();
+    await expect(toggle).toBeEnabled();
+    await expect(dock).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await toggle.click();
+    await expect(dock).toHaveCount(0);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(toggle).toBeEnabled();
+    await expect(dock).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expectNoErrorOverlay(page);
   });
 
   test('hands off to the full conversation and closes on /agent', async ({
