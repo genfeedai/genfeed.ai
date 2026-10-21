@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 import type { PublicationCaptureEntryProps } from '@genfeedai/props/extension/extension-publication-observer.props';
 import { Button } from '@ui/primitives/button';
+import { Switch } from '@ui/primitives/switch';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '~store/use-settings-store';
 import { useWorkspaceStore } from '~store/use-workspace-store';
@@ -133,19 +134,11 @@ export function PublicationRecordingSettings(): ReactElement {
             the selected Genfeed brand. Your other posts are never saved.
           </p>
         </div>
-        <Button
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          role="switch"
-          ariaLabel="Save posts I write with Genfeed"
-          aria-checked={enabled}
-          onClick={() => setEnabled(!enabled)}
-          className={`relative h-5 w-9 shrink-0 rounded-full ${enabled ? 'bg-primary' : 'bg-border'}`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-primary-foreground ${enabled ? 'translate-x-4' : 'translate-x-0'}`}
-          />
-        </Button>
+        <Switch
+          aria-label="Save posts I write with Genfeed"
+          isChecked={enabled}
+          onCheckedChange={setEnabled}
+        />
       </div>
       <p className="text-2xs text-muted-foreground">
         Only text Genfeed inserted into the X composer is saved when you publish

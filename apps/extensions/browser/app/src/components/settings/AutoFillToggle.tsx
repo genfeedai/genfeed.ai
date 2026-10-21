@@ -1,5 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
+import { Switch } from '@ui/primitives/switch';
 import type { ReactElement } from 'react';
 
 import { useSettingsStore } from '~store/use-settings-store';
@@ -16,22 +15,11 @@ export function AutoFillToggle(): ReactElement {
           Automatically insert content after generation
         </p>
       </div>
-      <Button
-        type="button"
-        variant={ButtonVariant.UNSTYLED}
-        role="switch"
-        aria-checked={autoFill}
-        onClick={() => setAutoFill(!autoFill)}
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-          autoFill ? 'bg-primary' : 'bg-border'
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-primary-foreground transition-transform ${
-            autoFill ? 'translate-x-4' : 'translate-x-0'
-          }`}
-        />
-      </Button>
+      <Switch
+        aria-label="Auto-fill compose box"
+        isChecked={autoFill}
+        onCheckedChange={setAutoFill}
+      />
     </div>
   );
 }

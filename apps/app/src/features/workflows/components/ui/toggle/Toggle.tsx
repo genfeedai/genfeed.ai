@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Switch } from '@ui/primitives/switch';
 
 export interface ToggleProps {
@@ -10,21 +9,6 @@ export interface ToggleProps {
   size?: 'sm' | 'md';
   className?: string;
 }
-
-const sizeClasses = {
-  md: {
-    knob: 'h-6 w-6',
-    track: 'h-8 w-14',
-    translateActive: 'translate-x-7',
-    translateInactive: 'translate-x-1',
-  },
-  sm: {
-    knob: 'h-3 w-3',
-    track: 'h-5 w-9',
-    translateActive: 'translate-x-5',
-    translateInactive: 'translate-x-1',
-  },
-};
 
 /**
  * Reusable toggle switch component
@@ -37,21 +21,13 @@ export default function Toggle({
   size = 'sm',
   className,
 }: ToggleProps): React.JSX.Element {
-  const sizes = sizeClasses[size];
-
   return (
     <Switch
       checked={checked}
+      className={className}
       isDisabled={disabled}
-      switchClassName={cn(
-        'relative inline-flex items-center rounded-full transition-colors border-0 shadow-none',
-        sizes.track,
-        checked ? 'bg-primary' : 'bg-muted',
-        disabled && 'opacity-50 cursor-not-allowed',
-        className,
-      )}
-      className="border-0 shadow-none"
       onCheckedChange={() => onChange()}
+      size={size}
     />
   );
 }
