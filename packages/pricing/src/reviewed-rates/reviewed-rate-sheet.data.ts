@@ -2451,4 +2451,687 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     sourceUrl: 'https://replicate.com/wan-video/wan-2.7-t2v',
     verifiedAt: '2026-10-20T09:15:00.000Z',
   },
+  {
+    endpoint: 'bytedance/seedream-5-lite',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.035,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedream-5-lite',
+    verifiedAt: '2026-10-21T20:48:42.681Z',
+  },
+  {
+    endpoint: 'google/veo-2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.5,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/veo-2',
+    verifiedAt: '2026-10-21T20:48:42.890Z',
+  },
+  {
+    endpoint: 'google/veo-3.1-lite',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/veo-3.1-lite',
+    verifiedAt: '2026-10-21T20:48:43.106Z',
+  },
+  {
+    endpoint: 'kwaivgi/kling-o1',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.084,
+        when: {
+          model_variant: 'std',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.126,
+        when: {
+          model_variant: 'std-with-video-input',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.112,
+        when: {
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.168,
+        when: {
+          model_variant: 'pro-with-video-input',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'composite',
+          parts: [
+            {
+              field: 'mode',
+              mode: 'value',
+              fieldType: 'string',
+              default: 'pro',
+            },
+            {
+              field: 'reference_video',
+              mode: 'presence',
+              fieldType: 'string',
+            },
+          ],
+          cases: [
+            {
+              when: ['std', false],
+              selector: 'std',
+            },
+            {
+              when: ['std', true],
+              selector: 'std-with-video-input',
+            },
+            {
+              when: ['pro', false],
+              selector: 'pro',
+            },
+            {
+              when: ['pro', true],
+              selector: 'pro-with-video-input',
+            },
+          ],
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-o1',
+    verifiedAt: '2026-10-21T20:48:43.377Z',
+  },
+  {
+    endpoint: 'kwaivgi/kling-v2.6',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          with_audio: false,
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.14,
+        when: {
+          with_audio: true,
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'with audio',
+        selectorKey: 'with_audio',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: true,
+            false: false,
+          },
+          fieldType: 'boolean',
+          default: true,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v2.6',
+    verifiedAt: '2026-10-21T20:48:43.586Z',
+  },
+  {
+    endpoint: 'minimax/hailuo-2.3',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.28,
+        when: {
+          resolution: '768p',
+          duration: 6,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.56,
+        when: {
+          resolution: '768p',
+          duration: 10,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.49,
+        when: {
+          resolution: '1080p',
+          duration: 6,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/minimax/hailuo-2.3',
+    verifiedAt: '2026-10-21T20:48:43.871Z',
+  },
+  {
+    endpoint: 'pixverse/pixverse-v6',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {
+          with_audio: false,
+          target_resolution: '360p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          with_audio: true,
+          target_resolution: '360p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          with_audio: false,
+          target_resolution: '540p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.09,
+        when: {
+          with_audio: true,
+          target_resolution: '540p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.09,
+        when: {
+          with_audio: false,
+          target_resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.12,
+        when: {
+          with_audio: true,
+          target_resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.18,
+        when: {
+          with_audio: false,
+          target_resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.23,
+        when: {
+          with_audio: true,
+          target_resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'target resolution',
+        selectorKey: 'target_resolution',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            '360p': '360p',
+            '540p': '540p',
+            '720p': '720p',
+            '1080p': '1080p',
+          },
+          fieldType: 'string',
+          default: '540p',
+        },
+      },
+      {
+        criterionTitle: 'with audio',
+        selectorKey: 'with_audio',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio_switch',
+          valueMap: {
+            true: true,
+            false: false,
+          },
+          fieldType: 'boolean',
+          default: false,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/pixverse/pixverse-v6',
+    verifiedAt: '2026-10-21T20:48:44.522Z',
+  },
+  {
+    endpoint: 'recraft-ai/recraft-v4',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.04,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/recraft-ai/recraft-v4',
+    verifiedAt: '2026-10-21T20:48:45.068Z',
+  },
+  {
+    endpoint: 'recraft-ai/recraft-v4-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.25,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/recraft-ai/recraft-v4-pro',
+    verifiedAt: '2026-10-21T20:48:45.330Z',
+  },
+  {
+    endpoint: 'runwayml/gen-4.5',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.12,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/runwayml/gen-4.5',
+    verifiedAt: '2026-10-21T20:48:45.851Z',
+  },
+  {
+    endpoint: 'vidu/q3-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          resolution: '540p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.15,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/vidu/q3-pro',
+    verifiedAt: '2026-10-21T20:48:46.112Z',
+  },
+  {
+    endpoint: 'vidu/q3-turbo',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: {
+          resolution: '540p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/vidu/q3-turbo',
+    verifiedAt: '2026-10-21T20:48:46.371Z',
+  },
+  {
+    endpoint: 'xai/grok-imagine-image',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.02,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/xai/grok-imagine-image',
+    verifiedAt: '2026-10-21T20:48:46.889Z',
+  },
+  {
+    endpoint: 'xai/grok-imagine-video',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/xai/grok-imagine-video',
+    verifiedAt: '2026-10-21T20:48:47.164Z',
+  },
+  {
+    endpoint: 'black-forest-labs/flux-kontext-max',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.08,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/black-forest-labs/flux-kontext-max',
+    verifiedAt: '2026-10-21T20:48:47.451Z',
+  },
+  {
+    endpoint: 'openai/sora-2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/sora-2',
+    verifiedAt: '2026-10-21T20:53:40.271Z',
+  },
+  {
+    endpoint: 'openai/sora-2-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.3,
+        when: {
+          resolution: 'standard',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.5,
+        when: {
+          resolution: 'high',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/sora-2-pro',
+    verifiedAt: '2026-10-21T20:53:40.271Z',
+  },
+  {
+    endpoint: 'fal-ai/flux/dev',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.025,
+        when: {},
+        isPerOutput: true,
+        roundUnitsTo: 1,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/flux/dev',
+    verifiedAt: '2026-10-21T20:55:14.793Z',
+  },
+  {
+    endpoint: 'fal-ai/flux/schnell',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.003,
+        when: {},
+        isPerOutput: true,
+        roundUnitsTo: 1,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/flux/schnell',
+    verifiedAt: '2026-10-21T20:55:14.793Z',
+  },
+  {
+    endpoint: 'fal-ai/nano-banana-2',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.06,
+        when: {
+          resolution: '0.5K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '1K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.12,
+        when: {
+          resolution: '2K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.16,
+        when: {
+          resolution: '4K',
+        },
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/nano-banana-2',
+    verifiedAt: '2026-10-21T20:55:14.793Z',
+  },
+  {
+    endpoint: 'fal-ai/veo3.1',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2,
+        when: {
+          resolution: '720p',
+          generate_audio: false,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.4,
+        when: {
+          resolution: '720p',
+          generate_audio: true,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2,
+        when: {
+          resolution: '1080p',
+          generate_audio: false,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.4,
+        when: {
+          resolution: '1080p',
+          generate_audio: true,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.4,
+        when: {
+          resolution: '4k',
+          generate_audio: false,
+        },
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.6,
+        when: {
+          resolution: '4k',
+          generate_audio: true,
+        },
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/veo3.1',
+    verifiedAt: '2026-10-21T20:55:14.793Z',
+  },
+  {
+    // fal states $0.08 to 24 MP, $0.16 to 48 MP, $0.32 to 96 MP and $1.36 at
+    // 512 MP: every started 24 MP block, as on Replicate.
+    endpoint: 'fal-ai/topaz/upscale/image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.08 / 24,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 24,
+        roundUnitsTo: 24,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/topaz/upscale/image',
+    verifiedAt: '2026-10-21T20:55:50.190Z',
+  },
 ];
