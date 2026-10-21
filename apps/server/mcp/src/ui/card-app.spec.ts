@@ -962,9 +962,11 @@ describe('brand gallery', () => {
       )
       .find((data) => data.method === 'ui/message');
     expect(call?.params).toMatchObject({
-      content: { text: expect.stringContaining('brandId: brand-2') },
+      content: { text: expect.stringContaining('brandId brand-2') },
       role: 'user',
     });
+    // The member-written brand name never reaches the user-role message.
+    expect(JSON.stringify(call?.params)).not.toContain('Acme Labs');
 
     window.dispatchEvent(
       new MessageEvent('message', {
@@ -1005,7 +1007,29 @@ describe('brand gallery', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(document.querySelector('#notice')?.textContent).toContain(
-      'brandId: brand-1',
+      'brandId brand-1',
     );
+  });
+
+  it('sends one selection while a previous one is still pending', async () => {
+    result('get_brands', { brands });
+
+    const button = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Select Acme Main"]',
+    );
+    button?.click();
+    button?.click();
+    document
+      .querySelector<HTMLButtonElement>('button[aria-label="Select Acme Labs"]')
+      ?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(
+      vi
+        .mocked(window.parent.postMessage)
+        .mock.calls.filter(
+          ([data]) => (data as { method?: string }).method === 'ui/message',
+        ),
+    ).toHaveLength(1);
   });
 });

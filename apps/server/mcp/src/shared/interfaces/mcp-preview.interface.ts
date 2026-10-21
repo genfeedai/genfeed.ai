@@ -28,13 +28,16 @@ export interface CardPreviewProps {
   openImage(src: string, title: string, trigger: HTMLElement): void;
   /** The brand the user picked in this view, if any. */
   selectedId?: string;
-  onAction(action: McpCardAction, item: McpCard): void;
+  /** A selection is on its way to the host; card actions wait for it. */
+  isActionPending?: boolean;
+  onAction(action: McpCardAction): void;
 }
 export interface SummaryCardProps {
   item: McpCard;
   bridge: PreviewBridge;
+  isActionPending: boolean;
   isSelected: boolean;
-  onAction(action: McpCardAction, item: McpCard): void;
+  onAction(action: McpCardAction): void;
   when: string;
 }
 export interface ImagePreview {

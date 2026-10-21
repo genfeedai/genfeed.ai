@@ -402,6 +402,7 @@ function initials(value: string) {
 function SummaryCard({
   item,
   bridge,
+  isActionPending,
   isSelected,
   onAction,
   when,
@@ -486,9 +487,9 @@ function SummaryCard({
                   isSelected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
                 }
                 withWrapper={false}
-                isDisabled={isSelected}
+                isDisabled={isSelected || isActionPending}
                 ariaLabel={`${action.label} ${item.title}`}
-                onClick={() => onAction(action, item)}
+                onClick={() => onAction(action)}
               >
                 {isSelected ? 'Selected' : action.label}
               </Button>
@@ -504,6 +505,7 @@ function CardPreview({
   bridge,
   openImage,
   selectedId,
+  isActionPending = false,
   onAction,
 }: CardPreviewProps) {
   const { current, exhausted } = usePendingCard(item, bridge);
@@ -545,6 +547,7 @@ function CardPreview({
       <SummaryCard
         item={current}
         bridge={bridge}
+        isActionPending={isActionPending}
         isSelected={Boolean(selectedId) && current.id === selectedId}
         onAction={onAction}
         when={when}
@@ -921,6 +924,8 @@ function Preview({ result, notice, bridge }: PreviewProps) {
   const [isSwitching, setIsSwitching] = useState(false);
   const [switchError, setSwitchError] = useState('');
   const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [pendingBrandId, setPendingBrandId] = useState('');
+  const isSelectingRef = useRef(false);
   const resultView = useMemo(() => readView(result), [result]);
   const view = switched ?? resultView;
   const [image, setImage] = useState<ImagePreview | null>(null);
@@ -978,8 +983,13 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         bridge.resize();
       });
   }
-  function runAction(action: McpCardAction, item: McpCard) {
-    const message = `Use the brand "${item.title}" (brandId: ${action.brandId}) for everything we do in this conversation. Pass that brandId to every tool that takes one.`;
+  function runAction(action: McpCardAction) {
+    // One selection message per click, however fast the clicks come.
+    if (isSelectingRef.current) return;
+    isSelectingRef.current = true;
+    setPendingBrandId(action.brandId);
+    // The brand name is member-written text; the message names only the id.
+    const message = `Use the brand with brandId ${action.brandId} for everything we do in this conversation. Pass that brandId to every tool that takes one.`;
     bridge
       .request('ui/message', {
         role: 'user',
@@ -993,7 +1003,11 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         bridge.notify(
           `This client could not send the selection. Tell your assistant: ${message}`,
         ),
-      );
+      )
+      .finally(() => {
+        isSelectingRef.current = false;
+        setPendingBrandId('');
+      });
   }
   function openImage(src: string, title: string, trigger: HTMLElement) {
     returnFocus.current = trigger;
@@ -1144,6 +1158,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   bridge={bridge}
                   openImage={openImage}
                   selectedId={selectedBrandId}
+                  isActionPending={Boolean(pendingBrandId)}
                   onAction={runAction}
                 />
               ))}
