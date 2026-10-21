@@ -14,6 +14,7 @@ import type { ReleaseGroupsService } from '@genfeedai/services/content/release-g
 import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { isSafeDiagnosticText } from '@genfeedai/services/core/operation-error';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
@@ -70,8 +71,29 @@ export interface UsePostDetailActionsReturn {
   ) => Promise<string[] | null>;
 }
 
-/** A longer detail is a provider or stack message, not copy for the user. */
-const REWRITE_ERROR_DETAIL_MAX_LENGTH = 200;
+function getSafeRewriteReason(error: unknown): string | undefined {
+  const member = getJsonApiErrorMember(error);
+  const detail = member?.detail?.trim();
+  if (!detail || !isSafeDiagnosticText(detail)) return undefined;
+
+  // Only the documented rewrite failures are public copy. A 422/503 alone
+  // does not make arbitrary provider diagnostics safe to display.
+  if (
+    member?.status === 503 &&
+    detail === 'The AI returned no text for this rewrite. Try again.'
+  ) {
+    return detail;
+  }
+  if (
+    member?.status === 422 &&
+    /^The rewrite does not fit the [1-9]\d{0,5}-character limit for [a-z][a-z_]{0,30}\. Shorten the instruction or the draft and try again\.$/.test(
+      detail,
+    )
+  ) {
+    return detail;
+  }
+  return undefined;
+}
 
 function requirePostId(post: IPost): string {
   if (typeof post.id !== 'string' || post.id.length === 0) {
@@ -365,12 +387,9 @@ export function usePostDetailActions({
         return draft.description;
       } catch (err) {
         logger.error('AI rewrite failed', err);
-        // The API names why (no price for the model, a draft that cannot fit the
-        // channel limit, an empty answer). Without it the failure reads as a
-        // silent reset of the input.
-        const reason = getJsonApiErrorMember(err)?.detail?.trim();
+        const reason = getSafeRewriteReason(err);
         notificationsService.error(
-          reason && reason.length <= REWRITE_ERROR_DETAIL_MAX_LENGTH
+          reason
             ? `Failed to rewrite. ${reason}`
             : 'Failed to rewrite. Try again.',
         );
