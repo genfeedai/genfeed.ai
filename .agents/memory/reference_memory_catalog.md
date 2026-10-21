@@ -12,6 +12,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
 - [Keep future delivery workflows](feedback_keep_future_delivery_workflows.md) — browser/mobile/IDE lanes remain available; manual browser/mobile runs default to validation, with release readiness verified separately
 - [trunk_pr_workflow](trunk_pr_workflow.md) — short-lived branches → PR; `master` is PR-only; secret-scan every commit
+- [feedback_polish_preserves_page_consistency](feedback_polish_preserves_page_consistency.md) — UI polish follows neighboring pages and shared components
 - [feedback_explicit_immediate_pr_merge](feedback_explicit_immediate_pr_merge.md) — explicit merge-without-checks orders use a per-PR admin bypass; never aggregate first
 - [feedback_deps_update_canonical](feedback_deps_update_canonical.md) — `bun run deps:update` owns package + Action pins; Dependabot is retired
 - [end_to_end_implementation](end_to_end_implementation.md) — wire the full user path, never half-architecture
