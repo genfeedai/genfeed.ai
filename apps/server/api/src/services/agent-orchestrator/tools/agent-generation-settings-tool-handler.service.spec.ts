@@ -1,4 +1,3 @@
-import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -65,25 +64,7 @@ describe('AgentGenerationSettingsToolHandler', () => {
     });
   });
 
-  it('returns a failed, uncharged result when brand enhancement stops, never the raw prompt as enhanced', async () => {
-    const { handler, enhancement } = setup();
-    enhancement.enhance.mockRejectedValue(
-      new MediaPromptBrandEnhancementException('provider'),
-    );
-    const result = await handler.enhance(
-      { prompt: 'A bicycle', contentType: 'image' },
-      ctx,
-    );
-    expect(result).toMatchObject({
-      success: false,
-      creditsUsed: 0,
-      data: { code: 'MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED' },
-    });
-    expect(result.data).not.toHaveProperty('prompt');
-    expect(result.error).toContain('no credits were used');
-  });
-
-  it('rethrows failures that are not a brand enhancement stop', async () => {
+  it('rethrows enhancement failures', async () => {
     const { handler, enhancement } = setup();
     const failure = new Error('boom');
     enhancement.enhance.mockRejectedValue(failure);

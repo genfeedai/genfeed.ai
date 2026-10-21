@@ -169,9 +169,6 @@ export default function StudioPlaygroundCard({
 }: StudioPlaygroundCardProps): ReactElement {
   const translate = useTranslations('pages.studioPlayground');
   const translateRecovery = useTranslations('pages.library.recovery');
-  const translateBrand = useTranslations(
-    'pages.studioPlayground.brandEnhancement',
-  );
   const { href } = useOrgUrl();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
   const accessibleLabel = studioAssetAccessibleLabel(job);
@@ -677,22 +674,6 @@ export default function StudioPlaygroundCard({
                 ? job.error || translate('generationFailed')
                 : translate('previewUnavailable')}
             </span>
-            {isFailed &&
-            job.failure === 'brand_enhancement' &&
-            assetActions.onGenerateWithoutBrand ? (
-              <Button
-                ariaLabel={translateBrand('generateWithoutBrandAria', {
-                  type: label.toLowerCase(),
-                })}
-                className="pointer-events-auto px-2 text-xs"
-                data-testid={`studio-asset-generate-without-brand-${job.id}`}
-                label={translateBrand('generateWithoutBrand')}
-                onClick={() => void assetActions.onGenerateWithoutBrand?.(job)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              />
-            ) : null}
             {isPreviewUnavailable ? (
               <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
                 {translate('previewUnavailableDescription')}

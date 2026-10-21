@@ -635,7 +635,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   );
   const {
     cancelJob,
-    generateWithoutBrand,
     jobs,
     rehydratePending,
     removeJob,
@@ -2745,7 +2744,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                       assetActions={{
                         ...assetActions,
                         onCancelGeneration: cancelJob,
-                        onGenerateWithoutBrand: generateWithoutBrand,
                       }}
                       isLoading={isLoadingGallery}
                       jobs={recoveredJobs}

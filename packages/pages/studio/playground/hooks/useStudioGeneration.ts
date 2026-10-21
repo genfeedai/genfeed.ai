@@ -9,7 +9,6 @@ import {
   isFlux3ImageModel,
   isImageEditModel,
   LIBRARY_ASSETS_REFRESH_EVENT,
-  MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
 } from '@genfeedai/contracts/constants';
 import type {
   GenerationPromptAuthor,
@@ -76,10 +75,7 @@ import {
   resolveSpeechVoiceProvider,
 } from '@pages/studio/playground/utils/studio-voice-selection';
 import { IngredientsService } from '@services/content/ingredients.service';
-import {
-  getJsonApiErrorMember,
-  getPersistedVideoIngredientIds,
-} from '@services/core/json-api-error-message';
+import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createMediaHandler } from '@services/core/socket-manager.service';
@@ -105,12 +101,6 @@ export interface UseStudioGenerationParams {
 export interface UseStudioGenerationReturn {
   cancelJob: (job: StudioPlaygroundJob) => Promise<void>;
   clearJobs: () => void;
-  /**
-   * Re-sends a generation that stopped on a brand enhancement failure with the
-   * prompt exactly as typed and no brand applied. No-op once the failure is
-   * gone (reload, removal).
-   */
-  generateWithoutBrand: (job: StudioPlaygroundJob) => Promise<void>;
   jobs: readonly StudioPlaygroundJob[];
   rehydratePending: (jobs: readonly StudioPlaygroundJob[]) => void;
   removeJob: (id: string) => void;
@@ -132,8 +122,6 @@ export interface StudioGenerationOptions {
   > | null;
   requestedSkillSlugs?: string[];
   harness?: boolean;
-  /** `raw` is the explicit "generate without brand" choice; never set otherwise. */
-  brandMode?: 'raw';
   /**
    * Composer reference painted on the card until the result arrives.
    * Not sent to the provider.
@@ -160,13 +148,6 @@ export interface StudioGenerationReferences {
 
 const CONFIRMED_MODEL_UNAVAILABLE_ERROR = 'STUDIO_CONFIRMED_MODEL_UNAVAILABLE';
 
-function isBrandEnhancementFailure(error: unknown): boolean {
-  return (
-    getJsonApiErrorMember(error)?.code ===
-    MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE
-  );
-}
-
 function toErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
@@ -180,9 +161,6 @@ export function useStudioGeneration({
 }: UseStudioGenerationParams): UseStudioGenerationReturn {
   const translateCrun = useTranslations('pages.studioPlayground.crun');
   const translateSpend = useTranslations('pages.studioPlayground.spend');
-  const translateBrand = useTranslations(
-    'pages.studioPlayground.brandEnhancement',
-  );
   const { subscribe, connectionState } = useSocketManager();
   const modelsRef = useRef(models);
   modelsRef.current = models;
@@ -190,8 +168,6 @@ export function useStudioGeneration({
   activeBrandRef.current = brandId;
   const consumedCrunQuoteRef = useRef<string | null>(null);
   const cancellingIds = useRef(new Set<string>());
-  /** Per failed run: re-sends the exact request, raw, with the settings it had. */
-  const brandRetriesRef = useRef(new Map<string, () => Promise<boolean>>());
   const failedHydrationIdsRef = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioPlaygroundJob[]>([]);
   const [jobsBrandId, setJobsBrandId] = useState(brandId);
@@ -272,7 +248,6 @@ export function useStudioGeneration({
   );
 
   const clearJobs = useCallback(() => {
-    brandRetriesRef.current.clear();
     setJobs([]);
   }, []);
 
@@ -1034,7 +1009,6 @@ export function useStudioGeneration({
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
-                ...(options?.brandMode ? { brandMode: options.brandMode } : {}),
                 ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
                 ...(options?.promptAuthor
                   ? { promptAuthor: options.promptAuthor }
@@ -1094,7 +1068,6 @@ export function useStudioGeneration({
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
-                ...(options?.brandMode ? { brandMode: options.brandMode } : {}),
                 ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
                 ...(options?.promptAuthor
                   ? { promptAuthor: options.promptAuthor }
@@ -1225,32 +1198,13 @@ export function useStudioGeneration({
         }
         if (activeBrandRef.current !== brandId) return false;
         logger.error('Studio generation failed', error);
-        const isBrandStop =
-          !modelKey.startsWith('crun/') && isBrandEnhancementFailure(error);
-        if (isBrandStop) {
-          brandRetriesRef.current.set(runId, () =>
-            submitGeneration(promptText, references, {
-              brandMode: 'raw',
-              ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
-              ...(options?.originalText !== undefined
-                ? { originalText: options.originalText }
-                : {}),
-              // The raw retry sends the same prompt, so its author stays.
-              ...(options?.promptAuthor
-                ? { promptAuthor: options.promptAuthor }
-                : {}),
-            }),
-          );
-        }
-        const message = isBrandStop
-          ? translateBrand('failed')
-          : modelKey.startsWith('crun/')
-            ? translateCrun(
-                error instanceof Error && error.message === 'CRUN_QUOTE_STALE'
-                  ? 'quoteStale'
-                  : 'reasons.CRUN_PROVIDER_UNAVAILABLE',
-              )
-            : toErrorMessage(error, `Failed to generate ${config.label}`);
+        const message = modelKey.startsWith('crun/')
+          ? translateCrun(
+              error instanceof Error && error.message === 'CRUN_QUOTE_STALE'
+                ? 'quoteStale'
+                : 'reasons.CRUN_PROVIDER_UNAVAILABLE',
+            )
+          : toErrorMessage(error, `Failed to generate ${config.label}`);
 
         const persistedIds =
           type === 'video' ? getPersistedVideoIngredientIds(error) : [];
@@ -1320,9 +1274,6 @@ export function useStudioGeneration({
                   {
                     createdAt: Date.now(),
                     error: message,
-                    ...(isBrandStop
-                      ? { failure: 'brand_enhancement' as const }
-                      : {}),
                     ...jobDimensions,
                     id: `failed-${crypto.randomUUID()}`,
                     modelKey: modelKey || undefined,
@@ -1360,7 +1311,6 @@ export function useStudioGeneration({
       settings,
       trackPendingIds,
       subscribeToPendingJob,
-      translateBrand,
       translateCrun,
       translateSpend,
       type,
@@ -1368,25 +1318,9 @@ export function useStudioGeneration({
     ],
   );
 
-  const generateWithoutBrand = useCallback(
-    async (job: StudioPlaygroundJob): Promise<void> => {
-      const retry = job.runId
-        ? brandRetriesRef.current.get(job.runId)
-        : undefined;
-      if (!job.runId || !retry) {
-        return;
-      }
-      brandRetriesRef.current.delete(job.runId);
-      removeJob(job.id);
-      await retry();
-    },
-    [removeJob],
-  );
-
   return {
     cancelJob,
     clearJobs,
-    generateWithoutBrand,
     jobs: jobsBrandId === brandId ? jobs : [],
     rehydratePending,
     removeJob,

@@ -117,10 +117,10 @@ identity: `BrandedModeResolverService` picks the approved revision, else the
 live draft provisionally, and the snapshot seam pins it. The enhanced prompt and
 the media receipt carry the mode and revision; a branded output is never
 compliant without a validation report, so it completes as `needs_review`.
-A failed enhancement stops before any paid call with a typed 502
-(`MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED`) and never falls back to the raw
-prompt. The only raw path is the user's explicit `brandMode: 'raw'`, which skips
-brand work and records a raw receipt.
+A failed enhancement logs a warning and generates with the prompt as typed: the
+receipt is `skipped` and `raw` with `isEnhancementFailed`, and the receipt panel
+says so. The user's explicit `brandMode: 'raw'` skips brand work and records a
+raw receipt too.
 
 
 ## The Genfeed system brand
