@@ -173,7 +173,6 @@ export default function AnalyticsPlatformDetail({
         isLoading={isLoading}
         items={[
           {
-            description: 'Published content',
             icon: Video,
             iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'posts' as const,
@@ -181,7 +180,6 @@ export default function AnalyticsPlatformDetail({
             value: posts.length,
           },
           {
-            description: 'All posts combined',
             icon: Eye,
             iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
@@ -189,7 +187,6 @@ export default function AnalyticsPlatformDetail({
             value: formatCompactNumberIntl(totalViews),
           },
           {
-            description: 'Per content piece',
             icon: ChartColumn,
             iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
@@ -206,7 +203,6 @@ export default function AnalyticsPlatformDetail({
             value: formatCompactNumberIntl(totalEngagement),
           },
           {
-            description: 'Average across posts',
             icon: Flame,
             iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'engagementRate' as const,
@@ -214,7 +210,6 @@ export default function AnalyticsPlatformDetail({
             value: formatPercentageSimple(avgEngagementRate, 2),
           },
           {
-            description: bestPost ? 'views on top post' : 'No posts yet',
             icon: Trophy,
             iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,

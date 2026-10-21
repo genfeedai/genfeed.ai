@@ -78,9 +78,11 @@ export function OverviewContent({
                       <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
                         {card.label}
                       </p>
-                      <p className="max-w-[16rem] text-sm leading-6 text-foreground/60">
-                        {card.description}
-                      </p>
+                      {card.description ? (
+                        <p className="max-w-[16rem] text-sm leading-6 text-muted-foreground">
+                          {card.description}
+                        </p>
+                      ) : null}
                     </div>
                     <CardIcon
                       icon={card.icon}

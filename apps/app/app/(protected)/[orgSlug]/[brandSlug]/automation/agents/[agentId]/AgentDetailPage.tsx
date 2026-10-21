@@ -494,12 +494,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
               value: strategy.creditsUsedThisWeek,
             },
             {
-              description: detail('recentRunsDescription'),
               label: detail('recentExecutions'),
               value: executions.length,
             },
             {
-              description: detail('consecutiveErrors'),
               label: detail('failures'),
               value: strategy.consecutiveFailures,
               valueClassName:

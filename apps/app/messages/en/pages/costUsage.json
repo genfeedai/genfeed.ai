@@ -15,7 +15,6 @@
   },
   "metrics": {
     "creditsUsed": {
-      "description": "Recorded credit burn in this period",
       "label": "Credits used"
     },
     "generations": {
@@ -23,7 +22,6 @@
       "label": "Generations"
     },
     "activeDays": {
-      "description": "Days with generation or credit activity",
       "label": "Active days"
     }
   },

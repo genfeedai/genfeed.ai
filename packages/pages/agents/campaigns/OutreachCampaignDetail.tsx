@@ -37,12 +37,12 @@ const OUTREACH_PLATFORM_LABELS: Record<CampaignPlatform, string> = {
 };
 
 const CAMPAIGN_KPI_PLACEHOLDERS = [
-  { description: 'All targets', label: 'Total', value: '-' },
-  { description: 'Waiting', label: 'Pending', value: '-' },
-  { description: 'In progress', label: 'Processing', value: '-' },
-  { description: 'Successfully replied', label: 'Replied', value: '-' },
-  { description: 'Skipped', label: 'Skipped', value: '-' },
-  { description: 'Errors', label: 'Failed', value: '-' },
+  { label: 'Total', value: '-' },
+  { label: 'Pending', value: '-' },
+  { label: 'Processing', value: '-' },
+  { label: 'Replied', value: '-' },
+  { label: 'Skipped', value: '-' },
+  { label: 'Failed', value: '-' },
 ];
 
 export default function OutreachCampaignDetail() {
@@ -164,23 +164,19 @@ export default function OutreachCampaignDetail() {
   const kpiItems = campaign
     ? [
         {
-          description: 'All targets',
           label: 'Total',
           value: targetStats.total,
         },
         {
-          description: 'Waiting',
           label: 'Pending',
           value: targetStats.pending,
         },
         {
-          description: 'In progress',
           label: 'Processing',
           value: targetStats.processing,
           valueClassName: 'text-warning',
         },
         {
-          description: 'Successfully replied',
           label: 'Replied',
           value: targetStats.replied,
           valueClassName: 'text-success',
@@ -188,7 +184,6 @@ export default function OutreachCampaignDetail() {
         ...(campaign.campaignType === CampaignType.DM_OUTREACH
           ? [
               {
-                description: 'DMs successfully sent',
                 label: 'DMs Sent',
                 value: campaign.totalDmsSent || 0,
                 valueClassName: 'text-success',
@@ -196,12 +191,10 @@ export default function OutreachCampaignDetail() {
             ]
           : []),
         {
-          description: 'Skipped',
           label: 'Skipped',
           value: targetStats.skipped,
         },
         {
-          description: 'Errors',
           label: 'Failed',
           value: targetStats.failed,
           valueClassName: 'text-destructive',

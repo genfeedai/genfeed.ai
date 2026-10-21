@@ -94,13 +94,11 @@ export default function MessagesOverview({
 
   const kpiItems = [
     {
-      description: translate('kpi.unreadHelp'),
       isLoading,
       label: translate('kpi.unread'),
       value: unreadQuery.data?.unreadCount ?? 0,
     },
     ...CONVERSATION_KINDS.map((kind, index) => ({
-      description: translate('kpi.openHelp'),
       isLoading,
       label: translate(`kinds.${kind.key}`),
       value: openCounts[index] ?? 0,
@@ -111,7 +109,6 @@ export default function MessagesOverview({
     {
       color: 'bg-sky-500/12 text-sky-300',
       cta: translate('cards.inbox.cta'),
-      description: translate('cards.inbox.description'),
       href: href(inboxRoute()),
       icon: Inbox,
       id: 'inbox',

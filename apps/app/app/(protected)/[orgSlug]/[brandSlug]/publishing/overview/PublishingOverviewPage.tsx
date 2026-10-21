@@ -345,25 +345,21 @@ export default function PublishingOverviewPage() {
 
   const kpiItems = [
     {
-      description: 'Items waiting for human approval',
       isLoading: isMetricsLoading,
       label: 'Ready to review',
       value: reviewPulse.ready,
     },
     {
-      description: 'Drafts and scheduled, not live yet',
       isLoading: isMetricsLoading,
       label: 'Not posted',
       value: notPostedTotal,
     },
     {
-      description: 'Live on destinations',
       isLoading: isMetricsLoading,
       label: 'Published',
       value: publishedTotal,
     },
     {
-      description: 'Generation failures in open batches',
       isLoading: isMetricsLoading,
       label: 'Failed items',
       value: reviewPulse.failed,
@@ -405,7 +401,6 @@ export default function PublishingOverviewPage() {
     {
       color: 'bg-sky-500/12 text-sky-300',
       cta: 'Open calendar',
-      description: 'Plan posts and adjust your schedule.',
       href: href(APP_ROUTES.PUBLISHING.CALENDAR),
       icon: Calendar,
       id: 'calendar',

@@ -25,23 +25,19 @@ export default function OutreachCampaignsKPI({
       gridCols={{ desktop: 4, mobile: 2 }}
       items={[
         {
-          description: translate('allSequences'),
           label: translate('totalSequences'),
           value: campaigns.length,
         },
         {
-          description: 'Currently running',
           label: 'Active',
           value: activeCampaignsCount,
           valueClassName: 'text-success',
         },
         {
-          description: 'Successfully posted',
           label: 'Total Replies',
           value: totalReplies.toLocaleString(),
         },
         {
-          description: 'Of all attempts',
           label: 'Success Rate',
           value: `${successRate}%`,
           valueClassName: successRate >= 80 ? 'text-success' : 'text-warning',

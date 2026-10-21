@@ -26,7 +26,6 @@ export default function BrandKPISection({
       isLoading={isLoading}
       items={[
         {
-          description: 'Published content',
           analyticsMetric: 'posts' as const,
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
@@ -34,7 +33,7 @@ export default function BrandKPISection({
         {
           description: analytics?.viewsGrowth
             ? `${formatPercentage(analytics.viewsGrowth)} from last period`
-            : 'Total views',
+            : undefined,
           analyticsMetric: 'views' as const,
           label: 'Total Views',
           value: analytics?.totalViews || 0,
@@ -42,7 +41,7 @@ export default function BrandKPISection({
         {
           description: analytics?.engagementGrowth
             ? `${formatPercentage(analytics.engagementGrowth)} from last period`
-            : 'Total engagement',
+            : undefined,
           analyticsMetric: analytics?.totalEngagement
             ? ('engagement' as const)
             : analytics?.totalLikes
@@ -52,7 +51,6 @@ export default function BrandKPISection({
           value: analytics?.totalEngagement || analytics?.totalLikes || 0,
         },
         {
-          description: 'Average engagement rate',
           analyticsMetric: 'engagementRate' as const,
           label: 'Engagement Rate',
           value: analytics?.avgEngagementRate
@@ -60,12 +58,10 @@ export default function BrandKPISection({
             : '0%',
         },
         {
-          description: 'Publishing channels',
           label: 'Active Platforms',
           value: platformCount,
         },
         {
-          description: 'Per content piece',
           analyticsMetric: 'views' as const,
           label: 'Avg Views/Post',
           analyticsMetricVariant: 'perPost' as const,

@@ -5,7 +5,6 @@
     "brandMissing": "Brand not found.",
     "calendar": {
       "cta": "Open calendar",
-      "description": "See what ships this week and reschedule from Publishing.",
       "label": "Calendar"
     },
     "connection": {
@@ -24,7 +23,6 @@
     },
     "create": {
       "cta": "Create for {platform}",
-      "description": "Start a new post with {platform} already in mind.",
       "label": "Create"
     },
     "description": "Queue, engage, and connection health for {platform} — without leaving this brand.",
@@ -36,28 +34,23 @@
     },
     "engage": {
       "cta": "Open Messages",
-      "description": "Comments and DMs for this brand.",
       "label": "Engage"
     },
     "live": {
       "cta": "Open live",
-      "description": "Chat and livestream bots for {platform}.",
       "label": "Live"
     },
     "queue": {
       "cta": "Open queue",
-      "description": "Drafts and scheduled posts filtered to {platform}.",
       "label": "Queue"
     },
     "replies": {
       "cta": "Open Replies",
-      "description": "Author replies on your {platform} posts.",
       "label": "Replies"
     },
     "title": "{platform} home",
     "winners": {
       "cta": "Open analytics",
-      "description": "Top posts and winners for {platform}.",
       "label": "Top posts"
     }
   }

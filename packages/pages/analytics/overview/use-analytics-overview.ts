@@ -219,33 +219,27 @@ export function useAnalyticsOverview({
     if (scope === PageScope.SUPERADMIN) {
       return [
         {
-          description: 'Active platform subscriptions',
           label: 'Total Subscriptions',
           value: analytics?.totalSubscriptions || 0,
         },
         {
-          description: 'Registered users',
           label: 'Total Users',
           value: analytics?.totalUsers || 0,
         },
         {
-          description: 'Video ingredients created',
           label: 'Total Videos',
           value: analytics?.totalVideos || 0,
         },
         {
-          description: 'Image ingredients created',
           label: 'Total Images',
           value: analytics?.totalImages || 0,
         },
         {
-          description: 'Published posts',
           analyticsMetric: 'posts' as const,
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
         },
         {
-          description: 'Social brands',
           label: 'Total Brands',
           value: analytics?.totalBrands || 0,
         },
@@ -254,18 +248,15 @@ export function useAnalyticsOverview({
 
     return [
       {
-        description: 'Connected social accounts with analytics',
         label: 'Connected Accounts',
         value: analytics?.totalCredentialsConnected || 0,
       },
       {
-        description: 'Published posts in the selected range',
         analyticsMetric: 'posts' as const,
         label: 'Total Posts',
         value: analytics?.totalPosts || 0,
       },
       {
-        description: 'Tracked views in the selected range',
         analyticsMetric: 'views' as const,
         label: 'Total Views',
         trend:
@@ -276,7 +267,6 @@ export function useAnalyticsOverview({
         value: analytics?.totalViews || 0,
       },
       {
-        description: 'Likes, comments, shares, and saves combined',
         analyticsMetric: 'engagement' as const,
         label: 'Total Engagement',
         trend:
@@ -287,14 +277,12 @@ export function useAnalyticsOverview({
         value: analytics?.totalEngagement || 0,
       },
       {
-        description: 'Average engagement rate across tracked posts',
         analyticsMetric: 'engagementRate' as const,
         label: 'Avg Engagement Rate',
         value: `${(analytics?.avgEngagementRate || 0).toFixed(2)}%`,
         valueClassName: 'text-4xl',
       },
       {
-        description: 'Platforms with tracked analytics in range',
         label: 'Active Platforms',
         value: analytics?.activePlatforms?.length || 0,
       },

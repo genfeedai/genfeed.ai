@@ -45,7 +45,6 @@ const quickActionCards: OverviewCard[] = [
   {
     color: 'bg-muted/50 text-foreground',
     cta: 'Manage Users',
-    description: 'Accounts, roles, and permissions',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
     icon: Users,
     id: 'users',
@@ -54,7 +53,6 @@ const quickActionCards: OverviewCard[] = [
   {
     color: 'bg-muted/50 text-foreground',
     cta: 'View Elements',
-    description: 'Presets, blacklists, and settings',
     href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
     icon: Tag,
     id: 'elements',
@@ -63,7 +61,6 @@ const quickActionCards: OverviewCard[] = [
   {
     color: 'bg-muted/50 text-foreground',
     cta: 'View Posts',
-    description: 'Posts, performance, and metrics',
     href: APP_ROUTES.ADMIN.CONTENT.POSTS,
     icon: Newspaper,
     id: 'posts',
@@ -232,7 +229,6 @@ function QuickActionsGrid() {
           >
             <Card
               label={card.label}
-              description={card.description}
               bodyClassName="flex h-full flex-col justify-between p-6"
               icon={card.icon}
               iconWrapperClassName={cn('p-3', card.color)}

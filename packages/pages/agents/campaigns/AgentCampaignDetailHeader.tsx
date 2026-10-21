@@ -53,12 +53,10 @@ export default function AgentCampaignDetailHeader({
         gridCols={{ desktop: 4, mobile: 2 }}
         items={[
           {
-            description: 'Active agents',
             label: 'Agents Running',
             value: status?.agentsRunning ?? 0,
           },
           {
-            description: 'Total content items produced',
             label: 'Content Produced',
             value: status?.contentProduced ?? 0,
           },
@@ -68,7 +66,6 @@ export default function AgentCampaignDetailHeader({
             value: campaign.creditsUsed.toLocaleString(),
           },
           {
-            description: 'Budget cap',
             label: 'Credits Allocated',
             value: campaign.creditsAllocated.toLocaleString(),
           },

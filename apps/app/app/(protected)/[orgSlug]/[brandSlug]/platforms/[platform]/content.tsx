@@ -185,7 +185,6 @@ export default function PlatformHomePage({
     {
       color: 'bg-violet-500/12 text-violet-300',
       cta: translate('create.cta', { platform: platformLabel }),
-      description: translate('create.description', { platform: platformLabel }),
       href: href(destinations.create),
       icon: Sparkles,
       id: 'create',
@@ -194,7 +193,6 @@ export default function PlatformHomePage({
     {
       color: 'bg-amber-500/12 text-amber-300',
       cta: translate('queue.cta'),
-      description: translate('queue.description', { platform: platformLabel }),
       href: href(destinations.queue),
       icon: List,
       id: 'queue',
@@ -203,7 +201,6 @@ export default function PlatformHomePage({
     {
       color: 'bg-sky-500/12 text-sky-300',
       cta: translate('calendar.cta'),
-      description: translate('calendar.description'),
       href: href(destinations.calendar),
       icon: Calendar,
       id: 'calendar',
@@ -212,7 +209,6 @@ export default function PlatformHomePage({
     {
       color: 'bg-pink-500/12 text-pink-300',
       cta: translate('engage.cta'),
-      description: translate('engage.description'),
       href: href(destinations.messages),
       icon: MessageSquare,
       id: 'engage',
@@ -224,9 +220,6 @@ export default function PlatformHomePage({
     cards.push({
       color: 'bg-orange-500/12 text-orange-300',
       cta: translate('replies.cta'),
-      description: translate('replies.description', {
-        platform: platformLabel,
-      }),
       href: href(destinations.replies),
       icon: MessageCircleReply,
       id: 'replies',
@@ -238,7 +231,6 @@ export default function PlatformHomePage({
     cards.push({
       color: 'bg-red-500/12 text-red-300',
       cta: translate('live.cta'),
-      description: translate('live.description', { platform: platformLabel }),
       href: href(destinations.live),
       icon: Radio,
       id: 'live',
@@ -249,7 +241,6 @@ export default function PlatformHomePage({
   cards.push({
     color: 'bg-blue-500/12 text-blue-300',
     cta: translate('winners.cta'),
-    description: translate('winners.description', { platform: platformLabel }),
     href: href(destinations.analytics),
     icon: ChartColumn,
     id: 'winners',

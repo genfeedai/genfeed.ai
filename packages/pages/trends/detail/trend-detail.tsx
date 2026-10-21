@@ -77,7 +77,6 @@ export default function TrendDetail({
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.analytics.trends.detail');
   const metricCopy = (key: (typeof TREND_KPI_METRICS)[number]['key']) => ({
-    description: translate(`metrics.${key}.description`),
     label: translate(`metrics.${key}.label`),
   });
   const getTrendsService = useAuthedService((token: string) =>

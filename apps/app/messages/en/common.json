@@ -1411,7 +1411,6 @@
       "backToHub": "Back to Agent Hub",
       "bestWindows": "Best posting windows: {windows}",
       "budget": "Budget: {amount}",
-      "consecutiveErrors": "Consecutive errors",
       "deactivate": "Deactivate",
       "factAutonomy": "Autonomy",
       "factBrand": "Brand",
@@ -1455,7 +1454,6 @@
       "postMeta": "{platform} · {state}",
       "postMetaPending": "{platform} · {state} · Pending review",
       "recentExecutions": "Recent executions",
-      "recentRunsDescription": "Latest runs for this agent",
       "recommendations": "Recommendations",
       "reportError": "Could not load daily report.",
       "reportLabel": "Daily agent report",
@@ -1964,7 +1962,6 @@
       "cards": {
         "inbox": {
           "cta": "Open inbox",
-          "description": "Every open conversation across connected accounts.",
           "label": "Inbox"
         },
         "kind": {
@@ -1980,9 +1977,7 @@
         "replies": "Replies"
       },
       "kpi": {
-        "openHelp": "Open conversations",
-        "unread": "Unread",
-        "unreadHelp": "Conversations with unread messages"
+        "unread": "Unread"
       },
       "title": "Overview"
     },

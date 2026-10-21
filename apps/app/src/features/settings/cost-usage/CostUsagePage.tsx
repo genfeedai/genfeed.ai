@@ -336,7 +336,6 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                       : formatUsageCredits(summary.total.creditsUsed)
                     : '—'
                 }
-                description={translate('metrics.creditsUsed.description')}
                 isLoading={summaryQuery.isLoading}
               />
               <MetricCard
@@ -366,7 +365,6 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                       )
                     : '—'
                 }
-                description={translate('metrics.activeDays.description')}
                 isLoading={summaryQuery.isLoading}
               />
             </MetricCardGrid>

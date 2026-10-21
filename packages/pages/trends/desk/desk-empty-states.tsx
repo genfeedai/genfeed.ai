@@ -25,19 +25,16 @@ export function DiscoveryReadinessCards({
       <MetricCard
         label="Source coverage"
         value={summary.connectedPlatforms.length}
-        description="Platforms currently contributing source-post signals."
         size="sm"
       />
       <MetricCard
         label="Locked sources"
         value={summary.lockedPlatforms.length}
-        description="Platforms waiting for access before they can add signals."
         size="sm"
       />
       <MetricCard
         label="Feed state"
         value={summary.totalItems ? 'Ready' : 'Waiting'}
-        description="Discovery is populated from saved trend sync output."
         size="sm"
       />
     </MetricCardGrid>

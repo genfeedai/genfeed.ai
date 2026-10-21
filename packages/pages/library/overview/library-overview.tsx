@@ -44,26 +44,22 @@ export default function LibraryOverview({
 
   const kpiItems = [
     {
-      description: translate('kpi.totalHelp'),
       isLoading,
       label: translate('kpi.total'),
       value: summary?.total ?? 0,
     },
     {
-      description: translate('kpi.needsReviewHelp'),
       isLoading,
       label: translate('kpi.needsReview'),
       value: needsReview,
     },
     {
-      description: translate('kpi.failedHelp'),
       isLoading,
       label: translate('kpi.failed'),
       value: failed,
       valueClassName: failed > 0 ? 'text-destructive' : undefined,
     },
     {
-      description: translate('kpi.storageHelp'),
       isLoading,
       label: translate('kpi.storage'),
       value: storage,
@@ -101,7 +97,6 @@ export default function LibraryOverview({
     {
       color: 'bg-sky-500/12 text-sky-300',
       cta: translate('cards.recent.cta'),
-      description: translate('cards.recent.description'),
       href: href(RECENT_ROUTE),
       icon: Clock,
       id: 'recent',
@@ -124,7 +119,6 @@ export default function LibraryOverview({
           {
             color: 'bg-violet-500/12 text-violet-300',
             cta: translate('cards.references.cta'),
-            description: translate('cards.references.description'),
             href: href(APP_ROUTES.LIBRARY.REFERENCES),
             icon: ScanFace,
             id: 'references',

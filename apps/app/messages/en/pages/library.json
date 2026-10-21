@@ -267,12 +267,10 @@
       },
       "recent": {
         "cta": "Open recent",
-        "description": "Assets touched most recently, newest first.",
         "label": "Recent"
       },
       "references": {
         "cta": "Open references",
-        "description": "Reusable characters that generations reference by name.",
         "label": "References"
       },
       "review": {
@@ -292,13 +290,9 @@
     "error": "Library counts could not be loaded.",
     "kpi": {
       "failed": "Failed",
-      "failedHelp": "Generations that did not finish",
       "needsReview": "Needs review",
-      "needsReviewHelp": "Waiting for a decision",
       "storage": "Storage",
-      "storageHelp": "Across every asset in the library",
-      "total": "Assets",
-      "totalHelp": "Excluding trash and archive"
+      "total": "Assets"
     },
     "title": "Overview"
   },

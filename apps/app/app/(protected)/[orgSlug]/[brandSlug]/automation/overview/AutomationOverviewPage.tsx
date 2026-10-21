@@ -110,7 +110,6 @@ export default function AutomationOverviewPage() {
                 icon: Workflow,
                 label: 'Workflows',
                 value: workflowTotal.toLocaleString('en-US'),
-                description: 'In this workspace',
               },
             ]}
           />

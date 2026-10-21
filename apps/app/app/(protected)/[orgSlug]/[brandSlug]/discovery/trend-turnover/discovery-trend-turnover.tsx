@@ -167,23 +167,16 @@ export default function DiscoveryTrendTurnover() {
             isLoading={isLoading}
             items={[
               {
-                description: translate('kpi.appeared.description', {
-                  days: period,
-                }),
                 icon: TrendingUp,
                 label: translate('kpi.appeared.label'),
                 value: totals?.appeared ?? 0,
               },
               {
-                description: translate('kpi.died.description', {
-                  days: period,
-                }),
                 icon: TrendingDown,
                 label: translate('kpi.died.label'),
                 value: totals?.died ?? 0,
               },
               {
-                description: translate('kpi.avgLifespan.description'),
                 icon: Clock,
                 label: translate('kpi.avgLifespan.label'),
                 value: totals
@@ -193,7 +186,6 @@ export default function DiscoveryTrendTurnover() {
                   : ':',
               },
               {
-                description: translate('kpi.turnoverRate.description'),
                 icon: Flame,
                 label: translate('kpi.turnoverRate.label'),
                 value: totals ? `${totals.turnoverRate}%` : ':',

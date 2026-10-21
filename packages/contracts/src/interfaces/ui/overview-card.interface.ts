@@ -3,7 +3,7 @@ import type { IconComponent } from '../../types/icon';
 export interface OverviewCard {
   id: string;
   label: string;
-  description: string;
+  description?: string;
   cta: string;
   href?: string;
   onClick?: () => void;

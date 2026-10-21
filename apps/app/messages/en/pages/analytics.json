@@ -11,20 +11,16 @@
     "lifespanDays": "{value}d",
     "kpi": {
       "appeared": {
-        "label": "Appeared",
-        "description": "New trends in the last {days} days"
+        "label": "Appeared"
       },
       "died": {
-        "label": "Died",
-        "description": "Trends that expired in the last {days} days"
+        "label": "Died"
       },
       "avgLifespan": {
-        "label": "Avg Lifespan",
-        "description": "Average time a trend stays active"
+        "label": "Avg Lifespan"
       },
       "turnoverRate": {
-        "label": "Turnover Rate",
-        "description": "Percentage of new trends that expired"
+        "label": "Turnover Rate"
       }
     },
     "flow": {
@@ -256,28 +252,22 @@
       "sampleContent": "Sample Content",
       "metrics": {
         "mentions": {
-          "label": "Mentions",
-          "description": "Total mentions"
+          "label": "Mentions"
         },
         "growthRate": {
-          "label": "Growth Rate",
-          "description": "Week-over-week"
+          "label": "Growth Rate"
         },
         "viralityScore": {
-          "label": "Virality Score",
-          "description": "Calculated score"
+          "label": "Virality Score"
         },
         "engagementRate": {
-          "label": "Engagement Rate",
-          "description": "Average engagement"
+          "label": "Engagement Rate"
         },
         "reach": {
-          "label": "Reach",
-          "description": "Total reach"
+          "label": "Reach"
         },
         "impressions": {
-          "label": "Impressions",
-          "description": "Total impressions"
+          "label": "Impressions"
         }
       },
       "analysis": {

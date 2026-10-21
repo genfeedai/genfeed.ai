@@ -24,31 +24,11 @@ export default function TrendsPlatformStatBar({
 
   return (
     <MetricCardGrid className="mb-5" columns={showVideos ? 4 : 3}>
-      <MetricCard
-        label="Feed type"
-        value={feedModeLabel}
-        description="How this platform’s source feed is populated."
-        size="sm"
-      />
-      <MetricCard
-        label="Trend topics"
-        value={totalTrends}
-        description="Distinct topics matched for this platform."
-        size="sm"
-      />
-      <MetricCard
-        label="Source items"
-        value={totalItems}
-        description="Remix-ready posts in the saved platform feed."
-        size="sm"
-      />
+      <MetricCard label="Feed type" value={feedModeLabel} size="sm" />
+      <MetricCard label="Trend topics" value={totalTrends} size="sm" />
+      <MetricCard label="Source items" value={totalItems} size="sm" />
       {showVideos ? (
-        <MetricCard
-          label="Viral videos"
-          value={videoCount}
-          description="Adjacent video patterns for this platform."
-          size="sm"
-        />
+        <MetricCard label="Viral videos" value={videoCount} size="sm" />
       ) : null}
     </MetricCardGrid>
   );
