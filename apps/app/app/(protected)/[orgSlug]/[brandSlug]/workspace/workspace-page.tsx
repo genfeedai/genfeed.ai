@@ -39,6 +39,10 @@ import {
   WorkspaceDashboard,
 } from './workspace-dashboard';
 import { getWorkspaceInboxTableColumns } from './workspace-inbox-columns';
+import {
+  getIsInboxChronologicalDescending,
+  getWorkspaceInboxGroupKey,
+} from './workspace-inbox-groups';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import {
   DEFAULT_REVIEW_INBOX,
@@ -323,6 +327,9 @@ function WorkspacePageContentContent({
         (column) => column.key !== 'executionPathUsed',
       );
 
+  const hasInboxGroups =
+    section === 'inbox' && getIsInboxChronologicalDescending(inboxTableItems);
+
   const inboxTable = (
     <AppTable<Task>
       actions={[
@@ -344,6 +351,22 @@ function WorkspacePageContentContent({
           icon={Inbox}
           label={inboxEmpty.label}
         />
+      }
+      getGroupHeading={
+        hasInboxGroups
+          ? (task) => {
+              const groupKey = getWorkspaceInboxGroupKey(task);
+
+              return {
+                content: (
+                  <h3 className="m-0 border-b border-border px-4 py-2 text-xs font-medium text-muted-foreground">
+                    {translate(`inbox.groups.${groupKey}`)}
+                  </h3>
+                ),
+                key: groupKey,
+              };
+            }
+          : undefined
       }
       getRowKey={(task) => task.id}
       getItemId={(task) => task.id}

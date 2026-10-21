@@ -90,6 +90,11 @@
         "description": "Everything in the workspace queue, including done items."
       }
     },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
     "columns": {
       "task": "Task",
       "status": "Status",
