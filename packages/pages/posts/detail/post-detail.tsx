@@ -449,7 +449,7 @@ export default function PostDetail({
     } else {
       panelBody = (
         <>
-          <div className="flex justify-end border-b border-border px-4 py-3">
+          <div className="flex justify-end px-4 pt-4">
             <Button
               asChild
               icon={<ExternalLink className="size-3.5" />}

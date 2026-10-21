@@ -35,7 +35,7 @@ export default function TableRowSummary({
   return (
     <div className="flex flex-col" data-testid="table-row-summary">
       {badges || openHref ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4">
           <div className="flex flex-wrap items-center gap-2">{badges}</div>
           {openHref ? (
             <Button

@@ -1294,6 +1294,7 @@ function UniversalWorkspaceShellContent({
                 >
                   <WorkspaceContextSidebarRail
                     contextSidebar={contextSidebar}
+                    isTopbarHosted
                   />
                 </div>
               ) : null}

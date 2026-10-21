@@ -206,7 +206,7 @@ export default function ReleaseDetailDrawer({
       }}
     >
       <div className="flex flex-col" data-testid="release-detail-panel">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{translate('badgePost')}</Badge>
             {statusBadge ? (
@@ -227,7 +227,7 @@ export default function ReleaseDetailDrawer({
           ) : null}
         </div>
 
-        <div className="border-b border-border px-4 py-3">
+        <div className="px-4 pt-4">
           <Tabs
             activeTab={activeDrawerTab}
             ariaLabel={translate('tabs.preview')}
