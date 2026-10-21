@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      postgres:
+      postgres: &e2e-postgres
         image: pgvector/pgvector:pg17
         env:
           POSTGRES_DB: test
@@ -107,7 +107,7 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      redis:
+      redis: &e2e-redis
         image: redis:7
         ports:
           - 6379:6379
@@ -165,28 +165,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_USER: genfeed
-          POSTGRES_PASSWORD: genfeed_local
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+      postgres: *e2e-postgres
+      redis: *e2e-redis
     env:
       RUNTIME_ACCEPTANCE_PARTITION_MODE: ${{ inputs.run_runtime_acceptance == true && 'final' || 'shared' }}
       NODE_ENV: test
@@ -252,28 +232,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_USER: genfeed
-          POSTGRES_PASSWORD: genfeed_local
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+      postgres: *e2e-postgres
+      redis: *e2e-redis
     env:
       NODE_ENV: test
       PORT: "3000"
@@ -497,30 +457,8 @@ jobs:
     outputs:
       result: ${{ steps.complete.outputs.result }}
     services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_USER: genfeed
-          POSTGRES_PASSWORD: genfeed_local
-        ports:
-          - 5432:5432
-        # Gate job start on container readiness so the first DB touch can
-        # never race container startup (deferred CodeRabbit finding on #1615).
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+      postgres: *e2e-postgres
+      redis: *e2e-redis
     env:
       TURBO_TOKEN: ''
       RUNTIME_ACCEPTANCE_CI_RUN_ID: ${{ github.run_id }}
@@ -586,30 +524,8 @@ jobs:
     outputs:
       result: ${{ steps.complete.outputs.result }}
     services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_USER: genfeed
-          POSTGRES_PASSWORD: genfeed_local
-        ports:
-          - 5432:5432
-        # Gate job start on container readiness so the first DB touch can
-        # never race container startup (deferred CodeRabbit finding on #1615).
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+      postgres: *e2e-postgres
+      redis: *e2e-redis
     env:
       TURBO_TOKEN: ''
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
@@ -697,21 +613,7 @@ jobs:
     outputs:
       result: ${{ steps.complete.outputs.result }}
     services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_USER: genfeed
-          POSTGRES_PASSWORD: genfeed_local
-        ports:
-          - 5432:5432
-        # Gate job start on container readiness so the first DB touch can
-        # never race container startup (deferred CodeRabbit finding on #1615).
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+      postgres: *e2e-postgres
     env:
       TURBO_TOKEN: ''
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
@@ -875,30 +777,8 @@ jobs:
     timeout-minutes: 40
     continue-on-error: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') }}
     services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_USER: genfeed
-          POSTGRES_PASSWORD: genfeed_local
-        ports:
-          - 5432:5432
-        # Gate job start on container readiness so the first DB touch can
-        # never race container startup (deferred CodeRabbit finding on #1615).
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+      postgres: *e2e-postgres
+      redis: *e2e-redis
     env:
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       REDIS_URL: redis://localhost:6379

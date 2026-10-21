@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +25,9 @@ import './selfhosted-schedule-readiness.test.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
+const { parse: parseYaml } = createRequire(
+  new URL('../../apps/server/api/package.json', import.meta.url),
+)('yaml');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'curated-action-catalog.yml',
@@ -1198,8 +1202,9 @@ test('serial runtime acceptance preserves ordinary E2E routing and requires rece
   assert.match(runtime, /timeout-minutes: 60/);
   assert.match(runtime, /TURBO_TOKEN: ''/);
   assert.doesNotMatch(workflow, /RUNTIME_ACCEPTANCE_OWNER_CONTRACT/);
-  assert.match(runtime, /image: pgvector\/pgvector:pg17/);
-  assert.match(runtime, /image: redis:7/);
+  const services = parseYaml(workflow).jobs['runtime-acceptance'].services;
+  assert.equal(services.postgres.image, 'pgvector/pgvector:pg17');
+  assert.equal(services.redis.image, 'redis:7');
   assert.ok(
     runtime.indexOf('Anchor acceptance job deadline') <
       runtime.indexOf('actions/checkout@'),
@@ -1491,8 +1496,9 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
       block.indexOf('Validate final prerequisites') <
         block.indexOf('Setup Bun environment'),
     );
-    assert.match(block, /image: pgvector\/pgvector:pg17/);
-    assert.equal(block.includes('image: redis:7'), redis);
+    const services = parseYaml(workflow).jobs[job].services;
+    assert.equal(services.postgres.image, 'pgvector/pgvector:pg17');
+    assert.equal(services.redis?.image === 'redis:7', redis);
     assert.equal(block.includes('RUNTIME_ACCEPTANCE_REDIS_ID:'), redis);
     const budget = redis ? 'agent-setup-budget' : 'brand-setup-budget';
     assert.ok(
@@ -1517,9 +1523,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
       const value = block.match(
         new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
       )?.[1];
-      const serviceValue = block.match(
-        new RegExp(`^ {10}POSTGRES_${field}: (.+)$`, 'm'),
-      )?.[1];
+      const serviceValue = services.postgres.env[`POSTGRES_${field}`];
       assert.ok(value);
       assert.equal(value, expected);
       assert.equal(value, serviceValue);
