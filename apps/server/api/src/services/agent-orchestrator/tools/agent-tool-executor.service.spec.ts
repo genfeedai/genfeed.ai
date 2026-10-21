@@ -6345,7 +6345,6 @@ describe('AgentToolExecutorService', () => {
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       usersService as never,
       undefined,
-      undefined,
     );
     const systemWorkflowRunner = createWorkflowRunner();
     const serviceWithoutScorer = new AgentToolExecutorService(
