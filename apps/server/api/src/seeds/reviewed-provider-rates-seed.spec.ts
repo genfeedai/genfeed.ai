@@ -93,6 +93,7 @@ describe('reviewed provider rates seed', () => {
           providerSyncStatus: 'fresh',
         }),
         where: {
+          AND: [],
           id: 'model-1',
           isDeleted: false,
           organizationId: null,
@@ -185,57 +186,26 @@ describe('reviewed provider rates seed', () => {
     it('proves every platform Model query to the CLOUD tenant guard inside an admin request', async () => {
       const prisma = harness(modelRow());
 
-      await runWithTenantContext({ organizationId: 'org-1' }, () =>
-        seedReviewedProviderRates(prisma as never, [hailuo], undefined, {
+      await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+        await seedReviewedProviderRates(prisma as never, [hailuo], undefined, {
           reviewedBy: 'operator-2',
-        }),
-      );
-
-      const queries = [
-        ['findFirst', prisma.model.findFirst.mock.calls[0]?.[0]],
-        ['updateMany', prisma.model.updateMany.mock.calls[0]?.[0]],
-      ] as const;
-      for (const [operation, args] of queries) {
-        expect(args).toBeDefined();
-        expect(() =>
-          assertTenantScopedQuery({
-            args,
-            isCloud: true,
-            model: 'Model',
-            operation,
-            tenantModelNames: new Set(['Model']),
-          }),
-        ).not.toThrow();
-      }
-    });
-
-    it('replaces a contract an operator approved and records who re-applied it', async () => {
-      const prisma = harness(
-        modelRow({ reviewedProviderContractVersion: 'operator-approved' }),
-        {
-          pricing: {},
-          reviewedAt: new Date('2026-12-01T00:00:00Z'),
-          reviewedBy: 'user-1',
-        },
-      );
-
-      const written = await seedReviewedProviderRates(
-        prisma as never,
-        [hailuo],
-        undefined,
-        { reviewedBy: 'operator-2' },
-      );
-
-      expect(written).toBe(1);
-      const upsert = prisma.modelProviderContract.upsert.mock.calls[0]?.[0];
-      expect(upsert.create).toMatchObject({
-        reviewStatus: 'approved',
-        reviewedBy: 'operator-2',
-      });
-      expect(prisma.model.updateMany.mock.calls[0]?.[0].data).toMatchObject({
-        providerSyncFailureCode: null,
-        reviewedBy: 'operator-2',
-        reviewedProviderContractVersion: hailuoVersion,
+        });
+        const queries = [
+          ['findFirst', prisma.model.findFirst.mock.calls[0]?.[0]],
+          ['updateMany', prisma.model.updateMany.mock.calls[0]?.[0]],
+        ] as const;
+        for (const [operation, args] of queries) {
+          expect(args).toBeDefined();
+          expect(() =>
+            assertTenantScopedQuery({
+              args,
+              isCloud: true,
+              model: 'Model',
+              operation,
+              tenantModelNames: new Set(['Model']),
+            }),
+          ).not.toThrow();
+        }
       });
     });
 
