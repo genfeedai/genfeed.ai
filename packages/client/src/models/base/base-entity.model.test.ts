@@ -32,4 +32,21 @@ describe('BaseEntity', () => {
     const entity = new TestEntity({ id: '1', name: 'Test' });
     expect(entity.name).toBe('Test');
   });
+
+  it('skips keys backed by a getter-only accessor on the subclass', () => {
+    class DerivedEntity extends BaseEntity {
+      declare public name: string;
+      get logoUrl(): string | undefined {
+        return 'derived';
+      }
+    }
+    const entity = new DerivedEntity({
+      id: '1',
+      logoUrl: null,
+      name: 'Test',
+    } as Partial<any>);
+    expect(entity.logoUrl).toBe('derived');
+    expect(entity.id).toBe('1');
+    expect(entity.name).toBe('Test');
+  });
 });
