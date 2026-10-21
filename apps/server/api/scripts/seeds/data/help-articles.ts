@@ -100,7 +100,6 @@ fill the brand in later from Brand Kit.</p>
 <p>Your brand guide is what keeps generated posts and images consistent. The
 details are in
 <a href="${articleUrl(SLUGS.brand)}">Brand setup and brand memory</a>.</p>
-<!-- TODO(help): describe the agent onboarding conversation that follows the brand step on Cloud (route /{orgSlug}/~/agent/onboarding): what it asks and what it produces. -->
 
 <h2>3. Connect an account</h2>
 <p>To publish, connect at least one channel to your brand. Open the brand's

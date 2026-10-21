@@ -69,21 +69,13 @@ export function AgentWorkspacePageShell({
     [getToken],
   );
 
-  // `onSelectCreditPack` is drilled all the way down to `AgentChatMessage`
-  // (now `React.memo`-wrapped, see #2517) for every message row. An inline
-  // arrow here would be a fresh reference on every render of this shell,
-  // defeating that memoization for the entire conversation history. Stabilize
-  // both billing callbacks with `useCallback` for the same reason.
+  // These callbacks are drilled down to `AgentChatMessage` (`React.memo`-wrapped,
+  // see #2517) for every message row. An inline arrow would be a fresh
+  // reference on every render of this shell, defeating that memoization for
+  // the entire conversation history, so stabilize them with `useCallback`.
   const handleNavigateToBilling = useCallback(() => {
     push(orgHref('/settings/credits'));
   }, [push, orgHref]);
-
-  const handleSelectCreditPack = useCallback(
-    (pack: { label: string; price: string; credits: number }) => {
-      push(orgHref(`/settings/credits?pack=${pack.label.toLowerCase()}`));
-    },
-    [push, orgHref],
-  );
 
   // #4670 Open in Studio: the card already built the full, org-scoped Studio
   // generate URL (including the handoff id) via its own useOrgUrl() — this
@@ -116,7 +108,6 @@ export function AgentWorkspacePageShell({
         onOAuthConnect={handleOAuthConnect}
         onBrandCreate={handleBrandCreate}
         onOpenInStudio={handleOpenInStudio}
-        onSelectCreditPack={handleSelectCreditPack}
       />
     </div>
   );

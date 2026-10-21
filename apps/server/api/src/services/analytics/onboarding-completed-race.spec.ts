@@ -100,13 +100,9 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
     );
 
     const handler = new AgentOnboardingToolHandler(
-      { error: vi.fn(), warn: vi.fn() } as never,
-      {} as never, // configService
       {} as never, // brandsService
       { findOne: vi.fn().mockResolvedValue(null) } as never, // postsService
       {} as never, // creditsUtilsService
-      {} as never, // contentGeneratorService
-      {} as never, // generationGateway
       onboardingCreditGrantsService,
       undefined, // credentialsService
       undefined, // imagesService

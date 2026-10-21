@@ -180,7 +180,6 @@ export interface AgentUiAction {
     | 'oauth_connect_card'
     | 'content_preview_card'
     | 'completion_summary_card'
-    | 'payment_cta_card'
     | 'image_transform_card'
     | 'outreach_sequence_create_card'
     | 'outreach_sequence_control_card'
@@ -235,7 +234,6 @@ export interface AgentUiAction {
   videos?: string[];
   audio?: string[];
   voiceoverText?: string;
-  packs?: Array<{ label: string; price: string; credits: number }>;
   metrics?: Record<string, unknown>;
   status?: string;
   /** Audience visibility a publish card should preselect. */

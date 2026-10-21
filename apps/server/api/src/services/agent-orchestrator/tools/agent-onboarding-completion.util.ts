@@ -24,7 +24,7 @@ export async function completeAgentOnboarding(
       success: false,
       creditsUsed: 0,
       error:
-        'Expert setup is incomplete. Use complete_brand_onboarding_step to hand off to the Expert steps before completing onboarding.',
+        'Expert setup is incomplete. Finish the setup at /onboarding before completing onboarding.',
     };
   }
   if (organizationsService) {

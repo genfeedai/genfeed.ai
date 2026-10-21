@@ -73,11 +73,6 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'compare_meta_campaigns', surfaces: ['mcp'], toolset: 'ads' },
   {
-    name: 'complete_brand_onboarding_step',
-    surfaces: ['agent'],
-    toolset: 'onboarding',
-  },
-  {
     name: 'complete_media_upload',
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
@@ -198,11 +193,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'generate_content', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },
-  {
-    name: 'generate_onboarding_content',
-    surfaces: ['agent'],
-    toolset: 'onboarding',
-  },
   { name: 'generate_reply_variants', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'generate_turbo_content',
@@ -445,7 +435,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'prepare_generation', surfaces: ['agent'], toolset: 'ui' },
   { name: 'prepare_voice_clone', surfaces: ['agent'], toolset: 'ui' },
   { name: 'prepare_workflow_trigger', surfaces: ['agent'], toolset: 'ui' },
-  { name: 'present_payment_options', surfaces: ['agent'], toolset: 'ui' },
   { name: 'present_work_object', surfaces: ['agent'], toolset: 'ui' },
   { name: 'publish_article', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'publish_skill', surfaces: ['mcp'], toolset: 'skills-pro' },

@@ -22,7 +22,6 @@ export type ToolUiActionType =
   | 'studio_handoff_card'
   | 'clip_workflow_run_card'
   | 'workflow_trigger_card'
-  | 'payment_cta_card'
   | 'image_transform_card'
   | 'schedule_post_card'
   | 'ingredient_picker_card'

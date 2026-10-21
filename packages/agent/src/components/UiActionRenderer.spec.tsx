@@ -20,7 +20,6 @@ const cardPropsSpies = vi.hoisted(() => ({
   ingredientPicker: vi.fn(),
   livestreamBot: vi.fn(),
   oauthConnect: vi.fn(),
-  paymentCta: vi.fn(),
   publishPost: vi.fn(),
   schedulePost: vi.fn(),
   voiceClone: vi.fn(),
@@ -44,10 +43,6 @@ vi.mock('@genfeedai/agent/components/AgentChatMessageCards', () => ({
   OAuthConnectCard: (props: Record<string, unknown>) => {
     cardPropsSpies.oauthConnect(props);
     return <div data-testid="oauth-connect-card" />;
-  },
-  PaymentCtaCard: (props: Record<string, unknown>) => {
-    cardPropsSpies.paymentCta(props);
-    return <div data-testid="payment-cta-card" />;
   },
 }));
 
@@ -168,7 +163,6 @@ type RendererHandlerName =
   | 'onCopy'
   | 'onOAuthConnect'
   | 'onRetry'
-  | 'onSelectCreditPack'
   | 'onSelectIngredient'
   | 'onUiAction';
 
@@ -202,14 +196,6 @@ const handlerDrivenCases = [
     expectations: [{ cardProp: 'onCopy', rendererHandler: 'onCopy' }],
     spy: cardPropsSpies.contentPreview,
     testId: 'content-preview-card',
-  },
-  {
-    actionType: 'payment_cta_card',
-    expectations: [
-      { cardProp: 'onSelect', rendererHandler: 'onSelectCreditPack' },
-    ],
-    spy: cardPropsSpies.paymentCta,
-    testId: 'payment-cta-card',
   },
   {
     actionType: 'publish_post_card',
@@ -329,7 +315,6 @@ const rendererHandlers = {
   onOAuthConnect: vi.fn(),
   onOpenInStudio: vi.fn(),
   onRetry: vi.fn(),
-  onSelectCreditPack: vi.fn(),
   onSelectIngredient: vi.fn(),
   onUiAction: vi.fn(),
 };

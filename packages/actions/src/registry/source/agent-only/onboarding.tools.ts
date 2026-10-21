@@ -2,14 +2,6 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
   {
-    name: 'complete_brand_onboarding_step',
-    creditCost: 0,
-    requiredRole: 'user',
-    description:
-      'Complete the Expert brand conversation and hand off to positioning. Does not complete overall onboarding.',
-    parameters: { type: 'object', required: [], properties: {} },
-  },
-  {
     name: 'scan_brand_url',
     creditCost: 0,
     requiredRole: 'user',
@@ -162,41 +154,6 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
     name: 'complete_onboarding',
     parameters: {
       properties: {},
-      required: [],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'Generate one brand-specific tweet and one cost-priority image for review during onboarding. No social connection is needed. Returns actual preview URLs and text; ask for approval before offering account connection.',
-    name: 'generate_onboarding_content',
-    parameters: {
-      properties: {
-        brandId: {
-          description: 'Brand ID; omit to use the current conversation brand',
-          type: 'string',
-        },
-        direction: {
-          description:
-            'Optional creative direction or requested changes to the draft, grounded in the saved brand.',
-          type: 'string',
-          maxLength: 2000,
-        },
-        previousRequestKey: {
-          description:
-            'The requestKey returned with the version being replaced. Pass it when creating another version so the new draft is linked to it.',
-          type: 'string',
-          maxLength: 36,
-        },
-        retryTweet: {
-          description:
-            'Retry only the image for this exact previously generated tweet; reuse the text without another text generation.',
-          type: 'string',
-          maxLength: 280,
-        },
-      },
       required: [],
       type: 'object',
     },

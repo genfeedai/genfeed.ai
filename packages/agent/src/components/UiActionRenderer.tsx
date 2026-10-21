@@ -6,7 +6,6 @@ import {
 import {
   ContentPreviewCard,
   OAuthConnectCard,
-  PaymentCtaCard,
 } from '@genfeedai/agent/components/AgentChatMessageCards';
 import { AgentCompletionSummaryCard } from '@genfeedai/agent/components/AgentCompletionSummaryCard';
 import { AgentTransferProvenanceCard } from '@genfeedai/agent/components/AgentTransferProvenanceCard';
@@ -62,7 +61,6 @@ export function UiActionRenderer({
   onOAuthConnect,
   onBrandCreate,
   onOpenInStudio,
-  onSelectCreditPack,
   onSelectIngredient,
   onRetry,
   onUiAction,
@@ -84,11 +82,6 @@ export function UiActionRenderer({
   }) => void | Promise<void>;
   /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
   onOpenInStudio?: (studioUrl: string) => void;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
   onSelectIngredient?: (ingredient: { id: string; title?: string }) => void;
   onRetry?: () => void | Promise<void>;
   onUiAction?: AgentUiActionHandler;
@@ -101,7 +94,6 @@ export function UiActionRenderer({
   const liveOnCopy = isInert ? undefined : onCopy;
   const liveOnOAuthConnect = isInert ? undefined : onOAuthConnect;
   const liveOnBrandCreate = isInert ? undefined : onBrandCreate;
-  const liveOnSelectCreditPack = isInert ? undefined : onSelectCreditPack;
   const liveOnOpenInStudio = isInert ? undefined : onOpenInStudio;
   const liveOnSelectIngredient = isInert ? undefined : onSelectIngredient;
   const liveOnRetry = isInert ? undefined : onRetry;
@@ -146,11 +138,6 @@ export function UiActionRenderer({
           onCopy={liveOnCopy}
           onUiAction={liveOnUiAction}
         />
-      );
-      break;
-    case 'payment_cta_card':
-      card = (
-        <PaymentCtaCard action={action} onSelect={liveOnSelectCreditPack} />
       );
       break;
     case 'generation_action_card':

@@ -335,7 +335,6 @@ function dispatchGrowthFamily(
       return handlers.onboardingHandler.checkOnboardingStatus(ctx);
     case 'complete_onboarding':
       return handlers.onboardingHandler.completeOnboarding(ctx);
-    case 'complete_brand_onboarding_step':
     case 'scan_brand_url':
     case 'save_onboarding_answers':
       return handlers.onboardingBrandSetupHandler.execute(
@@ -343,10 +342,6 @@ function dispatchGrowthFamily(
         params,
         ctx,
       );
-    case 'generate_onboarding_content':
-      return handlers.onboardingHandler.generateOnboardingContent(params, ctx);
-    case 'present_payment_options':
-      return handlers.onboardingHandler.presentPaymentOptions(ctx);
     case 'generate_monthly_content':
       return handlers.brandContentHandler.generateMonthlyContent(params, ctx);
     case 'draft_brand_voice_profile':

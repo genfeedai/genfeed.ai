@@ -67,11 +67,6 @@ export type AgentChatContainerThreadViewProps = {
   onRequestPlanChanges: (revisionNote: string) => Promise<void>;
   onRetry: (message: AgentChatMessageType) => Promise<void>;
   onRetryLastFailedRun: () => void | Promise<void>;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
   onSubmitInputRequest: (
     answer: string,
     optionIds?: string[],
@@ -126,7 +121,6 @@ export function AgentChatContainerThreadView({
   onRequestPlanChanges,
   onRetry,
   onRetryLastFailedRun,
-  onSelectCreditPack,
   onSubmitInputRequest,
   onUiAction,
   padBottomForComposer,
@@ -243,7 +237,6 @@ export function AgentChatContainerThreadView({
             onOAuthConnect={onOAuthConnect}
             onBrandCreate={onBrandCreate}
             onOpenInStudio={onOpenInStudio}
-            onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onIngredientSelect}
             onUiAction={onUiAction}
             hasDockedGenerationCard={hasDockedGenerationCard}

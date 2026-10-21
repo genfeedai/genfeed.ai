@@ -468,37 +468,3 @@ export function ContentPreviewCard({
     </div>
   );
 }
-
-export function PaymentCtaCard({
-  action,
-  onSelect,
-}: {
-  action: AgentUiAction;
-  onSelect?: (pack: { label: string; price: string; credits: number }) => void;
-}): ReactElement {
-  const translate = useTranslations('agent.messageCards');
-  return (
-    <div className="mt-2 rounded-lg border border-primary/30 bg-background p-3">
-      <p className="mb-3 text-sm font-medium text-foreground">
-        {translate('unlockCredits')}
-      </p>
-      <div className="grid grid-cols-3 gap-2">
-        {action.packs?.map((pack) => (
-          <Button
-            key={pack.label}
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onClick={() => onSelect?.(pack)}
-            className="rounded-lg border border-border p-2 text-center transition-colors hover:border-primary hover:bg-primary/5"
-          >
-            <p className="text-xs font-medium text-foreground">{pack.label}</p>
-            <p className="text-lg font-bold text-primary">{pack.price}</p>
-            <p className="text-2xs text-muted-foreground">
-              {translate('creditAmount', { count: pack.credits })}
-            </p>
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-}

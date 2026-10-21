@@ -10,7 +10,6 @@ import type {
   OpenRouterTool,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { CuratedActionName } from '@genfeedai/actions';
-import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { RouterPriority } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -108,23 +107,10 @@ function resolveProviderToolDefinitions(
   }));
 }
 
-/**
- * Managed credit packs are cloud-only, so the payment card has nothing to sell
- * on a self-hosted install regardless of which surface the turn came from.
- */
-export const CLOUD_ONLY_TOOLS: CuratedActionName[] = [
-  'present_payment_options',
-];
-
-export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = [
-  'complete_brand_onboarding_step',
-  'scan_brand_url',
-];
+export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = ['scan_brand_url'];
 
 export function resolveBlockedTools(): CuratedActionName[] | undefined {
-  const blocked = [...ONBOARDING_ONLY_TOOLS];
-  if (isSelfHostedDeployment()) blocked.push(...CLOUD_ONLY_TOOLS);
-  return blocked.length ? blocked : undefined;
+  return [...ONBOARDING_ONLY_TOOLS];
 }
 
 export function buildToolDefinitions(

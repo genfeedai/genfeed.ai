@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -6,16 +5,9 @@ import { OnboardingCreditGrantsService } from '@api/collections/credits/services
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
-import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
-import {
-  AGENT_GENERATION_GATEWAY,
-  type IAgentGenerationGateway,
-} from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import {
   buildBrandIdentityProposal,
   buildCreatedBrandAgentConfig,
@@ -27,32 +19,10 @@ import {
   readCreateBrandProposal,
   readOptionalBrandDescription,
 } from '@api/services/agent-orchestrator/tools/agent-brand-identity-proposal.util';
-import {
-  readMediaResponseString,
-  readUsableCdnAssetUrl,
-  toMediaResponseRecord,
-} from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { completeAgentOnboarding } from '@api/services/agent-orchestrator/tools/agent-onboarding-completion.util';
-import {
-  createOnboardingBrandDraft,
-  type OnboardingTweetDraft,
-} from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import {
-  hasOrganizationBilling,
-  isSelfHostedDeployment,
-} from '@genfeedai/config';
-import {
-  ByokProvider,
-  Platform,
-  Status,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
-import {
-  DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-  resolveAgentGenerationDimensions,
-} from '@genfeedai/contracts/constants';
+import { isSelfHostedDeployment } from '@genfeedai/config';
+import { ByokProvider, TargetExecutionState } from '@genfeedai/contracts';
 import type {
   AgentToolResult,
   AgentUiAction,
@@ -67,8 +37,6 @@ import {
   type OnboardingJourneyMissionId,
   resolveMissionCtaHref,
 } from '@genfeedai/contracts/types';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -85,9 +53,6 @@ import {
  * instead of on provider count. Provider capability semantics elsewhere are
  * unchanged.
  */
-const UUID_V4_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 const IMAGE_CAPABLE_ONBOARDING_PROVIDERS: readonly string[] = [
   ByokProvider.FAL,
   ByokProvider.LEONARDOAI,
@@ -124,15 +89,10 @@ interface AgentBrandsServiceLike {
 @Injectable()
 export class AgentOnboardingToolHandler {
   constructor(
-    private readonly loggerService: LoggerService,
-    private readonly configService: ConfigService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
     private readonly postsService: PostsService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly postGenerationService: PostGenerationService,
-    @Inject(AGENT_GENERATION_GATEWAY)
-    private readonly generationGateway: IAgentGenerationGateway,
     private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
     @Optional()
     private readonly credentialsService?: CredentialsService,
@@ -146,22 +106,7 @@ export class AgentOnboardingToolHandler {
     private readonly usersService?: UsersService,
     @Optional()
     private readonly videosService?: VideosService,
-    @Optional()
-    private readonly streamPublisher?: AgentStreamPublisherService,
   ) {}
-
-  private async publishToolProgress(data: {
-    message: string;
-    progress: number;
-    threadId: string;
-    toolName: string;
-    userId: string;
-  }): Promise<void> {
-    if (!this.streamPublisher) {
-      return;
-    }
-    await this.streamPublisher.publishToolProgress(data);
-  }
 
   async createBrand(
     params: Record<string, unknown>,
@@ -745,251 +690,5 @@ export class AgentOnboardingToolHandler {
       },
       success: true,
     };
-  }
-
-  async generateOnboardingContent(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const direction =
-      readOptionalString(params.direction)?.slice(0, 2000) ?? '';
-    const retryTweet = readOptionalString(params.retryTweet);
-    const previousRequestKey = readOptionalString(params.previousRequestKey);
-    if (
-      params.previousRequestKey != null &&
-      (previousRequestKey === undefined ||
-        !UUID_V4_PATTERN.test(previousRequestKey))
-    ) {
-      return {
-        creditsUsed: 0,
-        error: 'Provide the requestKey of the version being replaced.',
-        success: false,
-      };
-    }
-    if (
-      params.retryTweet != null &&
-      (typeof params.retryTweet !== 'string' || (retryTweet?.length ?? 0) > 280)
-    ) {
-      return {
-        creditsUsed: 0,
-        error:
-          'Provide the original tweet (up to 280 characters) to retry its image.',
-        success: false,
-      };
-    }
-    const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
-    if (!brandId || (ctx.brandId && ctx.brandId !== brandId)) {
-      return {
-        creditsUsed: 0,
-        error: 'Choose the current brand before creating its first post.',
-        success: false,
-      };
-    }
-
-    return createOnboardingBrandDraft({
-      brandId,
-      brandsService: this.brandsService,
-      checkOnboardingStatus: (next) => this.checkOnboardingStatus(next),
-      ctx,
-      direction,
-      generateTweet: (input) => this.generateOnboardingTweet(input),
-      generateImage: (prompt, next) =>
-        this.generateOnboardingImage(prompt, next),
-      loggerService: this.loggerService,
-      organizationSettingsService: this.organizationSettingsService,
-      publishProgress: (data) => this.publishToolProgress(data),
-      resolveProviderReadiness: (settings) =>
-        this.resolveProviderReadiness(settings),
-      previousRequestKey,
-      retryTweet,
-    });
-  }
-
-  /**
-   * The first tweet is a receipt-backed draft: the server decides whether it is
-   * written from the approved kit or provisionally, saves it as a DRAFT post,
-   * and links a regeneration to the version it replaces.
-   */
-  private async generateOnboardingTweet(input: {
-    brandId: string;
-    ctx: ToolExecutionContext;
-    direction: string;
-    previousRequestKey?: string;
-  }): Promise<OnboardingTweetDraft> {
-    const requestKey = randomUUID();
-    const result = await this.postGenerationService.generateDraftText(
-      {
-        brandId: input.brandId,
-        platform: Platform.TWITTER,
-        prompt: [
-          'Introduce the brand with a useful, specific post grounded in its saved offering.',
-          ...(input.direction
-            ? [`Apply these requested changes: ${input.direction}`]
-            : []),
-        ].join(' '),
-        requestKey,
-      },
-      {
-        brandId: input.brandId,
-        organizationId: input.ctx.organizationId,
-        userId: input.ctx.userId,
-      },
-      undefined,
-      {
-        parentRequestId: input.previousRequestKey,
-        surface: 'onboarding',
-      },
-    );
-    return {
-      postId: result.postId,
-      receiptId: result.brandedReceipt.id,
-      receiptState: result.brandedReceipt.state,
-      requestKey,
-      text: result.description,
-    };
-  }
-
-  /**
-   * Returns a UI action card with payment/credit pack options.
-   * Includes a free tier skip path for users not ready to pay.
-   */
-  presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
-    const billingHref = hasOrganizationBilling()
-      ? '/settings/subscription'
-      : '/settings/api-keys';
-    const billingLabel = hasOrganizationBilling()
-      ? 'View all plans'
-      : 'Configure providers';
-
-    return {
-      creditsUsed: 0,
-      data: {
-        canSkip: true,
-        message: hasOrganizationBilling()
-          ? 'Choose a credit pack to unlock video generation, monthly content calendars, and more.'
-          : 'Configure provider API keys to unlock generation, workflows, and publishing in your local install.',
-      },
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: billingHref,
-              label: billingLabel,
-            },
-          ],
-          id: `payment-cta-${Date.now()}`,
-          packs: [
-            {
-              credits: 100,
-              label: 'Starter',
-              price: '$9',
-            },
-            {
-              credits: 500,
-              label: 'Creator',
-              price: '$29',
-            },
-            {
-              credits: 2000,
-              label: 'Pro',
-              price: '$79',
-            },
-          ],
-          title: 'Unlock credits to publish & generate more',
-          type: 'payment_cta_card',
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async generateOnboardingImage(
-    prompt: string,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const settings = this.organizationSettingsService
-      ? await this.organizationSettingsService.findOne({
-          organizationId: ctx.organizationId,
-        })
-      : null;
-    if (
-      isSelfHostedDeployment() &&
-      !this.resolveProviderReadiness(settings).isImageReady
-    ) {
-      return this.checkOnboardingStatus(ctx);
-    }
-
-    const dimensions = resolveAgentGenerationDimensions(
-      DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-    );
-    const body = await buildFirstRunOnboardingImageBody({
-      brandId: ctx.brandId,
-      height: dimensions.height,
-      nodeEnv: this.configService.get('NODE_ENV'),
-      onReferenceError: (error) =>
-        this.loggerService.warn('Onboarding image skipped brand references', {
-          brandId: ctx.brandId,
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      organizationId: ctx.organizationId,
-      prompt,
-      resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets?.bind(
-        this.brandsService,
-      ),
-      runId: ctx.runId,
-      strategyId: ctx.strategyId,
-      width: dimensions.width,
-    });
-
-    try {
-      const response = toMediaResponseRecord(
-        await this.generationGateway.generateImage({
-          body,
-          principal: {
-            brandId: ctx.brandId,
-            organizationId: ctx.organizationId,
-            userId: ctx.userId,
-          },
-        }),
-      );
-      const id = readMediaResponseString(response, 'id');
-      const url = readUsableCdnAssetUrl(
-        response,
-        this.configService.ingredientsEndpoint,
-      );
-
-      if (!url) {
-        throw new Error('Image generation returned no usable preview.');
-      }
-      if (id) {
-        try {
-          await this.completeJourneyMission(ctx, 'generate_first_image');
-        } catch (error) {
-          this.loggerService.warn(
-            'Onboarding image reward could not be recorded',
-            { error },
-          );
-        }
-      }
-
-      return {
-        creditsUsed: 0,
-        data: { id, status: Status.GENERATED, url },
-        isBillingDelegated: true,
-        success: true,
-      };
-    } catch (error) {
-      this.loggerService.error('Onboarding image generation failed', error);
-      return {
-        creditsUsed: 0,
-        error:
-          error instanceof Error &&
-          /insufficient.*credits|not enough.*credits/i.test(error.message)
-            ? 'There are not enough credits to create this image. You can open your workspace to manage credits or continue with the tweet.'
-            : 'The image could not be generated. Please retry, or open your workspace.',
-        isBillingDelegated: true,
-        success: false,
-      };
-    }
   }
 }

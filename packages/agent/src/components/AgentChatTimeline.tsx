@@ -48,11 +48,6 @@ type AgentChatTimelineProps = {
   }) => void | Promise<void>;
   /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
   onOpenInStudio?: (studioUrl: string) => void;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
   onSelectIngredient: (ingredient: { id: string; title?: string }) => void;
   onUiAction: AgentUiActionHandler;
   isReadOnly?: boolean;
@@ -84,7 +79,6 @@ export function AgentChatTimeline({
   onOAuthConnect,
   onBrandCreate,
   onOpenInStudio,
-  onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
   isReadOnly = false,
@@ -164,7 +158,6 @@ export function AgentChatTimeline({
             onOAuthConnect={onOAuthConnect}
             onBrandCreate={onBrandCreate}
             onOpenInStudio={onOpenInStudio}
-            onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onSelectIngredient}
             onUiAction={onUiAction}
           />
@@ -285,7 +278,6 @@ export function AgentChatTimeline({
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
               onOpenInStudio={onOpenInStudio}
-              onSelectCreditPack={onSelectCreditPack}
               onSelectIngredient={onSelectIngredient}
               onUiAction={onUiAction}
             />

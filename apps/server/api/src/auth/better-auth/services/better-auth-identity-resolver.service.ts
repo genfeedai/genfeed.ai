@@ -244,7 +244,7 @@ export class BetterAuthIdentityResolverService {
 
   /**
    * Signup can persist a session even when UserSetupService throws. The next
-   * authenticated request must finish provisioning so /agent/onboarding sits
+   * authenticated request must finish provisioning so /onboarding sits
    * on a real membership org instead of spinning with no access state.
    */
   private async provisionMissingWorkspace(

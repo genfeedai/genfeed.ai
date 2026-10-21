@@ -1051,13 +1051,9 @@ describe('AgentToolExecutorService', () => {
         ),
     };
     const onboardingHandler = new AgentOnboardingToolHandler(
-      loggerService,
-      configService as never,
       brandsService as never,
       postsService as never,
       creditsUtilsService as never,
-      contentGeneratorService as never,
-      generationGateway as never,
       onboardingCreditGrantsService as never,
       credentialsService as never,
       imagesService as never,
@@ -1065,7 +1061,6 @@ describe('AgentToolExecutorService', () => {
       organizationSettingsService as never,
       usersService as never,
       videosService as never,
-      streamPublisher as never,
     );
     const analyticsHandler = new AgentAnalyticsToolHandler(
       postsService as never,
@@ -6340,13 +6335,9 @@ describe('AgentToolExecutorService', () => {
       undefined,
     );
     const onboardingWithoutScorer = new AgentOnboardingToolHandler(
-      loggerService,
-      { get: vi.fn().mockReturnValue('http://localhost:3010') } as never,
       brandsService as never,
       postsService as never,
       {} as never,
-      {} as never,
-      generationGatewayWithoutScorer as never,
       { completeMissions: vi.fn().mockResolvedValue([]) } as never,
       credentialsService as never,
       imagesService as never,
