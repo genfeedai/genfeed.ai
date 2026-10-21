@@ -6,8 +6,11 @@ import type {
   GenerationSetupChipId,
   GenerationSetupSectionChipsProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { usePromptBarRowFit } from '@hooks/prompt-bar/use-prompt-bar-row-fit/use-prompt-bar-row-fit';
 import {
+  PROMPT_BAR_CHIP_FIT_CLASS,
+  PROMPT_BAR_CHIP_LABEL_CLASS,
+  PROMPT_BAR_SETUP_FOLD_CLASS,
+  PROMPT_BAR_SETUP_MENU_CLASS,
   SHELL_CONTROL_HEIGHT_CLASS,
   SHELL_ICON_CLASS,
 } from '@ui/constants/shell-chrome.constant';
@@ -21,6 +24,9 @@ import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
@@ -30,9 +36,16 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { TooltipProvider } from '@ui/primitives/tooltip';
-import { Bookmark, Copy, Cpu, Megaphone, Palette } from 'lucide-react';
+import {
+  Bookmark,
+  Copy,
+  Cpu,
+  Ellipsis,
+  Megaphone,
+  Palette,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 interface SectionChip {
   icon: ReactNode;
@@ -46,8 +59,9 @@ interface SectionChip {
  * Presets sit in the toolbar as chips, each opening only its own section.
  * Model comes first so it always follows the type button. Output and Look
  * are nested menus that open their lists to the side; only one chip is open
- * at a time. The row stays on one line; when it runs out of room the chips
- * keep their icons and drop their labels, which stay in the tooltip.
+ * at a time. The chips are sized by the width of the tools group (see
+ * `PromptBarToolbar`): all labelled, then all icon-only with the labels in the
+ * tooltip, then folded into one More setup menu. Nothing scrolls.
  */
 export default function GenerationSetupSectionChips(
   props: GenerationSetupSectionChipsProps,
@@ -67,14 +81,12 @@ export default function GenerationSetupSectionChips(
     trailing,
   } = props;
   const translate = useTranslations('agent.generationSetup');
-  const rowRef = useRef<HTMLDivElement>(null);
   const [openSection, setOpenSection] = useState<GenerationSetupChipId>();
   const scopedLookOptions =
     inputControls?.mediaKind === 'video'
       ? { ...lookOptions, resolution: [] }
       : lookOptions;
   const summary = summarizeGenerationSetup({
-    autoLabel: translate('auto'),
     capabilities,
     formatDuration: (seconds) => translate('durationSeconds', { seconds }),
     inputControls,
@@ -132,11 +144,6 @@ export default function GenerationSetupSectionChips(
       value: pinnedPreset?.label ?? translate('presets'),
     });
 
-  const { isCompact } = usePromptBarRowFit({
-    contentKey: chips.map((chip) => `${chip.id}:${chip.value}`).join('|'),
-    rowRef,
-  });
-
   if (chips.length === 0 && !afterModel && !trailing) return null;
 
   function setOpen(id: GenerationSetupChipId, isOpen: boolean): void {
@@ -150,7 +157,8 @@ export default function GenerationSetupSectionChips(
         className={cn(
           SHELL_CONTROL_HEIGHT_CLASS,
           'min-w-0 shrink-0 flex-nowrap gap-1.5 px-2 text-xs font-medium text-foreground',
-          isCompact && 'size-8 justify-center p-0',
+          PROMPT_BAR_CHIP_FIT_CLASS,
+          PROMPT_BAR_SETUP_FOLD_CLASS,
         )}
         isDisabled={isDisabled}
         size={ButtonSize.SM}
@@ -160,9 +168,9 @@ export default function GenerationSetupSectionChips(
         withWrapper={false}
       >
         {chip.icon}
-        {isCompact ? null : (
-          <span className="max-w-36 truncate">{chip.value}</span>
-        )}
+        <span className={cn('max-w-36 truncate', PROMPT_BAR_CHIP_LABEL_CLASS)}>
+          {chip.value}
+        </span>
       </Button>
     );
   }
@@ -244,14 +252,58 @@ export default function GenerationSetupSectionChips(
     );
   }
 
+  function renderMenuSection(chip: SectionChip): ReactNode {
+    return (
+      <DropdownMenuSub key={chip.id}>
+        <DropdownMenuSubTrigger disabled={isDisabled}>
+          <span className="mr-2 flex items-center">{chip.icon}</span>
+          <span className="flex-1">{chip.label}</span>
+          <span className="ml-2 max-w-24 truncate text-muted-foreground">
+            {chip.value === chip.label ? null : chip.value}
+          </span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent
+          className={
+            chip.id === 'output' || chip.id === 'look'
+              ? 'w-64 py-1'
+              : PROMPT_BAR_SETUP_MENU_CLASS
+          }
+          collisionPadding={16}
+        >
+          {chip.id === 'output' ? (
+            <GenerationSetupOutputMenu
+              capabilities={capabilities}
+              controls={outputControls}
+              inputControls={inputControls}
+              models={models}
+              onResetField={props.onResetField}
+              onSetField={props.onSetField}
+              referenceCount={referenceCount}
+              setup={setup}
+            />
+          ) : chip.id === 'look' ? (
+            <GenerationSetupLookMenu
+              lookOptions={scopedLookOptions}
+              onResetField={props.onResetField}
+              onSetField={props.onSetField}
+              setup={setup}
+            />
+          ) : (
+            <TooltipProvider delayDuration={200}>
+              <GenerationSetupCustomizePanel
+                {...props}
+                initialSection={chip.id as 'brand' | 'model' | 'presets'}
+              />
+            </TooltipProvider>
+          )}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    );
+  }
+
   return (
     <>
-      <div
-        className="flex min-w-0 flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        data-compact={isCompact ? 'true' : undefined}
-        data-testid="generation-setup-section-chips"
-        ref={rowRef}
-      >
+      <div className="contents" data-testid="generation-setup-section-chips">
         {chips.map((chip) => (
           <span className="contents" key={chip.id}>
             {renderChip(chip)}
@@ -259,6 +311,39 @@ export default function GenerationSetupSectionChips(
           </span>
         ))}
         {chips.every((chip) => chip.id !== 'model') ? afterModel : null}
+        {chips.length > 0 ? (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                ariaLabel={translate('moreSetup')}
+                className={cn(
+                  SHELL_CONTROL_HEIGHT_CLASS,
+                  'hidden w-8 shrink-0 p-0 text-foreground @max-[339px]/prompt-bar:inline-flex',
+                )}
+                icon={
+                  <Ellipsis aria-hidden="true" className={SHELL_ICON_CLASS} />
+                }
+                isDisabled={isDisabled}
+                size={ButtonSize.ICON}
+                textTransform="none"
+                tooltip={translate('moreSetup')}
+                tooltipPosition="top"
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              aria-label={translate('moreSetup')}
+              className="w-56"
+              collisionPadding={16}
+              side="top"
+              sideOffset={8}
+            >
+              {chips.map(renderMenuSection)}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </div>
       {trailing}
     </>

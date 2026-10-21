@@ -5,15 +5,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import GenerationSetupSectionChips from '@ui/dropdowns/generation-setup/GenerationSetupSectionChips';
 import { describe, expect, it, vi } from 'vitest';
 
-const fitMocks = vi.hoisted(() => ({ isCompact: false }));
-
-vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-row-fit/use-prompt-bar-row-fit',
-  () => ({
-    usePromptBarRowFit: () => ({ isCompact: fitMocks.isCompact }),
-  }),
-);
-
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -62,12 +53,11 @@ const props: GenerationSetupSectionChipsProps = {
 
 describe('GenerationSetupSectionChips', () => {
   it('puts each Advanced section on the row and opens only that section', () => {
-    fitMocks.isCompact = false;
     render(<GenerationSetupSectionChips {...props} showPresets />);
 
     expect(
       screen.getByRole('button', { name: 'Configure Model' }),
-    ).toHaveTextContent('Auto');
+    ).toHaveTextContent('Balanced');
     const outputChip = screen.getByRole('button', {
       name: 'Configure Output',
     });
@@ -89,7 +79,6 @@ describe('GenerationSetupSectionChips', () => {
   });
 
   it('ends the row with the trailing slot, after the last chip', () => {
-    fitMocks.isCompact = false;
     render(
       <GenerationSetupSectionChips
         {...props}
@@ -105,17 +94,40 @@ describe('GenerationSetupSectionChips', () => {
     expect(row).not.toContainElement(end);
   });
 
-  it('drops the labels and keeps them in the tooltip when the row is tight', () => {
-    fitMocks.isCompact = true;
-    render(<GenerationSetupSectionChips {...props} />);
+  it('keeps the labels in the tooltip, and folds the chips into a More setup menu', () => {
+    render(<GenerationSetupSectionChips {...props} showPresets />);
 
+    // Width decides what shows (container queries); both ways in are always
+    // in the tree, and the chip's label stays in its tooltip.
     const outputChip = screen.getByRole('button', {
       name: 'Configure Output',
     });
-    expect(outputChip).not.toHaveTextContent('x2');
     expect(outputChip.getAttribute('title')).toContain('Output');
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'More setup' }), {
+      key: 'Enter',
+    });
+    expect(screen.getByRole('menuitem', { name: /Model/ })).toBeInTheDocument();
     expect(
-      screen.getByTestId('generation-setup-section-chips'),
-    ).toHaveAttribute('data-compact', 'true');
+      screen.getByRole('menuitem', { name: /Output/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /Presets/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers Reset to defaults at the top of the Presets panel', () => {
+    const onResetAll = vi.fn();
+    render(
+      <GenerationSetupSectionChips
+        {...props}
+        onResetAll={onResetAll}
+        showPresets
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
+    expect(onResetAll).toHaveBeenCalledTimes(1);
   });
 });

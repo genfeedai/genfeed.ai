@@ -93,7 +93,6 @@ import { buildStudioPresetCommands } from '@pages/studio/playground/utils/studio
 import { buildVideoDraftSettings } from '@pages/studio/playground/utils/studio-video-draft';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
-import GenerationSetupResetButton from '@ui/dropdowns/generation-setup/GenerationSetupResetButton';
 import GenerationSetupSectionChips from '@ui/dropdowns/generation-setup/GenerationSetupSectionChips';
 import GenerationSetupTypeBar from '@ui/dropdowns/generation-setup/GenerationSetupTypeBar';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
@@ -1307,77 +1306,72 @@ export default function StudioPlaygroundComposer({
         density="compact"
         leadingLabel={translateSetup('promptTools')}
         trailingLabel={translateSetup('generationControls')}
-        pinnedLeading={
-          <GenerationSetupTypeBar
-            // Every type keeps the Auto/Advanced switch; Avatar just has no
-            // model to choose in Advanced.
-            advancedMode={{
-              isEnabled: isAdvancedMode,
-              onChange: handleAdvancedModeChange,
-            }}
-            // Editing is a mode of Image, not a type of its own.
-            imageEditing={{
-              isEnabled: type === 'image-edit',
-              onChange: (isEditing) =>
-                onTypeChange(isEditing ? 'image-edit' : 'image'),
-            }}
-            onTypeChange={(nextType) => {
-              // The shared bar speaks GenerationSetupType; Studio only offers
-              // its own registry, so anything else is not a Studio pick.
-              if (isStudioPlaygroundType(nextType)) {
-                onTypeChange(nextType);
-              }
-            }}
-            setup={setupForComposer}
-            typeOptions={typeOptions}
-          />
-        }
         leading={
-          isAdvancedMode ? (
-            <GenerationSetupSectionChips
-              // Model follows the type button; the identity pickers come
-              // next, then Output, Look, Brand and Presets, and `+` ends the row.
-              afterModel={identityFields}
-              capabilities={capabilities}
-              favoriteModelKeys={favoriteModelKeys}
-              inputControls={inputControls}
-              isPresetsLoading={isPresetsLoading}
-              lookOptions={lookOptions}
-              models={isModelChoiceVisible ? models : []}
-              onApplyPreset={handleApplyPreset}
-              onApplySystemPreset={handleApplySystemPresetById}
-              onClearPreset={handleClearPreset}
-              onDeletePreset={handleDeletePreset}
-              onFavoriteToggle={onFavoriteToggle}
-              onResetField={handleResetField}
-              onSavePreset={handleSavePreset}
-              onSetField={handleSetField}
-              outputControls={outputControls}
-              presets={presets}
-              referenceCount={crunReferenceCount ?? attachedAssets.length}
-              showEnhancementSettings={type === 'image' || type === 'video'}
-              showPresets={type === 'image' || type === 'video'}
-              systemPresets={systemPresetOptions}
-              reasons={reasons}
+          <>
+            <GenerationSetupTypeBar
+              // Every type keeps the Auto/Advanced button; Avatar just has no
+              // model to choose in Advanced.
+              advancedMode={{
+                isEnabled: isAdvancedMode,
+                onChange: handleAdvancedModeChange,
+              }}
+              // Editing is a mode of Image, not a type of its own.
+              imageEditing={{
+                isEnabled: type === 'image-edit',
+                onChange: (isEditing) =>
+                  onTypeChange(isEditing ? 'image-edit' : 'image'),
+              }}
+              onTypeChange={(nextType) => {
+                // The shared bar speaks GenerationSetupType; Studio only offers
+                // its own registry, so anything else is not a Studio pick.
+                if (isStudioPlaygroundType(nextType)) {
+                  onTypeChange(nextType);
+                }
+              }}
               setup={setupForComposer}
-              trailing={endOfRow}
               typeOptions={typeOptions}
             />
-          ) : (
-            <>
-              {identityFields}
-              {endOfRow}
-            </>
-          )
+            {isAdvancedMode ? (
+              <GenerationSetupSectionChips
+                // Model follows the mode button; the identity pickers come
+                // next, then Output, Look, Brand and Presets, and `+` ends the row.
+                afterModel={identityFields}
+                capabilities={capabilities}
+                favoriteModelKeys={favoriteModelKeys}
+                inputControls={inputControls}
+                isPresetsLoading={isPresetsLoading}
+                lookOptions={lookOptions}
+                models={isModelChoiceVisible ? models : []}
+                onApplyPreset={handleApplyPreset}
+                onApplySystemPreset={handleApplySystemPresetById}
+                onClearPreset={handleClearPreset}
+                onDeletePreset={handleDeletePreset}
+                onFavoriteToggle={onFavoriteToggle}
+                onResetAll={onResetSettings}
+                onResetField={handleResetField}
+                onSavePreset={handleSavePreset}
+                onSetField={handleSetField}
+                outputControls={outputControls}
+                presets={presets}
+                referenceCount={crunReferenceCount ?? attachedAssets.length}
+                showEnhancementSettings={type === 'image' || type === 'video'}
+                showPresets={type === 'image' || type === 'video'}
+                systemPresets={systemPresetOptions}
+                reasons={reasons}
+                setup={setupForComposer}
+                trailing={endOfRow}
+                typeOptions={typeOptions}
+              />
+            ) : (
+              <>
+                {identityFields}
+                {endOfRow}
+              </>
+            )}
+          </>
         }
         trailing={
           <>
-            <GenerationSetupResetButton
-              // Always rendered so Reset all never shifts the Auto/Advanced layout.
-              isDisabled={isAutoView}
-              onResetAll={onResetSettings}
-            />
-
             {onEnhancePrompt && type !== 'image-edit' ? (
               <Button
                 ariaLabel={

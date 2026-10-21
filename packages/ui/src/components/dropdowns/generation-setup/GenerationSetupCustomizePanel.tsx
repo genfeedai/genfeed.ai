@@ -7,7 +7,7 @@ import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationS
 import GenerationSetupModelSection from '@ui/dropdowns/generation-setup/GenerationSetupModelSection';
 import GenerationSetupPresetsSection from '@ui/dropdowns/generation-setup/GenerationSetupPresetsSection';
 import { Button } from '@ui/primitives/button';
-import { Pin, Undo2, X } from 'lucide-react';
+import { Pin, RotateCcw, Undo2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -25,6 +25,7 @@ export default function GenerationSetupCustomizePanel({
   onApplySystemPreset,
   onClearPreset,
   onDeletePreset,
+  onResetAll,
   presets,
   systemPresets,
   isDisabled = false,
@@ -132,6 +133,20 @@ export default function GenerationSetupCustomizePanel({
               variant={ButtonVariant.GHOST}
             />
           </div>
+        ) : null}
+        {resolvedSection === 'presets' && onResetAll ? (
+          <Button
+            className="mb-2 w-full justify-start text-xs"
+            icon={<RotateCcw aria-hidden="true" className="size-3.5" />}
+            isDisabled={isDisabled}
+            onClick={onResetAll}
+            size={ButtonSize.SM}
+            textTransform="none"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {translate('resetToDefaults')}
+          </Button>
         ) : null}
         {resolvedSection === 'presets' ? (
           <GenerationSetupPresetsSection

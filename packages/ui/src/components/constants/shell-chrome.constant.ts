@@ -27,6 +27,25 @@ export const SHELL_ICON_SVG_CLASS = '[&_svg]:size-3.5';
 /** Leading prompt-bar chip (Agent mode, Studio type): icon + label + chevron. */
 export const PROMPT_BAR_CHIP_CLASS = 'h-8 shrink-0 gap-1.5 px-2 text-xs';
 
+/**
+ * Prompt-bar chips share one size at every width: labelled while the leading
+ * group (a `@container/prompt-bar`, see `PromptBarToolbar`) is at least 660px
+ * wide, then every chip keeps its icon and drops its label together, with the
+ * same 44px touch target (`::after`) that icon buttons carry.
+ */
+export const PROMPT_BAR_CHIP_FIT_CLASS =
+  "@max-[659px]/prompt-bar:relative @max-[659px]/prompt-bar:w-8 @max-[659px]/prompt-bar:justify-center @max-[659px]/prompt-bar:px-0 @max-[659px]/prompt-bar:after:absolute @max-[659px]/prompt-bar:after:-inset-1.5 @max-[659px]/prompt-bar:after:content-['']";
+
+/** Label (and chevron) of a prompt-bar chip; hidden with the rest below 660px. */
+export const PROMPT_BAR_CHIP_LABEL_CLASS = '@max-[659px]/prompt-bar:hidden';
+
+/** Setup chips fold into the More setup menu when the tools group is narrower than this. */
+export const PROMPT_BAR_SETUP_FOLD_CLASS = '@max-[339px]/prompt-bar:hidden';
+
+/** Width of a setup panel opened from the More setup menu. */
+export const PROMPT_BAR_SETUP_MENU_CLASS =
+  'w-[min(360px,calc(100vw-2rem))] p-0';
+
 /** Compact square hit target for icon-only shell buttons (refresh, etc.). */
 export const SHELL_ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 

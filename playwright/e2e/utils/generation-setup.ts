@@ -2,18 +2,20 @@ import { expect, type Page } from '@playwright/test';
 
 /**
  * Pick a model in Advanced mode. Auto delegates routing, so an explicit model
- * needs Advanced. The Auto/Advanced switch is an icon pair at the start of the
- * prompt bar; Model, Output, Look, Brand and Presets are chips
- * (`GenerationSetupSectionChips`), each opening only its own section.
+ * needs Advanced. The Auto/Advanced mode is one button at the start of the
+ * prompt bar that names the current mode and switches to the other; Model,
+ * Output, Look, Brand and Presets are chips (`GenerationSetupSectionChips`),
+ * each opening only its own section.
  */
 export async function selectAdvancedModel(
   page: Page,
   modelLabel: string,
 ): Promise<void> {
-  await page
-    .getByRole('group', { name: 'Setup mode' })
-    .getByRole('button', { name: 'Advanced', exact: true })
-    .click();
+  const mode = page.getByRole('button', { name: /^Setup mode: / });
+  await expect(mode).toBeVisible();
+  if ((await mode.getAttribute('aria-label')) === 'Setup mode: Auto') {
+    await mode.click();
+  }
 
   await page
     .getByTestId('generation-setup-section-chips')

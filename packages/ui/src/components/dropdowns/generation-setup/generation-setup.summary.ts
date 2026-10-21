@@ -3,15 +3,17 @@ import type {
   GenerationSetupSummary,
   GenerationSetupSummaryInput,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  AUTO_PRIORITY_LABELS,
+  isAutoGenerationModelKey,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
 
 /**
  * What the setup menu and the Advanced chips show for a setup: the chosen
- * model, the output summary (ratio · length · count) and whether any Look
+ * model (or, on Auto, the priority it routes by), the output summary (ratio · length · count) and whether any Look
  * field applies to this type.
  */
 export function summarizeGenerationSetup({
-  autoLabel,
   capabilities,
   formatDuration,
   inputControls,
@@ -41,8 +43,9 @@ export function summarizeGenerationSetup({
       capabilities.hasStyle ||
       capabilities.hasInstrumentalToggle ||
       capabilities.hasLyrics,
+    // Auto is the router's pick, so the chip names the priority it routes by.
     modelLabel: isAutoModel
-      ? autoLabel
+      ? AUTO_PRIORITY_LABELS[setup.values.prioritize]
       : (selectedModel?.label ?? setup.values.modelKey),
     outputLabel: [
       capabilities.hasAspectRatio && setup.values.aspectRatio,

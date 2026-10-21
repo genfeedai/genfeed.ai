@@ -154,13 +154,6 @@ export interface StudioSpendConfirmationInput {
   source: StudioSpendSource;
 }
 
-export interface StudioTypeDropdownProps {
-  className?: string;
-  isDisabled?: boolean;
-  onChange: (type: StudioPlaygroundType) => void;
-  type: StudioPlaygroundType;
-}
-
 export interface StudioFailedIngredientRecoveryActions {
   onRetryFailedIngredient(ingredient: IIngredient): void;
   onReviewFailedIngredient(ingredient: IIngredient): Promise<void>;
