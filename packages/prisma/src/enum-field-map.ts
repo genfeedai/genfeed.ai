@@ -4554,6 +4554,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'codeChallengeMethod',
       'codeHash',
       'createdAt',
+      'defaultBrandId',
       'expiresAt',
       'id',
       'organizationId',
