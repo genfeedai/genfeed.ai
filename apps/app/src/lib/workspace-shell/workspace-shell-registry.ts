@@ -13,7 +13,7 @@ import type {
   WorkspaceShellScopeRequirement,
   WorkspaceShellSurfaceKey,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
-import { parseInternalHref } from '@/lib/workspace-shell/workspace-shell-url.util';
+import { parseInternalHref } from './workspace-shell-url.util';
 
 export type {
   ResolvedWorkspaceShellRoute,
