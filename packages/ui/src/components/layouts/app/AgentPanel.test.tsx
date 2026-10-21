@@ -37,12 +37,6 @@ const storeState = {
   toggleOpen: mockToggleOpen,
 };
 
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-
-  return { useTranslations: translateFromCatalog };
-});
-
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
