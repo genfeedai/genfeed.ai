@@ -1,6 +1,5 @@
 import type {
   ICredential,
-  ITurboProject,
   ITurboProjectIdeaSettings,
   ITurboProjectItem,
   ITurboProjectScheduleTarget,
@@ -35,8 +34,4 @@ export interface TurboScheduleProps {
   disabled: boolean;
   onChange: (targets: ITurboProjectScheduleTarget[]) => void;
   onSchedule: () => void;
-}
-export interface TurboRunCollectionProps {
-  projects: ITurboProject[];
-  onDelete: (id: string) => void;
 }
