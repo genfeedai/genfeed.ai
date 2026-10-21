@@ -14,7 +14,15 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) =>
+      namespace === 'pages.studioPlayground.spend'
+        ? translateFromCatalog(namespace)
+        : (key: string) => key,
+  };
+});
 
 const mockSubscribe = vi.fn();
 const mockUnsubscribe = vi.fn();
@@ -23,9 +31,13 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({ subscribe: mockSubscribe }),
 }));
 
+const mockBeforeServiceLookup = vi.fn();
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('stub-token'),
+  useAuthedService: (factory: (token: string) => unknown) => async () => {
+    await mockBeforeServiceLookup();
+    return factory('stub-token');
+  },
 }));
 
 const mockImagesPost = vi.fn();
@@ -145,6 +157,7 @@ function captureHandler(): { current?: MediaHandler } {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockBeforeServiceLookup.mockReset();
   window.sessionStorage.clear();
   mockSubscribe.mockReturnValue(mockUnsubscribe);
   mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['img-1'] });
@@ -1728,27 +1741,131 @@ describe('pinned Auto submission', () => {
     expect(body).toMatchObject({ autoSelectModel: false });
   });
 
-  it('keeps routing Auto when the priced model is not in the catalog', async () => {
-    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['unpinned'] });
-    const { result } = renderStudioGeneration({
-      type: 'image',
-      models: [makeModel('google/imagen-4')],
-      settings: {
-        ...getDefaultStudioPlaygroundSettings('image'),
+  it.each(['image', 'video', 'image-edit', 'music'] as const)(
+    'refuses %s when the confirmed model is no longer in the catalog',
+    async (type) => {
+      const settings = {
+        ...getDefaultStudioPlaygroundSettings(type),
         modelKey: AUTO_MODEL_OPTION_VALUE,
-      },
-    });
-    await act(async () => {
-      await result.current.submit(
-        'A landscape',
-        {},
-        { pinnedModelKey: pinned },
+      };
+      const { result } = renderStudioGeneration({
+        type,
+        models: [makeModel('google/imagen-4')],
+        settings,
+      });
+      await act(async () => {
+        expect(
+          await result.current.submit(
+            'A landscape',
+            { editSourceIds: ['source-1'] },
+            { pinnedModelKey: pinned },
+          ),
+        ).toBe(false);
+      });
+      expect(mockImagesPost).not.toHaveBeenCalled();
+      expect(mockImagesEdit).not.toHaveBeenCalled();
+      expect(mockVideosPost).not.toHaveBeenCalled();
+      expect(mockMusicsPost).not.toHaveBeenCalled();
+      expect(result.current.jobs).toHaveLength(0);
+      expect(settings.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
+      expect(mockNotificationsError).toHaveBeenCalledExactlyOnceWith(
+        'The confirmed model is no longer available. Get a fresh quote and confirm before generating again.',
       );
+    },
+  );
+
+  it('checks the current catalog when a held confirmation submits, then awaits a fresh confirmed choice', async () => {
+    const replacement = 'google/imagen-4';
+    const settings = {
+      ...getDefaultStudioPlaygroundSettings('image'),
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+    };
+    const { result, rerender } = renderHook(
+      ({ models }) =>
+        useStudioGeneration({
+          brandId: 'brand-1',
+          models,
+          settings,
+          type: 'image',
+        }),
+      { initialProps: { models: [makeModel(pinned)] } },
+    );
+    const confirmedSubmit = result.current.submit;
+    rerender({ models: [makeModel(replacement)] });
+
+    await act(async () => {
+      expect(
+        await confirmedSubmit('A landscape', {}, { pinnedModelKey: pinned }),
+      ).toBe(false);
     });
-    expect(mockImagesPost.mock.calls[0]?.[0]).toMatchObject({
-      autoSelectModel: true,
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(result.current.jobs).toHaveLength(0);
+    expect(mockNotificationsError).toHaveBeenCalledTimes(1);
+
+    // A catalog refresh alone cannot retry the refused request.
+    rerender({ models: [makeModel(replacement), makeModel(pinned)] });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    await act(async () => {
+      expect(
+        await confirmedSubmit(
+          'A landscape',
+          {},
+          { pinnedModelKey: replacement },
+        ),
+      ).toBe(true);
     });
+    expect(mockImagesPost).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ model: replacement, autoSelectModel: false }),
+    );
+    expect(settings.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
   });
+
+  it.each(['image', 'video', 'image-edit', 'music'] as const)(
+    'refuses %s if the confirmed model disappears during service lookup',
+    async (type) => {
+      const confirmedModel =
+        type === 'image-edit'
+          ? MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT
+          : pinned;
+      const settings = {
+        ...getDefaultStudioPlaygroundSettings(type),
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      };
+      const { result, rerender } = renderHook(
+        ({ models }) =>
+          useStudioGeneration({ brandId: 'brand-1', models, settings, type }),
+        { initialProps: { models: [makeModel(confirmedModel)] } },
+      );
+      let releaseLookup = () => {};
+      mockBeforeServiceLookup.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            releaseLookup = resolve;
+          }),
+      );
+      let submitted: Promise<boolean> | undefined;
+      act(() => {
+        submitted = result.current.submit(
+          'A landscape',
+          { editSourceIds: ['source-1'] },
+          { pinnedModelKey: confirmedModel },
+        );
+      });
+      rerender({ models: [] });
+      await act(async () => {
+        releaseLookup();
+        expect(await submitted).toBe(false);
+      });
+      expect(mockImagesPost).not.toHaveBeenCalled();
+      expect(mockImagesEdit).not.toHaveBeenCalled();
+      expect(mockVideosPost).not.toHaveBeenCalled();
+      expect(mockMusicsPost).not.toHaveBeenCalled();
+      expect(result.current.jobs).toHaveLength(0);
+      expect(mockNotificationsError).toHaveBeenCalledExactlyOnceWith(
+        'The confirmed model is no longer available. Get a fresh quote and confirm before generating again.',
+      );
+    },
+  );
 
   it('does not pin the next submit', async () => {
     mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['again'] });

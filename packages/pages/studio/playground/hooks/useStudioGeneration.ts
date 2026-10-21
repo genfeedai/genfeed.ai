@@ -158,6 +158,8 @@ export interface StudioGenerationReferences {
   videoReferenceIds?: string[];
 }
 
+const CONFIRMED_MODEL_UNAVAILABLE_ERROR = 'STUDIO_CONFIRMED_MODEL_UNAVAILABLE';
+
 function isBrandEnhancementFailure(error: unknown): boolean {
   return (
     getJsonApiErrorMember(error)?.code ===
@@ -177,10 +179,13 @@ export function useStudioGeneration({
   type,
 }: UseStudioGenerationParams): UseStudioGenerationReturn {
   const translateCrun = useTranslations('pages.studioPlayground.crun');
+  const translateSpend = useTranslations('pages.studioPlayground.spend');
   const translateBrand = useTranslations(
     'pages.studioPlayground.brandEnhancement',
   );
   const { subscribe, connectionState } = useSocketManager();
+  const modelsRef = useRef(models);
+  modelsRef.current = models;
   const activeBrandRef = useRef(brandId);
   activeBrandRef.current = brandId;
   const consumedCrunQuoteRef = useRef<string | null>(null);
@@ -718,14 +723,25 @@ export function useStudioGeneration({
     ): Promise<boolean> {
       // An Auto choice priced before submit is pinned to the model that was
       // quoted, so the amount confirmed is the amount charged.
-      const pinnedModelKey =
-        options?.pinnedModelKey &&
-        models.some((model) => model.key === options.pinnedModelKey)
-          ? options.pinnedModelKey
-          : undefined;
+      const currentModels = modelsRef.current;
+      const pinnedModelKey = options?.pinnedModelKey;
+      const isConfirmedModelUnavailable = () =>
+        Boolean(
+          pinnedModelKey &&
+            !modelsRef.current.some((model) => model.key === pinnedModelKey),
+        );
+      if (isConfirmedModelUnavailable()) {
+        notificationsService.error(translateSpend('confirmedModelUnavailable'));
+        return false;
+      }
+      const assertConfirmedModelAvailable = () => {
+        if (isConfirmedModelUnavailable()) {
+          throw new Error(CONFIRMED_MODEL_UNAVAILABLE_ERROR);
+        }
+      };
       const draftSettings =
         options?.isDraft && type === 'video'
-          ? buildVideoDraftSettings(settings, models)
+          ? buildVideoDraftSettings(settings, currentModels)
           : null;
       if (options?.isDraft && !draftSettings) {
         notificationsService.error('A draft is not available for this model');
@@ -788,7 +804,9 @@ export function useStudioGeneration({
         (!references.editSourceIds?.length ||
           (activeSettings.modelKey !== AUTO_MODEL_OPTION_VALUE &&
             (!isImageEditModel(activeSettings.modelKey) ||
-              !models.some((model) => model.key === activeSettings.modelKey))))
+              !currentModels.some(
+                (model) => model.key === activeSettings.modelKey,
+              ))))
       ) {
         notificationsService.error(
           'Choose a source image and an available editing model.',
@@ -797,7 +815,7 @@ export function useStudioGeneration({
       }
       const modelKey = resolveModelKey(
         activeSettings,
-        models,
+        currentModels,
         config.capabilities.hasModelSelection,
       );
       const initialCrunQuote = modelKey.startsWith('crun/')
@@ -869,7 +887,7 @@ export function useStudioGeneration({
       const editSourceLimit = modelKey
         ? getImageEditMaxSources(modelKey)
         : Math.max(
-            ...models
+            ...currentModels
               .filter((model) => isImageEditModel(model.key))
               .map((model) => getImageEditMaxSources(model.key)),
             getImageEditMaxSources(),
@@ -950,6 +968,7 @@ export function useStudioGeneration({
         switch (type) {
           case 'image-edit': {
             const service = await getImagesService();
+            assertConfirmedModelAvailable();
             const sources = references.editSourceIds ?? [];
             const data = (await service.postEdit(sources[0], {
               prompt: promptText.trim(),
@@ -982,6 +1001,7 @@ export function useStudioGeneration({
           }
           case 'image': {
             const service = await getImagesService();
+            assertConfirmedModelAvailable();
             if (modelKey.startsWith('crun/')) {
               const request = options?.crunRequest;
               const quote = options?.getCurrentCrunQuote?.();
@@ -1031,6 +1051,7 @@ export function useStudioGeneration({
 
           case 'video': {
             const service = await getVideosService();
+            assertConfirmedModelAvailable();
             if (modelKey.startsWith('crun/')) {
               const request = options?.crunVideoRequest;
               const quote = options?.getCurrentCrunQuote?.();
@@ -1089,6 +1110,7 @@ export function useStudioGeneration({
 
           case 'music': {
             const service = await getMusicsService();
+            assertConfirmedModelAvailable();
             const musicPromptData = {
               ...promptData,
               instrumental: activeSettings.instrumental,
@@ -1116,6 +1138,7 @@ export function useStudioGeneration({
 
           case 'avatar': {
             const service = await getHeyGenService();
+            assertConfirmedModelAvailable();
             const data = await service.generate(
               buildStudioAvatarRequest(
                 activeSettings,
@@ -1148,6 +1171,7 @@ export function useStudioGeneration({
             }
 
             const service = await getVoicesService();
+            assertConfirmedModelAvailable();
             // Text-to-speech runs inline on the API and returns the finished
             // ingredient, so there is no socket phase to wait on.
             const voice = await service.generate({
@@ -1189,6 +1213,16 @@ export function useStudioGeneration({
             logger.error(`Unsupported Studio generation type: ${type}`);
         }
       } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === CONFIRMED_MODEL_UNAVAILABLE_ERROR
+        ) {
+          setJobs((previous) => previous.filter((job) => job.runId !== runId));
+          notificationsService.error(
+            translateSpend('confirmedModelUnavailable'),
+          );
+          return false;
+        }
         if (activeBrandRef.current !== brandId) return false;
         logger.error('Studio generation failed', error);
         const isBrandStop =
@@ -1322,13 +1356,13 @@ export function useStudioGeneration({
       getMusicsService,
       getVideosService,
       getVoicesService,
-      models,
       notificationsService,
       settings,
       trackPendingIds,
       subscribeToPendingJob,
       translateBrand,
       translateCrun,
+      translateSpend,
       type,
       notifyGenerated,
     ],
