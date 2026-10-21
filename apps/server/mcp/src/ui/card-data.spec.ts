@@ -1,5 +1,6 @@
 import { getToolsForSurface, toMcpTools } from '@genfeedai/actions';
 import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
+import type { McpCardView } from '@mcp/shared/interfaces/mcp-app.interface';
 import { ACCOUNT_AVATAR_ORIGINS } from '@mcp/ui/avatar-origins';
 import { cardResource } from '@mcp/ui/card-app';
 import {
@@ -372,9 +373,10 @@ describe('MCP Apps card contract', () => {
     expect(result.structuredContent?.data).toEqual({
       brands: [{ id: 'b1', label: 'Acme' }],
     });
-    expect(result.structuredContent?.genfeedCards.cards[0].avatarUrl).toBe(
-      logo.cdnUrl,
-    );
+    const { genfeedCards } = result.structuredContent as unknown as {
+      genfeedCards: McpCardView;
+    };
+    expect(genfeedCards.cards[0].avatarUrl).toBe(logo.cdnUrl);
   });
 
   it('builds the workspace card from the organizations and the active brands', () => {
