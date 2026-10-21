@@ -25,6 +25,7 @@ import {
   staticSurfaceClassNames,
   staticSurfaceCss,
 } from '@genfeedai/ui/static/surface';
+import { CLIENT_LOGO_PATH_PREFIX, type ClientLogoId } from './client-logos';
 import {
   getMcpServerInfo,
   MCP_SERVER_DESCRIPTION,
@@ -45,6 +46,76 @@ const SETUP_PAGE_DESCRIPTION =
 // The website composes this card (apps/website marketing-og.data.ts); every
 // Genfeed surface shares its 1200x630 layout.
 const SETUP_PAGE_OG_IMAGE_PATH = '/og/mcp';
+
+export type SetupTabId =
+  | 'claude-code'
+  | 'claude-chat'
+  | 'codex'
+  | 'chat-agent'
+  | 'other-clients'
+  | 'agent-prompt';
+
+interface SetupTab {
+  id: SetupTabId;
+  label: string;
+  /** Shareable route that opens the page on this tab. */
+  path: string;
+  logos: ClientLogoId[];
+}
+
+/**
+ * Claude Code and Claude & Cowork stay separate: the first registers the
+ * connector with `claude mcp add` and authorizes through `/mcp`, the second
+ * adds a custom connector in the Claude UI. Both use the same Claude URL.
+ */
+const SETUP_TABS: SetupTab[] = [
+  {
+    id: 'claude-code',
+    label: 'Claude Code',
+    logos: ['claude'],
+    path: '/claude-code',
+  },
+  {
+    id: 'claude-chat',
+    label: 'Claude & Cowork',
+    logos: ['claude'],
+    path: '/claude-cowork',
+  },
+  { id: 'codex', label: 'Codex', logos: ['codex'], path: '/codex' },
+  {
+    id: 'chat-agent',
+    label: 'Muse & Grok Bot',
+    logos: ['meta', 'grok'],
+    path: '/muse-grok-bot',
+  },
+  {
+    id: 'other-clients',
+    label: 'Other clients',
+    logos: [],
+    path: '/other-clients',
+  },
+  {
+    id: 'agent-prompt',
+    label: 'Agent prompt',
+    logos: [],
+    path: '/agent-prompt',
+  },
+];
+
+const DEFAULT_SETUP_TAB_ID: SetupTabId = 'claude-code';
+
+/**
+ * Maps a request path to the setup tab it opens. `/` and `/docs` open the
+ * first tab; each tab also has its own route so a client's setup can be
+ * shared by URL. Returns null for any other path.
+ */
+export function resolveSetupPageTab(pathname: string): SetupTabId | null {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (path === '/' || path === '/docs') {
+    return DEFAULT_SETUP_TAB_ID;
+  }
+  return SETUP_TABS.find((tab) => tab.path === path)?.id ?? null;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -338,8 +409,35 @@ function renderCommandBlock(params: {
         </div>`;
 }
 
-export function renderSetupPage(): string {
+function renderTabLogos(logos: ClientLogoId[]): string {
+  if (logos.length === 0) return '';
+  const images = logos
+    .map(
+      (logo) =>
+        `<span class="client-logo client-logo-${logo}"><img src="${CLIENT_LOGO_PATH_PREFIX}${logo}.svg" alt="" width="14" height="14" /></span>`,
+    )
+    .join('');
+  return `<span class="tab-logos" aria-hidden="true">${images}</span>`;
+}
+
+export function renderSetupPage(
+  activeTabId: SetupTabId = DEFAULT_SETUP_TAB_ID,
+): string {
   const ui = staticSurfaceClassNames;
+  const activeTab =
+    SETUP_TABS.find((tab) => tab.id === activeTabId) ?? SETUP_TABS[0];
+  const isDefaultTab = activeTab.id === DEFAULT_SETUP_TAB_ID;
+  const pageTitle = (tab: SetupTab): string =>
+    `${tab.label} setup — Genfeed MCP Server`;
+  const activePageTitleSafe = escapeHtml(
+    isDefaultTab ? SETUP_PAGE_TITLE : pageTitle(activeTab),
+  );
+  const tabsMarkup = SETUP_TABS.map((tab) => {
+    const isActive = tab.id === activeTab.id;
+    return `<a class="tab" id="tab-${tab.id}" href="${tab.path}" role="tab" aria-selected="${isActive}" aria-controls="panel-${tab.id}" data-tab="${tab.id}" data-title="${escapeHtml(pageTitle(tab))}"${isActive ? '' : ' tabindex="-1"'}>${renderTabLogos(tab.logos)}${escapeHtml(tab.label)}</a>`;
+  }).join('\n        ');
+  const panelClass = (id: SetupTabId): string =>
+    id === activeTab.id ? 'tabpanel is-active' : 'tabpanel';
   const mcpUrl = getPublicMcpUrl();
   const appUrl = getPublicAppUrl();
   const docsUrl = getPublicDocsUrl();
@@ -400,20 +498,20 @@ export function renderSetupPage(): string {
 <meta name="description" content="${SETUP_PAGE_DESCRIPTION}" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Genfeed.ai" />
-<meta property="og:title" content="${SETUP_PAGE_TITLE}" />
+<meta property="og:title" content="${activePageTitleSafe}" />
 <meta property="og:description" content="${SETUP_PAGE_DESCRIPTION}" />
-<meta property="og:url" content="${mcpOriginSafe}" />
+<meta property="og:url" content="${mcpOriginSafe}${isDefaultTab ? '' : activeTab.path}" />
 <meta property="og:image" content="${ogImageUrlSafe}" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="${SETUP_PAGE_TITLE}" />
+<meta property="og:image:alt" content="${activePageTitleSafe}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@genfeedai" />
-<meta name="twitter:title" content="${SETUP_PAGE_TITLE}" />
+<meta name="twitter:title" content="${activePageTitleSafe}" />
 <meta name="twitter:description" content="${SETUP_PAGE_DESCRIPTION}" />
 <meta name="twitter:image" content="${ogImageUrlSafe}" />
-<title>${SETUP_PAGE_TITLE}</title>
+<title>${activePageTitleSafe}</title>
 <style>
 ${staticSurfaceFontCss}
 ${staticSurfaceCss}
@@ -591,7 +689,10 @@ a { color: inherit; text-decoration: none; }
   scrollbar-width: none;
 }
 .tab {
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
   min-height: 46px;
   white-space: nowrap;
   border: 0;
@@ -603,6 +704,26 @@ a { color: inherit; text-decoration: none; }
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+.tab:hover { color: var(--gf-text-primary); }
+.tab-logos {
+  display: inline-flex;
+  gap: 4px;
+}
+.client-logo {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 5px;
+  background: #fff;
+  color-scheme: light;
+}
+.client-logo-grok { background: #050505; }
+.client-logo img {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 .tab[aria-selected="true"] {
   background: var(--gf-bg-hover);
@@ -849,15 +970,10 @@ ${postHogSnippet}
 
     <div class="${ui.card}">
       <div class="tablist" role="tablist" aria-label="Client setup instructions">
-        <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="true" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
-        <button class="tab" id="tab-claude-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-claude-chat" data-tab="claude-chat">Claude &amp; Cowork</button>
-        <button class="tab" id="tab-codex" type="button" role="tab" aria-selected="false" aria-controls="panel-codex" data-tab="codex">Codex</button>
-        <button class="tab" id="tab-chat-agent" type="button" role="tab" aria-selected="false" aria-controls="panel-chat-agent" data-tab="chat-agent">Muse &amp; Grok Bot</button>
-        <button class="tab" id="tab-other-clients" type="button" role="tab" aria-selected="false" aria-controls="panel-other-clients" data-tab="other-clients">Other clients</button>
-        <button class="tab" id="tab-agent-prompt" type="button" role="tab" aria-selected="false" aria-controls="panel-agent-prompt" data-tab="agent-prompt">Agent prompt</button>
+        ${tabsMarkup}
       </div>
 
-      <section class="tabpanel is-active" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
+      <section class="${panelClass('claude-code')}" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
         <div class="setup-title-row">
           <h3 class="instruction-title">Claude Code setup</h3>
           <span class="${ui.badge}">HTTP transport</span>
@@ -881,13 +997,13 @@ ${postHogSnippet}
         </ol>
       </section>
 
-      <section class="tabpanel" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
+      <section class="${panelClass('claude-chat')}" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
         <h3 class="instruction-title">Claude and Cowork setup</h3>
         <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth. Use it for brands, drafts, scheduling and analytics. Create images, video and audio in Genfeed Studio. Reconnect existing installations with this URL. Genfeed is not yet listed in the public Claude directory.</p>
         ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Claude connector URL', textSafe: claudeUrlSafe, ui })}
       </section>
 
-      <section class="tabpanel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
+      <section class="${panelClass('codex')}" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
         <div class="setup-title-row">
           <h3 class="instruction-title">Codex setup</h3>
           <span class="${ui.badge}">CLI and IDE config</span>
@@ -912,7 +1028,7 @@ ${postHogSnippet}
         </ol>
       </section>
 
-      <section class="tabpanel" id="panel-chat-agent" role="tabpanel" aria-labelledby="tab-chat-agent" data-panel="chat-agent">
+      <section class="${panelClass('chat-agent')}" id="panel-chat-agent" role="tabpanel" aria-labelledby="tab-chat-agent" data-panel="chat-agent">
         <div class="setup-title-row">
           <h3 class="instruction-title">Muse &amp; Grok Bot</h3>
           <span class="${ui.badge}">Chat-built connector</span>
@@ -936,7 +1052,7 @@ ${postHogSnippet}
         </ol>
       </section>
 
-      <section class="tabpanel" id="panel-other-clients" role="tabpanel" aria-labelledby="tab-other-clients" data-panel="other-clients">
+      <section class="${panelClass('other-clients')}" id="panel-other-clients" role="tabpanel" aria-labelledby="tab-other-clients" data-panel="other-clients">
         <div class="setup-title-row">
           <h3 class="instruction-title">Other MCP clients</h3>
           <span class="${ui.badge}">ChatGPT, Cursor, Gemini</span>
@@ -960,7 +1076,7 @@ ${postHogSnippet}
         </ol>
       </section>
 
-      <section class="tabpanel" id="panel-agent-prompt" role="tabpanel" aria-labelledby="tab-agent-prompt" data-panel="agent-prompt">
+      <section class="${panelClass('agent-prompt')}" id="panel-agent-prompt" role="tabpanel" aria-labelledby="tab-agent-prompt" data-panel="agent-prompt">
         <div class="setup-title-row">
           <h3 class="instruction-title">AI agent setup prompt</h3>
           <span class="${ui.badge}">Copy/paste</span>
@@ -1016,16 +1132,33 @@ ${postHogSnippet}
     document.querySelectorAll('[role="tab"][data-tab]').forEach(function (tab) {
       var active = tab.getAttribute('data-tab') === next;
       tab.setAttribute('aria-selected', active ? 'true' : 'false');
-      tab.tabIndex = active ? 0 : -1;
+      if (active) {
+        tab.removeAttribute('tabindex');
+        if (tab.getAttribute('data-title')) {
+          document.title = tab.getAttribute('data-title');
+        }
+      } else {
+        tab.tabIndex = -1;
+      }
     });
     document.querySelectorAll('[role="tabpanel"][data-panel]').forEach(function (panel) {
       panel.classList.toggle('is-active', panel.getAttribute('data-panel') === next);
     });
   }
 
+  // Each tab is a real link to its own route, so the URL is shareable and the
+  // page works without JavaScript. With JavaScript the tab switches in place
+  // and the address bar follows via the History API.
+  function selectTab(tab) {
+    setActiveTab(tab.getAttribute('data-tab') || 'claude-code');
+    window.history.pushState(null, '', tab.getAttribute('href'));
+  }
+
   document.querySelectorAll('[role="tab"][data-tab]').forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      setActiveTab(tab.getAttribute('data-tab') || 'claude-code');
+    tab.addEventListener('click', function (event) {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      event.preventDefault();
+      selectTab(tab);
     });
     tab.addEventListener('keydown', function (event) {
       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
@@ -1036,9 +1169,19 @@ ${postHogSnippet}
         : (index - 1 + tabs.length) % tabs.length;
       event.preventDefault();
       tabs[nextIndex].focus();
-      setActiveTab(tabs[nextIndex].getAttribute('data-tab') || 'claude-code');
+      selectTab(tabs[nextIndex]);
     });
   });
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('popstate', function () {
+      var path = window.location.pathname.replace(/[/]+$/, '') || '/';
+      var match = Array.prototype.slice
+        .call(document.querySelectorAll('[role="tab"][data-tab]'))
+        .filter(function (tab) { return tab.getAttribute('href') === path; })[0];
+      setActiveTab(match ? match.getAttribute('data-tab') : 'claude-code');
+    });
+  }
 
   document.querySelectorAll('button[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {

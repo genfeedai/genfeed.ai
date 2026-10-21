@@ -17,12 +17,14 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
+import { resolveClientLogo } from '@mcp/mcp/client-logos';
 import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
 import {
   getMcpWwwAuthenticateHeader,
   getPublicMcpUrl,
   renderSetupPage,
   resolvePublicMcpResource,
+  resolveSetupPageTab,
 } from '@mcp/mcp/setup-page';
 import { registerWellKnownRoutes } from '@mcp/mcp/well-known-routes';
 import {
@@ -286,7 +288,17 @@ async function main(): Promise<void> {
   streamableHttpService.markTransportMounted();
 
   app.use('/', (req: Request, res: Response, next: NextFunction) => {
-    if (req.path === '/' || req.path === '/docs') {
+    const clientLogo = resolveClientLogo(req.path);
+    if (clientLogo) {
+      res
+        .type('image/svg+xml')
+        .set('Cache-Control', 'public, max-age=86400')
+        .send(clientLogo);
+      return;
+    }
+
+    const setupTab = resolveSetupPageTab(req.path);
+    if (setupTab) {
       const preferred = req.accepts(['html', 'json']);
       if (preferred === 'json') {
         res.json({
@@ -298,7 +310,7 @@ async function main(): Promise<void> {
         return;
       }
 
-      res.type('html').send(renderSetupPage());
+      res.type('html').send(renderSetupPage(setupTab));
       return;
     }
 

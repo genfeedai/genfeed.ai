@@ -1,6 +1,7 @@
 import { getToolsets } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { McpResourceConfigurationError } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { CLIENT_LOGO_SVGS, resolveClientLogo } from '@mcp/mcp/client-logos';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,
@@ -9,6 +10,7 @@ import {
   getPublicMcpUrl,
   renderSetupPage,
   resolvePublicMcpResource,
+  resolveSetupPageTab,
   toInlineScriptStringLiteral,
 } from '@mcp/mcp/setup-page';
 import { JSDOM } from 'jsdom';
@@ -663,6 +665,98 @@ describe('MCP setup page', () => {
       expect(html).toContain(
         '<summary>Advanced: limit which toolsets load</summary>',
       );
+    });
+  });
+  describe('per-client routes', () => {
+    it.each([
+      ['/', 'claude-code'],
+      ['/docs', 'claude-code'],
+      ['/claude-code', 'claude-code'],
+      ['/claude-code/', 'claude-code'],
+      ['/claude-cowork', 'claude-chat'],
+      ['/codex', 'codex'],
+      ['/muse-grok-bot', 'chat-agent'],
+      ['/other-clients', 'other-clients'],
+      ['/agent-prompt', 'agent-prompt'],
+    ] as const)('maps %s to the %s tab', (path, tab) => {
+      expect(resolveSetupPageTab(path)).toBe(tab);
+    });
+
+    it.each(['/nope', '/claude', '/v1/docs', '/mcp'])(
+      'does not claim %s',
+      (path) => {
+        expect(resolveSetupPageTab(path)).toBeNull();
+      },
+    );
+
+    it('links every tab to its own route', () => {
+      const document = new JSDOM(renderSetupPage()).window.document;
+      const hrefs = Array.from(document.querySelectorAll('[role="tab"]')).map(
+        (tab) => tab.getAttribute('href'),
+      );
+
+      expect(hrefs).toEqual([
+        '/claude-code',
+        '/claude-cowork',
+        '/codex',
+        '/muse-grok-bot',
+        '/other-clients',
+        '/agent-prompt',
+      ]);
+    });
+
+    it('opens the first tab by default', () => {
+      const document = new JSDOM(renderSetupPage()).window.document;
+
+      expect(
+        document
+          .querySelector('[role="tab"][aria-selected="true"]')
+          ?.getAttribute('data-tab'),
+      ).toBe('claude-code');
+      expect(
+        document.querySelector('.tabpanel.is-active')?.getAttribute('id'),
+      ).toBe('panel-claude-code');
+      expect(document.title).toBe('Genfeed MCP Server — connect any AI agent');
+    });
+
+    it('opens the requested tab and names it in the title and share URL', () => {
+      const html = renderSetupPage('codex');
+      const document = new JSDOM(html).window.document;
+
+      expect(
+        document
+          .querySelector('[role="tab"][aria-selected="true"]')
+          ?.getAttribute('data-tab'),
+      ).toBe('codex');
+      expect(
+        Array.from(document.querySelectorAll('.tabpanel.is-active')).map(
+          (panel) => panel.getAttribute('id'),
+        ),
+      ).toEqual(['panel-codex']);
+      expect(document.title).toBe('Codex setup — Genfeed MCP Server');
+      expect(html).toContain(
+        '<meta property="og:url" content="https://mcp.genfeed.ai/codex" />',
+      );
+    });
+
+    it('keeps Claude Code and Claude & Cowork as separate tabs', () => {
+      const document = new JSDOM(renderSetupPage()).window.document;
+
+      expect(document.getElementById('panel-claude-code')).not.toBeNull();
+      expect(document.getElementById('panel-claude-chat')).not.toBeNull();
+    });
+
+    it('serves official client marks from the MCP origin', () => {
+      const html = renderSetupPage();
+
+      for (const logo of Object.keys(CLIENT_LOGO_SVGS)) {
+        expect(html).toContain(`src="/assets/clients/${logo}.svg"`);
+        expect(resolveClientLogo(`/assets/clients/${logo}.svg`)).toContain(
+          '<svg',
+        );
+      }
+      expect(resolveClientLogo('/assets/clients/unknown.svg')).toBeNull();
+      expect(resolveClientLogo('/assets/clients/toString.svg')).toBeNull();
     });
   });
 });
