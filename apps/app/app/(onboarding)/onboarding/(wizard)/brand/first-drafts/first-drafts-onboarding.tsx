@@ -2,7 +2,10 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { ONBOARDING_MAX_DRAFT_ROUNDS } from '@genfeedai/contracts/constants';
+import {
+  ONBOARDING_DRAFT_PLATFORMS,
+  ONBOARDING_MAX_DRAFT_ROUNDS,
+} from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -70,6 +73,9 @@ export default function FirstDraftsOnboarding() {
 
   if (state.phase === 'review' && state.result) {
     const { drafts, imageUrl, status } = state.result;
+    const hasMissingChannels = ONBOARDING_DRAFT_PLATFORMS.some(
+      (platform) => !drafts.some((draft) => draft.platform === platform),
+    );
     const brandName = state.scan?.summary?.name;
     return (
       <div className="flex flex-col gap-6">
@@ -110,9 +116,14 @@ export default function FirstDraftsOnboarding() {
                 {t('review.generic')}
               </p>
             ) : null}
-            {status === 'partial' ? (
+            {status === 'partial' && hasMissingChannels ? (
               <p role="status" className="text-sm text-muted-foreground">
                 {t('review.partial')}
+              </p>
+            ) : null}
+            {status === 'partial' && !imageUrl ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t('review.imageFailed')}
               </p>
             ) : null}
           </>
