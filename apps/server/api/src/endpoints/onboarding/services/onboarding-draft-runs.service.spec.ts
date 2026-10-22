@@ -234,6 +234,79 @@ describe('OnboardingDraftRunsService', () => {
       skipDuplicates: true,
     });
   });
+  it('keeps processing and failed ingredients out of editable posts', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue(null);
+    await service.execute(
+      user,
+      'brand-1',
+      undefined,
+      vi
+        .fn()
+        .mockResolvedValue({ ...result, imageIngredientId: 'pending-image' }),
+    );
+    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: { in: ['GENERATED', 'UPLOADED', 'VALIDATED'] },
+        }),
+      }),
+    );
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(prisma.postIngredient.createMany).not.toHaveBeenCalled();
+  });
+
+  it('attaches a video that became ready after the original request returned', async () => {
+    prisma.contentRun.findFirst.mockResolvedValue({
+      id: 'saved-run',
+      status: 'completed',
+      updatedAt: new Date(),
+      config: {
+        surface: 'onboarding',
+        result: {
+          ...result,
+          drafts: [{ ...result.drafts[0], platform: 'tiktok' }],
+          videoIngredientId: 'video-1',
+          videoStatus: 'pending',
+        },
+      },
+    });
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'video-1',
+      status: 'GENERATED',
+      s3Key: 'video/ready.mp4',
+    });
+    const run = await service.latest(user, 'brand-1');
+    expect(run?.result?.videoStatus).toBe('ready');
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { contentRunId: 'saved-run', category: 'VIDEO' },
+      }),
+    );
+    expect(prisma.postIngredient.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            ingredientId: 'video-1',
+            organizationId: 'org-1',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('does not restart an empty interrupted run because dispatch may have occurred before a checkpoint', async () => {
+    prisma.contentRun.createMany.mockResolvedValue({ count: 0 });
+    prisma.contentRun.findFirst.mockResolvedValue({
+      status: 'failed',
+      config: { surface: 'onboarding', result: null },
+    });
+    const generate = vi.fn();
+    await expect(
+      service.execute(user, 'brand-1', undefined, generate),
+    ).rejects.toThrow('Recover');
+    expect(generate).not.toHaveBeenCalled();
+  });
+
   it('recovers pre-existing onboarding drafts instead of offering another paid generation', async () => {
     prisma.contentRun.findFirst
       .mockResolvedValueOnce(null)

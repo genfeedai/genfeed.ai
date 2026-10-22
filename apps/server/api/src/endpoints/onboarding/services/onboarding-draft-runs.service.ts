@@ -137,6 +137,8 @@ export class OnboardingDraftRunsService {
         config.result.videoStatus = 'failed';
       }
     }
+    if (config.result)
+      await this.attachReadyAssets(user, brandId, row.id, config.result);
     const verdicts = await this.readVerdicts(user, brandId, config.result);
     return {
       id: row.id,
@@ -294,6 +296,61 @@ export class OnboardingDraftRunsService {
     };
   }
 
+  private async attachReadyAssets(
+    user: AuthenticatedUser,
+    brandId: string,
+    runId: string,
+    result: IOnboardingFirstDraftsResult,
+  ): Promise<void> {
+    const organizationId = String(user.organizationId);
+    for (const draft of result.drafts) {
+      const ingredientId =
+        draft.platform === 'tiktok'
+          ? result.videoIngredientId
+          : result.imageIngredientId;
+      if (!ingredientId) continue;
+      const ingredient = await this.prisma.ingredient.findFirst({
+        where: {
+          id: ingredientId,
+          organizationId,
+          brandId,
+          isDeleted: false,
+          status: { in: ['GENERATED', 'UPLOADED', 'VALIDATED'] },
+        },
+        select: { id: true },
+      });
+      if (!ingredient) continue;
+      const post = await this.prisma.post.updateMany({
+        where: {
+          id: draft.postId,
+          organizationId,
+          brandId,
+          isDeleted: false,
+          status: 'draft',
+          description: draft.text,
+          contentRunId: null,
+          ingredientLinks: { none: {} },
+        },
+        data: {
+          contentRunId: runId,
+          category: draft.platform === 'tiktok' ? 'VIDEO' : 'IMAGE',
+        },
+      });
+      if (post.count)
+        await this.prisma.postIngredient.createMany({
+          data: [
+            {
+              postId: draft.postId,
+              ingredientId,
+              organizationId,
+              position: 0,
+            },
+          ],
+          skipDuplicates: true,
+        });
+    }
+  }
+
   async execute(
     user: AuthenticatedUser,
     brandId: string,
@@ -350,51 +407,7 @@ export class OnboardingDraftRunsService {
           config: this.configFor(result),
         },
       });
-      for (const draft of result.drafts) {
-        const ingredientId =
-          draft.platform === 'tiktok'
-            ? result.videoIngredientId
-            : result.imageIngredientId;
-        if (!ingredientId) continue;
-        const ingredient = await this.prisma.ingredient.findFirst({
-          where: {
-            id: ingredientId,
-            organizationId,
-            brandId,
-            isDeleted: false,
-          },
-          select: { id: true },
-        });
-        if (!ingredient) continue;
-        const post = await this.prisma.post.updateMany({
-          where: {
-            id: draft.postId,
-            organizationId,
-            brandId,
-            isDeleted: false,
-            status: 'draft',
-            description: draft.text,
-            contentRunId: null,
-            ingredientLinks: { none: {} },
-          },
-          data: {
-            contentRunId: id,
-            category: draft.platform === 'tiktok' ? 'VIDEO' : 'IMAGE',
-          },
-        });
-        if (post.count)
-          await this.prisma.postIngredient.createMany({
-            data: [
-              {
-                postId: draft.postId,
-                ingredientId,
-                organizationId,
-                position: 0,
-              },
-            ],
-            skipDuplicates: true,
-          });
-      }
+      await this.attachReadyAssets(user, brandId, id, result);
     };
     try {
       const result = await generate(save);

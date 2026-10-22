@@ -12,6 +12,7 @@ import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -153,6 +154,7 @@ export class OnboardingController {
     return this.firstDraftsService.scan(user, brandId, dto.url);
   }
 
+  @TenantReadPolicy('owner')
   @Get('brands/:brandId/drafts')
   @ApiOperation({
     summary: 'Recover saved onboarding content without generating',
