@@ -4,6 +4,7 @@ import { PickType } from '@nestjs/swagger';
 
 export class CampaignBrandScopeDto extends PickType(BaseQueryDto, [
   'brandId',
+  'organizationId',
 ] as const) {
   static readonly [FORBID_NON_WHITELISTED] = true;
 }

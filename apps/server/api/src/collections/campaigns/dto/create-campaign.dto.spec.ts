@@ -1,3 +1,4 @@
+import { CampaignBrandScopeDto } from '@api/collections/campaigns/dto/campaign-brand-scope.dto';
 import { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
 import { ValidationPipe } from '@nestjs/common';
@@ -7,6 +8,20 @@ import { validate } from 'class-validator';
 const VALID_BRAND_ID = 'cbrand0000001';
 
 describe('Campaign DTO validation', () => {
+  it('preserves the existing selected-tenant organization query alongside the brand scope', async () => {
+    const dto = plainToInstance(CampaignBrandScopeDto, {
+      brandId: VALID_BRAND_ID,
+      organizationId: 'corganization00001',
+    });
+    expect(
+      await validate(dto, { whitelist: true, forbidNonWhitelisted: true }),
+    ).toEqual([]);
+    expect(dto).toMatchObject({
+      organizationId: 'corganization00001',
+      brandId: VALID_BRAND_ID,
+    });
+  });
+
   it.each([
     { idempotencyKey: '', name: 'Launch' },
     { idempotencyKey: 'launch-1', name: '' },
