@@ -280,8 +280,20 @@ export class OnboardingFirstDraftsService {
         ? 'ready'
         : 'partial';
     await checkpoint();
-    const drafts = result.drafts;
-    const script = drafts.find((draft) => draft.platform === 'tiktok');
+    await this.generateVideo(identity, brandName, result, checkpoint);
+    if (result.videoStatus !== 'ready' && result.status === 'ready')
+      result.status = 'partial';
+    return result;
+  }
+
+  private async generateVideo(
+    identity: Pick<User, 'organizationId' | 'brandId' | 'userId'>,
+    brandName: string,
+    result: IOnboardingFirstDraftsResult,
+    checkpoint: () => Promise<void>,
+  ): Promise<void> {
+    const { brandId } = identity;
+    const script = result.drafts.find((draft) => draft.platform === 'tiktok');
     if (script) {
       try {
         const response = toMediaResponseRecord(
@@ -328,9 +340,6 @@ export class OnboardingFirstDraftsService {
         result.videoStatus = 'failed';
       }
     } else result.videoStatus = 'failed';
-    if (result.videoStatus !== 'ready' && result.status === 'ready')
-      result.status = 'partial';
-    return result;
   }
 
   private describeContext(context?: OnboardingDraftContextDto): string {

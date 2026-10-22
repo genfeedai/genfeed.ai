@@ -64,13 +64,13 @@ export default function FirstDraftsOnboarding() {
         {logoUrl && (
           <Image
             src={logoUrl}
-            alt="Genfeed"
+            alt={t('appName')}
             width={22}
             height={22}
             className="dark:invert"
           />
         )}
-        <span className="text-xs font-semibold">Genfeed</span>
+        <span className="text-xs font-semibold">{t('appName')}</span>
         <span className="ml-auto text-xs text-muted-foreground">
           {labels[step]}
         </span>

@@ -402,7 +402,7 @@ export class OnboardingDraftRunsService {
     const save = async (result: IOnboardingFirstDraftsResult) => {
       saved = result;
       await this.prisma.contentRun.updateMany({
-        where,
+        where: { id, organizationId, brandId, isDeleted: false },
         data: {
           config: this.configFor(result),
         },
@@ -413,13 +413,13 @@ export class OnboardingDraftRunsService {
       const result = await generate(save);
       await save(result);
       await this.prisma.contentRun.updateMany({
-        where,
+        where: { id, organizationId, brandId, isDeleted: false },
         data: { status: ContentRunStatus.COMPLETED },
       });
       return result;
     } catch (error) {
       await this.prisma.contentRun.updateMany({
-        where,
+        where: { id, organizationId, brandId, isDeleted: false },
         data: {
           status: ContentRunStatus.FAILED,
           config: this.configFor(saved),

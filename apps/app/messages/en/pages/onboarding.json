@@ -295,6 +295,7 @@
     "progress": "Onboarding progress",
     "gettingStarted": "Getting started",
     "brandFallback": "Your brand",
-    "videoAlt": "Generated video for {platform}"
+    "videoAlt": "Generated video for {platform}",
+    "appName": "Genfeed"
   }
 }

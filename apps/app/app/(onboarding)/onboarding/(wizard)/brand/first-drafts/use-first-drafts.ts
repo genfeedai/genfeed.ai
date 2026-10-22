@@ -2,7 +2,10 @@
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { ONBOARDING_MAX_DRAFT_ROUNDS } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  ONBOARDING_MAX_DRAFT_ROUNDS,
+} from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftContext,
   IOnboardingDraftRun,
@@ -382,12 +385,12 @@ export function useFirstDrafts(): FirstDraftsState {
                 : null;
       if (!next) return;
       if (next !== 'schedule' && searchParams.get('step') === 'schedule')
-        replace('/onboarding/brand');
+        replace(APP_ROUTES.ONBOARDING.BRAND);
       setPhase(next);
     },
     onBack: () => {
       if (phase === 'schedule' && searchParams.get('step') === 'schedule')
-        replace('/onboarding/brand');
+        replace(APP_ROUTES.ONBOARDING.BRAND);
       setPhase((current) => (current === 'schedule' ? 'review' : 'url'));
     },
     onSchedule: () => {
