@@ -64,11 +64,14 @@ export function TrendingHashtags({
               onPlatformChange(value === 'all' ? '' : value)
             }
           >
-            <SelectTrigger aria-label="Hashtag platform" className="w-40">
+            <SelectTrigger
+              aria-label={translate('hashtagPlatformFilter')}
+              className="w-40"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">{translate('allPlatforms')}</SelectItem>
               {filteredPlatforms.map((platform) => (
                 <SelectItem key={platform.id} value={platform.id}>
                   {platform.label}

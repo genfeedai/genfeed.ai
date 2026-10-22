@@ -93,11 +93,14 @@ export default function DiscoveryTrends() {
                 setHashtagPlatform(value === 'all' ? '' : value)
               }
             >
-              <SelectTrigger aria-label="Trend platform" className="w-40">
+              <SelectTrigger
+                aria-label={discovery('platformFilter')}
+                className="w-40"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All platforms</SelectItem>
+                <SelectItem value="all">{discovery('allPlatforms')}</SelectItem>
                 {TRENDS_PLATFORMS.map(({ id, label }) => (
                   <SelectItem key={id} value={id}>
                     {label}
@@ -116,7 +119,10 @@ export default function DiscoveryTrends() {
                   setVideoTimeframe(value);
               }}
             >
-              <SelectTrigger aria-label="Trend timeframe" className="w-36">
+              <SelectTrigger
+                aria-label={discovery('timeframeFilter')}
+                className="w-36"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
