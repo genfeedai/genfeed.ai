@@ -431,4 +431,13 @@ describe('FirstDraftsOnboarding', () => {
     await screen.findByText('twitter draft text');
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
+  it('clears the OAuth return step when going back to drafts', async () => {
+    mocks.search = new URLSearchParams('step=schedule');
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByTestId('connect-card-instagram');
+    fireEvent.click(screen.getByRole('button', { name: 'Back', exact: true }));
+    await screen.findByText('twitter draft text');
+    expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+  });
 });

@@ -368,8 +368,11 @@ export function useFirstDrafts(): FirstDraftsState {
     likedDrafts,
     onContinue,
     onNotRight: () => setPhase('context'),
-    onBack: () =>
-      setPhase((current) => (current === 'schedule' ? 'review' : 'url')),
+    onBack: () => {
+      if (phase === 'schedule' && searchParams.get('step') === 'schedule')
+        replace('/onboarding/brand');
+      setPhase((current) => (current === 'schedule' ? 'review' : 'url'));
+    },
     onSchedule: () => {
       if (!brandId || !result) return;
       setPhase('schedule');
