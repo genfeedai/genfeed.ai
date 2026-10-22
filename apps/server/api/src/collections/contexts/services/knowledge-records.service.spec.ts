@@ -14,6 +14,7 @@ import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/s
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -145,7 +146,11 @@ async function ready(sourceId: string, versionId: string) {
 }
 
 describePostgres('Knowledge collection with PostgreSQL', () => {
+  let incomingCloud: string | undefined;
   beforeEach(async () => {
+    incomingCloud = process.env.GENFEED_CLOUD;
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    expect(isCloudDeployment()).toBe(true);
     schema = `knowledge_collection_${randomUUID().replaceAll('-', '')}`;
     pool = new Pool({
       connectionString: process.env.KNOWLEDGE_TEST_DATABASE_URL,
@@ -228,11 +233,16 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
   });
 
   afterEach(async () => {
-    await prisma?.$disconnect();
-    if (pool) {
-      await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      await pool.end();
+    try {
+      await prisma?.$disconnect();
+      if (pool) {
+        await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+        await pool.end();
+      }
+    } finally {
+      vi.unstubAllEnvs();
     }
+    expect(process.env.GENFEED_CLOUD).toBe(incomingCloud);
   });
 
   it('isolates every source/version mutation by organization, active brand and personal owner', async () => {
