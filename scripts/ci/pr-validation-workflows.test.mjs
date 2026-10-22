@@ -31,7 +31,6 @@ const { parse: parseYaml } = createRequire(
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'curated-action-catalog.yml',
-  'link-check.yml',
   'playwright-coverage-policy.yml',
   'playwright-pr-smoke.yml',
   'pr-heavy-ci.yml',
@@ -542,7 +541,6 @@ test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
 test('draft pull requests run no CI until marked ready', () => {
   for (const [fileName, jobId] of [
     ['ci.yml', 'plan'],
-    ['link-check.yml', 'detect'],
     ['playwright-pr-smoke.yml', 'detect'],
   ]) {
     const workflow = readWorkflow(fileName);
@@ -1876,4 +1874,111 @@ test('MCP real transport job is planned, required and publishes only its sanitiz
   assert.match(gate, /- mcp-auth-runtime/);
   assert.match(gate, /PLAN_MCP_AUTH_RUNTIME:/);
   assert.match(gate, /MCP_AUTH_RUNTIME_RESULT:/);
+});
+
+test('link routing preserves ready direct PRs across fork trust and heavy callers', () => {
+  const ci = parseYaml(readWorkflow('ci.yml'));
+  const manual = parseYaml(readWorkflow('link-check.yml'));
+  assert.deepEqual(Object.keys(manual.on), ['workflow_dispatch']);
+  assert.equal(manual.name, 'Link Check');
+  assert.deepEqual(manual.concurrency, {
+    group: '${{ github.workflow }}-${{ github.ref }}',
+    'cancel-in-progress': true,
+  });
+  assert.deepEqual(ci.on.pull_request, {
+    branches: ['master'],
+    types: ['opened', 'synchronize', 'reopened', 'ready_for_review'],
+  });
+  const detector = ci.jobs['link-check-detect'];
+  assert.ok(detector, 'direct CI must own Link Check routing');
+  assert.equal(detector.needs, undefined);
+  for (const event of [
+    'pull_request',
+    'push',
+    'workflow_dispatch',
+    'merge_group',
+  ]) {
+    for (const draft of [false, true]) {
+      for (const fork of [false, true]) {
+        for (const heavy of [undefined, false, true]) {
+          for (const association of ['MEMBER', 'CONTRIBUTOR', 'NONE']) {
+            for (const labels of [[], [{ name: 'full-suite' }]]) {
+              const github = {
+                event_name: event,
+                event: {
+                  pull_request: {
+                    draft,
+                    author_association: association,
+                    labels,
+                    head: { repo: { fork } },
+                  },
+                },
+              };
+              assert.equal(
+                runInNewContext(detector.if, {
+                  github,
+                  inputs: { run_heavy_tests: heavy },
+                }),
+                event === 'pull_request' && !draft && heavy !== true,
+              );
+              assert.equal(
+                runInNewContext(manual.jobs.detect.if, { github }),
+                event !== 'pull_request' || !draft,
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+  for (const [workflow, detectorId] of [
+    [ci, 'link-check-detect'],
+    [manual, 'detect'],
+  ]) {
+    for (const [id, name, timeout] of [
+      [detectorId, 'Detect Link-Check Scope', 3],
+      ['website-links', 'Website Links + Orphans + SEO', 20],
+      ['docs-links', 'Docs + Markdown Dead Links', 10],
+    ]) {
+      const job = workflow.jobs[id];
+      assert.ok(job, id);
+      assert.equal(job.name, name);
+      assert.equal(job['runs-on'], 'ubuntu-latest');
+      assert.equal(job['timeout-minutes'], timeout);
+      assert.deepEqual(job.permissions, { contents: 'read' });
+      assert.equal(job.uses, undefined);
+      assert.deepEqual(job.steps[0], {
+        uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+        with: { 'fetch-depth': 0 },
+      });
+      if (id === detectorId) continue;
+      assert.equal(job.needs, detectorId);
+      const scope = id === 'website-links' ? 'website' : 'docs';
+      assert.equal(job.if, `needs.${detectorId}.outputs.${scope} == 'true'`);
+      for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
+        for (const value of ['true', 'false', '']) {
+          // GitHub implicitly requires successful needs when no status function is present.
+          const runnable = runInNewContext(
+            `success() && (${job.if.replaceAll('needs.link-check-detect', 'needs["link-check-detect"]')})`,
+            {
+              success: () => result === 'success',
+              needs: { [detectorId]: { result, outputs: { [scope]: value } } },
+            },
+          );
+          assert.equal(runnable, result === 'success' && value === 'true');
+        }
+      }
+    }
+  }
+  assert.deepEqual(ci.jobs['tests-gate'].needs, [
+    'plan',
+    'static-checks',
+    'spec-typecheck',
+    'test-workspaces',
+    'test-app',
+    'test-api',
+    'cloud-tenant-guard',
+    'mcp-auth-runtime',
+    'build',
+  ]);
 });

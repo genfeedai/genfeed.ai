@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -161,8 +169,8 @@ test('frontend measurements and comments use the same affected consumers', () =>
       ?.length,
     2,
   );
-  const links = read('.github/workflows/link-check.yml');
-  assert.match(links, /website: \$\{\{ steps.frontends.outputs.website \}\}/);
+  const links = read('.github/actions/detect-link-check-scope/action.yml');
+  assert.match(links, /value: \$\{\{ steps.frontends.outputs.website \}\}/);
   assert.match(links, /uses: \.\/\.github\/actions\/detect-frontend-scope/);
   assert.match(links, /docs:[\s\S]*?'\*\*\/\*\.mdx'/);
 });
@@ -242,4 +250,292 @@ test('builder normalizes one configured image identity before every registry use
     /\$\{\{ inputs.registry \}\}\/|\$\{\{ github.repository \}\}/,
   );
   assert.match(composite, /node scripts\/ci\/resolve-server-image.mjs/);
+});
+
+test('link checks run inside direct CI independently of the trust planner', () => {
+  const manual = read('.github/workflows/link-check.yml');
+  assert.doesNotMatch(manual, /^ {2}pull_request:/m);
+  assert.doesNotMatch(manual, /^ {2}push:/m);
+  const ci = read('.github/workflows/ci.yml');
+  const detect = ci.match(
+    /^ {2}link-check-detect:\n((?: {4}.*(?:\n|$)|\n)+)/m,
+  )?.[1];
+  assert.ok(detect, 'CI must route Link Check independently');
+  assert.doesNotMatch(detect, /needs:/);
+  assert.match(detect, /inputs.run_heavy_tests != true/);
+});
+
+const { parse: parseYaml } = createRequire(
+  new URL('../../apps/server/api/package.json', import.meta.url),
+)('yaml');
+const readAction = (name) =>
+  parseYaml(read(`.github/actions/${name}/action.yml`));
+
+test('website link workload preserves ordered hard failures and advisory SEO inputs', () => {
+  const action = readAction('check-website-links');
+  assert.equal(action.runs.using, 'composite');
+  assert.deepEqual(
+    action.runs.steps.map((step) => step.name),
+    [
+      'Setup Bun environment',
+      'Build website',
+      'Start website',
+      'Check internal links + orphan pages',
+      'Audit on-page SEO',
+      'Stop website',
+    ],
+  );
+  assert.deepEqual(action.runs.steps[0], {
+    name: 'Setup Bun environment',
+    uses: './.github/actions/setup-bun-env',
+  });
+  const [build, start, crawl, seo, stop] = action.runs.steps.slice(1);
+  assert.equal(build.run, 'bunx turbo run build --filter=@genfeedai/website');
+  assert.deepEqual(build.env, { GITHUB_TOKEN: '${{ github.token }}' });
+  assert.equal(crawl.run, 'cd apps/website && bun run check:orphans');
+  assert.deepEqual(crawl.env, { BASE_URL: 'http://localhost:3000' });
+  assert.equal(seo.run, 'cd apps/website && bun run check:seo');
+  assert.deepEqual(seo.env, {
+    BASE_URL: 'http://localhost:3000',
+    SEO_SOFT: '1',
+  });
+  assert.equal(stop.if, 'always()');
+  assert.equal(stop.run, 'kill "$SERVER_PID" 2>/dev/null || true');
+  assert.match(start.run, /seq 1 60/);
+  for (const step of action.runs.steps.slice(1)) {
+    assert.equal(step.shell, 'bash');
+    assert.equal(step['continue-on-error'], undefined);
+  }
+});
+
+test('docs link workload preserves lychee inputs and explicit token boundary', () => {
+  const action = readAction('check-docs-links');
+  assert.equal(action.inputs['github-token'].required, true);
+  assert.equal(action.runs.using, 'composite');
+  assert.equal(action.runs.steps.length, 1);
+  const step = action.runs.steps[0];
+  assert.equal(
+    step.uses,
+    'lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8',
+  );
+  assert.deepEqual(step.with, {
+    args: "--config lychee.toml --remap 'https://github.com/genfeedai/genfeed.ai/blob/master file://${{ github.workspace }}' 'apps/docs/content/**/*.md' 'apps/docs/content/**/*.mdx' 'README.md' 'apps/website/README.md'",
+    fail: true,
+  });
+  assert.deepEqual(step.env, { GITHUB_TOKEN: '${{ inputs.github-token }}' });
+});
+
+function websiteFixture(t, { readyAt = 1, fail = '' } = {}) {
+  const temp = realpathSync(
+    mkdtempSync(path.join(os.tmpdir(), 'website-links-')),
+  );
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  mkdirSync(path.join(temp, 'apps/website'), { recursive: true });
+  const bin = path.join(temp, 'bin');
+  mkdirSync(bin);
+  const shim = (name, body) =>
+    writeFileSync(
+      path.join(bin, name),
+      `#!/bin/bash
+${body}
+`,
+      { mode: 0o755 },
+    );
+  shim(
+    'bunx',
+    'echo "build|$*|$PWD|$GITHUB_TOKEN" >> "$CALL_LOG"; [ "$FAIL" != build ]',
+  );
+  shim(
+    'bun',
+    `echo "$2|$PWD|\${PORT:-}|\${BASE_URL:-}|\${SEO_SOFT:-}" >> "$CALL_LOG"
+if [ "$2" = start ]; then touch "$STARTED"; fi
+[ "$FAIL" != "$2" ]`,
+  );
+  shim(
+    'curl',
+    `for _ in $(seq 1 1000); do [ -f "$STARTED" ] && break; done
+n=0; [ ! -f "$ATTEMPTS" ] || read -r n < "$ATTEMPTS"
+echo "$((n+1))" > "$ATTEMPTS"
+echo "curl|$*" >> "$CALL_LOG"
+[ "$((n+1))" -ge "$READY_AT" ]`,
+  );
+  shim('sleep', 'echo "sleep|$*" >> "$CALL_LOG"');
+  const envFile = path.join(temp, 'env');
+  writeFileSync(envFile, '');
+  const env = {
+    ...process.env,
+    PATH: `${bin}:${process.env.PATH}`,
+    CALL_LOG: path.join(temp, 'calls'),
+    STARTED: path.join(temp, 'started'),
+    ATTEMPTS: path.join(temp, 'attempts'),
+    READY_AT: String(readyAt),
+    FAIL: fail,
+    PORT: '',
+    BASE_URL: '',
+    SEO_SOFT: '',
+    GITHUB_ENV: envFile,
+    GITHUB_TOKEN: 'synthetic-read-only',
+  };
+  const steps = readAction('check-website-links').runs.steps.slice(1);
+  const results = [];
+  let failed = false;
+  for (const step of steps) {
+    if (failed && step.if !== 'always()') continue;
+    const isCleanup = step.if === 'always()';
+    const script = isCleanup
+      ? `kill() { echo "kill|$*" >> "$CALL_LOG"; return 1; }; ${step.run}`
+      : step.run;
+    const result = spawnSync(
+      'bash',
+      ['--noprofile', '--norc', '-eo', 'pipefail', '-c', script],
+      {
+        cwd: temp,
+        encoding: 'utf8',
+        timeout: 5000,
+        env: { ...env, ...step.env, GITHUB_TOKEN: 'synthetic-read-only' },
+      },
+    );
+    assert.equal(result.error, undefined, step.name);
+    results.push({ name: step.name, ...result });
+    if (result.status !== 0) failed = true;
+    const pid = readFileSync(envFile, 'utf8').match(/^SERVER_PID=(\d+)$/m)?.[1];
+    if (pid) env.SERVER_PID = pid;
+  }
+  return {
+    results,
+    log: readFileSync(env.CALL_LOG, 'utf8').trim().split('\n'),
+    exported: readFileSync(envFile, 'utf8'),
+    temp,
+  };
+}
+
+test('website scripts execute build, readiness, crawl, SEO and cleanup with original inputs', (t) => {
+  for (const readyAt of [1, 4]) {
+    const fixture = websiteFixture(t, { readyAt });
+    assert.ok(fixture.results.every((result) => result.status === 0));
+    assert.match(fixture.exported, /^SERVER_PID=\d+\n$/);
+    assert.deepEqual(
+      fixture.log.filter((line) => !/^(curl|sleep)\|/.test(line)),
+      [
+        `build|turbo run build --filter=@genfeedai/website|${fixture.temp}|synthetic-read-only`,
+        `start|${fixture.temp}/apps/website|3000||`,
+        `check:orphans|${fixture.temp}/apps/website||http://localhost:3000|`,
+        `check:seo|${fixture.temp}/apps/website||http://localhost:3000|1`,
+        `kill|${fixture.exported.trim().split('=')[1]}`,
+      ],
+    );
+    assert.deepEqual(
+      fixture.log.filter((line) => line.startsWith('curl|')),
+      Array(readyAt).fill('curl|-fsS http://localhost:3000/'),
+    );
+    assert.deepEqual(
+      fixture.log.filter((line) => line.startsWith('sleep|')),
+      Array(readyAt - 1).fill('sleep|2'),
+    );
+  }
+});
+
+test('website readiness times out after sixty attempts and still cleans up', (t) => {
+  const fixture = websiteFixture(t, { readyAt: 61 });
+  const start = fixture.results.find(
+    (result) => result.name === 'Start website',
+  );
+  assert.equal(start.status, 1);
+  assert.match(
+    start.stdout,
+    /::error::Website did not become ready on :3000 within 120s/,
+  );
+  assert.equal(
+    fixture.log.filter((line) => line.startsWith('curl|')).length,
+    60,
+  );
+  assert.equal(fixture.log.filter((line) => line === 'sleep|2').length, 60);
+  assert.ok(!fixture.log.some((line) => /^check:/.test(line)));
+  assert.match(fixture.log.at(-1), /^kill\|\d+$/);
+  assert.equal(fixture.results.at(-1).status, 0);
+});
+
+test('website build, crawl and SEO failures propagate and cleanup tolerates missing or stale PID', (t) => {
+  for (const fail of ['build', 'check:orphans', 'check:seo']) {
+    const fixture = websiteFixture(t, { fail });
+    assert.equal(
+      fixture.results.filter((result) => result.status !== 0).length,
+      1,
+    );
+    if (fail === 'build')
+      assert.ok(!fixture.log.some((line) => /^start\||^check:/.test(line)));
+    if (fail === 'check:orphans')
+      assert.ok(!fixture.log.some((line) => /^check:seo\|/.test(line)));
+    if (fail === 'check:seo')
+      assert.ok(fixture.log.some((line) => /check:seo\|.*\|1$/.test(line)));
+    assert.equal(fixture.results.at(-1).name, 'Stop website');
+    assert.equal(fixture.results.at(-1).status, 0);
+    assert.match(fixture.log.at(-1), /^kill\|/);
+  }
+});
+
+test('shared link scope retains original filters and validates relocated routing inputs', () => {
+  const action = readAction('detect-link-check-scope');
+  assert.equal(action.inputs, undefined);
+  assert.deepEqual(action.outputs, {
+    website: {
+      description: 'Whether website checks are selected',
+      value: '${{ steps.frontends.outputs.website }}',
+    },
+    docs: {
+      description: 'Whether Markdown checks are selected',
+      value: '${{ steps.changes.outputs.docs }}',
+    },
+  });
+  assert.equal(action.runs.using, 'composite');
+  assert.deepEqual(action.runs.steps[0], {
+    id: 'frontends',
+    uses: './.github/actions/detect-frontend-scope',
+  });
+  const changes = action.runs.steps[1];
+  assert.equal(action.runs.steps.length, 2);
+  assert.equal(
+    changes.uses,
+    'dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d',
+  );
+  assert.deepEqual(parseYaml(changes.with.filters), {
+    docs: [
+      'apps/docs/content/**',
+      'lychee.toml',
+      '.github/workflows/link-check.yml',
+      '.github/workflows/ci.yml',
+      '.github/actions/detect-link-check-scope/**',
+      '.github/actions/check-website-links/**',
+      '.github/actions/check-docs-links/**',
+      '**/*.md',
+      '**/*.mdx',
+    ],
+  });
+  for (const [file, detectorId] of [
+    ['ci.yml', 'link-check-detect'],
+    ['link-check.yml', 'detect'],
+  ]) {
+    const workflow = parseYaml(read(`.github/workflows/${file}`));
+    assert.deepEqual(workflow.jobs[detectorId].outputs, {
+      website: '${{ steps.scope.outputs.website }}',
+      docs: '${{ steps.scope.outputs.docs }}',
+    });
+    assert.deepEqual(workflow.jobs[detectorId].steps[1], {
+      id: 'scope',
+      uses: './.github/actions/detect-link-check-scope',
+    });
+    assert.deepEqual(workflow.jobs['website-links'].steps[1], {
+      uses: './.github/actions/check-website-links',
+    });
+    assert.deepEqual(workflow.jobs['docs-links'].steps[1], {
+      uses: './.github/actions/check-docs-links',
+      with: { 'github-token': '${{ secrets.GITHUB_TOKEN }}' },
+    });
+    for (const id of [detectorId, 'website-links', 'docs-links']) {
+      assert.equal(workflow.jobs[id].steps.length, 2);
+    }
+    assert.equal(workflow.env.TURBO_TEAM, '${{ vars.TURBO_TEAM }}');
+    assert.equal(workflow.env.TURBO_TOKEN, '${{ secrets.TURBO_TOKEN }}');
+    assert.equal(workflow.env.TZ, 'UTC');
+  }
 });

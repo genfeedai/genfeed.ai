@@ -1,0 +1,51 @@
+name: Check Website Links
+description: Run the existing website crawl and SEO workload.
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun environment
+      uses: ./.github/actions/setup-bun-env
+
+    - name: Build website
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      shell: bash
+      run: bunx turbo run build --filter=@genfeedai/website
+
+    - name: Start website
+      shell: bash
+      run: |
+        cd apps/website
+        PORT=3000 bun run start &
+        echo "SERVER_PID=$!" >> "$GITHUB_ENV"
+        for _ in $(seq 1 60); do
+          if curl -fsS http://localhost:3000/ >/dev/null 2>&1; then
+            echo "Website is serving on :3000"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "::error::Website did not become ready on :3000 within 120s"
+        exit 1
+
+    - name: Check internal links + orphan pages
+      shell: bash
+      run: cd apps/website && bun run check:orphans
+      env:
+        BASE_URL: http://localhost:3000
+
+    # On-page SEO: titles, descriptions, canonicals, headings, structured data,
+    # soft 404s on dynamic routes, and JSON-LD breadcrumb targets. Advisory
+    # (SEO_SOFT=1) until seo-baseline.json is seeded from a real run — after
+    # that, drop SEO_SOFT and the ratchet fails on any new error.
+    - name: Audit on-page SEO
+      shell: bash
+      run: cd apps/website && bun run check:seo
+      env:
+        BASE_URL: http://localhost:3000
+        SEO_SOFT: '1'
+
+    - name: Stop website
+      if: always()
+      shell: bash
+      run: kill "$SERVER_PID" 2>/dev/null || true

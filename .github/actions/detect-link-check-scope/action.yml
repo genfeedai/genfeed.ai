@@ -1,0 +1,29 @@
+name: Detect Link-Check Scope
+description: Select the existing website and Markdown link workloads.
+outputs:
+  website:
+    description: Whether website checks are selected
+    value: ${{ steps.frontends.outputs.website }}
+  docs:
+    description: Whether Markdown checks are selected
+    value: ${{ steps.changes.outputs.docs }}
+runs:
+  using: composite
+  steps:
+    - id: frontends
+      uses: ./.github/actions/detect-frontend-scope
+
+    - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      id: changes
+      with:
+        filters: |
+          docs:
+            - 'apps/docs/content/**'
+            - 'lychee.toml'
+            - '.github/workflows/link-check.yml'
+            - '.github/workflows/ci.yml'
+            - '.github/actions/detect-link-check-scope/**'
+            - '.github/actions/check-website-links/**'
+            - '.github/actions/check-docs-links/**'
+            - '**/*.md'
+            - '**/*.mdx'
