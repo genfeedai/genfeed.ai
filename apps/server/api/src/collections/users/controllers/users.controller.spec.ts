@@ -72,6 +72,8 @@ describe('UsersController', () => {
       findOne: vi.fn(),
       hasOnboardingField: vi.fn(),
       patch: vi.fn(),
+      updateAdminProfile: vi.fn(),
+      resetOnboarding: vi.fn(),
       patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
       recordSignupAttribution: vi.fn().mockResolvedValue(true),
     };
@@ -276,10 +278,10 @@ describe('UsersController', () => {
 
       const result = await controller.findOne(mockRequest, userId);
 
-      expect(usersService.findOne).toHaveBeenCalledWith({ id: userId }, [
-        { path: 'settings' },
-        { path: 'signupAttribution' },
-      ]);
+      expect(usersService.findOne).toHaveBeenCalledWith(
+        { id: userId, isDeleted: false },
+        [{ path: 'settings' }, { path: 'signupAttribution' }],
+      );
       expect(result).toBeDefined();
     });
   });
@@ -1302,6 +1304,98 @@ describe('UsersController', () => {
 
       expect(usersService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+  describe('admin card edits', () => {
+    const admin = {
+      id: 'admin',
+      userId: 'admin',
+      organizationId: 'org',
+      brandId: 'brand',
+      isSuperAdmin: true,
+    };
+    const regular = { ...admin, isSuperAdmin: false };
+    const profile = { firstName: 'Jane', lastName: 'Example', handle: 'jane' };
+
+    it('denies non-platform-admin profile edits and resets before any lookup/write', async () => {
+      await expect(
+        controller.updateAdminProfile(
+          mockRequest,
+          regular,
+          'opaque-user-id',
+          profile,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        controller.resetOnboarding(mockRequest, regular, 'opaque-user-id'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(usersService.updateAdminProfile).not.toHaveBeenCalled();
+      expect(usersService.resetOnboarding).not.toHaveBeenCalled();
+    });
+
+    it('updates an opaque canonical user id and invalidates all identity/access caches', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'opaque-user-id',
+        ...profile,
+      });
+      await controller.updateAdminProfile(
+        mockRequest,
+        admin,
+        'opaque-user-id',
+        profile,
+      );
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'opaque-user-id',
+        isDeleted: false,
+      });
+      expect(usersService.updateAdminProfile).toHaveBeenCalledWith(
+        'opaque-user-id',
+        profile,
+      );
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        'opaque-user-id',
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith('opaque-user-id');
+      expect(
+        betterAuthIdentityCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith('opaque-user-id');
+    });
+
+    it('resets without invoking completion, emitting completion events or starting a trial', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'opaque-user-id',
+        isOnboardingCompleted: false,
+      });
+      await controller.resetOnboarding(mockRequest, admin, 'opaque-user-id');
+      expect(usersService.resetOnboarding).toHaveBeenCalledWith(
+        'opaque-user-id',
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith('opaque-user-id');
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        'opaque-user-id',
+      );
+      expect(
+        betterAuthIdentityCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith('opaque-user-id');
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(usersService.patchAll).not.toHaveBeenCalled();
+    });
+
+    it('does not write to missing or deleted users', async () => {
+      usersService.findOne.mockResolvedValue(null);
+      await expect(
+        controller.updateAdminProfile(mockRequest, admin, 'missing', profile),
+      ).rejects.toThrow();
+      await expect(
+        controller.resetOnboarding(mockRequest, admin, 'missing'),
+      ).rejects.toThrow();
+      expect(usersService.updateAdminProfile).not.toHaveBeenCalled();
+      expect(usersService.resetOnboarding).not.toHaveBeenCalled();
     });
   });
 });

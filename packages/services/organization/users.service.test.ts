@@ -192,4 +192,52 @@ describe('UsersService', () => {
       hasDismissedAssetGate: true,
     });
   });
+  it('updates only the selected admin profile and maps the persisted response', async () => {
+    const profile = { firstName: 'Jane', lastName: 'Example', handle: 'jane' };
+    http.patch.mockResolvedValue(
+      axiosResponse(resourceDocument(profile, { id: 'opaque-user' })),
+    );
+    const updated = await service.updateAdminProfile('opaque-user', profile);
+    expect(http.patch).toHaveBeenCalledWith(
+      '/opaque-user/profile',
+      profile,
+      expect.objectContaining({
+        handledErrorStatuses: expect.arrayContaining([409, 503]),
+      }),
+    );
+    expect(updated).toMatchObject({ id: 'opaque-user', ...profile });
+  });
+
+  it('resets onboarding through the dedicated action, without a completion payload', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { isOnboardingCompleted: false, onboardingStepsCompleted: [] },
+          { id: 'opaque-user' },
+        ),
+      ),
+    );
+    const updated = await service.resetOnboarding('opaque-user');
+    expect(http.post).toHaveBeenCalledWith(
+      '/opaque-user/onboarding/reset',
+      undefined,
+      expect.objectContaining({
+        handledErrorStatuses: expect.arrayContaining([503]),
+      }),
+    );
+    expect(updated.isOnboardingCompleted).toBe(false);
+  });
+
+  it('preserves the API conflict message for inline recovery', async () => {
+    http.patch.mockRejectedValue({
+      errors: [{ status: '409', detail: 'This handle is already in use.' }],
+    });
+    await expect(
+      service.updateAdminProfile('opaque-user', {
+        firstName: '',
+        lastName: '',
+        handle: 'taken',
+      }),
+    ).rejects.toThrow('This handle is already in use.');
+  });
 });

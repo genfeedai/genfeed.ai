@@ -5,7 +5,7 @@ import type { IUser } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { Users, VenetianMask } from 'lucide-react';
@@ -19,6 +19,7 @@ import UserDetails from './user-details';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 
 export default function UserDetailPage() {
+  const queryClient = useQueryClient();
   const translate = useTranslations('pages.adminUsers');
   const params = useParams<{ id: string }>();
   const userId = readRouteParam(params.id);
@@ -85,7 +86,15 @@ export default function UserDetailPage() {
               </p>
             </div>
           </div>
-          <UserDetails className="lg:grid-cols-2" user={user} />
+          <UserDetails
+            key={user.id}
+            className="lg:grid-cols-2"
+            user={user}
+            onUpdated={(updated) => {
+              queryClient.setQueryData(['admin-user', userId], updated);
+              void queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            }}
+          />
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">

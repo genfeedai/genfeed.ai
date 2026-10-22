@@ -6,6 +6,7 @@ import {
   nestedSettingsRecord,
   readObjectRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
+import { AdminUpdateUserProfileDto } from '@api/collections/users/dto/admin-update-user-profile.dto';
 import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
 import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-signup-attribution.dto';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
@@ -45,6 +46,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -427,14 +429,52 @@ export class UsersController {
       : returnNotFound(this.constructorName, userId);
   }
 
+  @Patch(':userId/profile')
+  @SetMetadata('roles', ['superadmin'])
+  async updateAdminProfile(
+    @Req() request: Request,
+    @CurrentUser() currentUser: User,
+    @Param('userId') userId: string,
+    @Body() profile: AdminUpdateUserProfileDto,
+  ) {
+    if (!getIsSuperAdmin(currentUser, request)) throw new ForbiddenException();
+    const existing = await this.usersService.findOne({
+      id: userId,
+      isDeleted: false,
+    });
+    if (!existing) return returnNotFound(this.constructorName, userId);
+    await this.usersService.updateAdminProfile(userId, profile);
+    await this.userAccessCacheService.invalidateAll(userId);
+    return this.findOne(request, userId);
+  }
+
+  @Post(':userId/onboarding/reset')
+  @HttpCode(200)
+  @SetMetadata('roles', ['superadmin'])
+  async resetOnboarding(
+    @Req() request: Request,
+    @CurrentUser() currentUser: User,
+    @Param('userId') userId: string,
+  ) {
+    if (!getIsSuperAdmin(currentUser, request)) throw new ForbiddenException();
+    const existing = await this.usersService.findOne({
+      id: userId,
+      isDeleted: false,
+    });
+    if (!existing) return returnNotFound(this.constructorName, userId);
+    await this.usersService.resetOnboarding(userId);
+    await this.userAccessCacheService.invalidateAll(userId);
+    return this.findOne(request, userId);
+  }
+
   @Get(':userId')
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(@Req() request: Request, @Param('userId') userId: string) {
-    const data = await this.usersService.findOne({ id: userId }, [
-      { path: 'settings' },
-      { path: 'signupAttribution' },
-    ]);
+    const data = await this.usersService.findOne(
+      { id: userId, isDeleted: false },
+      [{ path: 'settings' }, { path: 'signupAttribution' }],
+    );
     return data
       ? serializeSingle(request, UserSerializer, data)
       : returnNotFound(this.constructorName, userId);

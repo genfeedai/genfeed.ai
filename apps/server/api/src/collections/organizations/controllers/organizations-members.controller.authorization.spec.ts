@@ -190,14 +190,17 @@ describe('Organization member mutations (real HTTP role guard)', () => {
       expect(members.findOne).toHaveBeenCalledWith({
         id: otherMemberId,
         organizationId,
+        isDeleted: false,
       });
       expect(brands.findAll).toHaveBeenCalledWith(
         { where: { id: { in: [brandId] }, isDeleted: false, organizationId } },
         expect.objectContaining({ pagination: false }),
       );
-      expect(members.patch).toHaveBeenCalledWith(otherMemberId, {
-        brandIds: [brandId],
-      });
+      expect(members.patch).toHaveBeenCalledWith(
+        otherMemberId,
+        { brandIds: [brandId] },
+        expect.any(Array),
+      );
     });
 
     it.each([
@@ -216,7 +219,11 @@ describe('Organization member mutations (real HTTP role guard)', () => {
       actorRole = role;
       principal = { ...principal, isApiKey: true, scopes: [ApiKeyScope.ADMIN] };
       await patchMember(otherMemberId, { roleId }).expect(200);
-      expect(members.patch).toHaveBeenCalledWith(otherMemberId, { roleId });
+      expect(members.patch).toHaveBeenCalledWith(
+        otherMemberId,
+        { roleId },
+        expect.any(Array),
+      );
     });
   });
 
@@ -248,6 +255,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
     expect(members.findOne).toHaveBeenCalledWith({
       id: otherMemberId,
       organizationId,
+      isDeleted: false,
     });
     expect(members.patch).not.toHaveBeenCalled();
   });

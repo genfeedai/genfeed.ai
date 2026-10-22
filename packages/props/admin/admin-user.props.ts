@@ -13,11 +13,13 @@ export interface AdminUserEmailProps {
 export interface AdminUserDetailsProps {
   user: IUser;
   className?: string;
+  onUpdated?: (user: IUser) => void;
 }
 
 export interface AdminUserDetailPanelProps {
   user: IUser;
   onImpersonate: (user: IUser) => void;
+  onUpdated?: (user: IUser) => void;
 }
 
 export interface AdminUserDetailRowProps {
@@ -27,5 +29,7 @@ export interface AdminUserDetailRowProps {
 
 export interface AdminUserDetailSectionProps {
   title: string;
+  action?: ReactNode;
+  footer?: ReactNode;
   children: ReactNode;
 }

@@ -82,6 +82,7 @@ vi.mock('@services/organization/users.service', () => ({
 }));
 
 vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ setQueryData: vi.fn() }),
   useQuery: (options: {
     queryFn: () => Promise<unknown>;
     queryKey: unknown[];

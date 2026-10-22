@@ -23,6 +23,7 @@ import type {
   IWebhookDeliveryStatus,
   UpdateMemberData,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Activity } from '@genfeedai/models/analytics/activity.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -43,7 +44,9 @@ import {
 } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeCollection } from '@services/core/json-api';
+import { normalizeOperationError } from '@services/core/operation-error';
 import { serializeRequest } from '@services/core/request-serializers';
+import type { AxiosRequestConfig } from 'axios';
 
 const ORGANIZATION_LIST_PAGE_SIZE = 100;
 
@@ -285,13 +288,20 @@ export class OrganizationsService extends BaseService<Organization> {
     memberId: string,
     data: UpdateMemberData,
   ): Promise<Member> {
+    const options: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [400, 409, 422, 500, 502, 503, 504],
+    };
     return await this.instance
       .patch<JsonApiResponseDocument>(
         `/${organizationId}/members/${memberId}`,
         data,
+        options,
       )
       .then((res) => res.data)
-      .then((res) => new Member(this.extractResource<Partial<IMember>>(res)));
+      .then((res) => new Member(this.extractResource<Partial<IMember>>(res)))
+      .catch((error: unknown) => {
+        throw normalizeOperationError('updateOrganizationMember', error);
+      });
   }
 
   public async findOrganizationActivities(

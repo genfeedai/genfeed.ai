@@ -21,6 +21,8 @@ export interface IOrganization extends IBaseEntity {
 }
 
 export interface UpdateMemberData {
+  roleId?: string;
+  isActive?: boolean;
   brandIds?: string[];
 }
 

@@ -1,3 +1,4 @@
+import type { AdminUpdateUserProfileDto } from '@api/collections/users/dto/admin-update-user-profile.dto';
 import { CreateUserDto } from '@api/collections/users/dto/create-user.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import type { UserDocument } from '@api/collections/users/schemas/user.schema';
@@ -13,7 +14,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
  * Attribution is only accepted this long after the account was created, so a
@@ -96,6 +97,48 @@ export class UsersService extends BaseService<
     updateUserDto: Partial<UpdateUserDto>,
   ): Promise<UserDocument> {
     return await super.patch(id, updateUserDto, [{ path: 'settings' }]);
+  }
+
+  async updateAdminProfile(
+    id: string,
+    profile: AdminUpdateUserProfileDto,
+  ): Promise<void> {
+    const firstName = profile.firstName.trim();
+    const lastName = profile.lastName.trim();
+    try {
+      await this.prisma.user.update({
+        data: {
+          firstName,
+          lastName,
+          handle: profile.handle.trim(),
+          name: [firstName, lastName].filter(Boolean).join(' '),
+        },
+        where: { id, isDeleted: false },
+      });
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('This handle is already in use.');
+      }
+      throw error;
+    }
+  }
+
+  async resetOnboarding(id: string): Promise<void> {
+    await this.prisma.user.update({
+      data: {
+        isOnboardingCompleted: false,
+        onboardingStartedAt: null,
+        onboardingCompletedAt: null,
+        onboardingType: null,
+        onboardingStepsCompleted: [],
+      },
+      where: { id, isDeleted: false },
+    });
   }
 
   /**

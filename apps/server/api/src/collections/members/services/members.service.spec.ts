@@ -24,7 +24,7 @@ describe('MembersService', () => {
     warn: vi.fn(),
   };
 
-  const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
+  const userAccessCacheService = { invalidateAll: vi.fn() };
   let service: MembersService;
 
   beforeEach(() => {
@@ -34,11 +34,11 @@ describe('MembersService', () => {
     prisma.member.update.mockReset();
     prisma.role.findFirst.mockReset();
     prisma.role.findFirst.mockResolvedValue({ id: 'role_admin', key: 'admin' });
-    accessBootstrapCacheService.invalidateForUser.mockReset();
+    userAccessCacheService.invalidateAll.mockReset();
     service = new MembersService(
       prisma as never,
       logger as never,
-      accessBootstrapCacheService as never,
+      userAccessCacheService as never,
     );
   });
 
@@ -84,8 +84,8 @@ describe('MembersService', () => {
     });
   });
 
-  it.each([{ roleId: 'role_admin' }, { isActive: false }])(
-    'invalidates the affected user bootstrap after a membership change: %j',
+  it.each([{ roleId: 'role_admin' }, { isActive: false }, { brandIds: [] }])(
+    'invalidates identity, context and bootstrap after a membership change: %j',
     async (update) => {
       prisma.member.update.mockResolvedValue({
         id: 'member-1',
@@ -93,12 +93,11 @@ describe('MembersService', () => {
         organizationId: 'org-1',
       });
       await service.patch('member-1', update);
-      expect(
-        accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith('user-1');
+      expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
+        'user-1',
+      );
       expect(prisma.member.update.mock.invocationCallOrder[0]).toBeLessThan(
-        accessBootstrapCacheService.invalidateForUser.mock
-          .invocationCallOrder[0],
+        userAccessCacheService.invalidateAll.mock.invocationCallOrder[0],
       );
     },
   );
@@ -127,15 +126,13 @@ describe('MembersService', () => {
     expect(prisma.member.update).not.toHaveBeenCalled();
   });
 
-  it('does not invalidate bootstrap for brand assignment changes', async () => {
+  it('invalidates access after brand assignment changes', async () => {
     prisma.member.update.mockResolvedValue({
       id: 'member-1',
       userId: 'user-1',
     });
     await service.patch('member-1', { brandIds: [] });
-    expect(
-      accessBootstrapCacheService.invalidateForUser,
-    ).not.toHaveBeenCalled();
+    expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith('user-1');
   });
 
   it('invalidates the removed member user bootstrap after soft deletion', async () => {
@@ -153,11 +150,9 @@ describe('MembersService', () => {
       data: { isDeleted: true },
       where: { id: 'member-1' },
     });
-    expect(accessBootstrapCacheService.invalidateForUser).toHaveBeenCalledWith(
-      'user-1',
-    );
+    expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith('user-1');
     expect(prisma.member.update.mock.invocationCallOrder[0]).toBeLessThan(
-      accessBootstrapCacheService.invalidateForUser.mock.invocationCallOrder[0],
+      userAccessCacheService.invalidateAll.mock.invocationCallOrder[0],
     );
   });
 
@@ -166,9 +161,7 @@ describe('MembersService', () => {
 
     await expect(service.remove('member-1')).resolves.toBeNull();
 
-    expect(
-      accessBootstrapCacheService.invalidateForUser,
-    ).not.toHaveBeenCalled();
+    expect(userAccessCacheService.invalidateAll).not.toHaveBeenCalled();
   });
 
   it('does not invalidate bootstrap when removal fails', async () => {
@@ -176,9 +169,7 @@ describe('MembersService', () => {
 
     await expect(service.remove('member-1')).rejects.toThrow('Removal failed');
 
-    expect(
-      accessBootstrapCacheService.invalidateForUser,
-    ).not.toHaveBeenCalled();
+    expect(userAccessCacheService.invalidateAll).not.toHaveBeenCalled();
   });
 
   it('returns active organization members as team mentions', async () => {
@@ -332,7 +323,7 @@ describe('MembersService installed apps (#5502)', () => {
     service = new MembersService(
       prisma as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
-      { invalidateForUser: vi.fn() } as never,
+      { invalidateAll: vi.fn() } as never,
     );
   });
 

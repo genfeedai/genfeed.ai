@@ -10,6 +10,7 @@ import {
 import type {
   IMemberInvitation,
   IQueryParams,
+  IRole,
 } from '@genfeedai/contracts/interfaces';
 import {
   formatTierLabel,
@@ -22,13 +23,14 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
+import { Member as MemberModel } from '@models/organization/member.model';
 import type { MemberBrandAccessProps } from '@props/settings/members-list.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
+import { RolesService } from '@services/organization/roles.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -39,7 +41,8 @@ import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import MemberDetails from './member-details';
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {
   if (!status) {
@@ -77,7 +80,7 @@ function canRetryInvitation(invitation: IMemberInvitation): boolean {
 
 function MembersListContent() {
   const notificationsService = NotificationsService.getInstance();
-  const { organizationId, settings } = useBrand();
+  const { organizationId, settings, brands } = useBrand();
   const userRole = useUserRole();
   const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
@@ -95,6 +98,32 @@ function MembersListContent() {
     useCallback((token: string) => MembersService.getInstance(token), []),
   );
 
+  const [roles, setRoles] = useState<IRole[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+  const [rolesError, setRolesError] = useState<string | null>(null);
+  const rolesRequest = useRef<AbortController | null>(null);
+  const getRolesService = useAuthedService((token: string) =>
+    RolesService.getInstance(token),
+  );
+  useEffect(() => () => rolesRequest.current?.abort(), []);
+  async function loadRoles() {
+    rolesRequest.current?.abort();
+    const abort = new AbortController();
+    rolesRequest.current = abort;
+    setIsLoadingRoles(true);
+    setRolesError(null);
+    try {
+      const service = await getRolesService();
+      const data = await service.findAll({}, abort.signal);
+      if (!abort.signal.aborted) setRoles(data);
+    } catch {
+      if (!abort.signal.aborted)
+        setRolesError('Could not load roles. Please try again.');
+    } finally {
+      if (!abort.signal.aborted) setIsLoadingRoles(false);
+    }
+  }
+
   const [members, setMembers] = useState<Member[] | null>(null);
   const [invitations, setInvitations] = useState<IMemberInvitation[] | null>(
     null,
@@ -105,7 +134,6 @@ function MembersListContent() {
 
   const translate = useTranslations('common.settings.members');
   const rowSidebarT = useTranslations('ui.rowSidebar');
-  const fieldsT = useTranslations('ui.rowSidebar.fields');
 
   const columns: TableColumn<Member>[] = [
     {
@@ -148,6 +176,11 @@ function MembersListContent() {
       render: (member: Member) => <MemberBrandAccess member={member} />,
     },
     {
+      header: 'Status',
+      key: 'isActive',
+      render: (member: Member) => (member.isActive ? 'Active' : 'Inactive'),
+    },
+    {
       header: 'Joined',
       key: 'createdAt',
       render: (member: Member) =>
@@ -155,29 +188,40 @@ function MembersListContent() {
     },
   ];
 
-  const memberSidebar = createSummaryRowSidebar<Member>({
-    getFacts: (member) => [
-      { id: 'email', label: fieldsT('email'), value: member.userEmail },
-      { id: 'role', label: fieldsT('role'), value: member.roleLabel },
-      {
-        id: 'brands',
-        label: translate('columnBrands'),
-        value: <MemberBrandAccess member={member} />,
-      },
-      {
-        id: 'joined',
-        label: fieldsT('joined'),
-        value: member.createdAt ? formatDate(member.createdAt) : undefined,
-      },
-    ],
-    getId: (member) => member.id,
-    getSubtitle: (member) => member.userEmail || undefined,
-    getTitle: (member) =>
+  const memberSidebar = {
+    getId: (member: Member) => member.id,
+    getSubtitle: (member: Member) => member.userEmail || undefined,
+    getTitle: (member: Member) =>
       member.userFullName && member.userFullName !== '-'
         ? member.userFullName
         : member.userEmail || rowSidebarT('unknown'),
-    kind: 'user',
-  });
+    kind: 'user' as const,
+    render: (member: Member) => (
+      <MemberDetails
+        key={member.id}
+        member={member}
+        organizationId={organizationId ?? ''}
+        actorRole={userRole}
+        brands={brands ?? []}
+        roles={roles}
+        isLoadingRoles={isLoadingRoles}
+        rolesError={rolesError}
+        onLoadRoles={() => {
+          void loadRoles();
+        }}
+        onUpdated={(updated) => {
+          setMembers(
+            (current) =>
+              current?.map((item) =>
+                item.id === updated.id
+                  ? new MemberModel({ ...item, ...updated })
+                  : item,
+              ) ?? null,
+          );
+        }}
+      />
+    ),
+  };
 
   const invitationColumns: TableColumn<IMemberInvitation>[] = [
     {
