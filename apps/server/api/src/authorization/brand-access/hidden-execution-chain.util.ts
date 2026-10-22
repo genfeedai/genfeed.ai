@@ -11,6 +11,7 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { stableStringify } from '@libs/utils/canonical-hash.util';
 
 /**
  * The execution a pinned hidden system action runs in. Every field comes from the trusted
@@ -51,6 +52,11 @@ export type HiddenWorkflowRule = {
 };
 
 export type HiddenWorkflowParent =
+  | {
+      kind: 'hidden-single-child';
+      nodeId: (nodeId: string) => boolean;
+      rule: HiddenWorkflowRule;
+    }
   | {
       kind?: 'hidden';
       /** The parent's own persisted discovery output must contain this child's item. */
@@ -113,7 +119,12 @@ const EXECUTION_SELECT = {
     },
   },
   workflowVersion: {
-    select: { workflowId: true, organizationId: true, userId: true },
+    select: {
+      workflowId: true,
+      organizationId: true,
+      userId: true,
+      graph: true,
+    },
   },
 } as const;
 
@@ -200,6 +211,7 @@ function sameActor(
   organizationId: string,
   deny: WorkflowActorDenial,
 ): boolean {
+  if (left === undefined || right === undefined) return left === right;
   return (
     workflowActorKey(parseWorkflowActor(left, organizationId, deny), deny) ===
     workflowActorKey(parseWorkflowActor(right, organizationId, deny), deny)
@@ -277,10 +289,7 @@ async function validateLevel(
     !rule.parents?.length ||
     !nonempty(metadata.parentExecutionId) ||
     !nonempty(metadata.parentWorkflowId) ||
-    !nonempty(metadata.parentNodeId) ||
-    typeof index !== 'number' ||
-    !Number.isInteger(index) ||
-    index < 0
+    !nonempty(metadata.parentNodeId)
   )
     return deny();
   const parentNodeId = metadata.parentNodeId;
@@ -289,6 +298,21 @@ async function validateLevel(
       candidate.kind === 'scheduled-tenant' || candidate.nodeId(parentNodeId),
   );
   if (!link) return deny();
+  if (link.kind === 'hidden-single-child') {
+    if (
+      index !== undefined ||
+      row.trigger !== WorkflowExecutionTrigger.API ||
+      metadata.source !==
+        `workflow.run-child:${metadata.parentExecutionId}:${parentNodeId}`
+    )
+      return deny();
+  } else if (
+    typeof index !== 'number' ||
+    !Number.isInteger(index) ||
+    index < 0
+  ) {
+    return deny();
+  }
   const parent = await findExecution(tx, {
     executionId: metadata.parentExecutionId,
     organizationId: row.organizationId,
@@ -312,10 +336,13 @@ async function validateLevel(
     return { actor: captured ?? bound, holder };
   }
 
+  if (link.kind === 'hidden-single-child') {
+    assertSingleChild(parent, row, parentNodeId, canonicalId, deny);
+  }
   const ancestor = await validateLevel(tx, parent, link.rule, options, deny);
   if (!sameActor(ancestor.actor, captured, row.organizationId, deny))
     return deny();
-  if (link.discovery) {
+  if (link.kind !== 'hidden-single-child' && link.discovery) {
     const discovered = await tx.workflowExecutionNodeResult.findFirst({
       where: {
         organizationId: row.organizationId,
@@ -325,7 +352,11 @@ async function validateLevel(
       select: { output: true },
     });
     const items = record(discovered?.output)[link.discovery.itemsKey];
-    const item = record(Array.isArray(items) ? items[index] : undefined);
+    const item = record(
+      Array.isArray(items)
+        ? items[typeof index === 'number' ? index : -1]
+        : undefined,
+    );
     if (
       !link.discovery.matches(item, holder) ||
       !sameActor(item.initiatingActor, captured, row.organizationId, deny)
@@ -333,6 +364,39 @@ async function validateLevel(
       return deny();
   }
   return { actor: captured, holder };
+}
+
+function assertSingleChild(
+  parent: ExecutionRow,
+  child: ExecutionRow,
+  nodeId: string,
+  canonicalId: string,
+  deny: WorkflowActorDenial,
+): void {
+  const graph = record(parent.workflowVersion.graph);
+  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  const node = record(nodes.find((value) => record(value).id === nodeId));
+  const config = record(record(node.data).config);
+  if (
+    node.type !== 'genfeedAction' ||
+    config.actionId !== 'workflow.run-child' ||
+    config.childWorkflowId !== canonicalId ||
+    Object.keys(config).some(
+      (key) => key !== 'actionId' && key !== 'childWorkflowId',
+    ) ||
+    !Array.isArray(graph.edges) ||
+    graph.edges.length !== 0
+  )
+    deny();
+  const parentInputs = record(record(parent.result).inputValues);
+  const childInputs = record(record(child.result).inputValues);
+  // This frozen node has only its canonical child id in configuration; no dynamic input edges.
+  if (
+    Object.hasOwn(parentInputs, 'childWorkflowId') ||
+    Object.hasOwn(parentInputs, 'actionId') ||
+    stableStringify(parentInputs) !== stableStringify(childInputs)
+  )
+    deny();
 }
 
 /**

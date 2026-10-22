@@ -244,12 +244,86 @@ describe('AgentMemoriesController', () => {
         USER_ID,
         ORG_ID,
         baseBody,
+        {
+          origin: 'ACTOR',
+          actor: {
+            userId: USER_ID,
+            organizationId: ORG_ID,
+            isApiKey: false,
+            scopes: [],
+          },
+        },
       );
       expect(result).toMatchObject({
         ...mockMemory,
         wroteBrandInsight: true,
         wroteContextMemory: false,
       });
+    });
+
+    it('propagates the actual authenticated API key and canonical database user independently of body provenance', async () => {
+      const user = {
+        ...mockUser,
+        isApiKey: true,
+        apiKeyId: 'current-key',
+        scopes: ['memory:write'],
+      };
+      const body = {
+        ...baseBody,
+        brandId: 'brand-333',
+        organizationId: 'forged-org',
+        userId: 'forged-owner',
+        origin: 'DERIVED_MEMORY',
+        isProactive: true,
+        actor: {
+          userId: 'forged-owner',
+          organizationId: 'forged-org',
+          scopes: ['admin'],
+        },
+      };
+      memoryCaptureService.capture.mockResolvedValue({
+        memory: { id: 'memory' },
+        wroteBrandInsight: false,
+        wroteContextMemory: true,
+      } as never);
+      await controller.create(mockRequest, body, user);
+      expect(memoryCaptureService.capture).toHaveBeenCalledExactlyOnceWith(
+        USER_ID,
+        ORG_ID,
+        body,
+        {
+          origin: 'ACTOR',
+          actor: {
+            userId: USER_ID,
+            organizationId: ORG_ID,
+            isApiKey: true,
+            apiKeyId: 'current-key',
+            scopes: ['memory:write'],
+          },
+        },
+      );
+    });
+
+    it.each([
+      { ...mockUser, id: '', userId: '' },
+      { ...mockUser, organizationId: '' },
+    ])(
+      'denies malformed authenticated identity before capture %j',
+      async (user) => {
+        const result = await controller.create(mockRequest, baseBody, user);
+        expect(result).toMatchObject({ ctx: 'createMemory' });
+        expect(memoryCaptureService.capture).not.toHaveBeenCalled();
+      },
+    );
+
+    it('denies a missing authenticated user before capture', async () => {
+      const result = await controller.create(
+        mockRequest,
+        baseBody,
+        undefined as unknown as User,
+      );
+      expect(result).toMatchObject({ ctx: 'createMemory' });
+      expect(memoryCaptureService.capture).not.toHaveBeenCalled();
     });
 
     it('handles errors via ErrorResponse', async () => {

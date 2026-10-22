@@ -1,3 +1,4 @@
+import { hiddenExecutionRef } from '@api/authorization/brand-access/hidden-execution-chain.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
@@ -5,6 +6,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import type { WinnerPromotionCandidate } from '@api/services/harness/harness-winner-promotion.service';
 import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ExecutionContext } from '@genfeedai/workflows/engine';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -101,6 +103,9 @@ export class WinnerPromotionWorkflowService {
   async promoteWinnerItem(
     organizationId: string,
     input: Record<string, unknown>,
+    context: ExecutionContext,
+    nodeId: string,
+    actionId: string,
   ): Promise<Record<string, unknown>> {
     const service = this.resolveHarnessWinnerPromotionService();
     if (!service)
@@ -109,6 +114,10 @@ export class WinnerPromotionWorkflowService {
       organizationId,
       this.requiredString(input.contextBaseId, 'contextBaseId'),
       this.readRecord(input.item) as unknown as WinnerPromotionCandidate,
+      {
+        origin: 'CODE_OWNED_WORKFLOW',
+        provenance: { ...hiddenExecutionRef(context), nodeId, actionId },
+      },
     );
   }
 

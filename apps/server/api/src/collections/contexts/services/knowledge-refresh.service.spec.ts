@@ -63,9 +63,11 @@ function buildService() {
     }),
   };
   const logger = { log: vi.fn(), warn: vi.fn() };
+  const completion = { complete: vi.fn().mockResolvedValue('queued') };
   return {
     prisma,
     logger,
+    completion,
     ingestWorkflow,
     records,
     service: new KnowledgeRefreshService(
@@ -73,6 +75,7 @@ function buildService() {
       records as never,
       ingestWorkflow as never,
       logger as never,
+      completion as never,
       { createWorkflow: vi.fn() } as never,
       { syncWorkflowScheduler: vi.fn() } as never,
     ),
@@ -226,6 +229,68 @@ describe('KnowledgeRefreshService', () => {
       refreshRunId: 'run-live',
       sourceId: 'source-1',
     });
+  });
+
+  it.each(['same-tick', 'unfinished'])(
+    'does not extract or take over an admitted manual candidate through %s lookup',
+    async (lookup) => {
+      const { service, prisma, ingestWorkflow } = buildService();
+      const run = {
+        id: 'manual-run',
+        candidateVersionId: 'manual-candidate',
+        tickKey: 'manual-version:manual-candidate',
+        status: KnowledgeRefreshRunStatus.PROCESSING,
+        leaseExpiresAt: null,
+      };
+      if (lookup === 'unfinished')
+        prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce(null);
+      prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce(run);
+      prisma.knowledgeSourceVersion.findFirst.mockResolvedValue({
+        id: 'manual-candidate',
+      });
+      await expect(
+        service.refresh(actor, 'source-1', 'scheduled-tick'),
+      ).resolves.toMatchObject({ jobId: 'manual-candidate' });
+      expect(
+        prisma.knowledgeSourceRefreshRun.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(prisma.knowledgeSourceRefreshRun.create).not.toHaveBeenCalled();
+      expect(ingestWorkflow.enqueueIngest).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    KnowledgeRefreshRunStatus.PROCESSING,
+    KnowledgeRefreshRunStatus.FAILED,
+  ])('preserves ordinary forced-refresh takeover for %s', async (status) => {
+    const { service, prisma } = buildService();
+    prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce({
+      id: 'forced-run',
+      candidateVersionId: 'scheduled-candidate',
+      tickKey: 'manual:source-1:42',
+      status,
+      leaseExpiresAt: null,
+    });
+    await service.refresh(actor, 'source-1', 'manual:source-1:42', {
+      force: true,
+    });
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).toHaveBeenCalled();
+    expect(prisma.knowledgeSourceVersion.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('fails closed if a marked manual run has no actual candidate', async () => {
+    const { service, prisma } = buildService();
+    prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce({
+      id: 'manual-run',
+      candidateVersionId: 'missing',
+      tickKey: 'manual-version:missing',
+      status: KnowledgeRefreshRunStatus.PROCESSING,
+    });
+    prisma.knowledgeSourceVersion.findFirst.mockResolvedValue(null);
+    await expect(
+      service.refresh(actor, 'source-1', 'scheduled'),
+    ).rejects.toThrow('no longer available');
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
   });
 
   it('takes over a run only through a compare-and-set on status and lease', async () => {

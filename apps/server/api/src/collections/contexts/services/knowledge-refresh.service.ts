@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { hashKnowledgeContent } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
@@ -40,6 +41,7 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { KnowledgeSourceRefreshPolicyRequest } from '@genfeedai/contracts/interfaces';
+import type { KnowledgeSourceRefreshRun } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
@@ -69,6 +71,7 @@ export class KnowledgeRefreshService {
     private readonly records: KnowledgeRecordsService,
     private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
     private readonly logger: LoggerService,
+    private readonly embeddingCompletion: KnowledgeEmbeddingCompletionService,
     @Optional() private readonly workflows?: WorkflowsService,
     @Optional() private readonly workflowQueue?: WorkflowExecutionQueueService,
   ) {}
@@ -343,6 +346,24 @@ export class KnowledgeRefreshService {
     sourceId: string;
     versionId: string;
   }): Promise<void> {
+    const version = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: {
+        id: input.versionId,
+        sourceId: input.sourceId,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+    });
+    if (version && version.embeddingGeneration >= 1) {
+      const outcome = await this.embeddingCompletion.complete(
+        input.organizationId,
+        input.sourceId,
+        input.versionId,
+      );
+      if (outcome !== 'completed')
+        throw new BadRequestException('Knowledge indexing is incomplete');
+      return;
+    }
     const run = await this.prisma.knowledgeSourceRefreshRun.findFirst({
       where: scopedWhere(input.organizationId, {
         candidateVersionId: input.versionId,
@@ -411,6 +432,28 @@ export class KnowledgeRefreshService {
     });
   }
 
+  private async isAdmittedManualCandidate(
+    actor: KnowledgeActor,
+    sourceId: string,
+    run: KnowledgeSourceRefreshRun,
+  ): Promise<boolean> {
+    if (
+      !run.candidateVersionId ||
+      run.tickKey !== 'manual-version:' + run.candidateVersionId
+    )
+      return false;
+    const candidate = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: scopedWhere(actor.organizationId, {
+        id: run.candidateVersionId,
+        sourceId,
+      }),
+      select: { id: true },
+    });
+    if (!candidate)
+      throw new BadRequestException('Manual candidate is no longer available');
+    return true;
+  }
+
   private async claimRun(
     actor: KnowledgeActor,
     source: { id: string; organizationId: string },
@@ -423,6 +466,11 @@ export class KnowledgeRefreshService {
       }),
     });
     if (existing) {
+      if (await this.isAdmittedManualCandidate(actor, source.id, existing))
+        return {
+          existingJobId: existing.candidateVersionId ?? existing.id,
+          runId: existing.id,
+        };
       // A failed run for this tick is retried; a live or completed one is
       // reported as-is. The claim is compare-and-set, so only one caller
       // re-executes a given run.
@@ -450,6 +498,11 @@ export class KnowledgeRefreshService {
       }),
     });
     if (unfinished) {
+      if (await this.isAdmittedManualCandidate(actor, source.id, unfinished))
+        return {
+          existingJobId: unfinished.candidateVersionId ?? unfinished.id,
+          runId: unfinished.id,
+        };
       if (
         await this.takeOverRun(actor.organizationId, source.id, unfinished.id, {
           isFailedReclaimable: false,

@@ -307,6 +307,7 @@ describe('TasksController', () => {
         taskId,
         organizationId,
         userId,
+        { userId, organizationId, isApiKey: false, scopes: [] },
       );
       expect('data' in result ? result.data : result).toEqual(task);
     });
@@ -324,6 +325,7 @@ describe('TasksController', () => {
         organizationId,
         userId,
         'tighten the hook',
+        { userId, organizationId, isApiKey: false, scopes: [] },
       );
     });
 
@@ -339,6 +341,7 @@ describe('TasksController', () => {
         organizationId,
         userId,
         undefined,
+        { userId, organizationId, isApiKey: false, scopes: [] },
       );
     });
 
@@ -378,6 +381,7 @@ describe('TasksController', () => {
         outputId,
         organizationId,
         userId,
+        { userId, organizationId, isApiKey: false, scopes: [] },
       );
       expect('data' in result ? result.data : result).toEqual(task);
     });
@@ -411,6 +415,7 @@ describe('TasksController', () => {
         outputId,
         organizationId,
         userId,
+        { userId, organizationId, isApiKey: false, scopes: [] },
       );
       expect('data' in result ? result.data : result).toEqual(task);
     });

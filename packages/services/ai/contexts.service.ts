@@ -1,3 +1,7 @@
+import type {
+  ContextEmbeddingBackfillInput,
+  ContextEmbeddingBackfillResult,
+} from '@genfeedai/contracts/interfaces/knowledge-base/context-embedding.interface';
 /**
  * Contexts Service
  * Retrieval and memory access for prompt grounding and saved brand content.
@@ -75,6 +79,44 @@ class ContextsServiceClass {
     }
 
     return json;
+  }
+
+  async backfillEmbeddings(
+    contextId: string,
+    input: ContextEmbeddingBackfillInput,
+  ): Promise<ContextEmbeddingBackfillResult<ContextRecord>> {
+    const document = await this.request<JsonApiResponseDocument>(
+      '/contexts/' + encodeURIComponent(contextId) + '/embeddings/backfill',
+      'POST',
+      input,
+      'Failed to admit context embeddings',
+    );
+    const meta = document.meta;
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta))
+      throw new Error('Context embedding admission metadata is missing');
+    const admission = meta as Record<string, unknown>;
+    const { admitted, skipped, nextCursor } = admission;
+    if (
+      Object.keys(admission).sort().join(',') !==
+        'admitted,nextCursor,skipped' ||
+      typeof admitted !== 'number' ||
+      !Number.isInteger(admitted) ||
+      admitted < 0 ||
+      typeof skipped !== 'number' ||
+      !Number.isInteger(skipped) ||
+      skipped < 0 ||
+      !(
+        nextCursor === null ||
+        (typeof nextCursor === 'string' &&
+          nextCursor.trim().length > 0 &&
+          nextCursor.length <= 200)
+      )
+    )
+      throw new Error('Context embedding admission metadata is invalid');
+    return {
+      contextBase: deserializeResource<ContextRecord>(document),
+      admission: { admitted, skipped, nextCursor },
+    };
   }
 
   async createContext(data: Partial<ContextRecord>): Promise<ContextRecord> {

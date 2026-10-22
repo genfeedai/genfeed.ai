@@ -1,15 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import {
   buildCaptureVersion,
   KnowledgeCaptureService,
 } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -20,7 +25,7 @@ import {
   KnowledgeSourcePurpose,
   MemberRole,
 } from '@genfeedai/contracts';
-import { PrismaClient } from '@genfeedai/prisma';
+import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { Request } from 'express';
@@ -39,6 +44,7 @@ const migrations = [
   '20260910180000_knowledge_version_legal_hold',
   '20260917180000_knowledge_refresh_and_transcripts',
   '20260918120000_knowledge_capture_request_hash',
+  '20261022090000_context_embedding_queue',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -74,6 +80,7 @@ const capture: CreateKnowledgeVersionDto = {
 let pool: Pool;
 let prisma: PrismaClient;
 let records: KnowledgeRecordsService;
+let completion: KnowledgeEmbeddingCompletionService;
 let schema: string;
 
 function buildSourcesController() {
@@ -115,16 +122,35 @@ async function ready(sourceId: string, versionId: string) {
     versionId,
     KnowledgeProcessingState.PROCESSING,
   );
-  await records.setProcessing(
-    actor,
+  await expect(
+    records.setProcessing(
+      actor,
+      sourceId,
+      versionId,
+      KnowledgeProcessingState.READY,
+    ),
+  ).rejects.toThrow('incomplete');
+  await completion.stage({
+    organizationId: actor.organizationId,
     sourceId,
     versionId,
-    KnowledgeProcessingState.READY,
-  );
+    contextBaseId: 'empty-manifest-has-no-base-rows',
+    initiatingActor: toWorkflowActor(actor),
+    admissionExecutionId: randomUUID(),
+    chunks: [],
+    observedValidators: {},
+  });
+  await expect(
+    completion.complete(actor.organizationId, sourceId, versionId),
+  ).resolves.toBe('completed');
 }
 
 describePostgres('Knowledge collection with PostgreSQL', () => {
+  let incomingCloud: string | undefined;
   beforeEach(async () => {
+    incomingCloud = process.env.GENFEED_CLOUD;
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    expect(isCloudDeployment()).toBe(true);
     schema = `knowledge_collection_${randomUUID().replaceAll('-', '')}`;
     pool = new Pool({
       connectionString: process.env.KNOWLEDGE_TEST_DATABASE_URL,
@@ -135,15 +161,21 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       await client.query(`SET search_path TO "${schema}", public`);
       await client.query(`
         CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
-        CREATE TABLE users (id text PRIMARY KEY);
+        CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
+        CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
+        CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id));
         CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
         INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
         INSERT INTO users(id) VALUES ('legacyBase62User'), ('otherUser');
         INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-b', 'org-a'), ('brand-c', 'org-b');
         CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
         CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "userId" text NOT NULL REFERENCES users(id), "roleId" text NOT NULL REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false);
+        CREATE TABLE "_member_brands" ("A" text NOT NULL REFERENCES brands(id), "B" text NOT NULL REFERENCES members(id), UNIQUE("A","B"));
         INSERT INTO roles(id,key) VALUES ('admin','admin'),('ordinary','user');
         INSERT INTO members(id,"organizationId","userId","roleId") VALUES ('canonical-admin','org-a','legacyBase62User','admin'),('canonical-member','org-a','otherUser','ordinary');
+        INSERT INTO members(id,"organizationId","userId","roleId") VALUES ('canonical-foreign-member','org-b','legacyBase62User','ordinary');
+        INSERT INTO "_member_brands"("A","B") VALUES ('brand-c','canonical-foreign-member'),('brand-a','canonical-member');
+        INSERT INTO api_keys(id,"userId","organizationId",scopes) VALUES ('knowledge-controller-key','legacyBase62User','org-a',ARRAY['*','admin']);
         CREATE TABLE context_bases (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
         CREATE TABLE context_entries (id text PRIMARY KEY, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
       `);
@@ -165,18 +197,52 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         { schema },
       ),
     });
+    const db = prisma as unknown as PrismaService;
+    const policy = brandAccessFixture(db);
+    const provider = new ContextEmbeddingProviderService(
+      {
+        getDefaultModel: vi.fn().mockResolvedValue('fixture-embedding'),
+      } as never,
+      {
+        embeddings: vi
+          .fn()
+          .mockRejectedValue(
+            new Error('Empty Knowledge sources require no provider work'),
+          ),
+      } as never,
+    );
+    const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+    const writer = new ContextEmbeddingWriteService(
+      db,
+      policy,
+      provider,
+      queue as never,
+      { warn: vi.fn() } as never,
+    );
+    completion = new KnowledgeEmbeddingCompletionService(
+      db,
+      writer,
+      provider,
+      queue as never,
+    );
     records = new KnowledgeRecordsService(
       prisma as unknown as PrismaService,
       brandAccessFixture(prisma as unknown as PrismaService as never),
+      completion,
     );
   });
 
   afterEach(async () => {
-    await prisma?.$disconnect();
-    if (pool) {
-      await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      await pool.end();
+    try {
+      await prisma?.$disconnect();
+      if (pool) {
+        await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+        await pool.end();
+      }
+    } finally {
+      vi.unstubAllEnvs();
     }
+    expect(process.env.GENFEED_CLOUD).toBe(incomingCloud);
   });
 
   it('isolates every source/version mutation by organization, active brand and personal owner', async () => {
@@ -199,10 +265,22 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         records.createVersion(denied, source.id, capture),
       ).rejects.toMatchObject({ status: 404 });
       await expect(
+        records.retryManualCandidate(denied, source.id),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
         records.purgeVersion(denied, source.id, version.id),
       ).rejects.toMatchObject({ status: denied === otherTenant ? 403 : 404 });
       expect((await records.listSources(denied)).docs).toHaveLength(0);
     }
+    await expect(
+      records.getSource(
+        { ...anotherUser, organizationId: 'org-b', brandId: 'brand-c' },
+        source.id,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      records.getSource({ ...anotherUser, brandId: 'brand-b' }, source.id),
+    ).rejects.toMatchObject({ status: 403 });
     const personal = await createSource(KnowledgeMemoryScope.PERSONAL);
     await expect(
       records.getSource(anotherUser, personal.id),
@@ -376,33 +454,42 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
 
   it('serializes concurrent versions and preserves historical receipts after supersession and purge', async () => {
     const source = await createSource();
-    const versions = await Promise.all(
+    const historical = await records.createVersion(actor, source.id, capture);
+    await ready(source.id, historical.id);
+    const attempts = await Promise.allSettled(
       Array.from({ length: 4 }, (_, i) =>
         records.createVersion(actor, source.id, {
           ...capture,
-          contentHash: `sha256:${String(i).repeat(64)}`,
+          contentHash: 'sha256:' + String(i).repeat(64),
         }),
       ),
     );
-    expect(versions.map((version) => version.version).sort()).toEqual([
-      1, 2, 3, 4,
-    ]);
-    const historical = versions.find((version) => version.version === 1);
-    const current = versions.find((version) => version.version === 4);
-    if (!historical || !current) throw new Error('Missing versions');
+    const accepted = attempts.flatMap((result) =>
+      result.status === 'fulfilled' ? [result.value] : [],
+    );
+    expect(accepted).toHaveLength(1);
+    for (const result of attempts)
+      if (result.status === 'rejected')
+        expect(result.reason).toMatchObject({ status: 409 });
+    const current = accepted[0];
+    if (!current) throw new Error('Missing candidate');
+    expect(current).toMatchObject({ version: 2, isCurrent: false });
+    expect((await records.getCurrentVersion(actor, source.id)).id).toBe(
+      historical.id,
+    );
+    await ready(source.id, current.id);
     const receipt = await records.getVersion(actor, source.id, historical.id);
     expect(
       (await records.listVersions(actor, source.id)).docs.map(
         (version) => version.version,
       ),
-    ).toEqual([4, 3, 2, 1]);
+    ).toEqual([2, 1]);
     await expect(
       records.listVersions(otherBrand, source.id),
     ).rejects.toMatchObject({ status: 404 });
     expect(receipt.isCurrent).toBe(false);
     expect(receipt.retrievalState).toBe(KnowledgeRetrievalState.SUPERSEDED);
     expect(receipt.supersededByVersionId).not.toBeNull();
-    await ready(source.id, current.id);
     const purged = await records.purgeVersion(actor, source.id, historical.id);
     expect(purged).toMatchObject({
       id: receipt.id,
@@ -595,7 +682,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ...capture,
       expiresAt: '2026-02-01T00:00:00.000Z',
     });
-    await ready(source.id, expired.id);
+    await expect(ready(source.id, expired.id)).rejects.toThrow('expired');
     expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
   });
 
@@ -672,9 +759,10 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         contentHash: `sha256:${id}`,
         provenance: {},
         observedAt: new Date(capture.observedAt),
-        processingState: KnowledgeProcessingState.READY,
+        processingState: KnowledgeProcessingState.QUEUED,
       })),
     });
+    for (const id of ids) await ready('source-' + id, 'version-' + id);
     const first = await records.listEligibleVersions(actor, 1, 100);
     const second = await records.listEligibleVersions(actor, 2, 100);
     expect(first).toMatchObject({
@@ -736,7 +824,25 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ...actor,
       brandId: actor.organizationId,
       isApiKey: true,
+      apiKeyId: 'knowledge-controller-key',
+      scopes: ['*', 'admin'],
     };
+    await expect(
+      sources.find(
+        request,
+        { ...apiKeyUser, apiKeyId: undefined },
+        source.id,
+        actor.brandId,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      sources.find(
+        request,
+        { ...apiKeyUser, apiKeyId: 'nonexistent-controller-key' },
+        source.id,
+        actor.brandId,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
     expect(
       await sources.find(request, apiKeyUser, source.id, actor.brandId),
     ).toMatchObject({ data: { id: source.id } });
@@ -806,5 +912,178 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       sources.retry(request, actor, capturedId, actor.brandId),
     ).resolves.toMatchObject({ jobId: 'ingest-job' });
     expect(ingestWorkflow.enqueueIngest).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Manual version predecessor admission', () => {
+  function admission() {
+    const current = { id: 'current', version: 2, isCurrent: true };
+    const latest = {
+      id: 'historical',
+      version: 5,
+      isCurrent: false,
+      processingState: 'FAILED',
+      embeddingGeneration: 3,
+    };
+    const tx = {
+      knowledgeSource: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      knowledgeSourceVersion: {
+        findFirst: vi
+          .fn()
+          .mockImplementation(
+            async ({ where }: Prisma.KnowledgeSourceVersionFindFirstArgs) =>
+              where?.isCurrent ? current : latest,
+          ),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        update: vi
+          .fn()
+          .mockImplementation(
+            async ({ data }: Prisma.KnowledgeSourceVersionUpdateArgs) => ({
+              ...latest,
+              ...data,
+            }),
+          ),
+        create: vi
+          .fn()
+          .mockImplementation(
+            async ({ data }: Prisma.KnowledgeSourceVersionCreateArgs) => data,
+          ),
+      },
+      knowledgeSourceRefreshRun: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'run' }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const completion = new KnowledgeEmbeddingCompletionService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(completion, 'processingUpdate').mockResolvedValue({
+      processingState: 'QUEUED',
+      processingError: null,
+    });
+    const prisma = {
+      $transaction: vi.fn(
+        async <T>(work: (transaction: typeof tx) => Promise<T>) => work(tx),
+      ),
+    };
+    const records = new KnowledgeRecordsService(
+      prisma as never,
+      { resolve: vi.fn(), assert: vi.fn() } as never,
+      completion as never,
+    );
+    return { current, latest, tx, records, completion };
+  }
+
+  it('keeps the actual predecessor current and fences a noncurrent candidate without retiring chunks', async () => {
+    const { records, tx } = admission();
+    const version = await records.createVersion(actor, 'source', capture);
+    expect(version).toMatchObject({
+      isCurrent: false,
+      processingState: 'QUEUED',
+      version: 6,
+    });
+    expect(tx.knowledgeSourceVersion.updateMany).not.toHaveBeenCalled();
+    expect(tx.knowledgeSourceRefreshRun.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        candidateVersionId: version.id,
+        expectedCurrentVersionId: 'current',
+        tickKey: 'manual-version:' + version.id,
+        status: 'PROCESSING',
+      }),
+    });
+  });
+
+  it('rejects competing unfinished work before version admission', async () => {
+    const { records, tx } = admission();
+    tx.knowledgeSourceRefreshRun.findFirst.mockResolvedValue({ id: 'busy' });
+    await expect(
+      records.createVersion(actor, 'source', capture),
+    ).rejects.toThrow('in progress');
+    expect(tx.knowledgeSourceVersion.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps the no-current initial path even with older historical numbering', async () => {
+    const { records, tx, latest } = admission();
+    tx.knowledgeSourceVersion.findFirst.mockImplementation(
+      async ({ where }: Prisma.KnowledgeSourceVersionFindFirstArgs) =>
+        where?.isCurrent ? null : latest,
+    );
+    await expect(
+      records.createVersion(actor, 'source', capture),
+    ).resolves.toMatchObject({ isCurrent: true, version: 6 });
+    expect(tx.knowledgeSourceRefreshRun.create).not.toHaveBeenCalled();
+  });
+  it('reopens the same failed manual candidate and preserves its generation for actual ingest admission', async () => {
+    const { records, tx, completion } = admission();
+    tx.knowledgeSourceRefreshRun.findFirst
+      .mockResolvedValueOnce({
+        id: 'run',
+        status: 'FAILED',
+        expectedCurrentVersionId: 'current',
+      })
+      .mockResolvedValueOnce(null);
+    await expect(
+      records.retryManualCandidate(actor, 'source'),
+    ).resolves.toMatchObject({
+      id: 'historical',
+      embeddingGeneration: 3,
+      processingState: 'QUEUED',
+    });
+    expect(tx.knowledgeSourceRefreshRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'FAILED',
+          expectedCurrentVersionId: 'current',
+          candidateVersionId: 'historical',
+        }),
+        data: expect.objectContaining({ status: 'PROCESSING', error: null }),
+      }),
+    );
+    expect(completion.processingUpdate).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ id: 'historical' }),
+      'QUEUED',
+    );
+  });
+
+  it.each(['stale-predecessor', 'competing-run', 'live-candidate', 'lost-cas'])(
+    'rejects %s manual retries without updating the version',
+    async (condition) => {
+      const { records, tx } = admission();
+      tx.knowledgeSourceRefreshRun.findFirst
+        .mockResolvedValueOnce({
+          id: 'run',
+          status: condition === 'live-candidate' ? 'PROCESSING' : 'FAILED',
+          expectedCurrentVersionId:
+            condition === 'stale-predecessor' ? 'obsolete' : 'current',
+        })
+        .mockResolvedValueOnce(
+          condition === 'competing-run' ? { id: 'other' } : null,
+        );
+      if (condition === 'lost-cas')
+        tx.knowledgeSourceRefreshRun.updateMany.mockResolvedValue({ count: 0 });
+      await expect(
+        records.retryManualCandidate(actor, 'source'),
+      ).rejects.toThrow();
+      expect(tx.knowledgeSourceVersion.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not select an older failed manual run when a newer version has no manual fence', async () => {
+    const { records, tx } = admission();
+    await expect(
+      records.retryManualCandidate(actor, 'source'),
+    ).resolves.toBeNull();
+    expect(tx.knowledgeSourceRefreshRun.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        candidateVersionId: 'historical',
+        tickKey: 'manual-version:historical',
+      }),
+    });
+    expect(tx.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
   });
 });

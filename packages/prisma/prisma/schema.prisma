@@ -602,6 +602,7 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  contextEmbeddingAdmissions ContextEmbeddingJob[] @relation("ContextEmbeddingActor")
   brandRelocations BrandRelocation[] @relation("brand_relocation_actor")
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_actor")
   brandedGenerationReceiptEvents BrandedGenerationReceiptEvent[] @relation("branded_generation_receipt_event_actor")
@@ -785,6 +786,8 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+  contextEmbeddingJobs ContextEmbeddingJob[]
+  knowledgeEmbeddingManifests KnowledgeEmbeddingManifest[]
   brandRelocations BrandRelocation[] @relation("brand_relocation_source")
   incomingBrandRelocations BrandRelocation[] @relation("brand_relocation_destination")
   postExposureObservations PostExposureObservation[]
@@ -5073,6 +5076,9 @@ model AgentGoal {
 }
 
 model AgentMemory {
+  contextEmbeddingJobs ContextEmbeddingJob[] @relation("ContextEmbeddingSourceMemory")
+  contextEmbeddingEntries ContextEntry[] @relation("ContextEntrySourceMemory")
+  @@unique([id, organizationId], map: "agent_memories_id_organizationId_key")
   id                  String         @id @default(cuid())
   organizationId      String
   organization        Organization   @relation(fields: [organizationId], references: [id])
@@ -7097,6 +7103,18 @@ model ContextBase {
 }
 
 model ContextEntry {
+  sourceSnapshotHash String?
+  embeddingGeneration Int @default(0)
+  embeddingStoredGeneration Int @default(0)
+  knowledgeEmbeddingManifestId String?
+  knowledgeChunkIndex Int?
+  sourceAgentMemoryId String?
+  embeddingJobs ContextEmbeddingJob[]
+  knowledgeEmbeddingManifest KnowledgeEmbeddingManifest? @relation(fields: [knowledgeEmbeddingManifestId, knowledgeSourceVersionId, knowledgeSourceId, organizationId], references: [id, versionId, sourceId, organizationId], onDelete: Restrict, map: "context_entries_embedding_manifest_fkey")
+  sourceAgentMemory AgentMemory? @relation("ContextEntrySourceMemory", fields: [sourceAgentMemoryId, organizationId], references: [id, organizationId], onDelete: Restrict, map: "context_entries_source_memory_fkey")
+  @@unique([id, organizationId], map: "context_entries_id_organizationId_key")
+  @@unique([knowledgeEmbeddingManifestId, knowledgeChunkIndex], map: "context_entries_manifest_chunk_key")
+  @@index([sourceAgentMemoryId, organizationId], map: "context_entries_source_memory_idx")
   id                 String                       @id @default(cuid())
   contextBaseId      String
   contextBase        ContextBase                  @relation(fields: [contextBaseId], references: [id])
@@ -8138,6 +8156,8 @@ model KnowledgeSource {
 }
 
 model KnowledgeSourceVersion {
+  embeddingGeneration Int @default(1)
+  embeddingManifests KnowledgeEmbeddingManifest[]
   id                    String                   @id @default(uuid())
   organizationId        String
   sourceId              String
@@ -9691,4 +9711,93 @@ model BrandRelocation {
   @@index([brandId, createdAt])
   @@index([status, isDeleted, createdAt])
   @@map("brand_relocations")
+}
+
+enum ContextEmbeddingJobStatus {
+  PENDING
+  PROCESSING
+  RETRYABLE
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum ContextEmbeddingOrigin {
+  ACTOR
+  CODE_OWNED_WORKFLOW
+  DERIVED_MEMORY
+}
+
+enum ContextEmbeddingAdmissionOperation {
+  ENTRY_WRITE
+  HISTORICAL_BACKFILL
+}
+
+model ContextEmbeddingJob {
+  sourceSnapshotHash String?
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contextEntryId String
+  contextEntry ContextEntry @relation(fields: [contextEntryId, organizationId], references: [id, organizationId], onDelete: Restrict, map: "context_embedding_jobs_entry_fkey")
+  generation Int
+  contentHash String
+  modelIdentifier String
+  dimension Int @default(1024)
+  status ContextEmbeddingJobStatus @default(PENDING)
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseToken String?
+  leaseExpiresAt DateTime?
+  startedAt DateTime?
+  completedAt DateTime?
+  safeFailureCode String?
+  origin ContextEmbeddingOrigin
+  actorUserId String?
+  actor User? @relation("ContextEmbeddingActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorIsApiKey Boolean?
+  actorApiKeyId String?
+  actorScopes String[] @default([])
+  admissionOperation ContextEmbeddingAdmissionOperation @default(ENTRY_WRITE)
+  workflowProvenance Json?
+  sourceMemoryId String?
+  sourceMemory AgentMemory? @relation("ContextEmbeddingSourceMemory", fields: [sourceMemoryId, organizationId], references: [id, organizationId], onDelete: Restrict, map: "context_embedding_jobs_memory_fkey")
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([contextEntryId, generation], map: "context_embedding_jobs_entry_generation_key")
+  @@index([status, nextAttemptAt, isDeleted], map: "context_embedding_jobs_due_idx")
+  @@index([organizationId, contextEntryId, generation], map: "context_embedding_jobs_org_entry_generation_idx")
+  @@map("context_embedding_jobs")
+}
+
+model KnowledgeEmbeddingManifest {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sourceId String
+  versionId String
+  version KnowledgeSourceVersion @relation(fields: [versionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict, map: "knowledge_embedding_manifests_version_fkey")
+  generation Int
+  expectedChunkCount Int
+  orderedChunksHash String
+  modelIdentifier String
+  observedValidators Json
+  initiatingActor Json?
+  admissionExecutionId String
+  sealedAt DateTime
+  finalizedAt DateTime?
+  failedAt DateTime?
+  safeFailureCode String?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chunks ContextEntry[]
+
+  @@unique([versionId, generation], map: "knowledge_embedding_manifests_version_generation_key")
+  @@unique([versionId, admissionExecutionId], map: "knowledge_embedding_manifests_execution_key")
+  @@unique([id, versionId, sourceId, organizationId], map: "knowledge_embedding_manifests_identity_key")
+  @@index([organizationId, finalizedAt, failedAt, isDeleted], map: "knowledge_embedding_manifests_completion_idx")
+  @@map("knowledge_embedding_manifests")
 }

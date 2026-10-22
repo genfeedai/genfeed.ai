@@ -25,6 +25,7 @@ function buildService() {
     createSource: vi.fn().mockResolvedValue({ id: 'source-1' }),
     createVersion: vi.fn().mockResolvedValue({ id: 'version-1', version: 1 }),
     getCurrentVersion: vi.fn(),
+    retryManualCandidate: vi.fn().mockResolvedValue(null),
     getSource: vi.fn(),
     setProcessing: vi.fn().mockResolvedValue({
       id: 'version-1',
@@ -279,6 +280,41 @@ describe('KnowledgeCaptureService', () => {
     await expect(service.retry(actor, 'source-1')).rejects.toThrow(
       'still being ingested',
     );
+  });
+
+  it('retries the same fenced manual candidate before consulting its READY predecessor', async () => {
+    const { service, records, workflow } = buildService();
+    records.getCurrentVersion.mockResolvedValue({
+      id: 'prior',
+      processingState: 'READY',
+    });
+    records.retryManualCandidate.mockResolvedValue({
+      id: 'candidate',
+      processingState: 'QUEUED',
+      embeddingGeneration: 3,
+    });
+    await expect(service.retry(actor, 'source-1')).resolves.toMatchObject({
+      version: { id: 'candidate', embeddingGeneration: 3 },
+    });
+    expect(records.retryManualCandidate).toHaveBeenCalledWith(
+      actor,
+      'source-1',
+    );
+    expect(records.getCurrentVersion).not.toHaveBeenCalled();
+    expect(workflow.enqueueIngest).toHaveBeenCalledWith(
+      expect.objectContaining({ versionId: 'candidate' }),
+    );
+  });
+
+  it('never enqueues when the manual predecessor or competing-run fence rejects retry', async () => {
+    const { service, records, workflow } = buildService();
+    records.retryManualCandidate.mockRejectedValue(
+      new Error('Manual candidate predecessor changed'),
+    );
+    await expect(service.retry(actor, 'source-1')).rejects.toThrow(
+      'predecessor changed',
+    );
+    expect(workflow.enqueueIngest).not.toHaveBeenCalled();
   });
 
   it('queues one tenant-scoped backfill', async () => {

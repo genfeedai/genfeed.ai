@@ -1,3 +1,5 @@
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import type { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -19,11 +21,7 @@ interface MockSql {
   values: unknown[];
 }
 
-/**
- * Retrieval hot-path bounds (#2457). Empty content is failed in SQL; pending
- * rows are claimed with FOR UPDATE SKIP LOCKED; similarity runs inside a
- * transaction that enables hnsw.iterative_scan for small-tenant recall.
- */
+/** Retrieval performs only one query embedding and read-only similarity work. */
 describe('ContextsService retrieval hot path', () => {
   function buildService() {
     const queryRaw = vi.fn().mockResolvedValue([]);
@@ -67,10 +65,13 @@ describe('ContextsService retrieval hot path', () => {
     const service = new ContextsService(
       prismaService,
       logger,
-      { embeddings } as unknown as OpenRouterService,
-      {
-        getDefaultModel: vi.fn().mockResolvedValue('bge'),
-      } as unknown as RouterService,
+      new ContextEmbeddingProviderService(
+        {
+          getDefaultModel: vi.fn().mockResolvedValue('bge'),
+        } as unknown as RouterService,
+        { embeddings } as unknown as OpenRouterService,
+      ),
+      { write: vi.fn() } as unknown as ContextEmbeddingWriteService,
     );
     const retrieval = new KnowledgeContentRetrievalService(
       prismaService,
@@ -100,52 +101,33 @@ describe('ContextsService retrieval hot path', () => {
     vi.clearAllMocks();
   });
 
-  it('fails empty-content rows then claims a SKIP LOCKED batch', async () => {
-    const { service, queryRaw, executeRaw } = buildService();
-
-    await queryContext(service);
-
-    const emptyFail = executeRaw.mock.calls[0][0] as MockSql;
-    expect(emptyFail.sql).toContain('SET "embeddingFailedAt" = NOW()');
-    expect(emptyFail.sql).toContain(
-      "NULLIF(BTRIM(\"data\"->>'content'), '') IS NULL",
-    );
-
-    const claim = queryRaw.mock.calls[0][0] as MockSql;
-    expect(claim.sql).toContain('FOR UPDATE SKIP LOCKED');
-    expect(claim.sql).toContain('LIMIT ?');
-    expect(claim.values).toContain(50);
-  });
-
-  it('persists embeddingFailedAt when the provider rejects a row', async () => {
+  it('performs one query embedding and no stored-entry provider or mutation work', async () => {
     const { service, embeddings, queryRaw, executeRaw } = buildService();
-    queryRaw.mockResolvedValueOnce([
-      { content: 'bad content', id: 'entry-broken' },
-    ]);
-    embeddings
-      .mockResolvedValueOnce({
-        data: [{ embedding: new Array(1024).fill(0.1), index: 0 }],
-      })
-      .mockRejectedValueOnce(new Error('provider rejected'));
-
     await queryContext(service);
-
-    expect(embeddings).toHaveBeenCalledWith({
-      input: 'bad content',
+    expect(embeddings).toHaveBeenCalledExactlyOnceWith({
+      input: 'find things',
       model: 'bge',
     });
-    const failWrite = executeRaw.mock.calls.find((call) => {
-      const sql = (call[0] as MockSql).sql;
-      return (
-        sql.includes('"embeddingFailedAt" = NOW()') &&
-        sql.includes('"embeddingClaimedAt" = NULL')
-      );
-    });
-    expect(failWrite).toBeDefined();
-    if (!failWrite) {
-      throw new Error('expected embeddingFailedAt write');
-    }
-    expect((failWrite[0] as MockSql).values).toContain('entry-broken');
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect((queryRaw.mock.calls[0][0] as MockSql).sql).toContain(
+      'FROM "context_entries" e',
+    );
+    expect(executeRaw).toHaveBeenCalledTimes(1);
+    expect((executeRaw.mock.calls[0][0] as MockSql).sql).toContain(
+      'hnsw.iterative_scan',
+    );
+    expect((executeRaw.mock.calls[0][0] as MockSql).sql).not.toContain(
+      'UPDATE',
+    );
+  });
+
+  it('does not mark saved entries failed when the request query embedding fails', async () => {
+    const { service, embeddings, queryRaw, executeRaw } = buildService();
+    embeddings.mockRejectedValue(new Error('provider rejected'));
+    await expect(queryContext(service)).rejects.toThrow('provider rejected');
+    expect(embeddings).toHaveBeenCalledTimes(1);
+    expect(queryRaw).not.toHaveBeenCalled();
+    expect(executeRaw).not.toHaveBeenCalled();
   });
 
   it('runs similarity inside a transaction that enables iterative_scan', async () => {
@@ -174,11 +156,9 @@ describe('ContextsService retrieval hot path', () => {
         organizationId: 'org-1',
       },
     ]);
-    queryRaw
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        { content: 'match', contextBaseId: 'ctx-1', similarity: 0.9 },
-      ]);
+    queryRaw.mockResolvedValueOnce([
+      { content: 'match', contextBaseId: 'ctx-1', similarity: 0.9 },
+    ]);
 
     await service.enhancePrompt({ prompt: 'write a post' } as never, 'org-1');
 
@@ -203,7 +183,7 @@ describe('ContextsService retrieval hot path', () => {
         sourceBrandId: null,
       },
     ]);
-    queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    queryRaw.mockResolvedValueOnce([
       {
         content: 'Plans start at $29',
         contextBaseId: 'ctx-org-knowledge',
@@ -254,7 +234,7 @@ describe('ContextsService retrieval hot path', () => {
         { data: { equals: 'org', path: ['knowledgeScope'] } },
       ],
     });
-    const similarity = queryRaw.mock.calls[1]?.[0] as MockSql;
+    const similarity = queryRaw.mock.calls[0]?.[0] as MockSql;
     expect(similarity.sql).toContain('e."knowledgeSourceId" IN (?)');
     expect(similarity.values).toEqual(
       expect.arrayContaining([

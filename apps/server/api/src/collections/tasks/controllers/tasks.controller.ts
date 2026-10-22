@@ -1,4 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
+import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
@@ -369,7 +371,12 @@ export class TasksController extends BaseCRUDController<
     let doc: TaskDocument;
     switch (reviewState) {
       case 'approved':
-        doc = await this.tasksService.approve(id, organization, userId);
+        doc = await this.tasksService.approve(
+          id,
+          organization,
+          userId,
+          toWorkflowActor(resolveKnowledgeActor(user)),
+        );
         break;
       case 'changes_requested':
         doc = await this.tasksService.requestChanges(
@@ -377,10 +384,17 @@ export class TasksController extends BaseCRUDController<
           organization,
           userId,
           reason ?? '',
+          toWorkflowActor(resolveKnowledgeActor(user)),
         );
         break;
       case 'dismissed':
-        doc = await this.tasksService.dismiss(id, organization, userId, reason);
+        doc = await this.tasksService.dismiss(
+          id,
+          organization,
+          userId,
+          reason,
+          toWorkflowActor(resolveKnowledgeActor(user)),
+        );
         break;
       default:
         throw new BadRequestException('Unsupported reviewState transition.');
@@ -404,7 +418,13 @@ export class TasksController extends BaseCRUDController<
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
     const doc = body.isKept
-      ? await this.tasksService.keepOutput(id, outputId, organization, userId)
+      ? await this.tasksService.keepOutput(
+          id,
+          outputId,
+          organization,
+          userId,
+          toWorkflowActor(resolveKnowledgeActor(user)),
+        )
       : await this.tasksService.unkeepOutput(id, outputId, organization);
     return serializeSingle(request, TaskSerializer, doc);
   }
@@ -426,6 +446,7 @@ export class TasksController extends BaseCRUDController<
       outputId,
       organization,
       userId,
+      toWorkflowActor(resolveKnowledgeActor(user)),
     );
     return serializeSingle(request, TaskSerializer, doc);
   }

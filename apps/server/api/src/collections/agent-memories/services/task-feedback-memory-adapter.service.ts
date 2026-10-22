@@ -1,3 +1,4 @@
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import type {
   AgentMemoryContentType,
   AgentMemoryKind,
@@ -19,6 +20,7 @@ export type TaskFeedbackMemoryDecision =
   | 'output_trashed';
 
 export interface CaptureTaskFeedbackMemoryInput {
+  initiatingActor?: WorkflowInitiatingActor;
   decision: TaskFeedbackMemoryDecision;
   note?: string;
   organizationId: string;
@@ -40,7 +42,7 @@ export class TaskFeedbackMemoryAdapterService {
     const taskId = this.extractId(input.task);
     const userId = input.userId?.trim();
 
-    if (!userId) {
+    if (!userId || !input.initiatingActor) {
       this.logger.warn('Skipping task feedback memory without a user id', {
         decision: input.decision,
         organizationId: input.organizationId,
@@ -102,6 +104,7 @@ export class TaskFeedbackMemoryAdapterService {
           summary,
           tags: this.buildTags(input.task, input.decision),
         },
+        { origin: 'ACTOR', actor: input.initiatingActor },
       );
       return true;
     } catch (error) {

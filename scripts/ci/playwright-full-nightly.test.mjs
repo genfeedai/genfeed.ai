@@ -139,7 +139,7 @@ test('e2e.yml core and authed jobs remain the production deploy gates', () => {
 
   assert.match(
     gate,
-    /needs: \[e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance\]/,
+    /needs: \[e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance, context-embedding-acceptance\]/,
   );
   assert.doesNotMatch(gate, /playwright-full|e2e-frontend-full|test:e2e:full/);
   assert.doesNotMatch(

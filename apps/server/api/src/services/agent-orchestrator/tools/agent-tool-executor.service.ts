@@ -580,6 +580,20 @@ export class AgentToolExecutorService implements OnModuleInit {
         return toPlainJson(policyResult.result);
       }
       executionApprovalId = policyResult.approvalId;
+      if (toolName === 'capture_memory') {
+        // Discard the incoming candidate id after authorization. Only its matched
+        // successful claim may reach the capture handler as approval authority.
+        const {
+          approvedApprovalId: _candidateApprovalId,
+          ...authorizedContext
+        } = context;
+        context = {
+          ...authorizedContext,
+          ...(policyResult.approvalId
+            ? { approvedApprovalId: policyResult.approvalId }
+            : {}),
+        };
+      }
       if (policyResult.approvedGenerationQuote === null) {
         throw new Error(
           'The approved generation has no verified quote. Request fresh consent.',

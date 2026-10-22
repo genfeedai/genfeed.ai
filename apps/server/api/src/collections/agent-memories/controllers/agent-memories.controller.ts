@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import type {
   AgentMemoryContentType,
   AgentMemoryKind,
@@ -6,6 +7,7 @@ import type {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -189,12 +191,12 @@ export class AgentMemoriesController {
     @CurrentUser() user: User,
   ) {
     try {
-      const organization = user.organizationId;
-      const dbUserId = user.userId ?? user.id;
+      const actor = toWorkflowActor(resolveKnowledgeActor(user, body.brandId));
       const result = await this.memoryCaptureService.capture(
-        dbUserId,
-        organization,
+        actor.userId,
+        actor.organizationId,
         body,
+        { origin: 'ACTOR', actor },
       );
       return {
         ...result.memory,

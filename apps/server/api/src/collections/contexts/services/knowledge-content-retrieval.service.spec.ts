@@ -1,3 +1,5 @@
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import type { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -89,10 +91,13 @@ describe('KnowledgeContentRetrievalService', () => {
     const contextsService = new ContextsService(
       prismaService,
       logger,
-      { embeddings } as unknown as OpenRouterService,
-      {
-        getDefaultModel: vi.fn().mockResolvedValue('bge'),
-      } as unknown as RouterService,
+      new ContextEmbeddingProviderService(
+        {
+          getDefaultModel: vi.fn().mockResolvedValue('bge'),
+        } as unknown as RouterService,
+        { embeddings } as unknown as OpenRouterService,
+      ),
+      {} as unknown as ContextEmbeddingWriteService,
     );
 
     const service = new KnowledgeContentRetrievalService(
@@ -104,7 +109,7 @@ describe('KnowledgeContentRetrievalService', () => {
     return { contextBase, embeddings, queryRaw, service };
   }
 
-  /** The similarity statement is the last raw query (after the embed claim). */
+  /** The similarity statement is the last raw query (without an embed claim). */
   function lastSimilarityQuery(queryRaw: ReturnType<typeof vi.fn>): MockSql {
     const call = queryRaw.mock.calls.at(-1);
     if (!call) {
@@ -236,7 +241,7 @@ describe('KnowledgeContentRetrievalService', () => {
           (_, index) => Math.floor(8 / count) + (index < 8 % count ? 1 : 0),
         );
         for (const [index, sourceId] of sourceIds.entries()) {
-          queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce(
+          queryRaw.mockResolvedValueOnce(
             Array.from({ length: quotas[index] }, () =>
               knowledgeRow({
                 knowledgeSourceId: sourceId,
@@ -263,9 +268,9 @@ describe('KnowledgeContentRetrievalService', () => {
               hits.filter((hit) => hit.citation?.sourceId === sourceId).length,
           ),
         ).toEqual(quotas);
-        const statements = queryRaw.mock.calls
-          .filter((_, index) => index % 2 === 1)
-          .map(([statement]) => statement as MockSql);
+        const statements = queryRaw.mock.calls.map(
+          ([statement]) => statement as MockSql,
+        );
         expect(statements).toHaveLength(count);
         for (const [index, statement] of statements.entries()) {
           expect(statement.values).toContain(sourceIds[index]);
@@ -285,9 +290,7 @@ describe('KnowledgeContentRetrievalService', () => {
       const { contextBase, embeddings, queryRaw, service } = buildService();
       contextBase.findMany.mockResolvedValue([base]);
       for (let index = 0; index < 2; index++)
-        queryRaw
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([knowledgeRow()]);
+        queryRaw.mockResolvedValueOnce([knowledgeRow()]);
       await service.retrieveSelectedBrandContentMemory(params, [
         'source-truth',
       ]);
@@ -347,20 +350,18 @@ describe('KnowledgeContentRetrievalService', () => {
       async (kind) => {
         const { contextBase, embeddings, queryRaw, service } = buildService();
         contextBase.findMany.mockResolvedValue([base]);
-        queryRaw
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce(
-            kind === 'empty'
-              ? []
-              : kind === 'foreign'
-                ? [knowledgeRow({ knowledgeSourceId: 'other' })]
-                : Array.from({ length: 9 }, () => knowledgeRow()),
-          );
+        queryRaw.mockResolvedValueOnce(
+          kind === 'empty'
+            ? []
+            : kind === 'foreign'
+              ? [knowledgeRow({ knowledgeSourceId: 'other' })]
+              : Array.from({ length: 9 }, () => knowledgeRow()),
+        );
         await expect(
           service.retrieveSelectedBrandContentMemory(params, ['source-truth']),
         ).rejects.toThrow('knowledge_unavailable');
         expect(embeddings).toHaveBeenCalledTimes(1);
-        expect(queryRaw).toHaveBeenCalledTimes(2);
+        expect(queryRaw).toHaveBeenCalledTimes(1);
       },
     );
 
@@ -452,7 +453,7 @@ describe('KnowledgeContentRetrievalService', () => {
           sourceBrandId: BRAND_A,
         },
       ]);
-      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+      queryRaw.mockResolvedValueOnce([]);
 
       await service.retrieveOrgAndPersonalContentMemory({
         organizationId: 'org-1',
@@ -482,7 +483,7 @@ describe('KnowledgeContentRetrievalService', () => {
           sourceBrandId: null,
         },
       ]);
-      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+      queryRaw.mockResolvedValueOnce([]);
 
       await service.retrieveOrgAndPersonalContentMemory({
         organizationId: 'org-1',
@@ -539,7 +540,7 @@ describe('KnowledgeContentRetrievalService', () => {
           sourceBrandId: BRAND_A,
         },
       ]);
-      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      queryRaw.mockResolvedValueOnce([
         knowledgeRow(),
         knowledgeRow({
           content: 'Competitor hook we liked',

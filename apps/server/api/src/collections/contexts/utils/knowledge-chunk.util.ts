@@ -3,6 +3,8 @@ import { Prisma } from '@genfeedai/prisma';
 
 export interface KnowledgeChunkFilter {
   exceptVersionId?: string;
+  manifestId?: string;
+  unmanifestedOnly?: boolean;
   sourceId?: string;
   versionId?: string;
 }
@@ -29,21 +31,50 @@ export async function softDeleteKnowledgeChunks(
   const where = scopedWhere(organizationId, {
     ...(filter.sourceId ? { knowledgeSourceId: filter.sourceId } : {}),
     ...versionWhere,
+    ...(filter.manifestId
+      ? { knowledgeEmbeddingManifestId: filter.manifestId }
+      : {}),
+    ...(filter.unmanifestedOnly ? { knowledgeEmbeddingManifestId: null } : {}),
   });
+  return softDeleteContextEntries(prisma, organizationId, where);
+}
+
+/** Caller holds each linked source lock before retiring its derived entries. */
+export async function softDeleteContextEntries(
+  prisma: Prisma.TransactionClient,
+  organizationId: string,
+  where: Prisma.ContextEntryWhereInput,
+): Promise<number> {
+  const scoped = { ...where, organizationId, isDeleted: false };
   const perBase = await prisma.contextEntry.groupBy({
     by: ['contextBaseId'],
-    where,
+    where: scoped,
     _count: { _all: true },
   });
   if (perBase.length === 0) {
     return 0;
   }
+  for (const id of perBase.map((group) => group.contextBaseId).sort()) {
+    await prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "context_bases" WHERE "id" = ${id}
+      AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`);
+  }
+  await prisma.contextEmbeddingJob.updateMany({
+    where: {
+      organizationId,
+      isDeleted: false,
+      status: { in: ['PENDING', 'RETRYABLE', 'PROCESSING'] },
+      contextEntry: { is: scoped },
+    },
+    data: {
+      status: 'CANCELLED',
+      leaseToken: null,
+      leaseExpiresAt: null,
+      safeFailureCode: 'SOURCE_RETIRED',
+    },
+  });
   const removed = await prisma.contextEntry.updateMany({
-    data: { isDeleted: true },
-    where: scopedWhere(organizationId, {
-      ...(filter.sourceId ? { knowledgeSourceId: filter.sourceId } : {}),
-      ...versionWhere,
-    }),
+    data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
+    where: scopedWhere(organizationId, { ...where, isDeleted: false }),
   });
   for (const group of perBase) {
     await prisma.$executeRaw(Prisma.sql`

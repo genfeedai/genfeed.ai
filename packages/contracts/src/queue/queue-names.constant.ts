@@ -6,6 +6,8 @@
 
 export const DEFAULT_QUEUE = 'default';
 
+export const CONTEXT_EMBEDDING_QUEUE = 'context-embedding';
+
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
 /**
  * Platform-originated system-workflow work: platform-cron sweep dispatches
@@ -79,6 +81,7 @@ export const BRAND_VISION_QUEUE = 'brand-vision';
 export const TURBO_REWRITE_QUEUE = 'turbo-rewrite';
 
 export const ALL_QUEUE_NAMES = [
+  CONTEXT_EMBEDDING_QUEUE,
   ACCOUNT_GENERATION_QUEUE,
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,

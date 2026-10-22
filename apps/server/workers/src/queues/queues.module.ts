@@ -1,3 +1,4 @@
+import { CONTEXT_EMBEDDING_QUEUE } from '@genfeedai/contracts/queue';
 /**
  * Workers Queues Module
  *
@@ -59,6 +60,14 @@ import { ConfigService } from '@workers/config/config.service';
       },
     }),
     BullModule.registerQueue(
+      {
+        name: CONTEXT_EMBEDDING_QUEUE,
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      },
       { name: BRAND_RELOCATION_QUEUE },
       {
         name: ACCOUNT_GENERATION_QUEUE,

@@ -331,12 +331,14 @@ for (const status of [404, 408, 429, 500, 503, 599]) {
 for (const status of [301, 400, 401, 403, 422]) {
   test(`permanent response ${status} never retries`, async () => {
     const api = reader({ replies: [{ status, body: {} }] });
+    const delays = [];
     await assert.rejects(
       qualifyVerdict(expected, {
         ...api,
-        sleep: async () => assert.fail('unexpected retry'),
+        sleep: async (ms) => delays.push(ms),
       }),
     );
+    assert.deepEqual(delays, []);
     assert.equal(api.calls.length, 1);
   });
 }
@@ -368,18 +370,151 @@ test('completed-helper absence retries without fabricating success', async () =>
   await qualifyVerdict(expected, { get, sleep: async (ms) => delays.push(ms) });
   assert.deepEqual(delays, [2_000, 5_000]);
 });
+for (const status of ['queued', 'in_progress']) {
+  test(`matched ${status} verdict retries a complete snapshot before genuine success`, async () => {
+    const api = reader();
+    const delays = [];
+    let snapshots = 0;
+    const get = async (...args) => {
+      const response = await api.get(...args);
+      if (args[0].includes('/jobs?') && snapshots++ === 0)
+        response.body.jobs = [job({ status, conclusion: null })];
+      return response;
+    };
+    assert.equal(
+      (
+        await qualifyVerdict(expected, {
+          get,
+          sleep: async (ms) => delays.push(ms),
+        })
+      ).id,
+      11,
+    );
+    assert.deepEqual(delays, [2_000]);
+    assert.equal(
+      api.calls.filter((call) => call.route.includes('/jobs?')).length,
+      2,
+    );
+    assert.equal(
+      api.calls.filter((call) => call.route.endsWith('/123')).length,
+      3,
+    );
+  });
+  test(`matched ${status} verdict exhausts the existing propagation budget without success`, async () => {
+    const api = reader({ jobs: [job({ status, conclusion: null })] });
+    const delays = [];
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...api,
+        sleep: async (ms) => delays.push(ms),
+      }),
+      /not completed/,
+    );
+    assert.deepEqual(delays, [2_000, 5_000]);
+    assert.equal(
+      api.calls.filter((call) => call.route.includes('/jobs?')).length,
+      3,
+    );
+    assert.equal(
+      api.calls.filter((call) => call.route.endsWith('/123')).length,
+      3,
+    );
+  });
+}
+
+test('nonfinal classification never retries malformed states or completed failures', async () => {
+  const overrides = [
+    ...[
+      null,
+      '',
+      'failure',
+      'cancelled',
+      'skipped',
+      'neutral',
+      'timed_out',
+      'success',
+    ]
+      .map((conclusion) => ({ status: 'completed', conclusion }))
+      .filter((value) => value.conclusion !== 'success'),
+    ...['queued', 'in_progress'].flatMap((status) =>
+      [undefined, '', 'success', 'failure', 'cancelled'].map((conclusion) => ({
+        status,
+        conclusion,
+      })),
+    ),
+    ...[undefined, null, '', 'waiting', 'pending', 'requested', 'unknown'].map(
+      (status) => ({ status, conclusion: null }),
+    ),
+  ];
+  for (const override of overrides) {
+    const api = reader({ jobs: [job(override)] });
+    const delays = [];
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...api,
+        sleep: async (ms) => delays.push(ms),
+      }),
+    );
+    assert.deepEqual(delays, []);
+    assert.equal(api.calls.length, 2);
+  }
+});
+
+test('pending verdicts cannot retry before complete run and job identity validation', async () => {
+  const pending = job({ status: 'in_progress', conclusion: null });
+  const cases = [
+    ...[
+      { id: 124 },
+      { run_attempt: 1 },
+      { event: 'push' },
+      { path: '.github/workflows/fake.yml' },
+      { workflow_id: 1 },
+      { repository: { full_name: 'other/repo' } },
+      { head_sha: 'c'.repeat(40) },
+      { pull_requests: [] },
+      { referenced_workflows: [] },
+    ].map((override) => ({
+      metadata: run(override),
+      jobs: [pending],
+      reads: 1,
+    })),
+    ...[
+      { id: 0 },
+      { run_id: 124 },
+      { run_attempt: 1 },
+      { head_sha: source },
+    ].map((override) => ({ jobs: [{ ...pending, ...override }], reads: 2 })),
+    { jobs: [pending, { ...pending, id: 12 }], reads: 2 },
+    { jobs: [pending, { ...pending, name: 'Plan' }], reads: 2 },
+  ];
+  for (const { reads, ...fixture } of cases) {
+    const api = reader(fixture);
+    const delays = [];
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...api,
+        sleep: async (ms) => delays.push(ms),
+      }),
+    );
+    assert.deepEqual(delays, []);
+    assert.equal(api.calls.length, reads);
+  }
+});
+
 test('attempt or source change during final reread fails immediately', async () => {
   for (const finalRun of [
     run({ run_attempt: 3 }),
     run({ head_sha: source }),
     run({ referenced_workflows: [] }),
   ]) {
+    const delays = [];
     await assert.rejects(
       qualifyVerdict(expected, {
         ...reader({ finalRun }),
-        sleep: async () => assert.fail('unexpected retry'),
+        sleep: async (ms) => delays.push(ms),
       }),
     );
+    assert.deepEqual(delays, []);
   }
 });
 test('monotonic deadline prevents work and retries outside budget', async () => {
@@ -388,15 +523,17 @@ test('monotonic deadline prevents work and retries outside budget', async () => 
     /deadline/,
   );
   const api = reader({ replies: [{ status: 503, body: {} }] });
+  const delays = [];
   await assert.rejects(
     qualifyVerdict(expected, {
       ...api,
       now: () => 0,
       deadline: 1_000,
-      sleep: async () => assert.fail('unexpected wait'),
+      sleep: async (ms) => delays.push(ms),
     }),
     /deadline/,
   );
+  assert.deepEqual(delays, []);
 });
 test('unexpected external next page cannot receive authorization', async () => {
   const api = reader();

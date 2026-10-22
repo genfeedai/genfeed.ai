@@ -3,6 +3,7 @@ import {
   AGENT_TURN_QUEUE,
   ALL_QUEUE_NAMES,
   BRAND_VISION_QUEUE,
+  CONTEXT_EMBEDDING_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -24,6 +25,7 @@ describe('queue-names.constant', () => {
     // These string values are wire-level contracts: changing one orphans
     // in-flight jobs in Redis. Lock them down.
     expect(DEFAULT_QUEUE).toBe('default');
+    expect(CONTEXT_EMBEDDING_QUEUE).toBe('context-embedding');
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
     expect(NOTIFICATION_DELIVERY_QUEUE).toBe('notification-delivery');
     expect(REPLICATE_POLL_QUEUE).toBe('replicate-poll');

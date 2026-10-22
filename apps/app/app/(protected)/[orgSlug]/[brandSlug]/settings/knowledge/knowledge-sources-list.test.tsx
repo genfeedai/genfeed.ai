@@ -221,6 +221,22 @@ describe('KnowledgeSourcesList', () => {
     expect(screen.getByText('No knowledge sources yet')).toBeInTheDocument();
   });
 
+  it('keeps admitted indexing visibly processing until the server reports completed vectors', () => {
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [row('indexing', KnowledgeProcessingState.PROCESSING)],
+      spaces: [{ id: 'inbox', isInbox: true, title: 'Inbox' }],
+    });
+    renderList();
+    expect(screen.getByText('Processing')).toBeInTheDocument();
+    expect(screen.queryByText('Ready')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry ingestion' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders processing state with the failure reason and retries a failed source', async () => {
     mocks.useKnowledgeLibrary.mockReturnValue({
       error: null,

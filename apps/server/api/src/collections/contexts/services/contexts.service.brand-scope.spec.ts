@@ -1,3 +1,6 @@
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import type { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -57,16 +60,19 @@ describe('ContextsService brand-scoped retrieval', () => {
         contextBase,
       } as unknown as PrismaService,
       logger,
-      { embeddings } as unknown as OpenRouterService,
-      {
-        getDefaultModel: vi.fn().mockResolvedValue('bge'),
-      } as unknown as RouterService,
+      new ContextEmbeddingProviderService(
+        {
+          getDefaultModel: vi.fn().mockResolvedValue('bge'),
+        } as unknown as RouterService,
+        { embeddings } as unknown as OpenRouterService,
+      ),
+      {} as unknown as ContextEmbeddingWriteService,
     );
 
     return { contextBase, embeddings, queryRaw, service };
   }
 
-  /** The similarity statement is the last raw query (after the embed claim). */
+  /** The similarity statement is the last raw query (without an embed claim). */
   function lastSimilarityQuery(queryRaw: ReturnType<typeof vi.fn>): MockSql {
     const call = queryRaw.mock.calls.at(-1);
     if (!call) {
@@ -122,7 +128,7 @@ describe('ContextsService brand-scoped retrieval', () => {
     it('never retrieves another brand’s bases for the active brand', async () => {
       const { contextBase, queryRaw, service } = buildService();
       contextBase.findMany.mockResolvedValue(multiBrandBases);
-      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      queryRaw.mockResolvedValueOnce([
         {
           content: 'A saved hook',
           contextBaseId: 'ctx-a',

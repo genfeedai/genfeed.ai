@@ -9,6 +9,7 @@ import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.d
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -42,6 +43,7 @@ describe('ContextsController', () => {
 
   const mockContextsService = {
     addEntry: vi.fn(),
+    backfillEmbeddings: vi.fn(),
     autoCreateFromAccount: vi.fn(),
     create: vi.fn(),
     enhancePrompt: vi.fn(),
@@ -91,6 +93,53 @@ describe('ContextsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('returns the bounded operation receipt as legal meta and omits all embedding internals', async () => {
+    const admission = { admitted: 2, skipped: 1, nextCursor: 'next-entry' };
+    mockContextsService.backfillEmbeddings.mockResolvedValue({
+      contextBase: {
+        ...mockContext,
+        id: contextId,
+        organizationId,
+        leaseToken: 'private-lease',
+        actorUserId: 'private-actor',
+        embeddingJobs: [{ id: 'private-job' }],
+        embedding: [1],
+        sourceSnapshotHash: 'private-hash',
+        content: 'private-source-content',
+      },
+      admission,
+    });
+    const result = await controller.backfillEmbeddings(
+      mockReq,
+      contextId,
+      { maxEntries: 3 },
+      mockUser,
+    );
+    expect(service.backfillEmbeddings).toHaveBeenCalledExactlyOnceWith(
+      contextId,
+      organizationId,
+      { organizationId, userId, isApiKey: false, scopes: [] },
+      { maxEntries: 3 },
+    );
+    expect(result.meta).toEqual(admission);
+    const encoded = JSON.stringify(result);
+    for (const secret of [
+      'private-lease',
+      'private-actor',
+      'private-job',
+      'private-hash',
+      'private-source-content',
+    ])
+      expect(encoded).not.toContain(secret);
+    expect(encoded).not.toContain('"embedding"');
+    expect(Reflect.getMetadata('roles', controller.backfillEmbeddings)).toEqual(
+      [MemberRole.OWNER, MemberRole.ADMIN],
+    );
+    expect(
+      Reflect.getMetadata('__guards__', controller.backfillEmbeddings),
+    ).toContain(RolesGuard);
   });
 
   describe('create', () => {
@@ -214,6 +263,11 @@ describe('ContextsController', () => {
         id,
         addEntryDto,
         mockUser.organizationId,
+        undefined,
+        {
+          origin: 'ACTOR',
+          actor: { organizationId, userId, isApiKey: false, scopes: [] },
+        },
       );
     });
   });
@@ -252,6 +306,10 @@ describe('ContextsController', () => {
         dto,
         mockUser.organizationId,
         mockUser.userId,
+        {
+          origin: 'ACTOR',
+          actor: { organizationId, userId, isApiKey: false, scopes: [] },
+        },
       );
     });
   });
@@ -280,6 +338,7 @@ describe('ContextsController', () => {
       expect(service.enhancePrompt).toHaveBeenCalledWith(
         { ...dto, brandId: undefined },
         mockUser.organizationId,
+        userId,
       );
       expect(result).toEqual(retrievedContext);
     });
@@ -299,6 +358,7 @@ describe('ContextsController', () => {
       expect(service.enhancePrompt).toHaveBeenCalledWith(
         { ...dto, brandId: 'brand-active' },
         mockUser.organizationId,
+        userId,
       );
     });
   });
@@ -321,6 +381,7 @@ describe('ContextsController', () => {
       expect(service.queryContext).toHaveBeenCalledWith(
         dto,
         mockUser.organizationId,
+        userId,
       );
       expect(result).toEqual(queryResult);
     });

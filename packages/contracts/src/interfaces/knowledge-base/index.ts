@@ -1,3 +1,4 @@
+export * from './context-embedding.interface';
 export * from './knowledge-base.interface';
 
 export * from './knowledge-record.interface';

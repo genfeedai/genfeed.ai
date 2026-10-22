@@ -4,7 +4,14 @@ import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/to
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { testId } from '@helpers/testing/test-id.helper';
 
+const initiatingPrincipal = {
+  organizationId: testId('org'),
+  userId: testId('user'),
+  isApiKey: false,
+  scopes: [],
+};
 const ctx: ToolExecutionContext = {
+  initiatingPrincipal,
   organizationId: testId('org'),
   userId: testId('user'),
 };
@@ -136,13 +143,103 @@ describe('AgentMemoryGoalsToolHandler', () => {
         ctx.userId,
         ctx.organizationId,
         expect.objectContaining({ scope: 'personal' }),
+        { origin: 'ACTOR', actor: initiatingPrincipal },
       );
       expect(agentMemoryCaptureService.capture).toHaveBeenNthCalledWith(
         2,
         ctx.userId,
         ctx.organizationId,
         expect.objectContaining({ scope: 'brand' }),
+        { origin: 'ACTOR', actor: initiatingPrincipal },
       );
+    });
+
+    it.each([undefined, false])(
+      'denies absent interactive authority with proactive marker %s before effects',
+      async (isProactive) => {
+        const result = await handlerWithServices.captureMemory(
+          { content: 'Private', isProactive: true, initiatingPrincipal },
+          { ...ctx, initiatingPrincipal: undefined, isProactive },
+        );
+        expect(result).toMatchObject({ success: false, creditsUsed: 0 });
+        expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+      },
+    );
+    it('admits genuinely actorless server-marked proactive capture as derived authority', async () => {
+      await handlerWithServices.captureMemory(
+        { content: 'Background', sourceContentId: 'forged-source' },
+        { ...ctx, initiatingPrincipal: undefined, isProactive: true },
+      );
+      expect(agentMemoryCaptureService.capture).toHaveBeenCalledWith(
+        ctx.userId,
+        ctx.organizationId,
+        expect.objectContaining({ content: 'Background' }),
+        { origin: 'DERIVED_MEMORY' },
+      );
+    });
+    it('retains an actual captured actor on proactive-marked work', async () => {
+      await handlerWithServices.captureMemory(
+        { content: 'Interactive' },
+        { ...ctx, isProactive: true },
+      );
+      expect(agentMemoryCaptureService.capture).toHaveBeenCalledWith(
+        ctx.userId,
+        ctx.organizationId,
+        expect.any(Object),
+        { origin: 'ACTOR', actor: initiatingPrincipal },
+      );
+    });
+    it('uses trusted approving identity separately from requester memory ownership', async () => {
+      const approving = {
+        ...initiatingPrincipal,
+        userId: 'actual-approver',
+        isApiKey: true,
+        apiKeyId: 'approver-key',
+        scopes: ['memory:write'],
+      };
+      await handlerWithServices.captureMemory(
+        { content: 'Approved' },
+        {
+          ...ctx,
+          approvedApprovalId: 'exact-approval',
+          initiatingPrincipal: undefined,
+          scheduleAuthorityPrincipal: approving,
+        },
+      );
+      expect(agentMemoryCaptureService.capture).toHaveBeenCalledWith(
+        ctx.userId,
+        ctx.organizationId,
+        expect.any(Object),
+        { origin: 'ACTOR', actor: approving },
+      );
+    });
+    it('never downgrades a present cross-tenant actor into proactive derived authority', async () => {
+      const result = await handlerWithServices.captureMemory(
+        { content: 'Private' },
+        {
+          ...ctx,
+          isProactive: true,
+          initiatingPrincipal: {
+            ...initiatingPrincipal,
+            organizationId: 'other-org',
+          },
+        },
+      );
+      expect(result).toMatchObject({ success: false });
+      expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+    });
+    it('denies approval redemption without its actual approving principal even when proactive', async () => {
+      const result = await handlerWithServices.captureMemory(
+        { content: 'Private' },
+        {
+          ...ctx,
+          approvedApprovalId: 'exact-approval',
+          initiatingPrincipal: undefined,
+          isProactive: true,
+        },
+      );
+      expect(result).toMatchObject({ success: false });
+      expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
     });
 
     it('fails when the memory capture service is unavailable', async () => {

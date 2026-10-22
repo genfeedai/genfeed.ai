@@ -1,12 +1,11 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
 import {
   extractSourceText,
   KNOWLEDGE_SOURCE_MAX_BYTES,
 } from '@api/collections/contexts/utils/extract-source-text.util';
-import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import {
   isKnowledgeMemoryScope,
   isKnowledgeSourceKind,
@@ -27,10 +26,8 @@ import {
   KnowledgeBaseCategory,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
-  KnowledgeRefreshRunOutcome,
   KnowledgeRefreshRunStatus,
   KnowledgeRetentionState,
-  KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
   KnowledgeSourceSyncState,
@@ -46,6 +43,7 @@ import { Prisma } from '@genfeedai/prisma';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type KnowledgeSourceIngestStatus =
+  | 'queued'
   | 'completed'
   | 'failed'
   | 'skipped'
@@ -79,6 +77,7 @@ export interface KnowledgeSourceIngestVersion {
 }
 
 export interface KnowledgeSourceIngestState {
+  embeddingManifestId?: string;
   initiatingActor?: KnowledgeWorkflowInitiatingActor;
   chunks?: string[];
   extracted?: {
@@ -161,9 +160,9 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload {
 export class KnowledgeSourceIngestService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly contextsService: ContextsService,
     private readonly brandAccessService: BrandAccessService,
     private readonly records: KnowledgeRecordsService,
+    private readonly embeddingCompletion: KnowledgeEmbeddingCompletionService,
     @Optional() private readonly transcripts?: KnowledgeTranscriptIngestService,
   ) {}
 
@@ -452,75 +451,63 @@ export class KnowledgeSourceIngestService {
 
   async replaceChunks(
     state: KnowledgeSourceIngestState,
+    admissionExecutionId: string,
   ): Promise<KnowledgeSourceIngestState> {
-    if (!state.source || !state.version || !state.extracted || !state.chunks) {
+    if (!state.source || !state.version || !state.extracted || !state.chunks)
       return state;
-    }
     await this.assertInitiator(state, state.source.brandId);
+    if (!state.initiatingActor) denyKnowledgeWork();
     const contextBaseId = await this.ensureContextBase(
       state.organizationId,
       state.source,
     );
-    const sourceId = state.source.id;
-    const versionId = state.version.id;
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertInitiator(state, state.source?.brandId, tx);
-      // Take the same source row lock createVersion holds, then re-read
-      // isCurrent: the flag loaded at the start of this run may be stale, and
-      // a superseded run must only replace its own version's chunks.
-      await tx.knowledgeSource.updateMany({
-        where: scopedWhere(state.organizationId, { id: sourceId }),
-        data: { updatedAt: new Date() },
-      });
-      const live = await tx.knowledgeSourceVersion.findFirst({
-        where: scopedWhere(state.organizationId, { id: versionId, sourceId }),
-        select: { isCurrent: true },
-      });
-      await softDeleteKnowledgeChunks(tx, state.organizationId, {
-        sourceId,
-        ...(live?.isCurrent ? {} : { versionId }),
-      });
-    });
-    for (const [chunkIndex, content] of state.chunks.entries()) {
-      await this.assertInitiator(state, state.source.brandId);
-      const cue = state.extractedCues?.[chunkIndex];
-      await this.contextsService.addEntry(
-        contextBaseId,
-        {
+    const manifest = await this.embeddingCompletion.stage({
+      organizationId: state.organizationId,
+      sourceId: state.source.id,
+      versionId: state.version.id,
+      contextBaseId,
+      admissionExecutionId,
+      initiatingActor: state.initiatingActor,
+      observedValidators: {
+        ...(state.extracted.etag !== undefined
+          ? { etag: state.extracted.etag }
+          : {}),
+        ...(state.extracted.lastModified !== undefined
+          ? { lastModified: state.extracted.lastModified }
+          : {}),
+      },
+      chunks: state.chunks.map((content, chunkIndex) => {
+        const cue = state.extractedCues?.[chunkIndex];
+        return {
           content,
           metadata: {
             chunkIndex,
             kind: KNOWLEDGE_SOURCE_CHUNK_KIND,
-            ...(state.extracted.mimeType
+            ...(state.extracted?.mimeType
               ? { mimeType: state.extracted.mimeType }
               : {}),
-            purpose: state.source.purpose,
-            ...(state.version.referenceUrl
+            purpose: state.source?.purpose,
+            ...(state.version?.referenceUrl
               ? { referenceUrl: state.version.referenceUrl }
               : {}),
             ...(cue
               ? {
                   endMs: cue.endMs,
                   mediaUrl:
-                    state.extracted.mediaUrl ?? state.version.referenceUrl,
+                    state.extracted?.mediaUrl ?? state.version?.referenceUrl,
                   startMs: cue.startMs,
                 }
               : {}),
             source: 'knowledge-source',
-            sourceId: state.source.id,
-            sourceKind: state.source.kind,
-            sourceTitle: state.source.title,
-            versionId: state.version.id,
+            sourceId: state.source?.id,
+            sourceKind: state.source?.kind,
+            sourceTitle: state.source?.title,
+            versionId: state.version?.id,
           },
-        },
-        state.organizationId,
-        {
-          knowledgeSourceId: state.source.id,
-          knowledgeSourceVersionId: state.version.id,
-        },
-      );
-    }
-    return state;
+        };
+      }),
+    });
+    return { ...state, embeddingManifestId: manifest.id };
   }
 
   async finalizeSource(
@@ -556,6 +543,29 @@ export class KnowledgeSourceIngestService {
       };
     }
     if (error) {
+      const staged = await this.prisma.knowledgeEmbeddingManifest.findFirst({
+        where: {
+          organizationId: state.organizationId,
+          sourceId: state.sourceId,
+          versionId: state.versionId,
+          isDeleted: false,
+        },
+        orderBy: { generation: 'desc' },
+      });
+      if (staged) {
+        const status = await this.embeddingCompletion.complete(
+          state.organizationId,
+          state.sourceId,
+          state.versionId,
+          state.embeddingManifestId,
+        );
+        return {
+          chunkCount: state.chunks?.length ?? staged.expectedChunkCount,
+          sourceId: state.sourceId,
+          status,
+          versionId: state.versionId,
+        };
+      }
       await this.writeProcessingState(
         state,
         KnowledgeProcessingState.FAILED,
@@ -577,102 +587,18 @@ export class KnowledgeSourceIngestService {
         versionId: state.versionId,
       };
     }
-    await this.writeProcessingState(state, KnowledgeProcessingState.READY);
-    await this.persistExtractedValidators(state);
-    if (state.version && !state.version.isCurrent) {
-      await this.promoteRefreshCandidate(state);
-    } else if (isStillCurrent) {
-      await this.settleCaptureRequests(state, 'completed');
-    }
+    const status = await this.embeddingCompletion.complete(
+      state.organizationId,
+      state.sourceId,
+      state.versionId,
+      state.embeddingManifestId,
+    );
     return {
       chunkCount: state.chunks?.length ?? 0,
       sourceId: state.sourceId,
-      status: 'completed',
+      status,
       versionId: state.versionId,
     };
-  }
-
-  private async promoteRefreshCandidate(
-    state: KnowledgeSourceIngestState,
-  ): Promise<void> {
-    const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertInitiator(state, state.source?.brandId, tx);
-      const run = await tx.knowledgeSourceRefreshRun.findFirst({
-        where: scopedWhere(state.organizationId, {
-          candidateVersionId: state.versionId,
-          sourceId: state.sourceId,
-          status: KnowledgeRefreshRunStatus.PROCESSING,
-        }),
-      });
-      if (!run) {
-        return;
-      }
-      const current = await tx.knowledgeSourceVersion.findFirst({
-        where: scopedWhere(state.organizationId, {
-          isCurrent: true,
-          sourceId: state.sourceId,
-        }),
-        select: { id: true },
-      });
-      if (
-        run.expectedCurrentVersionId &&
-        current &&
-        current.id !== run.expectedCurrentVersionId
-      ) {
-        await this.writeFailedRefreshRun(
-          tx,
-          state,
-          now,
-          'Source changed during refresh',
-        );
-        return;
-      }
-      await tx.knowledgeSourceVersion.updateMany({
-        where: {
-          id: { not: state.versionId },
-          isCurrent: true,
-          isDeleted: false,
-          organizationId: state.organizationId,
-          sourceId: state.sourceId,
-        },
-        data: {
-          isCurrent: false,
-          retrievalState: KnowledgeRetrievalState.SUPERSEDED,
-          supersededByVersionId: state.versionId,
-        },
-      });
-      await tx.knowledgeSourceVersion.updateMany({
-        where: scopedWhere(state.organizationId, {
-          id: state.versionId,
-          sourceId: state.sourceId,
-        }),
-        data: { isCurrent: true },
-      });
-      await softDeleteKnowledgeChunks(tx, state.organizationId, {
-        exceptVersionId: state.versionId,
-        sourceId: state.sourceId,
-      });
-      await tx.knowledgeSourceRefreshRun.updateMany({
-        where: scopedWhere(state.organizationId, {
-          id: run.id,
-          sourceId: state.sourceId,
-        }),
-        data: {
-          completedAt: now,
-          outcome: KnowledgeRefreshRunOutcome.CHANGED,
-          status: KnowledgeRefreshRunStatus.COMPLETED,
-        },
-      });
-      await this.writeSuccessfulRefreshSource(tx, state, now);
-      await tx.knowledgeCaptureRequest.updateMany({
-        where: scopedWhere(state.organizationId, {
-          sourceId: state.sourceId,
-          status: 'queued',
-        }),
-        data: { status: 'completed' },
-      });
-    });
   }
 
   private async failRefreshCandidate(
@@ -690,32 +616,6 @@ export class KnowledgeSourceIngestService {
         }),
         data: { error, status: 'failed' },
       });
-    });
-  }
-
-  private async writeSuccessfulRefreshSource(
-    tx: Prisma.TransactionClient,
-    state: KnowledgeSourceIngestState,
-    now: Date,
-  ): Promise<void> {
-    const source = await tx.knowledgeSource.findFirst({
-      where: scopedWhere(state.organizationId, { id: state.sourceId }),
-    });
-    const intervalMinutes =
-      source?.refreshIntervalMinutes ??
-      (source?.kind === KnowledgeSourceKind.RSS ? 60 : 1_440);
-    await tx.knowledgeSource.updateMany({
-      where: scopedWhere(state.organizationId, { id: state.sourceId }),
-      data: {
-        consecutiveFailures: 0,
-        firstFailureAt: null,
-        lastCheckedAt: now,
-        lastSuccessfulSyncAt: now,
-        lastSyncError: null,
-        nextCheckAt: new Date(now.getTime() + intervalMinutes * 60_000),
-        staleAt: null,
-        syncState: KnowledgeSourceSyncState.CURRENT,
-      },
     });
   }
 
@@ -908,32 +808,6 @@ export class KnowledgeSourceIngestService {
         status: 'queued',
       }),
       data: status === 'failed' ? { error, status } : { status },
-    });
-  }
-
-  /**
-   * Persists the HTTP cache validators (`etag` / `Last-Modified`) an
-   * extraction observed onto the source row so the next refresh cycle can
-   * send a conditional GET instead of re-fetching the full body. Missing
-   * validators are left untouched rather than cleared, since a category
-   * without them (e.g. pasted text) should not erase a prior URL fetch's
-   * validators.
-   */
-  private async persistExtractedValidators(
-    state: KnowledgeSourceIngestState,
-  ): Promise<void> {
-    const etag = state.extracted?.etag;
-    const lastModified = state.extracted?.lastModified;
-    if (etag === undefined && lastModified === undefined) {
-      return;
-    }
-    await this.assertInitiator(state, state.source?.brandId);
-    await this.prisma.knowledgeSource.updateMany({
-      where: scopedWhere(state.organizationId, { id: state.sourceId }),
-      data: {
-        ...(etag !== undefined ? { etag } : {}),
-        ...(lastModified !== undefined ? { lastModified } : {}),
-      },
     });
   }
 

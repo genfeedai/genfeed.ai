@@ -15,6 +15,7 @@ function handler() {
 
 describe('PlatformSchedulesProcessor', () => {
   const config = { isDevSchedulersEnabled: true };
+  const contextEmbeddings = { sweep: handler() };
   const turboRun = {
     reconcileTurboProjects: handler(),
     reconcileSettlementShortfalls: handler(),
@@ -71,6 +72,10 @@ describe('PlatformSchedulesProcessor', () => {
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [
+        PLATFORM_SCHEDULED_TASKS.CONTEXT_EMBEDDING_SWEEP,
+        contextEmbeddings.sweep,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY,
         brandRelocations.recover,
@@ -253,6 +258,7 @@ describe('PlatformSchedulesProcessor', () => {
       new PlatformRecoverySchedulesService(
         notificationRecovery as never,
         brandRelocations as never,
+        contextEmbeddings as never,
       ),
       patterns as never,
       posts as never,

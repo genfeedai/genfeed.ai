@@ -117,10 +117,10 @@ export function buildKnowledgeSourceIngestWorkflowDefinition(): SystemWorkflowGr
       ],
     },
     description:
-      'Extracts, chunks and embeds one knowledge source version into retrievable chunks.',
+      'Extracts and stages bounded Knowledge chunks; asynchronous indexing completes retrieval readiness.',
     label: 'Knowledge Source Ingest',
     resultNodeId: 'finalize-source',
-    version: 1,
+    version: 2,
   };
 }
 

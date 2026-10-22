@@ -1,4 +1,5 @@
 import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
+import type { ExecutionContext } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('WinnerPromotionWorkflowService atomic actions', () => {
@@ -25,14 +26,39 @@ describe('WinnerPromotionWorkflowService atomic actions', () => {
     });
     expect(discovery.items).toEqual([candidate]);
 
-    await service.promoteWinnerItem('org-1', {
-      contextBaseId: 'context-1',
-      item: candidate,
-    });
+    const context = {
+      organizationId: 'org-1',
+      userId: 'server-owner',
+      executionId: 'persisted-execution',
+      workflowId: 'pinned-workflow',
+      workflowVersionId: 'pinned-version',
+    } as unknown as ExecutionContext;
+    await service.promoteWinnerItem(
+      'org-1',
+      {
+        contextBaseId: 'context-1',
+        item: candidate,
+      },
+      context,
+      'execute',
+      'harness.winners.promote-item',
+    );
     expect(harness.promoteTopPerformer).toHaveBeenCalledWith(
       'org-1',
       'context-1',
       candidate,
+      {
+        origin: 'CODE_OWNED_WORKFLOW',
+        provenance: {
+          organizationId: 'org-1',
+          userId: 'server-owner',
+          executionId: 'persisted-execution',
+          workflowId: 'pinned-workflow',
+          workflowVersionId: 'pinned-version',
+          nodeId: 'execute',
+          actionId: 'harness.winners.promote-item',
+        },
+      },
     );
   });
 });

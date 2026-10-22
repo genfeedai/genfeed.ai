@@ -177,6 +177,7 @@ export class CampaignWinnerExtractionService {
           'winner-extraction',
         ],
       },
+      { origin: 'DERIVED_MEMORY' },
     );
 
     const summary = `Extracted campaign winner pattern from ${topContent.length} top-performing post(s): ${patternSummary.format} on ${patternSummary.platform}, ${patternSummary.tone} tone, ${patternSummary.daypart} posting window.`;

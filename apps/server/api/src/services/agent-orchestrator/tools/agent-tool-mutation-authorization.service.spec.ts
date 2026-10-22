@@ -1027,3 +1027,109 @@ describe('matched visual approval pricing carry', () => {
     expect(claimExecution).toHaveBeenCalled();
   });
 });
+
+describe('capture_memory exact approval redemption', () => {
+  function fixture(result: Record<string, unknown> | null = null) {
+    const parameters = { content: 'Remember this', brandId: 'brand' };
+    const context: ToolExecutionContext = {
+      organizationId: 'org',
+      userId: 'user',
+      threadId: 'thread',
+      approvedApprovalId: 'exact-approval',
+      hostSupportsApproval: true,
+    };
+    const approval = {
+      id: 'exact-approval',
+      organizationId: 'org',
+      userId: 'user',
+      toolName: 'capture_memory',
+      status: 'APPROVED',
+      isDeleted: false,
+      arguments: parameters,
+      result,
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: parameters,
+        organizationId: 'org',
+        userId: 'user',
+        threadId: 'thread',
+        toolName: 'capture_memory',
+      }),
+    };
+    const approvals = {
+      findOwned: vi.fn().mockResolvedValue(approval),
+      claimExecution: vi.fn().mockResolvedValue(true),
+      createPending: vi.fn(),
+      resolve: vi.fn(),
+    };
+    const threads = { findOne: vi.fn().mockResolvedValue({ mode: 'auto' }) };
+    const service = new AgentToolMutationAuthorizationService(
+      {} as LoggerService,
+      approvals as unknown as ConstructorParameters<
+        typeof AgentToolMutationAuthorizationService
+      >[1],
+      threads as unknown as ConstructorParameters<
+        typeof AgentToolMutationAuthorizationService
+      >[2],
+    );
+    return { service, approvals, approval, parameters, context };
+  }
+  it('claims the exact already-approved capture after Manual changes to Auto', async () => {
+    const f = fixture();
+    await expect(
+      f.service.authorize(
+        'capture_memory',
+        f.parameters,
+        f.context,
+        {} as Parameters<typeof f.service.authorize>[3],
+      ),
+    ).resolves.toMatchObject({ kind: 'execute', approvalId: 'exact-approval' });
+    expect(f.approvals.claimExecution).toHaveBeenCalledExactlyOnceWith(
+      'exact-approval',
+      'org',
+    );
+    expect(f.approvals.createPending).not.toHaveBeenCalled();
+  });
+  it('replays the stored result without claiming another execution in Auto', async () => {
+    const result = { success: true, creditsUsed: 0, data: { id: 'memory' } };
+    const f = fixture(result);
+    await expect(
+      f.service.authorize(
+        'capture_memory',
+        f.parameters,
+        f.context,
+        {} as Parameters<typeof f.service.authorize>[3],
+      ),
+    ).resolves.toMatchObject({ kind: 'return', result });
+    expect(f.approvals.claimExecution).not.toHaveBeenCalled();
+  });
+  it.each(['PENDING', 'DECLINED'])(
+    'denies an exact capture in %s state',
+    async (status) => {
+      const f = fixture();
+      f.approval.status = status;
+      await expect(
+        f.service.authorize(
+          'capture_memory',
+          f.parameters,
+          f.context,
+          {} as Parameters<typeof f.service.authorize>[3],
+        ),
+      ).rejects.toThrow(
+        'Approval does not authorize this exact tool invocation',
+      );
+      expect(f.approvals.claimExecution).not.toHaveBeenCalled();
+    },
+  );
+  it('denies an exact approval with different capture content', async () => {
+    const f = fixture();
+    await expect(
+      f.service.authorize(
+        'capture_memory',
+        { ...f.parameters, content: 'Different' },
+        f.context,
+        {} as Parameters<typeof f.service.authorize>[3],
+      ),
+    ).rejects.toThrow('Approval does not authorize this exact tool invocation');
+    expect(f.approvals.claimExecution).not.toHaveBeenCalled();
+  });
+});

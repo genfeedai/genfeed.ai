@@ -1,4 +1,5 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { ContextEmbeddingCoreModule } from '@api/collections/contexts/context-embedding-core.module';
 /**
  * Contexts Module
  * Brand knowledge storage and semantic retrieval for direct context injection.
@@ -36,6 +37,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSpacesController,
   ],
   exports: [
+    ContextEmbeddingCoreModule,
     KnowledgeRecordsService,
     ContextsService,
     KnowledgeContentRetrievalService,
@@ -47,6 +49,7 @@ import { Module } from '@nestjs/common';
     KnowledgeTranscriptIngestService,
   ],
   imports: [
+    ContextEmbeddingCoreModule,
     BrandAccessModule,
     ByokModule,
     ConfigModule,

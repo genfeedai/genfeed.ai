@@ -1,3 +1,4 @@
+import type { ContextEmbeddingAdmissionPrincipal } from '@api/collections/contexts/interfaces/context-embedding-write.interface';
 import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,12 +20,26 @@ describe('HarnessWinnerPromotionService', () => {
     addEntry: vi.fn().mockResolvedValue({ id: 'entry-1' }),
   };
 
+  const writer = { write: vi.fn().mockResolvedValue({ id: 'entry-1' }) };
+  const principal: ContextEmbeddingAdmissionPrincipal = {
+    origin: 'CODE_OWNED_WORKFLOW',
+    provenance: {
+      organizationId: 'org-1',
+      userId: 'server-workflow-owner',
+      executionId: 'durable-execution',
+      workflowId: 'pinned-workflow',
+      workflowVersionId: 'pinned-version',
+      nodeId: 'execute',
+      actionId: 'harness.winners.promote-item',
+    },
+  };
   let service: HarnessWinnerPromotionService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new HarnessWinnerPromotionService(
       prisma as never,
+      writer as never,
       performanceSummaryService as never,
       contextsService as never,
     );
@@ -43,6 +58,7 @@ describe('HarnessWinnerPromotionService', () => {
           input.organizationId,
           discovery.contextBaseId,
           candidate,
+          principal,
         ),
       );
     }
@@ -97,6 +113,8 @@ describe('HarnessWinnerPromotionService', () => {
         }),
       }),
       'org-1',
+      undefined,
+      principal,
     );
     expect(result).toEqual({
       contextBaseId: 'ctx-1',
@@ -168,6 +186,8 @@ describe('HarnessWinnerPromotionService', () => {
         metadata: expect.objectContaining({ postId: 'conversation' }),
       }),
       'org-1',
+      undefined,
+      principal,
     );
   });
 
@@ -219,6 +239,8 @@ describe('HarnessWinnerPromotionService', () => {
         metadata: expect.objectContaining({ postId: 'looped' }),
       }),
       'org-1',
+      undefined,
+      principal,
     );
   });
 

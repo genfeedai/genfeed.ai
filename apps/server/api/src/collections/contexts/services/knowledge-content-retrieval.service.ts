@@ -86,15 +86,26 @@ export class KnowledgeContentRetrievalService {
     const query = params.query.trim();
     const brandId = params.brandId?.trim();
     if (!query || !brandId) throw new Error('knowledge_unavailable');
-    await this.brandAccessService.assert(params, brandId);
-    const rows = await this.prisma.contextBase.findMany({
-      select: { createdById: true, data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(
-        params.organizationId,
-        buildBrandContentMemoryBaseWhere(brandId),
-      ),
-    });
-    const bases = rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+    const bases = await this.contextsService.measureRetrievalStage(
+      'scope_validation',
+      async () => {
+        await this.brandAccessService.assert(params, brandId);
+        const rows = await this.prisma.contextBase.findMany({
+          select: {
+            createdById: true,
+            data: true,
+            id: true,
+            sourceBrandId: true,
+          },
+          where: scopedWhere(
+            params.organizationId,
+            buildBrandContentMemoryBaseWhere(brandId),
+          ),
+        });
+        return rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+      },
+      (result) => result.length,
+    );
     if (!bases.length) throw new Error('knowledge_unavailable');
     // The vector belongs to this request; every selected source shares one paid embedding.
     const embedding = await this.contextsService.generateEmbedding(query);
@@ -113,6 +124,7 @@ export class KnowledgeContentRetrievalService {
         quota,
         0,
         {
+          viewerUserId: params.userId,
           knowledgeSourceIds: [sourceId],
           isKnowledgeOnly: true,
           knowledgeBrandId: brandId,
@@ -187,12 +199,23 @@ export class KnowledgeContentRetrievalService {
       return { bases: [], entries: [] };
     }
 
-    await this.brandAccessService.assert(params, brandId);
-    const rows = await this.prisma.contextBase.findMany({
-      select: { createdById: true, data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(params.organizationId, buildBaseWhere(brandId)),
-    });
-    const bases = rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+    const bases = await this.contextsService.measureRetrievalStage(
+      'scope_validation',
+      async () => {
+        await this.brandAccessService.assert(params, brandId);
+        const rows = await this.prisma.contextBase.findMany({
+          select: {
+            createdById: true,
+            data: true,
+            id: true,
+            sourceBrandId: true,
+          },
+          where: scopedWhere(params.organizationId, buildBaseWhere(brandId)),
+        });
+        return rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+      },
+      (result) => result.length,
+    );
     if (bases.length === 0) {
       return { bases, entries: [] };
     }
@@ -204,7 +227,7 @@ export class KnowledgeContentRetrievalService {
       queryEmbedding,
       params.limit ?? 5,
       params.minRelevance ?? 0.65,
-      { ...options, knowledgeBrandId: brandId },
+      { ...options, knowledgeBrandId: brandId, viewerUserId: params.userId },
     );
     return { bases, entries };
   }
@@ -226,16 +249,27 @@ export class KnowledgeContentRetrievalService {
       return { bases: [], entries: [] };
     }
 
-    await this.brandAccessService.resolve(params);
-    const rows = await this.prisma.contextBase.findMany({
-      select: { createdById: true, data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(
-        params.organizationId,
-        buildOrgAndPersonalContentMemoryBaseWhere(userId),
-      ),
-    });
-    const bases = rows.filter((row) =>
-      isContextBaseInOrgOrPersonalScope(row, userId),
+    const bases = await this.contextsService.measureRetrievalStage(
+      'scope_validation',
+      async () => {
+        await this.brandAccessService.resolve(params);
+        const rows = await this.prisma.contextBase.findMany({
+          select: {
+            createdById: true,
+            data: true,
+            id: true,
+            sourceBrandId: true,
+          },
+          where: scopedWhere(
+            params.organizationId,
+            buildOrgAndPersonalContentMemoryBaseWhere(userId),
+          ),
+        });
+        return rows.filter((row) =>
+          isContextBaseInOrgOrPersonalScope(row, userId),
+        );
+      },
+      (result) => result.length,
     );
     if (bases.length === 0) {
       return { bases, entries: [] };
@@ -248,7 +282,11 @@ export class KnowledgeContentRetrievalService {
       queryEmbedding,
       params.limit ?? 5,
       params.minRelevance ?? 0.65,
-      { isKnowledgeOnly: true, knowledgeOrgAndPersonalUserId: userId },
+      {
+        isKnowledgeOnly: true,
+        knowledgeOrgAndPersonalUserId: userId,
+        viewerUserId: userId,
+      },
     );
     return { bases, entries };
   }

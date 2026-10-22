@@ -755,6 +755,9 @@ export class WorkflowAutomationExecutorRegistrarService {
         service.promoteWinnerItem(
           context.organizationId,
           actionInputs(node.config, inputs),
+          context,
+          node.id,
+          AUTOMATION_ACTION_IDS.HARNESS_PROMOTE_ITEM,
         ),
     );
     engine.registerExecutor(

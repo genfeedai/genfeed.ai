@@ -216,6 +216,7 @@ describe('automation selected data and immutable actor', () => {
     const records = new KnowledgeRecordsService(
       prisma,
       brandAccessFixture(prisma as never),
+      { assertReady: vi.fn() } as never,
     );
     const controller = instance(KnowledgeSourcesController, { records });
     expect(

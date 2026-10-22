@@ -7,8 +7,13 @@ import type {
   AgentMemoryScope,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import type { ContextMemoryCaptureAuthority } from '@api/collections/contexts/interfaces/context-embedding-write.interface';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import {
+  projectAgentInitiatingPrincipal,
+  projectScheduleAuthorityPrincipal,
+} from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
@@ -49,6 +54,38 @@ export class AgentMemoryGoalsToolHandler {
       typeof params.campaignId === 'string' ? params.campaignId : undefined;
     const summary =
       typeof params.summary === 'string' ? params.summary.trim() : undefined;
+    const approvedAuthority = ctx.approvedApprovalId
+      ? ctx.scheduleAuthorityPrincipal
+      : undefined;
+    const candidate =
+      approvedAuthority !== undefined
+        ? approvedAuthority
+        : ctx.initiatingPrincipal;
+    let authority: ContextMemoryCaptureAuthority;
+    if (candidate !== undefined) {
+      const actor =
+        approvedAuthority !== undefined
+          ? projectScheduleAuthorityPrincipal(candidate, ctx.organizationId)
+          : projectAgentInitiatingPrincipal(candidate, ctx);
+      if (
+        !actor ||
+        typeof actor.isApiKey !== 'boolean' ||
+        !Array.isArray(actor.scopes)
+      )
+        return this.missingCaptureAuthority();
+      authority = {
+        origin: 'ACTOR',
+        actor: {
+          ...actor,
+          isApiKey: actor.isApiKey,
+          scopes: [...actor.scopes],
+        },
+      };
+    } else if (ctx.isProactive === true && !ctx.approvedApprovalId) {
+      authority = { origin: 'DERIVED_MEMORY' };
+    } else {
+      return this.missingCaptureAuthority();
+    }
     const capture = await this.agentMemoryCaptureService.capture(
       ctx.userId,
       ctx.organizationId,
@@ -90,6 +127,7 @@ export class AgentMemoryGoalsToolHandler {
           ? params.tags.filter((tag): tag is string => typeof tag === 'string')
           : undefined,
       },
+      authority,
     );
 
     const memory = capture.memory;
@@ -282,6 +320,14 @@ export class AgentMemoryGoalsToolHandler {
         targetValue: goal.targetValue,
       },
       success: true,
+    };
+  }
+
+  private missingCaptureAuthority(): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      success: false,
+      error: 'Memory capture requires authenticated or background provenance.',
     };
   }
 
