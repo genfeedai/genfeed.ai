@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { toMcpTools } from '../adapters/to-mcp-tool';
 import { materializeJsonDocumentSchema } from './contracts/schema-builders';
 import {
-  getMcpCatalogAlias,
   getMcpCatalogOperations,
+  getRetiredMcpCatalogTool,
   isMcpListedToolName,
   resolveMcpCatalogCall,
   validateMcpCatalogBindings,
@@ -12,10 +12,6 @@ import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 
 const names = ['check_channel', 'upload_media'];
 const operations = names.flatMap(getMcpCatalogOperations);
-const aliases = operations.flatMap((operation) => {
-  const alias = getMcpCatalogAlias(operation.executionName);
-  return alias ? [alias] : [];
-});
 const classify = (name: string) =>
   name.includes('scheduler') ? 'scheduler' : 'agent-executor';
 function withoutDocumentation(value: unknown): unknown {
@@ -42,11 +38,8 @@ describe('MCP catalog bindings', () => {
         action: operation.action,
         input,
       });
-      const legacy = resolveMcpCatalogCall(operation.executionName, input);
       expect(canonical).toMatchObject({ ...operation, arguments: input });
-      expect(legacy).toMatchObject({ ...operation, arguments: input });
       expect(canonical?.arguments).toBe(input);
-      expect(legacy?.arguments).toBe(input);
       const wrapper = getToolByName(operation.canonicalName);
       const original = getToolByName(operation.executionName);
       const branch = wrapper?.parameters.oneOf?.find((candidate) =>
@@ -74,15 +67,18 @@ describe('MCP catalog bindings', () => {
     },
   );
 
-  it.each(aliases)('enforces code-owned revision window for $name', (alias) => {
-    expect(resolveMcpCatalogCall(alias.name, {}, 1)?.alias).toEqual(alias);
-    for (const revision of [0, 2])
-      expect(() => resolveMcpCatalogCall(alias.name, {}, revision)).toThrow(
-        `${alias.canonicalName}(action=${alias.action})`,
+  it.each(operations)(
+    'rejects retired $executionName immediately',
+    (operation) => {
+      expect(() => resolveMcpCatalogCall(operation.executionName, {})).toThrow(
+        `${operation.canonicalName}(action=${operation.action})`,
       );
-    expect(getMcpCatalogAlias(alias.name)).toBe(alias);
-    expect(isMcpListedToolName(alias.name)).toBe(false);
-  });
+      expect(getRetiredMcpCatalogTool(operation.executionName)).toEqual(
+        operation,
+      );
+      expect(isMcpListedToolName(operation.executionName)).toBe(false);
+    },
+  );
 
   it('defaults only capabilities input and preserves unrelated calls', () => {
     expect(
@@ -113,11 +109,12 @@ describe('MCP catalog bindings', () => {
       ).toThrow();
   });
 
-  it('never projects legacy aliases even when passed the entire raw catalog', () => {
+  it('never projects retired names even when passed the entire raw catalog', () => {
     const listed = toMcpTools(ALL_TOOLS).map((tool) => tool.name);
     expect(listed).toHaveLength(143);
     expect(listed).toEqual(getToolsForSurface('mcp').map((tool) => tool.name));
-    for (const alias of aliases) expect(listed).not.toContain(alias.name);
+    for (const operation of operations)
+      expect(listed).not.toContain(operation.executionName);
   });
 
   it('validates real definitions and rejects executor, role, pricing, surface and annotation drift', () => {
@@ -128,7 +125,10 @@ describe('MCP catalog bindings', () => {
     expect(() => validateMcpCatalogBindings(ALL_TOOLS, (name) => name)).toThrow(
       'executor drift',
     );
-    for (const name of [...names, ...aliases.map((alias) => alias.name)]) {
+    for (const name of [
+      ...names,
+      ...operations.map((operation) => operation.executionName),
+    ]) {
       for (const change of [
         { requiredRole: 'admin' as const },
         { creditCost: 1 },
@@ -163,44 +163,20 @@ describe('MCP catalog bindings', () => {
 
   it('rejects duplicate, incomplete, self, missing and two-hop fixture bindings', () => {
     expect(() =>
-      validateMcpCatalogBindings(
-        ALL_TOOLS,
-        classify,
-        [...operations, operations[0]],
-        aliases,
-      ),
-    ).toThrow();
-    expect(() =>
-      validateMcpCatalogBindings(ALL_TOOLS, classify, operations, [
-        ...aliases,
-        aliases[0],
+      validateMcpCatalogBindings(ALL_TOOLS, classify, [
+        ...operations,
+        operations[0],
       ]),
     ).toThrow();
     expect(() =>
-      validateMcpCatalogBindings(
-        ALL_TOOLS,
-        classify,
-        operations.slice(1),
-        aliases,
-      ),
+      validateMcpCatalogBindings(ALL_TOOLS, classify, operations.slice(1)),
     ).toThrow();
-    expect(() =>
-      validateMcpCatalogBindings(
-        ALL_TOOLS,
-        classify,
-        operations,
-        aliases.slice(1),
-      ),
-    ).toThrow();
-    const badOperations = structuredClone(operations);
-    Object.assign(badOperations[0], { executionName: 'check_channel' });
-    expect(() =>
-      validateMcpCatalogBindings(ALL_TOOLS, classify, badOperations, aliases),
-    ).toThrow();
-    const badAliases = structuredClone(aliases);
-    Object.assign(badAliases[0], { name: 'upload_media' });
-    expect(() =>
-      validateMcpCatalogBindings(ALL_TOOLS, classify, operations, badAliases),
-    ).toThrow();
+    for (const executionName of ['check_channel', 'upload_media', 'missing']) {
+      const invalid = structuredClone(operations);
+      Object.assign(invalid[0], { executionName });
+      expect(() =>
+        validateMcpCatalogBindings(ALL_TOOLS, classify, invalid),
+      ).toThrow();
+    }
   });
 });

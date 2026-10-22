@@ -1,12 +1,8 @@
 import type {
-  McpCatalogAlias,
   McpCatalogOperation,
   ResolvedMcpCatalogCall,
 } from '../interfaces/mcp-catalog-call.interface';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
-
-/** One intentional catalog release; independent of application releases. */
-export const MCP_CATALOG_REVISION = 1;
 
 const OPERATIONS = Object.freeze([
   Object.freeze({
@@ -31,17 +27,10 @@ const OPERATIONS = Object.freeze([
   } as const),
 ] satisfies readonly McpCatalogOperation[]);
 
-const ALIASES: readonly McpCatalogAlias[] = OPERATIONS.map((operation) =>
-  Object.freeze({
-    ...operation,
-    name: operation.executionName,
-    introducedRevision: 1,
-    retiredRevision: 2,
-  }),
-);
-
-export function getMcpCatalogAlias(name: string): McpCatalogAlias | undefined {
-  return ALIASES.find((alias) => alias.name === name);
+export function getRetiredMcpCatalogTool(
+  name: string,
+): McpCatalogOperation | undefined {
+  return OPERATIONS.find((operation) => operation.executionName === name);
 }
 
 export function getMcpCatalogOperations(
@@ -52,7 +41,7 @@ export function getMcpCatalogOperations(
 
 /** Presentation only. Never use list membership to authorize invocation. */
 export function isMcpListedToolName(name: string): boolean {
-  return getMcpCatalogAlias(name) === undefined;
+  return getRetiredMcpCatalogTool(name) === undefined;
 }
 
 function isPlainInput(value: unknown): value is Record<string, unknown> {
@@ -68,19 +57,12 @@ function isPlainInput(value: unknown): value is Record<string, unknown> {
 export function resolveMcpCatalogCall(
   name: string,
   args: Record<string, unknown>,
-  revision: number = MCP_CATALOG_REVISION,
 ): ResolvedMcpCatalogCall | null {
-  const alias = getMcpCatalogAlias(name);
-  if (alias) {
-    if (
-      revision < alias.introducedRevision ||
-      revision >= alias.retiredRevision
-    ) {
-      throw new Error(
-        `Tool ${name} is unavailable in MCP catalog revision ${revision}. Use ${alias.canonicalName}(action=${alias.action}).`,
-      );
-    }
-    return { ...alias, requestedName: name, arguments: args, alias };
+  const retired = getRetiredMcpCatalogTool(name);
+  if (retired) {
+    throw new Error(
+      `Tool ${name} has been removed from MCP. Use ${retired.canonicalName}(action=${retired.action}).`,
+    );
   }
   const operations = getMcpCatalogOperations(name);
   if (operations.length === 0) return null;
@@ -103,7 +85,6 @@ export function validateMcpCatalogBindings(
   definitions: readonly CanonicalToolDefinition[],
   classify: (name: string) => string,
   operations: readonly McpCatalogOperation[] = OPERATIONS,
-  aliases: readonly McpCatalogAlias[] = ALIASES,
 ): void {
   const byName = new Map(definitions.map((tool) => [tool.name, tool]));
   const executionNames = new Set<string>();
@@ -180,25 +161,6 @@ export function validateMcpCatalogBindings(
     }
     kinds.set(operation.canonicalName, kind);
   }
-  const aliasNames = new Set<string>();
-  for (const alias of aliases) {
-    if (
-      aliasNames.has(alias.name) ||
-      canonicalNames.has(alias.name) ||
-      alias.name !== alias.executionName ||
-      !operations.some(
-        (operation) =>
-          operation.canonicalName === alias.canonicalName &&
-          operation.action === alias.action &&
-          operation.executionName === alias.executionName,
-      ) ||
-      alias.introducedRevision !== 1 ||
-      alias.retiredRevision !== 2
-    ) {
-      throw new Error(`Invalid MCP catalog alias: ${alias.name}`);
-    }
-    aliasNames.add(alias.name);
-  }
-  if (operations.length !== 4 || aliases.length !== 4)
+  if (operations.length !== 4)
     throw new Error('Incomplete MCP catalog bindings.');
 }

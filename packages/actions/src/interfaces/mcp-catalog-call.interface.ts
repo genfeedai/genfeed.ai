@@ -22,14 +22,7 @@ export type McpCatalogOperation =
       executionName: 'complete_media_upload';
     };
 
-export type McpCatalogAlias = McpCatalogOperation & {
-  name: string;
-  introducedRevision: number;
-  retiredRevision: number;
-};
-
 export type ResolvedMcpCatalogCall = McpCatalogOperation & {
   requestedName: string;
   arguments: Record<string, unknown>;
-  alias?: McpCatalogAlias;
 };

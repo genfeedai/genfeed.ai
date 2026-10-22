@@ -82,8 +82,7 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `create_post` | Save a text draft | | Discover the accepted draft fields |
 | `get_posts` | Read posts or the calendar | | `postId`, `executionState`, `limit`, `days` |
 | `list_brand_publishing_readiness` | Read connected channels and credentials | `brandId` | |
-| `get_scheduler_capabilities` | Read channel publishing constraints | | `platform` |
-| `validate_scheduler_target` | Check a proposed channel target | `platform` | `credentialId`, `caption`, `media`, `settings` |
+| `check_channel` | Read constraints or validate a proposed target | `action` (`capabilities` or `validate`) | `input` contains original channel parameters; `input.platform` is required for validate |
 | `create_scheduled_release` | Create a draft or scheduled release | `release` with title, baseContent, timezone, targets | `idempotencyKey` |
 | `get_scheduled_release` | Inspect release state | `releaseId` | |
 | `control_scheduled_release` | Pause, resume, cancel, or publish now | `releaseId`, `action` | |
@@ -123,7 +122,7 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 ### Publish to Social
 
 1. Resolve the brand and connected credential with `get_brands` and `list_brand_publishing_readiness`.
-2. Check `get_scheduler_capabilities` and `validate_scheduler_target` for the exact caption, media, and channel settings.
+2. Call `check_channel` with `action: capabilities`, then `action: validate` with the exact platform, caption, media, and channel settings in `input`.
 3. Confirm the exact content, destination, and time with the user.
 4. Call `create_scheduled_release` with a release containing `title`, `baseContent`, `timezone`, and `targets` with the verified `credentialId` and `platform`.
 5. Inspect its state with `get_scheduled_release`. For a confirmed immediate publication, use `control_scheduled_release` with `action: "publish-now"`.

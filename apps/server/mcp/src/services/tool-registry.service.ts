@@ -1,8 +1,6 @@
 import {
-  ALL_TOOLS,
   describeCreditPricing,
   estimateToolCreditCost,
-  getMcpCatalogAlias,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
@@ -10,16 +8,13 @@ import {
   getToolsForToolsets,
   isMcpBrandRequiredTool,
   isToolAllowedInMcpAccessMode,
-  MCP_CATALOG_REVISION,
   type McpAccessMode,
   type McpBrandOption,
   type McpToolOutput,
   readMcpBrandId,
   requiresMcpApproval,
-  resolveMcpCatalogCall,
   type ToolsetName,
   toMcpTools,
-  validateMcpCatalogBindings,
 } from '@genfeedai/actions';
 import { isMcpTextDraftCall } from '@genfeedai/actions/server';
 import { formatAgentError } from '@genfeedai/agent/server';
@@ -43,6 +38,10 @@ import {
   collectBrandIds,
   withBrandNames,
 } from '@mcp/services/mcp-brand-names.util';
+import {
+  resolveAuthorizedMcpCatalogCall,
+  validateMcpCatalogDispatchCoverage,
+} from '@mcp/services/mcp-catalog-call.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
@@ -238,27 +237,10 @@ export class ToolRegistryService implements OnModuleInit {
    * catalog policy must not advertise a write the server cannot resume).
    */
   static validateDispatchCoverage(): void {
-    const mcpTools = [
-      ...getToolsForSurface('mcp'),
-      ...ALL_TOOLS.filter(
-        (tool) => tool.surfaces.mcp && getMcpCatalogAlias(tool.name),
-      ),
-    ];
-    validateMcpCatalogBindings(ALL_TOOLS, (name) =>
-      ToolRegistryService.classify(name),
+    validateMcpCatalogDispatchCoverage(
+      (name) => ToolRegistryService.classify(name),
+      PRE_DISPATCH_TOOL_NAMES,
     );
-
-    const unroutable = mcpTools
-      .map((tool) => tool.name)
-      .filter((name) => !PRE_DISPATCH_TOOL_NAMES.has(name))
-      .filter((name) => ToolRegistryService.classify(name) === 'unknown');
-    if (unroutable.length > 0) {
-      throw new Error(
-        `MCP tool registry drift: no executor dispatch for [${unroutable.join(
-          ', ',
-        )}]. Add a handler + classify() entry, or unset surfaces.mcp.`,
-      );
-    }
   }
 
   constructor(
@@ -410,37 +392,13 @@ export class ToolRegistryService implements OnModuleInit {
         );
       }
 
-      const operation =
-        getMcpCatalogAlias(name) ??
-        getMcpCatalogOperations(name).find(
-          (candidate) => candidate.action === args.action,
-        );
-      if (operation) {
-        for (const descriptorName of [
-          operation.canonicalName,
-          operation.executionName,
-        ]) {
-          if (
-            !isToolAllowedInMcpAccessMode(
-              this.requestAccessMode,
-              descriptorName,
-            )
-          ) {
-            throw new Error('Tool unavailable through this connector.');
-          }
-          const descriptor = getToolByName(descriptorName);
-          if (!descriptor?.surfaces.mcp)
-            throw new Error(`Unknown tool: ${descriptorName}`);
-          McpAuthGuard.checkToolRole(this.requestRole, descriptor.requiredRole);
-        }
-      }
-      const catalogCall = resolveMcpCatalogCall(name, args);
+      const catalogCall = resolveAuthorizedMcpCatalogCall(
+        name,
+        args,
+        this.requestRole,
+        this.requestAccessMode,
+      );
       if (catalogCall) {
-        if (catalogCall.alias) {
-          this.logger.warn(
-            `Deprecated MCP tool ${catalogCall.requestedName}; use ${catalogCall.canonicalName}(action=${catalogCall.action}); catalog revision ${MCP_CATALOG_REVISION}.`,
-          );
-        }
         name = catalogCall.executionName;
         args = catalogCall.arguments;
       }

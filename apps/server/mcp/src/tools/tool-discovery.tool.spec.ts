@@ -375,7 +375,7 @@ describe('handleToolDiscoveryTool', () => {
   });
 });
 
-describe('legacy alias discovery', () => {
+describe('retired tool discovery', () => {
   it('returns the already discoverable canonical descriptor and fixed action guidance', () => {
     const registry = {
       getDiscoverableTools: () => toMcpTools(getToolsForSurface('mcp')),
@@ -391,7 +391,7 @@ describe('legacy alias discovery', () => {
       '"name":"request_media_upload"',
     );
   });
-  it('does not reveal aliases whose canonical tool is unavailable', () => {
+  it('does not reveal retired names whose canonical tool is unavailable', () => {
     const registry = { getDiscoverableTools: () => [] };
     const result = handleToolDiscoveryTool(registry, 'find_tools', {
       name: 'request_media_upload',

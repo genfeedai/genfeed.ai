@@ -11,7 +11,7 @@ import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
-  it('keeps legacy calls while listing only the two consolidated MCP envelopes', () => {
+  it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
     expect(ALL_TOOLS).toHaveLength(217);
     expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(147);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);

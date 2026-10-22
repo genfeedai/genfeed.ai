@@ -267,4 +267,4 @@ create/reuse, edit, Library attach, quote, approval, single execution, replay,
 scene routing, and fail-closed cases with no Knowledge, publishing, or direct
 generation calls). It does not record a passed live client row.
 
-The four original MCP operation names remain callable as unlisted aliases during catalog revision 1. Catalog revision 2 returns replacement guidance. Agent and CLI identities remain unchanged. The mixed default has at most 25 tools, directory 19, and Claude 30; the full canonical MCP catalog has 143. The separate read-only profile and broader catalog targets remain future work.
+The four former MCP call names are removed and immediately return canonical action/input replacement guidance. External integrations must update. Agent and CLI identities remain unchanged. The mixed default has at most 25 tools, directory 19, and Claude 30; the full canonical MCP catalog has 143. The separate read-only profile and broader catalog targets remain future work.

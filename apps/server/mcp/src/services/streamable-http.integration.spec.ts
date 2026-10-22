@@ -118,7 +118,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
     }
   }
 
-  it('lists only canonical names and calls all four canonical and legacy operations over both real SDK transports', async () => {
+  it('lists canonical tools, executes their branches and rejects retired names over both SDK transports', async () => {
     const list = vi
       .spyOn(ClientService.prototype, 'listSchedulerCapabilities')
       .mockResolvedValue([{ platform: 'youtube' }]);
@@ -182,9 +182,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
                 name: operation.canonicalName,
                 arguments: { action: operation.action, input },
               },
-              { name: operation.executionName, arguments: input },
             ];
-            const results = [];
             for (const call of calls) {
               for (const method of methods) method.mockClear();
               const modern = await postModern(baseUrl, 'tools/call', call, {
@@ -210,9 +208,28 @@ describe('StreamableHttpService (real SDK integration)', () => {
               expect(legacy.structuredContent).toEqual(
                 modern.body.result.structuredContent,
               );
-              results.push(modern.body.result);
             }
-            expect(results[0]).toEqual(results[1]);
+            for (const method of methods) method.mockClear();
+            const retiredCall = {
+              name: operation.executionName,
+              arguments: input,
+            };
+            const rejectedModern = await postModern(
+              baseUrl,
+              'tools/call',
+              retiredCall,
+              {
+                Authorization: 'Bearer fixture-auth',
+              },
+            );
+            const rejectedLegacy = await client.callTool(retiredCall);
+            for (const result of [rejectedModern.body.result, rejectedLegacy]) {
+              expect(result.isError).toBe(true);
+              expect(JSON.stringify(result)).toContain(
+                `${operation.canonicalName}(action=${operation.action})`,
+              );
+            }
+            expect(methodsCallCount()).toBe(0);
           }
           expect(approval).not.toHaveBeenCalled();
           for (const operation of ['check_channel', 'upload_media'].flatMap(

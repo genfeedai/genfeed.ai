@@ -6,7 +6,7 @@ import {
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { describe, expect, it } from 'vitest';
 
-const LEGACY_MCP_ALIASES = new Set([
+const RETIRED_MCP_TOOL_NAMES = new Set([
   'get_scheduler_capabilities',
   'validate_scheduler_target',
   'request_media_upload',
@@ -18,15 +18,18 @@ const eligible = CURATED_ACTION_CATALOG.filter((entry) =>
 
 describe('curated MCP action catalog', () => {
   it('lists exactly the actions reviewed for MCP', () => {
-    const expected = eligible.filter((name) => !LEGACY_MCP_ALIASES.has(name));
+    const expected = eligible.filter(
+      (name) => !RETIRED_MCP_TOOL_NAMES.has(name),
+    );
     const actual = getToolsForSurface('mcp').map((tool) => tool.name);
 
     expect(eligible).toHaveLength(147);
     expect(actual).toHaveLength(143);
     expect(
-      eligible.filter((name) => LEGACY_MCP_ALIASES.has(name)).sort(),
-    ).toEqual([...LEGACY_MCP_ALIASES].sort());
-    for (const alias of LEGACY_MCP_ALIASES) expect(actual).not.toContain(alias);
+      eligible.filter((name) => RETIRED_MCP_TOOL_NAMES.has(name)).sort(),
+    ).toEqual([...RETIRED_MCP_TOOL_NAMES].sort());
+    for (const retiredName of RETIRED_MCP_TOOL_NAMES)
+      expect(actual).not.toContain(retiredName);
     expect(actual).toEqual(expected);
   });
 

@@ -4,7 +4,7 @@ import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test } from '@nestjs/testing';
 
-const state = vi.hoisted(() => ({ revision: 1, deniedName: '' }));
+const state = vi.hoisted(() => ({ deniedName: '' }));
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
@@ -15,12 +15,9 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
         ? { ...tool, requiredRole: 'admin' as const }
         : tool;
     },
-    resolveMcpCatalogCall: (name: string, args: Record<string, unknown>) =>
-      actual.resolveMcpCatalogCall(name, args, state.revision),
   };
 });
 beforeEach(() => {
-  state.revision = 1;
   state.deniedName = '';
 });
 const operations = ['check_channel', 'upload_media'].flatMap(
@@ -77,7 +74,28 @@ const inputs: Record<string, Record<string, unknown>> = {
   complete: { assetId: 'asset' },
 };
 
-describe('real MCP alias dispatch', () => {
+describe('canonical MCP dispatch and immediate retirement', () => {
+  it.each(operations)(
+    'rejects retired $executionName immediately without effects',
+    async (operation) => {
+      const { registry, client, module } = await build();
+      try {
+        const result = await registry.handleToolCall({
+          name: operation.executionName,
+          arguments: inputs[operation.action],
+        });
+        expect(result).toMatchObject({ isError: true });
+        expect(JSON.stringify(result)).toContain(
+          `${operation.canonicalName}(action=${operation.action})`,
+        );
+        for (const method of Object.values(client))
+          expect(method).not.toHaveBeenCalled();
+      } finally {
+        await module.close();
+      }
+    },
+  );
+
   it.each(operations)(
     'executes $canonicalName $action exactly as $executionName',
     async (operation) => {
@@ -94,34 +112,15 @@ describe('real MCP alias dispatch', () => {
           client.validateSchedulerTarget,
           client.executeAgentTool,
         ];
-        const canonicalCalls = methods.map((method) =>
-          structuredClone(method.mock.calls),
-        );
-        const gateCalls = structuredClone(
-          client.evaluateMcpToolResult.mock.calls,
-        );
-        for (const method of [...methods, client.evaluateMcpToolResult])
-          method.mockClear();
+        expect(canonical).not.toMatchObject({ isError: true });
         expect(logger.warn).not.toHaveBeenCalled();
-        const legacy = await registry.handleToolCall({
-          name: operation.executionName,
-          arguments: args,
-        });
-        expect(canonical).toEqual(legacy);
-        expect(methods.map((method) => method.mock.calls)).toEqual(
-          canonicalCalls,
-        );
         expect(
           methods.reduce(
             (count, method) => count + method.mock.calls.length,
             0,
           ),
         ).toBe(1);
-        expect(client.evaluateMcpToolResult.mock.calls).toEqual(gateCalls);
         expect(client.createApproval).not.toHaveBeenCalled();
-        expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
-          `Deprecated MCP tool ${operation.executionName}; use ${operation.canonicalName}(action=${operation.action}); catalog revision 1.`,
-        );
         if (operation.canonicalName === 'upload_media') {
           expect(client.executeAgentTool).toHaveBeenCalledExactlyOnceWith(
             operation.executionName,
@@ -156,15 +155,10 @@ describe('real MCP alias dispatch', () => {
         name: 'upload_media',
         arguments: { action: 'complete', input: inputs.complete },
       });
-      const legacy = await registry.handleToolCall({
-        name: 'complete_media_upload',
-        arguments: inputs.complete,
-      });
-      expect(canonical).toEqual(legacy);
       expect(canonical).toMatchObject({
         structuredContent: { artifact: { kind: 'video' }, creditsDebited: 0 },
       });
-      expect(client.executeAgentTool).toHaveBeenCalledTimes(2);
+      expect(client.executeAgentTool).toHaveBeenCalledTimes(1);
       expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
       expect(client.createApproval).not.toHaveBeenCalled();
       expect(fetcher).not.toHaveBeenCalled();
@@ -192,11 +186,6 @@ describe('real MCP alias dispatch', () => {
             input: inputs[operation.action],
           },
         });
-        const legacy = await registry.handleToolCall({
-          name: operation.executionName,
-          arguments: inputs[operation.action],
-        });
-        expect(canonical).toEqual(legacy);
         expect(canonical).toMatchObject({ isError: true });
         expect(JSON.stringify(canonical)).toContain(
           'Original API denied operation',
@@ -209,15 +198,15 @@ describe('real MCP alias dispatch', () => {
     },
   );
 
-  it('keeps fixed alias action despite an inner action and permits calls outside listed toolsets', async () => {
+  it('keeps fixed canonical action despite an inner action and permits calls outside listed toolsets', async () => {
     const { registry, client, module } = await build();
     try {
       expect(registry.getTools().map((tool) => tool.name)).not.toContain(
         'check_channel',
       );
       await registry.handleToolCall({
-        name: 'get_scheduler_capabilities',
-        arguments: { action: 'validate' },
+        name: 'check_channel',
+        arguments: { action: 'capabilities', input: { action: 'validate' } },
       });
       expect(client.listSchedulerCapabilities).toHaveBeenCalledTimes(1);
       expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
@@ -255,11 +244,6 @@ describe('real MCP alias dispatch', () => {
           name: operation.canonicalName,
           arguments: { action, input: args },
         });
-        const legacy = await registry.handleToolCall({
-          name: operation.executionName,
-          arguments: args,
-        });
-        expect(canonical).toEqual(legacy);
         expect(canonical).toMatchObject({ isError: true });
       }
       expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
@@ -314,8 +298,7 @@ describe('real MCP alias dispatch', () => {
     },
   );
 
-  it('retires authorized aliases before client work and keeps denied aliases nonrevealing', async () => {
-    state.revision = 2;
+  it('rejects authorized retired names before work and keeps denied names nonrevealing', async () => {
     for (const mode of ['standard', 'claude'] as const) {
       const { registry, client, logger, module } = await build(mode);
       try {
@@ -326,7 +309,9 @@ describe('real MCP alias dispatch', () => {
           });
           expect(result).toMatchObject({ isError: true });
           if (mode === 'claude' && operation.canonicalName === 'upload_media') {
-            expect(JSON.stringify(result)).not.toContain('catalog revision');
+            expect(JSON.stringify(result)).not.toContain(
+              'upload_media(action=',
+            );
           } else {
             expect(JSON.stringify(result)).toContain(
               `${operation.canonicalName}(action=${operation.action})`,
@@ -358,18 +343,20 @@ describe('real MCP alias dispatch', () => {
             operation.canonicalName,
             operation.executionName,
           ]) {
-            expect(
-              await registry.handleToolCall({
-                name,
-                arguments:
-                  name === operation.canonicalName
-                    ? {
-                        action: operation.action,
-                        input: inputs[operation.action],
-                      }
-                    : inputs[operation.action],
-              }),
-            ).toMatchObject({ isError: true });
+            const rejected = await registry.handleToolCall({
+              name,
+              arguments:
+                name === operation.canonicalName
+                  ? {
+                      action: operation.action,
+                      input: inputs[operation.action],
+                    }
+                  : inputs[operation.action],
+            });
+            expect(rejected).toMatchObject({ isError: true });
+            expect(JSON.stringify(rejected)).not.toContain(
+              `${operation.canonicalName}(action=${operation.action})`,
+            );
           }
         }
         expect(client.executeAgentTool).not.toHaveBeenCalled();
@@ -403,7 +390,7 @@ describe('real MCP alias dispatch', () => {
                   : 'validate'
               ],
           }),
-        ).not.toMatchObject({ isError: true });
+        ).toMatchObject({ isError: true });
       }
     } finally {
       await module.close();

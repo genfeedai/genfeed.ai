@@ -1,4 +1,4 @@
-import { getMcpCatalogAlias } from './mcp-catalog-calls';
+import { getRetiredMcpCatalogTool } from './mcp-catalog-calls';
 /** Endpoint and OAuth grant policy, independent of the client's reported name. */
 export type McpAccessMode = 'standard' | 'claude';
 
@@ -70,7 +70,7 @@ export function isToolAllowedInMcpAccessMode(
       : CLAUDE_MCP_TOOL_NAMES
     ).has(
       surface === 'mcp'
-        ? (getMcpCatalogAlias(name)?.canonicalName ?? name)
+        ? (getRetiredMcpCatalogTool(name)?.canonicalName ?? name)
         : name,
     )
   );

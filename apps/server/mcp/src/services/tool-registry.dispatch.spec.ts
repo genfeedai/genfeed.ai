@@ -19,6 +19,15 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
     ...actual,
+    get ALL_TOOLS() {
+      return [
+        ...actual.ALL_TOOLS,
+        ...mockState.tools.map((tool) => ({
+          ...tool,
+          surfaces: { mcp: true },
+        })),
+      ];
+    },
     getToolByName: vi.fn(),
     getToolsForSurface: vi.fn(
       (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>

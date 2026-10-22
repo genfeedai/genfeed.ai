@@ -29,7 +29,6 @@ export type {
 } from './interfaces/action-execution.interface';
 export { GENFEED_ACTION_NODE_TYPE } from './interfaces/action-execution.interface';
 export type {
-  McpCatalogAlias,
   McpCatalogCanonicalName,
   McpCatalogOperation,
   ResolvedMcpCatalogCall,
@@ -104,10 +103,9 @@ export {
   readMcpBrandId,
 } from './registry/mcp-brand-required';
 export {
-  getMcpCatalogAlias,
   getMcpCatalogOperations,
+  getRetiredMcpCatalogTool,
   isMcpListedToolName,
-  MCP_CATALOG_REVISION,
   resolveMcpCatalogCall,
   validateMcpCatalogBindings,
 } from './registry/mcp-catalog-calls';
