@@ -222,7 +222,7 @@ export class OnboardingDraftRunsService {
       ],
       skipDuplicates: true,
     });
-    return this.latest(user, brandId);
+    return { id, status: 'complete', result, verdicts: {} };
   }
 
   async execute(

@@ -239,6 +239,7 @@ describe('OnboardingDraftRunsService', () => {
       },
     ]);
     const run = await service.latest(user, 'brand-1');
+    expect(prisma.contentRun.findFirst).toHaveBeenCalledTimes(1);
     expect(run?.result?.drafts[0].postId).toBe('post-1');
     expect(prisma.contentRun.createMany).toHaveBeenCalledWith(
       expect.objectContaining({ skipDuplicates: true }),
