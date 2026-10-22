@@ -232,6 +232,16 @@ export class KnowledgeCaptureService {
     actor: KnowledgeActor,
     sourceId: string,
   ): Promise<KnowledgeVersionIngestResult> {
+    const candidate = await this.records.retryManualCandidate(actor, sourceId);
+    if (candidate) {
+      const jobId = await this.ingestWorkflow.enqueueIngest({
+        organizationId: actor.organizationId,
+        initiatingActor: toKnowledgeWorkflowActor(actor),
+        sourceId,
+        versionId: candidate.id,
+      });
+      return { jobId, version: candidate };
+    }
     const current = await this.records.getCurrentVersion(actor, sourceId);
     if (current.processingState === KnowledgeProcessingState.READY) {
       throw new BadRequestException(

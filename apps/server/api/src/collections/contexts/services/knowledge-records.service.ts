@@ -609,23 +609,23 @@ export class KnowledgeRecordsService {
         },
         orderBy: { version: 'desc' },
       });
-      const id = randomUUID();
-      await tx.knowledgeSourceVersion.updateMany({
-        where: {
+      const current = await tx.knowledgeSourceVersion.findFirst({
+        where: scopedWhere(actor.organizationId, {
           sourceId,
-          organizationId: actor.organizationId,
-          isDeleted: false,
           isCurrent: true,
-          source: { is: await this.ownership(actor) },
-        },
-        data: {
-          isCurrent: false,
-          retrievalState: KnowledgeRetrievalState.SUPERSEDED,
-          supersededByVersionId: id,
-        },
+          source: { is: await this.ownership(actor, tx) },
+        }),
       });
-      return tx.knowledgeSourceVersion.create({
+      await this.embeddingCompletion.assertManualAdmission(
+        tx,
+        actor.organizationId,
+        sourceId,
+      );
+      const id = randomUUID();
+      const version = await tx.knowledgeSourceVersion.create({
         data: {
+          isCurrent: !current,
+          processingState: KnowledgeProcessingState.QUEUED,
           id,
           sourceId,
           organizationId: actor.organizationId,
@@ -647,6 +647,26 @@ export class KnowledgeRecordsService {
           retentionPolicy: dto.retentionPolicy ?? KnowledgeRetentionPolicy.KEEP,
         },
       });
+      if (current)
+        await this.embeddingCompletion.fenceManualCandidate(
+          tx,
+          actor.organizationId,
+          sourceId,
+          version.id,
+          current.id,
+        );
+      return version;
+    });
+  }
+
+  async retryManualCandidate(actor: KnowledgeActor, sourceId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockSource(tx, actor, sourceId);
+      return this.embeddingCompletion.retryManualCandidate(
+        tx,
+        actor.organizationId,
+        sourceId,
+      );
     });
   }
 

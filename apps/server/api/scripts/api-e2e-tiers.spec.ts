@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   closeContextEmbeddingResources,
+  inspectContextEmbeddingTransport,
   resolvePrismaMigrationTools,
   validateContextEmbeddingRuntime,
 } from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
@@ -532,6 +533,7 @@ describe('context embedding owner tools and partial startup cleanup', () => {
         redisPrefix: runtime.prefix,
         redisNamespaceAttempted: false,
         redisKeysRemaining: null,
+        queuesClosed: null,
         applicationClosed: null,
         databaseClientDisconnected: null,
         loopbackServerClosed: null,
@@ -554,5 +556,63 @@ describe('context embedding owner tools and partial startup cleanup', () => {
     if (!(result instanceof AggregateError))
       throw new Error('Expected retained cleanup causes');
     expect(result.errors).toEqual([failure]);
+  });
+});
+
+describe('context embedding ancillary and queue containment', () => {
+  const url = new URL('redis://localhost:6379/0');
+  const prefix =
+    'context-embedding-acceptance-00000000-0000-4000-8000-000000000000';
+  const connection = { host: 'localhost', port: 6379, db: 0 };
+
+  it('records actual explicit dedicated transport fields', () => {
+    expect(
+      inspectContextEmbeddingTransport(connection, prefix, url, prefix),
+    ).toEqual({ ...connection, prefix });
+  });
+
+  it.each([
+    [undefined, prefix],
+    [{ options: connection }, prefix],
+    [{ ...connection, host: 'foreign.example' }, prefix],
+    [{ ...connection, port: 6380 }, prefix],
+    [{ ...connection, db: 1 }, prefix],
+    [{ host: 'localhost', port: 6379 }, prefix],
+    [connection, undefined],
+    [connection, 'bull'],
+    [connection, prefix + '-foreign'],
+  ])(
+    'rejects missing, uninspectable, foreign or default transport %j/%j',
+    (actual, actualPrefix) => {
+      expect(() =>
+        inspectContextEmbeddingTransport(actual, actualPrefix, url, prefix),
+      ).toThrow('Uninspectable or foreign');
+    },
+  );
+
+  it('uses the actual production global membership module and an explicitly unavailable nonauthorization cache transport', async () => {
+    const { ContextEmbeddingRuntime, UNAVAILABLE_EMBEDDING_CACHE_TRANSPORT } =
+      await import(
+        '@api-test/integration/context-embedding/context-embedding-runtime.fixture'
+      );
+    const { SharedModule } = await import('@api/shared/shared.module');
+    const { MembersModule } = await import(
+      '@api/collections/members/members.module'
+    );
+    const { ContextEmbeddingCoreModule } = await import(
+      '@api/collections/contexts/context-embedding-core.module'
+    );
+    expect(ContextEmbeddingRuntime.applicationImports).toEqual([
+      SharedModule,
+      ContextEmbeddingCoreModule,
+    ]);
+    expect(Reflect.getMetadata('__module:global__', SharedModule)).toBe(true);
+    expect(Reflect.getMetadata('imports', SharedModule)).toContain(
+      MembersModule,
+    );
+    expect(UNAVAILABLE_EMBEDDING_CACHE_TRANSPORT.isReady).toBe(false);
+    expect(() => UNAVAILABLE_EMBEDDING_CACHE_TRANSPORT.instance).toThrow(
+      'Unexpected raw access',
+    );
   });
 });

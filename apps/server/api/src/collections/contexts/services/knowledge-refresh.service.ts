@@ -41,6 +41,7 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { KnowledgeSourceRefreshPolicyRequest } from '@genfeedai/contracts/interfaces';
+import type { KnowledgeSourceRefreshRun } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
@@ -431,6 +432,28 @@ export class KnowledgeRefreshService {
     });
   }
 
+  private async isAdmittedManualCandidate(
+    actor: KnowledgeActor,
+    sourceId: string,
+    run: KnowledgeSourceRefreshRun,
+  ): Promise<boolean> {
+    if (
+      !run.candidateVersionId ||
+      run.tickKey !== 'manual-version:' + run.candidateVersionId
+    )
+      return false;
+    const candidate = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: scopedWhere(actor.organizationId, {
+        id: run.candidateVersionId,
+        sourceId,
+      }),
+      select: { id: true },
+    });
+    if (!candidate)
+      throw new BadRequestException('Manual candidate is no longer available');
+    return true;
+  }
+
   private async claimRun(
     actor: KnowledgeActor,
     source: { id: string; organizationId: string },
@@ -443,6 +466,11 @@ export class KnowledgeRefreshService {
       }),
     });
     if (existing) {
+      if (await this.isAdmittedManualCandidate(actor, source.id, existing))
+        return {
+          existingJobId: existing.candidateVersionId ?? existing.id,
+          runId: existing.id,
+        };
       // A failed run for this tick is retried; a live or completed one is
       // reported as-is. The claim is compare-and-set, so only one caller
       // re-executes a given run.
@@ -470,6 +498,11 @@ export class KnowledgeRefreshService {
       }),
     });
     if (unfinished) {
+      if (await this.isAdmittedManualCandidate(actor, source.id, unfinished))
+        return {
+          existingJobId: unfinished.candidateVersionId ?? unfinished.id,
+          runId: unfinished.id,
+        };
       if (
         await this.takeOverRun(actor.organizationId, source.id, unfinished.id, {
           isFailedReclaimable: false,

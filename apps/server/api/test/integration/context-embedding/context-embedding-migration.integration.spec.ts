@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
@@ -9,6 +9,13 @@ import {
   verifyPgvector,
 } from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
 import { describe, expect, it } from 'vitest';
+
+interface LegacyKnowledgeEvidence {
+  contentHash: string;
+  provenance: unknown;
+  payload: unknown;
+  retentionState: string;
+}
 
 describe('actual predecessor migration upgrade', () => {
   it('deploys the complete real predecessor history, preserves legacy vector bytes and citations, and adds no historical jobs', async () => {
@@ -25,6 +32,9 @@ describe('actual predecessor migration upgrade', () => {
       const version = randomUUID();
       const entry = randomUUID();
       const missing = randomUUID();
+      const legacyText = 'legacy searchable citation';
+      const legacyContentHash =
+        'sha256:' + createHash('sha256').update(legacyText).digest('hex');
       await client.query(
         `INSERT INTO users (id,handle,"updatedAt") VALUES ($1,$1,clock_timestamp())`,
         [user],
@@ -51,15 +61,22 @@ describe('actual predecessor migration upgrade', () => {
         [source, org, user],
       );
       await client.query(
-        `INSERT INTO knowledge_source_versions (id,"organizationId","sourceId",version,"contentHash","processingState","observedAt","updatedAt") VALUES ($1,$2,$3,1,'legacy-content','READY',clock_timestamp(),clock_timestamp())`,
-        [version, org, source],
+        `INSERT INTO knowledge_source_versions (id,"organizationId","sourceId",version,"contentHash","processingState","observedAt","updatedAt","provenance","payload") VALUES ($1,$2,$3,1,$6,'READY',clock_timestamp(),clock_timestamp(),$4::jsonb,$5::jsonb)`,
+        [
+          version,
+          org,
+          source,
+          JSON.stringify({ kind: 'TEXT', fixture: 'legacy upgrade evidence' }),
+          JSON.stringify({ text: legacyText }),
+          legacyContentHash,
+        ],
       );
       const embedding =
         '[' +
         Array.from({ length: 1024 }, (_, i) => (i === 0 ? 1 : 0)).join(',') +
         ']';
       const data = {
-        content: 'legacy searchable citation',
+        content: legacyText,
         metadata: { sourceId: source, versionId: version, chunkIndex: 0 },
       };
       await client.query(
@@ -73,6 +90,10 @@ describe('actual predecessor migration upgrade', () => {
       const before = await client.query<{ bytes: string }>(
         `SELECT encode(vector_send(embedding),'hex') AS bytes FROM context_entries WHERE id=$1 AND "organizationId"=$2`,
         [entry, org],
+      );
+      const legacyEvidenceBefore = await client.query<LegacyKnowledgeEvidence>(
+        'SELECT "contentHash","provenance","payload","retentionState" FROM knowledge_source_versions WHERE id=$1 AND "organizationId"=$2',
+        [version, org],
       );
       await deployRealMigrations('upgrade');
       const inventory = await assertRealMigrationLedger(client);
@@ -92,6 +113,19 @@ describe('actual predecessor migration upgrade', () => {
         embeddingStoredGeneration: 0,
         sourceSnapshotHash: null,
       });
+      const legacyEvidenceAfter = await client.query<LegacyKnowledgeEvidence>(
+        'SELECT "contentHash","provenance","payload","retentionState" FROM knowledge_source_versions WHERE id=$1 AND "organizationId"=$2',
+        [version, org],
+      );
+      expect(legacyEvidenceBefore.rows).toEqual([
+        {
+          contentHash: legacyContentHash,
+          provenance: { kind: 'TEXT', fixture: 'legacy upgrade evidence' },
+          payload: { text: 'legacy searchable citation' },
+          retentionState: 'RETAINED',
+        },
+      ]);
+      expect(legacyEvidenceAfter.rows).toEqual(legacyEvidenceBefore.rows);
       const hits = await client.query<{
         id: string;
         sourceId: string;
@@ -170,8 +204,15 @@ describe('actual predecessor migration upgrade', () => {
       );
       const newVersion = randomUUID();
       await client.query(
-        `INSERT INTO knowledge_source_versions (id,"organizationId","sourceId",version,"contentHash","observedAt","updatedAt","isCurrent") VALUES ($1,$2,$3,2,'new-content',clock_timestamp(),clock_timestamp(),false)`,
-        [newVersion, org, source],
+        `INSERT INTO knowledge_source_versions (id,"organizationId","sourceId",version,"contentHash","observedAt","updatedAt","isCurrent","provenance","payload") VALUES ($1,$2,$3,2,$6,clock_timestamp(),clock_timestamp(),false,$4::jsonb,$5::jsonb)`,
+        [
+          newVersion,
+          org,
+          source,
+          JSON.stringify({ kind: 'TEXT', fixture: 'new upgrade evidence' }),
+          JSON.stringify({ text: 'new content' }),
+          'sha256:' + createHash('sha256').update('new content').digest('hex'),
+        ],
       );
       expect(
         (
@@ -254,6 +295,7 @@ describe('actual predecessor migration upgrade', () => {
             migrationInventory: inventory,
             migrationCount: inventory.length,
             legacyVectorBytesPreserved: true,
+            legacyEvidencePreserved: legacyEvidenceAfter.rows[0],
             legacyGeneration: 0,
             historicalJobs: 0,
           },

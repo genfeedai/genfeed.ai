@@ -12,6 +12,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   KnowledgeProcessingState,
+  KnowledgeRefreshRunStatus,
   KnowledgeRetentionState,
 } from '@genfeedai/contracts';
 import {
@@ -24,6 +25,7 @@ import {
 import { stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
@@ -277,19 +279,147 @@ export class KnowledgeEmbeddingCompletionService {
     });
   }
 
+  async assertManualAdmission(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    sourceId: string,
+  ): Promise<void> {
+    const unfinished = await tx.knowledgeSourceRefreshRun.findFirst({
+      where: scopedWhere(organizationId, {
+        sourceId,
+        status: {
+          in: [
+            KnowledgeRefreshRunStatus.QUEUED,
+            KnowledgeRefreshRunStatus.PROCESSING,
+          ],
+        },
+      }),
+    });
+    if (unfinished)
+      throw new ConflictException('Knowledge source ingestion is in progress');
+  }
+
+  async fenceManualCandidate(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    sourceId: string,
+    versionId: string,
+    currentVersionId: string,
+  ): Promise<void> {
+    await tx.knowledgeSourceRefreshRun.create({
+      data: {
+        organizationId,
+        sourceId,
+        candidateVersionId: versionId,
+        expectedCurrentVersionId: currentVersionId,
+        tickKey: 'manual-version:' + versionId,
+        status: 'PROCESSING',
+      },
+    });
+  }
+
+  async retryManualCandidate(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    sourceId: string,
+  ) {
+    const latest = await tx.knowledgeSourceVersion.findFirst({
+      where: scopedWhere(organizationId, {
+        sourceId,
+      }),
+      orderBy: { version: 'desc' },
+    });
+    if (!latest || latest.isCurrent) return null;
+    const run = await tx.knowledgeSourceRefreshRun.findFirst({
+      where: scopedWhere(organizationId, {
+        sourceId,
+        candidateVersionId: latest.id,
+        tickKey: 'manual-version:' + latest.id,
+      }),
+    });
+    if (!run) return null;
+    if (run.status !== 'FAILED' || latest.processingState !== 'FAILED')
+      throw new BadRequestException('Manual candidate is still being ingested');
+    const current = await tx.knowledgeSourceVersion.findFirst({
+      where: scopedWhere(organizationId, { sourceId, isCurrent: true }),
+    });
+    if (!current || current.id !== run.expectedCurrentVersionId)
+      throw new ConflictException('Manual candidate predecessor changed');
+    const unfinished = await tx.knowledgeSourceRefreshRun.findFirst({
+      where: scopedWhere(organizationId, {
+        sourceId,
+        status: {
+          in: [
+            KnowledgeRefreshRunStatus.QUEUED,
+            KnowledgeRefreshRunStatus.PROCESSING,
+          ],
+        },
+      }),
+    });
+    if (unfinished)
+      throw new ConflictException('Knowledge source ingestion is in progress');
+    const reopened = await tx.knowledgeSourceRefreshRun.updateMany({
+      where: scopedWhere(organizationId, {
+        id: run.id,
+        sourceId,
+        candidateVersionId: latest.id,
+        expectedCurrentVersionId: current.id,
+        status: KnowledgeRefreshRunStatus.FAILED,
+      }),
+      data: {
+        status: 'PROCESSING',
+        completedAt: null,
+        error: null,
+        nextAttemptAt: null,
+      },
+    });
+    if (reopened.count !== 1)
+      throw new ConflictException('Manual candidate retry changed');
+    const data = await this.processingUpdate(
+      tx,
+      latest,
+      KnowledgeProcessingState.QUEUED,
+    );
+    return tx.knowledgeSourceVersion.update({
+      where: scopedWhere(organizationId, { id: latest.id, sourceId }),
+      data,
+    });
+  }
+
   async processingUpdate(
     tx: Prisma.TransactionClient,
     version: KnowledgeSourceVersion,
     state: KnowledgeProcessingState,
     processingError?: string,
   ): Promise<Prisma.KnowledgeSourceVersionUpdateInput> {
-    if (
-      !version.isCurrent ||
-      version.retentionState !== KnowledgeRetentionState.RETAINED
-    )
+    if (version.retentionState !== KnowledgeRetentionState.RETAINED)
       throw new BadRequestException(
         'Only a retained current version can be processed',
       );
+    if (!version.isCurrent) {
+      const run = await tx.knowledgeSourceRefreshRun.findFirst({
+        where: scopedWhere(version.organizationId, {
+          sourceId: version.sourceId,
+          candidateVersionId: version.id,
+          tickKey: 'manual-version:' + version.id,
+          status: {
+            in: [
+              KnowledgeRefreshRunStatus.QUEUED,
+              KnowledgeRefreshRunStatus.PROCESSING,
+            ],
+          },
+        }),
+      });
+      if (!run)
+        throw new BadRequestException(
+          'Only a retained current version can be processed',
+        );
+      if (state === KnowledgeProcessingState.READY)
+        throw new BadRequestException(
+          'Knowledge indexing is incomplete; sealed promotion is required',
+        );
+      await this.assertVersionEligible(tx, version);
+    }
     const allowed: Record<
       KnowledgeProcessingState,
       readonly KnowledgeProcessingState[]
@@ -441,7 +571,12 @@ export class KnowledgeEmbeddingCompletionService {
           sourceId: version.sourceId,
           candidateVersionId: version.id,
           isDeleted: false,
-          status: { in: ['QUEUED', 'PROCESSING'] },
+          status: {
+            in: [
+              KnowledgeRefreshRunStatus.QUEUED,
+              KnowledgeRefreshRunStatus.PROCESSING,
+            ],
+          },
         },
       });
       const current =
@@ -519,7 +654,12 @@ export class KnowledgeEmbeddingCompletionService {
           sourceId: source.id,
           candidateVersionId: version.id,
           isDeleted: false,
-          status: { in: ['QUEUED', 'PROCESSING'] },
+          status: {
+            in: [
+              KnowledgeRefreshRunStatus.QUEUED,
+              KnowledgeRefreshRunStatus.PROCESSING,
+            ],
+          },
         },
         data: { completedAt: now, outcome: 'CHANGED', status: 'COMPLETED' },
       });
@@ -666,13 +806,18 @@ export class KnowledgeEmbeddingCompletionService {
           sourceId: source.id,
           candidateVersionId: version.id,
           isDeleted: false,
-          status: { in: ['QUEUED', 'PROCESSING'] },
+          status: {
+            in: [
+              KnowledgeRefreshRunStatus.QUEUED,
+              KnowledgeRefreshRunStatus.PROCESSING,
+            ],
+          },
         },
         data: {
           completedAt: now,
           error,
           nextAttemptAt: next,
-          status: 'FAILED',
+          status: KnowledgeRefreshRunStatus.FAILED,
         },
       });
       await tx.knowledgeSource.updateMany({

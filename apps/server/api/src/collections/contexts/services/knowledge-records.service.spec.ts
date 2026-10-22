@@ -24,7 +24,7 @@ import {
   KnowledgeSourcePurpose,
   MemberRole,
 } from '@genfeedai/contracts';
-import { PrismaClient } from '@genfeedai/prisma';
+import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { Request } from 'express';
@@ -250,6 +250,9 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         records.createVersion(denied, source.id, capture),
       ).rejects.toMatchObject({ status: 404 });
       await expect(
+        records.retryManualCandidate(denied, source.id),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
         records.purgeVersion(denied, source.id, version.id),
       ).rejects.toMatchObject({ status: denied === otherTenant ? 403 : 404 });
       expect((await records.listSources(denied)).docs).toHaveLength(0);
@@ -427,33 +430,42 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
 
   it('serializes concurrent versions and preserves historical receipts after supersession and purge', async () => {
     const source = await createSource();
-    const versions = await Promise.all(
+    const historical = await records.createVersion(actor, source.id, capture);
+    await ready(source.id, historical.id);
+    const attempts = await Promise.allSettled(
       Array.from({ length: 4 }, (_, i) =>
         records.createVersion(actor, source.id, {
           ...capture,
-          contentHash: `sha256:${String(i).repeat(64)}`,
+          contentHash: 'sha256:' + String(i).repeat(64),
         }),
       ),
     );
-    expect(versions.map((version) => version.version).sort()).toEqual([
-      1, 2, 3, 4,
-    ]);
-    const historical = versions.find((version) => version.version === 1);
-    const current = versions.find((version) => version.version === 4);
-    if (!historical || !current) throw new Error('Missing versions');
+    const accepted = attempts.flatMap((result) =>
+      result.status === 'fulfilled' ? [result.value] : [],
+    );
+    expect(accepted).toHaveLength(1);
+    for (const result of attempts)
+      if (result.status === 'rejected')
+        expect(result.reason).toMatchObject({ status: 409 });
+    const current = accepted[0];
+    if (!current) throw new Error('Missing candidate');
+    expect(current).toMatchObject({ version: 2, isCurrent: false });
+    expect((await records.getCurrentVersion(actor, source.id)).id).toBe(
+      historical.id,
+    );
+    await ready(source.id, current.id);
     const receipt = await records.getVersion(actor, source.id, historical.id);
     expect(
       (await records.listVersions(actor, source.id)).docs.map(
         (version) => version.version,
       ),
-    ).toEqual([4, 3, 2, 1]);
+    ).toEqual([2, 1]);
     await expect(
       records.listVersions(otherBrand, source.id),
     ).rejects.toMatchObject({ status: 404 });
     expect(receipt.isCurrent).toBe(false);
     expect(receipt.retrievalState).toBe(KnowledgeRetrievalState.SUPERSEDED);
     expect(receipt.supersededByVersionId).not.toBeNull();
-    await ready(source.id, current.id);
     const purged = await records.purgeVersion(actor, source.id, historical.id);
     expect(purged).toMatchObject({
       id: receipt.id,
@@ -858,5 +870,178 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       sources.retry(request, actor, capturedId, actor.brandId),
     ).resolves.toMatchObject({ jobId: 'ingest-job' });
     expect(ingestWorkflow.enqueueIngest).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Manual version predecessor admission', () => {
+  function admission() {
+    const current = { id: 'current', version: 2, isCurrent: true };
+    const latest = {
+      id: 'historical',
+      version: 5,
+      isCurrent: false,
+      processingState: 'FAILED',
+      embeddingGeneration: 3,
+    };
+    const tx = {
+      knowledgeSource: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      knowledgeSourceVersion: {
+        findFirst: vi
+          .fn()
+          .mockImplementation(
+            async ({ where }: Prisma.KnowledgeSourceVersionFindFirstArgs) =>
+              where?.isCurrent ? current : latest,
+          ),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        update: vi
+          .fn()
+          .mockImplementation(
+            async ({ data }: Prisma.KnowledgeSourceVersionUpdateArgs) => ({
+              ...latest,
+              ...data,
+            }),
+          ),
+        create: vi
+          .fn()
+          .mockImplementation(
+            async ({ data }: Prisma.KnowledgeSourceVersionCreateArgs) => data,
+          ),
+      },
+      knowledgeSourceRefreshRun: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'run' }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const completion = new KnowledgeEmbeddingCompletionService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(completion, 'processingUpdate').mockResolvedValue({
+      processingState: 'QUEUED',
+      processingError: null,
+    });
+    const prisma = {
+      $transaction: vi.fn(
+        async <T>(work: (transaction: typeof tx) => Promise<T>) => work(tx),
+      ),
+    };
+    const records = new KnowledgeRecordsService(
+      prisma as never,
+      { resolve: vi.fn(), assert: vi.fn() } as never,
+      completion as never,
+    );
+    return { current, latest, tx, records, completion };
+  }
+
+  it('keeps the actual predecessor current and fences a noncurrent candidate without retiring chunks', async () => {
+    const { records, tx } = admission();
+    const version = await records.createVersion(actor, 'source', capture);
+    expect(version).toMatchObject({
+      isCurrent: false,
+      processingState: 'QUEUED',
+      version: 6,
+    });
+    expect(tx.knowledgeSourceVersion.updateMany).not.toHaveBeenCalled();
+    expect(tx.knowledgeSourceRefreshRun.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        candidateVersionId: version.id,
+        expectedCurrentVersionId: 'current',
+        tickKey: 'manual-version:' + version.id,
+        status: 'PROCESSING',
+      }),
+    });
+  });
+
+  it('rejects competing unfinished work before version admission', async () => {
+    const { records, tx } = admission();
+    tx.knowledgeSourceRefreshRun.findFirst.mockResolvedValue({ id: 'busy' });
+    await expect(
+      records.createVersion(actor, 'source', capture),
+    ).rejects.toThrow('in progress');
+    expect(tx.knowledgeSourceVersion.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps the no-current initial path even with older historical numbering', async () => {
+    const { records, tx, latest } = admission();
+    tx.knowledgeSourceVersion.findFirst.mockImplementation(
+      async ({ where }: Prisma.KnowledgeSourceVersionFindFirstArgs) =>
+        where?.isCurrent ? null : latest,
+    );
+    await expect(
+      records.createVersion(actor, 'source', capture),
+    ).resolves.toMatchObject({ isCurrent: true, version: 6 });
+    expect(tx.knowledgeSourceRefreshRun.create).not.toHaveBeenCalled();
+  });
+  it('reopens the same failed manual candidate and preserves its generation for actual ingest admission', async () => {
+    const { records, tx, completion } = admission();
+    tx.knowledgeSourceRefreshRun.findFirst
+      .mockResolvedValueOnce({
+        id: 'run',
+        status: 'FAILED',
+        expectedCurrentVersionId: 'current',
+      })
+      .mockResolvedValueOnce(null);
+    await expect(
+      records.retryManualCandidate(actor, 'source'),
+    ).resolves.toMatchObject({
+      id: 'historical',
+      embeddingGeneration: 3,
+      processingState: 'QUEUED',
+    });
+    expect(tx.knowledgeSourceRefreshRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'FAILED',
+          expectedCurrentVersionId: 'current',
+          candidateVersionId: 'historical',
+        }),
+        data: expect.objectContaining({ status: 'PROCESSING', error: null }),
+      }),
+    );
+    expect(completion.processingUpdate).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ id: 'historical' }),
+      'QUEUED',
+    );
+  });
+
+  it.each(['stale-predecessor', 'competing-run', 'live-candidate', 'lost-cas'])(
+    'rejects %s manual retries without updating the version',
+    async (condition) => {
+      const { records, tx } = admission();
+      tx.knowledgeSourceRefreshRun.findFirst
+        .mockResolvedValueOnce({
+          id: 'run',
+          status: condition === 'live-candidate' ? 'PROCESSING' : 'FAILED',
+          expectedCurrentVersionId:
+            condition === 'stale-predecessor' ? 'obsolete' : 'current',
+        })
+        .mockResolvedValueOnce(
+          condition === 'competing-run' ? { id: 'other' } : null,
+        );
+      if (condition === 'lost-cas')
+        tx.knowledgeSourceRefreshRun.updateMany.mockResolvedValue({ count: 0 });
+      await expect(
+        records.retryManualCandidate(actor, 'source'),
+      ).rejects.toThrow();
+      expect(tx.knowledgeSourceVersion.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not select an older failed manual run when a newer version has no manual fence', async () => {
+    const { records, tx } = admission();
+    await expect(
+      records.retryManualCandidate(actor, 'source'),
+    ).resolves.toBeNull();
+    expect(tx.knowledgeSourceRefreshRun.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        candidateVersionId: 'historical',
+        tickKey: 'manual-version:historical',
+      }),
+    });
+    expect(tx.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
   });
 });

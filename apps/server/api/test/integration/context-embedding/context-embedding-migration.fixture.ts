@@ -71,6 +71,40 @@ export async function resolvePrismaMigrationTools(
   return { configModule, cli, version: manifest.version };
 }
 
+export interface ContextEmbeddingTransportBinding {
+  host: string;
+  port: number;
+  db: 0;
+  prefix: string;
+}
+
+export function inspectContextEmbeddingTransport(
+  connection: unknown,
+  prefix: unknown,
+  redisUrl: URL,
+  expectedPrefix: string,
+): ContextEmbeddingTransportBinding {
+  if (
+    !packageRecord(connection) ||
+    typeof connection.host !== 'string' ||
+    typeof connection.port !== 'number' ||
+    connection.host !== redisUrl.hostname ||
+    connection.port !== Number(redisUrl.port || '6379') ||
+    connection.db !== 0 ||
+    typeof prefix !== 'string' ||
+    prefix !== expectedPrefix ||
+    !expectedPrefix.startsWith('context-embedding-acceptance-')
+  ) {
+    throw new Error('Uninspectable or foreign context embedding transport');
+  }
+  return {
+    host: connection.host,
+    port: connection.port,
+    db: connection.db,
+    prefix,
+  };
+}
+
 export async function closeContextEmbeddingResources(
   closers: ReadonlyArray<() => void | Promise<void>>,
   initializationError?: unknown,

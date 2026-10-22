@@ -13,29 +13,43 @@ import { ContextEmbeddingWriteService } from '@api/collections/contexts/services
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
+import { MembersModule } from '@api/collections/members/members.module';
+import { MembersService } from '@api/collections/members/services/members.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SharedModule } from '@api/shared/shared.module';
 import {
   acceptanceEnvironment,
   assertRealMigrationLedger,
+  type ContextEmbeddingTransportBinding,
   closeContextEmbeddingResources,
   connectDedicated,
   dedicatedDatabaseUrl,
   deployRealMigrations,
+  inspectContextEmbeddingTransport,
   verifyPgvector,
 } from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
 import {
   CONTEXT_EMBEDDING_QUEUE,
   type ContextEmbeddingJobData,
+  NOTIFICATION_DELIVERY_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
-import { BullModule, getQueueToken } from '@nestjs/bullmq';
+import {
+  BullModule,
+  getQueueToken,
+  getSharedConfigToken,
+} from '@nestjs/bullmq';
+import { ModulesContainer } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ContextEmbeddingProcessor } from '@workers/processors/api/queues/context-embedding/context-embedding.processor';
 import axios from 'axios';
-import type { Queue } from 'bullmq';
+import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 
 const command = promisify(execFile);
@@ -225,9 +239,35 @@ export interface ContextEmbeddingCleanupReceipt {
   applicationClosed: boolean | null;
   databaseClientDisconnected: boolean | null;
   loopbackServerClosed: boolean | null;
+  queuesClosed: number | null;
+}
+
+export const UNAVAILABLE_EMBEDDING_CACHE_TRANSPORT = Object.freeze({
+  isReady: false,
+  get instance(): never {
+    throw new Error(
+      'Unexpected raw access to unavailable ancillary cache transport',
+    );
+  },
+});
+
+export interface ContextEmbeddingQueueBinding
+  extends ContextEmbeddingTransportBinding {
+  token: string;
+  name: string;
 }
 
 export class ContextEmbeddingRuntime {
+  static readonly applicationImports = Object.freeze([
+    SharedModule,
+    ContextEmbeddingCoreModule,
+  ]);
+  readonly actualQueues = new Set<Queue>();
+  readonly queueContainment: ContextEmbeddingQueueBinding[] = [];
+  workerContainment?: ContextEmbeddingTransportBinding;
+  ancillaryCacheMode?: string;
+  ancillaryPubsubMode?: string;
+  private applicationConstructionAttempted = false;
   readonly prefix = 'context-embedding-acceptance-' + randomUUID();
   readonly transport = new LoopbackEmbeddings();
   readonly events: Array<{ message: string; fields: unknown }> = [];
@@ -279,6 +319,10 @@ export class ContextEmbeddingRuntime {
       NODE_ENV: 'test',
       GENFEED_CLOUD: 'true',
       OPENROUTER_API_KEY: 'context-embedding-loopback-only',
+      REDIS_QUEUE_URL: this.redisUrl.toString(),
+      REDIS_QUEUE_DB: '0',
+      REDIS_CACHE_URL: this.redisUrl.toString(),
+      REDIS_CACHE_DB: '0',
       REDIS_HOST: this.redisUrl.hostname,
       REDIS_PORT: this.redisUrl.port || '6379',
     };
@@ -332,22 +376,25 @@ export class ContextEmbeddingRuntime {
   async startWorker(): Promise<void> {
     this.databaseConnectionAttempted = true;
     await this.db.$connect();
+    const connection = {
+      host: this.redisUrl.hostname,
+      port: Number(this.redisUrl.port || '6379'),
+      db: 0,
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: false,
+    };
+    this.applicationConstructionAttempted = true;
     this.app = await Test.createTestingModule({
       imports: [
-        BullModule.forRoot({
-          prefix: this.prefix,
-          connection: {
-            host: this.redisUrl.hostname,
-            port: Number(this.redisUrl.port || 6379),
-            db: 0,
-            maxRetriesPerRequest: null,
-            enableOfflineQueue: false,
-          },
-        }),
-        ContextEmbeddingCoreModule,
+        BullModule.forRoot({ prefix: this.prefix, connection }),
+        ...ContextEmbeddingRuntime.applicationImports,
       ],
       providers: [ContextEmbeddingProcessor],
     })
+      .overrideProvider(getSharedConfigToken())
+      .useValue({ prefix: this.prefix, connection })
+      .overrideProvider(CacheClientService)
+      .useValue(UNAVAILABLE_EMBEDDING_CACHE_TRANSPORT)
       .overrideProvider(ConfigService)
       .useValue(this.config)
       .overrideProvider(PrismaService)
@@ -359,16 +406,81 @@ export class ContextEmbeddingRuntime {
       .overrideProvider(HttpService)
       .useValue(this.transport.http())
       .compile();
-    await this.app.init();
-    const worker = this.app.get(ContextEmbeddingProcessor).worker;
     const recordQueueError = (error: Error) => {
       if (!this.redisOutageExpected)
         this.unexpectedQueueErrors.push(error.name);
     };
+    const names = new Set<string>();
+    const currentQueues = new Set<Queue>();
+    for (const module of this.app.get(ModulesContainer).values()) {
+      for (const [token, wrapper] of module.providers) {
+        const instance: unknown = wrapper.instance;
+        if (
+          typeof token === 'string' &&
+          token.startsWith('BullQueue_') &&
+          !(instance instanceof Queue)
+        )
+          throw new Error('Non-real queue provider ' + token);
+        if (!(instance instanceof Queue)) continue;
+        this.actualQueues.add(instance);
+        currentQueues.add(instance);
+        const binding = inspectContextEmbeddingTransport(
+          instance.opts.connection,
+          instance.opts.prefix,
+          this.redisUrl,
+          this.prefix,
+        );
+        this.queueContainment.push({
+          token: String(token),
+          name: instance.name,
+          ...binding,
+        });
+        names.add(instance.name);
+        instance.on('error', recordQueueError);
+      }
+    }
+    if (
+      !names.has(CONTEXT_EMBEDDING_QUEUE) ||
+      !names.has(NOTIFICATION_DELIVERY_QUEUE)
+    )
+      throw new Error(
+        'Embedding and notification delivery queues must both be real and contained',
+      );
+    await Promise.all(
+      [...currentQueues].map((queue) => queue.waitUntilReady()),
+    );
+    if (
+      this.app.get<unknown>(CacheClientService) !==
+        UNAVAILABLE_EMBEDDING_CACHE_TRANSPORT ||
+      !(this.app.get(CacheService) instanceof CacheService) ||
+      !(this.app.get(MembersService) instanceof MembersService)
+    )
+      throw new Error(
+        'Real cache-miss and membership service composition required',
+      );
+    this.ancillaryCacheMode =
+      'unavailable-transport; real cache-miss data and authorization';
+    const imports: unknown = Reflect.getMetadata('imports', SharedModule);
+    if (!Array.isArray(imports) || !imports.includes(MembersModule))
+      throw new Error('Actual SharedModule membership ownership required');
+    await this.app.init();
+    const worker = this.app.get(ContextEmbeddingProcessor).worker;
     worker.on('error', recordQueueError);
-    this.queue.on('error', recordQueueError);
     await worker.waitUntilReady();
+    this.workerContainment = inspectContextEmbeddingTransport(
+      worker.opts.connection,
+      worker.opts.prefix,
+      this.redisUrl,
+      this.prefix,
+    );
+    if (this.app.get(RedisService).getPublisher() !== null)
+      throw new Error(
+        'Ancillary pubsub must remain disabled by absent base Redis URL',
+      );
+    this.ancillaryPubsubMode =
+      'disabled by absent base Redis URL; no pubsub parity evidence';
   }
+
   get writer() {
     return this.app.get(ContextEmbeddingWriteService);
   }
@@ -568,32 +680,44 @@ export class ContextEmbeddingRuntime {
 
   private async closeOpenedResources(): Promise<ContextEmbeddingCleanupReceipt> {
     this.transport.releaseAll();
-    let applicationClosed: boolean | null = this.app ? false : null;
-    let databaseClientDisconnected: boolean | null = this
-      .databaseConnectionAttempted
-      ? false
-      : null;
-    let loopbackServerClosed: boolean | null = this.transportOpenAttempted
-      ? false
-      : null;
-    let redisKeysRemaining: number | null = null;
+    const receipt: ContextEmbeddingCleanupReceipt = {
+      startupCompleted: this.startupCompleted,
+      redisPrefix: this.prefix,
+      redisNamespaceAttempted: this.namespaceAttempted,
+      redisKeysRemaining: null,
+      queuesClosed: this.actualQueues.size ? 0 : null,
+      applicationClosed: this.app ? false : null,
+      databaseClientDisconnected: this.databaseConnectionAttempted
+        ? false
+        : null,
+      loopbackServerClosed: this.transportOpenAttempted ? false : null,
+    };
     await closeContextEmbeddingResources([
       async () => {
         if (this.app) {
           await this.app.close();
-          applicationClosed = true;
+          receipt.applicationClosed = true;
         }
+      },
+      async () => {
+        await closeContextEmbeddingResources(
+          [...this.actualQueues].map((queue) => async () => {
+            await queue.close();
+          }),
+        );
+        if (this.actualQueues.size)
+          receipt.queuesClosed = this.actualQueues.size;
       },
       async () => {
         if (this.databaseConnectionAttempted) {
           await this.db.$disconnect();
-          databaseClientDisconnected = true;
+          receipt.databaseClientDisconnected = true;
         }
       },
       async () => {
         if (this.transportOpenAttempted) {
           await this.transport.close();
-          loopbackServerClosed = true;
+          receipt.loopbackServerClosed = true;
         }
       },
       async () => {
@@ -602,7 +726,18 @@ export class ContextEmbeddingRuntime {
           return;
         }
         try {
-          if (this.app && !applicationClosed)
+          if (this.applicationConstructionAttempted && !this.app)
+            throw new Error(
+              'Incomplete application construction prevents namespace cleanup proof',
+            );
+          if (
+            this.actualQueues.size &&
+            receipt.queuesClosed !== this.actualQueues.size
+          )
+            throw new Error(
+              'Actual queues must close before namespace cleanup',
+            );
+          if (this.app && !receipt.applicationClosed)
             throw new Error(
               'Disposable Redis cleanup requires a stopped application',
             );
@@ -625,7 +760,7 @@ export class ContextEmbeddingRuntime {
           const remaining = await this.redis.keys(this.prefix + ':*');
           if (remaining.length)
             throw new Error('Disposable Redis namespace cleanup left keys');
-          redisKeysRemaining = remaining.length;
+          receipt.redisKeysRemaining = remaining.length;
           await this.redis.quit();
         } finally {
           this.redis.disconnect();
@@ -634,20 +769,14 @@ export class ContextEmbeddingRuntime {
     ]);
     if (
       this.startupCompleted &&
-      (applicationClosed !== true ||
-        databaseClientDisconnected !== true ||
-        loopbackServerClosed !== true ||
-        redisKeysRemaining !== 0)
+      (receipt.applicationClosed !== true ||
+        receipt.databaseClientDisconnected !== true ||
+        receipt.loopbackServerClosed !== true ||
+        receipt.redisKeysRemaining !== 0 ||
+        !this.actualQueues.size ||
+        receipt.queuesClosed !== this.actualQueues.size)
     )
       throw new Error('Complete acceptance cleanup was not proven');
-    return {
-      startupCompleted: this.startupCompleted,
-      redisPrefix: this.prefix,
-      redisNamespaceAttempted: this.namespaceAttempted,
-      redisKeysRemaining,
-      applicationClosed,
-      databaseClientDisconnected,
-      loopbackServerClosed,
-    };
+    return receipt;
   }
 }

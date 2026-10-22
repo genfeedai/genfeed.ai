@@ -10,6 +10,7 @@ import {
   TEST_MODEL,
   waitFor,
 } from '@api-test/integration/context-embedding/context-embedding-runtime.fixture';
+import { Prisma } from '@genfeedai/prisma';
 import { ContextEmbeddingProcessor } from '@workers/processors/api/queues/context-embedding/context-embedding.processor';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -79,6 +80,7 @@ async function knowledge(
         'sha256:' + createHash('sha256').update(chunks.join(' ')).digest('hex'),
       observedAt: new Date(),
       payload: { text: chunks.join(' ') },
+      provenance: { kind: 'TEXT', fixture: 'synthetic captured content' },
     },
   });
   const base = await runtime.db.contextBase.create({
@@ -159,6 +161,10 @@ describe('real context embedding database and WorkerHost acceptance', () => {
     const receipt = {
       ...runtime.environment,
       startupCompleted: runtime.startupCompleted,
+      queueContainment: runtime.queueContainment,
+      workerContainment: runtime.workerContainment,
+      ancillaryCacheMode: runtime.ancillaryCacheMode,
+      ancillaryPubsubMode: runtime.ancillaryPubsubMode,
       pgvectorVersion: runtime.pgvectorVersion,
       migrationCount: runtime.migrationCount,
       migrationInventory: runtime.migrationInventory,
@@ -189,6 +195,22 @@ describe('real context embedding database and WorkerHost acceptance', () => {
 
   it('starts real production Core and a two-slot WorkerHost with no automatic historical admission', async () => {
     expect(runtime.db.isCloudTenantGuard).toBe(true);
+    expect(runtime.queueContainment.map((binding) => binding.name)).toEqual(
+      expect.arrayContaining(['context-embedding', 'notification-delivery']),
+    );
+    expect(runtime.workerContainment).toEqual({
+      host: runtime.redisUrl.hostname,
+      port: Number(runtime.redisUrl.port || '6379'),
+      db: 0,
+      prefix: runtime.prefix,
+    });
+    expect(runtime.ancillaryCacheMode).toBe(
+      'unavailable-transport; real cache-miss data and authorization',
+    );
+    expect(runtime.ancillaryPubsubMode).toBe(
+      'disabled by absent base Redis URL; no pubsub parity evidence',
+    );
+
     expect(runtime.migrationCount).toBeGreaterThan(0);
     expect(
       await runtime.db.$queryRawUnsafe('SELECT id FROM context_embedding_jobs'),
@@ -720,13 +742,17 @@ describe('real context embedding database and WorkerHost acceptance', () => {
       },
       data: { isRefreshEnabled: true, refreshIntervalMinutes: 60 },
     });
+    const text = 'refresh replacement ' + randomUUID();
     const candidate = await runtime.db.knowledgeSourceVersion.create({
       data: {
         sourceId: initial.source.id,
         organizationId: world.organizationId,
         version: 2,
         isCurrent: false,
-        contentHash: 'candidate-' + randomUUID(),
+        contentHash:
+          'sha256:' + createHash('sha256').update(text).digest('hex'),
+        payload: { text },
+        provenance: { kind: 'TEXT', fixture: 'synthetic refresh replacement' },
         observedAt: new Date(),
       },
     });
@@ -740,7 +766,6 @@ describe('real context embedding database and WorkerHost acceptance', () => {
         status: 'PROCESSING',
       },
     });
-    const text = 'refresh replacement ' + randomUUID();
     const hold = runtime.transport.hold(text);
     const input = {
       ...initial.input,
@@ -832,13 +857,16 @@ describe('real context embedding database and WorkerHost acceptance', () => {
       [initial.source.id],
     );
     expect(hits.map((hit) => hit.citation?.versionId)).toEqual([candidate.id]);
+    const bad = 'failed refresh ' + randomUUID();
     const failed = await runtime.db.knowledgeSourceVersion.create({
       data: {
         sourceId: initial.source.id,
         organizationId: world.organizationId,
         version: 3,
         isCurrent: false,
-        contentHash: 'failed-' + randomUUID(),
+        contentHash: 'sha256:' + createHash('sha256').update(bad).digest('hex'),
+        payload: { text: bad },
+        provenance: { kind: 'TEXT', fixture: 'synthetic failed replacement' },
         observedAt: new Date(),
       },
     });
@@ -852,7 +880,6 @@ describe('real context embedding database and WorkerHost acceptance', () => {
         status: 'PROCESSING',
       },
     });
-    const bad = 'failed refresh ' + randomUUID();
     runtime.transport.behaviors.set(bad, { status: 400 });
     await runtime.completion.stage({
       ...input,
@@ -945,7 +972,12 @@ describe('real context embedding database and WorkerHost acceptance', () => {
             organizationId: world.organizationId,
             isDeleted: false,
           },
-          data: { retentionState: 'PAYLOAD_PURGED', purgedAt: new Date() },
+          data: {
+            retentionState: 'PAYLOAD_PURGED',
+            purgedAt: new Date(),
+            payload: Prisma.DbNull,
+            provenance: Prisma.DbNull,
+          },
         });
       if (kind === 'expired')
         await runtime.db.knowledgeSourceVersion.updateMany({

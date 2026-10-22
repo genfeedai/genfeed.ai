@@ -5,6 +5,7 @@ import type { ContextEmbeddingQueueService } from '@api/collections/contexts/ser
 import type { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { KnowledgeProcessingState } from '@genfeedai/contracts';
 import { type KnowledgeSourceVersion, Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -380,4 +381,53 @@ describe('sealed Knowledge embedding generations', () => {
     );
     expect(f.tx.contextEntry.updateMany).not.toHaveBeenCalled();
   });
+  it('allows a reopened manual candidate to queue only through its live predecessor fence', async () => {
+    const f = fixture();
+    f.version.isCurrent = false;
+    f.version.processingState = 'FAILED';
+    await expect(
+      f.service.processingUpdate(
+        f.tx as never,
+        f.version,
+        KnowledgeProcessingState.QUEUED,
+      ),
+    ).resolves.toEqual({
+      processingState: 'QUEUED',
+      processingError: null,
+    });
+    expect(f.tx.knowledgeSourceRefreshRun.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        tickKey: 'manual-version:version',
+        candidateVersionId: 'version',
+        status: { in: ['QUEUED', 'PROCESSING'] },
+      }),
+    });
+    expect(f.tx.knowledgeSourceVersion.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'previous', isCurrent: true }),
+    });
+  });
+
+  it.each(['missing-run', 'expired', 'retired', 'ready-bypass'])(
+    'rejects %s manual processing without a valid promotion fence',
+    async (condition) => {
+      const f = fixture();
+      f.version.isCurrent = false;
+      f.version.processingState = 'FAILED';
+      if (condition === 'missing-run')
+        f.tx.knowledgeSourceRefreshRun.findFirst.mockResolvedValue(null);
+      if (condition === 'expired')
+        f.tx.$queryRaw.mockResolvedValue([{ valid: false }]);
+      if (condition === 'retired') f.version.retentionState = 'PAYLOAD_PURGED';
+      await expect(
+        f.service.processingUpdate(
+          f.tx as never,
+          f.version,
+          condition === 'ready-bypass'
+            ? KnowledgeProcessingState.READY
+            : KnowledgeProcessingState.QUEUED,
+        ),
+      ).rejects.toThrow();
+      expect(f.tx.knowledgeSourceVersion.updateMany).not.toHaveBeenCalled();
+    },
+  );
 });

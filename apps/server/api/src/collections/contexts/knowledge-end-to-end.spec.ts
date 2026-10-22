@@ -747,16 +747,93 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     expect(chunksAfterRetry).toBe(1);
     expect(await retrieve(actorA, 'market grew percent')).toHaveLength(1);
 
-    vi.mocked(extractSourceText).mockResolvedValueOnce({
-      mimeType: 'text/html',
-      text: 'Market report: the market grew 15 percent this year.',
-    });
+    workflowStub.enqueueIngest.mockImplementationOnce(
+      async () => 'delayed-manual-ingest',
+    );
+    vi.mocked(extractSourceText).mockRejectedValueOnce(
+      new Error('Temporary source failure'),
+    );
     const refreshed = await capture.createVersion(actorA, captured.source.id, {
       contentHash: `sha256:${'b'.repeat(64)}`,
       observedAt: new Date().toISOString(),
       payload: { referenceUrl: 'https://research.example/report' },
       provenance: { capturedBy: 'api', url: 'https://research.example/report' },
     });
+    expect(refreshed.version.isCurrent).toBe(false);
+    expect(
+      (await records.getCurrentVersion(actorA, captured.source.id)).id,
+    ).toBe(failed.id);
+    expect(
+      (await retrieve(actorA, 'market grew percent'))[0]?.citation?.versionId,
+    ).toBe(failed.id);
+    await expect(
+      capture.createVersion(actorA, captured.source.id, {
+        contentHash: 'sha256:' + 'c'.repeat(64),
+        observedAt: new Date().toISOString(),
+        payload: { referenceUrl: 'https://research.example/report' },
+        provenance: {
+          capturedBy: 'api',
+          url: 'https://research.example/report',
+        },
+      }),
+    ).rejects.toThrow('in progress');
+    const queued = workflowStub.enqueueIngest.mock.calls.at(-1)?.[0];
+    if (!queued) throw new Error('Missing admitted manual ingest');
+    await runIngest(queued);
+    expect(
+      await prisma.knowledgeSourceRefreshRun.findFirst({
+        where: {
+          organizationId: actorA.organizationId,
+          sourceId: captured.source.id,
+          candidateVersionId: refreshed.version.id,
+          isDeleted: false,
+        },
+      }),
+    ).toMatchObject({ status: 'FAILED', expectedCurrentVersionId: failed.id });
+    expect(
+      await prisma.knowledgeEmbeddingManifest.count({
+        where: {
+          organizationId: actorA.organizationId,
+          sourceId: captured.source.id,
+          versionId: refreshed.version.id,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(0);
+    expect(
+      (
+        await records.getVersion(
+          actorA,
+          captured.source.id,
+          refreshed.version.id,
+        )
+      ).processingState,
+    ).toBe(KnowledgeProcessingState.FAILED);
+    expect(
+      (await records.getCurrentVersion(actorA, captured.source.id)).id,
+    ).toBe(failed.id);
+    expect(
+      (await retrieve(actorA, 'market grew percent'))[0]?.citation?.versionId,
+    ).toBe(failed.id);
+    vi.mocked(extractSourceText).mockResolvedValueOnce({
+      mimeType: 'text/html',
+      text: 'Market report: the market grew 15 percent this year.',
+    });
+    const retriedManual = await capture.retry(actorA, captured.source.id);
+    expect(retriedManual.version.id).toBe(refreshed.version.id);
+    expect(
+      (await records.getCurrentVersion(actorA, captured.source.id)).id,
+    ).toBe(refreshed.version.id);
+    expect(
+      await prisma.knowledgeSourceVersion.count({
+        where: {
+          organizationId: actorA.organizationId,
+          sourceId: captured.source.id,
+          isCurrent: true,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(1);
     const live = await prisma.contextEntry.findMany({
       where: { knowledgeSourceId: captured.source.id, isDeleted: false },
     });
