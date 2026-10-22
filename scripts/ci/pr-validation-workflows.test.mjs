@@ -663,6 +663,197 @@ test('server image PR validation bounds cache export without changing reachabili
   assert.match(workflow, /^permissions:\n {2}contents: read$/m);
 });
 
+function imageScopeCondition(expression, context) {
+  const condition = expression?.replace(/^\$\{\{\s*|\s*\}\}$/g, '') ?? 'true';
+  // Actions adds success() unless an explicit status function overrides it.
+  const effective = /\b(?:success|failure|cancelled|always)\(/.test(condition)
+    ? condition
+    : `success() && (${condition})`;
+  return runInNewContext(effective, context);
+}
+
+test('server image check runs after every detector result unless the workflow is cancelled', () => {
+  const { build } = parseYaml(readWorkflow('server-image-pr.yml')).jobs;
+  assert.equal(build.if, `\${{ !cancelled() }}`);
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+    for (const image of ['true', 'false', '', 'malformed']) {
+      for (const cancelled of [false, true]) {
+        assert.equal(
+          imageScopeCondition(build.if, {
+            cancelled: () => cancelled,
+            success: () => result === 'success',
+            needs: { detect: { result, outputs: { image } } },
+          }),
+          !cancelled,
+          JSON.stringify({ result, image, cancelled }),
+        );
+      }
+    }
+  }
+});
+
+test('server image validation rejects invalid detection before either later branch', () => {
+  const { build } = parseYaml(readWorkflow('server-image-pr.yml')).jobs;
+  const [validation, ...branches] = build.steps;
+  assert.equal(validation.name, 'Validate image scope detection');
+  assert.equal(validation.shell, 'bash');
+  assert.equal(validation.if, undefined);
+  assert.deepEqual(validation.env, {
+    DETECT_RESULT: `\${{ needs.detect.result }}`,
+    IMAGE_CHANGED: `\${{ needs.detect.outputs.image }}`,
+  });
+  assert.equal(validation['continue-on-error'], undefined);
+  assert.doesNotMatch(validation.run, /\$\{\{|\beval\b/);
+  assert.deepEqual(
+    branches.map((step) => step.name),
+    [
+      'Skip (no image-definition change)',
+      'Checkout code',
+      'Set up Docker Buildx',
+      'Build unified server image',
+    ],
+  );
+  assert.equal(branches[0].if, "needs.detect.outputs.image == 'false'");
+  for (const step of branches.slice(1)) {
+    assert.equal(step.if, "needs.detect.outputs.image == 'true'");
+  }
+  for (const step of branches) {
+    assert.equal(step['continue-on-error'], undefined);
+    assert.doesNotMatch(step.if, /\b(?:success|failure|cancelled|always)\(/);
+  }
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+    for (const image of [
+      'true',
+      'false',
+      '',
+      'malformed',
+      'TRUE',
+      'false\n',
+      '$(exit 0)',
+    ]) {
+      const needs = { detect: { result, outputs: { image } } };
+      const env = Object.fromEntries(
+        Object.entries(validation.env).map(([key, expression]) => [
+          key,
+          runInNewContext(expression.slice(3, -2).trim(), { needs }),
+        ]),
+      );
+      const shell = spawnSync(
+        'bash',
+        ['--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', validation.run],
+        { env, encoding: 'utf8' },
+      );
+      assert.ifError(shell.error);
+      const valid = result === 'success' && ['true', 'false'].includes(image);
+      const label = JSON.stringify({ result, image });
+      assert.equal(shell.status, valid ? 0 : 1, label);
+      assert.equal(shell.stderr, '', label);
+      assert.equal(
+        shell.stdout,
+        valid ? '' : '::error::Invalid server image scope detection.\n',
+        label,
+      );
+      const executed = branches
+        .filter((step) =>
+          imageScopeCondition(step.if, {
+            needs,
+            success: () => shell.status === 0,
+          }),
+        )
+        .map((step) => step.name);
+      assert.deepEqual(
+        executed,
+        !valid
+          ? []
+          : image === 'false'
+            ? [branches[0].name]
+            : branches.slice(1).map((step) => step.name),
+        label,
+      );
+    }
+  }
+});
+
+test('server image detection guard preserves image selection and build inputs', () => {
+  const workflow = parseYaml(readWorkflow('server-image-pr.yml'));
+  assert.equal(workflow.name, 'Server Image PR Guard');
+  assert.deepEqual(workflow.on, { pull_request: null });
+  assert.deepEqual(workflow.concurrency, {
+    group: `server-image-pr-\${{ github.event.pull_request.number }}`,
+    'cancel-in-progress': true,
+  });
+  assert.deepEqual(workflow.permissions, { contents: 'read' });
+  assert.deepEqual(Object.keys(workflow.jobs), ['detect', 'build']);
+  const { detect, build } = workflow.jobs;
+  assert.deepEqual(
+    { ...build, steps: undefined, if: undefined },
+    {
+      name: 'Build Server Image',
+      needs: 'detect',
+      'runs-on': 'ubuntu-latest',
+      'timeout-minutes': 40,
+      steps: undefined,
+      if: undefined,
+    },
+  );
+  assert.equal(detect.name, 'Detect Server Image Scope');
+  assert.equal(detect['runs-on'], 'ubuntu-latest');
+  assert.equal(detect['timeout-minutes'], 3);
+  assert.equal(detect.if, undefined);
+  assert.deepEqual(detect.outputs, {
+    image: `\${{ steps.changes.outputs.image }}`,
+  });
+  const checkout = {
+    uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+    with: { 'persist-credentials': false },
+  };
+  assert.deepEqual(detect.steps[0], checkout);
+  assert.equal(detect.steps.length, 2);
+  assert.equal(
+    detect.steps[1].uses,
+    'dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d',
+  );
+  assert.equal(detect.steps[1].id, 'changes');
+  assert.deepEqual(parseYaml(detect.steps[1].with.filters), {
+    image: [
+      'docker/Dockerfile.server',
+      '.dockerignore',
+      '.bun-version',
+      'configs/**',
+      'patches/**',
+      'webpack.base.config.js',
+      'tsconfig.json',
+      'tsconfig.server.decorators.json',
+      'bun.lock',
+      'package.json',
+      '.github/workflows/server-image-pr.yml',
+    ],
+  });
+  assert.deepEqual(build.steps[2], {
+    name: 'Checkout code',
+    if: "needs.detect.outputs.image == 'true'",
+    ...checkout,
+  });
+  assert.deepEqual(build.steps[3], {
+    name: 'Set up Docker Buildx',
+    if: "needs.detect.outputs.image == 'true'",
+    uses: 'docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069',
+  });
+  assert.deepEqual(build.steps[4], {
+    name: 'Build unified server image',
+    if: "needs.detect.outputs.image == 'true'",
+    uses: 'docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc',
+    with: {
+      context: '.',
+      file: 'docker/Dockerfile.server',
+      push: false,
+      'cache-from': 'type=gha,scope=server-image-pr',
+      'cache-to':
+        'type=gha,mode=min,scope=server-image-pr,timeout=3m,ignore-error=true',
+    },
+  });
+});
+
 test('self-hosted publisher can PATCH the draft GitHub release', () => {
   const workflow = readWorkflow('_publish-selfhosted-core.yml');
 

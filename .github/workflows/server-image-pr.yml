@@ -52,12 +52,24 @@ jobs:
   build:
     name: Build Server Image
     needs: detect
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
     steps:
+      - name: Validate image scope detection
+        shell: bash
+        env:
+          DETECT_RESULT: ${{ needs.detect.result }}
+          IMAGE_CHANGED: ${{ needs.detect.outputs.image }}
+        run: |
+          if [ "$DETECT_RESULT" != "success" ] || { [ "$IMAGE_CHANGED" != "true" ] && [ "$IMAGE_CHANGED" != "false" ]; }; then
+            echo "::error::Invalid server image scope detection."
+            exit 1
+          fi
+
       - name: Skip (no image-definition change)
-        if: needs.detect.outputs.image != 'true'
+        if: needs.detect.outputs.image == 'false'
         run: echo "No image-definition path changed; nothing to build."
 
       - name: Checkout code
