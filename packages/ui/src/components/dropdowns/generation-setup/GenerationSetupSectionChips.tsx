@@ -190,10 +190,12 @@ export default function GenerationSetupSectionChips(
           <DropdownMenuContent
             align="start"
             aria-label={chip.label}
-            className="w-64 py-1"
+            className="w-[min(16rem,calc(100vw-2rem))] py-1"
             collisionPadding={16}
             side="top"
             sideOffset={8}
+            // Keep the menu on screen when the chip sits near the right edge.
+            sticky="always"
           >
             {chip.id === 'output' ? (
               <GenerationSetupOutputMenu
