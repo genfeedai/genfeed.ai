@@ -148,8 +148,6 @@ function dispatchWorkspaceFamily(
         params,
         ctx,
       );
-    case 'track_post_link':
-      return handlers.publishHandler.trackPostLink(params, ctx);
     case 'record_external_publication':
       return handlers.publishHandler.recordExternalPublication(params, ctx);
     case 'create_post':
@@ -251,6 +249,8 @@ function dispatchInsightsFamily(
   ctx: ToolExecutionContext,
 ): FamilyResult {
   switch (toolName) {
+    case 'track_post_link':
+      return handlers.analyticsHandler.trackPostLink(params, ctx);
     case 'get_analytics':
       return handlers.analyticsHandler.getAnalytics(params, ctx);
     case 'list_outlier_posts':

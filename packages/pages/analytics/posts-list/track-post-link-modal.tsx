@@ -97,7 +97,7 @@ export default function TrackPostLinkModal({
                   setUrl(event.target.value);
                   setError(null);
                 }}
-                placeholder="https://"
+                placeholder={translate('urlPlaceholder')}
                 isRequired
                 isDisabled={isSubmitting}
                 maxLength={2048}

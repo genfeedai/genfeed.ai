@@ -462,6 +462,7 @@
     "title": "Track a post",
     "description": "Import a published X, YouTube or LinkedIn link. Imported posts stay separate from posts published through Genfeed.",
     "url": "Post link",
+    "urlPlaceholder": "https://",
     "optionalTitle": "Title (optional)",
     "optionalDate": "Published date (optional)",
     "dateHelp": "For LinkedIn posts, the date comes from the activity link when available. For articles, use the original date or leave blank to use today.",

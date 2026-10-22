@@ -3,9 +3,12 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
+import { parseTrackPostLinkInput } from '@api/collections/posts/services/post-link-tracking.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AgentScopeContextService } from '@api/index';
+import { authorizeExternalPublicationBrand } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -15,7 +18,12 @@ import type {
   AgentToolResult,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 /**
  * Analytics tools extracted from AgentToolExecutorService per #519.
@@ -42,7 +50,34 @@ export class AgentAnalyticsToolHandler {
     private readonly articleAnalyticsService?: ArticleAnalyticsService,
     @Optional()
     private readonly outliersService?: OutliersService,
+    @Optional()
+    private readonly postLinkTrackingService?: PostLinkTrackingService,
   ) {}
+
+  async trackPostLink(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const input = parseTrackPostLinkInput(params);
+    if (!ctx.brandId || ctx.brandId !== input.brandId)
+      throw new ForbiddenException(
+        'Post link must match the authenticated brand context',
+      );
+    await authorizeExternalPublicationBrand(
+      this.agentScopeContextService,
+      input.brandId,
+      ctx,
+    );
+    if (!this.postLinkTrackingService)
+      throw new BadRequestException('Post link tracking is unavailable');
+    const result = await this.postLinkTrackingService.trackLink(input, {
+      brandId: input.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    return { success: true, creditsUsed: 0, data: { ...result } };
+  }
+
   private async resolveIngredientForContent(
     contentId: string,
     organizationId: string,

@@ -1,11 +1,12 @@
 import { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 
 const ctx: ToolExecutionContext = {
@@ -28,15 +29,16 @@ async function fixture() {
   };
   const module = await Test.createTestingModule({
     providers: [
-      AgentPublishToolHandler,
+      AgentAnalyticsToolHandler,
+      { provide: AgentPublishToolHandler, useValue: {} },
       { provide: PostsService, useValue: {} },
-      { provide: PostGroupsService, useValue: {} },
-      { provide: LoggerService, useValue: { log: vi.fn() } },
+      { provide: AnalyticsService, useValue: {} },
+      { provide: PostAnalyticsService, useValue: {} },
       { provide: AgentScopeContextService, useValue: scope },
       { provide: PostLinkTrackingService, useValue: tracking },
     ],
   }).compile();
-  return { handler: module.get(AgentPublishToolHandler), tracking, scope };
+  return { handler: module.get(AgentAnalyticsToolHandler), tracking, scope };
 }
 describe('track_post_link agent action', () => {
   it('authorizes the brand and uses the same free idempotent importer', async () => {
