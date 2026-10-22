@@ -7,7 +7,8 @@ import { useState } from 'react';
 /**
  * Logo tile for the org and brand switchers. Signed media URLs expire and
  * brand state outlives them, so a logo that fails to load falls back to the
- * letter tile instead of showing a broken image.
+ * letter tile instead of showing a broken image, and tells the owner so it can
+ * fetch a fresh URL (a new URL renders the logo again).
  */
 export default function SwitcherAvatar({
   alt,
@@ -15,6 +16,7 @@ export default function SwitcherAvatar({
   imageUrl,
   imageWrapperClassName,
   letter,
+  onImageError,
 }: SwitcherAvatarProps) {
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
@@ -31,7 +33,10 @@ export default function SwitcherAvatar({
         height={20}
         className="size-full object-cover object-center"
         sizes="20px"
-        onError={() => setFailedImageUrl(imageUrl)}
+        onError={() => {
+          setFailedImageUrl(imageUrl);
+          onImageError?.();
+        }}
       />
     </div>
   );

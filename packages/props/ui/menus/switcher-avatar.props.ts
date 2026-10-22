@@ -4,4 +4,5 @@ export interface SwitcherAvatarProps {
   imageUrl?: string;
   imageWrapperClassName: string;
   letter: string;
+  onImageError?: () => void;
 }

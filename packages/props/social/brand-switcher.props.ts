@@ -12,5 +12,7 @@ export interface BrandSwitcherProps {
   compactOnMobile?: boolean;
   isUpdatingBrand?: boolean;
   onBrandChange?: (brandId: string) => void;
+  /** A logo failed to load; the owner refreshes the brand list to re-sign it. */
+  onLogoError?: () => void;
   variant?: 'avatar' | 'labeled';
 }

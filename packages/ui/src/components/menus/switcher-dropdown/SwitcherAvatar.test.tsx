@@ -37,4 +37,28 @@ describe('SwitcherAvatar', () => {
     expect(screen.queryByAltText('Genfeed')).toBeNull();
     expect(screen.getByText('G')).toBeTruthy();
   });
+
+  it('tells the owner when the logo fails and shows a fresh URL again', () => {
+    const onImageError = vi.fn();
+    const { rerender } = render(
+      <SwitcherAvatar
+        {...props}
+        imageUrl="https://cdn.test/logo.png?sig=old"
+        onImageError={onImageError}
+      />,
+    );
+
+    fireEvent.error(screen.getByAltText('Genfeed'));
+    expect(onImageError).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <SwitcherAvatar
+        {...props}
+        imageUrl="https://cdn.test/logo.png?sig=new"
+        onImageError={onImageError}
+      />,
+    );
+
+    expect(screen.getByAltText('Genfeed')).toBeTruthy();
+  });
 });

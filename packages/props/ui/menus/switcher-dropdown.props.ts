@@ -30,6 +30,8 @@ export interface SwitcherDropdownProps {
   renderTrigger: (state: { isOpen: boolean; isDisabled: boolean }) => ReactNode;
   onSelect: (id: string) => void;
   onOpenChange?: (isOpen: boolean) => void;
+  /** Called when an item's image fails to load (e.g. an expired signed URL). */
+  onImageError?: () => void;
   isDisabled?: boolean;
   footerAction?: SwitcherDropdownFooterAction;
   footerActions?: SwitcherDropdownFooterAction[];

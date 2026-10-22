@@ -35,6 +35,7 @@ export default function SwitcherDropdown({
   renderTrigger,
   onSelect,
   onOpenChange,
+  onImageError,
   isDisabled = false,
   footerAction,
   footerActions,
@@ -187,6 +188,7 @@ export default function SwitcherDropdown({
                 key={item.id}
                 item={item}
                 onSelect={handleSelect}
+                onImageError={onImageError}
                 onAction={(action) => {
                   close();
                   action.onAction();
@@ -232,10 +234,12 @@ export default function SwitcherDropdown({
 function SwitcherItem({
   item,
   onAction,
+  onImageError,
   onSelect,
 }: {
   item: SwitcherDropdownItem;
   onAction: (action: SwitcherDropdownTrailingAction) => void;
+  onImageError?: () => void;
   onSelect: (id: string) => void;
 }) {
   const trailingActions = [
@@ -281,6 +285,7 @@ function SwitcherItem({
           imageUrl={item.imageUrl}
           imageWrapperClassName="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background"
           letter={item.label.charAt(0).toUpperCase()}
+          onImageError={onImageError}
         />
 
         <span className="flex-1 truncate text-left">{item.label}</span>

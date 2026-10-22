@@ -12,7 +12,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import {
@@ -20,6 +20,8 @@ import {
   getCurrentBrandScopedPath,
   resolveOrganizationScopePath,
 } from '@/lib/navigation/operator-shell';
+
+const LOGO_REFRESH_MIN_INTERVAL_MS = 60_000;
 
 type AppProtectedBrandSwitcherProps = {
   brandSlug?: string;
@@ -40,8 +42,15 @@ export default function AppProtectedBrandSwitcher({
   const pathname = usePathname() ?? '';
   const { push } = useRouter();
   const translate = useTranslations('common.sidebar');
-  const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
-    useBrand();
+  const {
+    brandId,
+    brands,
+    refreshBrands,
+    selectedBrand,
+    setBrandId,
+    setOrganizationId,
+  } = useBrand();
+  const lastLogoRefreshAtRef = useRef(0);
   // Route props are authoritative; only fall back to useOrgUrl when the shell
   // is rendered without route context.
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
@@ -91,6 +100,18 @@ export default function AppProtectedBrandSwitcher({
     [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
   );
 
+  // A logo that fails to load is usually an expired signed URL held in the
+  // brand list. Re-fetch the list for fresh URLs, at most once a minute so a
+  // logo that is broken for another reason cannot loop.
+  const handleLogoError = useCallback(() => {
+    const now = Date.now();
+    if (now - lastLogoRefreshAtRef.current < LOGO_REFRESH_MIN_INTERVAL_MS) {
+      return;
+    }
+    lastLogoRefreshAtRef.current = now;
+    void refreshBrands();
+  }, [refreshBrands]);
+
   const handleClearBrandSelection = useCallback(() => {
     setBrandId('');
 
@@ -126,6 +147,7 @@ export default function AppProtectedBrandSwitcher({
       brands={brands}
       brandId={visibleBrandId}
       onBrandChange={handleBrandChange}
+      onLogoError={handleLogoError}
       clearSelectionAction={
         visibleBrandId
           ? {

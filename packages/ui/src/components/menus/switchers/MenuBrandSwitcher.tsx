@@ -35,6 +35,7 @@ export default function MenuBrandSwitcher({
   compactOnMobile = false,
   isUpdatingBrand: externalIsUpdating,
   onBrandChange,
+  onLogoError,
   variant = 'avatar',
 }: BrandSwitcherProps) {
   const getUsersService = useAuthedService((token: string) =>
@@ -130,6 +131,7 @@ export default function MenuBrandSwitcher({
       imageUrl={selectedBrand?.logoUrl || undefined}
       imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
       letter={selectedBrandLabel.charAt(0).toUpperCase()}
+      onImageError={onLogoError}
     />
   );
 
@@ -192,6 +194,7 @@ export default function MenuBrandSwitcher({
             </Button>
           )}
           onSelect={(id) => void handleSelect(id)}
+          onImageError={onLogoError}
           isDisabled={isUpdating}
           hasSearch={items.length >= 5}
           minWidth={220}
@@ -248,6 +251,7 @@ export default function MenuBrandSwitcher({
         )
       }
       onSelect={(id) => void handleSelect(id)}
+      onImageError={onLogoError}
       isDisabled={isUpdating}
       hasSearch={items.length >= 5}
       minWidth={224}
