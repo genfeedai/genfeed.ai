@@ -81,6 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - id: scope
@@ -98,6 +99,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - uses: ./.github/actions/check-website-links
@@ -113,6 +115,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - uses: ./.github/actions/check-docs-links
@@ -415,6 +418,8 @@ jobs:
             cache: 'false'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Start setup clock
         run: echo "SETUP_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - name: Measure shared setup
@@ -463,6 +468,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       # Pull requests scan their own commits; the release path scans history.
       # The Full Suite skips it: every master commit arrived through a
@@ -582,6 +588,8 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.spec_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       # The typecheck base config resolves @genfeedai/contracts to its dist
@@ -681,6 +689,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -753,6 +762,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -825,6 +835,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -911,6 +922,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Fetch trusted baseline commit
         run: git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
       - name: Setup Bun environment
@@ -1024,6 +1037,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -1077,6 +1091,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -1125,6 +1140,8 @@ jobs:
           exit 1
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # A pull request run is cancelled when a newer push supersedes it. Its
       # jobs then read "cancelled" and, without this, the gate paints the old

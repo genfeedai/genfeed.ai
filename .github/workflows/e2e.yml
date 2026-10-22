@@ -72,6 +72,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 24.x
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -127,6 +129,8 @@ jobs:
       BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment and build packages
         uses: ./.github/actions/build-e2e-packages
@@ -178,6 +182,8 @@ jobs:
       BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment and build packages
         uses: ./.github/actions/build-e2e-packages
@@ -244,6 +250,8 @@ jobs:
       BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment and build packages
         uses: ./.github/actions/build-e2e-packages
@@ -286,6 +294,8 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build app for Playwright
         uses: ./.github/actions/setup-playwright-app
@@ -343,6 +353,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -788,6 +800,8 @@ jobs:
       E2E_API_ENDPOINT: http://localhost:3010/v1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build app with real Better Auth (bypass off)
         uses: ./.github/actions/setup-playwright-app

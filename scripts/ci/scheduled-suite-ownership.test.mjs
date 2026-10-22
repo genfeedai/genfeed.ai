@@ -42,6 +42,7 @@ const SUITE_FAMILY_OWNERS = {
   'dependency-update': { workflow: 'deps-update.yml', job: 'update' },
   codeql: { workflow: 'codeql.yml', job: 'analyze' },
   'vulnerability-scan': { workflow: 'security-scan.yml', job: 'trivy-fs' },
+  'dependency-audit': { workflow: 'dependency-review.yml', job: 'audit' },
 };
 
 const LEARNING_SPECS = [
