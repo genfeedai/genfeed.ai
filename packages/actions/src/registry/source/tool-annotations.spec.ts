@@ -116,6 +116,36 @@ const AUDITED_PRESENTATIONS = [
     name: 'create_post',
     title: 'Create Post',
   },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'onboard_brand',
+    title: 'Onboard Brand',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'execute_workflow',
+    title: 'Execute Workflow',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'generate_turbo_content',
+    title: 'Generate Turbo Content',
+  },
 ] satisfies ReadonlyArray<
   Pick<CanonicalToolDefinition, 'name' | 'title' | 'annotations'>
 >;
@@ -126,6 +156,8 @@ describe('MCP tool annotations', () => {
     ({ name, title, annotations }) => {
       const canonical = getToolByName(name);
       expect(canonical, name).toBeDefined();
+      expect(canonical?.title, name).toBe(title);
+      expect(canonical?.annotations, name).toEqual(annotations);
       const [listed] = toMcpTools(canonical ? [canonical] : []);
       expect(listed?.title, name).toBe(title);
       expect(listed?.annotations, name).toEqual(annotations);
@@ -250,6 +282,8 @@ describe('MCP tool annotations', () => {
 
     for (const tool of getToolsForSurface('mcp')) {
       const isOpenWorld =
+        tool.name === 'onboard_brand' ||
+        tool.name === 'execute_workflow' ||
         tool.name === 'enhance_prompt' ||
         tool.name === 'get_x_posts' ||
         tool.name === 'list_x_account_activity' ||

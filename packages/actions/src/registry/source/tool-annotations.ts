@@ -24,6 +24,8 @@ const READ_ONLY_HINT_PREFIXES = [
 
 const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'enhance_prompt',
+  'execute_workflow',
+  'onboard_brand',
   'get_x_posts',
   'list_x_account_activity',
   'get_ads_ad_insights',

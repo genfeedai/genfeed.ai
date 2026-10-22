@@ -123,6 +123,58 @@ const AUDITED_PRESENTATIONS = [
   >
 >;
 
+const OPEN_WORLD_PRESENTATIONS = [
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 0,
+    mutationPolicy: 'direct',
+    name: 'onboard_brand',
+    title: 'Onboard Brand',
+    toolset: 'core',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 0,
+    mutationPolicy: 'direct',
+    name: 'execute_workflow',
+    title: 'Execute Workflow',
+    toolset: 'workflows',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 1,
+    mutationPolicy: 'approval-required',
+    name: 'generate_turbo_content',
+    title: 'Generate Turbo Content',
+    toolset: 'content',
+  },
+] satisfies ReadonlyArray<
+  Pick<
+    CanonicalToolDefinition,
+    | 'name'
+    | 'title'
+    | 'annotations'
+    | 'creditCost'
+    | 'mutationPolicy'
+    | 'toolset'
+  >
+>;
+
 function buildTool(
   overrides: Partial<CanonicalToolDefinition> = {},
 ): CanonicalToolDefinition {
@@ -216,4 +268,33 @@ describe('toMcpTools', () => {
       expect(tool?.annotations).toEqual(annotations);
     },
   );
+
+  it.each(OPEN_WORLD_PRESENTATIONS)(
+    'derives external presentation for $name without stored presentation',
+    ({ name, creditCost, mutationPolicy, toolset, title, annotations }) => {
+      const [tool] = toMcpTools([
+        buildTool({ creditCost, mutationPolicy, name, toolset }),
+      ]);
+      expect(tool?.title).toBe(title);
+      expect(tool?.annotations).toEqual(annotations);
+    },
+  );
+
+  it('preserves supplied presentation over derived fallback', () => {
+    const annotations = {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: true,
+    } satisfies NonNullable<CanonicalToolDefinition['annotations']>;
+    const [tool] = toMcpTools([
+      buildTool({
+        annotations,
+        name: 'onboard_brand',
+        title: 'Stored presentation',
+      }),
+    ]);
+    expect(tool?.title).toBe('Stored presentation');
+    expect(tool?.annotations).toEqual(annotations);
+  });
 });
