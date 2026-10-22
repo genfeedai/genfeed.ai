@@ -173,16 +173,16 @@
   },
   "firstDrafts": {
     "url": {
-      "title": "See your first posts in a minute",
-      "description": "Paste your website, X profile or link page. We read it and draft posts for X, Instagram, TikTok and LinkedIn.",
-      "label": "Website or profile",
-      "placeholder": "yoursite.com or @yourhandle",
-      "submit": "Create my first posts",
+      "title": "Add your brand link",
+      "description": "Your website or social profile helps us learn what you do and how you sound.",
+      "label": "Website or social profile",
+      "placeholder": "yourbrand.com or a social profile",
+      "submit": "Submit brand link",
       "noWebsite": "I don't have a link yet"
     },
     "working": {
       "scanning": "Reading your brand…",
-      "drafting": "Writing your posts and image…"
+      "drafting": "Creating your posts and media…"
     },
     "review": {
       "title": "Your first posts",
@@ -192,18 +192,20 @@
       "looksRight": "Looks right, continue",
       "notRight": "This doesn't look right",
       "unavailable": "We couldn't draft posts right now. You can continue and create them in your workspace.",
-      "partial": "Some channels didn't come back. You can continue and create the rest in your workspace.",
-      "imageFailed": "We couldn't create the shared image. Your text drafts are still here. You can continue and create an image in your workspace.",
+      "partial": "Some posts couldn’t be created. Your other drafts are saved.",
+      "imageFailed": "Image unavailable. Your text drafts are saved.",
       "continueAnyway": "Continue to my workspace",
       "videoNote": "Video renders after you approve the script.",
       "schedule": "Connect and schedule {count, plural, one {# post} other {# posts}}",
       "generic": "We didn't have much to go on, so these are generic. Say what's wrong and we'll redo them.",
-      "skipScheduling": "Skip scheduling, continue"
+      "skipScheduling": "Skip scheduling, continue",
+      "videoPending": "Creating your video…",
+      "videoFailed": "Video unavailable. Your script is saved."
     },
     "platforms": {
       "twitter": "X",
       "instagram": "Instagram",
-      "tiktok": "TikTok video script",
+      "tiktok": "TikTok",
       "linkedin": "LinkedIn"
     },
     "imageAlt": "Generated image for {platform}",
@@ -240,13 +242,17 @@
       "continue": "We couldn't finish setup. Check your connection and try again.",
       "retry": "Try again",
       "connect": "We couldn't start the connection. Try again.",
-      "schedule": "We couldn't schedule some posts. Try again, or finish in your workspace."
+      "schedule": "We couldn't schedule some posts. Try again, or finish in your workspace.",
+      "recovery": "We couldn’t recover the complete run. Your saved content won’t be generated again.",
+      "feedback": "We couldn’t save your choice. Try again."
     },
     "loading": "Setting up your workspace",
     "verdict": {
       "label": "Would you post this?",
       "up": "I'd post this",
-      "down": "Not for me"
+      "down": "Not for me",
+      "kept": "Kept",
+      "undo": "Undo"
     },
     "schedule": {
       "title": "Connect and schedule",
@@ -262,6 +268,33 @@
         "failed": "Couldn't schedule",
         "unsupported": "Create it in your workspace"
       }
-    }
+    },
+    "steps": {
+      "brand": "Your brand",
+      "create": "Create content",
+      "review": "Review drafts",
+      "connect": "Connect accounts"
+    },
+    "actions": {
+      "label": "Onboarding actions",
+      "back": "Back",
+      "skip": "Skip onboarding",
+      "continue": "Continue",
+      "finish": "Finish"
+    },
+    "skip": {
+      "title": "Skip onboarding?",
+      "description": "Confirming your brand and reviewing these posts helps Genfeed create better content for you.",
+      "stay": "Keep reviewing"
+    },
+    "connections": {
+      "connected": "Connected",
+      "connect": "Connect",
+      "connectedLabel": "{platform} connected"
+    },
+    "progress": "Onboarding progress",
+    "gettingStarted": "Getting started",
+    "brandFallback": "Your brand",
+    "videoAlt": "Generated video for {platform}"
   }
 }

@@ -46,7 +46,7 @@ describe('OnboardingController', () => {
         { provide: BrandsService, useValue: {} },
         {
           provide: OnboardingFirstDraftsService,
-          useValue: { generate: vi.fn(), scan: vi.fn() },
+          useValue: { generate: vi.fn(), scan: vi.fn(), read: vi.fn() },
         },
         {
           provide: LoggerService,
@@ -206,5 +206,24 @@ describe('OnboardingController', () => {
       ).rejects.toThrow('Not found');
       expect(firstDraftsService.generate).not.toHaveBeenCalled();
     });
+  });
+  it('checks brand access before recovering saved content', async () => {
+    firstDraftsService.read.mockResolvedValue(null);
+    await expect(
+      controller.readDrafts(mockUser, 'brand_1'),
+    ).resolves.toBeNull();
+    expect(verifyBrandAccess).toHaveBeenCalledWith(
+      expect.anything(),
+      'brand_1',
+      mockUser,
+    );
+    expect(firstDraftsService.read).toHaveBeenCalledWith(mockUser, 'brand_1');
+  });
+  it('never reads another organization’s saved onboarding content', async () => {
+    vi.mocked(verifyBrandAccess).mockRejectedValueOnce(new Error('forbidden'));
+    await expect(
+      controller.readDrafts(mockUser, 'brand_other'),
+    ).rejects.toThrow('forbidden');
+    expect(firstDraftsService.read).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,7 @@ import type {
   OnboardingDraftContextDto,
   OnboardingDraftsDto,
 } from '@api/endpoints/onboarding/dto/onboarding-first-drafts.dto';
+import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import {
@@ -22,7 +23,7 @@ import {
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
-import { Platform } from '@genfeedai/contracts';
+import { Platform, RouterPriority } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   ONBOARDING_DRAFT_PLATFORMS,
@@ -33,7 +34,6 @@ import type {
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
   OnboardingDraftPlatform,
-  OnboardingFirstDraftsStatus,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -63,7 +63,7 @@ const PLATFORM_FORMAT_BRIEF: Record<
   linkedin:
     'Write a LinkedIn post: a plain-spoken opener, a few short paragraphs, and no hashtags or emoji.',
   tiktok:
-    'Write a 15 second TikTok video script as three lines: Hook (0-2s), Show (2-10s), Close (10-15s).',
+    'Write a short TikTok caption: one strong hook, a few concise lines, and no stage directions.',
 };
 
 const TONE_DIRECTION: Record<
@@ -92,6 +92,7 @@ export class OnboardingFirstDraftsService {
     private readonly signupPrefillService: SignupPrefillService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
+    private readonly runs: OnboardingDraftRunsService,
   ) {}
 
   /** Reads a public link and prefills the brand. Failures are reported, never thrown. */
@@ -143,10 +144,25 @@ export class OnboardingFirstDraftsService {
     }
   }
 
+  read(user: User, brandId: string) {
+    return this.runs.latest(user, brandId);
+  }
+
   async generate(
     user: User,
     brandId: string,
     dto: OnboardingDraftsDto,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    return this.runs.execute(user, brandId, dto.previousRequestKey, (save) =>
+      this.generateOnce(user, brandId, dto, save),
+    );
+  }
+
+  private async generateOnce(
+    user: User,
+    brandId: string,
+    dto: OnboardingDraftsDto,
+    save: (result: IOnboardingFirstDraftsResult) => Promise<void>,
   ): Promise<IOnboardingFirstDraftsResult> {
     const organizationId = String(user.organizationId);
     const userId = String(user.id);
@@ -190,58 +206,131 @@ export class OnboardingFirstDraftsService {
       };
     }
 
+    const result: IOnboardingFirstDraftsResult = {
+      drafts: [xDraft],
+      imageIngredientId: null,
+      imageUrl: null,
+      requestKey: xDraft.requestKey,
+      status: 'partial',
+      videoIngredientId: null,
+      videoUrl: null,
+      videoStatus: 'pending',
+    };
+    let writes = Promise.resolve();
+    const checkpoint = () => {
+      const snapshot = structuredClone(result);
+      writes = writes.then(() => save(snapshot));
+      return writes;
+    };
+    await checkpoint();
     const otherPlatforms = ONBOARDING_DRAFT_PLATFORMS.filter(
-      (platform) => platform !== 'twitter',
-    ) as Exclude<OnboardingDraftPlatform, 'twitter'>[];
-    const [image, others] = await Promise.all([
+      (platform): platform is Exclude<OnboardingDraftPlatform, 'twitter'> =>
+        platform !== 'twitter',
+    );
+    await Promise.all([
       this.generateImage({
         brandName,
         description,
         direction,
         identity,
         tweet: xDraft.text,
+        onPlaceholderCreated: async (ingredientId) => {
+          result.imageIngredientId = ingredientId;
+          await checkpoint();
+        },
+      }).then(async (image) => {
+        result.imageIngredientId =
+          image.ingredientId ?? result.imageIngredientId;
+        result.imageUrl = image.url;
+        await checkpoint();
       }),
-      Promise.all(
-        otherPlatforms.map((platform) =>
-          this.generateDraft({
-            direction,
-            identity,
+      ...otherPlatforms.map(async (platform) => {
+        const draft = await this.generateDraft({
+          direction,
+          identity,
+          platform,
+          prompt: [
+            PLATFORM_FORMAT_BRIEF[platform],
+            `Base it on the same idea as this X post: ${xDraft.text}`,
+            ...(direction
+              ? [`Apply these requested changes: ${direction}`]
+              : []),
+          ].join(' '),
+        }).catch((error: unknown) => {
+          this.loggerService.warn('Onboarding platform draft failed', {
+            error: error instanceof Error ? error.message : String(error),
             platform,
-            prompt: [
-              PLATFORM_FORMAT_BRIEF[platform],
-              `Base it on the same idea as this X post: ${xDraft.text}`,
-              ...(direction
-                ? [`Apply these requested changes: ${direction}`]
-                : []),
-            ].join(' '),
-          }).catch((error: unknown) => {
-            this.loggerService.warn('Onboarding platform draft failed', {
-              error: error instanceof Error ? error.message : String(error),
-              platform,
-            });
-            return null;
-          }),
-        ),
-      ),
+          });
+          return null;
+        });
+        if (draft) {
+          result.drafts.push(draft);
+          await checkpoint();
+        }
+      }),
     ]);
-
-    const drafts: IOnboardingFirstDraft[] = [
-      xDraft,
-      ...others.filter(
-        (draft): draft is IOnboardingFirstDraft => draft !== null,
-      ),
-    ];
-    const status: OnboardingFirstDraftsStatus =
-      drafts.length === ONBOARDING_DRAFT_PLATFORMS.length && image.url
+    result.drafts.sort(
+      (left, right) =>
+        ONBOARDING_DRAFT_PLATFORMS.indexOf(left.platform) -
+        ONBOARDING_DRAFT_PLATFORMS.indexOf(right.platform),
+    );
+    result.status =
+      result.drafts.length === ONBOARDING_DRAFT_PLATFORMS.length &&
+      result.imageUrl
         ? 'ready'
         : 'partial';
-    return {
-      drafts,
-      imageIngredientId: image.ingredientId,
-      imageUrl: image.url,
-      requestKey: xDraft.requestKey,
-      status,
-    };
+    await checkpoint();
+    const drafts = result.drafts;
+    const script = drafts.find((draft) => draft.platform === 'tiktok');
+    if (script) {
+      try {
+        const response = toMediaResponseRecord(
+          await this.generationGateway.generateVideo({
+            principal: identity,
+            body: {
+              brandId,
+              prompt: `Create a vertical brand clip with natural motion and no invented text or logos. Brand: ${brandName}. Idea: ${script.text}`,
+              text: script.text,
+              duration: 5,
+              width: 720,
+              height: 1280,
+              autoSelectModel: true,
+              prioritize: RouterPriority.COST,
+              waitForCompletion: true,
+              ...(result.imageIngredientId
+                ? { references: [result.imageIngredientId] }
+                : {}),
+            },
+            onPlaceholderCreated: async (placeholder) => {
+              result.videoIngredientId = placeholder;
+              await checkpoint();
+            },
+          }),
+        );
+        result.videoIngredientId =
+          readMediaResponseString(response, 'id') ?? result.videoIngredientId;
+        result.videoUrl =
+          readUsableCdnAssetUrl(
+            response,
+            this.configService.ingredientsEndpoint,
+          ) ?? null;
+        result.videoStatus = result.videoUrl
+          ? 'ready'
+          : readMediaResponseString(response, 'status')?.toLowerCase() ===
+              'processing'
+            ? 'pending'
+            : 'failed';
+      } catch (error) {
+        this.loggerService.warn('Onboarding video generation failed', {
+          brandId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        result.videoStatus = 'failed';
+      }
+    } else result.videoStatus = 'failed';
+    if (result.videoStatus !== 'ready' && result.status === 'ready')
+      result.status = 'partial';
+    return result;
   }
 
   private describeContext(context?: OnboardingDraftContextDto): string {
@@ -341,6 +430,7 @@ export class OnboardingFirstDraftsService {
     direction: string;
     identity: { brandId: string; organizationId: string; userId: string };
     tweet: string;
+    onPlaceholderCreated?: (ingredientId: string) => Promise<void>;
   }): Promise<{ ingredientId: string | null; url: string | null }> {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
@@ -365,6 +455,7 @@ export class OnboardingFirstDraftsService {
       const response = toMediaResponseRecord(
         await this.generationGateway.generateImage({
           body,
+          onPlaceholderCreated: input.onPlaceholderCreated,
           principal: input.identity,
         }),
       );

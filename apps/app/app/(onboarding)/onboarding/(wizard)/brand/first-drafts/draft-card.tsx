@@ -1,75 +1,101 @@
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import type { OnboardingDraftPlatform } from '@genfeedai/contracts/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { FirstDraftCardProps } from '@genfeedai/props/onboarding/first-drafts.props';
-import Card from '@ui/card/Card';
+import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
+import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-const IMAGE_PLATFORMS: readonly OnboardingDraftPlatform[] = [
-  'twitter',
-  'instagram',
-  'linkedin',
-];
 
 export default function DraftCard({
   draft,
   imageUrl,
+  videoUrl,
+  videoStatus,
+  brandName,
+  avatarUrl,
+  isSaving,
   onVerdict,
   verdict,
 }: FirstDraftCardProps) {
   const t = useTranslations('pages.onboarding.firstDrafts');
-  const platform = t(`platforms.${draft.platform}`);
-  const hasImage =
-    imageUrl !== null && IMAGE_PLATFORMS.includes(draft.platform);
-
+  const isVideo = draft.platform === 'tiktok';
+  const rejected = verdict === 'down';
+  const mediaUrl = isVideo ? videoUrl : imageUrl;
   return (
-    <Card variant={CardVariant.BORDERED} label={platform} labelAs="h2">
-      <div className="flex flex-col gap-3">
-        {hasImage ? (
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-            <Image
-              src={imageUrl}
-              alt={t('imageAlt', { platform })}
-              fill
-              unoptimized
-              sizes="(min-width: 768px) 45vw, 100vw"
-              className="object-cover"
-            />
-          </div>
-        ) : null}
-        <p className="whitespace-pre-wrap text-sm text-foreground">
-          {draft.text}
-        </p>
-        {draft.platform === 'tiktok' ? (
-          <p className="text-xs text-muted-foreground">
-            {t('review.videoNote')}
+    <div data-testid={`onboarding-draft-${draft.platform}`} className="min-w-0">
+      <div className={rejected ? 'opacity-35' : undefined}>
+        <PlatformPreview
+          target={{
+            id: draft.postId,
+            platform: draft.platform,
+            caption: draft.text,
+            author: { name: brandName || t('brandFallback'), avatarUrl },
+            media: mediaUrl
+              ? [
+                  {
+                    id: `${draft.postId}-media`,
+                    kind: isVideo ? 'short_video' : 'image',
+                    url: mediaUrl,
+                    alt: t(isVideo ? 'videoAlt' : 'imageAlt', {
+                      platform: t(`platforms.${draft.platform}`),
+                    }),
+                  },
+                ]
+              : [],
+          }}
+          headerPresentation="account"
+          statusLabel={verdict === 'up' ? t('verdict.kept') : undefined}
+          showValidation={false}
+        />
+        {isVideo && !videoUrl ? (
+          <p role="status" className="mt-2 text-xs text-muted-foreground">
+            {t(
+              videoStatus === 'pending'
+                ? 'review.videoPending'
+                : 'review.videoFailed',
+            )}
           </p>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {t('verdict.label')}
-          </span>
-          <Button
-            aria-pressed={verdict === 'up'}
-            label={t('verdict.up')}
-            onClick={() => onVerdict(draft, 'up')}
-            size={ButtonSize.SM}
-            variant={
-              verdict === 'up' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-          />
-          <Button
-            aria-pressed={verdict === 'down'}
-            label={t('verdict.down')}
-            onClick={() => onVerdict(draft, 'down')}
-            size={ButtonSize.SM}
-            variant={
-              verdict === 'down' ? ButtonVariant.DEFAULT : ButtonVariant.GHOST
-            }
-          />
-        </div>
       </div>
-    </Card>
+      <div className="mt-2 flex items-center gap-2">
+        {rejected ? (
+          <>
+            <span role="status" className="text-xs text-muted-foreground">
+              {t('verdict.down')}
+            </span>
+            <Button
+              size={ButtonSize.SM}
+              isDisabled={isSaving}
+              variant={ButtonVariant.SECONDARY}
+              label={t('verdict.undo')}
+              onClick={() => onVerdict(draft, null)}
+            />
+          </>
+        ) : (
+          <>
+            <Button
+              size={ButtonSize.SM}
+              isDisabled={isSaving}
+              variant={
+                verdict === 'up'
+                  ? ButtonVariant.DEFAULT
+                  : ButtonVariant.SECONDARY
+              }
+              aria-pressed={verdict === 'up'}
+              onClick={() => onVerdict(draft, 'up')}
+            >
+              <Check className="size-3.5" />
+              {t(verdict === 'up' ? 'verdict.kept' : 'verdict.up')}
+            </Button>
+            <Button
+              size={ButtonSize.SM}
+              isDisabled={isSaving}
+              variant={ButtonVariant.GHOST}
+              label={t('verdict.down')}
+              onClick={() => onVerdict(draft, 'down')}
+            />
+          </>
+        )}
+      </div>
+    </div>
   );
 }

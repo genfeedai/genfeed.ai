@@ -153,7 +153,19 @@ export class OnboardingController {
     return this.firstDraftsService.scan(user, brandId, dto.url);
   }
 
-  /** Draft one post each for X, Instagram, TikTok and LinkedIn with a shared image. */
+  @Get('brands/:brandId/drafts')
+  @ApiOperation({
+    summary: 'Recover saved onboarding content without generating',
+  })
+  async readDrafts(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+  ) {
+    await verifyBrandAccess(this.brandsService, brandId, user);
+    return this.firstDraftsService.read(user, brandId);
+  }
+
+  /** Draft one post each for X, Instagram, TikTok and LinkedIn with shared media. */
   @Post('brands/:brandId/drafts')
   @HttpCode(200)
   @ApiOperation({

@@ -4,6 +4,7 @@ import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboardi
 import OnboardingProvider, {
   useOnboarding,
 } from '@contexts/onboarding/onboarding-context';
+import { hasSingleStepOnboarding } from '@genfeedai/config/deployment';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -23,6 +24,8 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
   const isBrandSetup = segment === 'brand';
   const showCloudFooter =
     isCountedStep && segment !== 'summary' && !isBrandSetup;
+
+  if (isBrandSetup && hasSingleStepOnboarding()) return children;
 
   return (
     <div className="min-h-screen bg-background">

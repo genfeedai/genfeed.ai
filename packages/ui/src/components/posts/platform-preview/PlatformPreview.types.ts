@@ -56,6 +56,7 @@ export type PlatformPreviewTarget = {
 };
 
 export type PlatformPreviewProps = {
+  headerPresentation?: 'platform' | 'account';
   presentation?: 'full' | 'compact';
   post?: IPost;
   target?: PlatformPreviewTarget;

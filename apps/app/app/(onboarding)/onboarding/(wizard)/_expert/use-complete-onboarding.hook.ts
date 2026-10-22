@@ -35,14 +35,14 @@ export function useCompleteOnboarding(): () => Promise<void> {
     // PATCH later found the user already onboarded (genfeedai/genfeed.ai#5311).
     try {
       const token = await resolveAuthToken(getToken, { forceRefresh: true });
-      if (token) {
-        await UsersService.getInstance(token).patchMe({
-          isOnboardingCompleted: true,
-        });
-      }
+      if (!token) throw new Error('Authentication is unavailable');
+      await UsersService.getInstance(token).patchMe({
+        isOnboardingCompleted: true,
+      });
       await user?.reload();
     } catch (error) {
       logger.error('Failed to complete funnel', error);
+      throw error;
     }
 
     for (const key of [

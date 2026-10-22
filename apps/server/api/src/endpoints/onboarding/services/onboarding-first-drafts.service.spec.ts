@@ -39,7 +39,7 @@ describe('OnboardingFirstDraftsService', () => {
   };
   const postGeneration = { generateDraftText: vi.fn() };
   const signupPrefill = { scanBrandUrl: vi.fn() };
-  const gateway = { generateImage: vi.fn() };
+  const gateway = { generateImage: vi.fn(), generateVideo: vi.fn() };
 
   let service: OnboardingFirstDraftsService;
   let counter = 0;
@@ -62,6 +62,7 @@ describe('OnboardingFirstDraftsService', () => {
         };
       },
     );
+    gateway.generateVideo.mockResolvedValue({ data: { id: 'video_1' } });
     gateway.generateImage.mockResolvedValue({
       data: { id: 'ing_1' },
       url: 'x',
@@ -77,6 +78,11 @@ describe('OnboardingFirstDraftsService', () => {
       postGeneration as never,
       signupPrefill as never,
       gateway as never,
+      {
+        execute: vi.fn(async (_user, _brand, _previous, generate) =>
+          generate(vi.fn()),
+        ),
+      } as never,
     );
   });
 
@@ -220,5 +226,34 @@ describe('OnboardingFirstDraftsService', () => {
         'none',
       );
     });
+  });
+  it('creates a short cost-priority video through the normal billing gateway', async () => {
+    const result = await service.generate(user, 'brand_1', {});
+    expect(gateway.generateVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        principal: {
+          brandId: 'brand_1',
+          organizationId: 'org_1',
+          userId: 'user_1',
+        },
+        body: expect.objectContaining({
+          brandId: 'brand_1',
+          duration: 5,
+          prioritize: 'cost',
+          waitForCompletion: true,
+          references: ['ing_1'],
+        }),
+      }),
+    );
+    expect(result.videoIngredientId).toBe('video_1');
+    expect(result.videoUrl).toBeTruthy();
+  });
+  it('keeps every saved image and text draft if video rendering fails', async () => {
+    gateway.generateVideo.mockRejectedValueOnce(new Error('provider failed'));
+    const result = await service.generate(user, 'brand_1', {});
+    expect(result.videoStatus).toBe('failed');
+    expect(result.drafts).toHaveLength(4);
+    expect(result.imageIngredientId).toBe('ing_1');
+    expect(result.status).toBe('partial');
   });
 });

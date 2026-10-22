@@ -60,6 +60,25 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('PlatformPreview', () => {
+  it('groups the X account and platform without repeating its identity', () => {
+    render(
+      <PlatformPreview
+        headerPresentation="account"
+        target={{
+          platform: CredentialPlatform.TWITTER,
+          author: { name: 'Genfeed', handle: 'genfeedai' },
+          caption: 'A saved starter post',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('preview-account-header')).toHaveTextContent(
+      'Genfeed',
+    );
+    expect(screen.getAllByText('Genfeed')).toHaveLength(1);
+    expect(screen.getAllByText('@genfeedai')).toHaveLength(1);
+    expect(screen.queryByText('X feed preview')).not.toBeInTheDocument();
+  });
+
   it('keeps compact hover video previews idle until playback is requested', () => {
     const { container } = render(
       <PlatformPreview

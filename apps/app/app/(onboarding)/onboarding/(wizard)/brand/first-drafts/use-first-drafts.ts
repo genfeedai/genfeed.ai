@@ -1,11 +1,11 @@
 'use client';
-
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ONBOARDING_MAX_DRAFT_ROUNDS } from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftContext,
+  IOnboardingDraftRun,
   IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
@@ -27,22 +27,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
-import {
-  clearScheduleResume,
-  readScheduleResume,
-  saveScheduleResume,
-  toOnboardingLink,
-} from './first-drafts.util';
+import { toOnboardingLink } from './first-drafts.util';
 
 export function useFirstDrafts(): FirstDraftsState {
   const { getToken } = useAuthIdentity();
-  const { brandId, isBrandScopeResolved } = useBrand();
+  const { brandId, organizationId, isBrandScopeResolved } = useBrand();
   const { currentUser, isLoading } = useCurrentUser();
   const { handleStepComplete, steps } = useOnboarding();
   const completeOnboarding = useCompleteOnboarding();
   const searchParams = useSearchParams();
   const { replace } = useRouter();
-
   const [url, setUrl] = useState('');
   const [phase, setPhase] = useState<FirstDraftsPhase>('url');
   const [workingStep, setWorkingStep] =
@@ -52,160 +46,306 @@ export function useFirstDrafts(): FirstDraftsState {
     null,
   );
   const [round, setRound] = useState(0);
+  const [savingPostIds, setSavingPostIds] = useState<string[]>([]);
+  const pendingFeedback = useRef(new Set<string>());
   const [error, setError] = useState<FirstDraftsError | null>(null);
   const [isContinuing, setIsContinuing] = useState(false);
+  const [resolvedScope, setResolvedScope] = useState('');
+  const [isRestoring, setIsRestoring] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [verdicts, setVerdicts] = useState<
     Readonly<Record<string, FirstDraftVerdict>>
   >({});
   const controllerRef = useRef<AbortController | null>(null);
-  const hasPrefilledRef = useRef(false);
-
-  useEffect(
-    () => () => {
-      controllerRef.current?.abort();
-    },
-    [],
-  );
-
+  const tokenRef = useRef(getToken);
+  tokenRef.current = getToken;
+  const scopeKey = JSON.stringify([currentUser?.id, organizationId, brandId]);
+  const liveScope = useRef(scopeKey);
+  liveScope.current = scopeKey;
+  const storageKey = `genfeed.onboarding.view.${scopeKey}`;
   const getService = useCallback(async () => {
-    const token = await resolveAuthToken(getToken);
+    const token = await resolveAuthToken(tokenRef.current);
     if (!token) throw new Error('Not authenticated');
     return OnboardingService.getInstance(token);
-  }, [getToken]);
+  }, []);
 
-  const draft = useCallback(
-    async (
-      service: OnboardingService,
-      context: IOnboardingDraftContext | undefined,
-      signal: AbortSignal,
-    ) => {
-      setWorkingStep('drafting');
-      const next = await service.generateDrafts(
-        brandId,
-        {
-          ...(context ? { context } : {}),
-          ...(result?.requestKey
-            ? { previousRequestKey: result.requestKey }
-            : {}),
-        },
-        signal,
+  const acceptRun = useCallback((run: IOnboardingDraftRun, initial = false) => {
+    setResult(run.result);
+    setIsGenerating(run.status === 'running');
+    if (initial) setVerdicts(run.verdicts);
+    if (run.result) {
+      setRound(1);
+      setPhase((current) =>
+        initial || current === 'working' ? 'review' : current,
       );
-      if (signal.aborted) return;
-      setResult(next);
-      setRound((current) => current + 1);
-      setPhase('review');
-    },
-    [brandId, result?.requestKey],
-  );
+    } else setPhase(run.status === 'running' ? 'working' : 'url');
+    if (run.status === 'interrupted') setError('recovery');
+  }, []);
 
-  const onStart = useCallback(
-    (link?: string) => {
-      const value = toOnboardingLink(link ?? url);
-      if (!brandId || !value) return;
-      controllerRef.current?.abort();
+  const isOnboardingCompleted = currentUser?.isOnboardingCompleted === true;
+  useEffect(() => {
+    if (isOnboardingCompleted) replace('/');
+  }, [isOnboardingCompleted, replace]);
+
+  useEffect(() => {
+    if (
+      !brandId ||
+      !currentUser?.id ||
+      isLoading ||
+      !isBrandScopeResolved ||
+      isOnboardingCompleted
+    )
+      return;
+    const controller = new AbortController();
+    controllerRef.current?.abort();
+    controllerRef.current = controller;
+    const epoch = scopeKey;
+    setIsRestoring(true);
+    setResult(null);
+    setVerdicts({});
+    setSavingPostIds([]);
+    pendingFeedback.current.clear();
+    setScan(null);
+    setRound(0);
+    setError(null);
+    setPhase('url');
+    setIsGenerating(false);
+    void (async () => {
+      try {
+        let requestedDomain = searchParams.get('brandDomain');
+        try {
+          requestedDomain ??= localStorage.getItem(
+            ONBOARDING_STORAGE_KEYS.brandDomain,
+          );
+        } catch {}
+        const resolved = resolveSignupBrandDomain({
+          email: currentUser.email,
+          requestedDomain,
+        });
+        let saved: string | null = null;
+        try {
+          saved = sessionStorage.getItem(storageKey);
+        } catch {}
+        let view: unknown = null;
+        try {
+          view = saved ? JSON.parse(saved) : null;
+        } catch {}
+        const storedUrl =
+          typeof view === 'object' &&
+          view !== null &&
+          'url' in view &&
+          typeof view.url === 'string'
+            ? view.url
+            : '';
+        setUrl(storedUrl || resolved.websiteUrl || '');
+        const run = await (await getService()).readDrafts(
+          brandId,
+          controller.signal,
+        );
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        if (run) {
+          acceptRun(run, true);
+          if (
+            run.result &&
+            (searchParams.get('step') === 'schedule' ||
+              (typeof view === 'object' &&
+                view !== null &&
+                'phase' in view &&
+                view.phase === 'schedule'))
+          )
+            setPhase('schedule');
+        }
+      } catch (caught) {
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        logger.error('Failed to restore onboarding', caught);
+        setError('recovery');
+      } finally {
+        if (!controller.signal.aborted && liveScope.current === epoch) {
+          setResolvedScope(epoch);
+          setIsRestoring(false);
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [
+    brandId,
+    currentUser?.id,
+    currentUser?.email,
+    isLoading,
+    isBrandScopeResolved,
+    isOnboardingCompleted,
+    scopeKey,
+    storageKey,
+    searchParams,
+    getService,
+    acceptRun,
+  ]);
+
+  useEffect(() => {
+    if (isRestoring || resolvedScope !== scopeKey) return;
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({ url, phase }));
+    } catch {}
+  }, [isRestoring, resolvedScope, scopeKey, storageKey, url, phase]);
+
+  useEffect(() => {
+    if (!isGenerating || !brandId) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const run = await (await getService()).readDrafts(
+          brandId,
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        if (run) acceptRun(run);
+        if (run?.status === 'running') timer = setTimeout(poll, 2000);
+      } catch (caught) {
+        if (!controller.signal.aborted) {
+          logger.error('Failed to reconcile onboarding', caught);
+          timer = setTimeout(poll, 4000);
+        }
+      }
+    };
+    timer = setTimeout(poll, 2000);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [isGenerating, brandId, getService, acceptRun]);
+
+  const startGeneration = useCallback(
+    async (context?: IOnboardingDraftContext) => {
+      if (!brandId || isRestoring || isGenerating) return;
+      const epoch = scopeKey;
       const controller = new AbortController();
+      controllerRef.current?.abort();
       controllerRef.current = controller;
       setError(null);
       setPhase('working');
       setWorkingStep('scanning');
-      void (async () => {
-        try {
-          const service = await getService();
+      try {
+        const service = await getService();
+        const existing = await service.readDrafts(brandId, controller.signal);
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        if (existing && !context) {
+          acceptRun(existing, true);
+          return;
+        }
+        if (!context) {
           const scanned = await service.scanBrand(
             brandId,
-            value,
+            toOnboardingLink(url),
             controller.signal,
           );
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted || liveScope.current !== epoch) return;
           setScan(scanned);
-          // A link we could not read goes straight to the brand-context round.
           if (scanned.status !== 'scanned') {
             setPhase('context');
             return;
           }
-          await draft(service, undefined, controller.signal);
-        } catch (caught) {
-          if (controller.signal.aborted) return;
-          logger.error('Failed to create first drafts', caught);
-          setError('generate');
-          setPhase('url');
         }
-      })();
+        setWorkingStep('drafting');
+        setIsGenerating(true);
+        const next = await service.generateDrafts(
+          brandId,
+          {
+            ...(context ? { context } : {}),
+            ...(context && result?.requestKey
+              ? { previousRequestKey: result.requestKey }
+              : {}),
+          },
+          controller.signal,
+        );
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        setResult(next);
+        setRound((current) => current + 1);
+        setPhase('review');
+        setIsGenerating(Boolean(next.videoIngredientId && !next.videoUrl));
+      } catch (caught) {
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        logger.error('Onboarding request needs reconciliation', caught);
+        try {
+          const run = await (await getService()).readDrafts(
+            brandId,
+            controller.signal,
+          );
+          if (controller.signal.aborted || liveScope.current !== epoch) return;
+          if (run) {
+            acceptRun(run, true);
+            return;
+          }
+        } catch {}
+        setIsGenerating(false);
+        setError('recovery');
+        setPhase('url');
+      }
     },
-    [brandId, draft, getService, url],
+    [
+      acceptRun,
+      brandId,
+      getService,
+      isGenerating,
+      isRestoring,
+      result?.requestKey,
+      scopeKey,
+      url,
+    ],
   );
 
-  const onSubmitContext = useCallback(
-    (context: IOnboardingDraftContext) => {
-      if (!brandId) return;
-      controllerRef.current?.abort();
-      const controller = new AbortController();
-      controllerRef.current = controller;
+  const onVerdict = useCallback(
+    (item: IOnboardingFirstDraft, verdict: FirstDraftVerdict | null) => {
+      if (!brandId || pendingFeedback.current.has(item.postId)) return;
       setError(null);
-      setPhase('working');
+      pendingFeedback.current.add(item.postId);
+      setSavingPostIds((current) => [...current, item.postId]);
+      const epoch = scopeKey;
+      const previous = verdicts[item.postId];
+      setVerdicts((current) => {
+        const { [item.postId]: _dropped, ...rest } = current;
+        return verdict ? { ...rest, [item.postId]: verdict } : rest;
+      });
       void (async () => {
         try {
-          await draft(await getService(), context, controller.signal);
+          const token = await resolveAuthToken(tokenRef.current);
+          if (!token) throw new Error('Not authenticated');
+          const service = BrandedGenerationReceiptsService.getInstance(token);
+          if (verdict)
+            await service.rateFeedback(brandId, item.receiptId, {
+              rating: verdict,
+              reasons: [],
+            });
+          else await service.withdrawFeedback(brandId, item.receiptId);
         } catch (caught) {
-          if (controller.signal.aborted) return;
-          logger.error('Failed to regenerate first drafts', caught);
-          setError('generate');
-          setPhase('context');
+          if (liveScope.current !== epoch) return;
+          logger.error('Failed to save onboarding feedback', caught);
+          setError('feedback');
+          setVerdicts((current) => {
+            const { [item.postId]: _dropped, ...rest } = current;
+            return previous ? { ...rest, [item.postId]: previous } : rest;
+          });
+        } finally {
+          if (liveScope.current === epoch) {
+            pendingFeedback.current.delete(item.postId);
+            setSavingPostIds((current) =>
+              current.filter((id) => id !== item.postId),
+            );
+          }
         }
       })();
     },
-    [brandId, draft, getService],
+    [brandId, scopeKey, verdicts],
   );
 
   const likedDrafts = (result?.drafts ?? []).filter(
     (item) => verdicts[item.postId] === 'up',
   );
-
-  /** The answer is the member's explicit rating of the generation, saved on its receipt. */
-  const onVerdict = useCallback(
-    (item: IOnboardingFirstDraft, verdict: FirstDraftVerdict) => {
-      if (!brandId) return;
-      const previous = verdicts[item.postId];
-      setVerdicts((current) => ({ ...current, [item.postId]: verdict }));
-      void (async () => {
-        try {
-          const token = await resolveAuthToken(getToken);
-          if (!token) throw new Error('Not authenticated');
-          await BrandedGenerationReceiptsService.getInstance(
-            token,
-          ).rateFeedback(brandId, item.receiptId, {
-            rating: verdict,
-            reasons: [],
-          });
-        } catch (caught) {
-          logger.error('Failed to save the draft verdict', caught);
-          setVerdicts((current) => {
-            const { [item.postId]: _dropped, ...rest } = current;
-            return previous ? { ...rest, [item.postId]: previous } : rest;
-          });
-        }
-      })();
-    },
-    [brandId, getToken, verdicts],
-  );
-
-  const onSchedule = useCallback(() => {
-    if (!brandId || !result) return;
-    // Connecting an account leaves the page, so keep what was liked.
-    saveScheduleResume({
-      brandId,
-      likedPostIds: likedDrafts.map((item) => item.postId),
-      result,
-    });
-    setPhase('schedule');
-  }, [brandId, likedDrafts, result]);
-
   const onContinue = useCallback(() => {
     if (isContinuing) return;
     setIsContinuing(true);
     setError(null);
-    clearScheduleResume();
-    // The Expert path continues into its own steps; everyone else is done.
+
     const finish =
       steps.length > 1 ? handleStepComplete('brand') : completeOnboarding();
     void finish.catch((caught: unknown) => {
@@ -215,73 +355,35 @@ export function useFirstDrafts(): FirstDraftsState {
     });
   }, [completeOnboarding, handleStepComplete, isContinuing, steps.length]);
 
-  // A finished user has nothing to set up here.
-  const isOnboardingCompleted = currentUser?.isOnboardingCompleted === true;
-  useEffect(() => {
-    if (isOnboardingCompleted) replace('/');
-  }, [isOnboardingCompleted, replace]);
-
-  // Coming back from connecting an account: resume the drafts that were liked.
-  const isScheduleReturn = searchParams.get('step') === 'schedule';
-  useEffect(() => {
-    if (!isScheduleReturn || hasPrefilledRef.current || !brandId) return;
-    const resume = readScheduleResume(brandId);
-    if (!resume) return;
-    hasPrefilledRef.current = true;
-    setResult(resume.result);
-    setVerdicts(
-      Object.fromEntries(
-        resume.likedPostIds.map((postId) => [postId, 'up' as const]),
-      ),
-    );
-    setPhase('schedule');
-  }, [brandId, isScheduleReturn]);
-
-  // A work-email domain is already a good guess: start without asking.
-  useEffect(() => {
-    if (
-      hasPrefilledRef.current ||
-      isOnboardingCompleted ||
-      isLoading ||
-      !isBrandScopeResolved ||
-      !brandId ||
-      !currentUser
-    )
-      return;
-    hasPrefilledRef.current = true;
-    const resolved = resolveSignupBrandDomain({
-      email: currentUser.email,
-      requestedDomain:
-        searchParams.get('brandDomain') ??
-        localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
-    });
-    if (!resolved.websiteUrl) return;
-    setUrl(resolved.websiteUrl);
-    onStart(resolved.websiteUrl);
-  }, [
-    brandId,
-    currentUser,
-    isBrandScopeResolved,
-    isLoading,
-    isOnboardingCompleted,
-    onStart,
-    searchParams,
-  ]);
-
   return {
     canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS,
-    isReady: isBrandScopeResolved && Boolean(brandId),
+    isReady:
+      isBrandScopeResolved && Boolean(brandId) && resolvedScope === scopeKey,
+    isRestoring,
+    isGenerating,
+    savingPostIds,
     error,
     isContinuing,
     isScanFailed: scan?.status === 'failed',
     likedDrafts,
     onContinue,
     onNotRight: () => setPhase('context'),
-    onSchedule,
+    onBack: () =>
+      setPhase((current) => (current === 'schedule' ? 'review' : 'url')),
+    onSchedule: () => {
+      if (!brandId || !result) return;
+      setPhase('schedule');
+    },
     onVerdict,
     onSkipLink: () => setPhase('context'),
-    onStart,
-    onSubmitContext,
+    onStart: () => {
+      if (result) setPhase('review');
+      else if (isGenerating) setPhase('working');
+      else void startGeneration();
+    },
+    onSubmitContext: (context) => {
+      void startGeneration(context);
+    },
     onUrlChange: setUrl,
     phase,
     result,

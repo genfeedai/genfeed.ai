@@ -1,3 +1,4 @@
+import type { IOnboardingDraftRun } from '@genfeedai/contracts/interfaces';
 import type { Page } from '@playwright/test';
 
 interface FirstDraftsMockOptions {
@@ -19,6 +20,7 @@ export async function setupOnboardingFirstDraftsMocks(
   options: FirstDraftsMockOptions = {},
 ): Promise<{ draftRequests: Array<Record<string, unknown>> }> {
   const draftRequests: Array<Record<string, unknown>> = [];
+  let saved: IOnboardingDraftRun | null = null;
 
   await page.route('**/v1/onboarding/brands/*/scan', async (route) => {
     await route.fulfill({
@@ -43,6 +45,10 @@ export async function setupOnboardingFirstDraftsMocks(
   });
 
   await page.route('**/v1/onboarding/brands/*/drafts', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: saved });
+      return;
+    }
     const request = (route.request().postDataJSON() ?? {}) as Record<
       string,
       unknown
@@ -50,8 +56,11 @@ export async function setupOnboardingFirstDraftsMocks(
     draftRequests.push(request);
     options.onDrafts?.(request);
     const round = draftRequests.length;
-    await route.fulfill({
-      body: JSON.stringify({
+    saved = {
+      id: 'saved-onboarding-run',
+      status: 'complete',
+      verdicts: {},
+      result: {
         drafts: PLATFORMS.map((platform) => ({
           isProvisional: false,
           platform,
@@ -60,13 +69,15 @@ export async function setupOnboardingFirstDraftsMocks(
           requestKey: `key-${platform}-${round}`,
           text: `Round ${round} ${platform} draft`,
         })),
+        imageIngredientId: null,
         imageUrl: null,
+        videoStatus: 'failed',
+        videoUrl: null,
         requestKey: `key-twitter-${round}`,
         status: 'partial',
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
+      },
+    };
+    await route.fulfill({ json: saved.result });
   });
 
   return { draftRequests };
