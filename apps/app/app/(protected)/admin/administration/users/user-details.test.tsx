@@ -59,8 +59,8 @@ describe('UserDetails', () => {
       <UserDetails
         user={{
           ...user,
-          firstName: null,
-          lastName: null,
+          firstName: '',
+          lastName: '',
           name: 'Jane Example',
         }}
       />,

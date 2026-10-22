@@ -118,7 +118,7 @@ function MembersListContent() {
       if (!abort.signal.aborted) setRoles(data);
     } catch {
       if (!abort.signal.aborted)
-        setRolesError('Could not load roles. Please try again.');
+        setRolesError(translate('inlineEdit.loadRolesFailed'));
     } finally {
       if (!abort.signal.aborted) setIsLoadingRoles(false);
     }
@@ -176,9 +176,12 @@ function MembersListContent() {
       render: (member: Member) => <MemberBrandAccess member={member} />,
     },
     {
-      header: 'Status',
+      header: translate('inlineEdit.status'),
       key: 'isActive',
-      render: (member: Member) => (member.isActive ? 'Active' : 'Inactive'),
+      render: (member: Member) =>
+        member.isActive
+          ? translate('inlineEdit.active')
+          : translate('inlineEdit.inactive'),
     },
     {
       header: 'Joined',

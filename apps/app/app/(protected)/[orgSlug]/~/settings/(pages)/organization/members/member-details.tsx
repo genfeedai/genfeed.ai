@@ -18,6 +18,7 @@ import {
 } from '@ui/primitives/select';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Pencil } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 export default function MemberDetails({
@@ -31,6 +32,7 @@ export default function MemberDetails({
   onLoadRoles,
   onUpdated,
 }: MemberDetailsProps) {
+  const t = useTranslations('common.settings.members.inlineEdit');
   const [isEditing, setIsEditing] = useState(false);
   const [roleId, setRoleId] = useState(member.roleId);
   const [brandIds, setBrandIds] = useState(
@@ -79,11 +81,9 @@ export default function MemberDetails({
       );
       onUpdated(updated);
       setIsEditing(false);
-      setNotice('Member saved');
+      setNotice(t('saved'));
     } catch (error) {
-      setError(
-        getErrorMessage(error, 'Could not save member. Please try again.'),
-      );
+      setError(getErrorMessage(error, t('saveFailed')));
     } finally {
       saving.current = false;
       setIsSaving(false);
@@ -93,7 +93,7 @@ export default function MemberDetails({
   return (
     <Form
       spacing="none"
-      aria-label="Edit member"
+      aria-label={t('editMember')}
       onSubmit={(event) => {
         event.preventDefault();
         void save();
@@ -103,12 +103,12 @@ export default function MemberDetails({
         facts={[
           {
             id: 'email',
-            label: 'Email',
+            label: t('email'),
             value: member.userEmail ?? member.user?.email,
           },
           {
             id: 'role',
-            label: 'Role',
+            label: t('role'),
             value: isEditing ? (
               <div className="space-y-2">
                 <Select
@@ -116,8 +116,8 @@ export default function MemberDetails({
                   onValueChange={setRoleId}
                   disabled={isSaving || isLoadingRoles || !!rolesError}
                 >
-                  <SelectTrigger aria-label="Role">
-                    <SelectValue placeholder="Select role" />
+                  <SelectTrigger aria-label={t('role')}>
+                    <SelectValue placeholder={t('selectRole')} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableRoles.map((role) => (
@@ -129,7 +129,7 @@ export default function MemberDetails({
                 </Select>
                 {isLoadingRoles ? (
                   <p role="status" className="text-sm text-muted-foreground">
-                    Loading roles…
+                    {t('loadingRoles')}
                   </p>
                 ) : null}
                 {rolesError ? (
@@ -138,7 +138,7 @@ export default function MemberDetails({
                       {rolesError}
                     </p>
                     <Button
-                      label="Retry loading roles"
+                      label={t('retryRoles')}
                       variant={ButtonVariant.SECONDARY}
                       onClick={onLoadRoles}
                     />
@@ -151,13 +151,13 @@ export default function MemberDetails({
           },
           {
             id: 'brands',
-            label: 'Brands',
+            label: t('brands'),
             value: isEditing ? (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
                   {hasAllBrandAccess
-                    ? 'Owners and admins can access all brands. Assignments are kept for future role changes.'
-                    : 'No selection gives access to all brands.'}
+                    ? t('allBrandsHint')
+                    : t('brandSelectionHint')}
                 </p>
                 <div className="max-h-64 space-y-2 overflow-y-auto">
                   {brandOptions.map((brand) => (
@@ -180,30 +180,30 @@ export default function MemberDetails({
             ) : targetRole === MemberRole.OWNER ||
               targetRole === MemberRole.ADMIN ||
               !member.brands?.length ? (
-              'All brands'
+              t('allBrands')
             ) : (
               member.brands.map((brand) => brand.label).join(', ')
             ),
           },
           {
             id: 'active',
-            label: 'Status',
+            label: t('status'),
             value: isEditing ? (
               <Checkbox
-                label="Active member"
+                label={t('activeMember')}
                 isChecked={isActive}
                 isDisabled={isSaving}
                 onCheckedChange={(checked) => setIsActive(checked === true)}
               />
             ) : member.isActive ? (
-              'Active'
+              t('active')
             ) : (
-              'Inactive'
+              t('inactive')
             ),
           },
           {
             id: 'joined',
-            label: 'Joined',
+            label: t('joined'),
             value: member.createdAt ? formatDate(member.createdAt) : undefined,
           },
         ]}
@@ -218,7 +218,7 @@ export default function MemberDetails({
             <div className="flex flex-wrap gap-2">
               <Button
                 type="submit"
-                label="Save"
+                label={t('save')}
                 isLoading={isSaving}
                 isDisabled={
                   isSaving ||
@@ -228,7 +228,7 @@ export default function MemberDetails({
                 }
               />
               <Button
-                label="Cancel"
+                label={t('cancel')}
                 variant={ButtonVariant.SECONDARY}
                 isDisabled={isSaving}
                 onClick={() => {
@@ -247,7 +247,7 @@ export default function MemberDetails({
             ) : null}
             {canEdit ? (
               <Button
-                label="Edit member"
+                label={t('editMember')}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
                 icon={<Pencil className="size-3.5" />}
