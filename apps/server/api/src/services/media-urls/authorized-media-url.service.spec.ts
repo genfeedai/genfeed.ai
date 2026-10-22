@@ -194,6 +194,23 @@ describe('AuthorizedMediaUrlService', () => {
     expect(logo.url).toContain('signed=1');
   });
 
+  it('signs a brand logo stored without a key at its default folder key', async () => {
+    const { service, prisma, urls } = await setup();
+    prisma.asset.findMany.mockResolvedValue([
+      {
+        id: 'asset-1',
+        category: 'LOGO',
+        cloudObjectKey: null,
+        parentBrandId: testId('brand', 2),
+        parentType: 'BRAND',
+        userId: null,
+      },
+    ] as never);
+    const [logo] = await service.projectAssets(scope, ['asset-1']);
+    expect(urls.buildUrl).toHaveBeenCalledWith('logos/asset-1');
+    expect(logo.url).toContain('signed=1');
+  });
+
   beforeEach(() => vi.mocked(isCloudDeployment).mockReturnValue(true));
 
   it('denies free original grants without asking the signer', async () => {

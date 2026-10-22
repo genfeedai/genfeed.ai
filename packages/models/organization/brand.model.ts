@@ -63,27 +63,34 @@ export class Brand extends BaseBrand {
   }
 
   get logoUrl(): string | undefined {
-    if (!this.logo) {
-      return undefined;
-    }
-    return (
-      this.logo.cdnUrl ?? `${EnvironmentService.cdnUrl}/logos/${this.logo.id}`
-    );
+    return this.resolveAssetUrl(this.logo, 'logos');
   }
 
   get bannerUrl(): string | undefined {
-    if (!this.banner) {
-      return undefined;
-    }
-    return `${EnvironmentService.cdnUrl}/banners/${this.banner.id}`;
+    return this.resolveAssetUrl(this.banner, 'banners');
   }
 
   get primaryReferenceUrl(): string | undefined {
-    const firstReference = this.references?.[0];
-    if (!firstReference) {
+    return this.resolveAssetUrl(this.references?.[0], 'references');
+  }
+
+  /**
+   * The API signs `cdnUrl` and sends `null` when it withholds the media. An
+   * unsigned CDN path for a withheld asset only returns 403, so a `null` means
+   * no image; a missing `cdnUrl` (unsigned CDN) still falls back to the path.
+   */
+  private resolveAssetUrl(
+    asset: IAsset | undefined,
+    folder: string,
+  ): string | undefined {
+    if (!asset) {
       return undefined;
     }
-    return `${EnvironmentService.cdnUrl}/references/${firstReference.id}`;
+    const cdnUrl = asset.cdnUrl as string | null | undefined;
+    if (cdnUrl === null) {
+      return undefined;
+    }
+    return cdnUrl ?? `${EnvironmentService.cdnUrl}/${folder}/${asset.id}`;
   }
 
   get totalCredentials(): number {

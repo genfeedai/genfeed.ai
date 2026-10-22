@@ -468,7 +468,14 @@ export class AuthorizedMediaUrlService {
       const isBrandIdentity =
         asset.parentType === AssetParent.BRAND &&
         BRAND_IDENTITY_CATEGORIES.includes(asset.category);
-      const key = trustedAssetKey(asset.cloudObjectKey);
+      // Logos and banners without a stored key resolve at `<folder>/<id>`, the
+      // same key the brand kit resolver builds the unsigned URL from.
+      const key = trustedAssetKey(
+        asset.cloudObjectKey ||
+          (isBrandIdentity
+            ? `${BRAND_IDENTITY_FOLDERS[asset.category]}/${asset.id}`
+            : null),
+      );
       if (
         !key ||
         (!isBrandIdentity &&
@@ -645,10 +652,13 @@ export class AuthorizedMediaUrlService {
 }
 
 /** Brand kit assets that identify a brand rather than carry generated media. */
-const BRAND_IDENTITY_CATEGORIES: AssetCategory[] = [
-  AssetCategory.LOGO,
-  AssetCategory.BANNER,
-];
+const BRAND_IDENTITY_FOLDERS: Partial<Record<AssetCategory, string>> = {
+  [AssetCategory.BANNER]: 'banners',
+  [AssetCategory.LOGO]: 'logos',
+};
+const BRAND_IDENTITY_CATEGORIES = Object.keys(
+  BRAND_IDENTITY_FOLDERS,
+) as AssetCategory[];
 
 /** Stored key of a brand asset, or null when it is not a plain relative object key. */
 function trustedAssetKey(key: string | null): string | null {

@@ -335,6 +335,30 @@ describe('Brand', () => {
 
       expect(brand.logoUrl).toBeUndefined();
     });
+
+    it('should prefer the signed cdnUrl the API sends', () => {
+      const brand = createBrand({
+        id: 'brand-123',
+        logo: createAsset({
+          cdnUrl: 'https://cdn.genfeed.ai/logos/logo-123?sig=1',
+          id: 'logo-123',
+        }),
+      });
+
+      expect(brand.logoUrl).toBe('https://cdn.genfeed.ai/logos/logo-123?sig=1');
+    });
+
+    it('should not build an unsigned URL when the API withheld the logo', () => {
+      const brand = createBrand({
+        id: 'brand-123',
+        logo: createAsset({
+          cdnUrl: null as unknown as string,
+          id: 'logo-123',
+        }),
+      });
+
+      expect(brand.logoUrl).toBeUndefined();
+    });
   });
 
   describe('bannerUrl', () => {
