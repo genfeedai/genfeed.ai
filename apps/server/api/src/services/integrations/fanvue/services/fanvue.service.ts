@@ -1,4 +1,11 @@
+import { constants as bufferConstants } from 'node:buffer';
 import { createHash, randomBytes } from 'node:crypto';
+import type { ClientRequest, IncomingMessage, RequestOptions } from 'node:http';
+import { request as requestHttps } from 'node:https';
+import type { Socket } from 'node:net';
+import { Readable } from 'node:stream';
+import { finished } from 'node:stream/promises';
+import { TLSSocket } from 'node:tls';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
@@ -9,7 +16,9 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
+import { firstValueFrom, fromEvent, type Observable, takeUntil } from 'rxjs';
+import { z } from 'zod';
 
 const FANVUE_API_BASE = 'https://api.fanvue.com';
 const FANVUE_AUTH_URL = 'https://auth.fanvue.com/oauth2/auth';
@@ -25,7 +34,44 @@ const FANVUE_SCOPES = [
   'write:post',
 ];
 
-const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
+const fanvueUploadSessionSchema = z.object({
+  mediaUuid: z.string().refine((value) => value.trim().length > 0),
+  uploadId: z.string().refine((value) => value.trim().length > 0),
+  partSize: z
+    .number()
+    .int()
+    .positive()
+    .max(Math.min(Number.MAX_SAFE_INTEGER, bufferConstants.MAX_LENGTH)),
+  maxParts: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  totalParts: z.null(),
+});
+type FanvueUploadSession = z.infer<typeof fanvueUploadSessionSchema>;
+type FanvueUploadStage =
+  | 'source'
+  | 'create'
+  | 'sign'
+  | 'put'
+  | 'complete'
+  | 'cleanup';
+interface FanvueUploadContext {
+  controller: AbortController;
+  stage: FanvueUploadStage;
+  source?: Readable;
+  sourceDone?: Promise<boolean>;
+  sourceAborted?: () => void;
+}
+interface FanvueUploadedPart {
+  ETag: string;
+  PartNumber: number;
+}
+interface FanvuePartTransport {
+  request: (
+    options: RequestOptions,
+    callback: (response: IncomingMessage) => void,
+  ) => ClientRequest;
+  finished?: Promise<boolean>;
+  dispose: () => Promise<void>;
+}
 
 interface FanvueTokenResponse {
   access_token: string;
@@ -34,19 +80,6 @@ interface FanvueTokenResponse {
   token_type: string;
   expires_in: number;
   scope: string;
-}
-
-interface FanvueUploadSession {
-  mediaUuid: string;
-  uploadId: string;
-  status: string;
-}
-
-interface FanvueSignedUrl {
-  signedUrl: string;
-  partNumber: number;
-  method: string;
-  expiresAt: string;
 }
 
 interface FanvuePostResponse {
@@ -342,138 +375,418 @@ export class FanvueService {
     accessToken: string,
     mediaUrl: string,
     mediaType: 'image' | 'video',
+    signal?: AbortSignal,
   ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const context: FanvueUploadContext = {
+      controller: new AbortController(),
+      stage: 'source',
+    };
+    const cancel = () => context.controller.abort();
+    signal?.addEventListener('abort', cancel, { once: true });
+    if (signal?.aborted) cancel();
 
     try {
-      // Download the file from our CDN
-      const fileResponse = await firstValueFrom(
-        this.httpService.get(mediaUrl, {
-          responseType: 'arraybuffer',
-        }),
-      );
-
-      const fileBuffer = Buffer.from(fileResponse.data);
-      const fileSize = fileBuffer.length;
-
-      // Derive filename and mimetype from URL
-      const urlPath = new URL(mediaUrl).pathname;
-      const fileName =
-        urlPath.split('/').pop() ||
+      const parsedUrl = new URL(mediaUrl);
+      if (parsedUrl.username || parsedUrl.password) throw new Error();
+      const filename =
+        parsedUrl.pathname.split('/').pop() ||
         `media.${mediaType === 'image' ? 'jpg' : 'mp4'}`;
-      const mimeType = mediaType === 'image' ? 'image/jpeg' : 'video/mp4';
-
-      this.loggerService.log(`${url} creating upload session`, {
-        fileName,
-        fileSize,
-        mediaType,
-        mimeType,
-      });
-
-      // Step 1: Create upload session
-      const sessionResponse = await firstValueFrom(
-        this.httpService.post<FanvueUploadSession>(
-          `${FANVUE_API_BASE}/media/uploads`,
-          {
-            fileName,
-            fileSize,
-            mediaType,
-            mimeType,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-              'X-Fanvue-API-Version': FANVUE_API_VERSION,
-            },
-          },
+      const sourceResponse = await this.uploadDeadline(context, 60_000, () =>
+        this.uploadResponse(
+          context,
+          this.httpService.get<Readable>(mediaUrl, {
+            headers: { Authorization: false, Cookie: false },
+            maxRedirects: 21,
+            responseType: 'stream',
+            signal: context.controller.signal,
+            timeout: 0,
+            transformRequest: this.uploadCredentialTransforms(),
+          }),
         ),
       );
-
-      const { mediaUuid, uploadId } = sessionResponse.data;
-
-      this.loggerService.log(`${url} upload session created`, {
-        mediaUuid,
-        uploadId,
+      const source = sourceResponse.data;
+      context.source = source;
+      context.sourceAborted = () => context.controller.abort();
+      source.on('aborted', context.sourceAborted);
+      context.sourceDone = finished(source, { cleanup: true }).then(
+        () => true,
+        () => {
+          context.controller.abort();
+          return false;
+        },
+      );
+      if (
+        sourceResponse.status !== 200 ||
+        sourceResponse.headers['content-range']
+      )
+        throw new Error();
+      const iterator = source[Symbol.asyncIterator]();
+      const firstChunk = await this.nextUploadChunk(context, iterator);
+      if (!firstChunk) throw new Error();
+      context.stage = 'create';
+      const sessionResponse = await this.uploadDeadline(context, 30_000, () =>
+        this.uploadResponse(
+          context,
+          this.httpService.post<unknown>(
+            `${FANVUE_API_BASE}/media/uploads`,
+            { name: filename, filename, mediaType },
+            this.uploadControlConfig(accessToken, context),
+          ),
+        ),
+      );
+      const session = fanvueUploadSessionSchema.parse(sessionResponse.data);
+      const parts = await this.transferUploadParts(
+        context,
+        iterator,
+        firstChunk,
+        session,
+        accessToken,
+      );
+      context.stage = 'source';
+      if (!(await this.observeUpload(context, context.sourceDone)))
+        throw new Error();
+      context.controller.signal.throwIfAborted();
+      context.stage = 'complete';
+      await this.uploadDeadline(context, 30_000, () =>
+        this.uploadResponse(
+          context,
+          this.httpService.patch(
+            `${FANVUE_API_BASE}/media/uploads/${encodeURIComponent(session.uploadId)}`,
+            { parts },
+            this.uploadControlConfig(accessToken, context),
+          ),
+        ),
+      );
+      context.controller.signal.throwIfAborted();
+      return session.mediaUuid;
+    } catch (error: unknown) {
+      const status = this.uploadErrorStatus(error);
+      this.loggerService.error('Fanvue media upload failed', {
+        stage: context.stage,
+        ...(status === undefined ? {} : { httpCode: status }),
       });
+      throw new Error('Fanvue media upload failed');
+    } finally {
+      await this.cleanupUpload(context, signal, cancel);
+    }
+  }
 
-      // Step 2 & 3: Upload chunks
-      const totalParts = Math.ceil(fileSize / CHUNK_SIZE);
-      const etags: Array<{ etag: string; partNumber: number }> = [];
+  private async cleanupUpload(
+    context: FanvueUploadContext,
+    signal: AbortSignal | undefined,
+    cancel: () => void,
+  ): Promise<void> {
+    try {
+      context.controller.abort();
+      signal?.removeEventListener('abort', cancel);
+      context.source?.destroy();
+      await context.sourceDone;
+    } catch {
+      this.loggerService.error('Fanvue media upload failed', {
+        stage: 'cleanup',
+      });
+      throw new Error('Fanvue media upload failed');
+    } finally {
+      if (context.sourceAborted)
+        context.source?.removeListener('aborted', context.sourceAborted);
+    }
+  }
 
-      for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
-        const start = (partNumber - 1) * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, fileSize);
-        const chunk = fileBuffer.subarray(start, end);
+  private uploadCredentialTransforms(
+    accessToken?: string,
+  ): AxiosRequestTransformer[] {
+    const defaults = this.httpService.axiosRef.defaults.transformRequest;
+    const configured = Array.isArray(defaults)
+      ? [...defaults]
+      : defaults
+        ? [defaults]
+        : [];
+    // Run last: Axios otherwise regenerates Basic auth from merged defaults.
+    const credentials: AxiosRequestTransformer = function (
+      data: unknown,
+      headers,
+    ) {
+      delete this.auth;
+      headers.set('Cookie', false, true);
+      headers.set(
+        'Authorization',
+        accessToken === undefined ? false : `Bearer ${accessToken}`,
+        true,
+      );
+      return data;
+    };
+    return [...configured, credentials];
+  }
 
-        // Get signed URL for this part
-        const signedUrlResponse = await firstValueFrom(
-          this.httpService.get<FanvueSignedUrl>(
-            `${FANVUE_API_BASE}/media/uploads/${uploadId}/parts/${partNumber}/url`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'X-Fanvue-API-Version': FANVUE_API_VERSION,
-              },
-            },
+  private uploadResponse<T>(
+    context: FanvueUploadContext,
+    response: Observable<T>,
+  ): Promise<T> {
+    context.controller.signal.throwIfAborted();
+    return firstValueFrom(
+      response.pipe(takeUntil(fromEvent(context.controller.signal, 'abort'))),
+    );
+  }
+
+  private uploadControlConfig(
+    accessToken: string,
+    context: FanvueUploadContext,
+  ): AxiosRequestConfig {
+    return {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Cookie: false,
+        'Content-Type': 'application/json',
+        'X-Fanvue-API-Version': FANVUE_API_VERSION,
+      },
+      maxRedirects: 0,
+      signal: context.controller.signal,
+      timeout: 0,
+      transformRequest: this.uploadCredentialTransforms(accessToken),
+    };
+  }
+
+  private uploadErrorStatus(error: unknown): number | undefined {
+    if (typeof error !== 'object' || error === null || !('response' in error))
+      return;
+    const response = error.response;
+    if (
+      typeof response !== 'object' ||
+      response === null ||
+      !('status' in response)
+    )
+      return;
+    return typeof response.status === 'number' &&
+      Number.isFinite(response.status)
+      ? response.status
+      : undefined;
+  }
+
+  private async observeUpload<T>(
+    context: FanvueUploadContext,
+    operation: Promise<T>,
+  ): Promise<T> {
+    const signal = context.controller.signal;
+    let cancel: () => void = () => undefined;
+    const aborted = new Promise<never>((_resolve, reject) => {
+      cancel = () => reject(new Error());
+      signal.addEventListener('abort', cancel, { once: true });
+      if (signal.aborted) cancel();
+    });
+    try {
+      return await Promise.race([operation, aborted]);
+    } finally {
+      signal.removeEventListener('abort', cancel);
+    }
+  }
+
+  private async uploadDeadline<T>(
+    context: FanvueUploadContext,
+    milliseconds: number,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    context.controller.signal.throwIfAborted();
+    const timer = setTimeout(() => context.controller.abort(), milliseconds);
+    try {
+      return await this.observeUpload(context, operation());
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async nextUploadChunk(
+    context: FanvueUploadContext,
+    iterator: AsyncIterator<unknown>,
+  ): Promise<Uint8Array | undefined> {
+    context.stage = 'source';
+    return this.uploadDeadline(context, 60_000, async () => {
+      while (true) {
+        const next = await this.observeUpload(context, iterator.next());
+        if (next.done) return;
+        if (!(next.value instanceof Uint8Array)) throw new Error();
+        if (next.value.byteLength > 0) return next.value;
+      }
+    });
+  }
+
+  private async transferUploadParts(
+    context: FanvueUploadContext,
+    iterator: AsyncIterator<unknown>,
+    firstChunk: Uint8Array,
+    session: FanvueUploadSession,
+    accessToken: string,
+  ): Promise<FanvueUploadedPart[]> {
+    const buffer = Buffer.allocUnsafe(session.partSize);
+    const parts: FanvueUploadedPart[] = [];
+    let chunk: Uint8Array | undefined = firstChunk;
+    let offset = 0;
+    let filled = 0;
+    let byteCount = 0;
+    while (chunk) {
+      if (parts.length >= session.maxParts) throw new Error();
+      const length = Math.min(
+        buffer.length - filled,
+        chunk.byteLength - offset,
+      );
+      if (!Number.isSafeInteger(byteCount + length)) throw new Error();
+      buffer.set(chunk.subarray(offset, offset + length), filled);
+      byteCount += length;
+      offset += length;
+      filled += length;
+      if (filled === buffer.length) {
+        parts.push(
+          await this.uploadPart(
+            context,
+            session,
+            parts.length + 1,
+            buffer,
+            accessToken,
           ),
         );
-
-        const { signedUrl } = signedUrlResponse.data;
-
-        // Upload chunk to signed URL
-        const uploadResponse = await firstValueFrom(
-          this.httpService.put(signedUrl, chunk, {
-            headers: {
-              'Content-Type': 'application/octet-stream',
-            },
-          }),
-        );
-
-        const etag = uploadResponse.headers.etag || uploadResponse.headers.ETag;
-        etags.push({ etag, partNumber });
-
-        this.loggerService.log(
-          `${url} uploaded part ${partNumber}/${totalParts}`,
-          {
-            mediaUuid,
-            partNumber,
-          },
-        );
+        filled = 0;
       }
-
-      // Step 4: Complete upload
-      await firstValueFrom(
-        this.httpService.patch(
-          `${FANVUE_API_BASE}/media/uploads/${uploadId}`,
-          {
-            parts: etags,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-              'X-Fanvue-API-Version': FANVUE_API_VERSION,
-            },
-          },
+      if (offset === chunk.byteLength) {
+        chunk = await this.nextUploadChunk(context, iterator);
+        offset = 0;
+      }
+    }
+    if (filled > 0) {
+      parts.push(
+        await this.uploadPart(
+          context,
+          session,
+          parts.length + 1,
+          buffer.subarray(0, filled),
+          accessToken,
         ),
       );
-
-      this.loggerService.log(`${url} upload completed`, {
-        mediaUuid,
-        totalParts,
-      });
-
-      return mediaUuid;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
-        error:
-          (error as { response?: { data?: unknown } })?.response?.data ||
-          (error as Error)?.message,
-        mediaUrl,
-      });
-      throw error;
     }
+    if (parts.length === 0 || !Number.isSafeInteger(parts.length))
+      throw new Error();
+    return parts;
+  }
+
+  private async uploadPart(
+    context: FanvueUploadContext,
+    session: FanvueUploadSession,
+    partNumber: number,
+    buffer: Buffer,
+    accessToken: string,
+  ): Promise<FanvueUploadedPart> {
+    context.stage = 'sign';
+    const signed = await this.uploadDeadline(context, 30_000, () =>
+      this.uploadResponse(
+        context,
+        this.httpService.get<unknown>(
+          `${FANVUE_API_BASE}/media/uploads/${encodeURIComponent(session.uploadId)}/parts/${partNumber}/url`,
+          {
+            ...this.uploadControlConfig(accessToken, context),
+            responseType: 'text',
+          },
+        ),
+      ),
+    );
+    if (typeof signed.data !== 'string' || signed.data.trim() !== signed.data)
+      throw new Error();
+    const parsed = new URL(signed.data);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password)
+      throw new Error();
+    context.stage = 'put';
+    const transport = this.uploadPartTransport(context);
+    try {
+      const response = await this.observeUpload(
+        context,
+        this.uploadResponse(
+          context,
+          this.httpService.put(signed.data, buffer, {
+            headers: {
+              Authorization: false,
+              Cookie: false,
+              'Content-Length': buffer.length,
+              'Content-Type': 'application/octet-stream',
+            },
+            maxBodyLength: Infinity,
+            maxRedirects: 0,
+            proxy: false,
+            signal: context.controller.signal,
+            timeout: 60_000,
+            transformRequest: this.uploadCredentialTransforms(),
+            // Custom transport keeps Axios's socket idle timeout without its native-path wall timer.
+            transport: { request: transport.request },
+          }),
+        ),
+      );
+      if (
+        !transport.finished ||
+        !(await this.observeUpload(context, transport.finished))
+      )
+        throw new Error();
+      if (response.status < 200 || response.status >= 300) throw new Error();
+      const etag = Object.entries(response.headers).find(
+        ([name]) => name.toLowerCase() === 'etag',
+      )?.[1];
+      if (typeof etag !== 'string' || !etag.trim()) throw new Error();
+      context.controller.signal.throwIfAborted();
+      return { ETag: etag, PartNumber: partNumber };
+    } finally {
+      await transport.dispose();
+    }
+  }
+
+  private uploadPartTransport(
+    context: FanvueUploadContext,
+  ): FanvuePartTransport {
+    const transport: FanvuePartTransport = {
+      dispose: async () => undefined,
+      request: (options, callback) => {
+        const request = requestHttps(options, callback);
+        const closed = new Promise<void>((resolve) =>
+          request.once('close', resolve),
+        );
+        const timer = setTimeout(() => request.destroy(new Error()), 60_000);
+        let socket: Socket | undefined;
+        const connected = () => clearTimeout(timer);
+        const onSocket = (assigned: Socket) => {
+          socket = assigned;
+          if (
+            request.reusedSocket ||
+            (!assigned.connecting && !(assigned instanceof TLSSocket))
+          )
+            connected();
+          else
+            assigned.once(
+              assigned instanceof TLSSocket ? 'secureConnect' : 'connect',
+              connected,
+            );
+        };
+        request.on('socket', onSocket);
+        request.once('error', connected);
+        request.once('close', connected);
+        transport.finished = finished(request, {
+          cleanup: true,
+          readable: false,
+        }).then(
+          () => true,
+          () => {
+            context.controller.abort();
+            return false;
+          },
+        );
+        transport.dispose = async () => {
+          clearTimeout(timer);
+          request.removeListener('socket', onSocket);
+          request.removeListener('error', connected);
+          request.removeListener('close', connected);
+          socket?.removeListener('connect', connected);
+          socket?.removeListener('secureConnect', connected);
+          socket?.setTimeout(0);
+          request.destroy();
+          await closed;
+        };
+        return request;
+      },
+    };
+    return transport;
   }
 
   /**
