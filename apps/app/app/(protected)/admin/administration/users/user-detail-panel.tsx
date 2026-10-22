@@ -17,7 +17,7 @@ export default function UserDetailPanel({
   const translate = useTranslations('pages.adminUsers');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-4">
       <div className="flex flex-wrap gap-2">
         <Button asChild>
           <NextLink
