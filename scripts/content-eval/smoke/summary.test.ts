@@ -91,6 +91,6 @@ describe('summariseSmoke', () => {
     expect(verdict.spentCredits).toBe(2.5);
     expect(markdown).toContain('Spend 2.50 of 100.00 credits');
     expect(markdown).toMatch(/\| newsletter \| brand-voice-summary \|/);
-    expect(markdown).toMatch(/\| music \| none \|/);
+    expect(markdown).toMatch(/\| music \| harness \|/);
   });
 });
