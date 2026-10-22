@@ -20,14 +20,18 @@ function boundedSummary(value: string): string {
   if (value.length <= MAX_TEXT_CHARS) return value;
   const lines: string[] = [];
   let length = MORE_DETAILS.length + 1;
+  let omitted = false;
   for (const line of value.split('\n')) {
     // Action/resource links remain usable for clients that only show text.
     const isLink = /^\s*\[Open [^\]]+\]\(https?:\/\/.*\)$/.test(line);
-    if (!isLink && length + line.length + 1 > MAX_TEXT_CHARS) continue;
+    if (!isLink && length + line.length + 1 > MAX_TEXT_CHARS) {
+      omitted = true;
+      continue;
+    }
     lines.push(line);
     if (!isLink) length += line.length + 1;
   }
-  return [...lines, MORE_DETAILS].join('\n');
+  return (omitted ? [...lines, MORE_DETAILS] : lines).join('\n');
 }
 const ID_FIELD = /(?:^|[ _-])ids?$|^uuid$/i;
 const PRIVATE_FIELD =

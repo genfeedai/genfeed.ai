@@ -14,7 +14,7 @@ args = parser.parse_args()
 version = importlib.metadata.version('tiktoken')
 if version != '0.12.0':
     parser.error('Install the pinned benchmark dependency: tiktoken==0.12.0')
-before, after = (json.loads(path.read_text()) for path in (args.before, args.after))
+before, after = (json.loads(path.read_text(encoding="utf-8")) for path in (args.before, args.after))
 if before['fixtureVersion'] != after['fixtureVersion'] or before['payloads'].keys() != after['payloads'].keys():
     parser.error('Fixture versions and case names must match')
 
