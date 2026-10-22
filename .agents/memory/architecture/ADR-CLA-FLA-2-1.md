@@ -26,14 +26,41 @@ removed. `git commit -s` remains a harmless habit but is not required.
 - **No per-commit ceremony.** One click on the first PR replaces a `Signed-off-by:` trailer on
   every commit and the rebase-and-force-push loop when one is missing.
 
+## Automatic reporting uses the GitHub App
+
+**Reporting contract updated: 2026-10-22.** Install the official
+[CLA Assistant GitHub App](https://github.com/apps/cla-assistant) with access to
+this repository only. Automatic `license/cla` reporting must use its installation
+credentials, independently of a maintainer's personal OAuth authorization.
+
+The older OAuth connection published statuses as the maintainer's GitHub user.
+It coupled reporting to a stored personal credential and that user's API quota.
+An expired browser session or an OAuth consent screen does not establish that
+this credential failed: a missing verdict can also follow a hosted processing
+failure. Reauthorizing a person is not the default repair for missing statuses.
+
+Keep the linked CLA Gist, recorded signatures, allowlist and required
+`license/cla` rule intact when changing reporting authentication. Do not unlink
+and recreate the agreement. Validate the transition on a fresh PR commit: the
+real `license/cla` result must be created by `cla-assistant[bot]`. GitHub's
+`GET /repos/{owner}/{repo}/commits/{ref}/statuses` response includes the status
+`creator`; the combined-status response does not provide the same attribution.
+
+For a missing result, inspect the App installation's repository access,
+suspension and permissions, followed by delivery and hosted recheck evidence.
+The trusted CLA Status Recovery workflow requests a genuine recheck and waits
+for the exact commit's result; its HTTP 302 response alone is not a verdict.
+A hosted outage must remain visible rather than prompting a human to sign
+again or synthesizing success.
+
 ## Agent-account exemption
 
 Commits authored by the maintainer's coding agents are exempt from `license/cla` via CLA
 Assistant's per-repository allowlist ("Specify usernames and source organizations to be exempt
-from signing the CLA"), not by signing on their behalf. The exempt logins are:
+from signing the CLA"), not by signing on their behalf. The exempt logins (live settings verified 2026-10-22) are:
 
 ```
-claude,cursoragent,chatgpt-codex-connector[bot]
+claude,cursoragent,chatgpt-codex-connector[bot],github-actions[bot]
 ```
 
 They are agents acting under the maintainer's direction, so the Recorded fact below still holds —
