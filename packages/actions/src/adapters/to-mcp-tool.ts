@@ -8,6 +8,7 @@ import {
   MCP_BRAND_REQUIRED_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
+import { isMcpListedToolName } from '../registry/mcp-catalog-calls';
 import {
   compactMcpInputDocumentation,
   compactMcpToolDescription,
@@ -72,7 +73,7 @@ export interface McpToolOutput {
 
 export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
   return tools
-    .filter((tool) => tool.surfaces.mcp)
+    .filter((tool) => tool.surfaces.mcp && isMcpListedToolName(tool.name))
     .map((tool) => {
       const presentation =
         tool.title && tool.annotations

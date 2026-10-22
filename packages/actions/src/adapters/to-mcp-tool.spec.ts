@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
-import { getToolByName, getToolsForSurface } from '../registry/tool-registry';
+import {
+  ALL_TOOLS,
+  getToolByName,
+  getToolsForSurface,
+} from '../registry/tool-registry';
 import {
   MCP_CREDIT_COST_META_KEY,
   MCP_TOOLSET_META_KEY,
@@ -479,4 +483,18 @@ describe('toMcpTools', () => {
     expect(tool?.title).toBe('Stored presentation');
     expect(tool?.annotations).toEqual(annotations);
   });
+});
+
+it('projects the raw eligible catalog without advertising legacy aliases', () => {
+  const names = toMcpTools(ALL_TOOLS).map((tool) => tool.name);
+  expect(names).toHaveLength(143);
+  for (const name of [
+    'get_scheduler_capabilities',
+    'validate_scheduler_target',
+    'request_media_upload',
+    'complete_media_upload',
+  ])
+    expect(names).not.toContain(name);
+  expect(names).toContain('check_channel');
+  expect(names).toContain('upload_media');
 });

@@ -53,9 +53,9 @@ const TOOL_DOCUMENTATION = new Map([
     'control_scheduled_release',
     {
       original:
-        'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check validate_scheduler_target before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
+        'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
       concise:
-        'Request cancel, pause, resume or publish-now. First review content/channels/timing with get_scheduled_release; validate_scheduler_target before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. All actions require server-enforced approval; review/release in Genfeed.',
+        'Request cancel, pause, resume or publish-now. First review content/channels/timing with get_scheduled_release; check_channel(action=validate) before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. All actions require server-enforced approval; review/release in Genfeed.',
     },
   ],
   [
@@ -107,9 +107,9 @@ const TOOL_DOCUMENTATION = new Map([
     'create_scheduled_release',
     {
       original:
-        'Create a multi-channel release from prepared content and existing media. Use after validate_scheduler_target for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. If this connection cannot resolve approvals, review and release it in Genfeed.',
+        'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. If this connection cannot resolve approvals, review and release it in Genfeed.',
       concise:
-        'Create a multi-channel release from prepared text/media after validate_scheduler_target for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Server approval required to schedule; if unavailable here, review/release in Genfeed.',
+        'Create a multi-channel release from prepared text/media after check_channel(action=validate) for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Server approval required to schedule; if unavailable here, review/release in Genfeed.',
     },
   ],
   [
@@ -494,9 +494,9 @@ const TOOL_DOCUMENTATION = new Map([
     'update_scheduled_release',
     {
       original:
-        'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then validate_scheduler_target before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
+        'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then check_channel(action=validate) before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
       concise:
-        "Update release content/media/recurrence/timing or one target's scheduling/settings. Inspect get_scheduled_release first; validate_scheduler_target before publishing-setting changes. Live-content changes may update public posts. All updates require server approval; review/apply in Genfeed.",
+        "Update release content/media/recurrence/timing or one target's scheduling/settings. Inspect get_scheduled_release first; check_channel(action=validate) before publishing-setting changes. Live-content changes may update public posts. All updates require server approval; review/apply in Genfeed.",
     },
   ],
 ]);

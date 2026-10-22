@@ -1,4 +1,9 @@
-import { MCP_TOOL_OUTPUT_SCHEMA, type McpToolOutput } from '@genfeedai/actions';
+import {
+  getToolsForSurface,
+  MCP_TOOL_OUTPUT_SCHEMA,
+  type McpToolOutput,
+  toMcpTools,
+} from '@genfeedai/actions';
 import type { ToolDiscoverySource } from '@mcp/shared/interfaces/tool-discovery.interface';
 import { handleToolDiscoveryTool } from '@mcp/tools/tool-discovery.tool';
 
@@ -367,5 +372,31 @@ describe('handleToolDiscoveryTool', () => {
     expect(() =>
       handleToolDiscoveryTool(registry, 'not_a_discovery_tool', {}),
     ).toThrow('Unknown tool discovery tool: not_a_discovery_tool');
+  });
+});
+
+describe('legacy alias discovery', () => {
+  it('returns the already discoverable canonical descriptor and fixed action guidance', () => {
+    const registry = {
+      getDiscoverableTools: () => toMcpTools(getToolsForSurface('mcp')),
+    };
+    const result = handleToolDiscoveryTool(registry, 'find_tools', {
+      name: 'request_media_upload',
+    });
+    expect(result).toMatchObject({
+      structuredContent: { tool: { name: 'upload_media' } },
+    });
+    expect(JSON.stringify(result)).toContain('upload_media(action=request)');
+    expect(JSON.stringify(result)).not.toContain(
+      '"name":"request_media_upload"',
+    );
+  });
+  it('does not reveal aliases whose canonical tool is unavailable', () => {
+    const registry = { getDiscoverableTools: () => [] };
+    const result = handleToolDiscoveryTool(registry, 'find_tools', {
+      name: 'request_media_upload',
+    });
+    expect(result).toMatchObject({ isError: true });
+    expect(JSON.stringify(result)).not.toContain('upload_media(action=');
   });
 });

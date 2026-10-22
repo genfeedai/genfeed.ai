@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getToolsForSurface } from '@genfeedai/actions';
+import {
+  ALL_TOOLS,
+  getMcpCatalogOperations,
+  getToolsForSurface,
+} from '@genfeedai/actions';
 import { TOOL_DISCOVERY_TOOL_NAMES } from '@mcp/tools/tool-discovery.tool';
 
 /**
@@ -835,7 +839,13 @@ describe('MCP → API route contract', () => {
 
   it('covers every MCP-surfaced tool with a mounted route (no dead-wiring)', () => {
     const contractTools = new Set(ROUTE_CONTRACT.flatMap((r) => r.tools));
-    const uncovered = catalog.filter(
+    const operationNames = catalog.flatMap((name) => {
+      const operations = getMcpCatalogOperations(name);
+      return operations.length
+        ? operations.map((operation) => operation.executionName)
+        : [name];
+    });
+    const uncovered = operationNames.filter(
       (name) =>
         !agentExecutorNames.has(name) &&
         !contractTools.has(name) &&
@@ -849,7 +859,9 @@ describe('MCP → API route contract', () => {
   });
 
   it('has no stale contract entries (every contract tool is still surfaced)', () => {
-    const surfaced = new Set<string>(catalog);
+    const surfaced = new Set<string>(
+      ALL_TOOLS.filter((tool) => tool.surfaces.mcp).map((tool) => tool.name),
+    );
     const stale = [...new Set(ROUTE_CONTRACT.flatMap((r) => r.tools))].filter(
       (name) => !surfaced.has(name),
     );

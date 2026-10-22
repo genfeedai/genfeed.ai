@@ -8,6 +8,7 @@ const toolsByName = new Map(
 describe('MCP_SCHEDULER_TOOLS', () => {
   it('exposes lifecycle tools plus read-only capability discovery', () => {
     expect(MCP_SCHEDULER_TOOLS.map((tool) => tool.name).sort()).toEqual([
+      'check_channel',
       'control_scheduled_release',
       'create_scheduled_release',
       'get_scheduled_release',

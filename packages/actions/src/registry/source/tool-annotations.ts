@@ -86,6 +86,24 @@ const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(
 const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
   new Map([
     [
+      'check_channel',
+      {
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+        readOnlyHint: true,
+      },
+    ],
+    [
+      'upload_media',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
       'get_account',
       {
         destructiveHint: false,

@@ -231,3 +231,27 @@ describe('ToolRegistryService.getDiscoverableTools', () => {
     ).toEqual(['admin_scoped_tool', 'get_posts', 'resolve_approval']);
   });
 });
+
+it('lists the real mixed default with canonical wrappers at 24 user / 25 maximum', async () => {
+  const actual =
+    await vi.importActual<typeof import('@genfeedai/actions')>(
+      '@genfeedai/actions',
+    );
+  mockState.toolsForToolsets = actual.toMcpTools(
+    actual.getToolsForToolsets('mcp', actual.DEFAULT_MCP_PROFILE_TOOLSETS),
+  );
+  const user = build('user', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
+  const maximum = build('superadmin', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
+  expect(user.getTools()).toHaveLength(24);
+  expect(maximum.getTools()).toHaveLength(25);
+  const listed = names(user.getTools());
+  expect(listed).toContain('check_channel');
+  expect(listed).toContain('upload_media');
+  for (const name of [
+    'get_scheduler_capabilities',
+    'validate_scheduler_target',
+    'request_media_upload',
+    'complete_media_upload',
+  ])
+    expect(listed).not.toContain(name);
+});

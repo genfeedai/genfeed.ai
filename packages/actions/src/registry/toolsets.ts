@@ -1,4 +1,5 @@
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import { isMcpListedToolName } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
 import type { ToolsetDefinition, ToolsetName } from './toolset-names';
 import { CORE_TOOLSET_NAME, isToolsetName, TOOLSETS } from './toolset-names';
@@ -22,7 +23,11 @@ export interface ToolsetSummary extends ToolsetDefinition {
  * surface (e.g. an agent-only toolset queried for `'mcp'`) is omitted.
  */
 export function getToolsets(surface: 'agent' | 'mcp'): ToolsetSummary[] {
-  const toolsOnSurface = ALL_TOOLS.filter((tool) => tool.surfaces[surface]);
+  const toolsOnSurface = ALL_TOOLS.filter(
+    (tool) =>
+      tool.surfaces[surface] &&
+      (surface !== 'mcp' || isMcpListedToolName(tool.name)),
+  );
   const summaries: ToolsetSummary[] = [];
 
   for (const definition of TOOLSETS) {
@@ -159,7 +164,11 @@ export function getToolsForToolsets(
   surface: 'agent' | 'mcp',
   toolsets: readonly ToolsetName[],
 ): CanonicalToolDefinition[] {
-  const toolsOnSurface = ALL_TOOLS.filter((tool) => tool.surfaces[surface]);
+  const toolsOnSurface = ALL_TOOLS.filter(
+    (tool) =>
+      tool.surfaces[surface] &&
+      (surface !== 'mcp' || isMcpListedToolName(tool.name)),
+  );
 
   if (toolsets.length === 0) {
     return [...toolsOnSurface].sort((a, b) => a.name.localeCompare(b.name));

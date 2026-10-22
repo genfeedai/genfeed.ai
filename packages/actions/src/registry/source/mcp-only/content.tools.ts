@@ -1,4 +1,8 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import {
+  COMPLETE_MEDIA_UPLOAD_PARAMETERS,
+  REQUEST_MEDIA_UPLOAD_PARAMETERS,
+} from '../overlap-query.tools';
 
 const ARTICLE_SELECTOR_PROPERTIES = {
   articleId: { type: 'string' },
@@ -8,6 +12,49 @@ const ARTICLE_SELECTOR_PROPERTIES = {
 } as const;
 
 export const MCP_CONTENT_TOOLS: SourceTool[] = [
+  {
+    name: 'upload_media',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL. Does not publish or attach media.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        action: { type: 'string', enum: ['request', 'complete'] },
+        input: { type: 'object' },
+      },
+      required: ['action', 'input'],
+      oneOf: [
+        {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['request'] },
+            input: REQUEST_MEDIA_UPLOAD_PARAMETERS,
+          },
+          required: ['action', 'input'],
+        },
+        {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['complete'] },
+            input: {
+              ...COMPLETE_MEDIA_UPLOAD_PARAMETERS,
+              properties: {
+                assetId: {
+                  type: 'string',
+                  description:
+                    'assetId returned by upload_media(action=request).',
+                },
+              },
+            },
+          },
+          required: ['action', 'input'],
+        },
+      ],
+    },
+  },
   {
     creditCost: 0,
     description:

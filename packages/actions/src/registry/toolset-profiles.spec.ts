@@ -23,6 +23,17 @@ const BEYOND_DEFAULT_TOOLSETS = [
 ] as const satisfies readonly ToolsetName[];
 
 describe('MCP toolset profiles', () => {
+  it('pins truthful canonical maximum and ordinary role profile counts', () => {
+    const defaults = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
+    expect(BARE_MCP_URL_TOOL_CAP).toBe(25);
+    expect(defaults).toHaveLength(25);
+    expect(
+      defaults.filter((tool) => tool.requiredRole === 'user'),
+    ).toHaveLength(24);
+    expect(
+      getToolsForToolsets('mcp', DIRECTORY_MCP_PROFILE_TOOLSETS),
+    ).toHaveLength(19);
+  });
   it('uses default for the bare URL and exposes the three profile names', () => {
     expect(BARE_URL_MCP_PROFILE).toBe('default');
     expect(MCP_PROFILE_NAMES).toEqual(['default', 'directory', 'full']);
@@ -36,11 +47,7 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.name,
       ),
     );
-    for (const name of [
-      'complete_media_upload',
-      'get_posts',
-      'request_media_upload',
-    ]) {
+    for (const name of ['upload_media', 'get_posts']) {
       expect(names.has(name), name).toBe(true);
       expect(
         getToolsForToolsets('mcp', ['core']).some((tool) => tool.name === name),

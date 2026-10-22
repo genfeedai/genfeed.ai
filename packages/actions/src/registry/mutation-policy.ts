@@ -95,6 +95,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   capture_knowledge: 'direct',
   capture_memory: 'direct',
   complete_media_upload: 'direct',
+  upload_media: 'direct',
   complete_onboarding: 'direct',
   complete_outreach_sequence: 'direct',
   connect_social_account: 'direct',

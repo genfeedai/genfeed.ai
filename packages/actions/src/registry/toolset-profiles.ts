@@ -23,7 +23,7 @@ export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
  * room for `onboard_brand` in core: a user who signs up during the connect
  * must be able to finish onboarding from the bare URL (#6268).
  */
-export const BARE_MCP_URL_TOOL_CAP = 27;
+export const BARE_MCP_URL_TOOL_CAP = 25;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',

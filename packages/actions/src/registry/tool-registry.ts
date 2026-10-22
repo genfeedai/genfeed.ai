@@ -3,6 +3,7 @@ import type {
   ToolCategory,
   ToolRequiredRole,
 } from '../interfaces/tool-definition.interface';
+import { isMcpListedToolName } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
 import {
   BARE_MCP_URL_TOOL_CAP,
@@ -75,7 +76,10 @@ export function getToolsForSurface(
   surface: 'agent' | 'mcp' | 'cli',
 ): CanonicalToolDefinition[] {
   return ALL_TOOLS.filter((tool) =>
-    surface === 'cli' ? tool.surfaces.cliAgentVisible : tool.surfaces[surface],
+    surface === 'cli'
+      ? tool.surfaces.cliAgentVisible
+      : tool.surfaces[surface] &&
+        (surface !== 'mcp' || isMcpListedToolName(tool.name)),
   );
 }
 

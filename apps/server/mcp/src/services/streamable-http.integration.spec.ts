@@ -1,9 +1,12 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { getMcpCatalogOperations } from '@genfeedai/actions';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
+import { ClientService } from '@mcp/services/client.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
+import { createMcpAuthMiddleware } from '@mcp/shared/middleware/mcp-auth.middleware';
 import { ACCOUNT_AVATAR_ORIGINS } from '@mcp/ui/avatar-origins';
 import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 import { Client as LegacyClient } from '@modelcontextprotocol/sdk/client/index.js';
@@ -17,7 +20,7 @@ import express from 'express';
  * threw "Transport did not generate a session ID" and 500'd every call.
  */
 describe('StreamableHttpService (real SDK integration)', () => {
-  function buildApp() {
+  function buildApp(enforceAuthentication = false) {
     const logger = {
       debug: () => undefined,
       error: () => undefined,
@@ -60,6 +63,31 @@ describe('StreamableHttpService (real SDK integration)', () => {
 
     const app = express();
     app.use(express.json());
+    if (enforceAuthentication)
+      app.use(
+        createMcpAuthMiddleware({
+          authService: {
+            extractBearerToken: (header) =>
+              header?.startsWith('Bearer ') ? header.slice(7) : null,
+            authenticateRequest: async () => ({
+              valid: true,
+              role: 'user',
+              organizationId: 'fixture-org',
+              userId: 'fixture-user',
+            }),
+          },
+          rateLimitService: {
+            keyFor: () => 'synthetic',
+            consume: async () => ({
+              allowed: true,
+              limit: 1000,
+              remaining: 999,
+              resetAt: Date.now() + 60000,
+              retryAfterSeconds: 0,
+            }),
+          },
+        }),
+      );
     app.post(['/mcp', '/mcp/claude'], (req: McpRequest, res) => {
       const token = req.headers.authorization?.replace(/^Bearer /, '');
       if (token)
@@ -78,8 +106,9 @@ describe('StreamableHttpService (real SDK integration)', () => {
 
   async function withServer(
     fn: (baseUrl: string) => Promise<void>,
+    enforceAuthentication = false,
   ): Promise<void> {
-    const server = http.createServer(buildApp());
+    const server = http.createServer(buildApp(enforceAuthentication));
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const { port } = server.address() as AddressInfo;
     try {
@@ -88,6 +117,143 @@ describe('StreamableHttpService (real SDK integration)', () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   }
+
+  it('lists only canonical names and calls all four canonical and legacy operations over both real SDK transports', async () => {
+    const list = vi
+      .spyOn(ClientService.prototype, 'listSchedulerCapabilities')
+      .mockResolvedValue([{ platform: 'youtube' }]);
+    const validate = vi
+      .spyOn(ClientService.prototype, 'validateSchedulerTarget')
+      .mockResolvedValue({ validationState: 'valid' });
+    const execute = vi
+      .spyOn(ClientService.prototype, 'executeAgentTool')
+      .mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: { assetId: 'fixture-asset' },
+      });
+    const approval = vi.spyOn(ClientService.prototype, 'createApproval');
+    const inputs: Record<string, Record<string, unknown>> = {
+      capabilities: {},
+      validate: { platform: 'youtube' },
+      request: { filename: 'photo.png', contentType: 'image/png' },
+      complete: { assetId: 'fixture-asset' },
+    };
+    try {
+      await withServer(async (baseUrl) => {
+        const client = new LegacyClient({
+          name: 'alias-regression',
+          version: '1',
+        });
+        try {
+          await client.connect(
+            new LegacyTransport(new URL(`${baseUrl}/mcp`), {
+              requestInit: {
+                headers: { Authorization: 'Bearer fixture-auth' },
+              },
+            }),
+          );
+          const legacyList = await client.listTools();
+          const modernList = await postModern(
+            baseUrl,
+            'tools/list',
+            {},
+            { Authorization: 'Bearer fixture-auth' },
+          );
+          for (const tools of [
+            legacyList.tools,
+            modernList.body.result.tools,
+          ]) {
+            const names = tools.map((tool: { name: string }) => tool.name);
+            expect(names).toContain('check_channel');
+            expect(names).toContain('upload_media');
+            for (const operation of ['check_channel', 'upload_media'].flatMap(
+              getMcpCatalogOperations,
+            ))
+              expect(names).not.toContain(operation.executionName);
+          }
+          for (const operation of ['check_channel', 'upload_media'].flatMap(
+            getMcpCatalogOperations,
+          )) {
+            const input = inputs[operation.action];
+            const methods = [list, validate, execute];
+            const calls = [
+              {
+                name: operation.canonicalName,
+                arguments: { action: operation.action, input },
+              },
+              { name: operation.executionName, arguments: input },
+            ];
+            const results = [];
+            for (const call of calls) {
+              for (const method of methods) method.mockClear();
+              const modern = await postModern(baseUrl, 'tools/call', call, {
+                Authorization: 'Bearer fixture-auth',
+              });
+              expect(modern.body.error).toBeUndefined();
+              expect(modern.body.result.isError).not.toBe(true);
+              expect(
+                methods.reduce(
+                  (sum, method) => sum + method.mock.calls.length,
+                  0,
+                ),
+              ).toBe(1);
+              const modernCalls = methods.map((method) =>
+                structuredClone(method.mock.calls),
+              );
+              for (const method of methods) method.mockClear();
+              const legacy = await client.callTool(call);
+              expect(legacy.isError).not.toBe(true);
+              expect(methods.map((method) => method.mock.calls)).toEqual(
+                modernCalls,
+              );
+              expect(legacy.structuredContent).toEqual(
+                modern.body.result.structuredContent,
+              );
+              results.push(modern.body.result);
+            }
+            expect(results[0]).toEqual(results[1]);
+          }
+          expect(approval).not.toHaveBeenCalled();
+          for (const operation of ['check_channel', 'upload_media'].flatMap(
+            getMcpCatalogOperations,
+          )) {
+            for (const name of [
+              operation.canonicalName,
+              operation.executionName,
+            ]) {
+              const before = methodsCallCount();
+              const rejected = await postModern(baseUrl, 'tools/call', {
+                name,
+                arguments: {
+                  action: operation.action,
+                  input: inputs[operation.action],
+                },
+              });
+              expect(
+                rejected.body.result?.isError ?? Boolean(rejected.body.error),
+              ).toBe(true);
+              expect(methodsCallCount()).toBe(before);
+            }
+          }
+        } finally {
+          await client.close();
+        }
+      }, true);
+    } finally {
+      list.mockRestore();
+      validate.mockRestore();
+      execute.mockRestore();
+      approval.mockRestore();
+    }
+    function methodsCallCount() {
+      return (
+        list.mock.calls.length +
+        validate.mock.calls.length +
+        execute.mock.calls.length
+      );
+    }
+  });
 
   it('advertises output schemas on the modern and legacy wire', async () => {
     await withServer(async (baseUrl) => {

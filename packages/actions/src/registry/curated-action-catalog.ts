@@ -65,6 +65,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'knowledge',
   },
   { name: 'capture_memory', surfaces: ['agent'], toolset: 'memory' },
+  { name: 'check_channel', surfaces: ['mcp'], toolset: 'scheduler' },
   { name: 'check_goal_progress', surfaces: ['agent'], toolset: 'goals' },
   {
     name: 'check_onboarding_status',
@@ -582,6 +583,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'scheduler',
   },
   { name: 'update_strategy_state', surfaces: ['agent'], toolset: 'engagement' },
+  { name: 'upload_media', surfaces: ['mcp'], toolset: 'content' },
   {
     name: 'validate_scheduler_target',
     surfaces: ['mcp'],

@@ -1,19 +1,25 @@
 import {
+  ALL_TOOLS,
   describeCreditPricing,
   estimateToolCreditCost,
+  getMcpCatalogAlias,
+  getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
   getToolsForSurface,
   getToolsForToolsets,
   isMcpBrandRequiredTool,
   isToolAllowedInMcpAccessMode,
+  MCP_CATALOG_REVISION,
   type McpAccessMode,
   type McpBrandOption,
   type McpToolOutput,
   readMcpBrandId,
   requiresMcpApproval,
+  resolveMcpCatalogCall,
   type ToolsetName,
   toMcpTools,
+  validateMcpCatalogBindings,
 } from '@genfeedai/actions';
 import { isMcpTextDraftCall } from '@genfeedai/actions/server';
 import { formatAgentError } from '@genfeedai/agent/server';
@@ -232,7 +238,15 @@ export class ToolRegistryService implements OnModuleInit {
    * catalog policy must not advertise a write the server cannot resume).
    */
   static validateDispatchCoverage(): void {
-    const mcpTools = toMcpTools(getToolsForSurface('mcp'));
+    const mcpTools = [
+      ...getToolsForSurface('mcp'),
+      ...ALL_TOOLS.filter(
+        (tool) => tool.surfaces.mcp && getMcpCatalogAlias(tool.name),
+      ),
+    ];
+    validateMcpCatalogBindings(ALL_TOOLS, (name) =>
+      ToolRegistryService.classify(name),
+    );
 
     const unroutable = mcpTools
       .map((tool) => tool.name)
@@ -370,8 +384,8 @@ export class ToolRegistryService implements OnModuleInit {
       requestedArgs.action === 'create_from_url'
         ? resolveOnboardBrandCall(requestedArgs)
         : null;
-    const name = brandCreation?.agentToolName ?? params.name;
-    const args = brandCreation?.parameters ?? requestedArgs;
+    let name = brandCreation?.agentToolName ?? params.name;
+    let args = brandCreation?.parameters ?? requestedArgs;
 
     this.logger.debug(`Handling tool call: ${name}`, args);
 
@@ -394,6 +408,41 @@ export class ToolRegistryService implements OnModuleInit {
           this.requestRole,
           canonicalTool.requiredRole,
         );
+      }
+
+      const operation =
+        getMcpCatalogAlias(name) ??
+        getMcpCatalogOperations(name).find(
+          (candidate) => candidate.action === args.action,
+        );
+      if (operation) {
+        for (const descriptorName of [
+          operation.canonicalName,
+          operation.executionName,
+        ]) {
+          if (
+            !isToolAllowedInMcpAccessMode(
+              this.requestAccessMode,
+              descriptorName,
+            )
+          ) {
+            throw new Error('Tool unavailable through this connector.');
+          }
+          const descriptor = getToolByName(descriptorName);
+          if (!descriptor?.surfaces.mcp)
+            throw new Error(`Unknown tool: ${descriptorName}`);
+          McpAuthGuard.checkToolRole(this.requestRole, descriptor.requiredRole);
+        }
+      }
+      const catalogCall = resolveMcpCatalogCall(name, args);
+      if (catalogCall) {
+        if (catalogCall.alias) {
+          this.logger.warn(
+            `Deprecated MCP tool ${catalogCall.requestedName}; use ${catalogCall.canonicalName}(action=${catalogCall.action}); catalog revision ${MCP_CATALOG_REVISION}.`,
+          );
+        }
+        name = catalogCall.executionName;
+        args = catalogCall.arguments;
       }
 
       // The resolver runs the deferred action; it must not be gated as a write.
@@ -489,6 +538,14 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   static classify(name: string): ExecutorKind {
+    const operations = getMcpCatalogOperations(name);
+    if (operations.length > 0) {
+      const kinds = operations.map((operation) =>
+        ToolRegistryService.classify(operation.executionName),
+      );
+      const first = kinds[0];
+      return first && kinds.every((kind) => kind === first) ? first : 'unknown';
+    }
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';

@@ -5,7 +5,7 @@ import {
   compactMcpInputDocumentation,
   compactMcpToolDescription,
 } from './mcp-input-documentation';
-import { getToolsForSurface } from './tool-registry';
+import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('MCP input documentation', () => {
   const original = 'Social conversation id';
@@ -210,4 +210,19 @@ describe('MCP input documentation', () => {
       'Live-content changes may update public posts',
     );
   });
+});
+
+it.each([
+  'create_scheduled_release',
+  'update_scheduled_release',
+  'control_scheduled_release',
+])('compacts only exact canonical scheduler guidance for %s', (name) => {
+  const tool = getToolByName(name);
+  if (!tool) throw new Error('Missing scheduler tool');
+  const compact = compactMcpToolDescription(name, tool.description);
+  expect(compact).toContain('check_channel(action=validate)');
+  expect(compact).not.toContain('validate_scheduler_target');
+  expect(compact.length).toBeLessThan(tool.description.length);
+  const changed = tool.description.replace('release', 'reviewed release');
+  expect(compactMcpToolDescription(name, changed)).toBe(changed);
 });

@@ -36,6 +36,10 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('preserves direct free upload and read-only channel-check semantics', () => {
+    expect(MUTATION_POLICY_BY_NAME.upload_media).toBe('direct');
+    expect(MUTATION_POLICY_BY_NAME.check_channel).toBeUndefined();
+  });
   it('creates brands directly and reads scan status without mutation', () => {
     expect(getToolByName('create_brand_from_url')).toMatchObject({
       creditCost: 1,

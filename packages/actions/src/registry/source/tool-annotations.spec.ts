@@ -5,6 +5,7 @@ import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
 } from '../curated-action-catalog';
+import { isMcpListedToolName } from '../mcp-catalog-calls';
 import {
   isApprovalRequiredToolName,
   isReadOnlyToolName,
@@ -916,11 +917,29 @@ describe('MCP tool annotations', () => {
         annotations.openWorldHint,
       ])
       .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
-    expect(rows).toHaveLength(145);
-    expect(rows.map((row) => row[0])).toEqual(
-      FROZEN_MCP_PRESENTATIONS.map((row) => row[0]),
-    );
-    expect(rows).toEqual(FROZEN_MCP_PRESENTATIONS);
+    const expected = [
+      ...FROZEN_MCP_PRESENTATIONS.filter((row) =>
+        isMcpListedToolName(String(row[0])),
+      ),
+      ['check_channel', 'Check Channel', true, false, true, false],
+      ['upload_media', 'Upload Media', false, false, false, false],
+    ].sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+    for (const row of FROZEN_MCP_PRESENTATIONS.filter(
+      (entry) => !isMcpListedToolName(String(entry[0])),
+    )) {
+      const tool = getToolByName(String(row[0]));
+      expect([
+        tool?.name,
+        tool?.title,
+        tool?.annotations?.readOnlyHint,
+        tool?.annotations?.destructiveHint,
+        tool?.annotations?.idempotentHint,
+        tool?.annotations?.openWorldHint,
+      ]).toEqual(row);
+    }
+    expect(rows).toHaveLength(143);
+    expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
+    expect(rows).toEqual(expected);
   });
 
   it('isolates every derived annotations object from stored overrides and other calls', () => {
