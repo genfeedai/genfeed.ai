@@ -16,9 +16,56 @@ function pushMany(target: string[], values: string[] | undefined): void {
   }
 }
 
+function buildMusicContribution(
+  input: ContentHarnessInput,
+): ContentHarnessContribution {
+  const styleDirectives: string[] = [];
+  const guardrails: string[] = [];
+  const voice = input.voiceProfile;
+  pushIfValue(
+    styleDirectives,
+    voice?.tone?.trim() ? `Tone: ${voice.tone.trim()}.` : undefined,
+  );
+  pushIfValue(
+    styleDirectives,
+    voice?.style?.trim()
+      ? `Expression style: ${voice.style.trim()}.`
+      : undefined,
+  );
+  for (const [label, values] of [
+    ['Audience', voice?.audience],
+    ['Values', voice?.values],
+    ['Messaging pillars', voice?.messagingPillars],
+  ] as const) {
+    const notes = values?.map((value) => value.trim()).filter(Boolean);
+    if (notes?.length) styleDirectives.push(`${label}: ${notes.join(', ')}.`);
+  }
+  const avoid = voice?.doNotSoundLike
+    ?.map((value) => value.trim())
+    .filter(Boolean);
+  if (avoid?.length) guardrails.push(`Do not sound like: ${avoid.join(', ')}.`);
+  const systemDirectives: string[] = [];
+  pushMany(systemDirectives, input.profileContribution?.systemDirectives);
+  pushMany(styleDirectives, input.profileContribution?.styleDirectives);
+  pushMany(guardrails, input.profileContribution?.guardrails);
+  return {
+    systemDirectives,
+    styleDirectives,
+    guardrails,
+    evaluationCriteria: input.profileContribution?.evaluationCriteria ?? [],
+    providerHints: input.profileContribution?.providerHints ?? [],
+    sources: [
+      ...(input.sources ?? []),
+      ...(input.profileContribution?.sources ?? []),
+    ],
+  };
+}
+
 function buildCoreContribution(
   input: ContentHarnessInput,
 ): ContentHarnessContribution {
+  if (input.intent.contentType === 'music')
+    return buildMusicContribution(input);
   const systemDirectives: string[] = [];
   const styleDirectives: string[] = [];
   const guardrails: string[] = [];

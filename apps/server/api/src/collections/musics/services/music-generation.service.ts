@@ -22,6 +22,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -38,6 +39,7 @@ import {
 } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { buildMediaPromptFromHarness } from '@genfeedai/harness';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -94,6 +96,7 @@ export class MusicGenerationService {
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly webhooksService: WebhooksService,
+    private readonly harnessGenerationService: HarnessGenerationService,
     @Optional() private readonly skillRuntime?: SkillRuntimeService,
   ) {}
 
@@ -237,7 +240,22 @@ export class MusicGenerationService {
     createMusicDto: CreateMusicDto,
   ): Promise<string> {
     const styled = this.applyStyle(createMusicDto.text, createMusicDto.style);
-    if (!createMusicDto.requestedSkillSlugs?.length) return styled;
+    const brief = brandId
+      ? await this.harnessGenerationService.resolveBrief({
+          userId: user.userId ?? user.id,
+          organizationId: user.organizationId,
+          brandId,
+          isApiKey: user.isApiKey,
+          apiKeyId: user.apiKeyId,
+          scopes: user.scopes,
+          contentType: 'music',
+          surface: 'media',
+          topic: styled,
+          includeContentMemory: true,
+        })
+      : null;
+    const prompt = brief ? buildMediaPromptFromHarness(styled, brief) : styled;
+    if (!createMusicDto.requestedSkillSlugs?.length) return prompt;
     if (!this.skillRuntime) {
       throw new BadRequestException(
         'Selected skills are unavailable for this music generation',
@@ -248,7 +266,7 @@ export class MusicGenerationService {
       brandId,
       modality: 'audio',
       organizationId: user.organizationId,
-      prompt: styled,
+      prompt,
       requestedSkillSlugs: createMusicDto.requestedSkillSlugs,
     });
   }
@@ -391,6 +409,7 @@ export class MusicGenerationService {
     const normalizedDto = {
       ...createMusicDto,
       ...normalized,
+      text: prompt,
       lyrics: normalized.lyrics?.trim() || undefined,
     };
     this.musicProviderRegistry.assertSupported(model, modelDocument.provider, {

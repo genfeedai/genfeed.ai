@@ -133,4 +133,9 @@ describe('generation type registry', () => {
       expect.arrayContaining(['social-post', 'article', 'newsletter']),
     );
   });
+  it('requires music to resolve an authoritative media harness brief', () => {
+    expect(
+      GENERATION_TYPES.find((entry) => entry.id === 'music'),
+    ).toMatchObject({ path: 'harness', marker: 'resolveBrief', smoke: null });
+  });
 });

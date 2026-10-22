@@ -13,6 +13,7 @@ import {
 } from '@api/services/harness/harness-brief.util';
 import {
   BRAND_FIDELITY_HARNESS_PACK,
+  buildMediaPromptFromHarness,
   CORE_CONTENT_HARNESS_PACK,
   type ContentHarnessBrief,
   type ContentHarnessInput,
@@ -206,5 +207,40 @@ describe('Brand OS identity', () => {
     expect(brief.systemDirectives[0]).toBe(
       'Use this approved Brand OS as the authoritative brand identity.',
     );
+  });
+  it('delivers music advisory context to a deterministic fake provider and excludes another tenant', async () => {
+    const { brief } = await promptFor(KELDER, 'music', 'media');
+    const provider = (prompt: string) => ({
+      prompt,
+      output: 'fixture://music',
+    });
+    const response = provider(
+      buildMediaPromptFromHarness('Instrumental jazz', brief),
+    );
+    expect(response.prompt).toContain(KELDER.tone);
+    expect(response.prompt).toContain(KELDER.orgDirective);
+    expect(response.prompt).not.toContain(MARLOW.orgDirective);
+    expect(response.prompt).toContain('Instrumental jazz');
+    expect(response.output).toBe('fixture://music');
+  });
+
+  it('keeps empty music unchanged through real default media packs', async () => {
+    const registry = new ContentHarnessRegistry();
+    registry.registerPack(CORE_CONTENT_HARNESS_PACK);
+    registry.registerPack(BRAND_FIDELITY_HARNESS_PACK);
+    registry.registerPack(X_PLATFORM_HARNESS_PACK);
+    registry.registerPack({
+      ...VIRAL_PSYCHOLOGY_HARNESS_PACK,
+      surfaces: ['copy'],
+    });
+    const brief = await composeContentHarnessBrief(
+      registry,
+      {
+        brandName: 'Acme',
+        intent: { contentType: 'music', objective: 'awareness', topic: 'Jazz' },
+      },
+      { surface: 'media' },
+    );
+    expect(buildMediaPromptFromHarness('  Jazz  ', brief)).toBe('  Jazz  ');
   });
 });

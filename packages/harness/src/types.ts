@@ -10,6 +10,7 @@ export type ContentKind =
   | 'article'
   | 'email'
   | 'image'
+  | 'music'
   | 'newsletter'
   | 'post'
   | 'reply'

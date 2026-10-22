@@ -191,4 +191,51 @@ describe('CORE_CONTENT_HARNESS_PACK', () => {
       'src-2',
     ]);
   });
+  it('leaves music without voice or guidance unchanged', () => {
+    const result = contribute({
+      brandName: 'Acme',
+      intent: { contentType: 'music', objective: 'awareness', topic: 'jazz' },
+    });
+    expect(result.systemDirectives).toEqual([]);
+    expect(result.guardrails).toEqual([]);
+    expect(result.styleDirectives).toEqual([]);
+  });
+
+  it('uses typed music voice and profile guidance without sample copy or platform defaults', () => {
+    const result = contribute({
+      intent: {
+        contentType: 'music',
+        objective: 'awareness',
+        platform: 'twitter',
+      },
+      voiceProfile: {
+        tone: 'warm',
+        style: 'restrained',
+        audience: ['makers'],
+        values: ['craft'],
+        messagingPillars: ['care'],
+        doNotSoundLike: ['hype'],
+        sampleOutput: 'NEVER_SING_SAMPLE',
+      },
+      profileContribution: {
+        systemDirectives: ['gentle expression'],
+        sources: [
+          { id: 'profile', kind: 'brand_example', content: 'soft dynamics' },
+        ],
+      },
+    });
+    expect(result.styleDirectives).toEqual([
+      'Tone: warm.',
+      'Expression style: restrained.',
+      'Audience: makers.',
+      'Values: craft.',
+      'Messaging pillars: care.',
+    ]);
+    expect(result.guardrails).toEqual(['Do not sound like: hype.']);
+    expect(result.systemDirectives).toEqual(['gentle expression']);
+    expect(result.sources).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toMatch(
+      /NEVER_SING_SAMPLE|Platform fit|Visual brand|Write as/,
+    );
+  });
 });

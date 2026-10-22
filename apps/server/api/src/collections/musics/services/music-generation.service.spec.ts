@@ -9,8 +9,18 @@ import { GenerationBillingService } from '@api/collections/credits/services/gene
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
+import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
+import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/fal-music-generation-provider.adapter';
+import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
+import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { MurekaService } from '@api/services/integrations/mureka/services/mureka.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import {
   ActivityKey,
@@ -20,6 +30,8 @@ import {
   PromptCategory,
   RouterPriority,
 } from '@genfeedai/contracts';
+import type { ContentHarnessBrief } from '@genfeedai/harness';
+import { buildMediaPromptFromHarness } from '@genfeedai/harness';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
@@ -58,7 +70,15 @@ describe('MusicGenerationService', () => {
     vi.clearAllMocks();
   });
 
-  const createService = () => {
+  const createService = (skillsAvailable = false) => {
+    const harnessGenerationService = vi.mockObject(
+      HarnessGenerationService.prototype,
+    );
+    harnessGenerationService.resolveBrief.mockResolvedValue(null);
+    const skillRuntime = vi.mockObject(SkillRuntimeService.prototype);
+    skillRuntime.applyAuthorizedSkillPrompt.mockImplementation(
+      async ({ prompt }) => `${prompt}\nSKILL`,
+    );
     let mediaCount = 0;
     let generationCount = 0;
     const activitiesService = {
@@ -212,9 +232,13 @@ describe('MusicGenerationService', () => {
       routerService as never,
       sharedService as never,
       webhooksService as never,
+      harnessGenerationService,
+      skillsAvailable ? skillRuntime : undefined,
     );
 
     return {
+      harnessGenerationService,
+      skillRuntime,
       activitiesService,
       brandsService,
       creditDeductionQueueService,
@@ -1028,5 +1052,222 @@ describe('MusicGenerationService', () => {
     expect(
       created.ingredientCompletionService.waitForMultipleIngredientsCompletion,
     ).toHaveBeenCalledWith(['music-1'], 180_000, 3_000, expect.any(Array));
+  });
+  const musicBrief: ContentHarnessBrief = {
+    appliedPacks: ['core-baseline'],
+    packs: ['core-baseline'],
+    metadata: { contentType: 'music', objective: 'awareness' },
+    systemDirectives: ['Approved warm restrained expression'],
+    styleDirectives: [],
+    guardrails: [],
+    evaluationCriteria: [],
+    providerHints: [],
+    sources: [],
+  };
+
+  it.each([
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN, ModelProvider.REPLICATE],
+    [MODEL_KEYS.FAL_ELEVENLABS_MUSIC, ModelProvider.FAL],
+    [MODEL_KEYS.MUREKA_V9, ModelProvider.MUREKA],
+  ])(
+    'propagates exact advisory text through routing, persistence and %s dispatch',
+    async (model, provider) => {
+      const created = createService(true);
+      created.harnessGenerationService.resolveBrief.mockResolvedValue(
+        musicBrief,
+      );
+      created.routerService.selectModel.mockResolvedValue({
+        reason: 'fixture',
+        selectedModel: model,
+      });
+      created.modelsService.findOne.mockResolvedValue({
+        ...activeMusicModel,
+        provider,
+        endpoint: model,
+      });
+      const fal = vi.mockObject(FalService.prototype);
+      fal.run.mockResolvedValue({
+        audio: { url: 'https://fixture.example/audio.mp3' },
+      });
+      const mureka = vi.mockObject(MurekaService.prototype);
+      mureka.generateSong.mockResolvedValue({
+        audioUrl: 'https://fixture.example/audio.mp3',
+        taskId: 'mureka-fixture',
+      });
+      const replicate = vi.mockObject(ReplicateService.prototype);
+      replicate.runModel.mockResolvedValue('replicate-fixture');
+      const builder = vi.mockObject(PromptBuilderService.prototype);
+      builder.buildPrompt.mockImplementation(async (_model, params) => ({
+        input: { prompt: params.prompt },
+      }));
+      const registry = new MusicGenerationProviderRegistryService(
+        new FalMusicGenerationProviderAdapter(fal),
+        new MurekaMusicGenerationProviderAdapter(mureka),
+        new ReplicateMusicGenerationProviderAdapter(builder, replicate),
+      );
+      created.musicProviderRegistry.generate.mockImplementation(
+        registry.generate.bind(registry),
+      );
+      created.musicProviderRegistry.assertSupported.mockImplementation(
+        registry.assertSupported.bind(registry),
+      );
+      created.musicProviderRegistry.providerFor.mockImplementation(
+        registry.providerFor.bind(registry),
+      );
+      const dto = buildDto({
+        autoSelectModel: true,
+        style: 'jazz',
+        lyrics: 'My explicit lyrics',
+        instrumental: false,
+        requestedSkillSlugs: ['sound'],
+      });
+      await created.service.generateMusic(user, dto, request);
+      const composed = buildMediaPromptFromHarness(
+        'Generate happy background music (style: jazz)',
+        musicBrief,
+      );
+      const effective = `${composed}\nSKILL`;
+      expect(
+        created.harnessGenerationService.resolveBrief,
+      ).toHaveBeenCalledExactlyOnceWith({
+        userId: 'user-1',
+        organizationId: 'org-1',
+        brandId: 'brand-from-user',
+        isApiKey: undefined,
+        apiKeyId: undefined,
+        scopes: undefined,
+        contentType: 'music',
+        surface: 'media',
+        topic: 'Generate happy background music (style: jazz)',
+        includeContentMemory: true,
+      });
+      expect(
+        created.skillRuntime.applyAuthorizedSkillPrompt,
+      ).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          prompt: composed,
+          modality: 'audio',
+          requestedSkillSlugs: ['sound'],
+        }),
+      );
+      expect(created.routerService.selectModel).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: effective }),
+      );
+      expect(created.promptsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ original: effective }),
+      );
+      expect(created.sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        user,
+        expect.objectContaining({ generationPrompt: effective }),
+      );
+      expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: effective,
+          createMusicDto: expect.objectContaining({
+            text: effective,
+            seed: 42,
+          }),
+        }),
+      );
+      if (provider === ModelProvider.FAL) {
+        expect(fal.run).toHaveBeenCalledWith(
+          model,
+          {
+            prompt: `${effective}\n\nLyrics:\nMy explicit lyrics`,
+            force_instrumental: false,
+            music_length_ms: 10000,
+          },
+          undefined,
+        );
+      } else if (provider === ModelProvider.MUREKA) {
+        expect(mureka.generateSong).toHaveBeenCalledWith({
+          prompt: effective,
+          instrumental: false,
+          lyrics: 'My explicit lyrics',
+        });
+      } else {
+        expect(builder.buildPrompt).toHaveBeenCalledWith(
+          model,
+          expect.objectContaining({
+            prompt: effective,
+            seed: 42,
+            duration: 10,
+          }),
+        );
+        expect(replicate.runModel).toHaveBeenCalledWith(
+          model,
+          { prompt: effective },
+          undefined,
+        );
+      }
+      expect(dto.lyrics).toBe('My explicit lyrics');
+      expect(dto.instrumental).toBe(false);
+    },
+  );
+
+  it('forwards API actors and rejects unauthorized brands before routing, credits or dispatch', async () => {
+    const created = createService();
+    const actor = {
+      ...user,
+      isApiKey: true,
+      apiKeyId: 'key-1',
+      scopes: ['brand:read'],
+    };
+    const rejected = new BadRequestException('foreign brand');
+    created.harnessGenerationService.resolveBrief.mockRejectedValue(rejected);
+    await expect(
+      created.service.generateMusic(
+        actor,
+        buildDto({ autoSelectModel: true, brandId: 'foreign-brand' }),
+        buildBilledRequest(7),
+      ),
+    ).rejects.toBe(rejected);
+    expect(created.harnessGenerationService.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        isApiKey: true,
+        apiKeyId: 'key-1',
+        scopes: ['brand:read'],
+        brandId: 'foreign-brand',
+      }),
+    );
+    expect(created.routerService.selectModel).not.toHaveBeenCalled();
+    expect(created.modelsService.findOne).not.toHaveBeenCalled();
+    expect(created.promptsService.create).not.toHaveBeenCalled();
+    expect(
+      created.creditsUtilsService.bindReservationOutput,
+    ).not.toHaveBeenCalled();
+    expect(created.musicProviderRegistry.generate).not.toHaveBeenCalled();
+  });
+
+  it('skips harness without a brand and preserves unavailable and rejected skill behavior', async () => {
+    const created = createService();
+    await created.service.generateMusic(
+      { ...user, brandId: '' },
+      buildDto(),
+      request,
+    );
+    expect(
+      created.harnessGenerationService.resolveBrief,
+    ).not.toHaveBeenCalled();
+    await expect(
+      created.service.generateMusic(
+        user,
+        buildDto({ requestedSkillSlugs: ['missing'] }),
+        request,
+      ),
+    ).rejects.toThrow('Selected skills are unavailable');
+    const skilled = createService(true);
+    skilled.skillRuntime.applyAuthorizedSkillPrompt.mockRejectedValue(
+      new BadRequestException('Invalid skill slug'),
+    );
+    await expect(
+      skilled.service.generateMusic(
+        user,
+        buildDto({ requestedSkillSlugs: ['INVALID'] }),
+        request,
+      ),
+    ).rejects.toThrow('Invalid skill slug');
+    expect(skilled.musicProviderRegistry.generate).not.toHaveBeenCalled();
   });
 });

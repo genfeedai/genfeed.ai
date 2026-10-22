@@ -28,6 +28,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { MurekaModule } from '@api/services/integrations/mureka/mureka.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -55,6 +56,7 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     ByokModule,
     CreditsModule,
+    ContentHarnessModule,
     FailedGenerationModule,
     FalModule,
     FilesClientModule,

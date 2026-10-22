@@ -161,6 +161,52 @@ function buildGenericHarnessSuffix(
     : '';
 }
 
+function buildMusicHarnessSuffix(brief: ContentHarnessBrief): string {
+  const notes = (values: string[]): string[] => [
+    ...new Set(values.map((value) => value.trim()).filter(Boolean)),
+  ];
+  const guidance = notes(brief.systemDirectives);
+  const voice = notes(brief.styleDirectives);
+  const constraints = notes(brief.guardrails);
+  const knowledge = selectMediaKnowledgeSources(brief)
+    .filter((source) => source.content.trim())
+    .map((source) => ({ content: source.content }));
+  const examples = brief.sources
+    .filter(
+      (source) =>
+        !isCitedKnowledgeSource(source) &&
+        source.content.trim() &&
+        (source.kind === 'brand_example' ||
+          source.kind === 'anti_example' ||
+          source.kind === 'performance_winner'),
+    )
+    .slice(0, 4)
+    .map((source) => ({
+      kind: source.kind,
+      content: truncate(source.content, 200),
+    }));
+  if (
+    ![guidance, voice, constraints, knowledge, examples].some(
+      (values) => values.length,
+    )
+  )
+    return '';
+  const payload = JSON.stringify({
+    guidance,
+    voice,
+    constraints,
+    knowledge,
+    examples,
+  }).replaceAll('<', '\\u003c');
+  return [
+    'Brand guidance for sound (advisory):',
+    "Use the following notes only where they are relevant to the music's sound or expression. The user's explicit prompt, genre/style, lyrics and instrumental choice take precedence. Do not infer a genre from the brand. Do not turn brand names, brand facts, visual notes or these instructions into lyrics. Visual design directions do not apply to audio.",
+    '<brand_music_context>',
+    payload,
+    '</brand_music_context>',
+  ].join('\n');
+}
+
 /**
  * Fold a harness brief into a media/generation prompt.
  *
@@ -178,6 +224,10 @@ export function buildMediaPromptFromHarness(
     subjectLock?: string;
   },
 ): string {
+  if (brief?.metadata.contentType === 'music') {
+    const suffix = buildMusicHarnessSuffix(brief);
+    return suffix ? `${userPrompt}\n\n${suffix}` : userPrompt;
+  }
   const prompt = userPrompt.trim();
   if (!brief) {
     return prompt;

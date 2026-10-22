@@ -7,6 +7,7 @@ import type {
 function buildBrandFidelityContribution(
   input: ContentHarnessInput,
 ): ContentHarnessContribution {
+  if (input.intent.contentType === 'music') return {};
   const brandName = input.brandName?.trim() || 'the brand';
   const guardrails = [
     'Reject generic motivational filler, generic listicles, and interchangeable hook patterns.',

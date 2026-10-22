@@ -49,4 +49,12 @@ describe('BRAND_FIDELITY_HARNESS_PACK', () => {
 
     expect(contribution.styleDirectives).toEqual([]);
   });
+  it('does not contribute copy positioning to music', () => {
+    expect(
+      contribute({
+        brandName: 'Acme',
+        intent: { contentType: 'music', objective: 'awareness' },
+      }),
+    ).toEqual({});
+  });
 });

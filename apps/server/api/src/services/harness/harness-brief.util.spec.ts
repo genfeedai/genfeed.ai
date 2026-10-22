@@ -122,4 +122,75 @@ describe('buildHarnessInput approved Brand OS Policy (#7339)', () => {
           .identityContribution,
       ).not.toHaveProperty('guardrails');
   });
+  it('projects approved music guidance and voice without draft or typed visual/strategy fields', () => {
+    const approved = revision({
+      ...createDefaultBrandPublishPolicy(),
+      bannedPhrases: ['forbidden lyric'],
+    });
+    approved.content = {
+      ...buildBrandKitDraftFromBrand({
+        id: 'brand-1',
+        label: 'Acme',
+        text: 'approved sound',
+        description: 'VISUAL_DESCRIPTION',
+        primaryColor: '#abcdef',
+        agentConfig: {
+          voice: { tone: 'approved warmth' },
+          strategy: { goals: ['STRATEGY_SENTINEL'] },
+        },
+      }),
+      policy: approved.content.policy,
+    };
+    const draft = {
+      id: 'brand-1',
+      label: 'Draft',
+      text: 'DRAFT_GUIDANCE',
+      description: '',
+      primaryColor: '',
+      secondaryColor: '',
+      agentConfig: { voice: { tone: 'DRAFT_VOICE' } },
+    };
+    const input = buildHarnessInput({
+      brand: draft,
+      brandOsRevision: approved,
+      intent: { contentType: 'music', objective: 'awareness' },
+      organizationId: 'org-1',
+    });
+    const projection = JSON.stringify(input.identityContribution);
+    expect(projection).toContain('approved sound');
+    expect(input.voiceProfile?.tone).toBe('approved warmth');
+    expect(projection).toContain('forbidden lyric');
+    expect(projection).not.toMatch(
+      /VISUAL_DESCRIPTION|abcdef|STRATEGY_SENTINEL|DRAFT/,
+    );
+    delete approved.content.fields.promptGuidelines;
+    delete approved.content.fields.voiceTone;
+    const missing = buildHarnessInput({
+      brand: draft,
+      brandOsRevision: approved,
+      intent: { contentType: 'music', objective: 'awareness' },
+      organizationId: 'org-1',
+    });
+    expect(JSON.stringify(missing)).not.toMatch(/DRAFT_GUIDANCE|DRAFT_VOICE/);
+    const fallback = buildHarnessInput({
+      brand: draft,
+      intent: { contentType: 'music', objective: 'awareness' },
+      organizationId: 'org-1',
+    });
+    expect(fallback.identityContribution?.systemDirectives).toEqual([
+      'DRAFT_GUIDANCE',
+    ]);
+    expect(fallback.voiceProfile?.tone).toBe('DRAFT_VOICE');
+    for (const contentType of ['image', 'video', 'post'] as const) {
+      const control = buildHarnessInput({
+        brandOsRevision: approved,
+        intent: { contentType, objective: 'awareness' },
+        organizationId: 'org-1',
+      });
+      expect(JSON.stringify(control.identityContribution)).toContain(
+        'VISUAL_DESCRIPTION',
+      );
+      expect(JSON.stringify(control.identityContribution)).toContain('#abcdef');
+    }
+  });
 });

@@ -216,17 +216,21 @@ function buildApprovedBrandOsVoice(
 
 function buildApprovedBrandOsIdentity(
   revision: IBrandOsRevision,
+  contentType: ContentHarnessIntent['contentType'],
 ): ContentHarnessContribution {
-  const systemDirectives = [
-    'Use this approved Brand OS as the authoritative brand identity.',
-  ];
+  const music = contentType === 'music';
+  const systemDirectives = music
+    ? []
+    : ['Use this approved Brand OS as the authoritative brand identity.'];
   const styleDirectives: string[] = [];
-  for (const key of [
-    'description',
-    'promptGuidelines',
-    'strategyGoals',
-    'strategyContentTypes',
-  ] as const) {
+  for (const key of music
+    ? (['promptGuidelines'] as const)
+    : ([
+        'description',
+        'promptGuidelines',
+        'strategyGoals',
+        'strategyContentTypes',
+      ] as const)) {
     const value = readBrandOsValue(revision, key);
     const text =
       typeof value === 'string' ? value : toStringArray(value)?.join(', ');
@@ -235,12 +239,14 @@ function buildApprovedBrandOsIdentity(
         `${revision.content.fields[key]?.label ?? key}: ${text.trim()}`,
       );
   }
-  for (const key of [
-    'primaryColor',
-    'secondaryColor',
-    'backgroundColor',
-    'fontFamily',
-  ] as const) {
+  for (const key of music
+    ? []
+    : ([
+        'primaryColor',
+        'secondaryColor',
+        'backgroundColor',
+        'fontFamily',
+      ] as const)) {
     const value = readBrandOsString(revision, key);
     if (value?.trim())
       styleDirectives.push(
@@ -289,8 +295,13 @@ export const buildHarnessInput = (params: {
     brandOsRevisionId: params.brandOsRevision?.id,
     harnessProfileId: params.harnessProfileId,
     identityContribution: params.brandOsRevision
-      ? buildApprovedBrandOsIdentity(params.brandOsRevision)
-      : undefined,
+      ? buildApprovedBrandOsIdentity(
+          params.brandOsRevision,
+          params.intent.contentType,
+        )
+      : params.intent.contentType === 'music' && params.brand?.text?.trim()
+        ? { systemDirectives: [params.brand.text.trim()] }
+        : undefined,
     intent: params.intent,
     organizationId: params.organizationId,
     personaProfile,

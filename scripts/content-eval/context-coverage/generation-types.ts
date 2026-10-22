@@ -156,9 +156,9 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   {
     enumRefs: { IngredientCategory: ['MUSIC'] },
     id: 'music',
-    marker: 'applyStyle',
-    note: 'GAP: prompt is the user text plus an optional style suffix and skills. No brand or org context. Promote to `harness` when composePrompt resolves a media-surface brief.',
-    path: 'none',
+    marker: 'resolveBrief',
+    note: 'Approved brand guidance and voice are advisory music context resolved on the media harness surface; deterministic fixtures cover propagation without live audio generation.',
+    path: 'harness',
     smoke: null,
     source: `${API}/collections/musics/services/music-generation.service.ts`,
   },
