@@ -5,6 +5,7 @@ export {
   MCP_CREDIT_COST_META_KEY,
   MCP_CREDIT_PRICING_META_KEY,
   MCP_MUTATION_POLICY_META_KEY,
+  MCP_TOOL_OUTPUT_SCHEMA,
   MCP_TOOLSET_META_KEY,
   toMcpTools,
 } from './adapters/to-mcp-tool';

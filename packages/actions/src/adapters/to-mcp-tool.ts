@@ -37,11 +37,29 @@ export const MCP_MUTATION_POLICY_META_KEY = 'genfeed.ai/mutationPolicy';
  */
 export const MCP_TOOLSET_META_KEY = 'genfeed.ai/toolset';
 
+/** Shared MCP envelope; each tool keeps its domain payload and additional fields. */
+export const MCP_TOOL_OUTPUT_SCHEMA = {
+  properties: {
+    artifact: { type: 'object' },
+    code: { type: 'string' },
+    creditsDebited: { type: 'number' },
+    data: { description: 'Tool-specific result data.' },
+    failure: { type: 'object' },
+    genfeedCards: { type: 'object' },
+    message: { type: 'string' },
+    tool: { type: 'object' },
+    tools: { type: 'array' },
+    toolsets: { type: 'array' },
+  },
+  type: 'object',
+} as const satisfies ToolParameterSchema;
+
 export interface McpToolOutput {
   name: string;
   title: string;
   description: string;
   inputSchema: ToolParameterSchema;
+  outputSchema: ToolParameterSchema;
   annotations: ToolAnnotations;
   requiredRole: 'user' | 'admin' | 'superadmin';
   _meta: Record<string, unknown>;
@@ -86,6 +104,7 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
           type: parameters.type,
         },
         name: tool.name,
+        outputSchema: MCP_TOOL_OUTPUT_SCHEMA,
         requiredRole: tool.requiredRole,
         title: presentation.title,
       };

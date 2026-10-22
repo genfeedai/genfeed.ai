@@ -1,5 +1,6 @@
 import type { ToolsetName } from '@genfeedai/actions';
 import {
+  MCP_TOOL_OUTPUT_SCHEMA,
   type McpAccessMode,
   mostRestrictiveMcpAccessMode,
 } from '@genfeedai/actions';
@@ -12,6 +13,7 @@ import {
 } from '@mcp/mcp/server-identity';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
+import { withMcpStructuredContent } from '@mcp/services/mcp-structured-result.util';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type {
@@ -170,8 +172,8 @@ export class StreamableHttpService {
         arguments: request.params.arguments ?? {},
       });
       return server.projectCallToolResult(
-        CallToolResultSchema.parse(result),
-        undefined,
+        withMcpStructuredContent(CallToolResultSchema.parse(result)),
+        MCP_TOOL_OUTPUT_SCHEMA,
       );
     });
 

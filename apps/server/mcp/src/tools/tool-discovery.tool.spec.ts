@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/actions';
+import { MCP_TOOL_OUTPUT_SCHEMA, type McpToolOutput } from '@genfeedai/actions';
 import type { ToolDiscoverySource } from '@mcp/shared/interfaces/tool-discovery.interface';
 import { handleToolDiscoveryTool } from '@mcp/tools/tool-discovery.tool';
 
@@ -16,6 +16,7 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
     },
     description: 'Create a post',
     inputSchema: { properties: {}, type: 'object' },
+    outputSchema: MCP_TOOL_OUTPUT_SCHEMA,
     name: 'create_post',
     requiredRole: 'user',
     title: 'Create Post',

@@ -196,6 +196,23 @@ function buildTool(
 }
 
 describe('toMcpTools', () => {
+  it('advertises an object output schema for every MCP-surfaced action', () => {
+    const tools = toMcpTools(getToolsForSurface('mcp'));
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
+      expect(tool, tool.name).toHaveProperty(
+        'outputSchema',
+        expect.objectContaining({
+          properties: expect.objectContaining({
+            data: expect.any(Object),
+            message: { type: 'string' },
+          }),
+          type: 'object',
+        }),
+      );
+    }
+  });
+
   it('emits only MCP-surfaced actions', () => {
     const tools = toMcpTools([
       buildTool(),

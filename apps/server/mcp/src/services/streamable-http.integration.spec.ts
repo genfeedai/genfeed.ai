@@ -2,6 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
+import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { ACCOUNT_AVATAR_ORIGINS } from '@mcp/ui/avatar-origins';
 import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
@@ -87,6 +88,51 @@ describe('StreamableHttpService (real SDK integration)', () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   }
+
+  it('advertises output schemas on the modern and legacy wire', async () => {
+    await withServer(async (baseUrl) => {
+      const modern = await postModern(baseUrl, 'tools/list');
+      const legacy = await postMcp(baseUrl, {
+        id: 9,
+        jsonrpc: '2.0',
+        method: 'tools/list',
+      });
+      for (const listing of [modern.body, JSON.parse(legacy.text)]) {
+        expect(listing.result.tools.length).toBeGreaterThan(0);
+        for (const tool of listing.result.tools) {
+          expect(tool).toHaveProperty(
+            'outputSchema',
+            expect.objectContaining({ type: 'object' }),
+          );
+        }
+      }
+    });
+  });
+
+  it('returns structured text for a declined action without executing it', async () => {
+    const notice = 'Approval declined. The action was not executed.';
+    const call = vi
+      .spyOn(ToolRegistryService.prototype, 'handleToolCall')
+      .mockResolvedValue({
+        content: [{ type: 'text', text: notice }],
+      });
+    try {
+      await withServer(async (baseUrl) => {
+        const result = await postModern(baseUrl, 'tools/call', {
+          name: 'resolve_approval',
+          arguments: { approvalId: 'fixture', decision: 'decline' },
+        });
+        expect(result.response.status).toBe(200);
+        expect(result.body.result).toMatchObject({
+          content: expect.arrayContaining([{ type: 'text', text: notice }]),
+          structuredContent: { message: notice },
+        });
+        expect(call).toHaveBeenCalledOnce();
+      });
+    } finally {
+      call.mockRestore();
+    }
+  });
 
   it('serves portable card metadata and HTML over the real SDK', async () => {
     await withServer(async (baseUrl) => {
