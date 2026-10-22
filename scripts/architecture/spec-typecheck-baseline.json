@@ -1,22 +1,6 @@
 {
   "entries": [
     {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/actions/src/registry/mutation-policy.spec.ts",
-      "fingerprint": "270a1a7d638febc0c957",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 196 more ... | \"verify_skills_pro_entitlement\"'.",
-      "workspace": "actions"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/actions/src/registry/toolset-profiles.spec.ts",
-      "fingerprint": "d73adb65b865700d6a5a",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 196 more ... | \"verify_skills_pro_entitlement\"'.",
-      "workspace": "actions"
-    },
-    {
       "code": 2322,
       "count": 3,
       "file": "packages/agent/src/components/AgentChatInput.spec.tsx",
