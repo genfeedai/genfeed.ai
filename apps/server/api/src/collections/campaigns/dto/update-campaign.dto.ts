@@ -3,4 +3,5 @@ import { OmitType, PartialType } from '@nestjs/swagger';
 
 export class UpdateCampaignDto extends PartialType(
   OmitType(CreateCampaignDto, ['idempotencyKey'] as const),
+  { skipNullProperties: false },
 ) {}

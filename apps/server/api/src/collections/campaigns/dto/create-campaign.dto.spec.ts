@@ -51,6 +51,23 @@ describe('Campaign DTO validation', () => {
     ).toBe(true);
   });
 
+  it('rejects null campaign asset membership on updates instead of passing it to Prisma', async () => {
+    const dto = plainToInstance(UpdateCampaignDto, { assetIds: null });
+    expect(
+      (await validate(dto)).some((error) => error.property === 'assetIds'),
+    ).toBe(true);
+  });
+
+  it('still clears nullable creative context and asset membership explicitly', async () => {
+    const dto = plainToInstance(UpdateCampaignDto, {
+      audience: null,
+      tone: null,
+      creativeDirection: null,
+      assetIds: [],
+    });
+    expect(await validate(dto)).toEqual([]);
+  });
+
   it('does not expose the create-only idempotency key on updates', async () => {
     const pipe = new ValidationPipe({ transform: true, whitelist: true });
     const dto = await pipe.transform(
