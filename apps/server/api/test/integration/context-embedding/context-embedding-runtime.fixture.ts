@@ -18,6 +18,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   acceptanceEnvironment,
   assertRealMigrationLedger,
+  closeContextEmbeddingResources,
   connectDedicated,
   dedicatedDatabaseUrl,
   deployRealMigrations,
@@ -216,6 +217,16 @@ export interface EmbeddingWorld {
   baseId: string;
 }
 
+export interface ContextEmbeddingCleanupReceipt {
+  startupCompleted: boolean;
+  redisPrefix: string;
+  redisNamespaceAttempted: boolean;
+  redisKeysRemaining: number | null;
+  applicationClosed: boolean | null;
+  databaseClientDisconnected: boolean | null;
+  loopbackServerClosed: boolean | null;
+}
+
 export class ContextEmbeddingRuntime {
   readonly prefix = 'context-embedding-acceptance-' + randomUUID();
   readonly transport = new LoopbackEmbeddings();
@@ -240,6 +251,11 @@ export class ContextEmbeddingRuntime {
   redisOutageExpected = false;
   readonly unexpectedQueueErrors: string[] = [];
   private readonly config: ConfigService;
+  startupCompleted = false;
+  private namespaceAttempted = false;
+  private databaseConnectionAttempted = false;
+  private transportOpenAttempted = false;
+  private closing?: Promise<ContextEmbeddingCleanupReceipt>;
 
   constructor() {
     const redisUrl = process.env.CONTEXT_EMBEDDING_REDIS_URL;
@@ -278,28 +294,43 @@ export class ContextEmbeddingRuntime {
   }
 
   async open(): Promise<void> {
-    this.environment = await acceptanceEnvironment();
-    await deployRealMigrations('runtime');
-    const identity = await connectDedicated('runtime');
     try {
-      this.migrationInventory = await assertRealMigrationLedger(identity);
-      this.migrationCount = this.migrationInventory.length;
-      this.pgvectorVersion = await verifyPgvector(identity);
-    } finally {
-      await identity.end();
+      this.environment = await acceptanceEnvironment();
+      await deployRealMigrations('runtime');
+      const identity = await connectDedicated('runtime');
+      try {
+        this.migrationInventory = await assertRealMigrationLedger(identity);
+        this.migrationCount = this.migrationInventory.length;
+        this.pgvectorVersion = await verifyPgvector(identity);
+      } finally {
+        await identity.end();
+      }
+      await this.redis.connect();
+      if (!/^redis_version:7\./m.test(await this.redis.info('server')))
+        throw new Error('Real Redis 7 is required');
+      this.namespaceAttempted = true;
+      await this.redis.set(
+        this.prefix + ':owner',
+        this.environment.candidateSHA,
+        'NX',
+      );
+      this.transportOpenAttempted = true;
+      await this.transport.open();
+      await this.startWorker();
+      this.startupCompleted = true;
+    } catch (error) {
+      await closeContextEmbeddingResources(
+        [
+          async () => {
+            await this.close();
+          },
+        ],
+        error,
+      );
     }
-    await this.redis.connect();
-    if (!/^redis_version:7\./m.test(await this.redis.info('server')))
-      throw new Error('Real Redis 7 is required');
-    await this.redis.set(
-      this.prefix + ':owner',
-      this.environment.candidateSHA,
-      'NX',
-    );
-    await this.transport.open();
-    await this.startWorker();
   }
   async startWorker(): Promise<void> {
+    this.databaseConnectionAttempted = true;
     await this.db.$connect();
     this.app = await Test.createTestingModule({
       imports: [
@@ -530,39 +561,93 @@ export class ContextEmbeddingRuntime {
     await this.app.get(ContextEmbeddingProcessor).worker.waitUntilReady();
     this.redisOutageExpected = false;
   }
-  async close() {
+  close(): Promise<ContextEmbeddingCleanupReceipt> {
+    this.closing ??= this.closeOpenedResources();
+    return this.closing;
+  }
+
+  private async closeOpenedResources(): Promise<ContextEmbeddingCleanupReceipt> {
     this.transport.releaseAll();
-    await this.app?.close();
-    await this.db.$disconnect();
-    await this.transport.close();
-    if (this.redis.status !== 'ready') {
-      this.redis.disconnect();
-      throw new Error('Disposable Redis cleanup could not be verified');
-    }
-    let cursor = '0';
-    do {
-      const result = await this.redis.scan(
-        cursor,
-        'MATCH',
-        this.prefix + ':*',
-        'COUNT',
-        200,
-      );
-      cursor = result[0];
-      if (result[1].some((key) => !key.startsWith(this.prefix + ':')))
-        throw new Error('Refusing foreign Redis cleanup');
-      if (result[1].length) await this.redis.unlink(...result[1]);
-    } while (cursor !== '0');
-    const remaining = await this.redis.keys(this.prefix + ':*');
-    if (remaining.length)
-      throw new Error('Disposable Redis namespace cleanup left keys');
-    await this.redis.quit();
+    let applicationClosed: boolean | null = this.app ? false : null;
+    let databaseClientDisconnected: boolean | null = this
+      .databaseConnectionAttempted
+      ? false
+      : null;
+    let loopbackServerClosed: boolean | null = this.transportOpenAttempted
+      ? false
+      : null;
+    let redisKeysRemaining: number | null = null;
+    await closeContextEmbeddingResources([
+      async () => {
+        if (this.app) {
+          await this.app.close();
+          applicationClosed = true;
+        }
+      },
+      async () => {
+        if (this.databaseConnectionAttempted) {
+          await this.db.$disconnect();
+          databaseClientDisconnected = true;
+        }
+      },
+      async () => {
+        if (this.transportOpenAttempted) {
+          await this.transport.close();
+          loopbackServerClosed = true;
+        }
+      },
+      async () => {
+        if (!this.namespaceAttempted) {
+          this.redis.disconnect();
+          return;
+        }
+        try {
+          if (this.app && !applicationClosed)
+            throw new Error(
+              'Disposable Redis cleanup requires a stopped application',
+            );
+          if (this.redis.status !== 'ready')
+            throw new Error('Disposable Redis cleanup could not be verified');
+          let cursor = '0';
+          do {
+            const result = await this.redis.scan(
+              cursor,
+              'MATCH',
+              this.prefix + ':*',
+              'COUNT',
+              200,
+            );
+            cursor = result[0];
+            if (result[1].some((key) => !key.startsWith(this.prefix + ':')))
+              throw new Error('Refusing foreign Redis cleanup');
+            if (result[1].length) await this.redis.unlink(...result[1]);
+          } while (cursor !== '0');
+          const remaining = await this.redis.keys(this.prefix + ':*');
+          if (remaining.length)
+            throw new Error('Disposable Redis namespace cleanup left keys');
+          redisKeysRemaining = remaining.length;
+          await this.redis.quit();
+        } finally {
+          this.redis.disconnect();
+        }
+      },
+    ]);
+    if (
+      this.startupCompleted &&
+      (applicationClosed !== true ||
+        databaseClientDisconnected !== true ||
+        loopbackServerClosed !== true ||
+        redisKeysRemaining !== 0)
+    )
+      throw new Error('Complete acceptance cleanup was not proven');
     return {
+      startupCompleted: this.startupCompleted,
       redisPrefix: this.prefix,
-      redisKeysRemaining: remaining.length,
-      applicationClosed: true,
-      databaseClientDisconnected: true,
-      loopbackServerClosed: true,
+      redisNamespaceAttempted: this.namespaceAttempted,
+      redisKeysRemaining,
+      applicationClosed,
+      databaseClientDisconnected,
+      loopbackServerClosed,
     };
   }
 }

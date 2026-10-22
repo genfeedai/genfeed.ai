@@ -516,7 +516,12 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
     .split('\n')
     .map((line) => line.replace(/^ {10}/, ''))
     .join('\n');
-  const jobs = ['e2e-route-coverage', 'e2e-frontend', 'e2e-api'];
+  const jobs = [
+    'e2e-route-coverage',
+    'e2e-frontend',
+    'e2e-api',
+    'context-embedding-acceptance',
+  ];
   function run(
     results,
     runtimeEnabled = false,
@@ -551,7 +556,7 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
       : { result: 'skipped', output: '' };
     assert.equal(run(success, enabled, runtime).status, 0);
     for (const job of jobs) {
-      for (const result of ['failure', 'cancelled', 'skipped']) {
+      for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
         assert.equal(
           run({ ...success, [job]: result }, enabled, runtime).status,
           1,

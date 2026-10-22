@@ -158,6 +158,7 @@ describe('real context embedding database and WorkerHost acceptance', () => {
     if (!runtime) return;
     const receipt = {
       ...runtime.environment,
+      startupCompleted: runtime.startupCompleted,
       pgvectorVersion: runtime.pgvectorVersion,
       migrationCount: runtime.migrationCount,
       migrationInventory: runtime.migrationInventory,

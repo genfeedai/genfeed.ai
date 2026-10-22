@@ -1,8 +1,18 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { validateContextEmbeddingRuntime } from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
-import { afterEach, describe, expect, it } from 'vitest';
+import {
+  closeContextEmbeddingResources,
+  resolvePrismaMigrationTools,
+  validateContextEmbeddingRuntime,
+} from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildApiE2eTierPlan,
   countFailedFileRecords,
@@ -417,5 +427,132 @@ describe('actual failed file accounting', () => {
     { testResults: [{ status: 'passed' }] },
   ])('keeps absent or incomplete file records unknown %j', (report) => {
     expect(countFailedFileRecords(report)).toBeNull();
+  });
+});
+
+describe('context embedding owner tools and partial startup cleanup', () => {
+  it('resolves actual configuration and CLI from the package declaring Prisma 7.10.1 without a database', async () => {
+    const tools = await resolvePrismaMigrationTools();
+    expect(tools.version).toBe('7.10.1');
+    expect(readFileSync(new URL(tools.configModule), 'utf8')).toContain(
+      'defineConfig',
+    );
+    expect(readFileSync(tools.cli, 'utf8')).toMatch(/^#!\/usr\/bin\/env node/);
+  });
+
+  it('fails closed for missing or undeclared owner prerequisites', async () => {
+    const root = createFixture([]);
+    const owner = path.join(root, 'package.json');
+    await expect(resolvePrismaMigrationTools(owner)).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    writeFileSync(owner, JSON.stringify({ dependencies: {} }));
+    await expect(resolvePrismaMigrationTools(owner)).rejects.toThrow(
+      'must declare its exact Prisma dependency',
+    );
+    writeFileSync(owner, JSON.stringify({ dependencies: { prisma: 7 } }));
+    await expect(resolvePrismaMigrationTools(owner)).rejects.toThrow(
+      'must declare its exact Prisma dependency',
+    );
+    writeFileSync(
+      owner,
+      JSON.stringify({ dependencies: { prisma: '7.10.1' } }),
+    );
+    await expect(resolvePrismaMigrationTools(owner)).rejects.toMatchObject({
+      code: 'MODULE_NOT_FOUND',
+    });
+  });
+
+  it('awaits every owned closer despite earlier failures and retains the original failure first', async () => {
+    const primary = new Error('migration prerequisite failed');
+    const application = new Error('application close failed');
+    const database = new Error('database disconnect failed');
+    const calls: string[] = [];
+    const result = await closeContextEmbeddingResources(
+      [
+        async () => {
+          calls.push('application');
+          throw application;
+        },
+        async () => {
+          await Promise.resolve();
+          calls.push('database');
+          throw database;
+        },
+        async () => {
+          calls.push('loopback');
+        },
+        async () => {
+          calls.push('namespace');
+        },
+      ],
+      primary,
+    ).catch((error: unknown) => error);
+    expect(result).toBeInstanceOf(AggregateError);
+    if (!(result instanceof AggregateError))
+      throw new Error('Expected retained cleanup causes');
+    expect(result.errors).toEqual([primary, application, database]);
+    expect(calls).toEqual(['application', 'database', 'loopback', 'namespace']);
+  });
+
+  it('preserves the exact primary error when partial startup opened no resource', async () => {
+    const primary = new Error('configuration resolution failed');
+    await expect(closeContextEmbeddingResources([], primary)).rejects.toBe(
+      primary,
+    );
+    await expect(closeContextEmbeddingResources([])).resolves.toBeUndefined();
+  });
+
+  it('closes an actually unstarted runtime once without inventing Redis or database verification', async () => {
+    const url = new URL(
+      'postgresql://localhost:5432/genfeed_context_embedding_test',
+    );
+    url.username = 'context_embedding_test';
+    vi.stubEnv('CONTEXT_EMBEDDING_ACCEPTANCE', '1');
+    vi.stubEnv('CONTEXT_EMBEDDING_TEST_DATABASE_URL', url.toString());
+    vi.stubEnv('CONTEXT_EMBEDDING_REDIS_URL', 'redis://localhost:6379/0');
+    vi.doMock('@api/shared/modules/prisma/prisma.service', () => ({
+      PrismaService: class {
+        async $disconnect() {
+          throw new Error(
+            'An unopened database handle must not be disconnected',
+          );
+        }
+      },
+    }));
+    try {
+      const { ContextEmbeddingRuntime } = await import(
+        '@api-test/integration/context-embedding/context-embedding-runtime.fixture'
+      );
+      const runtime = new ContextEmbeddingRuntime();
+      const first = runtime.close();
+      expect(runtime.close()).toBe(first);
+      await expect(first).resolves.toEqual({
+        startupCompleted: false,
+        redisPrefix: runtime.prefix,
+        redisNamespaceAttempted: false,
+        redisKeysRemaining: null,
+        applicationClosed: null,
+        databaseClientDisconnected: null,
+        loopbackServerClosed: null,
+      });
+      expect(runtime.redis.status).toBe('end');
+    } finally {
+      vi.doUnmock('@api/shared/modules/prisma/prisma.service');
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('rejects genuine cleanup failures even without a setup failure', async () => {
+    const failure = new Error('namespace zero-key proof unavailable');
+    const result = await closeContextEmbeddingResources([
+      async () => {
+        throw failure;
+      },
+    ]).catch((error: unknown) => error);
+    expect(result).toBeInstanceOf(AggregateError);
+    if (!(result instanceof AggregateError))
+      throw new Error('Expected retained cleanup causes');
+    expect(result.errors).toEqual([failure]);
   });
 });

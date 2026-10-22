@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+  access,
   cp,
   mkdtemp,
   readdir,
@@ -16,7 +17,6 @@ import { promisify } from 'node:util';
 import { Client } from 'pg';
 
 const command = promisify(execFile);
-const require = createRequire(import.meta.url);
 export const EMBEDDING_MIGRATION = '20261022090000_context_embedding_queue';
 export const MIGRATION_ROOT = resolve(
   import.meta.dirname,
@@ -24,6 +24,74 @@ export const MIGRATION_ROOT = resolve(
 );
 const SCHEMA_PATH = resolve(MIGRATION_ROOT, '../schema.prisma');
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+function packageRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+export async function resolvePrismaMigrationTools(
+  ownerManifest = resolve(MIGRATION_ROOT, '../../package.json'),
+): Promise<{ configModule: string; cli: string; version: string }> {
+  const owner: unknown = JSON.parse(await readFile(ownerManifest, 'utf8'));
+  if (
+    !packageRecord(owner) ||
+    !packageRecord(owner.dependencies) ||
+    typeof owner.dependencies.prisma !== 'string'
+  ) {
+    throw new Error(
+      'The migration owner must declare its exact Prisma dependency',
+    );
+  }
+  const ownerRequire = createRequire(ownerManifest);
+  const configModule = pathToFileURL(
+    ownerRequire.resolve('prisma/config'),
+  ).href;
+  const packagePath = ownerRequire.resolve('prisma/package.json');
+  const manifest: unknown = JSON.parse(await readFile(packagePath, 'utf8'));
+  if (
+    !packageRecord(manifest) ||
+    typeof manifest.version !== 'string' ||
+    manifest.version !== owner.dependencies.prisma
+  ) {
+    throw new Error(
+      'Resolved Prisma version does not match its owning package declaration',
+    );
+  }
+  const bin =
+    typeof manifest.bin === 'string'
+      ? manifest.bin
+      : packageRecord(manifest.bin)
+        ? manifest.bin.prisma
+        : undefined;
+  if (typeof bin !== 'string' || !bin) {
+    throw new Error('Resolved Prisma package has no CLI entrypoint');
+  }
+  const cli = resolve(dirname(packagePath), bin);
+  await access(cli);
+  return { configModule, cli, version: manifest.version };
+}
+
+export async function closeContextEmbeddingResources(
+  closers: ReadonlyArray<() => void | Promise<void>>,
+  initializationError?: unknown,
+): Promise<void> {
+  const errors: unknown[] =
+    initializationError === undefined ? [] : [initializationError];
+  for (const close of closers) {
+    try {
+      await close();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length === 1 && initializationError !== undefined)
+    throw initializationError;
+  if (errors.length)
+    throw new AggregateError(
+      errors,
+      'Context embedding setup or cleanup failed',
+    );
+}
 
 export function dedicatedDatabaseUrl(kind: 'runtime' | 'upgrade'): string {
   if (process.env.CONTEXT_EMBEDDING_ACCEPTANCE !== '1')
@@ -199,7 +267,7 @@ export async function deployRealMigrations(
       await rm(join(migrationsPath, EMBEDDING_MIGRATION), { recursive: true });
     }
     const config = join(scratch, 'prisma.config.mjs');
-    const configModule = pathToFileURL(require.resolve('prisma/config')).href;
+    const { configModule, cli } = await resolvePrismaMigrationTools();
     await writeFile(
       config,
       [
@@ -211,13 +279,6 @@ export async function deployRealMigrations(
           ' }, datasource: { url: process.env.CONTEXT_EMBEDDING_ACTIVE_MIGRATION_DATABASE_URL } });',
       ].join(String.fromCharCode(10)),
     );
-    const packagePath = require.resolve('prisma/package.json');
-    const manifest = JSON.parse(await readFile(packagePath, 'utf8')) as {
-      bin: { prisma: string } | string;
-    };
-    const bin =
-      typeof manifest.bin === 'string' ? manifest.bin : manifest.bin.prisma;
-    const cli = resolve(dirname(packagePath), bin);
     try {
       await command(
         process.execPath,
@@ -233,11 +294,12 @@ export async function deployRealMigrations(
           maxBuffer: 2 * 1024 * 1024,
         },
       );
-    } catch {
+    } catch (error) {
       throw new Error(
         'Real Prisma migration deploy failed for the disposable ' +
           kind +
           ' database',
+        { cause: error },
       );
     }
   } finally {

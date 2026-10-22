@@ -1416,7 +1416,7 @@ test('serial runtime acceptance preserves ordinary E2E routing and requires rece
   const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
   assert.match(
     gate,
-    /needs: \[e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance\]/,
+    /needs: \[e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance, context-embedding-acceptance\]/,
   );
   assert.ok(gate.includes('needs.runtime-acceptance.outputs.result'));
   assert.match(gate, /needs\.runtime-acceptance\.result \}\}" = skipped/);
