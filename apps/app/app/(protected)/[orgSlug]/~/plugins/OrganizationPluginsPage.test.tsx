@@ -386,9 +386,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
     const user = userEvent.setup();
     mocks.installed.pendingAppIds = ['storyboard', 'playground'];
     render(<OrganizationPluginsPage />);
-    await user.click(
-      screen.getByRole('button', { name: 'Playground', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Playground' }));
     expect(screen.getByRole('menuitem', { name: 'Remove' })).toHaveAttribute(
       'aria-disabled',
       'true',
@@ -405,14 +403,10 @@ describe('OrganizationPluginsPage (#7842)', () => {
     const user = userEvent.setup();
     mocks.uninstall.mockResolvedValue(false);
     render(<OrganizationPluginsPage />);
-    await user.click(
-      screen.getByRole('button', { name: 'Playground', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Playground' }));
     await user.click(screen.getByRole('menuitem', { name: /Pin Playground/ }));
     expect(mocks.togglePin).toHaveBeenCalledWith('playground');
-    await user.click(
-      screen.getByRole('button', { name: 'Playground', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Playground' }));
     await user.click(screen.getByRole('menuitem', { name: 'Remove' }));
     expect(mocks.uninstall).toHaveBeenCalledWith('playground');
     expect(await screen.findByRole('alert')).toHaveTextContent(
