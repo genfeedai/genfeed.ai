@@ -22,6 +22,8 @@ annotations (84 unique strings) that only repeat a field name or enum. It never
 truncates arbitrary documentation. A changed canonical description falls back to
 its original wording; appended guidance and dynamic pricing are retained. Other
 surfaces keep their canonical definitions. Unknown annotations remain untouched.
+The API parity test checks canonical agent definitions verbatim and compares MCP
+parameter validation independently of client-facing descriptions.
 
 The benchmark checks that only tool descriptions and schema `description`
 annotations differ. Tool order/count, names, arguments, required fields, defaults,

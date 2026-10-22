@@ -19,6 +19,64 @@ import {
 /** Tools whose MCP description is deliberately worded for the MCP surface. */
 const MCP_REWORDED_TOOLS: ReadonlySet<string> = new Set(['create_post']);
 
+// Compare validation independently of client-facing description annotations.
+// Schema maps contain user property names; literals/defaults/examples are data.
+function schemaValidation(schema: unknown): unknown {
+  if (schema === null || typeof schema !== 'object' || Array.isArray(schema))
+    return schema;
+  const entries: [string, unknown][] = Object.entries(schema);
+  return Object.fromEntries(
+    entries
+      .filter(
+        ([key, value]) => !(key === 'description' && typeof value === 'string'),
+      )
+      .map(([key, value]) => {
+        if (
+          [
+            'properties',
+            'patternProperties',
+            '$defs',
+            'definitions',
+            'dependentSchemas',
+          ].includes(key) &&
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        ) {
+          const children: [string, unknown][] = Object.entries(value);
+          return [
+            key,
+            Object.fromEntries(
+              children.map(([name, child]) => [name, schemaValidation(child)]),
+            ),
+          ];
+        }
+        if (
+          ['allOf', 'anyOf', 'oneOf', 'prefixItems', 'items'].includes(key) &&
+          Array.isArray(value)
+        )
+          return [key, value.map(schemaValidation)];
+        if (
+          [
+            'items',
+            'additionalItems',
+            'additionalProperties',
+            'unevaluatedItems',
+            'unevaluatedProperties',
+            'contains',
+            'propertyNames',
+            'not',
+            'if',
+            'then',
+            'else',
+          ].includes(key)
+        )
+          return [key, schemaValidation(value)];
+        return [key, value];
+      }),
+  );
+}
+
 describe('agent-tool-registry', () => {
   it('should include onboarding tool definitions', () => {
     const definitions = getToolDefinitions();
@@ -272,49 +330,84 @@ it('serves every agent tool exactly as the catalog defines it', () => {
   }
 });
 
-it('shows the agent and MCP the same definition of every shared tool', () => {
+it('shares validation and prices across agent/MCP with client-specific documentation', () => {
   const mcpTools = new Map(
     toMcpTools(getToolsForSurface('mcp')).map((tool) => [tool.name, tool]),
   );
   const shared = getToolDefinitions().filter((tool) =>
     mcpTools.has(String(tool.name)),
   );
-
   expect(shared.length).toBeGreaterThan(0);
   expect(shared.map((tool) => String(tool.name))).toEqual(
     expect.arrayContaining(['create_post', 'get_analytics']),
   );
   for (const tool of shared) {
     const mcp = mcpTools.get(String(tool.name));
-    // The one deliberate divergence: MCP has no thread to take a brand from, so
-    // its generation tools say brandId is required (#5786). Everything else,
-    // including the rest of the description, must match the agent definition.
+    if (!mcp) throw new Error(`Missing shared MCP tool: ${tool.name}`);
     const isBrandRequired = isMcpBrandRequiredTool(String(tool.name));
+    // MCP can shorten documentation and hide app-only fields (#7178); the
+    // canonical agent definition is checked verbatim in the preceding test.
+    expect(mcp.description.length, tool.name).toBeGreaterThan(0);
     if (MCP_REWORDED_TOOLS.has(String(tool.name))) {
-      // MCP hides options it cannot honour, so it words the tool for that
-      // surface instead (#7178).
-      expect(mcp?.description, tool.name).toContain('never publishes');
-    } else {
-      expect(
-        isBrandRequired
-          ? mcp?.description.replace(` ${MCP_BRAND_REQUIRED_NOTE}`, '')
-          : mcp?.description,
-        tool.name,
-      ).toBe(tool.description);
+      expect(mcp.description, tool.name).toContain('never publishes');
     }
-    const { brandId: _mcpBrand, ...mcpProperties } =
-      (mcp?.inputSchema.properties as Record<string, unknown>) ?? {};
-    expect(tool.parameters, tool.name).toMatchObject({
-      properties: isBrandRequired ? mcpProperties : mcp?.inputSchema.properties,
-      type: mcp?.inputSchema.type,
-    });
-    if (isBrandRequired) {
-      expect(mcp?.inputSchema.required, tool.name).toContain('brandId');
+    const properties = tool.parameters.properties;
+    if (
+      !properties ||
+      typeof properties !== 'object' ||
+      Array.isArray(properties)
+    ) {
+      throw new Error(`Missing agent properties: ${tool.name}`);
     }
-    expect(tool.creditCost, tool.name).toBe(
-      mcp?._meta['genfeed.ai/creditCost'],
+    const agentProperties: Record<string, unknown> = Object.fromEntries(
+      Object.entries(properties),
     );
+    for (const [name, schema] of Object.entries(mcp.inputSchema.properties)) {
+      expect(schemaValidation(schema), `${tool.name}.${name}`).toEqual(
+        schemaValidation(
+          name === 'brandId' && isBrandRequired && !(name in agentProperties)
+            ? { type: 'string' }
+            : agentProperties[name],
+        ),
+      );
+    }
+    expect(mcp.inputSchema.type, tool.name).toBe(tool.parameters.type);
+    if (isBrandRequired) {
+      expect(mcp.inputSchema.required, tool.name).toContain('brandId');
+      expect(mcp.description, tool.name).toContain(MCP_BRAND_REQUIRED_NOTE);
+    }
+    expect(tool.creditCost, tool.name).toBe(mcp._meta['genfeed.ai/creditCost']);
   }
+  expect(mcpTools.get('analyze_performance')?.description).toBe(
+    'Analyze 30-day engagement by content type, platform and posting time, including top posts.',
+  );
+});
+
+it('validation parity preserves property names and literal data named description', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      description: {
+        type: 'string',
+        description: 'Display help',
+        minLength: 1,
+      },
+      payload: {
+        const: { description: 'literal' },
+        default: { description: 'default' },
+        enum: [{ description: 'enum' }],
+        examples: [{ description: 'example' }],
+      },
+    },
+    required: ['description'],
+  };
+  expect(schemaValidation(schema)).toEqual({
+    ...schema,
+    properties: {
+      ...schema.properties,
+      description: { type: 'string', minLength: 1 },
+    },
+  });
 });
 
 it('advertises only root fields accepted by each canonical tool contract', () => {
