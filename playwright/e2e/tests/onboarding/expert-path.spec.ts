@@ -25,12 +25,40 @@ test.describe('Expert Path Onboarding', () => {
   }) => {
     const expert = new ExpertOnboardingPage(expertOnboardingPage);
 
-    // A work-email domain drafts the first posts without asking anything.
+    // A work-email domain prefills the link; generation waits for confirmation.
+    await expect(
+      expertOnboardingPage.getByRole('textbox', {
+        name: 'Website or social profile',
+      }),
+    ).toHaveValue('https://genfeed.ai');
+    await expertOnboardingPage
+      .getByRole('button', { name: 'Submit brand link', exact: true })
+      .click();
+
+    for (const platform of ['twitter', 'instagram', 'tiktok', 'linkedin']) {
+      await expect(
+        expertOnboardingPage.getByTestId(`onboarding-draft-${platform}`),
+      ).toContainText(`Round 1 ${platform} draft`);
+    }
+    await expect(
+      expertOnboardingPage.getByTestId('preview-account-header'),
+    ).toHaveCount(4);
+
+    // The same saved run must survive refresh before the expert handoff.
+    await expertOnboardingPage.reload();
     await expect(
       expertOnboardingPage.getByText('Round 1 twitter draft'),
     ).toBeVisible();
     await expertOnboardingPage
-      .getByRole('button', { name: 'Looks right, continue', exact: true })
+      .getByRole('button', { name: 'Continue', exact: true })
+      .click();
+    for (const platform of ['instagram', 'tiktok', 'twitter', 'linkedin']) {
+      await expect(
+        expertOnboardingPage.getByTestId(`connect-card-${platform}`),
+      ).toBeVisible();
+    }
+    await expertOnboardingPage
+      .getByRole('button', { name: 'Finish', exact: true })
       .click();
 
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.POSITIONING);
