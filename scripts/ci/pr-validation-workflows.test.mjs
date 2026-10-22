@@ -31,6 +31,7 @@ const { parse: parseYaml } = createRequire(
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'curated-action-catalog.yml',
+  'dependency-review.yml',
   'playwright-coverage-policy.yml',
   'playwright-pr-smoke.yml',
   'pr-heavy-ci.yml',
@@ -1949,7 +1950,7 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
       assert.equal(job.uses, undefined);
       assert.deepEqual(job.steps[0], {
         uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
-        with: { 'fetch-depth': 0 },
+        with: { 'fetch-depth': 0, 'persist-credentials': false },
       });
       if (id === detectorId) continue;
       assert.equal(job.needs, detectorId);
