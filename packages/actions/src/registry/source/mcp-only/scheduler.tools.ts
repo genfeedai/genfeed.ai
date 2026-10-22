@@ -224,7 +224,12 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
       additionalProperties: false,
       properties: {
         action: { type: 'string', enum: ['capabilities', 'validate'] },
-        input: { type: 'object' },
+        input: {
+          anyOf: [
+            SCHEDULER_CAPABILITIES_PARAMETERS,
+            SCHEDULER_VALIDATE_PARAMETERS,
+          ],
+        },
       },
       required: ['action'],
       oneOf: [

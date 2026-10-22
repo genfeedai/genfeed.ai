@@ -11,6 +11,16 @@ const ARTICLE_SELECTOR_PROPERTIES = {
   limit: { type: 'number' },
 } as const;
 
+const MCP_COMPLETE_MEDIA_UPLOAD_PARAMETERS = {
+  ...COMPLETE_MEDIA_UPLOAD_PARAMETERS,
+  properties: {
+    assetId: {
+      type: 'string',
+      description: 'assetId returned by upload_media(action=request).',
+    },
+  },
+};
+
 export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     name: 'upload_media',
@@ -23,7 +33,12 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
       additionalProperties: false,
       properties: {
         action: { type: 'string', enum: ['request', 'complete'] },
-        input: { type: 'object' },
+        input: {
+          anyOf: [
+            REQUEST_MEDIA_UPLOAD_PARAMETERS,
+            MCP_COMPLETE_MEDIA_UPLOAD_PARAMETERS,
+          ],
+        },
       },
       required: ['action', 'input'],
       oneOf: [
@@ -39,16 +54,7 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           type: 'object',
           properties: {
             action: { type: 'string', enum: ['complete'] },
-            input: {
-              ...COMPLETE_MEDIA_UPLOAD_PARAMETERS,
-              properties: {
-                assetId: {
-                  type: 'string',
-                  description:
-                    'assetId returned by upload_media(action=request).',
-                },
-              },
-            },
+            input: MCP_COMPLETE_MEDIA_UPLOAD_PARAMETERS,
           },
           required: ['action', 'input'],
         },
