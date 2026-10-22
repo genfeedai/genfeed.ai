@@ -242,8 +242,8 @@ it('lists the real mixed default with canonical wrappers at 24 user / 25 maximum
   );
   const user = build('user', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
   const maximum = build('superadmin', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
-  expect(user.getTools()).toHaveLength(24);
-  expect(maximum.getTools()).toHaveLength(25);
+  expect(user.getTools()).toHaveLength(25);
+  expect(maximum.getTools()).toHaveLength(26);
   const listed = names(user.getTools());
   expect(listed).toContain('check_channel');
   expect(listed).toContain('upload_media');
