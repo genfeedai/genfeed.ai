@@ -139,6 +139,27 @@ export function resolveIngredientMediaUrl(
 }
 
 /**
+ * The longest a signature's expiry is rounded up. Within one window the same
+ * object signs to the same URL, so the browser cache and the CDN edge keep
+ * hitting instead of refetching on every API response.
+ */
+const MAX_EXPIRY_WINDOW_SECONDS = 300;
+
+/**
+ * Expiry for a URL signed at `nowMs`, rounded up to a window boundary. It is
+ * never earlier than `now + ttl`, so rounding only lengthens validity (by less
+ * than one window, at most a third of the TTL).
+ */
+function stableExpiryMs(nowMs: number, ttlSeconds: number): number {
+  const windowMs =
+    Math.max(
+      1,
+      Math.min(MAX_EXPIRY_WINDOW_SECONDS, Math.floor(ttlSeconds / 3)),
+    ) * 1000;
+  return Math.ceil((nowMs + ttlSeconds * 1000) / windowMs) * windowMs;
+}
+
+/**
  * Signs `url` with the configured key pair.
  *
  * A failure never falls back to an unsigned URL — that would hand out exactly
@@ -146,7 +167,7 @@ export function resolveIngredientMediaUrl(
  */
 function sign(url: string, signing: MediaUrlSigningConfig): string {
   const dateLessThan = new Date(
-    Date.now() + signing.ttlSeconds * 1000,
+    stableExpiryMs(Date.now(), signing.ttlSeconds),
   ).toISOString();
 
   try {

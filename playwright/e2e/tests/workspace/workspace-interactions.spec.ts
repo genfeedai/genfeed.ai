@@ -178,9 +178,7 @@ test.describe('Workspace — deep interactions', () => {
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBe('workspace-task-review-1');
-    await contextSidebar
-      .getByRole('button', { exact: true, name: 'Collapse details' })
-      .click();
+    await contextSidebar.getByTestId('workspace-panel-close').click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBeNull();

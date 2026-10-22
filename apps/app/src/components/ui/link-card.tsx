@@ -57,5 +57,3 @@ export function LinkCard({
     </a>
   );
 }
-
-export default LinkCard;

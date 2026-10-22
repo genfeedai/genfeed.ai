@@ -56,8 +56,71 @@ env:
   TZ: UTC
 
 jobs:
+  # Independent frontend graph: fork PRs retain read-only measurements even
+  # when the test planner refuses untrusted code. Heavy reusable callers must
+  # not repeat the bundle run already owned by the direct PR event.
+  bundle-size:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft && inputs.run_heavy_tests != true
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/_bundle-size.yml
+    secrets: inherit
+
+  link-check-detect:
+    permissions:
+      contents: read
+    name: Detect Link-Check Scope
+    # Draft pull requests run nothing; CI runs once the PR is marked ready.
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft && inputs.run_heavy_tests != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      website: ${{ steps.scope.outputs.website }}
+      docs: ${{ steps.scope.outputs.docs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - id: scope
+        uses: ./.github/actions/detect-link-check-scope
+
+  website-links:
+    permissions:
+      contents: read
+    name: Website Links + Orphans + SEO
+    runs-on: ubuntu-latest
+    needs: link-check-detect
+    if: needs.link-check-detect.outputs.website == 'true'
+    # Existing complete workload: production build, 120s readiness, crawl/orphans and SEO.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/check-website-links
+
+  docs-links:
+    permissions:
+      contents: read
+    name: Docs + Markdown Dead Links
+    runs-on: ubuntu-latest
+    needs: link-check-detect
+    if: needs.link-check-detect.outputs.docs == 'true'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/check-docs-links
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
   # Trust, heavy tier, test plan, and spec-typecheck scope in one runner slot.
-  # Every job below needs this one, so an untrusted fork PR (the trust step
+  # Every test job below needs this one, so an untrusted fork PR (the trust step
   # fails the job) skips the whole graph and the Tests Gate fails closed.
   plan:
     name: Plan

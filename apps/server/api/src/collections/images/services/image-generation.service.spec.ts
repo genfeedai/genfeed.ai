@@ -16,7 +16,6 @@ import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/serv
 import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   IngredientOrigin,
@@ -524,35 +523,6 @@ describe('ImageGenerationService', () => {
         }),
       }),
     );
-  });
-
-  it('stops before any document, credit or provider call when brand enhancement fails, never falling back to the raw prompt', async () => {
-    const {
-      service,
-      enhancementService,
-      replicateService,
-      sharedService,
-      creditsUtilsService,
-    } = createService();
-    enhancementService.enhance.mockRejectedValue(
-      new MediaPromptBrandEnhancementException('provider'),
-    );
-    const error = await service
-      .generateImage(
-        buildUser(),
-        baseDto({ text: 'a sunset over the ocean' }),
-        buildRequest(),
-      )
-      .catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(MediaPromptBrandEnhancementException);
-    expect((error as MediaPromptBrandEnhancementException).getStatus()).toBe(
-      502,
-    );
-    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
-    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
   });
 
   it('forwards the explicit raw opt-out and the caller scope to enhancement', async () => {

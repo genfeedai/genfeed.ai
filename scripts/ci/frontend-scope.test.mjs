@@ -75,6 +75,12 @@ test('root build inputs and the detector itself conservatively select both apps'
     'tsconfig.json',
     '.github/actions/setup-bun-env/action.yml',
     'scripts/ci/frontend-scope.mjs',
+    '.github/actions/detect-link-check-scope/action.yml',
+    '.github/actions/check-website-links/action.yml',
+    '.github/actions/check-docs-links/action.yml',
+    '.github/workflows/ci.yml',
+    '.github/workflows/_bundle-size.yml',
+    '.github/workflows/bundle-size.yml',
     'configs/build.ts',
   ]) {
     assert.deepEqual(

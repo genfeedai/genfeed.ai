@@ -40,7 +40,6 @@ export interface AgentChatInputToolbarProps {
   showStop: boolean;
   /** Send will enqueue instead of starting a new turn. */
   willQueueFollowUp?: boolean;
-  density?: 'compact' | 'default';
 }
 
 function AgentChatInputToolbarInner({
@@ -66,10 +65,7 @@ function AgentChatInputToolbarInner({
   onStopListening,
   showStop,
   willQueueFollowUp = false,
-  density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
-  const isCompact = density === 'compact';
-
   // The Agent infers output type from the prompt itself (#4672) — there is no
   // user control for it any more, only the mode dropdown (Auto/Manual/Plan).
   useEffect(() => {
@@ -82,7 +78,6 @@ function AgentChatInputToolbarInner({
     );
   }, [isAgentControlsHidden, onGenerationModeChange, promptText]);
 
-  const controlSize = isCompact ? 'size-8' : 'size-9';
   const send =
     showStop && !canSendMessage ? null : (
       <PromptBarSendButton
@@ -95,7 +90,6 @@ function AgentChatInputToolbarInner({
                 ? 'Generate video'
                 : 'Send message'
         }
-        density={density}
         isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
         onClick={onSend}
         tooltip={willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'}
@@ -104,12 +98,10 @@ function AgentChatInputToolbarInner({
 
   return (
     <PromptBarToolbar
-      density={density}
       leading={
         isAgentControlsHidden ? null : (
           <>
             <PromptBarReferenceControls
-              density={density}
               isAttachmentDisabled={disabled}
               isLibraryDisabled={disabled || !hasEditor}
               onAddFiles={onAddFiles}
@@ -121,7 +113,7 @@ function AgentChatInputToolbarInner({
               onChange={onAgentModeChange}
             />
             <GenerationHarnessSettingsPopover
-              className={controlSize}
+              className="size-8"
               isDisabled={disabled || showStop}
             />
           </>
@@ -129,7 +121,6 @@ function AgentChatInputToolbarInner({
       }
       trailing={
         <PromptBarSubmitSlot
-          density={density}
           isDisabled={disabled}
           isEmpty={isEmptyComposer}
           isListening={isListening}

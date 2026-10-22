@@ -24,6 +24,7 @@ import {
   REVIEWED_RATE_SHEET_ENTRIES,
   type ReviewedRateSheetEntry,
   selectorNumber,
+  UNPRICED_MODELS,
 } from '@genfeedai/pricing';
 import {
   type Model,
@@ -198,11 +199,14 @@ export function projectAdminModelPricing(
     contracts.find((c) => c.version === model.pendingProviderContractVersion),
   );
   // An inactive model still needs a price before an operator can switch it
-  // on, so it is quoted and classified like an active one. Only a retired row
-  // never bills (dispatch resolves its successor).
+  // on, so it is quoted and classified like an active one. A retired row never
+  // bills (dispatch resolves its successor), and an inactive row the rate
+  // sheet deliberately leaves unpriced has its reason recorded already.
   const pricingModel = {
     ...model,
-    isActive: String(model.lifecycle) !== ModelLifecycle.RETIRED,
+    isActive:
+      String(model.lifecycle) !== ModelLifecycle.RETIRED &&
+      (model.isActive || !Object.hasOwn(UNPRICED_MODELS, model.key)),
   };
   const profile = projectModelBillablePricingProfile(pricingModel, contracts);
   if (reviewed && profile.reviewedPricing) {

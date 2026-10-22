@@ -633,20 +633,14 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       translate,
     ],
   );
-  const {
-    cancelJob,
-    generateWithoutBrand,
-    jobs,
-    rehydratePending,
-    removeJob,
-    submit,
-  } = useStudioGeneration({
-    brandId,
-    models,
-    onGenerated: refresh,
-    settings,
-    type,
-  });
+  const { cancelJob, jobs, rehydratePending, removeJob, submit } =
+    useStudioGeneration({
+      brandId,
+      models,
+      onGenerated: refresh,
+      settings,
+      type,
+    });
   // #4670 Open in Studio: a resolved Agent handoff pre-fills the composer.
   // Precedence over remembered local settings comes for free from
   // `applyTypeSettings` — it marks every patched field `'user'`-owned in the
@@ -2745,7 +2739,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                       assetActions={{
                         ...assetActions,
                         onCancelGeneration: cancelJob,
-                        onGenerateWithoutBrand: generateWithoutBrand,
                       }}
                       isLoading={isLoadingGallery}
                       jobs={recoveredJobs}

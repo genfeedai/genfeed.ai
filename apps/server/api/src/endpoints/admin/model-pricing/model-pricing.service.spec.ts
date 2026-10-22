@@ -852,6 +852,33 @@ describe('inactive models in the pricing report', () => {
 
     expect(row.attentionLevel).toBeNull();
   });
+
+  it('does not flag a switched-off row the rate sheet deliberately leaves unpriced', () => {
+    const row = projectAdminModelPricing(
+      { ...inactive, endpoint: 'argil/atom', key: 'argil/atom' } as Model,
+      [],
+      3.33,
+      retrievedAt,
+    );
+
+    expect(row.attentionLevel).toBeNull();
+  });
+
+  it('still flags an active row the rate sheet leaves unpriced', () => {
+    const row = projectAdminModelPricing(
+      {
+        ...inactive,
+        endpoint: 'argil/atom',
+        isActive: true,
+        key: 'argil/atom',
+      } as Model,
+      [],
+      3.33,
+      retrievedAt,
+    );
+
+    expect(row.attentionLevel).toBe('red');
+  });
 });
 
 describe('fixing model pricing', () => {

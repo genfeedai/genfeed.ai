@@ -137,7 +137,7 @@ function readTrimmedParam(params: URLSearchParams, key: string): string | null {
   return value || null;
 }
 
-function parsePositiveInteger(value?: string | null): string | null {
+export function parsePositiveInteger(value?: string | null): string | null {
   const normalizedValue = value?.trim();
 
   if (!normalizedValue || !/^\d+$/.test(normalizedValue)) {

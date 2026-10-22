@@ -35,7 +35,7 @@ export function WorkspaceTaskInspectorHeader({
   const statusLabel = useTaskStatusLabel(task);
   const translate = useTranslations('pages.workspaceOverview.actions');
   return (
-    <div className="border-b border-border px-6 py-5">
+    <div className="px-4 pt-4">
       <div className="flex flex-col gap-4">
         <div className="flex min-w-0 flex-col space-y-3 text-left">
           <div className="flex flex-wrap items-center gap-2">

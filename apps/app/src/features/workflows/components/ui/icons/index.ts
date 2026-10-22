@@ -2,19 +2,9 @@ export { SlackIcon } from '@genfeedai/helpers/ui/icons/brands';
 export {
   Check as CheckIcon,
   CircleAlert as AlertCircleIcon,
-  CircleCheck as CheckCircleIcon,
   Clock as ClockIcon,
-  Copy as CopyIcon,
-  Download as DownloadIcon,
-  Eye as EyeIcon,
-  EyeOff as EyeOffIcon,
-  Hash as HashIcon,
   Mail as MailIcon,
-  RefreshCw as RefreshIcon,
-  Scissors as ScissorsIcon,
   ShieldCheck as ShieldCheckIcon,
-  Sparkles as SparklesIcon,
   Webhook as WebhookIcon,
   X as XIcon,
 } from 'lucide-react';
-export { PlatformIcon } from '@/features/workflows/components/ui/icons/platform-icon';

@@ -2,23 +2,15 @@ import type { ReactNode } from 'react';
 
 export interface PromptBarToolbarProps {
   className?: string;
-  density?: 'compact' | 'default';
   /** Left group: `+` menu, the surface's leading chip, then surface tools. */
   leading: ReactNode;
   leadingLabel?: string;
-  /**
-   * Leading control that never scrolls or shrinks with the tools beside it. The
-   * scroller clips anything outside its box, which would cut the 44px touch
-   * target that a 32px icon button extends with `::after`.
-   */
-  pinnedLeading?: ReactNode;
   /** Right group: setup, enhance, then the submit slot. */
   trailing: ReactNode;
   trailingLabel?: string;
 }
 
 export interface PromptBarSubmitSlotProps {
-  density?: 'compact' | 'default';
   isDisabled?: boolean;
   /** Nothing to submit yet — the mic owns the slot when voice is available. */
   isEmpty: boolean;

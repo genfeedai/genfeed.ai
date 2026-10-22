@@ -126,7 +126,7 @@ export class CalendarPage {
       '[data-testid="context-sidebar-title"]',
     );
     this.modalCloseButton = page.locator(
-      '[data-testid="context-sidebar-close"]',
+      '[data-testid="workspace-panel-close"]',
     );
     this.viewDetailsButton = this.postModal.locator(
       'a:has-text("Open editor")',

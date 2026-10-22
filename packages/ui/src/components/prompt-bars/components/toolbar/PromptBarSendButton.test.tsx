@@ -36,18 +36,9 @@ describe('PromptBarSendButton', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
-  it('sizes the button by toolbar density', () => {
-    const { rerender } = render(
-      <PromptBarSendButton
-        ariaLabel="Send"
-        density="compact"
-        onClick={vi.fn()}
-      />,
-    );
+  it('renders the 32px send button', () => {
+    render(<PromptBarSendButton ariaLabel="Send" onClick={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Send' })).toHaveClass('size-8');
-
-    rerender(<PromptBarSendButton ariaLabel="Send" onClick={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Send' })).toHaveClass('size-9');
   });
 
   it('exposes the blocked state and test id', () => {

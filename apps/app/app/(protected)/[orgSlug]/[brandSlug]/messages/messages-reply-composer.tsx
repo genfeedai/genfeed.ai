@@ -101,7 +101,6 @@ export default function MessagesReplyComposer({
           value={draft}
         />
         <PromptBarToolbar
-          density="compact"
           leading={
             <Button
               icon={<Sparkles className="size-4" />}
@@ -137,7 +136,6 @@ export default function MessagesReplyComposer({
               </Button>
               <PromptBarSendButton
                 ariaLabel={translate('actions.reply')}
-                density="compact"
                 isDisabled={!canReply}
                 isLoading={busyAction === 'reply'}
                 onClick={() => onAction('reply')}

@@ -1,38 +1,6 @@
 {
   "entries": [
     {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/actions/src/registry/mutation-policy.spec.ts",
-      "fingerprint": "270a1a7d638febc0c957",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 196 more ... | \"verify_skills_pro_entitlement\"'.",
-      "workspace": "actions"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/actions/src/registry/toolset-profiles.spec.ts",
-      "fingerprint": "d73adb65b865700d6a5a",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 196 more ... | \"verify_skills_pro_entitlement\"'.",
-      "workspace": "actions"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentChatContainer.spec.tsx",
-      "fingerprint": "ab8b010edfd9f04d4c93",
-      "message": "Type '[{ createdAt: string; detail: string; event: AgentWorkEventType; id: string; label: string; runId: string; status: AgentWorkEventStatus; threadId: string; toolName: string; }]' is not assignable to type '[]'.   Source has 1 element(s) but target allows only 0.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentChatContainer.spec.tsx",
-      "fingerprint": "90d1528bded6dc7160e4",
-      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'.   Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2322,
       "count": 3,
       "file": "packages/agent/src/components/AgentChatInput.spec.tsx",
@@ -4326,46 +4294,6 @@
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/resolve-publishing-content-kind.test.ts",
       "fingerprint": "c7aaf4005e5cdaeb3cf7",
       "message": "Type '{ findOne: Mock<Procedure | Constructable>; }' is not assignable to type 'ContentLookup'.   Types of property 'findOne' are incompatible.     Type 'Mock<Procedure | Constructable>' is not assignable to type '(id: string, query?: Record<string, unknown> | undefined, signal?: AbortSignal | undefined) => Promise<unknown>'.       Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(id: string, query?: Record<string, unknown> | undefined, signal?: AbortSignal | undefined) => Promise<unknown>'.         Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(id: string, query?: Record<string, unknown> | undefined, signal?: AbortSignal | undefined): Promise<unknown>'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestArticles.test.tsx",
-      "fingerprint": "2d982499144de513a29f",
-      "message": "Property 'articles' is missing in type '{}' but required in type 'BrandDetailLatestArticlesProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestImages.test.tsx",
-      "fingerprint": "3123c234d5c0fa163297",
-      "message": "Property 'images' is missing in type '{}' but required in type 'BrandDetailLatestImagesProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestImages.test.tsx",
-      "fingerprint": "8d70e78987dcdb3e7847",
-      "message": "Property 'images' is missing in type '{}' but required in type 'BrandDetailLatestImagesProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestVideos.test.tsx",
-      "fingerprint": "a1da5a500e92c39b661e",
-      "message": "Property 'videos' is missing in type '{}' but required in type 'BrandDetailLatestVideosProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestVideos.test.tsx",
-      "fingerprint": "dc9d5b23aca70d4b77e2",
-      "message": "Property 'videos' is missing in type '{}' but required in type 'BrandDetailLatestVideosProps'.",
       "workspace": "app"
     },
     {

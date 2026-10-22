@@ -1,14 +1,17 @@
 import { useRegisterBreadcrumbLeaf } from '@contexts/ui/breadcrumb-leaf-context';
 import { useAgentPageContext } from '@genfeedai/agent';
 import { MemberRole } from '@genfeedai/contracts';
+import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
+import { useAppProtectedLayout } from './useAppProtectedLayout';
 
 const SIDEBAR_TRANSLATIONS: Record<string, string> = {
   newConversation: 'New Conversation',
@@ -66,6 +69,8 @@ const {
   resetAnalyticsSpy: vi.fn(),
   universalShellSpy: vi.fn(),
 }));
+
+const mockCreditsBilling = vi.hoisted(() => ({ value: true }));
 
 const mockFeatureFlags = vi.hoisted(() => ({ isEnabled: true }));
 // Every real Studio app is a single page, and a one-item nav is dropped, so a
@@ -503,11 +508,13 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
   },
 }));
 
-vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBillingHint: () => true,
+vi.mock('@genfeedai/config/license', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config/license')>()),
+  hasOrganizationBillingHint: () => mockCreditsBilling.value,
 }));
 
-vi.mock('@genfeedai/config/deployment', () => ({
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config/deployment')>()),
   getClientSurface: () =>
     process.env.NEXT_PUBLIC_DESKTOP_SHELL?.trim() === '1' ? 'desktop' : 'web',
   getDeployment: () => {
@@ -571,6 +578,8 @@ vi.mock('next/navigation', () => ({
 
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
+    mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
+    mockCreditsBilling.value = true;
     mockFeatureFlags.isEnabled = true;
     mockStudioNav.appsWithSecondPage.clear();
     vi.mocked(useUserRole).mockReturnValue(MemberRole.USER);
@@ -1986,5 +1995,407 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+  });
+});
+
+const mockCreditsRuntime = vi.hoisted(() =>
+  vi.fn<() => DesktopRuntimeSnapshot>(),
+);
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({
+    useDesktopRuntimeContext: mockCreditsRuntime,
+  }),
+);
+
+const creditsCloudContext: IDesktopRuntimeContext = {
+  version: 1,
+  runtimeId: 'credits-runtime',
+  revision: 1,
+  status: 'ready',
+  selectedServerId: 'credits-cloud',
+  selectedServerKind: 'cloud',
+  selectedApiEndpoint: 'https://example.invalid/v1',
+  runtimeMode: 'cloud',
+  generationExecution: 'remote',
+  localProvider: null,
+};
+const creditsLocalContext: IDesktopRuntimeContext = {
+  ...creditsCloudContext,
+  revision: 2,
+  runtimeMode: 'local',
+  generationExecution: 'local-byok',
+  localProvider: { provider: 'ollama', networkAccess: 'local' },
+};
+const creditsRuntimeCases = [
+  {
+    name: 'cloud web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'community self-host web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: true,
+    billing: false,
+    price: undefined,
+  },
+  {
+    name: 'licensed self-host web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: true,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'configured PAYG self-host web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: true,
+    billing: false,
+    price: 'price_fixture',
+  },
+  {
+    name: 'confirmed desktop cloud without billing hint',
+    runtime: { status: 'ready', context: creditsCloudContext },
+    allowed: true,
+    selfHosted: false,
+    billing: false,
+    price: undefined,
+  },
+  {
+    name: 'local Ollama with remembered cloud and billing hint',
+    runtime: { status: 'ready', context: creditsLocalContext },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'local Replicate with remote network',
+    runtime: {
+      status: 'ready',
+      context: {
+        ...creditsLocalContext,
+        localProvider: { provider: 'replicate', networkAccess: 'remote' },
+      },
+    },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'local unknown execution',
+    runtime: {
+      status: 'ready',
+      context: {
+        ...creditsLocalContext,
+        generationExecution: 'unknown',
+        localProvider: null,
+      },
+    },
+    allowed: false,
+    selfHosted: true,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'desktop self-host server',
+    runtime: {
+      status: 'ready',
+      context: {
+        ...creditsCloudContext,
+        selectedServerId: 'credits-self-host',
+        selectedServerKind: 'self-hosted',
+      },
+    },
+    allowed: false,
+    selfHosted: true,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'cloud execution unconfirmed',
+    runtime: {
+      status: 'ready',
+      context: { ...creditsCloudContext, generationExecution: 'unknown' },
+    },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'loading',
+    runtime: { status: 'loading', context: null },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'unavailable',
+    runtime: { status: 'unavailable', context: null },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'switching with old cloud context',
+    runtime: { status: 'switching', context: creditsCloudContext },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+] satisfies {
+  name: string;
+  runtime: DesktopRuntimeSnapshot;
+  allowed: boolean;
+  selfHosted: boolean;
+  billing: boolean;
+  price: string | undefined;
+}[];
+const creditsRuntimeTransitions: DesktopRuntimeSnapshot[] = [
+  { status: 'loading', context: null },
+  { status: 'ready', context: creditsLocalContext },
+  { status: 'ready', context: creditsCloudContext },
+  { status: 'switching', context: creditsCloudContext },
+  { status: 'ready', context: creditsLocalContext },
+  { status: 'ready', context: creditsCloudContext },
+];
+
+describe('desktop Credits navigation', () => {
+  beforeEach(() => {
+    mockPathname.value = '/acme/~/settings/general';
+    mockRouteParams.orgSlug = 'acme';
+    mockRouteParams.brandSlug = undefined;
+  });
+  it.each(creditsRuntimeCases)(
+    '$name',
+    ({ runtime, allowed, selfHosted, billing }) => {
+      mockCreditsBilling.value = billing;
+      vi.stubEnv('GENFEED_CLOUD', selfHosted ? '0' : '1');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', selfHosted ? '0' : '1');
+      mockCreditsRuntime.mockReturnValue(runtime);
+      const { result, unmount } = renderHook(() => useAppProtectedLayout());
+      expect(
+        result.current.settingsMenuItems.some(
+          (item) => item.href === '/settings/credits',
+        ),
+      ).toBe(allowed);
+      expect(
+        result.current.settingsMenuItems.some(
+          (item) => item.href === '/settings/general',
+        ),
+      ).toBe(true);
+      unmount();
+    },
+  );
+  it('updates the organization menu on the same mounted instance', () => {
+    mockCreditsRuntime.mockReturnValue(creditsRuntimeTransitions[0]);
+    const { result, rerender, unmount } = renderHook(() =>
+      useAppProtectedLayout(),
+    );
+    creditsRuntimeTransitions.forEach((runtime, index) => {
+      mockCreditsRuntime.mockReturnValue(runtime);
+      rerender();
+      expect(
+        result.current.settingsMenuItems.some(
+          (item) => item.href === '/settings/credits',
+        ),
+      ).toBe(index === 2 || index === 5);
+      expect(
+        result.current.settingsMenuItems.some(
+          (item) => item.href === '/settings/general',
+        ),
+      ).toBe(true);
+    });
+    unmount();
+  });
+});
+
+describe('Subscription runtime boundary', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error('Unexpected fetch');
+      }),
+    );
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      class {
+        constructor() {
+          throw new Error('Unexpected XHR');
+        }
+      },
+    );
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        constructor() {
+          throw new Error('Unexpected WebSocket');
+        }
+      },
+    );
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => {
+        throw new Error('Unexpected browser open');
+      }),
+    );
+
+    mockPathname.value = '/acme/~/settings/general';
+    mockRouteParams.orgSlug = 'acme';
+    mockRouteParams.brandSlug = undefined;
+    mockCreditsBilling.value = true;
+    mockCreditsRuntime.mockReturnValue({
+      status: 'ready',
+      context: creditsLocalContext,
+    });
+  });
+  it('omits only Subscription from the local sidebar with a billing hint', () => {
+    const { result, unmount } = renderHook(() => useAppProtectedLayout());
+    expect(
+      result.current.settingsMenuItems.some(
+        (item) => item.href === '/settings/subscription',
+      ),
+    ).toBe(false);
+    expect(
+      result.current.settingsMenuItems.some(
+        (item) => item.href === '/settings/general',
+      ),
+    ).toBe(true);
+    unmount();
+  });
+  it.each([
+    ['web', { status: 'web', context: null }, true],
+    ['cloud', { status: 'ready', context: creditsCloudContext }, true],
+    [
+      'self-hosted cloud',
+      {
+        status: 'ready',
+        context: { ...creditsCloudContext, selectedServerKind: 'self-hosted' },
+      },
+      true,
+    ],
+    [
+      'unknown execution cloud',
+      {
+        status: 'ready',
+        context: { ...creditsCloudContext, generationExecution: 'unknown' },
+      },
+      true,
+    ],
+    ['local Ollama', { status: 'ready', context: creditsLocalContext }, false],
+    [
+      'local remote BYOK',
+      {
+        status: 'ready',
+        context: {
+          ...creditsLocalContext,
+          localProvider: { provider: 'replicate', networkAccess: 'remote' },
+        },
+      },
+      false,
+    ],
+    [
+      'local unknown',
+      {
+        status: 'ready',
+        context: {
+          ...creditsLocalContext,
+          generationExecution: 'unknown',
+          localProvider: null,
+        },
+      },
+      false,
+    ],
+    ['loading', { status: 'loading', context: null }, false],
+    ['unavailable', { status: 'unavailable', context: null }, false],
+    [
+      'switching from cloud',
+      { status: 'switching', context: creditsCloudContext },
+      false,
+    ],
+    [
+      'switching from local',
+      { status: 'switching', context: creditsLocalContext },
+      false,
+    ],
+  ] satisfies [string, DesktopRuntimeSnapshot, boolean][])(
+    'keeps Subscription and sibling destinations correct for %s',
+    (_name, snapshot, allowed) => {
+      mockCreditsRuntime.mockReturnValue(snapshot);
+      const { result, unmount } = renderHook(() => useAppProtectedLayout());
+      const hrefs = result.current.settingsMenuItems.map((item) => item.href);
+      expect(hrefs.includes('/settings/subscription')).toBe(allowed);
+      expect(hrefs).toEqual(
+        expect.arrayContaining([
+          '/settings/general',
+          '/settings/memory',
+          '/settings/referrals',
+        ]),
+      );
+      unmount();
+    },
+  );
+  it.each(['cloud', 'self-hosted'] as const)(
+    'updates the same %s sidebar across runtime transitions',
+    (selectedServerKind) => {
+      const cloud: IDesktopRuntimeContext = {
+        ...creditsCloudContext,
+        selectedServerKind,
+      };
+      const transitions: [DesktopRuntimeSnapshot, boolean][] = [
+        [{ status: 'loading', context: null }, false],
+        [{ status: 'web', context: null }, true],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'switching', context: cloud }, false],
+        [{ status: 'ready', context: creditsLocalContext }, false],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'unavailable', context: null }, false],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'ready', context: creditsLocalContext }, false],
+        [{ status: 'ready', context: cloud }, true],
+      ];
+      mockCreditsRuntime.mockReturnValue({ status: 'loading', context: null });
+      const { result, rerender, unmount } = renderHook(() =>
+        useAppProtectedLayout(),
+      );
+      for (const [snapshot, allowed] of transitions) {
+        mockCreditsRuntime.mockReturnValue(snapshot);
+        rerender();
+        const hrefs = result.current.settingsMenuItems.map((item) => item.href);
+        expect(hrefs.includes('/settings/subscription')).toBe(allowed);
+        expect(hrefs).toEqual(
+          expect.arrayContaining([
+            '/settings/general',
+            '/settings/memory',
+            '/settings/referrals',
+          ]),
+        );
+      }
+      unmount();
+    },
+  );
+  it('keeps the existing false-hint denial in web mode', () => {
+    mockCreditsBilling.value = false;
+    mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
+    const { result, unmount } = renderHook(() => useAppProtectedLayout());
+    expect(
+      result.current.settingsMenuItems.some(
+        (item) => item.href === '/settings/subscription',
+      ),
+    ).toBe(false);
+    unmount();
   });
 });

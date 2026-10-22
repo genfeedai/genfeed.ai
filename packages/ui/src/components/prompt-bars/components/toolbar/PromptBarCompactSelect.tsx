@@ -1,7 +1,6 @@
 'use client';
 
 import type { PromptBarCompactSelectProps } from '@genfeedai/props/prompt-bars/prompt-bar-send-button.props';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import {
   Select,
@@ -15,7 +14,6 @@ import type { ReactElement } from 'react';
 /** Compact ghost dropdown for prompt-bar toolbars, weighted like the other ghost controls. */
 export default function PromptBarCompactSelect({
   ariaLabel,
-  density = 'compact',
   isDisabled = false,
   onChange,
   options,
@@ -25,10 +23,7 @@ export default function PromptBarCompactSelect({
     <Select disabled={isDisabled} onValueChange={onChange} value={value}>
       <SelectTrigger
         aria-label={ariaLabel}
-        className={cn(
-          ghostSelectTriggerClassName,
-          density === 'default' && 'h-9',
-        )}
+        className={ghostSelectTriggerClassName}
       >
         <SelectValue />
       </SelectTrigger>

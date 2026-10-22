@@ -14,7 +14,7 @@ export default function ReviewDetailPanelHeader({
     (item.postId ? 'Draft post' : 'Review item');
 
   return (
-    <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex flex-col gap-3 px-4 pt-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
         <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Approval queue

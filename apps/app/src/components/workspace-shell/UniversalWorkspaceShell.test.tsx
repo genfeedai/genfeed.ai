@@ -606,9 +606,19 @@ describe('UniversalWorkspaceShell', () => {
       within(sidebar).getByTestId('context-sidebar-outlet'),
     ).toHaveTextContent('Asset detail');
 
-    fireEvent.click(
-      within(sidebar).getByRole('button', { name: 'Collapse details' }),
-    );
+    // One topbar, one close: the panel's own. The selection is plain content.
+    expect(within(sidebar).queryByTestId('context-sidebar-close')).toBeNull();
+    expect(
+      within(sidebar).queryByRole('button', { name: 'Collapse details' }),
+    ).toBeNull();
+    expect(
+      within(sidebar).getAllByTestId('workspace-panel-close'),
+    ).toHaveLength(1);
+    expect(
+      within(sidebar).getByTestId('context-sidebar-title').closest('.border-b'),
+    ).toBeNull();
+
+    fireEvent.click(within(sidebar).getByTestId('workspace-panel-close'));
 
     expect(screen.queryByText('Asset detail')).toBeNull();
     expect(
@@ -657,7 +667,7 @@ describe('UniversalWorkspaceShell', () => {
     act(() => asset.focus());
     fireEvent.click(asset);
     act(() => screen.getByRole('button', { name: 'Inspector action' }).focus());
-    const close = screen.getByRole('button', { name: 'Collapse details' });
+    const close = screen.getByTestId('workspace-panel-close');
     act(() => close.focus());
     fireEvent.click(close);
     expect(asset).toHaveFocus();
@@ -801,7 +811,7 @@ describe('UniversalWorkspaceShell', () => {
       ),
     ).toBe('300ms');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse details' }));
+    fireEvent.click(screen.getByTestId('workspace-panel-close'));
 
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'false');
     expect(
@@ -1590,7 +1600,7 @@ describe('UniversalWorkspaceShell', () => {
 
       // Collapse the details while the agent stays open.
       fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-details'));
-      fireEvent.click(screen.getByTestId('context-sidebar-close'));
+      fireEvent.click(screen.getByTestId('workspace-panel-close'));
       expect(
         screen.getByTestId('workspace-panel-tab-chat-thread-1'),
       ).toHaveAttribute('aria-selected', 'true');

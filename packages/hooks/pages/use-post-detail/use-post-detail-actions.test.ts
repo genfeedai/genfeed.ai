@@ -423,12 +423,207 @@ describe('usePostDetailActions', () => {
   });
 
   describe('rewrite failure reasons (#7679)', () => {
-    it('shows the reason the API gave', async () => {
+    it.each([
+      {
+        errors: [
+          {
+            detail: 'The AI returned no text for this rewrite. Try again.',
+            status: '503',
+          },
+        ],
+      },
+      {
+        response: {
+          data: {
+            errors: [
+              {
+                detail: 'The AI returned no text for this rewrite. Try again.',
+                status: 503,
+              },
+            ],
+          },
+        },
+      },
+      {
+        errors: [
+          {
+            detail: 'The AI returned no text for this rewrite. Try again.',
+            code: '503',
+          },
+        ],
+      },
+    ])(
+      'shows the documented unavailable reason from JSON:API: %j',
+      async (error) => {
+        mockServiceEnhance.mockRejectedValue(error);
+        const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+        let draft: string | null = 'unset';
+        await act(async () => {
+          draft = await result.current.handlePerTweetEnhance(
+            'post-1',
+            'prompt',
+          );
+        });
+
+        expect(draft).toBeNull();
+        expect(mockNotificationsService.error).toHaveBeenCalledExactlyOnceWith(
+          'Failed to rewrite. The AI returned no text for this rewrite. Try again.',
+        );
+        expect(mockUpdateActivePost).not.toHaveBeenCalled();
+        expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+        expect(mockSetEnhancingAction).toHaveBeenLastCalledWith(null);
+      },
+    );
+
+    it.each([400, 401, 403, 404, 429, 500, 502, 504])(
+      'suppresses even documented detail on HTTP %s',
+      async (status) => {
+        mockServiceEnhance.mockRejectedValue({
+          errors: [
+            {
+              detail: 'The AI returned no text for this rewrite. Try again.',
+              status,
+            },
+          ],
+        });
+        const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+        await act(async () => {
+          expect(
+            await result.current.handlePerTweetEnhance('post-1', 'prompt'),
+          ).toBeNull();
+        });
+
+        expect(mockNotificationsService.error).toHaveBeenCalledExactlyOnceWith(
+          'Failed to rewrite. Try again.',
+        );
+        expect(mockUpdateActivePost).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      null,
+      new Error('Internal provider failure'),
+      { errors: 'malformed' },
+      { errors: [null, 'malformed'] },
+      { errors: [{ detail: { message: 'private' }, status: '503' }] },
+      { errors: [{ detail: 503, status: '503' }] },
+      { errors: [{ title: 'Internal provider failure', status: '503' }] },
+      {
+        errors: [
+          { detail: 'The AI returned no text for this rewrite. Try again.' },
+        ],
+      },
+      { errors: [{ detail: 'Internal provider failure', status: '422' }] },
+      {
+        errors: [
+          {
+            detail: 'The AI returned no text for this rewrite. Try again.',
+            status: '422',
+          },
+        ],
+      },
+      {
+        errors: [
+          {
+            detail:
+              'The rewrite does not fit the 280-character limit for twitter. Shorten the instruction or the draft and try again. Internal failure',
+            status: '422',
+          },
+        ],
+      },
+    ])(
+      'uses a visible generic error for unsuitable payload: %j',
+      async (error) => {
+        mockServiceEnhance.mockRejectedValue(error);
+        const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+        let draft: string | null = 'unset';
+        await act(async () => {
+          draft = await result.current.handleQuickAction(
+            'post-1',
+            'prompt',
+            'boost',
+          );
+        });
+
+        expect(draft).toBeNull();
+        expect(mockNotificationsService.error).toHaveBeenCalledExactlyOnceWith(
+          'Failed to rewrite. Try again.',
+        );
+        expect(mockUpdateActivePost).not.toHaveBeenCalled();
+        expect(mockFetchPost).not.toHaveBeenCalled();
+        expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+        expect(mockSetEnhancingAction).toHaveBeenLastCalledWith(null);
+      },
+    );
+
+    it.each([
+      'Provider request failed: internal configuration',
+      'Contact private-user@example.test for access',
+      'Authorization: Bearer synthetic-private-token',
+      'The AI returned no text for this rewrite. Try again.\nInternal failure',
+      '<script>internalFailure()</script>',
+      'x'.repeat(201),
+      ' '.repeat(400),
+    ])('suppresses unsuitable 503 detail: %j', async (detail) => {
+      mockServiceEnhance.mockRejectedValue({
+        errors: [{ detail, status: '503' }],
+      });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      let draft: string | null = 'unset';
+      await act(async () => {
+        draft = await result.current.handlePerTweetEnhance('post-1', 'prompt');
+      });
+
+      expect(draft).toBeNull();
+      expect(mockNotificationsService.error).toHaveBeenCalledExactlyOnceWith(
+        'Failed to rewrite. Try again.',
+      );
+      expect(mockUpdateActivePost).not.toHaveBeenCalled();
+      expect(mockFetchPost).not.toHaveBeenCalled();
+    });
+
+    it('suppresses short internal details and preserves the original draft', async () => {
+      mockServiceEnhance.mockRejectedValue({
+        errors: [
+          {
+            detail: 'Provider request failed: internal configuration',
+            status: '500',
+          },
+        ],
+      });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      let draft: string | null = 'unset';
+      await act(async () => {
+        draft = await result.current.handleQuickAction(
+          'post-1',
+          'prompt',
+          'boost',
+        );
+      });
+
+      expect(draft).toBeNull();
+      expect(mockNotificationsService.error).toHaveBeenCalledExactlyOnceWith(
+        'Failed to rewrite. Try again.',
+      );
+      expect(mockUpdateActivePost).not.toHaveBeenCalled();
+      expect(mockFetchPost).not.toHaveBeenCalled();
+      expect(POST.description).toBe('Parent description');
+      expect(baseProps.descriptionDraft).toBe('Draft description');
+      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+      expect(mockSetEnhancingAction).toHaveBeenLastCalledWith(null);
+    });
+
+    it('shows the documented platform-limit reason', async () => {
       mockServiceEnhance.mockRejectedValue({
         errors: [
           {
             detail:
-              'The rewrite does not fit the 280-character limit for twitter.',
+              'The rewrite does not fit the 280-character limit for twitter. Shorten the instruction or the draft and try again.',
             status: '422',
             title: 'Enhancement failed',
           },
@@ -441,7 +636,7 @@ describe('usePostDetailActions', () => {
       });
 
       expect(mockNotificationsService.error).toHaveBeenCalledWith(
-        'Failed to rewrite. The rewrite does not fit the 280-character limit for twitter.',
+        'Failed to rewrite. The rewrite does not fit the 280-character limit for twitter. Shorten the instruction or the draft and try again.',
       );
     });
 
@@ -472,6 +667,56 @@ describe('usePostDetailActions', () => {
         'The AI returned no text for this rewrite. Try again.',
       );
     });
+  });
+
+  describe('complete rewrite proposals (#7679)', () => {
+    it.each([104, 198, 280])(
+      'returns a complete %s-character rewrite through both callbacks without saving it',
+      async (length) => {
+        const originalDraft = 'Original draft stays editable.';
+        const proposedText = `${'a'.repeat(length - 5)} END.`;
+        mockServiceEnhance.mockResolvedValue({
+          description: proposedText,
+          id: 'post-1',
+        });
+        const { result } = renderHook(() =>
+          usePostDetailActions({
+            ...baseProps,
+            descriptionDraft: originalDraft,
+          }),
+        );
+
+        await act(async () => {
+          expect(
+            await result.current.handleQuickAction(
+              'post-1',
+              'Make this clearer and more engaging.',
+              'boost',
+              'professional',
+            ),
+          ).toBe(proposedText);
+          expect(
+            await result.current.handlePerTweetEnhance(
+              'post-1',
+              'Make this clearer and more engaging.',
+              'professional',
+            ),
+          ).toBe(proposedText);
+        });
+
+        expect(mockServiceEnhance).toHaveBeenCalledWith(
+          'post-1',
+          'Make this clearer and more engaging.',
+          'professional',
+          { isDraft: true },
+        );
+        expect(mockUpdateActivePost).not.toHaveBeenCalled();
+        expect(mockFetchPost).not.toHaveBeenCalled();
+        expect(mockNotificationsService.error).not.toHaveBeenCalled();
+        expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+        expect(mockSetEnhancingAction).toHaveBeenLastCalledWith(null);
+      },
+    );
   });
 
   describe('handlePerTweetEnhance', () => {

@@ -147,9 +147,7 @@ test.describe('Context sidebar — selection driven', () => {
       authenticatedPage.getByTestId('studio-playground-inspector'),
     ).toHaveCount(1);
 
-    await contextSidebar
-      .getByRole('button', { exact: true, name: 'Collapse details' })
-      .click();
+    await contextSidebar.getByTestId('workspace-panel-close').click();
 
     await expect(contextSidebar).toHaveCount(0);
     await expect(
@@ -199,7 +197,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(
       authenticatedPage.getByTestId('topbar-inspector-toggle'),
     ).toHaveCount(0);
-    await contextSidebar.getByTestId('context-sidebar-close').click();
+    await contextSidebar.getByTestId('workspace-panel-close').click();
     await expect(card).toHaveAttribute('data-selected', 'false');
     await expect(
       authenticatedPage.locator('#workspace-context-inspector'),
@@ -271,9 +269,7 @@ test.describe('Context sidebar — selection driven', () => {
     ).toHaveText('Product Photo');
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
 
-    await contextSidebar
-      .getByRole('button', { exact: true, name: 'Collapse details' })
-      .click();
+    await contextSidebar.getByTestId('workspace-panel-close').click();
 
     await expect(contextSidebar).toHaveCount(0);
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');

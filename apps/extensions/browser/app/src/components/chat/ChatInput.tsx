@@ -270,7 +270,6 @@ export function ChatInput({
           value={value}
         />
         <PromptBarToolbar
-          density="compact"
           leading={
             <Button
               variant={ButtonVariant.GHOST}
@@ -287,7 +286,6 @@ export function ChatInput({
           trailing={
             <PromptBarSendButton
               ariaLabel="Send message"
-              density="compact"
               isDisabled={isDisabled || !brandId || !value.trim()}
               onClick={() => void handleSend()}
             />

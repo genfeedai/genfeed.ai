@@ -1,0 +1,256 @@
+# Bundle Size
+#
+# Reports the per-route first-load JavaScript delta of a pull request as a
+# sticky comment, so a static import of a heavy library onto a hot route is
+# visible in review instead of in field vitals a week later.
+#
+# Advisory by design: `continue-on-error` keeps a bundler quirk or a missing
+# baseline from blocking a pull request. The number is the signal, not a gate.
+#
+# The baseline comes from an `actions/cache` entry written by pushes to master.
+# The first run on a new app — or any run whose baseline has been evicted —
+# degrades to reporting absolute sizes for the heaviest routes.
+
+# Internal shared graph. Callers own cancellation; github.workflow remains the
+# actual caller identity. Artifacts stay associated with that same current run.
+name: Bundle Measurements
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
+
+jobs:
+  detect:
+    name: Detect Frontend Changes
+    # Draft pull requests run nothing; CI runs once the PR is marked ready.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      apps: ${{ steps.changes.outputs.apps }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - id: changes
+        uses: ./.github/actions/detect-frontend-scope
+
+  measure:
+    name: First-Load JS (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    needs: detect
+    # Master pushes rebuild the baseline only when the frontend changed: the
+    # pull-request side restores the newest baseline by prefix, which stays
+    # exact while nothing it measures has moved.
+    if: needs.detect.outputs.frontend == 'true'
+    continue-on-error: true
+    # Preserve the existing 30-minute exception: production analysis compiles
+    # dependencies and the app, then exports four authenticated route graphs.
+    # Truncating it at 10 minutes would discard the existing proof workload.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Build ${{ matrix.app }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BUNDLE_APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          if [ "$BUNDLE_APP" = "app" ]; then
+            bunx turbo run build --filter='@genfeedai/app^...' --concurrency=1
+            bun run packages/services/scripts/request-serializer-build-receipt.ts .bundle-size/request-serializers-build.json
+            cp packages/serializers/dist/request-runtime.provenance.json .bundle-size/request-serializers-package.json
+            GENFEED_REQUEST_SERIALIZER_PROOF=1 NODE_OPTIONS=--max-old-space-size=6144 bun run --cwd apps/app analyze
+          else
+            bunx turbo run build --filter="@genfeedai/$BUNDLE_APP"
+          fi
+
+      - name: Collect first-load JS manifest
+        env:
+          BUNDLE_APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          if [ "$BUNDLE_APP" = "app" ]; then
+            bun run scripts/collect-bundle-manifest.ts \
+              --app app --dist apps/app/.next --out .bundle-size/head.json --include-chunks
+            cp .bundle-size/head.json .bundle-size/request-serializers-initial.json
+          else
+            bun run scripts/collect-bundle-manifest.ts \
+              --app "$BUNDLE_APP" --dist "apps/$BUNDLE_APP/.next" --out .bundle-size/head.json
+          fi
+
+      - name: Restore baseline
+        id: baseline_cache
+        if: github.event_name != 'push'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bundle-size/baseline.json
+          key: bundle-baseline-${{ matrix.app }}-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            bundle-baseline-${{ matrix.app }}-
+
+      - name: Retain serializer comparison baseline
+        if: matrix.app == 'app' && github.event_name != 'push'
+        env:
+          BUNDLE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BUNDLE_SOURCE_SHA: ${{ github.sha }}
+          BUNDLE_REQUESTED_CACHE_KEY: bundle-baseline-app-${{ github.event.pull_request.base.sha }}
+          BUNDLE_MATCHED_CACHE_KEY: ${{ steps.baseline_cache.outputs.cache-matched-key }}
+          BUNDLE_EXACT_CACHE_HIT: ${{ steps.baseline_cache.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+          const baselineAvailable = existsSync('.bundle-size/baseline.json');
+          mkdirSync('.bundle-size', { recursive: true });
+          if (baselineAvailable) copyFileSync('.bundle-size/baseline.json', '.bundle-size/request-serializers-baseline.json');
+          const baseSha = process.env.BUNDLE_BASE_SHA ?? '';
+          const requestedCacheKey = process.env.BUNDLE_REQUESTED_CACHE_KEY ?? '';
+          const matchedCacheKey = process.env.BUNDLE_MATCHED_CACHE_KEY ?? '';
+          const exactCacheHit = process.env.BUNDLE_EXACT_CACHE_HIT === 'true';
+          const eligibleForSameBaseComparison = baselineAvailable && exactCacheHit && /^[a-f0-9]{40}$/.test(baseSha) && requestedCacheKey === `bundle-baseline-app-${baseSha}` && matchedCacheKey === requestedCacheKey;
+          writeFileSync('.bundle-size/request-serializers-baseline-identity.json', JSON.stringify({ schemaVersion: 1, app: 'app', sourceSha: process.env.BUNDLE_SOURCE_SHA ?? '', baseSha, requestedCacheKey, matchedCacheKey, exactCacheHit, baselineAvailable, eligibleForSameBaseComparison }, null, 2) + '\n');
+          NODE
+
+      - name: Verify deferred request serializers
+        id: serializer_proof
+        if: matrix.app == 'app'
+        run: |
+          set -euo pipefail
+          mkdir -p .bundle-size
+          BUNDLE_INDEX=0
+          BUNDLE_STATUS=0
+          bun run packages/services/scripts/request-serializer-build-receipt.ts \
+            .bundle-size/request-serializers-input.json --finalize-input || BUNDLE_STATUS=$?
+          for BUNDLE_ROUTE in '/login' '/[orgSlug]/[brandSlug]/workspace/overview' '/[orgSlug]/[brandSlug]/library/assets' '/[orgSlug]/[brandSlug]/publishing/posts'; do
+            (cd apps/app && bunx next analyze export --route "$BUNDLE_ROUTE") > .bundle-size/request-serializers.graph.jsonl
+            bun run packages/services/scripts/request-serializer-bundle.ts \
+              .bundle-size/request-serializers.graph.jsonl \
+              ".bundle-size/request-serializers-$BUNDLE_INDEX.json" "$BUNDLE_ROUTE" || BUNDLE_STATUS=$?
+            BUNDLE_INDEX=$((BUNDLE_INDEX + 1))
+          done
+          exit "$BUNDLE_STATUS"
+
+      - name: Upload request serializer proof
+        if: ${{ !cancelled() && (steps.serializer_proof.outcome == 'success' || steps.serializer_proof.outcome == 'failure') && matrix.app == 'app' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: request-serializer-proof-app
+          path: .bundle-size/request-serializers-*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+      # A push to master publishes the baseline the next pull request compares
+      # against. Keyed by SHA because cache entries are immutable; the prefix
+      # restore-key on the pull-request side picks up whichever master build ran
+      # most recently. The baseline lives under its own filename so restoring it
+      # can never overwrite the manifest this run just built.
+      - name: Publish baseline
+        if: github.event_name == 'push'
+        run: cp .bundle-size/head.json .bundle-size/baseline.json
+
+      - name: Cache baseline
+        if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bundle-size/baseline.json
+          key: bundle-baseline-${{ matrix.app }}-${{ github.sha }}
+
+      - name: Render report
+        if: github.event_name != 'push'
+        run: |
+          bun run scripts/compare-bundle-manifests.ts \
+            --base .bundle-size/baseline.json \
+            --head .bundle-size/head.json \
+            --out .bundle-size/report.md
+
+      - name: Upload report
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bundle-report-${{ matrix.app }}
+          path: .bundle-size/report.md
+          if-no-files-found: error
+          retention-days: 1
+
+  comment:
+    name: Comment on Bundle Size (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    needs: [detect, measure]
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    continue-on-error: true
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    steps:
+      - name: Download report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bundle-report-${{ matrix.app }}
+          path: .bundle-size
+
+      - name: Comment on pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = `<!-- bundle-size:${{ matrix.app }} -->`;
+            const body = `${marker}\n${fs.readFileSync('.bundle-size/report.md', 'utf8')}`;
+
+            // Paginate: a single page stops at 100 comments, and once the
+            // marker falls past it every later run posts a duplicate report
+            // instead of updating the sticky comment.
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              per_page: 100,
+              repo: context.repo.repo,
+            });
+
+            const existing = comments.find((comment) => comment.body?.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                body,
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              body,
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });

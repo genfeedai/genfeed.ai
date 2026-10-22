@@ -379,11 +379,9 @@ export default function PostComposerPromptBar({
           className="min-h-12"
         />
         <PromptBarToolbar
-          density="compact"
           leading={
             <PromptBarCompactSelect
               ariaLabel={translate('toneAria')}
-              density="compact"
               isDisabled={isRunning}
               options={toneSelectOptions}
               value={tone}
@@ -397,7 +395,6 @@ export default function PostComposerPromptBar({
               </span>
               <PromptBarSendButton
                 ariaLabel={translate('rewrite')}
-                density="compact"
                 isDisabled={isSubmitDisabled || !hasTargetContent}
                 isLoading={pendingLabel === customLabel}
                 onClick={() => void handleSubmit()}

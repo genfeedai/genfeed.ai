@@ -127,19 +127,16 @@ export default function VideoExtendConfirmControls({
           className="min-h-16"
         />
         <PromptBarToolbar
-          density="compact"
           leading={
             <>
               <PromptBarCompactSelect
                 ariaLabel={translate('generationModelLabel')}
-                density="compact"
                 options={modelSelectOptions}
                 value={model.key}
                 onChange={handleModelChange}
               />
               <PromptBarCompactSelect
                 ariaLabel={translate('newClipDurationLabel')}
-                density="compact"
                 options={durationSelectOptions}
                 value={String(duration)}
                 onChange={(value) => setDuration(Number(value))}

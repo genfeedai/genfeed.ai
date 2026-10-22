@@ -133,12 +133,10 @@ export default function ModalBrandGenerate({
             className="min-h-24"
           />
           <PromptBarToolbar
-            density="compact"
             leading={null}
             trailing={
               <PromptBarSendButton
                 ariaLabel={translate('generate')}
-                density="compact"
                 isDisabled={isSubmitting || !hasPrompt}
                 isLoading={isSubmitting}
                 onClick={submitFromPrompt}

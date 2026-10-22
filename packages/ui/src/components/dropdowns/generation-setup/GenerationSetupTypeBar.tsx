@@ -5,19 +5,35 @@ import type { GenerationSetupType } from '@genfeedai/contracts/interfaces/studio
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import type { GenerationSetupTypeBarProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
+import {
+  PROMPT_BAR_CHIP_CLASS,
+  PROMPT_BAR_CHIP_FIT_CLASS,
+  PROMPT_BAR_CHIP_LABEL_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import { TooltipProvider } from '@ui/primitives/tooltip';
-import { Pencil, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ChevronDown, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const SEGMENT_CLASS =
-  'gen-shell-segmented flex shrink-0 gap-0.5 rounded-md p-0.5';
+function toIconType(type: GenerationSetupType): GenerationSetupType {
+  return type === 'image-edit' ? 'image' : type;
+}
 
 /**
- * The start of the prompt bar: one icon button per type, a pencil toggle that
- * turns Image into an edit, and the Auto / Advanced switch. Names are in the
- * tooltips, so the row keeps its width whichever type is chosen.
+ * The start of the prompt bar: a Type chip whose menu lists what to generate
+ * and holds Edit (a mode of Image), then the Auto / Advanced button, which
+ * shows the current mode and switches to the other. Both are ghost chips like
+ * every other control on the row.
  */
 export default function GenerationSetupTypeBar({
   advancedMode,
@@ -28,109 +44,128 @@ export default function GenerationSetupTypeBar({
   typeOptions,
 }: GenerationSetupTypeBarProps) {
   const translate = useTranslations('agent.generationSetup');
-  const isEditing = imageEditing?.isEnabled === true;
-  const isImageActive =
-    setup.values.type === 'image' || setup.values.type === 'image-edit';
+  const currentType = setup.values.type;
+  const isImageActive = currentType === 'image' || currentType === 'image-edit';
   // Edit is a mode of Image and Video. Video has no edit flow in Studio yet,
-  // so its switch shows but stays off.
-  const isVideoActive = setup.values.type === 'video';
+  // so its toggle shows but stays off.
+  const isVideoActive = currentType === 'video';
+  const isEditing = imageEditing?.isEnabled === true && isImageActive;
+  const activeOption =
+    typeOptions.find((option) => option.value === currentType) ??
+    typeOptions.find((option) => toIconType(option.value) === currentType);
+  const ActiveIcon = getModelCategoryIcon(toIconType(currentType));
+  const activeLabel = activeOption?.label ?? currentType;
+  const triggerLabel = isEditing
+    ? `${activeLabel} · ${translate('modeEdit')}`
+    : activeLabel;
+  const isTypeLocked = typeOptions.length <= 1;
+  const isAdvanced = advancedMode?.isEnabled === true;
+  const ModeIcon = isAdvanced ? SlidersHorizontal : Sparkles;
+  const modeLabel = translate(isAdvanced ? 'advancedMode' : 'auto');
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div
-        aria-label={translate('type')}
-        className={SEGMENT_CLASS}
-        role="group"
-      >
-        {typeOptions.map((option) => {
-          const isImage =
-            option.value === 'image' || option.value === 'image-edit';
-          const icon: GenerationSetupType = isImage ? 'image' : option.value;
-          const Icon = getModelCategoryIcon(icon);
-          const isActive = option.value === setup.values.type;
-          return (
-            <Button
-              key={option.label}
-              ariaLabel={option.label}
-              aria-pressed={isActive}
-              className="size-8 shrink-0 p-0"
-              isDisabled={isDisabled}
-              onClick={() => {
-                if (!isActive) onTypeChange?.(option.value);
-              }}
-              size={ButtonSize.ICON}
-              tooltip={option.label}
-              tooltipPosition="top"
-              variant={isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
-              withWrapper={false}
-            >
-              <Icon aria-hidden="true" className={SHELL_ICON_CLASS} />
-            </Button>
-          );
-        })}
-      </div>
-
-      {imageEditing && (isImageActive || isVideoActive) ? (
-        <Button
-          ariaLabel={translate('modeEdit')}
-          aria-pressed={isImageActive && isEditing}
-          className={cn(
-            'size-8 shrink-0 p-0',
-            isImageActive && isEditing && 'text-primary',
-          )}
-          isDisabled={isDisabled || isVideoActive}
-          onClick={() => imageEditing.onChange(!isEditing)}
-          size={ButtonSize.ICON}
-          tooltip={
-            isVideoActive
-              ? translate('modeEditVideoSoon')
-              : translate('modeEdit')
-          }
-          tooltipPosition="top"
-          variant={
-            isImageActive && isEditing
-              ? ButtonVariant.SECONDARY
-              : ButtonVariant.GHOST
-          }
-          withWrapper={false}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ariaLabel={translate('generationTypeTrigger', {
+              type: triggerLabel,
+            })}
+            className={cn(PROMPT_BAR_CHIP_CLASS, PROMPT_BAR_CHIP_FIT_CLASS)}
+            icon={
+              <ActiveIcon aria-hidden="true" className={SHELL_ICON_CLASS} />
+            }
+            isDisabled={isDisabled || isTypeLocked}
+            size={ButtonSize.SM}
+            textTransform="none"
+            tooltip={translate('generationTypeTrigger', { type: triggerLabel })}
+            tooltipPosition="top"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <span className={PROMPT_BAR_CHIP_LABEL_CLASS}>{triggerLabel}</span>
+            {isTypeLocked ? null : (
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  'size-3 text-muted-foreground',
+                  PROMPT_BAR_CHIP_LABEL_CLASS,
+                )}
+              />
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          aria-label={translate('type')}
+          className="w-44"
+          side="top"
+          sideOffset={8}
         >
-          <Pencil aria-hidden="true" className={SHELL_ICON_CLASS} />
-        </Button>
-      ) : null}
+          <DropdownMenuRadioGroup
+            onValueChange={(value) => {
+              const next = typeOptions.find((option) => option.value === value);
+              if (next && next.value !== currentType) {
+                onTypeChange?.(next.value);
+              }
+            }}
+            value={activeOption?.value ?? currentType}
+          >
+            {typeOptions.map((option) => {
+              const Icon = getModelCategoryIcon(toIconType(option.value));
+              return (
+                <DropdownMenuRadioItem key={option.label} value={option.value}>
+                  <span className="flex items-center gap-2 text-xs">
+                    <Icon
+                      aria-hidden="true"
+                      className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+                    />
+                    {option.label}
+                  </span>
+                </DropdownMenuRadioItem>
+              );
+            })}
+          </DropdownMenuRadioGroup>
+          {imageEditing && (isImageActive || isVideoActive) ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={isEditing}
+                disabled={isVideoActive}
+                onCheckedChange={(isChecked) =>
+                  imageEditing.onChange(isChecked)
+                }
+              >
+                <span className="text-xs">{translate('modeEdit')}</span>
+                {isVideoActive ? (
+                  <span className="ml-auto pl-2 text-xs text-muted-foreground">
+                    {translate('modeEditVideoSoon')}
+                  </span>
+                ) : null}
+              </DropdownMenuCheckboxItem>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {advancedMode ? (
-        <div
-          aria-label={translate('setupMode')}
-          className={SEGMENT_CLASS}
-          role="group"
+        <Button
+          ariaLabel={translate('setupModeSwitch', { mode: modeLabel })}
+          className={cn(PROMPT_BAR_CHIP_CLASS, PROMPT_BAR_CHIP_FIT_CLASS)}
+          icon={<ModeIcon aria-hidden="true" className={SHELL_ICON_CLASS} />}
+          isDisabled={isDisabled}
+          onClick={() => advancedMode.onChange(!isAdvanced)}
+          size={ButtonSize.SM}
+          textTransform="none"
+          tooltip={translate(
+            isAdvanced ? 'advancedModeTooltip' : 'autoModeTooltip',
+          )}
+          tooltipPosition="top"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
         >
-          {[false, true].map((isAdvanced) => {
-            const isActive = advancedMode.isEnabled === isAdvanced;
-            const label = translate(isAdvanced ? 'advancedMode' : 'auto');
-            const Icon = isAdvanced ? SlidersHorizontal : Sparkles;
-            return (
-              <Button
-                key={String(isAdvanced)}
-                ariaLabel={label}
-                aria-pressed={isActive}
-                className="size-8 shrink-0 p-0"
-                isDisabled={isDisabled}
-                onClick={() => advancedMode.onChange(isAdvanced)}
-                size={ButtonSize.ICON}
-                tooltip={translate(
-                  isAdvanced ? 'advancedModeTooltip' : 'autoModeTooltip',
-                )}
-                tooltipPosition="top"
-                variant={
-                  isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-                }
-                withWrapper={false}
-              >
-                <Icon aria-hidden="true" className={SHELL_ICON_CLASS} />
-              </Button>
-            );
-          })}
-        </div>
+          <span className={PROMPT_BAR_CHIP_LABEL_CLASS}>{modeLabel}</span>
+        </Button>
       ) : null}
     </TooltipProvider>
   );

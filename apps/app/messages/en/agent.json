@@ -20,6 +20,10 @@
     "outputs": "Outputs",
     "placeholder": "Ask for help with content, review, or planning..."
   },
+  "threadRecovery": {
+    "failed": "Could not update this thread. Your draft is kept. Try again when you are ready.",
+    "unavailable": "This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready."
+  },
   "threadList": {
     "agent": "Agent",
     "fork": "Fork thread",
@@ -257,15 +261,15 @@
     "presets": "Presets",
     "promptEnhance": "Prompt enhance",
     "promptTools": "Prompt tools",
-    "resetAll": "Reset all",
-    "resetAllAria": "Reset all fields to agent",
+    "resetToDefaults": "Reset to defaults",
     "resetModel": "Reset model to agent",
     "resetPriority": "Reset priority to agent",
     "resetToAgent": "Reset {field}",
     "resetPriorityTooltip": "Reset Auto priority to the agent. The model stays as set.",
     "savedPresets": "Saved",
     "searchField": "Search {field}",
-    "setupMode": "Setup mode",
+    "setupModeSwitch": "Setup mode: {mode}",
+    "moreSetup": "More setup",
     "searchFieldPlaceholder": "Search {field}\u2026",
     "searchFields": "Search fields\u2026",
     "autoHint": "Genfeed picks the best model and settings",

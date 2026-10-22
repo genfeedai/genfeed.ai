@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { toMcpTools } from '../../adapters/to-mcp-tool';
+import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface';
 import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
@@ -24,7 +25,145 @@ const SCHEDULER_WRITES = [
   'update_scheduled_release',
 ] as const;
 
+const AUDITED_PRESENTATIONS = [
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'enhance_prompt',
+    title: 'Enhance Prompt',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'generate',
+    title: 'Generate',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_x_posts',
+    title: 'Get X Posts',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'list_x_account_activity',
+    title: 'List X Account Activity',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+      readOnlyHint: true,
+    },
+    name: 'get_ads_ad_insights',
+    title: 'Get Ads Ad Insights',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+      readOnlyHint: true,
+    },
+    name: 'get_ads_adset_insights',
+    title: 'Get Ads Adset Insights',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+    name: 'cancel_visual_code_project',
+    title: 'Cancel Visual Code Project',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'transform_media',
+    title: 'Transform Media',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'create_post',
+    title: 'Create Post',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'onboard_brand',
+    title: 'Onboard Brand',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'execute_workflow',
+    title: 'Execute Workflow',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'generate_turbo_content',
+    title: 'Generate Turbo Content',
+  },
+] satisfies ReadonlyArray<
+  Pick<CanonicalToolDefinition, 'name' | 'title' | 'annotations'>
+>;
+
 describe('MCP tool annotations', () => {
+  it.each(AUDITED_PRESENTATIONS)(
+    'emits audited presentation for $name',
+    ({ name, title, annotations }) => {
+      const canonical = getToolByName(name);
+      expect(canonical, name).toBeDefined();
+      expect(canonical?.title, name).toBe(title);
+      expect(canonical?.annotations, name).toEqual(annotations);
+      const [listed] = toMcpTools(canonical ? [canonical] : []);
+      expect(listed?.title, name).toBe(title);
+      expect(listed?.annotations, name).toEqual(annotations);
+    },
+  );
+
   it('puts a title and all four hints on every MCP-surfaced tool', () => {
     const mcpTools = getToolsForSurface('mcp');
     expect(mcpTools.length).toBeGreaterThan(0);
@@ -143,6 +282,13 @@ describe('MCP tool annotations', () => {
 
     for (const tool of getToolsForSurface('mcp')) {
       const isOpenWorld =
+        tool.name === 'onboard_brand' ||
+        tool.name === 'execute_workflow' ||
+        tool.name === 'enhance_prompt' ||
+        tool.name === 'get_x_posts' ||
+        tool.name === 'list_x_account_activity' ||
+        tool.name === 'get_ads_ad_insights' ||
+        tool.name === 'get_ads_adset_insights' ||
         tool.name === 'generate' ||
         tool.name.startsWith('generate_') ||
         tool.name === 'transform_media' ||

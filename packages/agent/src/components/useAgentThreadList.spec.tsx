@@ -1,6 +1,11 @@
+import {
+  mockError,
+  mockFetch,
+  mockJsonApiCollection,
+} from '@agent-tests/json-api-fetch.mock';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -88,6 +93,152 @@ describe('useAgentThreadList', () => {
     window.localStorage.clear();
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
   });
+
+  it('keeps the typed rename when the thread is deleted before PATCH completes', async () => {
+    mockFetch.mockReset();
+    const thread = makeThread('t-1');
+    mockJsonApiCollection([{ ...thread }], 'agent-thread');
+    const apiService = new AgentApiService({
+      baseUrl: 'http://api.test',
+      getToken: async () => 'test-token',
+    });
+    const { result } = renderThreadList(apiService);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => {
+      useAgentChatStore.getState().setActiveThread('t-1');
+      result.current.handleStartRename(thread);
+      result.current.setRenameDraft('My unsaved title');
+    });
+    mockError(404, { message: 'Thread not found' });
+    await act(async () => {
+      await result.current.handleSubmitRename(thread);
+    });
+    expect(result.current.renameDraft).toBe('My unsaved title');
+    expect(result.current.renamingThreadId).toBe('t-1');
+    expect(useAgentChatStore.getState().activeThreadId).toBe('t-1');
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits for explicit retry instead of retrying a failed rename on blur', async () => {
+    const thread = makeThread('t-1');
+    const updateThread = vi
+      .fn()
+      .mockRejectedValue(
+        new AgentApiRequestError({ message: 'Thread not found', status: 404 }),
+      );
+    const { result } = renderThreadList(makeApiService({ updateThread }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => {
+      result.current.handleStartRename(thread);
+      result.current.setRenameDraft('Unsent rename');
+    });
+    await act(async () => {
+      await result.current.handleSubmitRename(thread);
+    });
+    expect(result.current.updateFailure).toBe('missing-thread');
+    await act(async () => {
+      await result.current.handleSubmitRename(thread, false);
+    });
+    expect(updateThread).toHaveBeenCalledTimes(1);
+    updateThread.mockResolvedValue(
+      makeThread('t-1', { title: 'Unsent rename' }),
+    );
+    await act(async () => {
+      await result.current.handleSubmitRename(thread);
+    });
+    expect(updateThread).toHaveBeenCalledTimes(2);
+    expect(useAgentChatStore.getState().threads[0]?.title).toBe(
+      'Unsent rename',
+    );
+  });
+  it('keeps successful updates to two different threads when responses arrive out of order', async () => {
+    mockFetch.mockReset();
+    const firstThread = makeThread('t-1');
+    const secondThread = makeThread('t-2');
+    mockJsonApiCollection(
+      [{ ...firstThread }, { ...secondThread }],
+      'agent-thread',
+    );
+    const apiService = new AgentApiService({
+      baseUrl: 'http://api.test',
+      getToken: async () => 'test-token',
+    });
+    const { result } = renderThreadList(apiService);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const first = Promise.withResolvers<Response>();
+    const second = Promise.withResolvers<Response>();
+    mockFetch
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    let firstUpdate: Promise<void>;
+    let secondUpdate: Promise<void>;
+    act(() => {
+      firstUpdate = result.current.handleTogglePinned(firstThread);
+      secondUpdate = result.current.handleTogglePinned(secondThread);
+    });
+    await act(async () => {
+      second.resolve(
+        new Response(
+          JSON.stringify({
+            data: {
+              id: 't-2',
+              type: 'agent-thread',
+              attributes: { ...secondThread, isPinned: true },
+            },
+          }),
+        ),
+      );
+      await secondUpdate;
+      first.resolve(
+        new Response(
+          JSON.stringify({
+            data: {
+              id: 't-1',
+              type: 'agent-thread',
+              attributes: { ...firstThread, isPinned: true },
+            },
+          }),
+        ),
+      );
+      await firstUpdate;
+    });
+    expect(
+      useAgentChatStore.getState().threads.filter((thread) => thread.isPinned),
+    ).toHaveLength(2);
+  });
+
+  it.each([
+    'handleTogglePinned',
+    'handleUnarchiveFromMenu',
+    'handleArchiveFromMenu',
+  ] as const)(
+    'shows missing-thread recovery for %s without navigating or clearing input',
+    async (action) => {
+      mockFetch.mockReset();
+      const thread = makeThread('t-1');
+      mockJsonApiCollection([{ ...thread }], 'agent-thread');
+      const apiService = new AgentApiService({
+        baseUrl: 'http://api.test',
+        getToken: async () => 'test-token',
+      });
+      const onNavigate = vi.fn();
+      const { result } = renderThreadList(apiService, { onNavigate });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      act(() => {
+        useAgentChatStore.getState().setActiveThread('t-1');
+        result.current.setRenameDraft('Unsent input');
+      });
+      mockError(404, { message: 'Thread not found' });
+      await act(async () => {
+        await result.current[action](thread);
+      });
+      expect(result.current.updateFailure).toBe('missing-thread');
+      expect(result.current.renameDraft).toBe('Unsent input');
+      expect(useAgentChatStore.getState().activeThreadId).toBe('t-1');
+      expect(onNavigate).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it.each([
     ['archiveThread', 'handleArchiveFromMenu', 'Failed to archive thread'],
@@ -267,7 +418,10 @@ describe('useAgentThreadList', () => {
       await result.current.handleArchiveFromMenu(makeThread('t-1'));
     });
 
-    expect(apiService.archiveThread).toHaveBeenCalledWith('t-1');
+    expect(apiService.archiveThread).toHaveBeenCalledWith(
+      't-1',
+      expect.any(AbortSignal),
+    );
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
   });
 
@@ -320,7 +474,10 @@ describe('useAgentThreadList', () => {
       await result.current.handleUnarchiveFromMenu(makeThread('t-1'));
     });
 
-    expect(apiService.unarchiveThread).toHaveBeenCalledWith('t-1');
+    expect(apiService.unarchiveThread).toHaveBeenCalledWith(
+      't-1',
+      expect.any(AbortSignal),
+    );
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
   });
 
@@ -361,7 +518,10 @@ describe('useAgentThreadList', () => {
     await act(async () => {
       await result.current.handleTogglePinned(makeThread('t-1'));
     });
-    expect(apiService.pinThread).toHaveBeenCalledWith('t-1');
+    expect(apiService.pinThread).toHaveBeenCalledWith(
+      't-1',
+      expect.any(AbortSignal),
+    );
     expect(useAgentChatStore.getState().threads[0]?.isPinned).toBe(true);
 
     await act(async () => {
@@ -369,7 +529,10 @@ describe('useAgentThreadList', () => {
         makeThread('t-1', { isPinned: true }),
       );
     });
-    expect(apiService.unpinThread).toHaveBeenCalledWith('t-1');
+    expect(apiService.unpinThread).toHaveBeenCalledWith(
+      't-1',
+      expect.any(AbortSignal),
+    );
   });
 
   it('archive all clears the list and navigates when the active thread dies', async () => {
@@ -408,9 +571,13 @@ describe('useAgentThreadList', () => {
       await result.current.handleSubmitRename(makeThread('t-1'));
     });
 
-    expect(apiService.updateThread).toHaveBeenCalledWith('t-1', {
-      title: 'Better title',
-    });
+    expect(apiService.updateThread).toHaveBeenCalledWith(
+      't-1',
+      {
+        title: 'Better title',
+      },
+      expect.any(AbortSignal),
+    );
     expect(useAgentChatStore.getState().threads[0]?.title).toBe('Better title');
     expect(result.current.renamingThreadId).toBeNull();
   });

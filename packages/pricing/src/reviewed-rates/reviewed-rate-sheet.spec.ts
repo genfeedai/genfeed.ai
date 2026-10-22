@@ -1,4 +1,4 @@
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   FLUX_3_PROVIDER_COSTS,
   UNIFIED_MODEL_CATALOG,
@@ -106,12 +106,14 @@ describe('reviewed rate sheet', () => {
     ).toEqual(FLUX_3_PROVIDER_COSTS);
   });
 
-  it('covers every active paid catalog model with an entry or an explicit unpriced reason', () => {
+  it('covers every paid, non-retired catalog model with an entry or an explicit unpriced reason', () => {
     const uncovered: string[] = [];
     for (const model of UNIFIED_MODEL_CATALOG) {
-      // Chat models settle on actual token usage from per-million rates.
+      // An inactive model needs a price before it is switched on, so it is
+      // covered too. Chat models settle on actual token usage from
+      // per-million rates.
       if (
-        !model.isActive ||
+        model.lifecycle === ModelLifecycle.RETIRED ||
         model.isFree ||
         model.category === ModelCategory.TEXT
       )

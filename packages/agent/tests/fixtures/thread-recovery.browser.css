@@ -1,0 +1,19 @@
+@import "../../../styles/globals.css";
+@source "../../src/components/AgentThreadList*.tsx";
+@source "../../src/components/AgentThreadUpdateNotice.tsx";
+@source "../../../ui/src/primitives/button.tsx";
+@source "../../../ui/src/primitives/button.variants.ts";
+@source "../../../ui/src/primitives/input.tsx";
+
+@font-face {
+  font-family: Satoshi;
+  src: url("../../../fonts/files/Satoshi-Variable.woff2") format("woff2");
+}
+body {
+  margin: 0;
+  padding: 24px;
+  max-width: 420px;
+  font-family: Satoshi, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}

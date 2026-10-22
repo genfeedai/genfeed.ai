@@ -5,6 +5,7 @@ import type {
   IOnboardingScanResult,
 } from '@genfeedai/contracts/interfaces';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -106,8 +107,8 @@ vi.mock('../../_expert/use-complete-onboarding.hook', () => ({
   useCompleteOnboarding: () => mocks.completeOnboarding,
 }));
 vi.mock('next/image', () => ({
-  // biome-ignore lint/performance/noImgElement: test double for next/image
   default: ({ alt, src }: { alt: string; src: string }) => (
+    // biome-ignore lint/performance/noImgElement: test double for next/image
     <img alt={alt} src={src} />
   ),
 }));
@@ -200,6 +201,16 @@ describe('FirstDraftsOnboarding', () => {
     expect(screen.getByText('instagram draft text')).toBeInTheDocument();
     expect(screen.getByText('tiktok draft text')).toBeInTheDocument();
     expect(screen.getByText('linkedin draft text')).toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(3);
+    expect(
+      screen.getByRole('img', { name: 'Generated image for X' }),
+    ).toHaveAttribute('src', 'https://cdn.example.com/a.png');
+    expect(
+      screen.queryByText(/couldn't create the shared image/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Some channels didn't come back/),
+    ).not.toBeInTheDocument();
     expect(mocks.scanBrand).toHaveBeenCalledWith(
       'brand-1',
       'acme.co',
@@ -220,6 +231,89 @@ describe('FirstDraftsOnboarding', () => {
     expect(
       screen.getByLabelText('Setting up your workspace'),
     ).toBeInTheDocument();
+  });
+
+  it('identifies the missing shared image without claiming any of the four text channels are missing', async () => {
+    const result = drafts('partial');
+    mocks.generateDrafts.mockResolvedValue({
+      ...result,
+      drafts: result.drafts.map((draft) => ({ ...draft, isProvisional: true })),
+      imageIngredientId: null,
+      imageUrl: null,
+    });
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+
+    await screen.findByText('twitter draft text');
+    for (const platform of ['twitter', 'instagram', 'tiktok', 'linkedin']) {
+      expect(screen.getByText(`${platform} draft text`)).toBeInTheDocument();
+    }
+    expect(
+      screen.queryByText(/Some channels didn't come back/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "We couldn't create the shared image. Your text drafts are still here. You can continue and create an image in your workspace.",
+      ),
+    ).toHaveAttribute('role', 'status');
+    expect(screen.getByText(/these are generic/)).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(mocks.generateDrafts).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([true, false])(
+    'reports missing text channels independently of shared image availability (%s)',
+    async (hasImage) => {
+      const result = drafts('partial');
+      mocks.generateDrafts.mockResolvedValue({
+        ...result,
+        drafts: result.drafts.filter((draft) => draft.platform !== 'linkedin'),
+        imageIngredientId: hasImage ? result.imageIngredientId : null,
+        imageUrl: hasImage ? result.imageUrl : null,
+      });
+      render(<FirstDraftsOnboarding />);
+      await startFromLink();
+
+      await screen.findByText('twitter draft text');
+      expect(screen.getByText('instagram draft text')).toBeInTheDocument();
+      expect(screen.getByText('tiktok draft text')).toBeInTheDocument();
+      expect(screen.queryByText('linkedin draft text')).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/Some channels didn't come back/),
+      ).toBeInTheDocument();
+      expect(
+        Boolean(screen.queryByText(/couldn't create the shared image/)),
+      ).toBe(!hasImage);
+      expect(screen.queryAllByRole('img')).toHaveLength(hasImage ? 2 : 0);
+    },
+  );
+
+  it('keeps the loading notice until the image and drafts request finishes without retrying automatically', async () => {
+    let finish: (result: IOnboardingFirstDraftsResult) => void = () => {
+      throw new Error('Draft request has not started');
+    };
+    mocks.generateDrafts.mockImplementation(
+      () =>
+        new Promise<IOnboardingFirstDraftsResult>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+
+    expect(
+      await screen.findByText('Writing your posts and image…'),
+    ).toHaveAttribute('role', 'status');
+    expect(
+      screen.queryByText(/couldn't create the shared image/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Some channels didn't come back/),
+    ).not.toBeInTheDocument();
+    await act(async () => finish(drafts()));
+    expect(await screen.findByText('twitter draft text')).toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(3);
+    expect(mocks.generateDrafts).toHaveBeenCalledTimes(1);
   });
 
   it('sends a finished user to the app without drafting', async () => {

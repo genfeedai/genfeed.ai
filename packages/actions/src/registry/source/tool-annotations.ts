@@ -23,6 +23,13 @@ const READ_ONLY_HINT_PREFIXES = [
 ] as const;
 
 const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
+  'enhance_prompt',
+  'execute_workflow',
+  'onboard_brand',
+  'get_x_posts',
+  'list_x_account_activity',
+  'get_ads_ad_insights',
+  'get_ads_adset_insights',
   'import_source_post',
   'start_remix_generation',
   'control_remix_generation',
@@ -37,6 +44,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
  * not queue another approval) but it executes or cancels a queued write.
  */
 const DESTRUCTIVE_HINT_NAMES: ReadonlySet<string> = new Set([
+  'cancel_visual_code_project',
   'control_scheduled_release',
   'create_scheduled_release',
   'resolve_approval',
@@ -54,7 +62,8 @@ const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
  * `create_post` is draft-only on MCP, so the draft write is not destructive.
  */
 const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
-  'cancel_visual_code_project',
+  'enhance_prompt',
+  'generate',
   'import_source_post',
   'create_remix_concept',
   'create_storyboard_remix',

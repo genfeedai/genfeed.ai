@@ -1,4 +1,5 @@
 import { useAgentThreadStatusPush } from '@genfeedai/agent/hooks/use-agent-thread-status-push';
+import { useAgentThreadUpdate } from '@genfeedai/agent/hooks/use-agent-thread-update';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -62,6 +63,7 @@ export function useAgentThreadList({
     (s) => s.restoreCachedConversation,
   );
 
+  const { failure: updateFailure, runUpdate } = useAgentThreadUpdate();
   const [isLoading, setIsLoading] = useState(false);
   // Bumped after every successful/failed load so soft refreshes still re-render
   // even when isLoading stays false (store mocks and no-op setState edge cases).
@@ -74,6 +76,12 @@ export function useAgentThreadList({
   const [openMenuThreadId, setOpenMenuThreadId] = useState<string | null>(null);
   const [renamingThreadId, setRenamingThreadId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  const renamePendingRef = useRef(false);
+  const renameSessionRef = useRef({
+    draft: renameDraft,
+    threadId: renamingThreadId,
+  });
+  renameSessionRef.current = { draft: renameDraft, threadId: renamingThreadId };
 
   const abortRef = useRef<AbortController | null>(null);
   const previousBrandIdRef = useRef(brandId);
@@ -446,7 +454,27 @@ export function useAgentThreadList({
   const handleArchiveFromMenu = useCallback(
     async (thread: AgentThread) => {
       try {
-        const archived = await apiService.archiveThread(thread.id);
+        const archived = await runUpdate(
+          thread.id,
+          (signal) => apiService.archiveThread(thread.id, signal),
+          {
+            onError: (error) => {
+              if (isThreadGoneError(error)) {
+                setThreads(
+                  useAgentChatStore
+                    .getState()
+                    .threads.filter((item) => item.id !== thread.id),
+                );
+              } else {
+                logger.error('Failed to archive thread', {
+                  error,
+                  threadId: thread.id,
+                });
+              }
+            },
+          },
+        );
+        if (!archived) return;
         const currentThreads = useAgentChatStore.getState().threads;
         // Drop from Recent immediately. If this is the open thread and we stay
         // on the URL, keep a store row with status archived so isReadOnly flips
@@ -474,19 +502,6 @@ export function useAgentThreadList({
         } else {
           setThreads(currentThreads.filter((item) => item.id !== thread.id));
         }
-      } catch (error) {
-        if (isThreadGoneError(error)) {
-          setThreads(
-            useAgentChatStore
-              .getState()
-              .threads.filter((item) => item.id !== thread.id),
-          );
-        } else {
-          logger.error('Failed to archive thread', {
-            error,
-            threadId: thread.id,
-          });
-        }
       } finally {
         setOpenMenuThreadId(null);
       }
@@ -498,6 +513,7 @@ export function useAgentThreadList({
       getNewThreadHref,
       onNavigate,
       resetActiveConversationState,
+      runUpdate,
       setActiveThread,
       setThreads,
     ],
@@ -506,19 +522,27 @@ export function useAgentThreadList({
   const handleUnarchiveFromMenu = useCallback(
     async (thread: AgentThread) => {
       try {
-        await apiService.unarchiveThread(thread.id);
+        const restored = await runUpdate(
+          thread.id,
+          (signal) => apiService.unarchiveThread(thread.id, signal),
+          {
+            onError: (error) => {
+              if (!isThreadGoneError(error))
+                logger.error('Failed to unarchive thread', {
+                  error,
+                  threadId: thread.id,
+                });
+            },
+          },
+        );
+        if (!restored) return;
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(currentThreads.filter((item) => item.id !== thread.id));
-      } catch (error) {
-        logger.error('Failed to unarchive thread', {
-          error,
-          threadId: thread.id,
-        });
       } finally {
         setOpenMenuThreadId(null);
       }
     },
-    [apiService, setThreads],
+    [apiService, runUpdate, setThreads],
   );
 
   const handleForkThread = useCallback(
@@ -567,9 +591,23 @@ export function useAgentThreadList({
   const handleTogglePinned = useCallback(
     async (thread: AgentThread) => {
       try {
-        const updatedThread = thread.isPinned
-          ? await apiService.unpinThread(thread.id)
-          : await apiService.pinThread(thread.id);
+        const updatedThread = await runUpdate(
+          thread.id,
+          (signal) =>
+            thread.isPinned
+              ? apiService.unpinThread(thread.id, signal)
+              : apiService.pinThread(thread.id, signal),
+          {
+            onError: (error) => {
+              if (!isThreadGoneError(error))
+                logger.error('Failed to update thread pin', {
+                  error,
+                  threadId: thread.id,
+                });
+            },
+          },
+        );
+        if (!updatedThread) return;
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(
           sortThreads(
@@ -578,16 +616,11 @@ export function useAgentThreadList({
             ),
           ),
         );
-      } catch (error) {
-        logger.error('Failed to update thread pin', {
-          error,
-          threadId: thread.id,
-        });
       } finally {
         setOpenMenuThreadId(null);
       }
     },
-    [apiService, setThreads],
+    [apiService, runUpdate, setThreads],
   );
 
   const handleArchiveAllThreads = useCallback(async () => {
@@ -631,7 +664,8 @@ export function useAgentThreadList({
   }, []);
 
   const handleSubmitRename = useCallback(
-    async (thread: AgentThread) => {
+    async (thread: AgentThread, isExplicit = true) => {
+      if (renamePendingRef.current || (!isExplicit && updateFailure)) return;
       const trimmedTitle = renameDraft.trim();
 
       if (!trimmedTitle || trimmedTitle === (thread.title || 'Untitled')) {
@@ -639,10 +673,24 @@ export function useAgentThreadList({
         return;
       }
 
+      renamePendingRef.current = true;
+      const session = renameSessionRef.current;
       try {
-        const updatedThread = await apiService.updateThread(thread.id, {
-          title: trimmedTitle,
-        });
+        const updatedThread = await runUpdate(
+          thread.id,
+          (signal) =>
+            apiService.updateThread(thread.id, { title: trimmedTitle }, signal),
+          {
+            onError: (error) => {
+              if (!isThreadGoneError(error))
+                logger.error('Failed to rename thread', {
+                  error,
+                  threadId: thread.id,
+                });
+            },
+          },
+        );
+        if (!updatedThread) return;
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(
           sortThreads(
@@ -651,13 +699,24 @@ export function useAgentThreadList({
             ),
           ),
         );
-      } catch (error) {
-        logger.error('Failed to rename thread', { error, threadId: thread.id });
+        if (
+          renameSessionRef.current.draft === session.draft &&
+          renameSessionRef.current.threadId === session.threadId
+        ) {
+          handleCancelRename();
+        }
       } finally {
-        handleCancelRename();
+        renamePendingRef.current = false;
       }
     },
-    [apiService, handleCancelRename, renameDraft, setThreads],
+    [
+      apiService,
+      handleCancelRename,
+      renameDraft,
+      runUpdate,
+      setThreads,
+      updateFailure,
+    ],
   );
 
   const handleThreadContextMenu = useCallback(
@@ -725,6 +784,7 @@ export function useAgentThreadList({
     isLoading,
     authError,
     loadError,
+    updateFailure,
     viewStatus,
     openMenuThreadId,
     renamingThreadId,

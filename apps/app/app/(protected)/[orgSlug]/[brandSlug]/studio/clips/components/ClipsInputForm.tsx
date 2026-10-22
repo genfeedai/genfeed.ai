@@ -198,13 +198,11 @@ export default function ClipsInputForm({
             <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
           ) : null}
           <PromptBarToolbar
-            density="compact"
             leading={
               sourceOnly ? null : (
                 <>
                   <PromptBarCompactSelect
                     ariaLabel={t('generationMode')}
-                    density="compact"
                     onChange={(value) => {
                       if (isClipResultMode(value)) onModeChange(value);
                     }}
@@ -308,7 +306,6 @@ export default function ClipsInputForm({
                 )}
                 <PromptBarSendButton
                   ariaLabel={primaryLabel}
-                  density="compact"
                   isDisabled={isPrimaryBlocked}
                   isLoading={isSubmitting}
                   onClick={primaryAction}

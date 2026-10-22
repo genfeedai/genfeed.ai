@@ -193,6 +193,7 @@
       "notRight": "This doesn't look right",
       "unavailable": "We couldn't draft posts right now. You can continue and create them in your workspace.",
       "partial": "Some channels didn't come back. You can continue and create the rest in your workspace.",
+      "imageFailed": "We couldn't create the shared image. Your text drafts are still here. You can continue and create an image in your workspace.",
       "continueAnyway": "Continue to my workspace",
       "videoNote": "Video renders after you approve the script.",
       "schedule": "Connect and schedule {count, plural, one {# post} other {# posts}}",

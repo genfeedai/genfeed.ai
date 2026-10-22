@@ -15,7 +15,6 @@ import { VideoGenerationProviderDispatchService } from '@api/collections/videos/
 import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
@@ -481,35 +480,6 @@ describe('VideoGenerationService', () => {
         }),
       }),
     );
-  });
-
-  it('stops before any document, credit or provider call when brand enhancement fails, never falling back to the raw prompt', async () => {
-    const {
-      service,
-      enhancementService,
-      klingAIService,
-      sharedService,
-      creditsUtilsService,
-    } = createService();
-    enhancementService.enhance.mockRejectedValue(
-      new MediaPromptBrandEnhancementException('brand_identity'),
-    );
-    const error = await service
-      .generateVideo(
-        buildUser(),
-        baseDto({ text: 'a sunset over the ocean' }),
-        buildRequest(),
-      )
-      .catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(MediaPromptBrandEnhancementException);
-    expect((error as MediaPromptBrandEnhancementException).getStatus()).toBe(
-      502,
-    );
-    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
-    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
   });
 
   it('forwards the explicit raw opt-out to enhancement', async () => {

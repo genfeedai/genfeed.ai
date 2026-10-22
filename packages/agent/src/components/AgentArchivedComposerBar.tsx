@@ -1,3 +1,7 @@
+'use client';
+
+import { AgentThreadUpdateNotice } from '@genfeedai/agent/components/AgentThreadUpdateNotice';
+import { isThreadGoneError } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -27,6 +31,7 @@ export function AgentArchivedComposerBar({
   const composerShell = useConversationComposerShell();
   const isPortaled = Boolean(composerShell?.portalTarget);
   const [isUnarchiving, setIsUnarchiving] = useState(false);
+  const [isMissingThread, setIsMissingThread] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleUnarchive = useCallback(async () => {
@@ -35,10 +40,12 @@ export function AgentArchivedComposerBar({
     }
     setIsUnarchiving(true);
     setError(null);
+    setIsMissingThread(false);
     try {
       await onUnarchive();
-    } catch {
-      setError('Could not unarchive this thread. Try again.');
+    } catch (error) {
+      if (isThreadGoneError(error)) setIsMissingThread(true);
+      else setError('Could not unarchive this thread. Try again.');
       setIsUnarchiving(false);
     }
   }, [isUnarchiving, onUnarchive]);
@@ -82,6 +89,9 @@ export function AgentArchivedComposerBar({
             />
           </div>
         </Alert>
+        <AgentThreadUpdateNotice
+          failure={isMissingThread ? 'missing-thread' : null}
+        />
         {error ? (
           <p className="text-xs text-destructive" role="alert">
             {error}

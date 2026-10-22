@@ -1,0 +1,117 @@
+# One job owns the inspected-control/candidate boundary for all dataset lanes.
+# Public entrypoints retain dispatch, schedule and concurrency policy.
+name: Dataset Acceptance (reusable)
+on:
+  workflow_call:
+    inputs:
+      group:
+        description: 'dataset-smoke, dataset-diagnostic or dataset-scale only.'
+        type: string
+        required: true
+      candidate_sha:
+        description: 'Exact inspected candidate commit; validated by control preflight.'
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    name: ${{ inputs.group == 'dataset-scale' && 'Weekly 100k Dataset Scale' || 'Bounded Dataset Diagnostic' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.group == 'dataset-scale' && 40 || 20 }}
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CONTROL_SHA: ${{ github.sha }}
+      DATASET_GROUP: ${{ inputs.group }}
+      DATASET_LANE: ${{ inputs.group == 'dataset-scale' && 'dataset-scale' || 'dataset-diagnostic' }}
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          set -euo pipefail
+          case "$DATASET_GROUP" in
+            dataset-smoke|dataset-diagnostic|dataset-scale) ;;
+            *) echo 'Unsupported dataset group' >&2; exit 1 ;;
+          esac
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/$DATASET_LANE"
+            echo "CONTROL_RUNNER=$RUNNER_TEMP/runtime-acceptance-control.mjs"
+          } >> "$GITHUB_ENV"
+      - name: Checkout inspected control source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.x'
+      - name: Validate control identity and freeze controller
+        id: preflight
+        run: |
+          set -euo pipefail
+          node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group "$DATASET_GROUP"
+          test ! -e "$CONTROL_RUNNER"
+          umask 077
+          cp scripts/ci/runtime-acceptance.mjs "$CONTROL_RUNNER"
+          cp -R .github/actions/setup-bun-env "$RUNNER_TEMP/setup-bun-env-control"
+      - name: Checkout exact dataset candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - name: Require exact candidate checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          for file in learning-dataset.service.ts learning-dataset-graph.service.ts learning-dataset.service.spec.ts learning-dataset.postgres.spec.ts learning-dataset-publication.fixture.ts learning-dataset-scale.fixture.ts; do
+            test -f "apps/server/api/src/collections/content-learning/services/$file"
+            test ! -L "apps/server/api/src/collections/content-learning/services/$file"
+          done
+      - name: Restore inspected setup action
+        run: |
+          set -euo pipefail
+          test ! -e .control-actions
+          mkdir .control-actions
+          cp -R "$RUNNER_TEMP/setup-bun-env-control" .control-actions/setup-bun-env
+      - name: Setup Bun environment
+        uses: ./.control-actions/setup-bun-env
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+      - name: Run bounded dataset acceptance with frozen controller
+        env:
+          RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
+        run: node "$CONTROL_RUNNER" "$DATASET_GROUP" --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available dataset evidence
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        id: seal
+        run: node "$CONTROL_RUNNER" seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain dataset evidence
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.DATASET_LANE }}-${{ inputs.candidate_sha }}
+          path: |
+            ${{ runner.temp }}/${{ env.DATASET_LANE }}/public/receipt.json
+            ${{ runner.temp }}/${{ env.DATASET_LANE }}/public/evidence.json
+          retention-days: 7
+          if-no-files-found: error

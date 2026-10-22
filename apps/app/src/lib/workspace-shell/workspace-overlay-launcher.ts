@@ -4,6 +4,10 @@ import type {
   WorkspaceShellOverlayRequest,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import {
+  parseInternalHref,
+  toRelativeHref,
+} from '@/lib/workspace-shell/workspace-shell-url.util';
+import {
   buildWorkspaceShellHref,
   createOverlayRequest,
 } from './workspace-shell-location';
@@ -16,21 +20,6 @@ export type {
   ResolveWorkspaceOverlayLaunchParams,
   WorkspaceOverlayLaunch,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
-
-const INTERNAL_ORIGIN = 'https://workspace.genfeed.invalid';
-
-function parseInternalHref(href: string): URL | null {
-  try {
-    const url = new URL(href, INTERNAL_ORIGIN);
-    return url.origin === INTERNAL_ORIGIN ? url : null;
-  } catch {
-    return null;
-  }
-}
-
-function toRelativeHref(url: URL): string {
-  return `${url.pathname}${url.search}${url.hash}`;
-}
 
 function createUnavailableLaunch(
   currentUrl: URL | null,

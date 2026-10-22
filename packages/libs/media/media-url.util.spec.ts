@@ -196,6 +196,30 @@ describe('buildMediaUrl', () => {
       const expected = Date.parse('2026-09-23T00:05:00.000Z') / 1000;
       expect(Number(url.searchParams.get('Expires'))).toBe(expected);
     });
+
+    it('signs the same object to the same URL within one expiry window', () => {
+      vi.setSystemTime(new Date('2026-09-23T00:00:01.000Z'));
+      const first = buildMediaUrl('ingredients/images/abc', signing);
+      vi.advanceTimersByTime(60_000);
+      const second = buildMediaUrl('ingredients/images/abc', signing);
+      expect(second).toBe(first);
+    });
+
+    it('never expires a signature earlier than the configured TTL', () => {
+      for (const offsetMs of [0, 1, 99_999, 100_000, 100_001, 250_000]) {
+        vi.setSystemTime(Date.parse('2026-09-23T00:00:00.000Z') + offsetMs);
+        const url = new URL(buildMediaUrl('ingredients/images/abc', signing));
+        const expiresMs = Number(url.searchParams.get('Expires')) * 1000;
+        expect(expiresMs).toBeGreaterThanOrEqual(Date.now() + 300_000);
+        expect(expiresMs).toBeLessThan(Date.now() + 300_000 + 100_000);
+      }
+    });
+
+    it('issues a new URL once the window has passed', () => {
+      const first = buildMediaUrl('ingredients/images/abc', signing);
+      vi.advanceTimersByTime(100_000);
+      expect(buildMediaUrl('ingredients/images/abc', signing)).not.toBe(first);
+    });
   });
 });
 

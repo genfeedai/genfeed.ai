@@ -1,3 +1,5 @@
+import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,18 +16,25 @@ const {
   isSelfHostedMock,
   paygMock,
   useSubscriptionMock,
+  hostedCheckoutMock,
+  managedCheckoutMock,
 } = vi.hoisted(() => ({
   hasOrganizationBillingMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   paygMock: vi.fn(),
   useSubscriptionMock: vi.fn(),
+  hostedCheckoutMock: vi.fn(),
+  managedCheckoutMock: vi.fn(),
 }));
 
-vi.mock('@genfeedai/config/deployment', () => ({
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config/deployment')>()),
   isSelfHostedDeployment: () => isSelfHostedMock(),
+  isSaaS: () => !isSelfHostedMock(),
 }));
 
-vi.mock('@genfeedai/config/license', () => ({
+vi.mock('@genfeedai/config/license', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config/license')>()),
   hasOrganizationBillingHint: () => hasOrganizationBillingMock(),
 }));
 
@@ -44,11 +53,17 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 vi.mock('../billing/add-credits-card', () => ({
-  default: () => <div data-testid="hosted-credits-card">Hosted credits</div>,
+  default: () => {
+    hostedCheckoutMock();
+    return <div data-testid="hosted-credits-card">Hosted credits</div>;
+  },
 }));
 
 vi.mock('./managed-credits-checkout-card', () => ({
-  default: () => <div data-testid="managed-credits-card">Managed credits</div>,
+  default: () => {
+    managedCheckoutMock();
+    return <div data-testid="managed-credits-card">Managed credits</div>;
+  },
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -60,15 +75,16 @@ function renderCreditsPage() {
     defaultOptions: { queries: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <SettingsCreditsPage />
-    </QueryClientProvider>,
-  );
+  return render(<SettingsCreditsPage />, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
 }
 
 describe('SettingsCreditsPage', () => {
   beforeEach(() => {
+    mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
     isSelfHostedMock.mockReset();
     hasOrganizationBillingMock.mockReset();
     paygMock.mockReset();
@@ -197,5 +213,268 @@ describe('SettingsCreditsPage', () => {
     expect(screen.getByText('91%')).toBeInTheDocument();
     expect(screen.getByText(/5,461\.8/)).toBeInTheDocument();
     expect(screen.getByText(/of 6,000/)).toBeInTheDocument();
+  });
+});
+
+const mockCreditsRuntime = vi.hoisted(() =>
+  vi.fn<() => DesktopRuntimeSnapshot>(),
+);
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({
+    useDesktopRuntimeContext: mockCreditsRuntime,
+  }),
+);
+
+const creditsCloudContext: IDesktopRuntimeContext = {
+  version: 1,
+  runtimeId: 'credits-runtime',
+  revision: 1,
+  status: 'ready',
+  selectedServerId: 'credits-cloud',
+  selectedServerKind: 'cloud',
+  selectedApiEndpoint: 'https://example.invalid/v1',
+  runtimeMode: 'cloud',
+  generationExecution: 'remote',
+  localProvider: null,
+};
+const creditsLocalContext: IDesktopRuntimeContext = {
+  ...creditsCloudContext,
+  revision: 2,
+  runtimeMode: 'local',
+  generationExecution: 'local-byok',
+  localProvider: { provider: 'ollama', networkAccess: 'local' },
+};
+const creditsRuntimeCases = [
+  {
+    name: 'cloud web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'community self-host web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: true,
+    billing: false,
+    price: undefined,
+  },
+  {
+    name: 'licensed self-host web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: true,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'configured PAYG self-host web',
+    runtime: { status: 'web', context: null },
+    allowed: true,
+    selfHosted: true,
+    billing: false,
+    price: 'price_fixture',
+  },
+  {
+    name: 'confirmed desktop cloud without billing hint',
+    runtime: { status: 'ready', context: creditsCloudContext },
+    allowed: true,
+    selfHosted: false,
+    billing: false,
+    price: undefined,
+  },
+  {
+    name: 'local Ollama with remembered cloud and billing hint',
+    runtime: { status: 'ready', context: creditsLocalContext },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'local Replicate with remote network',
+    runtime: {
+      status: 'ready',
+      context: {
+        ...creditsLocalContext,
+        localProvider: { provider: 'replicate', networkAccess: 'remote' },
+      },
+    },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'local unknown execution',
+    runtime: {
+      status: 'ready',
+      context: {
+        ...creditsLocalContext,
+        generationExecution: 'unknown',
+        localProvider: null,
+      },
+    },
+    allowed: false,
+    selfHosted: true,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'desktop self-host server',
+    runtime: {
+      status: 'ready',
+      context: {
+        ...creditsCloudContext,
+        selectedServerId: 'credits-self-host',
+        selectedServerKind: 'self-hosted',
+      },
+    },
+    allowed: false,
+    selfHosted: true,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'cloud execution unconfirmed',
+    runtime: {
+      status: 'ready',
+      context: { ...creditsCloudContext, generationExecution: 'unknown' },
+    },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'loading',
+    runtime: { status: 'loading', context: null },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'unavailable',
+    runtime: { status: 'unavailable', context: null },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+  {
+    name: 'switching with old cloud context',
+    runtime: { status: 'switching', context: creditsCloudContext },
+    allowed: false,
+    selfHosted: false,
+    billing: true,
+    price: undefined,
+  },
+] satisfies {
+  name: string;
+  runtime: DesktopRuntimeSnapshot;
+  allowed: boolean;
+  selfHosted: boolean;
+  billing: boolean;
+  price: string | undefined;
+}[];
+const creditsRuntimeTransitions: DesktopRuntimeSnapshot[] = [
+  { status: 'loading', context: null },
+  { status: 'ready', context: creditsLocalContext },
+  { status: 'ready', context: creditsCloudContext },
+  { status: 'switching', context: creditsCloudContext },
+  { status: 'ready', context: creditsLocalContext },
+  { status: 'ready', context: creditsCloudContext },
+];
+
+describe('desktop Credits route boundary', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isSelfHostedMock.mockReturnValue(false);
+    hasOrganizationBillingMock.mockReturnValue(true);
+    paygMock.mockReturnValue(undefined);
+    useSubscriptionMock.mockReturnValue({
+      creditsBreakdown: { total: 750, cycleTotal: 1000 },
+      error: 'unavailable',
+      isLoading: false,
+      refreshCreditsBreakdown: vi.fn(),
+    });
+  });
+  function expectDenied() {
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('Credits unavailable');
+    expect(status).toHaveTextContent(
+      'Credits are unavailable for the current runtime.',
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Credits', level: 1 }),
+    ).toHaveClass('sr-only');
+    expect(useSubscriptionMock).not.toHaveBeenCalled();
+    expect(hostedCheckoutMock).not.toHaveBeenCalled();
+    expect(managedCheckoutMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('hosted-credits-card')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('managed-credits-card'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry balance' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'View referrals' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Your credit balance could not be loaded.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
+  }
+  it.each(creditsRuntimeCases)(
+    '$name',
+    ({ runtime, allowed, selfHosted, billing, price }) => {
+      mockCreditsRuntime.mockReturnValue(runtime);
+      isSelfHostedMock.mockReturnValue(selfHosted);
+      hasOrganizationBillingMock.mockReturnValue(billing);
+      paygMock.mockReturnValue(price);
+      const { unmount } = renderCreditsPage();
+      if (allowed) {
+        expect(useSubscriptionMock).toHaveBeenCalled();
+        const managed = selfHosted && !billing && !price;
+        expect(
+          screen.getByTestId(
+            managed ? 'managed-credits-card' : 'hosted-credits-card',
+          ),
+        ).toBeInTheDocument();
+        expect(
+          managed ? managedCheckoutMock : hostedCheckoutMock,
+        ).toHaveBeenCalled();
+        expect(
+          screen.getByRole('button', { name: 'Retry balance' }),
+        ).toBeInTheDocument();
+        expect(
+          Boolean(screen.queryByRole('link', { name: 'View referrals' })),
+        ).toBe(billing);
+      } else expectDenied();
+      unmount();
+    },
+  );
+  it('unmounts data during denied transitions and remounts it when cloud is confirmed', () => {
+    mockCreditsRuntime.mockReturnValue(creditsRuntimeTransitions[0]);
+    const { rerender, unmount } = renderCreditsPage();
+    expectDenied();
+    creditsRuntimeTransitions.slice(1).forEach((runtime, offset) => {
+      useSubscriptionMock.mockClear();
+      hostedCheckoutMock.mockClear();
+      managedCheckoutMock.mockClear();
+      mockCreditsRuntime.mockReturnValue(runtime);
+      rerender(<SettingsCreditsPage />);
+      if (offset === 1 || offset === 4) {
+        expect(useSubscriptionMock).toHaveBeenCalled();
+        expect(hostedCheckoutMock).toHaveBeenCalled();
+        expect(screen.getByTestId('hosted-credits-card')).toBeInTheDocument();
+      } else expectDenied();
+    });
+    unmount();
   });
 });

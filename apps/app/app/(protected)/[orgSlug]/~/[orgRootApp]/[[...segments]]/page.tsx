@@ -1,3 +1,5 @@
+import PublishingContentEditorPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage';
+import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/editor-detail-surface';
 import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
 import {
   getBrandEntityId,
@@ -42,11 +44,9 @@ import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
-import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
-import EditorDetailPage from '../../../[brandSlug]/studio/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/editor/new/page';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
@@ -133,8 +133,6 @@ async function resolveLastUsedStudioBrandSlug(
   return currentBrand?.slug ?? null;
 }
 
-// Async because the detail surface is an async server component: it has to be
-// awaited here, not handed to the tree as an unresolved promise child.
 async function renderStudioEditorSurface(section?: string) {
   if (section === 'new') {
     return <EditorNewPage />;
@@ -148,7 +146,7 @@ async function renderStudioEditorSurface(section?: string) {
   }
 
   if (section) {
-    return EditorDetailPage({ params: Promise.resolve({ id: section }) });
+    return <EditorDetailSurface projectId={section} />;
   }
 
   return <EditorProjectsPage />;
@@ -380,13 +378,11 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {
-      const detailPage = await PublishingPostPage({
-        params: Promise.resolve({
-          brandSlug: '~',
-          id: campaignId,
-          orgSlug,
-        }),
-      });
+      const detailPage = (
+        <Suspense fallback={null}>
+          <PublishingContentEditorPage contentId={campaignId} />
+        </Suspense>
+      );
 
       return <PublishingLayoutContent>{detailPage}</PublishingLayoutContent>;
     }

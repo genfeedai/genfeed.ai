@@ -1085,6 +1085,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   musicIngredientId        String?
   musicIngredient          Ingredient?  @relation("brand_music", fields: [musicIngredientId], references: [id])
   slug                     String       @unique
+  /// Handle held before soft deletion; retained for recovery, not routing.
+  deletedSlug              String?
   label                    String
   description              String?
   text                     String?

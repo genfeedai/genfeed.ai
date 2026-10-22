@@ -54,7 +54,6 @@ export default function RepliesReplyComposer({
         value={draft}
       />
       <PromptBarToolbar
-        density="compact"
         leading={
           <>
             <PromptBarCompactSelect
@@ -81,7 +80,6 @@ export default function RepliesReplyComposer({
         trailing={
           <PromptBarSendButton
             ariaLabel={translate('actions.send')}
-            density="compact"
             isDisabled={isBusy || !hasDraft}
             isLoading={isBusy}
             onClick={onSend}

@@ -164,9 +164,8 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-// The type bar, the Advanced chips and the reset button all hand their props
-// to one object, so a test reads the setup surface without caring which of the
-// three owns a prop. Chips only mount in Advanced mode.
+// The type bar and the Advanced chips hand their props to one object, so a test
+// reads the setup surface without caring which of the two owns a prop. Chips only mount in Advanced mode.
 vi.mock('@ui/dropdowns/generation-setup/GenerationSetupTypeBar', () => ({
   default: (props: Record<string, unknown>) => {
     Object.assign(setupBarMocks.props, props);
@@ -189,21 +188,6 @@ vi.mock('@ui/dropdowns/generation-setup/GenerationSetupSectionChips', () => ({
         {props.outputControls as React.ReactNode}
         {props.trailing as React.ReactNode}
       </div>
-    );
-  },
-}));
-
-vi.mock('@ui/dropdowns/generation-setup/GenerationSetupResetButton', () => ({
-  default: (props: { isDisabled?: boolean; onResetAll: () => void }) => {
-    setupBarMocks.props.onResetAll = props.onResetAll;
-    setupBarMocks.props.isResetDisabled = props.isDisabled;
-    return (
-      <button
-        type="button"
-        aria-label="Reset all"
-        disabled={props.isDisabled}
-        onClick={props.onResetAll}
-      />
     );
   },
 }));
@@ -488,23 +472,9 @@ describe('StudioPlaygroundComposer', () => {
       });
     });
 
-    it('keeps Reset all in the bar, dimmed in Auto and live in Advanced', () => {
-      advancedModeMocks.isAdvancedMode = false;
-      const view = render(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
-          prompt="A green apple"
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      // Same button in both modes, so switching never moves the other controls.
-      expect(screen.getByRole('button', { name: 'Reset all' })).toBeDisabled();
-
+    it('has no Reset all button in the bar; Advanced hands Reset to defaults to the Presets panel', () => {
       advancedModeMocks.isAdvancedMode = true;
-      view.rerender(
+      render(
         <StudioPlaygroundComposer
           {...baseProps}
           models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
@@ -513,9 +483,11 @@ describe('StudioPlaygroundComposer', () => {
           type="image"
         />,
       );
-      const reset = screen.getByRole('button', { name: 'Reset all' });
-      expect(reset).toBeEnabled();
-      fireEvent.click(reset);
+
+      expect(
+        screen.queryByRole('button', { name: 'Reset all' }),
+      ).not.toBeInTheDocument();
+      (setupBarMocks.props.onResetAll as () => void)();
       expect(baseProps.onResetSettings).toHaveBeenCalledOnce();
     });
 

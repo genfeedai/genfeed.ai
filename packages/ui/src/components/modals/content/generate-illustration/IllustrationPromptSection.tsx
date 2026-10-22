@@ -48,12 +48,10 @@ export default function IllustrationPromptSection({
           className="min-h-16"
         />
         <PromptBarToolbar
-          density="compact"
           leading={null}
           trailing={
             <PromptBarSendButton
               ariaLabel={translate('generate')}
-              density="compact"
               isDisabled={!canGenerate}
               isLoading={isGenerating}
               onClick={onGenerate}

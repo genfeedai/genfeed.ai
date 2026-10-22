@@ -148,7 +148,7 @@ export default function ContextInspectorToggle() {
             requestAnimationFrame(() =>
               document
                 .querySelector<HTMLButtonElement>(
-                  '[data-testid="context-sidebar-close"]',
+                  '[data-testid="workspace-panel-close"], [data-testid="context-sidebar-close"]',
                 )
                 ?.focus({ preventScroll: true }),
             );

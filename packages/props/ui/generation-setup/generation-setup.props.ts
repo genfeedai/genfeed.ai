@@ -80,7 +80,6 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupSummaryInput {
-  autoLabel: string;
   capabilities: StudioPlaygroundCapabilities;
   formatDuration: (seconds: number) => string;
   inputControls?: CrunInputControls;
@@ -176,6 +175,8 @@ export type GenerationSetupCustomizeSectionId = 'brand' | 'model' | 'presets';
 export interface GenerationSetupCustomizePanelProps {
   /** Lets the Presets panel release a pinned preset. */
   onClearPreset?: () => void;
+  /** Puts every setup field back to its default; offered at the top of the Presets panel. */
+  onResetAll?: () => void;
   typeOptions: readonly GenerationSetupTypeOption[];
   showEnhancementSettings?: boolean;
   capabilities: StudioPlaygroundCapabilities;
@@ -243,7 +244,7 @@ export interface GenerationSetupSavePresetRowProps {
   onSavePreset: (label: string) => void;
 }
 
-/** Type buttons, the Create / Edit toggle and the Auto / Advanced switch, inline in the bar. */
+/** The Type chip (with its Edit toggle) and the Auto / Advanced button, inline in the bar. */
 export interface GenerationSetupTypeBarProps {
   advancedMode?: GenerationSetupAdvancedMode;
   /** Studio's explicit image editing override; other surfaces omit it. */
@@ -253,9 +254,4 @@ export interface GenerationSetupTypeBarProps {
   setup: GenerationSetup;
   /** Omitted (or a single entry) on surfaces that lock the type. */
   typeOptions: readonly GenerationSetupTypeOption[];
-}
-
-export interface GenerationSetupResetButtonProps {
-  isDisabled?: boolean;
-  onResetAll: () => void;
 }

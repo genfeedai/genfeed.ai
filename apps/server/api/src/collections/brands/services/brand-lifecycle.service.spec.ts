@@ -282,7 +282,7 @@ describe('BrandLifecycleService', () => {
         organizationId,
       });
       delegate.findMany.mockResolvedValue([
-        { id: brandId },
+        { id: brandId, slug: 'brand-handle' },
         { id: otherBrandId },
       ]);
       memberDelegate.findMany.mockResolvedValue([]);
@@ -465,7 +465,7 @@ describe('BrandLifecycleService', () => {
         organizationId,
       });
       delegate.findMany.mockResolvedValue([
-        { id: brandId },
+        { id: brandId, slug: 'brand-handle' },
         { id: fallbackBrandId },
       ]);
       memberDelegate.findMany.mockResolvedValueOnce([
@@ -491,7 +491,7 @@ describe('BrandLifecycleService', () => {
       expect(sqlText(txQueryRaw.mock.calls[3][0])).toContain('brands');
       expect(delegate.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'asc' },
-        select: { id: true },
+        select: { id: true, slug: true },
         where: { isDeleted: false, organizationId },
       });
       expect(memberDelegate.findMany).toHaveBeenCalledWith({
@@ -503,7 +503,11 @@ describe('BrandLifecycleService', () => {
         where: { currentBrandId: brandId, isDeleted: false, organizationId },
       });
       expect(delegate.update).toHaveBeenCalledWith({
-        data: { isDeleted: true },
+        data: {
+          deletedSlug: 'brand-handle',
+          isDeleted: true,
+          slug: expect.stringMatching(/^deleted-[0-9a-f-]{36}$/),
+        },
         where: { id: brandId, isDeleted: false, organizationId },
       });
       expect(result).toMatchObject({ id: brandId });
@@ -529,7 +533,9 @@ describe('BrandLifecycleService', () => {
         isDeleted: false,
         organizationId,
       });
-      delegate.findMany.mockResolvedValue([{ id: brandId }]);
+      delegate.findMany.mockResolvedValue([
+        { id: brandId, slug: 'brand-handle' },
+      ]);
 
       const rejection = service.remove(organizationId, brandId);
       await expect(rejection).rejects.toBeInstanceOf(ConflictException);
@@ -582,7 +588,7 @@ describe('BrandLifecycleService', () => {
         organizationId,
       });
       delegate.findMany.mockResolvedValue([
-        { id: brandId },
+        { id: brandId, slug: 'brand-handle' },
         { id: fallbackBrandId },
       ]);
       memberDelegate.findMany.mockResolvedValueOnce([]);
@@ -611,11 +617,13 @@ describe('BrandLifecycleService', () => {
           organizationId: 'org',
           isDeleted: false,
           isActive: true,
+          slug: 'original-handle',
+          deletedSlug: null,
         };
         const member = { userId: 'member', currentBrandId: 'brand' };
         delegate.findFirst.mockImplementation(async () => ({ ...brand }));
         delegate.findMany.mockResolvedValue([
-          { id: 'brand' },
+          { id: 'brand', slug: 'original-handle' },
           { id: 'fallback' },
         ]);
         delegate.update.mockImplementation(async ({ data }) => {
@@ -660,7 +668,11 @@ describe('BrandLifecycleService', () => {
         );
         expect(memberDelegate.updateMany).toHaveBeenCalledTimes(1);
         expect(delegate.update).toHaveBeenCalledTimes(1);
-        expect(brand.isDeleted).toBe(false);
+        expect(brand).toMatchObject({
+          deletedSlug: null,
+          isDeleted: false,
+          slug: 'original-handle',
+        });
         expect(member.currentBrandId).toBe('brand');
         expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
         expect(

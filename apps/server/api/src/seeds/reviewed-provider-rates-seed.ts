@@ -17,6 +17,7 @@ import {
   type ReviewedRateSheetEntry,
 } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
+import { platformTenantProof } from '@libs/prisma/platform-scope';
 
 export interface RateSeedLogger {
   warn(message: string): void;
@@ -90,7 +91,7 @@ async function seedEntry(
   logger?: RateSeedLogger,
   options: RateSeedOptions = {},
 ): Promise<boolean> {
-  // tenant-scope-ignore: the rate sheet seeds the platform-wide registry (organizationId null) rows only
+  // tenant-scope-ignore: the rate sheet seeds the platform-wide registry (organizationId null) rows only; platformTenantProof() tells the CLOUD guard whose request an admin repair is
   const model = await prisma.model.findFirst({
     select: {
       endpoint: true,
@@ -104,6 +105,7 @@ async function seedEntry(
       reviewedProviderContractVersion: true,
     },
     where: {
+      AND: platformTenantProof(),
       isDeleted: false,
       OR: [{ endpoint: entry.endpoint }, { key: entry.endpoint }],
       organizationId: null,
@@ -171,7 +173,12 @@ async function seedEntry(
         providerSyncFailureCode: 'rates_unavailable:missing output schema',
         providerSyncStatus: 'failed',
       },
-      where: { id: model.id, isDeleted: false, organizationId: null },
+      where: {
+        AND: platformTenantProof(),
+        id: model.id,
+        isDeleted: false,
+        organizationId: null,
+      },
     });
     logger?.warn(
       `Rate sheet entry ${entry.endpoint} not promoted: missing output schema`,
@@ -295,6 +302,7 @@ async function seedEntry(
         : {}),
     },
     where: {
+      AND: platformTenantProof(),
       id: model.id,
       isDeleted: false,
       organizationId: null,

@@ -11,6 +11,8 @@ import {
   REVIEWED_RATE_SHEET_ENTRIES,
   type ReviewedRateSheetEntry,
 } from '@genfeedai/pricing';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { describe, expect, it, vi } from 'vitest';
 
 const hailuo = REVIEWED_RATE_SHEET_ENTRIES.find(
@@ -91,6 +93,7 @@ describe('reviewed provider rates seed', () => {
           providerSyncStatus: 'fresh',
         }),
         where: {
+          AND: [],
           id: 'model-1',
           isDeleted: false,
           organizationId: null,
@@ -180,6 +183,32 @@ describe('reviewed provider rates seed', () => {
   });
 
   describe('re-applied by an operator ("Fix pricing")', () => {
+    it('proves every platform Model query to the CLOUD tenant guard inside an admin request', async () => {
+      const prisma = harness(modelRow());
+
+      await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+        await seedReviewedProviderRates(prisma as never, [hailuo], undefined, {
+          reviewedBy: 'operator-2',
+        });
+        const queries = [
+          ['findFirst', prisma.model.findFirst.mock.calls[0]?.[0]],
+          ['updateMany', prisma.model.updateMany.mock.calls[0]?.[0]],
+        ] as const;
+        for (const [operation, args] of queries) {
+          expect(args).toBeDefined();
+          expect(() =>
+            assertTenantScopedQuery({
+              args,
+              isCloud: true,
+              model: 'Model',
+              operation,
+              tenantModelNames: new Set(['Model']),
+            }),
+          ).not.toThrow();
+        }
+      });
+    });
+
     it('replaces a contract an operator approved and records who re-applied it', async () => {
       const prisma = harness(
         modelRow({ reviewedProviderContractVersion: 'operator-approved' }),

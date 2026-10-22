@@ -21,9 +21,6 @@
 name: Link Check
 
 on:
-  pull_request:
-    branches: [master]
-    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 concurrency:
@@ -40,87 +37,43 @@ env:
 
 jobs:
   detect:
+    permissions:
+      contents: read
     name: Detect Link-Check Scope
     # Draft pull requests run nothing; CI runs once the PR is marked ready.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
-      website: ${{ steps.frontends.outputs.website }}
-      docs: ${{ steps.changes.outputs.docs }}
+      website: ${{ steps.scope.outputs.website }}
+      docs: ${{ steps.scope.outputs.docs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - id: frontends
-        uses: ./.github/actions/detect-frontend-scope
-
-      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
-        id: changes
-        with:
-          filters: |
-            docs:
-              - 'apps/docs/content/**'
-              - 'lychee.toml'
-              - '.github/workflows/link-check.yml'
-              - '**/*.md'
-              - '**/*.mdx'
+      - id: scope
+        uses: ./.github/actions/detect-link-check-scope
 
   website-links:
+    permissions:
+      contents: read
     name: Website Links + Orphans + SEO
     runs-on: ubuntu-latest
     needs: detect
     if: needs.detect.outputs.website == 'true'
+    # Existing complete workload: production build, 120s readiness, crawl/orphans and SEO.
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-
-      - name: Build website
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bunx turbo run build --filter=@genfeedai/website
-
-      - name: Start website
-        run: |
-          cd apps/website
-          PORT=3000 bun run start &
-          echo "SERVER_PID=$!" >> "$GITHUB_ENV"
-          for _ in $(seq 1 60); do
-            if curl -fsS http://localhost:3000/ >/dev/null 2>&1; then
-              echo "Website is serving on :3000"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::Website did not become ready on :3000 within 120s"
-          exit 1
-
-      - name: Check internal links + orphan pages
-        run: cd apps/website && bun run check:orphans
-        env:
-          BASE_URL: http://localhost:3000
-
-      # On-page SEO: titles, descriptions, canonicals, headings, structured data,
-      # soft 404s on dynamic routes, and JSON-LD breadcrumb targets. Advisory
-      # (SEO_SOFT=1) until seo-baseline.json is seeded from a real run — after
-      # that, drop SEO_SOFT and the ratchet fails on any new error.
-      - name: Audit on-page SEO
-        run: cd apps/website && bun run check:seo
-        env:
-          BASE_URL: http://localhost:3000
-          SEO_SOFT: '1'
-
-      - name: Stop website
-        if: always()
-        run: kill "$SERVER_PID" 2>/dev/null || true
+      - uses: ./.github/actions/check-website-links
 
   docs-links:
+    permissions:
+      contents: read
     name: Docs + Markdown Dead Links
     runs-on: ubuntu-latest
     needs: detect
@@ -131,16 +84,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run lychee
-        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+      - uses: ./.github/actions/check-docs-links
         with:
-          args: >-
-            --config lychee.toml
-            --remap 'https://github.com/genfeedai/genfeed.ai/blob/master file://${{ github.workspace }}'
-            'apps/docs/content/**/*.md'
-            'apps/docs/content/**/*.mdx'
-            'README.md'
-            'apps/website/README.md'
-          fail: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

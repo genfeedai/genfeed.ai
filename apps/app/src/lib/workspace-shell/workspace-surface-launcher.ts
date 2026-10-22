@@ -5,27 +5,16 @@ import type {
   WorkspaceShellSurfaceKey,
   WorkspaceSurfaceLaunch,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
+import {
+  parseInternalHref,
+  toRelativeHref,
+} from '@/lib/workspace-shell/workspace-shell-url.util';
 import { resolveWorkspaceShellRoute } from './workspace-shell-registry';
 
 export type {
   ResolveWorkspaceSurfaceLaunchParams,
   WorkspaceSurfaceLaunch,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
-
-const INTERNAL_ORIGIN = 'https://workspace.genfeed.invalid';
-
-function parseInternalHref(href: string): URL | null {
-  try {
-    const url = new URL(href, INTERNAL_ORIGIN);
-    return url.origin === INTERNAL_ORIGIN ? url : null;
-  } catch {
-    return null;
-  }
-}
-
-function toRelativeHref(url: URL): string {
-  return `${url.pathname}${url.search}${url.hash}`;
-}
 
 function isSafeOpaqueId(value: string | null | undefined): value is string {
   return Boolean(

@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const workflow = readFileSync(
-  path.join(root, '.github/workflows/bundle-size.yml'),
+  path.join(root, '.github/workflows/_bundle-size.yml'),
   'utf8',
 );
 const matrixApp = '$' + '{{ matrix.app }}';

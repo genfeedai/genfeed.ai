@@ -8,6 +8,7 @@ import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptB
 import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSuggestionsBar';
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
 import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktopRuntimeBar';
+import { AgentThreadUpdateNotice } from '@genfeedai/agent/components/AgentThreadUpdateNotice';
 import { AgentWebLocalCliNotice } from '@genfeedai/agent/components/AgentWebLocalCliNotice';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
@@ -75,7 +76,7 @@ export function AgentChatContainer({
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   // In the plain web app a thread bound to a local CLI cannot send: the
   // notice offers the two ways forward instead of the Desktop runtime bar.
-  const runtimeBanner =
+  const runtimePicker =
     isReadOnly ? null : runtimeSelection.webBlockedRuntime ? (
       <AgentWebLocalCliNotice
         onSwitchToHosted={runtimeSelection.switchToHosted}
@@ -85,6 +86,14 @@ export function AgentChatContainer({
     ) : runtimeSelection.hasDesktopCliRuntimes ||
       runtimeSelection.runtimeNotice ? (
       <AgentDesktopRuntimeBar selection={runtimeSelection} />
+    ) : null;
+
+  const runtimeBanner =
+    runtimeSelection.updateFailure || runtimePicker ? (
+      <>
+        <AgentThreadUpdateNotice failure={runtimeSelection.updateFailure} />
+        {runtimePicker}
+      </>
     ) : null;
 
   const container = useAgentChatContainer({

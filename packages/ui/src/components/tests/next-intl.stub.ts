@@ -300,7 +300,8 @@ const UI_TEST_MESSAGES = {
       modeEdit: 'Edit',
       modeEditVideoSoon: 'Video editing is coming soon',
       resetToAgent: 'Reset {field}',
-      setupMode: 'Setup mode',
+      setupModeSwitch: 'Setup mode: {mode}',
+      moreSetup: 'More setup',
       brand: 'Brand',
       brandVoice: 'Brand voice',
       configureSection: 'Configure {section}',
@@ -321,6 +322,7 @@ const UI_TEST_MESSAGES = {
       advancedModeDescription: 'Choose the model yourself instead of Auto.',
       identityRetryAria: 'Retry HeyGen identities',
       generationType: 'Generation type',
+      generationTypeTrigger: 'Generation type: {type}',
       instrumental: 'Instrumental',
       loadingPresets: 'Loading presets…',
       look: 'Look',
@@ -340,8 +342,7 @@ const UI_TEST_MESSAGES = {
       presets: 'Presets',
       promptEnhance: 'Prompt enhance',
       promptTools: 'Prompt tools',
-      resetAll: 'Reset all',
-      resetAllAria: 'Reset all fields to agent',
+      resetToDefaults: 'Reset to defaults',
       resetModel: 'Reset model to agent',
       resetPriority: 'Reset priority to agent',
       resetPriorityTooltip:
@@ -834,6 +835,8 @@ const UI_TEST_MESSAGES = {
       },
       description:
         'Improve image and video prompts automatically. These preferences apply in Studio and all connected agents.',
+      enhancementFailedHint:
+        'Brand enhancement failed, so this was generated from your prompt as typed. Any selected skills or Knowledge were not applied.',
       enhancementSkipped: 'Enhancement skipped',
       inherit: 'Inherit',
       loading: 'Loading settings…',

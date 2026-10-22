@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -24,11 +25,12 @@ import './selfhosted-schedule-readiness.test.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
+const { parse: parseYaml } = createRequire(
+  new URL('../../apps/server/api/package.json', import.meta.url),
+)('yaml');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
-  'bundle-size.yml',
   'ci.yml',
   'curated-action-catalog.yml',
-  'link-check.yml',
   'playwright-coverage-policy.yml',
   'playwright-pr-smoke.yml',
   'pr-heavy-ci.yml',
@@ -539,8 +541,6 @@ test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
 test('draft pull requests run no CI until marked ready', () => {
   for (const [fileName, jobId] of [
     ['ci.yml', 'plan'],
-    ['bundle-size.yml', 'detect'],
-    ['link-check.yml', 'detect'],
     ['playwright-pr-smoke.yml', 'detect'],
   ]) {
     const workflow = readWorkflow(fileName);
@@ -948,10 +948,128 @@ test('pins mocked core E2E builds to Community mode', () => {
   assert.match(setup, /E2E_COVERAGE: '1'/);
 });
 
+test('bundle graph keeps fork measurements independent and skips drafts and duplicate heavy callers', () => {
+  const ci = readWorkflow('ci.yml');
+  const shared = readWorkflow('_bundle-size.yml');
+  const caller = jobBlock(ci, 'bundle-size', 'ci.yml');
+  const detect = jobBlock(shared, 'detect', '_bundle-size.yml');
+  const measure = jobBlock(shared, 'measure', '_bundle-size.yml');
+  const comment = jobBlock(shared, 'comment', '_bundle-size.yml');
+  const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
+  const evaluate = (expression, context) => {
+    assert.ok(expression, 'missing workflow condition');
+    return runInNewContext(expression, context);
+  };
+  for (const event of [
+    'pull_request',
+    'push',
+    'workflow_dispatch',
+    'merge_group',
+  ]) {
+    for (const draft of [false, true]) {
+      for (const fork of [false, true]) {
+        for (const heavy of [undefined, false, true]) {
+          const github = {
+            event_name: event,
+            repository: 'example/repo',
+            event: {
+              pull_request: {
+                draft,
+                head: {
+                  repo: { full_name: fork ? 'fork/repo' : 'example/repo' },
+                },
+              },
+            },
+          };
+          assert.equal(
+            evaluate(condition(caller), {
+              github,
+              inputs: { run_heavy_tests: heavy },
+            }),
+            event === 'pull_request' && !draft && heavy !== true,
+          );
+          assert.equal(
+            evaluate(condition(detect), { github }),
+            event !== 'pull_request' || !draft,
+          );
+          assert.equal(
+            evaluate(condition(comment), { github }),
+            event === 'pull_request' && !fork,
+          );
+          for (const frontend of ['true', 'false']) {
+            assert.equal(
+              evaluate(condition(measure), {
+                needs: { detect: { outputs: { frontend } } },
+              }),
+              frontend === 'true',
+            );
+          }
+        }
+      }
+    }
+  }
+  assert.doesNotMatch(caller, /needs:/);
+  assert.match(detect, /permissions:\n {6}contents: read/);
+  assert.doesNotMatch(detect, /: write/);
+  assert.doesNotMatch(
+    shared,
+    /^concurrency:/m,
+    'caller owns cancellation without nested self-cancellation',
+  );
+  assert.doesNotMatch(shared, /^ {2}(?:pull_request|push|workflow_dispatch):/m);
+  assert.match(shared, /^ {2}workflow_call:/m);
+  // No cross-run download or fabricated workflow identity may bridge this move.
+  assert.doesNotMatch(comment, /run-id:|github-token:|repository:/);
+  assert.doesNotMatch(shared, /GITHUB_WORKFLOW:|GITHUB_RUN_ID:/);
+});
+
+test('serializer diagnostic upload accepts only completed same-repo app proofs from an uncancelled run', () => {
+  const shared = readWorkflow('_bundle-size.yml');
+  const upload = shared
+    .split('      - name: Upload request serializer proof\n')[1]
+    ?.split('\n      #')[0];
+  const expression = upload?.match(/if: \$\{\{ (.+) \}\}/)?.[1];
+  assert.ok(expression);
+  for (const outcome of ['success', 'failure', 'skipped', 'cancelled', '']) {
+    for (const cancelled of [false, true]) {
+      for (const app of ['app', 'website']) {
+        for (const event of ['pull_request', 'push', 'workflow_dispatch']) {
+          for (const fork of [false, true]) {
+            const actual = runInNewContext(expression, {
+              cancelled: () => cancelled,
+              steps: { serializer_proof: { outcome } },
+              matrix: { app },
+              github: {
+                event_name: event,
+                repository: 'example/repo',
+                event: {
+                  pull_request: {
+                    head: {
+                      repo: { full_name: fork ? 'fork/repo' : 'example/repo' },
+                    },
+                  },
+                },
+              },
+            });
+            assert.equal(
+              actual,
+              !cancelled &&
+                ['success', 'failure'].includes(outcome) &&
+                app === 'app' &&
+                event === 'pull_request' &&
+                !fork,
+            );
+          }
+        }
+      }
+    }
+  }
+});
+
 test('bundle report publishing isolates write credentials from PR build code', () => {
-  const workflow = readWorkflow('bundle-size.yml');
-  const measure = jobBlock(workflow, 'measure', 'bundle-size.yml');
-  const comment = jobBlock(workflow, 'comment', 'bundle-size.yml');
+  const workflow = readWorkflow('_bundle-size.yml');
+  const measure = jobBlock(workflow, 'measure', '_bundle-size.yml');
+  const comment = jobBlock(workflow, 'comment', '_bundle-size.yml');
   assert.match(measure, /permissions:\n {6}contents: read\n {4}strategy:/);
   assert.doesNotMatch(measure, /: write/);
   assert.match(measure, /uses: actions\/upload-artifact@/);
@@ -968,8 +1086,9 @@ test('bundle report publishing isolates write credentials from PR build code', (
   }
 });
 
-test('dataset diagnostic freezes inspected control before the exact candidate checkout', () => {
-  const workflow = readWorkflow('dataset-diagnostic.yml');
+test('dataset job freezes inspected control before the exact candidate checkout', () => {
+  const entrypoint = readWorkflow('dataset-diagnostic.yml');
+  const workflow = readWorkflow('_dataset-acceptance.yml');
   for (const field of ['USER', 'PASSWORD']) {
     const service = workflow.match(
       new RegExp(`^ {10}POSTGRES_${field}: (.+)$`, 'm'),
@@ -981,12 +1100,12 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
     assert.equal(job, service);
   }
   assert.match(workflow, /uses: \.\/\.control-actions\/setup-bun-env/);
-  assert.match(workflow, /^ {2}workflow_dispatch:/m);
+  assert.match(entrypoint, /^ {2}workflow_dispatch:/m);
   assert.doesNotMatch(
-    workflow,
+    entrypoint,
     /^ {2}(?:pull_request|push|schedule|workflow_call):/m,
   );
-  assert.match(workflow, /^ {4}timeout-minutes: 20$/m);
+  assert.match(workflow, /inputs.group == 'dataset-scale' && 40 \|\| 20/);
   assert.match(
     workflow,
     /RUNTIME_ACCEPTANCE_JOB_STARTED_MS=\$\(date \+%s%3N\)/,
@@ -1007,11 +1126,11 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
   );
   assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$CANDIDATE_SHA"/);
-  assert.match(workflow, /default: smoke/);
-  assert.match(workflow, /options:\s*- smoke\s*- profile/);
+  assert.match(entrypoint, /default: smoke/);
+  assert.match(entrypoint, /options:\s*- smoke\s*- profile/);
   assert.match(
-    workflow,
-    /DATASET_GROUP: \$\{\{ inputs\.mode == 'profile' && 'dataset-diagnostic' \|\| 'dataset-smoke' \}\}/,
+    entrypoint,
+    /group: \$\{\{ inputs\.mode == 'profile' && 'dataset-diagnostic' \|\| 'dataset-smoke' \}\}/,
   );
   assert.match(workflow, /--group "\$DATASET_GROUP"/);
   assert.match(workflow, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
@@ -1081,8 +1200,9 @@ test('serial runtime acceptance preserves ordinary E2E routing and requires rece
   assert.match(runtime, /timeout-minutes: 60/);
   assert.match(runtime, /TURBO_TOKEN: ''/);
   assert.doesNotMatch(workflow, /RUNTIME_ACCEPTANCE_OWNER_CONTRACT/);
-  assert.match(runtime, /image: pgvector\/pgvector:pg17/);
-  assert.match(runtime, /image: redis:7/);
+  const services = parseYaml(workflow).jobs['runtime-acceptance'].services;
+  assert.equal(services.postgres.image, 'pgvector/pgvector:pg17');
+  assert.equal(services.redis.image, 'redis:7');
   assert.ok(
     runtime.indexOf('Anchor acceptance job deadline') <
       runtime.indexOf('actions/checkout@'),
@@ -1124,7 +1244,7 @@ test('final visual proof uses separate bounded isolation and connected jobs with
   );
   assert.match(isolation, /timeout-minutes: 25/);
   assert.match(connected, /timeout-minutes: 105/);
-  const diagnostic = readWorkflow('dataset-diagnostic.yml');
+  const diagnostic = readWorkflow('_dataset-acceptance.yml');
   for (const field of ['USER', 'PASSWORD']) {
     const expected = diagnostic.match(
       new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
@@ -1349,7 +1469,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
     full,
     /partition: \$\{\{ steps\.partition\.outputs\.partition \}\}/,
   );
-  const diagnostic = readWorkflow('dataset-diagnostic.yml');
+  const diagnostic = readWorkflow('_dataset-acceptance.yml');
   for (const [job, group, minutes, redis] of [
     ['agent-production-acceptance', 'agent-production', 20, true],
     ['brand-acceptance', 'brand-acceptance', 30, false],
@@ -1374,8 +1494,9 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
       block.indexOf('Validate final prerequisites') <
         block.indexOf('Setup Bun environment'),
     );
-    assert.match(block, /image: pgvector\/pgvector:pg17/);
-    assert.equal(block.includes('image: redis:7'), redis);
+    const services = parseYaml(workflow).jobs[job].services;
+    assert.equal(services.postgres.image, 'pgvector/pgvector:pg17');
+    assert.equal(services.redis?.image === 'redis:7', redis);
     assert.equal(block.includes('RUNTIME_ACCEPTANCE_REDIS_ID:'), redis);
     const budget = redis ? 'agent-setup-budget' : 'brand-setup-budget';
     assert.ok(
@@ -1400,9 +1521,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
       const value = block.match(
         new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
       )?.[1];
-      const serviceValue = block.match(
-        new RegExp(`^ {10}POSTGRES_${field}: (.+)$`, 'm'),
-      )?.[1];
+      const serviceValue = services.postgres.env[`POSTGRES_${field}`];
       assert.ok(value);
       assert.equal(value, expected);
       assert.equal(value, serviceValue);
@@ -1729,8 +1848,7 @@ test('diagnostic inputs stay dispatch-only and isolate concurrency from ordinary
 test('runtime acceptance workflows upload plaintext evidence without a public key variable', () => {
   for (const fileName of [
     'e2e.yml',
-    'dataset-diagnostic.yml',
-    'dataset-scale.yml',
+    '_dataset-acceptance.yml',
     'visual-code-isolation.yml',
   ]) {
     const workflow = readWorkflow(fileName);
@@ -1756,4 +1874,111 @@ test('MCP real transport job is planned, required and publishes only its sanitiz
   assert.match(gate, /- mcp-auth-runtime/);
   assert.match(gate, /PLAN_MCP_AUTH_RUNTIME:/);
   assert.match(gate, /MCP_AUTH_RUNTIME_RESULT:/);
+});
+
+test('link routing preserves ready direct PRs across fork trust and heavy callers', () => {
+  const ci = parseYaml(readWorkflow('ci.yml'));
+  const manual = parseYaml(readWorkflow('link-check.yml'));
+  assert.deepEqual(Object.keys(manual.on), ['workflow_dispatch']);
+  assert.equal(manual.name, 'Link Check');
+  assert.deepEqual(manual.concurrency, {
+    group: '${{ github.workflow }}-${{ github.ref }}',
+    'cancel-in-progress': true,
+  });
+  assert.deepEqual(ci.on.pull_request, {
+    branches: ['master'],
+    types: ['opened', 'synchronize', 'reopened', 'ready_for_review'],
+  });
+  const detector = ci.jobs['link-check-detect'];
+  assert.ok(detector, 'direct CI must own Link Check routing');
+  assert.equal(detector.needs, undefined);
+  for (const event of [
+    'pull_request',
+    'push',
+    'workflow_dispatch',
+    'merge_group',
+  ]) {
+    for (const draft of [false, true]) {
+      for (const fork of [false, true]) {
+        for (const heavy of [undefined, false, true]) {
+          for (const association of ['MEMBER', 'CONTRIBUTOR', 'NONE']) {
+            for (const labels of [[], [{ name: 'full-suite' }]]) {
+              const github = {
+                event_name: event,
+                event: {
+                  pull_request: {
+                    draft,
+                    author_association: association,
+                    labels,
+                    head: { repo: { fork } },
+                  },
+                },
+              };
+              assert.equal(
+                runInNewContext(detector.if, {
+                  github,
+                  inputs: { run_heavy_tests: heavy },
+                }),
+                event === 'pull_request' && !draft && heavy !== true,
+              );
+              assert.equal(
+                runInNewContext(manual.jobs.detect.if, { github }),
+                event !== 'pull_request' || !draft,
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+  for (const [workflow, detectorId] of [
+    [ci, 'link-check-detect'],
+    [manual, 'detect'],
+  ]) {
+    for (const [id, name, timeout] of [
+      [detectorId, 'Detect Link-Check Scope', 3],
+      ['website-links', 'Website Links + Orphans + SEO', 20],
+      ['docs-links', 'Docs + Markdown Dead Links', 10],
+    ]) {
+      const job = workflow.jobs[id];
+      assert.ok(job, id);
+      assert.equal(job.name, name);
+      assert.equal(job['runs-on'], 'ubuntu-latest');
+      assert.equal(job['timeout-minutes'], timeout);
+      assert.deepEqual(job.permissions, { contents: 'read' });
+      assert.equal(job.uses, undefined);
+      assert.deepEqual(job.steps[0], {
+        uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+        with: { 'fetch-depth': 0 },
+      });
+      if (id === detectorId) continue;
+      assert.equal(job.needs, detectorId);
+      const scope = id === 'website-links' ? 'website' : 'docs';
+      assert.equal(job.if, `needs.${detectorId}.outputs.${scope} == 'true'`);
+      for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
+        for (const value of ['true', 'false', '']) {
+          // GitHub implicitly requires successful needs when no status function is present.
+          const runnable = runInNewContext(
+            `success() && (${job.if.replaceAll('needs.link-check-detect', 'needs["link-check-detect"]')})`,
+            {
+              success: () => result === 'success',
+              needs: { [detectorId]: { result, outputs: { [scope]: value } } },
+            },
+          );
+          assert.equal(runnable, result === 'success' && value === 'true');
+        }
+      }
+    }
+  }
+  assert.deepEqual(ci.jobs['tests-gate'].needs, [
+    'plan',
+    'static-checks',
+    'spec-typecheck',
+    'test-workspaces',
+    'test-app',
+    'test-api',
+    'cloud-tenant-guard',
+    'mcp-auth-runtime',
+    'build',
+  ]);
 });

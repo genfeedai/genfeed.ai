@@ -28,7 +28,7 @@ function buildProps(
       },
     },
     typeOptions: [
-      { label: 'Image', value: 'image' },
+      { label: 'Image', value: type === 'image-edit' ? 'image-edit' : 'image' },
       { label: 'Video', value: 'video' },
       { label: 'Music', value: 'music' },
     ],
@@ -36,42 +36,43 @@ function buildProps(
   };
 }
 
+function openTypeMenu(): void {
+  const trigger = screen.getByRole('button', { name: /Generation type/ });
+  fireEvent.keyDown(trigger, { key: 'Enter' });
+}
+
 describe('GenerationSetupTypeBar', () => {
-  it('shows every type as an icon button and marks the current one', () => {
+  it('shows the current type as one chip, labelled', () => {
     render(<GenerationSetupTypeBar {...buildProps()} />);
 
-    expect(screen.getByRole('button', { name: 'Image' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'Video' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(screen.getByRole('button', { name: 'Image' })).not.toHaveTextContent(
-      'Image',
-    );
+    expect(
+      screen.getByRole('button', { name: 'Generation type: Image' }),
+    ).toHaveTextContent('Image');
   });
 
-  it('changes the type, and ignores a click on the current one', () => {
+  it('lists every type in the menu and changes it, ignoring the current one', () => {
     const onTypeChange = vi.fn();
     render(<GenerationSetupTypeBar {...buildProps({ onTypeChange })} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
+    openTypeMenu();
+    expect(screen.getByRole('menuitemradio', { name: 'Image' })).toBeChecked();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Image' }));
     expect(onTypeChange).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Video' }));
+    openTypeMenu();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Video' }));
     expect(onTypeChange).toHaveBeenCalledWith('video');
   });
 
-  it('offers Edit as a mode of Image, and only there', () => {
+  it('offers Edit as a toggle under the types, a mode of Image', () => {
     const onChange = vi.fn();
     const imageEditing = { isEnabled: false, onChange };
     const { rerender } = render(
       <GenerationSetupTypeBar {...buildProps({ imageEditing })} />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    openTypeMenu();
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Edit' }));
     expect(onChange).toHaveBeenCalledWith(true);
 
     rerender(
@@ -82,15 +83,27 @@ describe('GenerationSetupTypeBar', () => {
         )}
       />,
     );
-    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    expect(
+      screen.getByRole('button', { name: 'Generation type: Image · Edit' }),
+    ).toBeInTheDocument();
+    openTypeMenu();
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Edit' }),
+    ).toBeChecked();
+  });
+
+  it('does not offer Edit on other types', () => {
+    render(
+      <GenerationSetupTypeBar
+        {...buildProps(
+          { imageEditing: { isEnabled: false, onChange: vi.fn() } },
+          'music',
+        )}
+      />,
     );
 
-    rerender(
-      <GenerationSetupTypeBar {...buildProps({ imageEditing }, 'music')} />,
-    );
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    openTypeMenu();
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Edit' })).toBeNull();
   });
 
   it('shows Edit on Video too, switched off until video editing exists', () => {
@@ -104,25 +117,46 @@ describe('GenerationSetupTypeBar', () => {
       />,
     );
 
-    const edit = screen.getByRole('button', { name: 'Edit' });
-    expect(edit).toBeDisabled();
+    openTypeMenu();
+    const edit = screen.getByRole('menuitemcheckbox', { name: /Edit/ });
+    expect(edit).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(edit);
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('switches between Auto and Advanced without changing layout', () => {
+  it('is one mode button that names the current mode and switches to the other', () => {
     const onChange = vi.fn();
-    render(
+    const { rerender } = render(
       <GenerationSetupTypeBar
         {...buildProps({ advancedMode: { isEnabled: false, onChange } })}
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Auto' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    const auto = screen.getByRole('button', { name: 'Setup mode: Auto' });
+    expect(auto).toHaveTextContent('Auto');
+    fireEvent.click(auto);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+
+    rerender(
+      <GenerationSetupTypeBar
+        {...buildProps({ advancedMode: { isEnabled: true, onChange } })}
+      />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
-    expect(onChange).toHaveBeenCalledWith(true);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Setup mode: Advanced' }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('keeps the type chip but locks it when the surface offers one type', () => {
+    render(
+      <GenerationSetupTypeBar
+        {...buildProps({ typeOptions: [{ label: 'Image', value: 'image' }] })}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Generation type: Image' }),
+    ).toBeDisabled();
   });
 });

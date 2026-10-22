@@ -178,6 +178,45 @@ describe.skipIf(!connectionString)(
       await prisma?.$disconnect();
     });
 
+    it('soft deletes the row and immediately releases its handle for another brand', async () => {
+      const db = database();
+      const originalSlug = brandIds[0];
+
+      await makeService().remove(organizationId, brandIds[0]);
+
+      await db.brand.update({
+        data: { slug: originalSlug },
+        where: { id: brandIds[1], organizationId, isDeleted: false },
+      });
+      const deleted = await db.brand.findUniqueOrThrow({
+        where: { id: brandIds[0] },
+      });
+      expect(deleted).toMatchObject({
+        deletedSlug: originalSlug,
+        id: brandIds[0],
+        isDeleted: true,
+        organizationId,
+        slug: expect.stringMatching(/^deleted-[0-9a-f-]{36}$/),
+      });
+      expect(await db.brand.count({ where: { organizationId } })).toBe(2);
+      expect(
+        await db.member.findUniqueOrThrow({ where: { id: memberIds[0] } }),
+      ).toMatchObject({ currentBrandId: brandIds[1] });
+    });
+
+    it('keeps the last live brand and its handle when deletion is refused', async () => {
+      const db = database();
+      await makeService().remove(organizationId, brandIds[0]);
+
+      await expect(
+        makeService().remove(organizationId, brandIds[1]),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(
+        await db.brand.findUniqueOrThrow({ where: { id: brandIds[1] } }),
+      ).toMatchObject({ isDeleted: false, slug: brandIds[1] });
+    });
+
     it("leaves exactly one live brand when two deletes of the org's last two brands race, and rejects the second with a 409", async () => {
       const serviceA = makeService();
       const serviceB = makeService();

@@ -531,6 +531,82 @@ describe('RouterService', () => {
     });
 
     describe('Image Generation', () => {
+      it('keeps Fastest image scoring ahead of quality, style and default bonuses', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({
+            key: 'slow-styled-default',
+            speedTier: 'slow',
+            qualityTier: 'ultra',
+            capabilities: ['artistic', 'creative', 'stylized'],
+            isDefault: true,
+            isHighlighted: true,
+          }),
+          createMockModel({ key: 'fast-image', speedTier: 'fast' }),
+        ]);
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'speed',
+          prompt: 'A professional detailed artistic portrait illustration',
+        });
+
+        expect(result.selectedModel).toBe('fast-image');
+      });
+
+      it.each(['speed', 'cost'] as const)(
+        'keeps image %s ties and alternative scores independent of prompt bonuses',
+        async (prioritize) => {
+          modelsService.findAllActive.mockResolvedValue([
+            createMockModel({ key: 'first-image', speedTier: 'fast' }),
+            createMockModel({
+              key: 'second-image',
+              speedTier: 'fast',
+              qualityTier: 'ultra',
+              capabilities: ['artistic', 'creative', 'stylized'],
+              isDefault: true,
+              isHighlighted: true,
+            }),
+            createMockModel({ key: 'third-image', speedTier: 'fast' }),
+          ]);
+
+          const result = await service.selectModel({
+            category: ModelCategory.IMAGE,
+            prioritize,
+            prompt: 'A professional detailed artistic portrait illustration',
+          });
+
+          expect(result.selectedModel).toBe('first-image');
+          expect(result.alternatives).toMatchObject([
+            { model: 'second-image', score: prioritize === 'speed' ? 50 : 25 },
+            { model: 'third-image', score: prioritize === 'speed' ? 50 : 25 },
+          ]);
+        },
+      );
+
+      it('does not infer image speed from quality or default flags when speed tiers are missing', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({ key: 'first-unmeasured', speedTier: undefined }),
+          createMockModel({
+            key: 'quality-unmeasured',
+            speedTier: undefined,
+            qualityTier: 'ultra',
+            isDefault: true,
+            isHighlighted: true,
+          }),
+        ]);
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'speed',
+          prompt: 'A professional portrait',
+        });
+
+        expect(result.selectedModel).toBe('first-unmeasured');
+        expect(result.alternatives).toMatchObject([
+          { model: 'quality-unmeasured', score: 0 },
+        ]);
+      });
+
       it('should select fast model for speed-prioritized requests', async () => {
         const fastModel = createMockModel({
           category: ModelCategory.IMAGE,
@@ -752,6 +828,33 @@ describe('RouterService', () => {
         const result = await service.selectModel(options);
 
         expect(result.selectedModel).toBe('large-dimension-model');
+      });
+
+      it('keeps Lowest Cost image scoring ahead of quality and style bonuses', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({
+            key: 'expensive-styled-default',
+            cost: 0.5,
+            costTier: 'high',
+            qualityTier: 'ultra',
+            capabilities: ['artistic', 'creative', 'stylized'],
+            isDefault: true,
+            isHighlighted: true,
+          }),
+          createMockModel({
+            key: 'cheap-image',
+            cost: 0.003,
+            costTier: 'low',
+          }),
+        ]);
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'cost',
+          prompt: 'A professional detailed artistic portrait illustration',
+        });
+
+        expect(result.selectedModel).toBe('cheap-image');
       });
 
       it('should handle cost-prioritized requests', async () => {
