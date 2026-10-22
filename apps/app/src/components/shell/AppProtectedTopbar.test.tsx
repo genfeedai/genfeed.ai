@@ -201,6 +201,7 @@ vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) =>
     (
       ({
+        'common.plugins': { title: 'Plugins', breadcrumbLabel: 'Breadcrumb' },
         'common.appRail': {
           launcher: 'Plugins',
         },

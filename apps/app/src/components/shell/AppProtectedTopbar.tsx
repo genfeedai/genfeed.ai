@@ -119,6 +119,7 @@ function AppProtectedTopbarContent({
   const { settings } = useBrand();
   const agentDock = useAgentDock();
   const translateAgentDock = useTranslations('common.agentDock');
+  const translatePlugins = useTranslations('common.plugins');
 
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
@@ -172,8 +173,10 @@ function AppProtectedTopbarContent({
 
             <div className={cn('min-w-0 md:flex', !isPluginsRoute && 'hidden')}>
               {isPluginsRoute ? (
-                <nav aria-label="Breadcrumb">
-                  <span className="text-sm font-semibold">Plugins</span>
+                <nav aria-label={translatePlugins('breadcrumbLabel')}>
+                  <span className="text-sm font-semibold">
+                    {translatePlugins('title')}
+                  </span>
                 </nav>
               ) : (
                 <TopbarBreadcrumbs

@@ -2504,6 +2504,7 @@
   },
   "plugins": {
     "title": "Plugins",
+    "breadcrumbLabel": "Breadcrumb",
     "allCategories": "All categories",
     "selectApp": "Select {app}",
     "selectedApp": "{app}, selected",
