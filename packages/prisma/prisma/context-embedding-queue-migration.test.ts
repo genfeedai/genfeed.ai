@@ -123,4 +123,57 @@ describe('context embedding durable admission migration', () => {
     expect(body).not.toContain('NEW."finalizedAt"');
     expect(body).not.toContain('NEW."failedAt"');
   });
+  it('preserves every original immutable-evidence clause verbatim before the narrow promotion exception', () => {
+    const legacy = readFileSync(
+      new URL(
+        './migrations/20260904230000_knowledge_source_space_contracts/migration.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    const start = legacy.indexOf(
+      '  IF ROW(NEW."id"',
+      legacy.indexOf('CREATE FUNCTION knowledge_preserve_version'),
+    );
+    const end = legacy.indexOf('  IF NOT OLD."isCurrent"');
+    expect(sql).toContain(legacy.slice(start, end));
+    expect(sql).toContain(
+      'CREATE OR REPLACE FUNCTION knowledge_preserve_version()',
+    );
+    expect(sql).toContain(
+      "RAISE EXCEPTION 'Historical Knowledge versions cannot become current'",
+    );
+  });
+
+  it('requires a bound transaction/actor witness plus independent whole-candidate vector and predecessor proof', () => {
+    const guard = sql.slice(
+      sql.indexOf('CREATE OR REPLACE FUNCTION knowledge_preserve_version()'),
+    );
+    for (const text of [
+      "current_setting('genfeed.knowledge_candidate_promotion', true)",
+      'txid_current()::text',
+      "'actor', manifest.",
+      "'expectedCurrentVersionId'",
+      "'orderedChunksHash'",
+      "current_setting('genfeed.knowledge_predecessor_retirement', true)",
+      "PERFORM set_config('genfeed.knowledge_predecessor_retirement'",
+      "'predecessorVersionId', OLD.",
+      "'predecessorVersionId', refresh_run.",
+      'previous."supersededByVersionId" = OLD."id"',
+      'total_chunks <> manifest."expectedChunkCount"',
+      'entry."knowledgeEmbeddingManifestId" IS DISTINCT FROM manifest."id"',
+      'entry."knowledgeChunkIndex" >= total_chunks',
+      'vector_dims(entry."embedding") = 1024',
+      'job."status" =',
+      'job."contentHash" = encode(sha256',
+      'job."actorUserId" =',
+      'to_jsonb(job."actorScopes")',
+      'OLD."supersededByVersionId" IS NOT NULL',
+    ])
+      expect(guard).toContain(text);
+    expect(guard).not.toContain('xmin');
+    expect(guard).not.toContain('4294967296');
+    expect(guard).not.toContain('workflow_stable_json');
+    expect(guard).not.toContain('skill_stable_json');
+  });
 });

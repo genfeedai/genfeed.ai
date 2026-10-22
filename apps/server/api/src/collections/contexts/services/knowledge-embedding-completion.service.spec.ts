@@ -117,11 +117,13 @@ function fixture() {
     $queryRaw: vi
       .fn()
       .mockImplementation(async (query: Prisma.Sql) =>
-        query.sql.includes('AS "valid"')
-          ? [{ valid: true }]
-          : query.sql.includes('COUNT(*)')
-            ? [{ count: 1 }]
-            : [],
+        query.sql.includes('LIMIT 201 FOR UPDATE')
+          ? [{ id: entry.id }]
+          : query.sql.includes('AS "valid"')
+            ? [{ valid: true }]
+            : query.sql.includes('COUNT(*)')
+              ? [{ count: 1 }]
+              : [],
       ),
     $executeRaw: vi.fn().mockResolvedValue(1),
   };
@@ -343,11 +345,13 @@ describe('sealed Knowledge embedding generations', () => {
     );
     f.tx.contextEntry.findMany.mockResolvedValue([]);
     f.tx.$queryRaw.mockImplementation(async (query: Prisma.Sql) =>
-      query.sql.includes('AS "valid"')
-        ? [{ valid: true }]
-        : query.sql.includes('COUNT(*)')
-          ? [{ count: 0 }]
-          : [],
+      query.sql.includes('LIMIT 201 FOR UPDATE')
+        ? []
+        : query.sql.includes('AS "valid"')
+          ? [{ valid: true }]
+          : query.sql.includes('COUNT(*)')
+            ? [{ count: 0 }]
+            : [],
     );
     await expect(f.service.complete('org', 'source', 'version')).resolves.toBe(
       'completed',
@@ -430,4 +434,130 @@ describe('sealed Knowledge embedding generations', () => {
       expect(f.tx.knowledgeSourceVersion.updateMany).not.toHaveBeenCalled();
     },
   );
+  it('binds the validated actor and transaction only after locked canonical readiness, and settles after promotion', async () => {
+    const f = fixture();
+    f.version.isCurrent = false;
+    await expect(f.service.complete('org', 'source', 'version')).resolves.toBe(
+      'completed',
+    );
+    const queries = f.tx.$queryRaw.mock.calls.map(([query]) => query);
+    const lockIndex = queries.findIndex((query) =>
+      query.sql.includes('LIMIT 201 FOR UPDATE'),
+    );
+    const witnessIndex = queries.findIndex((query) =>
+      query.sql.includes('jsonb_build_object'),
+    );
+    expect(lockIndex).toBeGreaterThan(-1);
+    expect(witnessIndex).toBeGreaterThan(lockIndex);
+    expect(queries[witnessIndex]?.sql).toContain('txid_current()::text');
+    const actorValue = queries[witnessIndex]?.values.find(
+      (value: unknown) => typeof value === 'string' && value.startsWith('{'),
+    );
+    if (typeof actorValue !== 'string')
+      throw new Error('Missing actual actor witness binding');
+    expect(JSON.parse(actorValue)).toEqual(f.actor);
+    expect(f.writer.assertActor).toHaveBeenCalledTimes(2);
+    expect(
+      f.tx.$queryRaw.mock.invocationCallOrder[witnessIndex],
+    ).toBeGreaterThan(
+      f.writer.assertActor.mock.invocationCallOrder[1] ?? Infinity,
+    );
+    const promotionOrder =
+      f.tx.knowledgeSourceVersion.updateMany.mock.invocationCallOrder[1];
+    expect(promotionOrder).toBeGreaterThan(
+      f.tx.$queryRaw.mock.invocationCallOrder[witnessIndex] ?? Infinity,
+    );
+    expect(
+      f.tx.knowledgeSourceRefreshRun.updateMany.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(promotionOrder ?? Infinity);
+    expect(
+      f.tx.knowledgeEmbeddingManifest.updateMany.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(
+      f.tx.knowledgeSourceRefreshRun.updateMany.mock.invocationCallOrder[0] ??
+        Infinity,
+    );
+    expect(
+      queries.some((query) =>
+        query.sql.includes(
+          "set_config('genfeed.knowledge_candidate_promotion', '', true)",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('clears the transaction retirement receipt only after successful promotion', async () => {
+    const f = fixture();
+    f.version.isCurrent = false;
+    await f.service.complete('org', 'source', 'version');
+    expect(
+      f.tx.$queryRaw.mock.calls.some(([query]) =>
+        query.sql.includes(
+          "set_config('genfeed.knowledge_predecessor_retirement', '', true)",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it.each(['candidate', 'settlement'])(
+    'rolls back when the expected single %s mutation is lost',
+    async (kind) => {
+      const f = fixture();
+      f.version.isCurrent = false;
+      if (kind === 'candidate')
+        f.tx.knowledgeSourceVersion.updateMany
+          .mockResolvedValueOnce({ count: 1 })
+          .mockResolvedValueOnce({ count: 0 });
+      else
+        f.tx.knowledgeSourceRefreshRun.updateMany.mockResolvedValue({
+          count: 0,
+        });
+      await expect(
+        f.service.complete('org', 'source', 'version'),
+      ).rejects.toThrow('changed');
+      expect(f.tx.knowledgeEmbeddingManifest.updateMany).not.toHaveBeenCalled();
+      if (kind === 'candidate') {
+        expect(
+          f.tx.knowledgeSourceRefreshRun.updateMany,
+        ).not.toHaveBeenCalled();
+        expect(
+          f.tx.$queryRaw.mock.calls.some(([query]) =>
+            query.sql.includes("knowledge_predecessor_retirement', '', true"),
+          ),
+        ).toBe(false);
+      }
+    },
+  );
+
+  it('rechecks live actor authority after readiness and before creating a witness', async () => {
+    const f = fixture();
+    f.version.isCurrent = false;
+    f.writer.assertActor
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('revoked before promotion'));
+    await expect(
+      f.service.complete('org', 'source', 'version'),
+    ).rejects.toThrow('revoked');
+    expect(f.tx.knowledgeSourceVersion.updateMany).not.toHaveBeenCalled();
+    expect(
+      f.tx.$queryRaw.mock.calls.some(([query]) =>
+        query.sql.includes('jsonb_build_object'),
+      ),
+    ).toBe(false);
+  });
+
+  it('does not ignore extra live candidate rows outside the sealed manifest', async () => {
+    const f = fixture();
+    f.version.isCurrent = false;
+    const original = f.tx.$queryRaw.getMockImplementation();
+    f.tx.$queryRaw.mockImplementation(async (query: Prisma.Sql) =>
+      query.sql.includes('LIMIT 201 FOR UPDATE')
+        ? [{ id: 'entry' }, { id: 'stray' }]
+        : (original?.(query) ?? []),
+    );
+    await expect(f.service.complete('org', 'source', 'version')).resolves.toBe(
+      'queued',
+    );
+    expect(f.tx.contextEntry.findMany).not.toHaveBeenCalled();
+    expect(f.tx.knowledgeSourceVersion.updateMany).not.toHaveBeenCalled();
+  });
 });

@@ -222,6 +222,73 @@ describe('actual predecessor migration upgrade', () => {
           )
         ).rows,
       ).toEqual([{ embeddingGeneration: 1 }]);
+      await client.query('BEGIN');
+      try {
+        await client.query(
+          'UPDATE knowledge_source_versions SET "isCurrent"=false,"retrievalState"=\'SUPERSEDED\',"supersededByVersionId"=$3 WHERE id=$1 AND "organizationId"=$2',
+          [version, org, newVersion],
+        );
+        await expect(
+          client.query(
+            'UPDATE knowledge_source_versions SET "isCurrent"=true WHERE id=$1 AND "organizationId"=$2',
+            [version, org],
+          ),
+        ).rejects.toThrow(
+          'Historical Knowledge versions cannot become current',
+        );
+      } finally {
+        await client.query('ROLLBACK');
+      }
+      await expect(
+        client.query(
+          'UPDATE knowledge_source_versions SET "contentHash"=$3 WHERE id=$1 AND "organizationId"=$2',
+          [version, org, 'sha256:' + '0'.repeat(64)],
+        ),
+      ).rejects.toThrow('receipt identity is immutable');
+      await expect(
+        client.query(
+          'UPDATE knowledge_source_versions SET payload=$3::jsonb WHERE id=$1 AND "organizationId"=$2',
+          [version, org, JSON.stringify({ text: 'forged legacy evidence' })],
+        ),
+      ).rejects.toThrow('evidence is immutable');
+      expect(
+        (
+          await client.query(
+            'SELECT "isCurrent","embeddingGeneration","contentHash","provenance","payload","retentionState" FROM knowledge_source_versions WHERE id=$1 AND "organizationId"=$2',
+            [version, org],
+          )
+        ).rows,
+      ).toEqual([
+        {
+          isCurrent: true,
+          embeddingGeneration: 0,
+          ...legacyEvidenceBefore.rows[0],
+        },
+      ]);
+      expect(
+        (
+          await client.query(
+            'SELECT encode(vector_send(embedding),\'hex\') AS bytes FROM context_entries WHERE id=$1 AND "organizationId"=$2',
+            [entry, org],
+          )
+        ).rows,
+      ).toEqual(before.rows);
+      expect(
+        (
+          await client.query(
+            'SELECT count(*)::int AS count FROM context_embedding_jobs WHERE "organizationId"=$1',
+            [org],
+          )
+        ).rows,
+      ).toEqual([{ count: 0 }]);
+      expect(
+        (
+          await client.query(
+            'SELECT count(*)::int AS count FROM knowledge_embedding_manifests WHERE "organizationId"=$1',
+            [org],
+          )
+        ).rows,
+      ).toEqual([{ count: 0 }]);
       const constraints = await client.query<{ conname: string }>(
         `SELECT conname FROM pg_constraint WHERE conrelid IN ('context_entries'::regclass,'context_embedding_jobs'::regclass) AND contype='c'`,
       );
@@ -295,6 +362,7 @@ describe('actual predecessor migration upgrade', () => {
             migrationInventory: inventory,
             migrationCount: inventory.length,
             legacyVectorBytesPreserved: true,
+            legacyRevivalAndEvidenceRewriteRejected: true,
             legacyEvidencePreserved: legacyEvidenceAfter.rows[0],
             legacyGeneration: 0,
             historicalJobs: 0,

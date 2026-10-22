@@ -157,6 +157,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       await client.query(`
         CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
         CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
+        CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
         CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id));
         CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
         INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
@@ -164,8 +165,12 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-b', 'org-a'), ('brand-c', 'org-b');
         CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
         CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "userId" text NOT NULL REFERENCES users(id), "roleId" text NOT NULL REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false);
+        CREATE TABLE "_member_brands" ("A" text NOT NULL REFERENCES brands(id), "B" text NOT NULL REFERENCES members(id), UNIQUE("A","B"));
         INSERT INTO roles(id,key) VALUES ('admin','admin'),('ordinary','user');
         INSERT INTO members(id,"organizationId","userId","roleId") VALUES ('canonical-admin','org-a','legacyBase62User','admin'),('canonical-member','org-a','otherUser','ordinary');
+        INSERT INTO members(id,"organizationId","userId","roleId") VALUES ('canonical-foreign-member','org-b','legacyBase62User','ordinary');
+        INSERT INTO "_member_brands"("A","B") VALUES ('brand-c','canonical-foreign-member'),('brand-a','canonical-member');
+        INSERT INTO api_keys(id,"userId","organizationId",scopes) VALUES ('knowledge-controller-key','legacyBase62User','org-a',ARRAY['*','admin']);
         CREATE TABLE context_bases (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
         CREATE TABLE context_entries (id text PRIMARY KEY, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
       `);
@@ -257,6 +262,15 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ).rejects.toMatchObject({ status: denied === otherTenant ? 403 : 404 });
       expect((await records.listSources(denied)).docs).toHaveLength(0);
     }
+    await expect(
+      records.getSource(
+        { ...anotherUser, organizationId: 'org-b', brandId: 'brand-c' },
+        source.id,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      records.getSource({ ...anotherUser, brandId: 'brand-b' }, source.id),
+    ).rejects.toMatchObject({ status: 403 });
     const personal = await createSource(KnowledgeMemoryScope.PERSONAL);
     await expect(
       records.getSource(anotherUser, personal.id),
@@ -800,7 +814,25 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ...actor,
       brandId: actor.organizationId,
       isApiKey: true,
+      apiKeyId: 'knowledge-controller-key',
+      scopes: ['*', 'admin'],
     };
+    await expect(
+      sources.find(
+        request,
+        { ...apiKeyUser, apiKeyId: undefined },
+        source.id,
+        actor.brandId,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      sources.find(
+        request,
+        { ...apiKeyUser, apiKeyId: 'nonexistent-controller-key' },
+        source.id,
+        actor.brandId,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
     expect(
       await sources.find(request, apiKeyUser, source.id, actor.brandId),
     ).toMatchObject({ data: { id: source.id } });

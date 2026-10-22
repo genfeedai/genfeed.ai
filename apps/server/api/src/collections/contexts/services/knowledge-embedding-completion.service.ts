@@ -477,6 +477,13 @@ export class KnowledgeEmbeddingCompletionService {
     version: KnowledgeSourceVersion,
     manifest: KnowledgeEmbeddingManifest,
   ): Promise<boolean> {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id" FROM "context_entries"
+      WHERE "organizationId" = ${version.organizationId} AND "knowledgeSourceId" = ${version.sourceId}
+        AND "knowledgeSourceVersionId" = ${version.id} AND "isDeleted" = false
+      ORDER BY "id" ASC LIMIT 201 FOR UPDATE
+    `);
+    if (locked.length !== manifest.expectedChunkCount) return false;
     const rows = await tx.contextEntry.findMany({
       where: {
         organizationId: version.organizationId,
@@ -619,6 +626,7 @@ export class KnowledgeEmbeddingCompletionService {
       source.brandId ?? undefined,
     );
     this.assertPersonalOwner(source, actor.userId);
+    return actor;
   }
 
   private async promote(
@@ -628,15 +636,33 @@ export class KnowledgeEmbeddingCompletionService {
     manifest: KnowledgeEmbeddingManifest,
   ) {
     const now = new Date();
-    if (!version.isCurrent) {
-      // assertVersionEligible checked the expected predecessor under this same source lock.
-      await tx.knowledgeSourceVersion.updateMany({
+    const actor = await this.assertManifestActor(tx, manifest, source);
+    await this.assertVersionEligible(tx, version);
+    const run = version.isCurrent
+      ? null
+      : await tx.knowledgeSourceRefreshRun.findFirst({
+          where: scopedWhere(source.organizationId, {
+            sourceId: source.id,
+            candidateVersionId: version.id,
+            status: {
+              in: [
+                KnowledgeRefreshRunStatus.QUEUED,
+                KnowledgeRefreshRunStatus.PROCESSING,
+              ],
+            },
+          }),
+        });
+    const predecessorId = run?.expectedCurrentVersionId;
+    if (!version.isCurrent && !predecessorId)
+      throw new ForbiddenException('Knowledge refresh predecessor changed');
+    if (run && predecessorId) {
+      const retired = await tx.knowledgeSourceVersion.updateMany({
         where: {
           organizationId: source.organizationId,
           sourceId: source.id,
           isCurrent: true,
           isDeleted: false,
-          id: { not: version.id },
+          id: predecessorId,
         },
         data: {
           isCurrent: false,
@@ -644,27 +670,24 @@ export class KnowledgeEmbeddingCompletionService {
           supersededByVersionId: version.id,
         },
       });
+      if (retired.count !== 1)
+        throw new ConflictException('Knowledge predecessor changed');
       await softDeleteKnowledgeChunks(tx, source.organizationId, {
         sourceId: source.id,
         exceptVersionId: version.id,
       });
-      await tx.knowledgeSourceRefreshRun.updateMany({
-        where: {
-          organizationId: source.organizationId,
-          sourceId: source.id,
-          candidateVersionId: version.id,
-          isDeleted: false,
-          status: {
-            in: [
-              KnowledgeRefreshRunStatus.QUEUED,
-              KnowledgeRefreshRunStatus.PROCESSING,
-            ],
-          },
-        },
-        data: { completedAt: now, outcome: 'CHANGED', status: 'COMPLETED' },
-      });
+      await tx.$queryRaw(Prisma.sql`
+        SELECT set_config('genfeed.knowledge_candidate_promotion', jsonb_build_object(
+          'transactionId', txid_current()::text,
+          'organizationId', ${source.organizationId}::text, 'sourceId', ${source.id}::text,
+          'candidateVersionId', ${version.id}::text, 'generation', ${manifest.generation}::integer,
+          'manifestId', ${manifest.id}::text, 'orderedChunksHash', ${manifest.orderedChunksHash}::text,
+          'modelIdentifier', ${manifest.modelIdentifier}::text, 'runId', ${run.id}::text,
+          'expectedCurrentVersionId', ${predecessorId}::text, 'actor', ${JSON.stringify(actor)}::jsonb
+        )::text, true)
+      `);
     }
-    await tx.knowledgeSourceVersion.updateMany({
+    const promoted = await tx.knowledgeSourceVersion.updateMany({
       where: {
         organizationId: source.organizationId,
         sourceId: source.id,
@@ -678,6 +701,30 @@ export class KnowledgeEmbeddingCompletionService {
         processingError: null,
       },
     });
+    if (promoted.count !== 1)
+      throw new ConflictException('Knowledge candidate changed');
+    if (run && predecessorId) {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT set_config('genfeed.knowledge_candidate_promotion', '', true), set_config('genfeed.knowledge_predecessor_retirement', '', true)`,
+      );
+      const settled = await tx.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(source.organizationId, {
+          id: run.id,
+          sourceId: source.id,
+          candidateVersionId: version.id,
+          expectedCurrentVersionId: predecessorId,
+          status: {
+            in: [
+              KnowledgeRefreshRunStatus.QUEUED,
+              KnowledgeRefreshRunStatus.PROCESSING,
+            ],
+          },
+        }),
+        data: { completedAt: now, outcome: 'CHANGED', status: 'COMPLETED' },
+      });
+      if (settled.count !== 1)
+        throw new ConflictException('Knowledge refresh settlement changed');
+    }
     const validators = record(manifest.observedValidators);
     await tx.knowledgeSource.updateMany({
       where: {

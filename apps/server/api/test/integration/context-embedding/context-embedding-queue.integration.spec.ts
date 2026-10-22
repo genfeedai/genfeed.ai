@@ -151,6 +151,267 @@ async function finishKnowledge(
   ).resolves.toBe('completed');
 }
 
+async function promotionCandidate(world: EmbeddingWorld, empty = false) {
+  const initial = await knowledge(world, [
+    'promotion predecessor ' + randomUUID(),
+  ]);
+  await finishKnowledge(world, initial);
+  const text = 'promotion candidate ' + randomUUID();
+  const candidate = await runtime.db.knowledgeSourceVersion.create({
+    data: {
+      sourceId: initial.source.id,
+      organizationId: world.organizationId,
+      version: 2,
+      isCurrent: false,
+      contentHash: 'sha256:' + createHash('sha256').update(text).digest('hex'),
+      payload: { text },
+      provenance: { kind: 'TEXT', fixture: 'synthetic promotion candidate' },
+      observedAt: new Date(),
+    },
+  });
+  const run = await runtime.db.knowledgeSourceRefreshRun.create({
+    data: {
+      organizationId: world.organizationId,
+      sourceId: initial.source.id,
+      tickKey: 'manual-version:' + candidate.id,
+      candidateVersionId: candidate.id,
+      expectedCurrentVersionId: initial.version.id,
+      status: 'PROCESSING',
+    },
+  });
+  const input = {
+    ...initial.input,
+    versionId: candidate.id,
+    admissionExecutionId: randomUUID(),
+    chunks: empty
+      ? []
+      : [0, 1].map((chunkIndex) => ({
+          content: text + ' chunk ' + chunkIndex,
+          metadata: {
+            chunkIndex,
+            sourceId: initial.source.id,
+            versionId: candidate.id,
+          },
+        })),
+  };
+  const manifest = await runtime.completion.stage(input);
+  await waitFor(
+    async () =>
+      (await runtime.db.contextEmbeddingJob.count({
+        where: {
+          organizationId: world.organizationId,
+          isDeleted: false,
+          status: { not: 'SUCCEEDED' },
+          contextEntry: {
+            is: {
+              knowledgeSourceVersionId: candidate.id,
+              organizationId: world.organizationId,
+              isDeleted: false,
+            },
+          },
+        },
+      })) === 0,
+  );
+  const entries = await runtime.db.contextEntry.findMany({
+    where: {
+      organizationId: world.organizationId,
+      knowledgeSourceId: initial.source.id,
+      knowledgeSourceVersionId: candidate.id,
+      isDeleted: false,
+    },
+    orderBy: { knowledgeChunkIndex: 'asc' },
+  });
+  return { initial, candidate, run, manifest, input, entries };
+}
+
+async function databasePromotionWitness(
+  tx: Prisma.TransactionClient,
+  world: EmbeddingWorld,
+  item: Awaited<ReturnType<typeof promotionCandidate>>,
+) {
+  const rows = await tx.$queryRaw<
+    Array<{ witness: Record<string, unknown> }>
+  >(Prisma.sql`
+    SELECT jsonb_build_object(
+      'transactionId', txid_current()::text,
+      'organizationId', m."organizationId", 'sourceId', m."sourceId",
+      'candidateVersionId', m."versionId", 'generation', m."generation",
+      'manifestId', m."id", 'orderedChunksHash', m."orderedChunksHash",
+      'modelIdentifier', m."modelIdentifier", 'runId', run."id",
+      'expectedCurrentVersionId', run."expectedCurrentVersionId", 'actor', m."initiatingActor"
+    ) AS witness FROM "knowledge_embedding_manifests" m
+    JOIN "knowledge_source_refresh_runs" run ON run."candidateVersionId" = m."versionId"
+      AND run."sourceId" = m."sourceId" AND run."organizationId" = m."organizationId"
+    WHERE m."id" = ${item.manifest.id} AND m."organizationId" = ${world.organizationId}
+  `);
+  if (!rows[0]) throw new Error('Missing actual test witness state');
+  return rows[0].witness;
+}
+
+async function verifyPromotionControl(
+  world: EmbeddingWorld,
+  item: Awaited<ReturnType<typeof promotionCandidate>>,
+  savepoint = false,
+) {
+  const control = { accepted: false };
+  await expect(
+    runtime.db.$transaction(async (tx) => {
+      await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "knowledge_sources"
+      WHERE "id" = ${item.initial.source.id} AND "organizationId" = ${world.organizationId} AND "isDeleted" = false FOR UPDATE`);
+      if (savepoint) await tx.$executeRawUnsafe('SAVEPOINT valid_promotion');
+      await tx.knowledgeSourceVersion.updateMany({
+        where: {
+          id: item.initial.version.id,
+          sourceId: item.initial.source.id,
+          organizationId: world.organizationId,
+          isCurrent: true,
+          isDeleted: false,
+        },
+        data: {
+          isCurrent: false,
+          retrievalState: 'SUPERSEDED',
+          supersededByVersionId: item.candidate.id,
+        },
+      });
+      const witness = await databasePromotionWitness(tx, world, item);
+      await tx.$queryRaw(
+        Prisma.sql`SELECT set_config('genfeed.knowledge_candidate_promotion', ${JSON.stringify(witness)}::text, true)`,
+      );
+      expect(
+        await tx.$executeRaw(Prisma.sql`UPDATE "knowledge_source_versions" SET "isCurrent" = true, "processingState" = 'READY'
+      WHERE "id" = ${item.candidate.id} AND "sourceId" = ${item.initial.source.id} AND "organizationId" = ${world.organizationId} AND "isDeleted" = false`),
+      ).toBe(1);
+      expect(
+        await tx.knowledgeSourceVersion.findFirst({
+          where: {
+            id: item.candidate.id,
+            sourceId: item.initial.source.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+          },
+        }),
+      ).toMatchObject({ isCurrent: true, processingState: 'READY' });
+      control.accepted = true;
+      throw new Error('verified valid SQL promotion control rollback');
+    }),
+  ).rejects.toThrow('verified valid SQL promotion control rollback');
+  expect(control.accepted).toBe(true);
+  expect(
+    await runtime.db.knowledgeSourceVersion.findFirst({
+      where: {
+        id: item.initial.version.id,
+        sourceId: item.initial.source.id,
+        organizationId: world.organizationId,
+        isDeleted: false,
+      },
+    }),
+  ).toMatchObject({ isCurrent: true, retrievalState: 'ACTIVE' });
+}
+
+async function verifyRetirementReceiptIsolation(
+  world: EmbeddingWorld,
+  item: Awaited<ReturnType<typeof promotionCandidate>>,
+) {
+  const captured = { receipt: '' };
+  await runtime.db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe('SAVEPOINT retirement_receipt');
+    await tx.knowledgeSourceVersion.updateMany({
+      where: {
+        id: item.initial.version.id,
+        sourceId: item.initial.source.id,
+        organizationId: world.organizationId,
+        isCurrent: true,
+        isDeleted: false,
+      },
+      data: {
+        isCurrent: false,
+        retrievalState: 'SUPERSEDED',
+        supersededByVersionId: item.candidate.id,
+      },
+    });
+    const before = await tx.$queryRaw<Array<{ receipt: string | null }>>(
+      Prisma.sql`SELECT current_setting('genfeed.knowledge_predecessor_retirement', true) AS receipt`,
+    );
+    expect(before[0]?.receipt).toBeTruthy();
+    captured.receipt = before[0]?.receipt ?? '';
+    await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT retirement_receipt');
+    const after = await tx.$queryRaw<Array<{ receipt: string | null }>>(
+      Prisma.sql`SELECT NULLIF(current_setting('genfeed.knowledge_predecessor_retirement', true), '') AS receipt`,
+    );
+    expect(after[0]?.receipt ?? null).toBeNull();
+    expect(
+      await tx.knowledgeSourceVersion.findFirst({
+        where: {
+          id: item.initial.version.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toMatchObject({ isCurrent: true, retrievalState: 'ACTIVE' });
+  });
+  expect(captured.receipt).not.toBe('');
+  // A fresh actual retirement makes every relational prerequisite valid; only the old transaction receipt differs.
+  await expect(
+    runtime.db.$transaction(async (tx) => {
+      await tx.knowledgeSourceVersion.updateMany({
+        where: {
+          id: item.initial.version.id,
+          sourceId: item.initial.source.id,
+          organizationId: world.organizationId,
+          isCurrent: true,
+          isDeleted: false,
+        },
+        data: {
+          isCurrent: false,
+          retrievalState: 'SUPERSEDED',
+          supersededByVersionId: item.candidate.id,
+        },
+      });
+      const witness = await databasePromotionWitness(tx, world, item);
+      await tx.$queryRaw(Prisma.sql`SELECT
+      set_config('genfeed.knowledge_candidate_promotion', ${JSON.stringify(witness)}::text, true),
+      set_config('genfeed.knowledge_predecessor_retirement', ${captured.receipt}::text, true)`);
+      await tx.$executeRaw(Prisma.sql`UPDATE "knowledge_source_versions"
+      SET "isCurrent" = true, "processingState" = 'READY'
+      WHERE "id" = ${item.candidate.id} AND "organizationId" = ${world.organizationId}
+        AND "sourceId" = ${item.initial.source.id} AND NOT "isDeleted"`);
+    }),
+  ).rejects.toThrow('Historical Knowledge versions cannot become current');
+  // An actual rolled-back retirement leaves neither its row change nor its LOCAL receipt.
+  await expect(
+    runtime.db.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SAVEPOINT discarded_retirement');
+      await tx.knowledgeSourceVersion.updateMany({
+        where: {
+          id: item.initial.version.id,
+          sourceId: item.initial.source.id,
+          organizationId: world.organizationId,
+          isCurrent: true,
+          isDeleted: false,
+        },
+        data: {
+          isCurrent: false,
+          retrievalState: 'SUPERSEDED',
+          supersededByVersionId: item.candidate.id,
+        },
+      });
+      await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT discarded_retirement');
+      const receipt = await tx.$queryRaw<Array<{ receipt: string | null }>>(
+        Prisma.sql`SELECT NULLIF(current_setting('genfeed.knowledge_predecessor_retirement', true), '') AS receipt`,
+      );
+      expect(receipt[0]?.receipt ?? null).toBeNull();
+      const witness = await databasePromotionWitness(tx, world, item);
+      await tx.$queryRaw(
+        Prisma.sql`SELECT set_config('genfeed.knowledge_candidate_promotion', ${JSON.stringify(witness)}::text, true)`,
+      );
+      await tx.$executeRaw(Prisma.sql`UPDATE "knowledge_source_versions"
+      SET "isCurrent" = true, "processingState" = 'READY'
+      WHERE "id" = ${item.candidate.id} AND "organizationId" = ${world.organizationId}
+        AND "sourceId" = ${item.initial.source.id} AND NOT "isDeleted"`);
+    }),
+  ).rejects.toThrow('Historical Knowledge versions cannot become current');
+}
+
 describe('real context embedding database and WorkerHost acceptance', () => {
   beforeAll(async () => {
     runtime = new ContextEmbeddingRuntime();
@@ -726,6 +987,423 @@ describe('real context embedding database and WorkerHost acceptance', () => {
       [2, 1, 'SUCCEEDED'],
     ]);
     expect(calls(text)).toBe(2);
+  });
+
+  it('rejects forged candidate transitions across the actual SQL witness/vector/actor matrix and rolls back its predecessor', async () => {
+    const world = await runtime.world();
+    const foreign = await runtime.world();
+    const item = await promotionCandidate(world);
+    await verifyPromotionControl(world, item);
+    await verifyPromotionControl(world, item, true);
+    await verifyRetirementReceiptIsolation(world, item);
+    const entry = item.entries[0];
+    if (!entry) throw new Error('Missing actually embedded candidate chunk');
+    const oldTx = await runtime.db.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`SELECT txid_current()::text AS id`,
+    );
+    const modes = [
+      'absent-witness',
+      'malformed-witness',
+      'wrong-transaction',
+      'wrong-candidate',
+      'wrong-tenant',
+      'wrong-source',
+      'wrong-run',
+      'wrong-actor',
+      'wrong-hash',
+      'wrong-model',
+      'wrong-generation',
+      'missing-run',
+      'failed-run',
+      'completed-run',
+      'wrong-predecessor',
+      'missing-manifest',
+      'failed-manifest',
+      'unsealed-manifest',
+      'wrong-manifest-generation',
+      'expired-candidate',
+      'purged-candidate',
+      'erased-candidate',
+      'deleted-candidate',
+      'retired-candidate',
+      'deleted-source',
+      'deleted-actor',
+      'partial-chunks',
+      'gap-chunks',
+      'extra-chunk',
+      'extra-wrong-manifest',
+      'stale-content',
+      'stale-model',
+      'stale-generation',
+      'stale-stored-generation',
+      'missing-job',
+      'failed-job',
+      'missing-vector',
+      'ledger-actor',
+      'receipt-rewrite',
+      'evidence-rewrite',
+      'ownership-rewrite',
+    ];
+    for (const mode of modes) {
+      await expect(
+        runtime.db.$transaction(async (tx) => {
+          await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "knowledge_sources"
+          WHERE "id" = ${item.initial.source.id} AND "organizationId" = ${world.organizationId} AND "isDeleted" = false FOR UPDATE`);
+          await tx.knowledgeSourceVersion.updateMany({
+            where: {
+              id: item.initial.version.id,
+              organizationId: world.organizationId,
+              sourceId: item.initial.source.id,
+              isDeleted: false,
+              isCurrent: true,
+            },
+            data: {
+              isCurrent: false,
+              retrievalState: 'SUPERSEDED',
+              supersededByVersionId: item.candidate.id,
+            },
+          });
+          const versionWhere = {
+            id: item.candidate.id,
+            sourceId: item.initial.source.id,
+            organizationId: world.organizationId,
+          };
+          const entryWhere = {
+            id: entry.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+          };
+          const runWhere = {
+            id: item.run.id,
+            sourceId: item.initial.source.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+          };
+          const manifestWhere = {
+            id: item.manifest.id,
+            sourceId: item.initial.source.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+          };
+          const jobWhere = {
+            contextEntryId: entry.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+            generation: item.manifest.generation,
+          };
+          if (mode === 'missing-run')
+            await tx.knowledgeSourceRefreshRun.updateMany({
+              where: runWhere,
+              data: { isDeleted: true },
+            });
+          if (mode === 'failed-run' || mode === 'completed-run')
+            await tx.knowledgeSourceRefreshRun.updateMany({
+              where: runWhere,
+              data: { status: mode === 'failed-run' ? 'FAILED' : 'COMPLETED' },
+            });
+          if (mode === 'wrong-predecessor')
+            await tx.knowledgeSourceRefreshRun.updateMany({
+              where: runWhere,
+              data: { expectedCurrentVersionId: foreign.ownerId },
+            });
+          if (mode === 'missing-manifest')
+            await tx.knowledgeEmbeddingManifest.updateMany({
+              where: manifestWhere,
+              data: { isDeleted: true },
+            });
+          if (mode === 'failed-manifest')
+            await tx.knowledgeEmbeddingManifest.updateMany({
+              where: manifestWhere,
+              data: { failedAt: new Date() },
+            });
+          if (mode === 'unsealed-manifest')
+            await tx.$executeRaw(
+              Prisma.sql`UPDATE "knowledge_embedding_manifests" SET "sealedAt" = NULL WHERE "id" = ${item.manifest.id} AND "organizationId" = ${world.organizationId} AND "isDeleted" = false`,
+            );
+          if (mode === 'wrong-manifest-generation')
+            await tx.knowledgeEmbeddingManifest.updateMany({
+              where: manifestWhere,
+              data: { generation: item.manifest.generation + 1 },
+            });
+          if (mode === 'expired-candidate')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: { expiresAt: new Date(0) },
+            });
+          if (mode === 'purged-candidate' || mode === 'erased-candidate')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: {
+                retentionState:
+                  mode === 'purged-candidate'
+                    ? 'PAYLOAD_PURGED'
+                    : 'POLICY_ERASED',
+                payload: Prisma.DbNull,
+                provenance: Prisma.DbNull,
+                purgedAt: new Date(),
+              },
+            });
+          if (mode === 'deleted-candidate')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: { isDeleted: true },
+            });
+          if (mode === 'retired-candidate')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: {
+                retrievalState: 'SUPERSEDED',
+                supersededByVersionId: item.initial.version.id,
+              },
+            });
+          if (mode === 'deleted-source')
+            await tx.knowledgeSource.updateMany({
+              where: {
+                id: item.initial.source.id,
+                organizationId: world.organizationId,
+                isDeleted: false,
+              },
+              data: { isDeleted: true },
+            });
+          if (mode === 'deleted-actor')
+            await tx.user.updateMany({
+              where: { id: world.ownerId, isDeleted: false },
+              data: { isDeleted: true },
+            });
+          if (mode === 'partial-chunks')
+            await tx.contextEntry.updateMany({
+              where: entryWhere,
+              data: { isDeleted: true },
+            });
+          if (mode === 'gap-chunks')
+            await tx.contextEntry.updateMany({
+              where: entryWhere,
+              data: { knowledgeChunkIndex: 3 },
+            });
+          if (mode === 'extra-chunk' || mode === 'extra-wrong-manifest')
+            await tx.contextEntry.create({
+              data: {
+                organizationId: world.organizationId,
+                contextBaseId: item.initial.base.id,
+                knowledgeSourceId: item.initial.source.id,
+                knowledgeSourceVersionId: item.candidate.id,
+                ...(mode === 'extra-chunk'
+                  ? {
+                      knowledgeEmbeddingManifestId: item.manifest.id,
+                      knowledgeChunkIndex: 2,
+                    }
+                  : {}),
+                embeddingGeneration: item.manifest.generation,
+                data: { content: 'unadmitted extra chunk' },
+              },
+            });
+          if (mode === 'stale-content')
+            await tx.contextEntry.updateMany({
+              where: entryWhere,
+              data: {
+                data: { content: 'changed after embedding', metadata: {} },
+              },
+            });
+          if (mode === 'stale-model')
+            await tx.contextEmbeddingJob.updateMany({
+              where: jobWhere,
+              data: { modelIdentifier: 'different-model' },
+            });
+          if (mode === 'stale-generation')
+            await tx.contextEntry.updateMany({
+              where: entryWhere,
+              data: { embeddingGeneration: item.manifest.generation + 1 },
+            });
+          if (mode === 'stale-stored-generation')
+            await tx.contextEntry.updateMany({
+              where: entryWhere,
+              data: { embeddingStoredGeneration: 0 },
+            });
+          if (mode === 'missing-job')
+            await tx.contextEmbeddingJob.updateMany({
+              where: jobWhere,
+              data: { isDeleted: true },
+            });
+          if (mode === 'failed-job')
+            await tx.contextEmbeddingJob.updateMany({
+              where: jobWhere,
+              data: { status: 'FAILED' },
+            });
+          if (mode === 'missing-vector')
+            await tx.$executeRaw(
+              Prisma.sql`UPDATE "context_entries" SET "embedding" = NULL WHERE "id" = ${entry.id} AND "organizationId" = ${world.organizationId} AND "isDeleted" = false`,
+            );
+          if (mode === 'ledger-actor')
+            await tx.contextEmbeddingJob.updateMany({
+              where: jobWhere,
+              data: { actorUserId: foreign.ownerId },
+            });
+          if (mode === 'receipt-rewrite')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: { contentHash: 'sha256:' + '0'.repeat(64) },
+            });
+          if (mode === 'evidence-rewrite')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: { provenance: { forged: true } },
+            });
+          if (mode === 'ownership-rewrite')
+            await tx.knowledgeSourceVersion.updateMany({
+              where: versionWhere,
+              data: { organizationId: foreign.organizationId },
+            });
+          const witness = await databasePromotionWitness(tx, world, item);
+          if (mode === 'wrong-run') witness.runId = randomUUID();
+          if (mode === 'wrong-transaction')
+            witness.transactionId = oldTx[0]?.id;
+          if (mode === 'wrong-candidate')
+            witness.candidateVersionId = item.initial.version.id;
+          if (mode === 'wrong-tenant')
+            witness.organizationId = foreign.organizationId;
+          if (mode === 'wrong-source') witness.sourceId = foreign.baseId;
+          if (mode === 'wrong-actor') witness.actor = foreign.actor;
+          if (mode === 'wrong-hash') witness.orderedChunksHash = '0'.repeat(64);
+          if (mode === 'wrong-model')
+            witness.modelIdentifier = 'different-model';
+          if (mode === 'wrong-generation')
+            witness.generation = item.manifest.generation + 1;
+          if (mode !== 'absent-witness')
+            await tx.$queryRaw(Prisma.sql`
+          SELECT set_config('genfeed.knowledge_candidate_promotion', ${mode === 'malformed-witness' ? '{invalid' : JSON.stringify(witness)}::text, true)
+        `);
+          await tx.$executeRaw(Prisma.sql`
+          UPDATE "knowledge_source_versions" SET "isCurrent" = true, "processingState" = 'READY',
+            "retrievalState" = 'ACTIVE', "supersededByVersionId" = NULL, "isDeleted" = false
+          WHERE "id" = ${item.candidate.id} AND "organizationId" = ${world.organizationId} AND "sourceId" = ${item.initial.source.id}
+        `);
+        }),
+        mode,
+      ).rejects.toThrow();
+      expect(
+        await runtime.db.knowledgeSourceVersion.findFirst({
+          where: {
+            id: item.initial.version.id,
+            organizationId: world.organizationId,
+            sourceId: item.initial.source.id,
+            isDeleted: false,
+          },
+        }),
+        mode,
+      ).toMatchObject({ isCurrent: true, retrievalState: 'ACTIVE' });
+      expect(
+        await runtime.db.knowledgeSourceVersion.findFirst({
+          where: {
+            id: item.candidate.id,
+            organizationId: world.organizationId,
+            sourceId: item.initial.source.id,
+            isDeleted: false,
+          },
+        }),
+        mode,
+      ).toMatchObject({ isCurrent: false, processingState: 'PROCESSING' });
+    }
+    const hits = await runtime.retrieval.retrieveSelectedBrandContentMemory(
+      {
+        organizationId: world.organizationId,
+        brandId: world.brandId,
+        userId: world.ownerId,
+        query: 'promotion predecessor',
+      },
+      [item.initial.source.id],
+    );
+    expect(
+      hits.every((hit) => hit.citation?.versionId === item.initial.version.id),
+    ).toBe(true);
+    expect(hits.length).toBeGreaterThan(0);
+    measurements.push({
+      case: 'promotion-witness-adversarial',
+      negativeCases: modes.length,
+      actualWorkerVectors: item.entries.length,
+    });
+    await expect(
+      runtime.completion.complete(
+        world.organizationId,
+        item.initial.source.id,
+        item.candidate.id,
+      ),
+    ).resolves.toBe('completed');
+    expect(
+      await runtime.db.knowledgeSourceVersion.findFirst({
+        where: {
+          id: item.candidate.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toMatchObject({ isCurrent: true, processingState: 'READY' });
+    expect(
+      await runtime.db.knowledgeSourceRefreshRun.findFirst({
+        where: {
+          id: item.run.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toMatchObject({ status: 'COMPLETED' });
+  });
+
+  it('promotes an empty sealed manual candidate only when it has no live candidate chunks', async () => {
+    const world = await runtime.world();
+    const item = await promotionCandidate(world, true);
+    await verifyPromotionControl(world, item);
+    await expect(
+      runtime.db.$transaction(async (tx) => {
+        await tx.contextEntry.create({
+          data: {
+            organizationId: world.organizationId,
+            contextBaseId: item.initial.base.id,
+            knowledgeSourceId: item.initial.source.id,
+            knowledgeSourceVersionId: item.candidate.id,
+            data: { content: 'outside the empty manifest' },
+          },
+        });
+        await expect(
+          runtime.completion.assertReady(tx, item.candidate),
+        ).rejects.toThrow('incomplete');
+        await tx.knowledgeSourceVersion.updateMany({
+          where: {
+            id: item.initial.version.id,
+            sourceId: item.initial.source.id,
+            organizationId: world.organizationId,
+            isCurrent: true,
+            isDeleted: false,
+          },
+          data: {
+            isCurrent: false,
+            retrievalState: 'SUPERSEDED',
+            supersededByVersionId: item.candidate.id,
+          },
+        });
+        const witness = await databasePromotionWitness(tx, world, item);
+        await tx.$queryRaw(
+          Prisma.sql`SELECT set_config('genfeed.knowledge_candidate_promotion', ${JSON.stringify(witness)}::text, true)`,
+        );
+        await tx.$executeRaw(Prisma.sql`UPDATE "knowledge_source_versions" SET "isCurrent" = true, "processingState" = 'READY'
+        WHERE "id" = ${item.candidate.id} AND "sourceId" = ${item.initial.source.id} AND "organizationId" = ${world.organizationId} AND "isDeleted" = false`);
+      }),
+    ).rejects.toThrow('Historical Knowledge versions cannot become current');
+    await expect(
+      runtime.completion.complete(
+        world.organizationId,
+        item.initial.source.id,
+        item.candidate.id,
+      ),
+    ).resolves.toBe('completed');
+    expect(
+      await runtime.db.contextEntry.count({
+        where: {
+          organizationId: world.organizationId,
+          knowledgeSourceId: item.initial.source.id,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(0);
   });
 
   it('keeps the predecessor searchable until a fully embedded refresh swaps atomically, and preserves it after candidate failure', async () => {

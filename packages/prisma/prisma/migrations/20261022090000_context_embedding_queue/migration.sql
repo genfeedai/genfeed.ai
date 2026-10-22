@@ -218,3 +218,141 @@ ALTER TABLE "context_embedding_jobs"
     OR ("sourceMemoryId" IS NOT NULL AND "sourceSnapshotHash" IS NOT NULL
       AND "sourceSnapshotHash" ~ '^[a-f0-9]{64}$')
   );
+
+-- Only a live, fully indexed candidate admitted by this transaction may replace its predecessor.
+CREATE OR REPLACE FUNCTION knowledge_preserve_version() RETURNS trigger LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
+DECLARE
+  witness JSONB;
+  manifest knowledge_embedding_manifests%ROWTYPE;
+  refresh_run knowledge_source_refresh_runs%ROWTYPE;
+  total_chunks INTEGER;
+  valid_chunks INTEGER;
+BEGIN
+  IF ROW(NEW."id", NEW."organizationId", NEW."sourceId", NEW."version", NEW."contentHash", NEW."observedAt", NEW."createdAt") IS DISTINCT FROM
+     ROW(OLD."id", OLD."organizationId", OLD."sourceId", OLD."version", OLD."contentHash", OLD."observedAt", OLD."createdAt") THEN
+    RAISE EXCEPTION 'Knowledge receipt identity is immutable';
+  END IF;
+  IF OLD."retentionState" = 'POLICY_ERASED' AND NEW."retentionState" <> 'POLICY_ERASED' THEN
+    RAISE EXCEPTION 'Knowledge policy erasure is terminal';
+  END IF;
+  IF OLD."retentionState" IN ('PAYLOAD_PURGED', 'POLICY_ERASED') AND NEW."retentionState" NOT IN ('PAYLOAD_PURGED', 'POLICY_ERASED') THEN
+    RAISE EXCEPTION 'Knowledge payload purge is irreversible';
+  END IF;
+  IF (NEW."payload" IS DISTINCT FROM OLD."payload" OR NEW."provenance" IS DISTINCT FROM OLD."provenance") AND
+     NOT (NEW."retentionState" IN ('PAYLOAD_PURGED', 'POLICY_ERASED') AND NEW."payload" IS NULL AND NEW."provenance" IS NULL) THEN
+    RAISE EXCEPTION 'Knowledge evidence is immutable except payload purge';
+  END IF;
+  IF OLD."isCurrent" AND NOT NEW."isCurrent"
+     AND NEW."retrievalState" = 'SUPERSEDED' AND NEW."supersededByVersionId" IS NOT NULL THEN
+    PERFORM set_config('genfeed.knowledge_predecessor_retirement', jsonb_build_object(
+      'transactionId', txid_current()::text,
+      'organizationId', OLD."organizationId", 'sourceId', OLD."sourceId",
+      'predecessorVersionId', OLD."id", 'candidateVersionId', NEW."supersededByVersionId"
+    )::text, true);
+  END IF;
+  IF NOT OLD."isCurrent" AND NEW."isCurrent" THEN
+    witness := NULLIF(current_setting('genfeed.knowledge_candidate_promotion', true), '')::jsonb;
+    IF OLD."isDeleted" OR NEW."isDeleted"
+       OR OLD."retentionState" <> 'RETAINED' OR NEW."retentionState" <> 'RETAINED'
+       OR OLD."retrievalState" <> 'ACTIVE' OR NEW."retrievalState" <> 'ACTIVE'
+       OR OLD."supersededByVersionId" IS NOT NULL OR NEW."supersededByVersionId" IS NOT NULL
+       OR OLD."processingState" <> 'PROCESSING' OR NEW."processingState" <> 'READY'
+       OR OLD."embeddingGeneration" < 1 OR NEW."embeddingGeneration" IS DISTINCT FROM OLD."embeddingGeneration"
+       OR (OLD."expiresAt" IS NOT NULL AND OLD."expiresAt" <= clock_timestamp())
+       OR (NEW."expiresAt" IS NOT NULL AND NEW."expiresAt" <= clock_timestamp()) THEN
+      RAISE EXCEPTION 'Historical Knowledge versions cannot become current';
+    END IF;
+    SELECT * INTO manifest FROM knowledge_embedding_manifests m
+      WHERE m."organizationId" = OLD."organizationId" AND m."sourceId" = OLD."sourceId"
+        AND m."versionId" = OLD."id" AND m."generation" = OLD."embeddingGeneration"
+        AND NOT m."isDeleted" AND m."sealedAt" IS NOT NULL
+        AND m."failedAt" IS NULL AND m."finalizedAt" IS NULL;
+    SELECT * INTO refresh_run FROM knowledge_source_refresh_runs run
+      WHERE run."organizationId" = OLD."organizationId" AND run."sourceId" = OLD."sourceId"
+        AND run."candidateVersionId" = OLD."id" AND NOT run."isDeleted"
+        AND run."status" IN ('QUEUED', 'PROCESSING');
+    IF manifest."id" IS NULL OR refresh_run."id" IS NULL
+       OR witness IS DISTINCT FROM jsonb_build_object(
+         'transactionId', txid_current()::text,
+         'organizationId', OLD."organizationId", 'sourceId', OLD."sourceId",
+         'candidateVersionId', OLD."id", 'generation', OLD."embeddingGeneration",
+         'manifestId', manifest."id", 'orderedChunksHash', manifest."orderedChunksHash",
+         'modelIdentifier', manifest."modelIdentifier", 'runId', refresh_run."id",
+         'expectedCurrentVersionId', refresh_run."expectedCurrentVersionId",
+         'actor', manifest."initiatingActor"
+       )
+       OR NULLIF(current_setting('genfeed.knowledge_predecessor_retirement', true), '')::jsonb
+          IS DISTINCT FROM jsonb_build_object(
+            'transactionId', txid_current()::text,
+            'organizationId', OLD."organizationId", 'sourceId', OLD."sourceId",
+            'predecessorVersionId', refresh_run."expectedCurrentVersionId",
+            'candidateVersionId', OLD."id"
+          )
+       OR jsonb_typeof(manifest."initiatingActor") IS DISTINCT FROM 'object'
+       OR manifest."initiatingActor"->>'organizationId' IS DISTINCT FROM OLD."organizationId"
+       OR jsonb_typeof(manifest."initiatingActor"->'isApiKey') IS DISTINCT FROM 'boolean'
+       OR jsonb_typeof(manifest."initiatingActor"->'scopes') IS DISTINCT FROM 'array'
+       OR NOT EXISTS (
+         SELECT 1 FROM knowledge_source_versions previous
+         WHERE previous."id" = refresh_run."expectedCurrentVersionId"
+           AND previous."id" <> OLD."id" AND previous."sourceId" = OLD."sourceId"
+           AND previous."organizationId" = OLD."organizationId" AND NOT previous."isDeleted"
+           AND NOT previous."isCurrent" AND previous."retrievalState" = 'SUPERSEDED'
+           AND previous."supersededByVersionId" = OLD."id"
+       )
+       OR NOT EXISTS (
+         SELECT 1 FROM knowledge_sources source
+         JOIN organizations org ON org."id" = source."organizationId" AND NOT org."isDeleted"
+         JOIN users actor ON actor."id" = manifest."initiatingActor"->>'userId' AND NOT actor."isDeleted"
+         WHERE source."id" = OLD."sourceId" AND source."organizationId" = OLD."organizationId"
+           AND NOT source."isDeleted" AND source."isVisible"
+           AND source."staleAt" IS NULL AND source."syncState" IS DISTINCT FROM 'STALE'
+           AND (source."scope" <> 'personal' OR source."userId" = actor."id")
+           AND (source."brandId" IS NULL OR EXISTS (
+             SELECT 1 FROM brands brand WHERE brand."id" = source."brandId"
+               AND brand."organizationId" = source."organizationId" AND NOT brand."isDeleted"
+           ))
+       ) THEN
+      RAISE EXCEPTION 'Historical Knowledge versions cannot become current';
+    END IF;
+    -- Check the whole live candidate, including stray rows outside this manifest/generation.
+    SELECT count(*)::int INTO total_chunks FROM context_entries entry
+      WHERE entry."organizationId" = OLD."organizationId" AND entry."knowledgeSourceId" = OLD."sourceId"
+        AND entry."knowledgeSourceVersionId" = OLD."id" AND NOT entry."isDeleted";
+    IF total_chunks <> manifest."expectedChunkCount" OR EXISTS (
+      SELECT 1 FROM context_entries entry
+      WHERE entry."organizationId" = OLD."organizationId" AND entry."knowledgeSourceId" = OLD."sourceId"
+        AND entry."knowledgeSourceVersionId" = OLD."id" AND NOT entry."isDeleted"
+        AND (entry."knowledgeEmbeddingManifestId" IS DISTINCT FROM manifest."id"
+          OR entry."embeddingGeneration" <> manifest."generation"
+          OR entry."embeddingStoredGeneration" <> manifest."generation"
+          OR entry."knowledgeChunkIndex" IS NULL
+          OR entry."knowledgeChunkIndex" < 0 OR entry."knowledgeChunkIndex" >= total_chunks)
+    ) THEN
+      RAISE EXCEPTION 'Historical Knowledge versions cannot become current';
+    END IF;
+    IF total_chunks > 0 THEN
+      SELECT count(*)::int INTO valid_chunks FROM context_entries entry
+        JOIN context_bases base ON base."id" = entry."contextBaseId"
+          AND base."organizationId" = entry."organizationId" AND NOT base."isDeleted"
+        JOIN context_embedding_jobs job ON job."contextEntryId" = entry."id"
+          AND job."organizationId" = entry."organizationId" AND NOT job."isDeleted"
+          AND job."generation" = manifest."generation" AND job."status" = 'SUCCEEDED'
+        WHERE entry."organizationId" = OLD."organizationId" AND entry."knowledgeSourceId" = OLD."sourceId"
+          AND entry."knowledgeSourceVersionId" = OLD."id" AND NOT entry."isDeleted"
+          AND entry."embedding" IS NOT NULL AND vector_dims(entry."embedding") = 1024
+          AND jsonb_typeof(entry."data"->'content') = 'string'
+          AND job."contentHash" = encode(sha256(convert_to(entry."data"->>'content', 'UTF8')), 'hex')
+          AND job."modelIdentifier" = manifest."modelIdentifier" AND job."dimension" = 1024
+          AND job."origin" = 'ACTOR'
+          AND job."actorUserId" = manifest."initiatingActor"->>'userId'
+          AND job."actorIsApiKey" = (manifest."initiatingActor"->>'isApiKey')::boolean
+          AND job."actorApiKeyId" IS NOT DISTINCT FROM manifest."initiatingActor"->>'apiKeyId'
+          AND to_jsonb(job."actorScopes") = manifest."initiatingActor"->'scopes';
+      IF valid_chunks <> total_chunks THEN
+        RAISE EXCEPTION 'Historical Knowledge versions cannot become current';
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
