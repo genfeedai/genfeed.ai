@@ -23,16 +23,24 @@ const BEYOND_DEFAULT_TOOLSETS = [
 ] as const satisfies readonly ToolsetName[];
 
 describe('MCP toolset profiles', () => {
+  it('loads brand publishing readiness alongside scheduling on the bare URL', () => {
+    const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
+      (tool) => tool.name,
+    );
+    expect(names).toContain('list_brand_publishing_readiness');
+    expect(names).toContain('create_scheduled_release');
+  });
+
   it('pins truthful canonical maximum and ordinary role profile counts', () => {
     const defaults = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
-    expect(BARE_MCP_URL_TOOL_CAP).toBe(25);
-    expect(defaults).toHaveLength(25);
+    expect(BARE_MCP_URL_TOOL_CAP).toBe(26);
+    expect(defaults).toHaveLength(26);
     expect(
       defaults.filter((tool) => tool.requiredRole === 'user'),
-    ).toHaveLength(24);
+    ).toHaveLength(25);
     expect(
       getToolsForToolsets('mcp', DIRECTORY_MCP_PROFILE_TOOLSETS),
-    ).toHaveLength(19);
+    ).toHaveLength(20);
   });
   it('uses default for the bare URL and exposes the three profile names', () => {
     expect(BARE_URL_MCP_PROFILE).toBe('default');

@@ -151,6 +151,11 @@ export function validateVerdict(run, jobs, expected) {
   if (matching.length === 0)
     throw new PropagationError('Actual validation verdict has not propagated');
   requireValue(matching.length === 1, 'Duplicate actual validation verdicts');
+  if (
+    ['queued', 'in_progress'].includes(matching[0].status) &&
+    matching[0].conclusion === null
+  )
+    throw new PropagationError('Actual validation verdict is not completed');
   requireValue(
     matching[0].status === 'completed' && matching[0].conclusion === 'success',
     'Actual validation verdict is not completed success',

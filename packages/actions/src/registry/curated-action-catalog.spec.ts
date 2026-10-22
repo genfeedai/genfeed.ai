@@ -435,7 +435,7 @@ describe('curated action catalog', () => {
       ['list_x_account_activity', 'social-inbox'],
       ['get_brand_completeness', 'brand'],
       ['get_brand_context', 'brand'],
-      ['list_brand_publishing_readiness', 'brand'],
+      ['list_brand_publishing_readiness', 'scheduler'],
       ['start_brand_interview', 'brand'],
       ['list_meta_ad_accounts', 'ads'],
       ['list_ads_research', 'ads'],

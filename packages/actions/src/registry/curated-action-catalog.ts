@@ -363,7 +363,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'list_brand_publishing_readiness',
     surfaces: ['mcp'],
-    toolset: 'brand',
+    toolset: 'scheduler',
   },
   { name: 'list_clip_projects', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'list_genfeed_tools', surfaces: ['agent'], toolset: 'core' },
