@@ -66,8 +66,8 @@ jobs:
             (e.g. "feat(studio): add batch generate"). See CONTRIBUTING.md → Pull-request contract.
 
   server-image:
-    name: ${{ github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened"]'), github.event.action) && 'Build Server Image' || 'Not selected - server image' }}
-    if: ${{ !cancelled() && (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened"]'), github.event.action)) }}
+    name: ${{ github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) && 'Build Server Image' || 'Not selected - server image' }}
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action)) }}
     permissions:
       contents: read
     concurrency:
