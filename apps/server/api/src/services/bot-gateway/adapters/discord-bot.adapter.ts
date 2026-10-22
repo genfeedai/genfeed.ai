@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { downloadDiscordAttachment } from '@libs/security/discord-media-attachment';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -280,28 +281,57 @@ export class DiscordBotAdapter implements IBotPlatformAdapter {
     try {
       const webhookUrl = `${this.discordApiUrl}/webhooks/${applicationId}/${interactionToken}`;
 
-      const payload: Record<string, unknown> = {
-        content: caption || '',
-      };
-
-      if (type === 'image') {
-        payload.embeds = [
-          {
-            image: { url: mediaUrl },
-          },
-        ];
-      } else {
-        // For video, just send the URL - Discord will embed it
-        payload.content = `${caption || ''}\n${mediaUrl}`;
-      }
-
-      await firstValueFrom(
-        this.httpService.post(webhookUrl, payload, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }),
+      // The result URL is a short-lived grant that is dead by the time the
+      // reply is read, so the media is uploaded with the reply. A download
+      // that fails or does not fit falls back to the link.
+      const upload = await downloadDiscordAttachment(
+        mediaUrl,
+        'generated',
+        type,
       );
+
+      if (upload) {
+        const form = new FormData();
+        form.append(
+          'payload_json',
+          JSON.stringify({
+            attachments: [{ filename: upload.name, id: 0 }],
+            content: caption || '',
+            ...(type === 'image'
+              ? { embeds: [{ image: { url: `attachment://${upload.name}` } }] }
+              : {}),
+          }),
+        );
+        form.append(
+          'files[0]',
+          new Blob([new Uint8Array(upload.attachment)]),
+          upload.name,
+        );
+        await firstValueFrom(this.httpService.post(webhookUrl, form));
+      } else {
+        const payload: Record<string, unknown> = {
+          content: caption || '',
+        };
+
+        if (type === 'image') {
+          payload.embeds = [
+            {
+              image: { url: mediaUrl },
+            },
+          ];
+        } else {
+          // For video, just send the URL - Discord will embed it
+          payload.content = `${caption || ''}\n${mediaUrl}`;
+        }
+
+        await firstValueFrom(
+          this.httpService.post(webhookUrl, payload, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }),
+        );
+      }
 
       this.loggerService.log(`${url} sent followup media`, { type });
     } catch (error: unknown) {

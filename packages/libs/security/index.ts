@@ -27,6 +27,11 @@ export {
   safeFetch,
 } from '@libs/security/destination-guard';
 export {
+  DISCORD_ATTACHMENT_MAX_BYTES,
+  downloadDiscordAttachment,
+  type IDiscordMediaAttachment,
+} from '@libs/security/discord-media-attachment';
+export {
   assertSafeSegment,
   createPathSecurity,
   createPathSecurityClass,

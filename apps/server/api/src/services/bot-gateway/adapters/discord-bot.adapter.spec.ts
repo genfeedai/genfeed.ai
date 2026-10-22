@@ -15,6 +15,14 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 
+const { mockDownloadDiscordAttachment } = vi.hoisted(() => ({
+  mockDownloadDiscordAttachment: vi.fn(),
+}));
+
+vi.mock('@libs/security/discord-media-attachment', () => ({
+  downloadDiscordAttachment: mockDownloadDiscordAttachment,
+}));
+
 describe('DiscordBotAdapter', () => {
   let adapter: DiscordBotAdapter;
   let configService: vi.Mocked<ConfigService>;
@@ -319,6 +327,35 @@ describe('DiscordBotAdapter', () => {
   });
 
   describe('sendFollowupMedia', () => {
+    beforeEach(() => {
+      mockDownloadDiscordAttachment.mockResolvedValue(null);
+    });
+
+    it('should upload the media with the reply when it can be copied', async () => {
+      mockDownloadDiscordAttachment.mockResolvedValue({
+        attachment: Buffer.from('bytes'),
+        name: 'generated.png',
+      });
+      httpService.post.mockReturnValue(of({ data: {} }) as never);
+
+      await adapter.sendFollowupMedia(
+        mockApplicationId,
+        mockToken,
+        'https://cdn.example.com/image.png?Signature=secret',
+        'image',
+        'Check this out',
+      );
+
+      const form = httpService.post.mock.calls[0][1] as FormData;
+      expect(form).toBeInstanceOf(FormData);
+      const payload = JSON.parse(String(form.get('payload_json'))) as {
+        embeds: Array<{ image: { url: string } }>;
+      };
+      expect(payload.embeds[0].image.url).toBe('attachment://generated.png');
+      expect((form.get('files[0]') as File).name).toBe('generated.png');
+      expect(JSON.stringify(payload)).not.toContain('Signature');
+    });
+
     it('should send image embed for type "image"', async () => {
       httpService.post.mockReturnValue(of({ data: {} }) as never);
 

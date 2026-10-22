@@ -9,6 +9,14 @@ import { DiscordBotService } from '@notifications/services/discord/discord-bot.s
 import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import type { WebhookMessageCreateOptions } from 'discord.js';
 
+const { mockDownloadDiscordAttachment } = vi.hoisted(() => ({
+  mockDownloadDiscordAttachment: vi.fn(),
+}));
+
+vi.mock('@libs/security/discord-media-attachment', () => ({
+  downloadDiscordAttachment: mockDownloadDiscordAttachment,
+}));
+
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
     getCallerName: vi.fn().mockReturnValue('testCaller'),
@@ -91,6 +99,12 @@ describe('DiscordService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDownloadDiscordAttachment.mockImplementation(
+      async (_url: string, baseName: string, kind: string) => ({
+        attachment: Buffer.from('media'),
+        name: `${baseName}.${kind === 'video' ? 'mp4' : 'png'}`,
+      }),
+    );
     mockDiscordBotService.botReady = false;
     mockSend.mockResolvedValue(undefined);
     mockConfigService.isDiscordEnabled.mockReturnValue(true);
@@ -385,7 +399,10 @@ describe('DiscordService', () => {
       };
       expect(embed.color).toBe(0x00ff00);
       expect(embed.title).toBe(`New ${IngredientCategory.IMAGE} Generated`);
-      expect(embed.image).toEqual({ url: 'https://cdn/img.png' });
+      expect(embed.image).toEqual({ url: 'attachment://ing-1.png' });
+      expect(payload.files).toEqual([
+        { attachment: Buffer.from('media'), name: 'ing-1.png' },
+      ]);
       expect(embed.url).toContain(
         `/ingredients/${IngredientCategory.IMAGE}/ing-1`,
       );
@@ -434,7 +451,10 @@ describe('DiscordService', () => {
       expect(mockSend).toHaveBeenCalledTimes(2);
       const firstPayload = mockSend.mock
         .calls[0][0] as WebhookMessageCreateOptions;
-      expect(firstPayload.content).toBe('https://cdn/vid.mp4');
+      expect(firstPayload.content).toBeUndefined();
+      expect(firstPayload.files).toEqual([
+        { attachment: Buffer.from('media'), name: 'ing-2-video.mp4' },
+      ]);
       expect(firstPayload.embeds).toBeUndefined();
       expect(lastSendPayload().content).toBeUndefined();
 
@@ -444,13 +464,49 @@ describe('DiscordService', () => {
         image?: { url: string };
       };
       expect(embed.color).toBe(0x0099ff);
-      expect(embed.image).toEqual({ url: 'https://cdn/thumb.png' });
+      expect(embed.image).toEqual({ url: 'attachment://ing-2.png' });
       expect(embed.fields).toEqual([
         { inline: true, name: 'Duration', value: '8s' },
       ]);
     });
 
-    it('should fall back to cdn url when app url is not configured', async () => {
+    it('never links the short-lived media URL from the card', async () => {
+      const { service } = await createService();
+
+      await service.sendIngredientNotification(
+        IngredientCategory.IMAGE,
+        'https://cdn/img.png?Signature=secret',
+        { id: 'ing-1' },
+      );
+
+      expect(JSON.stringify(mockSend.mock.calls)).not.toContain('Signature');
+      expect(JSON.stringify(mockLoggerService.log.mock.calls)).not.toContain(
+        'Signature',
+      );
+    });
+
+    it('posts the card without an image when the media cannot be copied', async () => {
+      mockDownloadDiscordAttachment.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await service.sendIngredientNotification(
+        IngredientCategory.VIDEO,
+        'https://cdn/vid.mp4',
+        { id: 'ing-2', thumbnailUrl: 'https://cdn/thumb.png' },
+      );
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const payload = lastSendPayload();
+      expect(payload.files).toBeUndefined();
+      const [embed] = (payload.embeds ?? []) as Array<{ image?: unknown }>;
+      expect(embed.image).toBeUndefined();
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('media unavailable'),
+        expect.objectContaining({ ingredientId: 'ing-2' }),
+      );
+    });
+
+    it('should leave the card unlinked when app url is not configured', async () => {
       mockConfigService.get.mockReturnValue(undefined);
       const { service } = await createService();
 
@@ -464,7 +520,7 @@ describe('DiscordService', () => {
         color: number;
         url: string;
       };
-      expect(embed.url).toBe('https://cdn/audio.mp3');
+      expect(embed.url).toBeUndefined();
       expect(embed.color).toBe(0xff00ff);
     });
 

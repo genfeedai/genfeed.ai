@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { downloadDiscordAttachment } from '@libs/security/discord-media-attachment';
 import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
@@ -179,8 +180,6 @@ export class DiscordService {
             : null;
 
         const buttons = this.buildIngredientButtons(
-          category,
-          cdnUrl,
           ingredientManagerUrl,
           layoutUrl,
         );
@@ -189,19 +188,37 @@ export class DiscordService {
           color: embedColor,
           timestamp: new Date().toISOString(),
           title: embedTitle,
-          url: ingredientManagerUrl || cdnUrl,
         };
+
+        if (ingredientManagerUrl) {
+          embed.url = ingredientManagerUrl;
+        }
 
         if (fields.length > 0) {
           embed.fields = fields;
         }
 
-        if (category === IngredientCategory.IMAGE) {
-          embed.image = { url: cdnUrl };
-        } else if (category === IngredientCategory.VIDEO) {
-          if (ingredient.thumbnailUrl) {
-            embed.image = { url: ingredient.thumbnailUrl };
-          }
+        // The media URLs are short-lived grants that expire before anyone may
+        // open the card, so the media is attached rather than linked.
+        const stillSource =
+          category === IngredientCategory.IMAGE
+            ? cdnUrl
+            : category === IngredientCategory.VIDEO
+              ? ingredient.thumbnailUrl
+              : undefined;
+        const still = stillSource
+          ? await downloadDiscordAttachment(stillSource, ingredient.id, 'image')
+          : null;
+        if (still) {
+          embed.image = { url: `attachment://${still.name}` };
+        } else if (stillSource) {
+          this.loggerService.warn(
+            `${url} media unavailable; posting no image`,
+            {
+              category,
+              ingredientId: ingredient.id,
+            },
+          );
         }
 
         const avatarUrl =
@@ -243,18 +260,26 @@ export class DiscordService {
           }
         };
 
-        // A separate video URL message lets Discord embed the video before its details.
+        // A separate video message lets Discord play the video before its details.
         if (category === IngredientCategory.VIDEO) {
-          await send({
-            avatarURL: avatarUrl,
-            content: cdnUrl,
-            username: 'Genfeed.ai',
-          });
+          const video = await downloadDiscordAttachment(
+            cdnUrl,
+            `${ingredient.id}-video`,
+            'video',
+          );
+          if (video) {
+            await send({
+              avatarURL: avatarUrl,
+              files: [video],
+              username: 'Genfeed.ai',
+            });
+          }
         }
 
         const messagePayload: WebhookMessageCreateOptions = {
           avatarURL: avatarUrl,
           embeds: [embed],
+          ...(still ? { files: [still] } : {}),
           username: 'Genfeed.ai',
         };
 
@@ -269,7 +294,6 @@ export class DiscordService {
 
         this.loggerService.log(`${url} succeeded`, {
           category,
-          cdnUrl,
           ingredientId: ingredient.id,
         });
       },
@@ -412,30 +436,10 @@ export class DiscordService {
   }
 
   private buildIngredientButtons(
-    category: IngredientCategory,
-    cdnUrl: string,
     managerUrl: string | null,
     storyboardUrl: string | null = null,
   ): ButtonBuilder[] {
     const buttons: ButtonBuilder[] = [];
-
-    if (category === IngredientCategory.VIDEO) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel('Watch Video')
-          .setStyle(ButtonStyle.Link)
-          .setURL(cdnUrl),
-      );
-    }
-
-    if (category === IngredientCategory.IMAGE) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel('View Full Image')
-          .setStyle(ButtonStyle.Link)
-          .setURL(cdnUrl),
-      );
-    }
 
     if (storyboardUrl) {
       buttons.push(
