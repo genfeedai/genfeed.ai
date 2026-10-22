@@ -8,8 +8,8 @@ export async function recoverClaStatuses(
     owner,
     repo,
     numbers,
-    attempts = 3,
-    intervalMs = 20000,
+    attempts = 6,
+    intervalMs = 30000,
     wait = delay,
     request = fetch,
     log = () => {},
@@ -23,9 +23,8 @@ export async function recoverClaStatuses(
   ) {
     throw new Error('Invalid repository or pull request number.');
   }
-  const results = [];
-  const failures = [];
-  for (const number of [...new Set(numbers)]) {
+  const uniqueNumbers = [...new Set(numbers)];
+  const recoverOne = async (number) => {
     try {
       const { data: pull } = await github.rest.pulls.get({
         owner,
@@ -33,8 +32,7 @@ export async function recoverClaStatuses(
         pull_number: number,
       });
       if (pull.state !== 'open') {
-        results.push({ number, outcome: 'closed' });
-        continue;
+        return { number, outcome: 'closed' };
       }
       const sha = pull.head.sha;
       const readStatus = async () => {
@@ -80,17 +78,30 @@ export async function recoverClaStatuses(
         status = await readStatus();
       }
       if (isSuperseded) {
-        results.push({ number, sha, outcome: 'superseded' });
+        return { number, sha, outcome: 'superseded' };
       } else if (status) {
-        results.push({ number, sha, outcome: 'reported', state: status.state });
         log(`#${number}: ${CLA_CONTEXT} reported ${status.state} on ${sha}`);
+        return { number, sha, outcome: 'reported', state: status.state };
       } else {
-        failures.push(`#${number}: ${CLA_CONTEXT} is still missing on ${sha}`);
+        return {
+          error: `#${number}: ${CLA_CONTEXT} is still missing on ${sha}`,
+        };
       }
     } catch (error) {
-      failures.push(`#${number}: ${error.message}`);
+      return { error: `#${number}: ${error.message}` };
     }
+  };
+  const outcomes = [];
+  for (let offset = 0; offset < uniqueNumbers.length; offset += 3) {
+    outcomes.push(
+      ...(await Promise.all(
+        uniqueNumbers.slice(offset, offset + 3).map(recoverOne),
+      )),
+    );
   }
+  const failures = outcomes
+    .filter((outcome) => outcome.error)
+    .map((outcome) => outcome.error);
   if (failures.length) throw new Error(failures.join('\n'));
-  return results;
+  return outcomes;
 }

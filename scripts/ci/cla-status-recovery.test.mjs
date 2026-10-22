@@ -147,3 +147,54 @@ test('workflow runs trusted code and grants no status-writing permission', () =>
     /statuses: write|pull_request\.head|secrets\.GENFEED|cancel-in-progress: true/,
   );
 });
+
+test('waits for a genuine verdict that arrives more than two minutes later', async () => {
+  const f = fixture({ statuses: [[], [], [], [], [], [signed]] });
+  f.options.attempts = undefined;
+  const delays = [];
+  f.options.wait = async (milliseconds) => delays.push(milliseconds);
+  assert.equal(
+    (await recoverClaStatuses(f.github, f.options))[0].state,
+    'success',
+  );
+  assert.ok(
+    delays.reduce((total, milliseconds) => total + milliseconds, 0) > 120000,
+  );
+});
+
+test('checks multiple PRs concurrently with a bounded request burst and stable output', async () => {
+  const f = fixture({ statuses: [[signed]] });
+  f.options.numbers = [6403, 6404, 6405, 6406, 6407];
+  let active = 0;
+  let peak = 0;
+  f.github.rest.pulls.get = async ({ pull_number }) => {
+    active++;
+    peak = Math.max(peak, active);
+    await Promise.resolve();
+    active--;
+    return { data: { state: 'open', head: { sha: `sha-${pull_number}` } } };
+  };
+  const results = await recoverClaStatuses(f.github, f.options);
+  assert.ok(peak > 1, 'one slow PR must not serialize the entire scan');
+  assert.ok(peak <= 3, 'recovery must not issue an unbounded request burst');
+  assert.deepEqual(
+    results.map((result) => result.number),
+    f.options.numbers,
+  );
+});
+
+test('a missing verdict does not prevent other PRs from being recovered', async () => {
+  const f = fixture();
+  f.options.numbers = [6403, 6404, 6405, 6406];
+  const checked = [];
+  f.github.rest.pulls.get = async ({ pull_number }) => ({
+    data: { state: 'open', head: { sha: `sha-${pull_number}` } },
+  });
+  f.github.paginate = async (_route, { ref }) => {
+    checked.push(ref);
+    return ref === 'sha-6403' ? [] : [signed];
+  };
+  await assert.rejects(recoverClaStatuses(f.github, f.options), /6403/);
+  for (const number of [6404, 6405, 6406])
+    assert.ok(checked.includes(`sha-${number}`));
+});
