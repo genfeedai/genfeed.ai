@@ -637,7 +637,7 @@ describe('TrendsService', () => {
       expect(result.trends[0].requiresAuth).toBe(false);
     });
 
-    it('preserves the last-good dataset when active cache is empty', async () => {
+    it('keeps expired last-good topics out of brand discovery', async () => {
       prisma.trend.findMany.mockResolvedValue([
         makePrismaTrendDoc({
           expiresAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
@@ -654,8 +654,7 @@ describe('TrendsService', () => {
         'twitter',
       );
 
-      expect(result.trends).toHaveLength(1);
-      expect(result.trends[0]?.topic).toBe('#LastGood');
+      expect(result.trends).toEqual([]);
     });
 
     it('applies brand-scoped preferences when the active brand has its own record', async () => {

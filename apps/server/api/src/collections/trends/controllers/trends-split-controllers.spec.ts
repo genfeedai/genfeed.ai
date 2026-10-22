@@ -19,6 +19,8 @@ describe('Trends split controllers', () => {
     getViralLeaderboard: vi.fn(),
     getViralVideos: vi.fn(),
     getBrandViralVideos: vi.fn(),
+    getBrandTrendingHashtags: vi.fn(),
+    getBrandTrendingSounds: vi.fn(),
   };
   const analyticsController = new TrendsAnalyticsController(
     trendsService as never,
@@ -117,6 +119,58 @@ describe('Trends split controllers', () => {
       ),
     ).rejects.toThrow('Select an authorized brand');
     expect(trendsService.getBrandViralVideos).not.toHaveBeenCalled();
+  });
+
+  it('scopes hashtags and sounds to the selected authorized brand by default', async () => {
+    trendsService.getBrandTrendingHashtags.mockResolvedValue([]);
+    trendsService.getBrandTrendingSounds.mockResolvedValue([]);
+    const user = { organizationId: 'org-1', brandId: 'brand-active' } as never;
+    const query = { timeframe: Timeframe.H24, limit: 12 } satisfies Parameters<
+      TrendsAnalyticsController['getTrendingHashtags']
+    >[0];
+    await analyticsController.getTrendingHashtags(query, user);
+    await analyticsController.getTrendingSounds(query, user);
+    for (const read of [
+      trendsService.getBrandTrendingHashtags,
+      trendsService.getBrandTrendingSounds,
+    ]) {
+      expect(read).toHaveBeenCalledWith('org-1', 'brand-active', {
+        timeframe: Timeframe.H24,
+        limit: 12,
+        platform: undefined,
+      });
+    }
+    for (const read of [
+      analyticsController.getTrendingHashtags.bind(analyticsController),
+      analyticsController.getTrendingSounds.bind(analyticsController),
+    ]) {
+      await expect(
+        read({ ...query, brandId: 'sibling' }, user),
+      ).rejects.toThrow('Select an authorized brand');
+    }
+    expect(trendsService.getTrendingHashtags).not.toHaveBeenCalled();
+    expect(trendsService.getTrendingSounds).not.toHaveBeenCalled();
+  });
+
+  it('reads the global hashtag and sound market only when explicitly selected', async () => {
+    trendsService.getTrendingHashtags.mockResolvedValue([]);
+    trendsService.getTrendingSounds.mockResolvedValue([]);
+    const user = { organizationId: 'org-1', brandId: 'brand-active' } as never;
+    const query = { timeframe: Timeframe.D7, relevance: 'market' } as const;
+    await analyticsController.getTrendingHashtags(query, user);
+    await analyticsController.getTrendingSounds(query, user);
+    for (const read of [
+      trendsService.getTrendingHashtags,
+      trendsService.getTrendingSounds,
+    ]) {
+      expect(read).toHaveBeenCalledWith({
+        timeframe: Timeframe.D7,
+        limit: undefined,
+        platform: undefined,
+      });
+    }
+    expect(trendsService.getBrandTrendingHashtags).not.toHaveBeenCalled();
+    expect(trendsService.getBrandTrendingSounds).not.toHaveBeenCalled();
   });
 
   it('preserves turnover aggregation and supported-day parsing', async () => {

@@ -108,47 +108,10 @@ export class GetViralVideosDto {
 /**
  * DTO for fetching trending hashtags
  */
-export class GetTrendingHashtagsDto {
-  @ApiPropertyOptional({
-    description: 'Platform to filter hashtags by',
-    enum: Platform,
-    enumName: 'Platform',
-  })
-  @IsOptional()
-  @IsString()
-  platform?: Platform;
+export class GetTrendingHashtagsDto extends GetViralVideosDto {}
 
-  @ApiPropertyOptional({
-    default: 50,
-    description: 'Maximum number of hashtags to return',
-    maximum: 100,
-    minimum: 1,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number;
-}
-
-/**
- * DTO for fetching trending sounds
- */
-export class GetTrendingSoundsDto {
-  @ApiPropertyOptional({
-    default: 50,
-    description: 'Maximum number of sounds to return',
-    maximum: 100,
-    minimum: 1,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number;
-}
+/** DTO for the same scoped observed-sound read. */
+export class GetTrendingSoundsDto extends GetViralVideosDto {}
 
 /**
  * Response DTO for trend data

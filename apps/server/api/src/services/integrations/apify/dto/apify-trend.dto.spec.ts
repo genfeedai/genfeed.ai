@@ -34,6 +34,29 @@ describe('Apify trend query DTOs', () => {
     await expect(validate(videos)).resolves.toEqual([]);
   });
 
+  it.each([GetTrendingHashtagsDto, GetTrendingSoundsDto])(
+    'validates relevance and timeframe on %s',
+    async (QueryDto) => {
+      expect(
+        await validate(
+          plainToInstance(QueryDto, {
+            relevance: 'brand',
+            timeframe: Timeframe.H72,
+            platform: Platform.TIKTOK,
+          }),
+        ),
+      ).toEqual([]);
+      expect(
+        await validate(
+          plainToInstance(QueryDto, {
+            relevance: 'invalid',
+            timeframe: 'all-time',
+          }),
+        ),
+      ).not.toEqual([]);
+    },
+  );
+
   it('rejects out-of-range limits', async () => {
     const hashtags = plainToInstance(GetTrendingHashtagsDto, { limit: 0 });
     const sounds = plainToInstance(GetTrendingSoundsDto, { limit: 101 });

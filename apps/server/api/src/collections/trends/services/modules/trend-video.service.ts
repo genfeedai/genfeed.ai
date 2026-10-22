@@ -6,6 +6,7 @@ import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/tr
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
+import { isWithinTimeframe } from '@api/collections/trends/utils/brand-niche.util';
 import {
   captureTrendRefreshEvidence,
   classifyTrendProviderError,
@@ -96,7 +97,13 @@ export class TrendVideoService {
     const cached =
       await this.cacheService.get<TrendingVideoDocument[]>(cacheKey);
     if (cached) {
-      return cached;
+      return cached.filter(
+        (video) =>
+          video.isCurrent !== false &&
+          (!video.expiresAt ||
+            new Date(video.expiresAt).getTime() > Date.now()) &&
+          isWithinTimeframe(video, options?.timeframe),
+      );
     }
 
     // Fetch all non-deleted records and filter in-memory

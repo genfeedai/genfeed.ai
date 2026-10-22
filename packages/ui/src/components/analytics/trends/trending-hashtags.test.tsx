@@ -32,6 +32,28 @@ describe('TrendingHashtags external metrics', () => {
     },
   );
 
+  it('distinguishes unmeasured views, growth and score from observed zero counts', () => {
+    render(
+      <TrendingHashtags
+        hashtags={[
+          {
+            ...hashtag,
+            postCount: 1,
+            postCountScope: 'observed',
+            viewCount: 0,
+            viewsMeasured: false,
+            growthMeasured: false,
+            scoreMeasured: false,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText('Observed posts')).toBeInTheDocument();
+    expect(screen.getAllByText('Not measured')).toHaveLength(3);
+    expect(screen.queryByText('Score: 50')).not.toBeInTheDocument();
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
   it('preserves the whole-card action as a keyboard-focusable button', () => {
     const onHashtagClick = vi.fn();
     const { container } = render(

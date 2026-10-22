@@ -370,6 +370,7 @@ describe('TrendsController', () => {
         mockUser.brandId,
         'twitter',
         undefined,
+        undefined,
       );
       expect(result).toEqual({
         summary: {

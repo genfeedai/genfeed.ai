@@ -1,4 +1,4 @@
-import type { Platform, TrendDirection } from '../..';
+import type { Platform, Timeframe, TrendDirection } from '../..';
 
 export interface ITrendPlatformMetricsConfig {
   value: string;
@@ -91,11 +91,13 @@ export interface ITrendHashtag {
   platform: string;
   hashtag: string;
   postCount: number;
+  viewsMeasured?: boolean;
   postCountScope?: 'observed' | 'platform';
   growthMeasured?: boolean;
   viewCount: number;
   growthRate: number;
   viralityScore: number;
+  scoreMeasured?: boolean;
   relatedHashtags: string[];
   isCurrent?: boolean;
 }
@@ -113,6 +115,7 @@ export interface ITrendSound {
   examples?: TrendMediaExample[];
   growthRate: number;
   viralityScore: number;
+  scoreMeasured?: boolean;
   duration?: number;
   isCurrent?: boolean;
 }
@@ -173,6 +176,14 @@ export interface ITrendPreferences {
   hashtags?: string[];
 }
 
+export interface IDiscoveryTrendFilters {
+  scopeKey: string;
+  relevance: 'market' | 'brand';
+  timeframe: Timeframe.H24 | Timeframe.H72 | Timeframe.D7;
+  platform: string;
+  hashtag: string;
+}
+
 export interface IViralVideoOptions {
   relevance?: 'market' | 'brand';
   brandId?: string;
@@ -181,14 +192,9 @@ export interface IViralVideoOptions {
   timeframe?: '24h' | '72h' | '7d';
 }
 
-export interface ITrendingHashtagOptions {
-  platform?: string;
-  limit?: number;
-}
+export interface ITrendingHashtagOptions extends IViralVideoOptions {}
 
-export interface ITrendingSoundOptions {
-  limit?: number;
-}
+export interface ITrendingSoundOptions extends IViralVideoOptions {}
 
 export interface ILeaderboardOptions {
   timeframe?: '24h' | '72h' | '7d';

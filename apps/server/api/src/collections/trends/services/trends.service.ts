@@ -39,9 +39,14 @@ import { TrendPreferencesService } from '@api/collections/trends/services/trend-
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import {
   buildBrandNicheQueries,
+  countNicheTermMatches,
   isWithinTimeframe,
   rankBrandVideos,
 } from '@api/collections/trends/utils/brand-niche.util';
+import {
+  observedHashtags,
+  observedSounds,
+} from '@api/collections/trends/utils/observed-trends.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
@@ -288,6 +293,7 @@ export class TrendsService {
     options: {
       allowFetchIfMissing?: boolean;
       relevance?: 'market' | 'brand';
+      timeframe?: Timeframe.H24 | Timeframe.H72 | Timeframe.D7;
     } = {},
   ): Promise<{
     trends: TrendEntity[];
@@ -320,6 +326,23 @@ export class TrendsService {
       },
     );
 
+    if (options.relevance !== 'market') {
+      trends = trends.filter(
+        (trend) =>
+          trend.isCurrent !== false &&
+          (!trend.expiresAt ||
+            new Date(trend.expiresAt).getTime() > Date.now()),
+      );
+    }
+    if (options.timeframe) {
+      trends = trends.filter((trend) =>
+        isWithinTimeframe(
+          { publishedAt: trend.updatedAt ?? trend.createdAt },
+          options.timeframe,
+        ),
+      );
+    }
+
     // Brand discovery never substitutes the global chart for a missing match.
     if (options.relevance !== 'market' && brandId && organizationId) {
       const [brand, preferences] = await Promise.all([
@@ -343,6 +366,19 @@ export class TrendsService {
         trends,
         context,
         true,
+      );
+      const queries = buildBrandNicheQueries({
+        description: brand.description,
+        keywords: preferences?.keywords,
+        categories: preferences?.categories,
+        hashtags: preferences?.hashtags,
+      });
+      trends = trends.filter(
+        (trend) =>
+          countNicheTermMatches(
+            { title: trend.topic, hashtags: trend.metadata?.hashtags },
+            queries,
+          ) > 0,
       );
       const platforms = preferences?.platforms ?? [];
       if (platforms.length) {
@@ -383,6 +419,7 @@ export class TrendsService {
     brandId?: string,
     platform?: string,
     relevance?: 'market' | 'brand',
+    timeframe?: Timeframe.H24 | Timeframe.H72 | Timeframe.D7,
   ): Promise<{
     trends: TrendDiscoveryItem[];
     connectedPlatforms: string[];
@@ -392,7 +429,7 @@ export class TrendsService {
       organizationId,
       brandId,
       platform,
-      { relevance },
+      { relevance, timeframe },
     );
 
     const trends = await Promise.all(
@@ -666,15 +703,7 @@ export class TrendsService {
       hashtags: preferences?.hashtags,
       keywords: preferences?.keywords,
     });
-    const context = [
-      brand.description,
-      ...(preferences?.keywords ?? []),
-      ...(preferences?.categories ?? []),
-      ...(preferences?.hashtags ?? []),
-    ]
-      .filter(Boolean)
-      .join(' ');
-    if (!context.trim()) return [];
+    if (queries.length === 0) return [];
     const isPlatformAllowed = (video: TrendingVideoDocument) =>
       (!preferences?.platforms?.length ||
         (typeof video.platform === 'string' &&
@@ -689,27 +718,28 @@ export class TrendsService {
       }),
       this.trendBrandNicheVideoService.get(organizationId, brandId),
     ]);
-    const candidates = globalVideos.filter(isPlatformAllowed).map((video) => ({
-      topic: [
-        video.title,
-        video.description,
-        video.hook,
-        ...(video.hashtags ?? []),
-      ]
-        .filter(Boolean)
-        .join(' '),
-      video,
-      viralityScore: video.viralScore ?? 0,
-    }));
-    const globalMatches = this.trendFilteringService
-      .filterTrendsByBrandDescription(candidates, context, true)
-      .map(({ video }) => video);
+    const globalMatches = globalVideos.filter(
+      (video) =>
+        video.isCurrent !== false &&
+        (!video.expiresAt ||
+          new Date(video.expiresAt).getTime() > Date.now()) &&
+        isWithinTimeframe(video, options?.timeframe) &&
+        isPlatformAllowed(video) &&
+        countNicheTermMatches(video, queries) > 0,
+    );
     // Videos found by searching the brand's own niche lead the feed: the
     // shared pool is only generic viral clips filtered after the fact.
     const seen = new Set<string>();
     const merged = [
       ...nicheVideos.filter(
         (video) =>
+          (queries.includes(
+            typeof video.nicheQuery === 'string' ? video.nicheQuery : '',
+          ) ||
+            countNicheTermMatches(video, queries) > 0) &&
+          video.isCurrent !== false &&
+          (!video.expiresAt ||
+            new Date(video.expiresAt).getTime() > Date.now()) &&
           isPlatformAllowed(video) &&
           isWithinTimeframe(video, options?.timeframe),
       ),
@@ -769,11 +799,29 @@ export class TrendsService {
   /**
    * Get trending hashtags
    */
-  getTrendingHashtags(options?: {
-    platform?: string;
-    limit?: number;
-  }): Promise<TrendingHashtagDocument[]> {
+  async getTrendingHashtags(
+    options?: Parameters<TrendVideoService['getViralVideos']>[0],
+  ): Promise<TrendingHashtagDocument[]> {
+    if (options?.timeframe)
+      return observedHashtags(
+        await this.getViralVideos({ ...options, limit: 100 }),
+        options.limit ?? 24,
+      );
     return this.trendVideoService.getTrendingHashtags(options);
+  }
+
+  async getBrandTrendingHashtags(
+    organizationId: string,
+    brandId: string,
+    options: Parameters<TrendVideoService['getViralVideos']>[0],
+  ) {
+    return observedHashtags(
+      await this.getBrandViralVideos(organizationId, brandId, {
+        ...options,
+        limit: 100,
+      }),
+      options?.limit ?? 24,
+    );
   }
 
   /**
@@ -786,10 +834,30 @@ export class TrendsService {
   /**
    * Get trending sounds
    */
-  getTrendingSounds(options?: {
-    limit?: number;
-  }): Promise<TrendingSoundDocument[]> {
+  async getTrendingSounds(
+    options?: Parameters<TrendVideoService['getViralVideos']>[0],
+  ): Promise<TrendingSoundDocument[]> {
+    if (options?.platform && options.platform !== 'tiktok') return [];
+    if (options?.timeframe)
+      return observedSounds(
+        await this.getViralVideos({ ...options, limit: 100 }),
+        options.limit ?? 12,
+      );
     return this.trendVideoService.getTrendingSounds(options);
+  }
+
+  async getBrandTrendingSounds(
+    organizationId: string,
+    brandId: string,
+    options: Parameters<TrendVideoService['getViralVideos']>[0],
+  ) {
+    return observedSounds(
+      await this.getBrandViralVideos(organizationId, brandId, {
+        ...options,
+        limit: 100,
+      }),
+      options?.limit ?? 12,
+    );
   }
 
   /**

@@ -13,6 +13,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { Timeframe } from '@genfeedai/contracts';
 import {
   BadRequestException,
   Controller,
@@ -63,9 +64,18 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
     @Query('relevance') relevance?: 'market' | 'brand',
+    @Query('timeframe') timeframe?:
+      | Timeframe.H24
+      | Timeframe.H72
+      | Timeframe.D7,
   ) {
     if (relevance && relevance !== 'market' && relevance !== 'brand')
       throw new BadRequestException('Invalid relevance filter.');
+    if (
+      timeframe &&
+      ![Timeframe.H24, Timeframe.H72, Timeframe.D7].includes(timeframe)
+    )
+      throw new BadRequestException('Invalid timeframe filter.');
     const readScope = resolveTenantReadScope(user);
     const organizationId = readScope.organizationId;
     const brandId = readScope.brandId;
@@ -81,6 +91,7 @@ export class TrendsDiscoveryController {
       brandId,
       platform,
       relevance,
+      timeframe,
     );
 
     return {
