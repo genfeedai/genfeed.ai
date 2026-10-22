@@ -265,10 +265,13 @@ export default function GenerationSetupSectionChips(
         <DropdownMenuSubContent
           className={
             chip.id === 'output' || chip.id === 'look'
-              ? 'w-64 py-1'
+              ? 'w-[min(16rem,calc(100vw-2rem))] py-1'
               : PROMPT_BAR_SETUP_MENU_CLASS
           }
           collisionPadding={16}
+          // On a phone neither side of the More setup menu fits the submenu;
+          // keep it inside the viewport instead of detaching from the trigger.
+          sticky="always"
         >
           {chip.id === 'output' ? (
             <GenerationSetupOutputMenu
