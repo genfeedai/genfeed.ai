@@ -2,11 +2,14 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ContentCampaignStatus } from '@genfeedai/contracts';
+import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useCampaign } from '@hooks/data/campaigns/use-campaign';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { CAMPAIGN_STATUS_LABELS } from '@pages/campaigns/campaigns-status';
 import CampaignAccounts from '@pages/campaigns/detail/CampaignAccounts';
 import Card from '@ui/card/Card';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 function formatCampaignDate(value?: string | null): string {
@@ -24,6 +27,7 @@ export default function CampaignDetailOverview({
   const translate = useTranslations('pages.publishing.campaigns');
   const { campaign } = useCampaign(campaignId);
   const { brands } = useBrand();
+  const { href } = useOrgUrl();
 
   if (!campaign) {
     return null;
@@ -68,6 +72,39 @@ export default function CampaignDetailOverview({
             </dt>
             <dd className="mt-1 text-foreground">
               {CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status}
+            </dd>
+          </div>
+        </dl>
+      </Card>
+      <Card label={translate('context.title')}>
+        <dl className="grid gap-3 text-sm">
+          {(['audience', 'tone', 'creativeDirection'] as const).map((field) => (
+            <div key={field}>
+              <dt className="text-foreground/50">
+                {translate(`context.${field}`)}
+              </dt>
+              <dd className="mt-1 whitespace-pre-wrap break-words">
+                {campaign[field] || translate('context.inherited')}
+              </dd>
+            </div>
+          ))}
+          <div>
+            <dt className="text-foreground/50">
+              {translate('context.assets')}
+            </dt>
+            <dd className="mt-1 flex flex-wrap gap-3">
+              {(campaign.assetIds ?? []).map((assetId, index) => (
+                <Link
+                  className="underline underline-offset-4"
+                  key={assetId}
+                  href={href(createLibraryAssetRoute(undefined, assetId))}
+                >
+                  {translate('context.viewAsset', { number: index + 1 })}
+                </Link>
+              ))}
+              {!campaign.assetIds?.length
+                ? translate('context.noAssets')
+                : null}
             </dd>
           </div>
         </dl>

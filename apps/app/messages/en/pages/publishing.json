@@ -153,6 +153,21 @@
       "generating": "Generating drafts…",
       "close": "Close",
       "review": "Review content"
+    },
+    "context": {
+      "title": "Creative context",
+      "audience": "Audience",
+      "tone": "Campaign voice",
+      "creativeDirection": "Creative direction",
+      "inheritance": "Brand context stays available. Add the direction specific to this campaign.",
+      "inherited": "Uses the brand context",
+      "assets": "Campaign assets",
+      "assetCount": "{count} Library assets selected",
+      "addImages": "Add images",
+      "addVideos": "Add videos",
+      "viewAsset": "View asset {number}",
+      "removeAsset": "Remove asset {number}",
+      "noAssets": "No campaign assets selected yet."
     }
   },
   "calendar": {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContentCampaignStatus } from '../../enums/content-campaign.enum';
 
 const identity = {
   brandId: z.string().trim().min(1),
@@ -69,3 +70,21 @@ export const contentCampaignMcpSchema = z.discriminatedUnion('action', [
 ]);
 
 export type ContentCampaignMcpInput = z.infer<typeof contentCampaignMcpSchema>;
+
+export const contentCampaignResourceSchema = z
+  .object({
+    id: z.string().min(1),
+    attributes: z.object({
+      ...context,
+      brandId: identity.brandId,
+      name: z.string(),
+      organizationId: z.string().min(1),
+      userId: z.string().min(1),
+      status: z.enum(ContentCampaignStatus),
+      isDeleted: z.boolean(),
+      createdAt: z.string().min(1),
+      updatedAt: z.string().min(1),
+      assetIds: z.array(z.string()).default([]),
+    }),
+  })
+  .transform(({ id, attributes }) => ({ ...attributes, id }));

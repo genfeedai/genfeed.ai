@@ -202,7 +202,13 @@ export class CampaignsService {
           : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
       },
-      where: scopedWhere(organizationId, { id }),
+      where: scopedWhere(organizationId, {
+        id,
+        brandId: existing.brandId,
+        ...(dto.brandId && dto.brandId !== existing.brandId
+          ? { assetIds: { equals: existing.assetIds ?? [] } }
+          : {}),
+      }),
     });
     return toCampaign(updated);
   }

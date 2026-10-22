@@ -21,6 +21,21 @@ describe('Campaign DTO validation', () => {
     expect(errors.some((error) => error.constraints?.isNotEmpty)).toBe(true);
   });
 
+  it.each([
+    null,
+    ['casset00000001', 'casset00000001'],
+    Array.from({ length: 51 }, (_, i) => `casset${String(i).padStart(7, '0')}`),
+  ])('rejects invalid asset membership: %j', async (assetIds) => {
+    const dto = plainToInstance(CreateCampaignDto, {
+      brandId: VALID_BRAND_ID,
+      name: 'Launch',
+      assetIds,
+    });
+    expect(
+      (await validate(dto)).some((error) => error.property === 'assetIds'),
+    ).toBe(true);
+  });
+
   it('does not expose the create-only idempotency key on updates', async () => {
     const pipe = new ValidationPipe({ transform: true, whitelist: true });
     const dto = await pipe.transform(
