@@ -4,18 +4,11 @@ import type {
   AgentWorkObjectActionPayload,
 } from '@genfeedai/contracts/interfaces';
 import { NextIntlClientProvider } from 'next-intl';
-import { type ComponentProps, useState } from 'react';
+import { useState } from 'react';
 import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import messages from '../../../../apps/app/messages/en/agent.json';
-
-vi.mock('next/link', () => ({
-  __esModule: true,
-  default: function BrowserLink(props: ComponentProps<'a'>) {
-    return <a {...props} />;
-  },
-}));
 
 vi.mock('@genfeedai/helpers', async () => {
   const { cn } = await import('@genfeedai/helpers/formatting/cn/cn.util');

@@ -80,6 +80,7 @@ export function assertApiKeyAgentPublishingScope(
   parameters: Record<string, unknown>,
 ): void {
   if (
+    toolName === 'track_post_link' ||
     toolName === 'record_external_publication' ||
     toolName === 'link_external_publication_credential'
   ) {

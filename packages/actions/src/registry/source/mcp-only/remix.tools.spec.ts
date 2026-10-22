@@ -49,13 +49,14 @@ describe('MCP remix discovery and policy', () => {
     ).toBe(false);
   });
 
-  it('marks retrieval read-only and conservatively avoids idempotent write promises', () => {
+  it('marks reconciling retrieval accurately and preserves non-destructive create hints', () => {
     expect(
       deriveMcpToolPresentation('get_remix_run', undefined).annotations,
-    ).toMatchObject({
-      readOnlyHint: true,
-      destructiveHint: false,
+    ).toEqual({
+      readOnlyHint: false,
+      destructiveHint: true,
       idempotentHint: true,
+      openWorldHint: false,
     });
     for (const name of ['import_source_post', 'create_remix_concept'])
       expect(

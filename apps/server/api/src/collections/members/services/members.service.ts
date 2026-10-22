@@ -1,7 +1,7 @@
 import { CreateMemberDto } from '@api/collections/members/dto/create-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -53,7 +53,7 @@ export class MembersService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
-    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly userAccessCacheService: UserAccessCacheService,
   ) {
     super(prisma, 'member', logger);
   }
@@ -110,13 +110,15 @@ export class MembersService extends BaseService<
     const member = await super.patch(id, data, populate);
     if (
       member?.userId &&
-      ('roleId' in updateDto ||
+      ('brandIds' in updateDto ||
+        'brands' in updateDto ||
+        'roleId' in updateDto ||
         'roleKey' in updateDto ||
         'role' in updateDto ||
         'isActive' in updateDto ||
         'isDeleted' in updateDto)
     ) {
-      await this.accessBootstrapCacheService.invalidateForUser(member.userId);
+      await this.userAccessCacheService.invalidateAll(member.userId);
     }
     return member;
   }
@@ -124,7 +126,7 @@ export class MembersService extends BaseService<
   override async remove(id: string): Promise<MemberDocument | null> {
     const member = await super.remove(id);
     if (member?.userId) {
-      await this.accessBootstrapCacheService.invalidateForUser(member.userId);
+      await this.userAccessCacheService.invalidateAll(member.userId);
     }
     return member;
   }

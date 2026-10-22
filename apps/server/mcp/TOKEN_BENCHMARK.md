@@ -3,6 +3,64 @@
 Measured 2026-10-22 for #7815 against baseline
 `187958af5025807e272e67609e6255516445477b` (after #7810).
 
+## Input definitions follow-up (#7832)
+
+Measured 2026-10-22 against baseline
+`2bf370d76585f64c65ec55181adb1c3a0a10b5f7`, which already contains the output
+optimization below. Same fixture version, catalogs and pinned tokenizer.
+
+| Payload | UTF-8 bytes before → after | o200k_base before → after | Reduction | cl100k_base before → after | Reduction |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Default input-only (27 tools) | 41,002 → 34,483 | 9,170 → 7,837 | 14.54% | 8,805 → 7,471 | 15.15% |
+| Full input-only (144 tools) | 122,326 → 108,995 | 27,527 → 24,930 | 9.43% | 26,244 → 23,644 | 9.91% |
+| Default complete descriptors | 51,376 → 44,857 | 11,915 → 10,582 | 11.19% | 11,459 → 10,125 | 11.64% |
+| Full complete descriptors | 176,544 → 163,213 | 41,908 → 39,311 | 6.20% | 40,187 → 37,587 | 6.47% |
+
+The MCP adapter applies reviewed concise wording to 55 tool descriptions and
+144 parameter-description occurrences (102 unique rewrites), and omits 105
+annotations (84 unique strings) that only repeat a field name or enum. It never
+truncates arbitrary documentation. A changed canonical description falls back to
+its original wording; appended guidance and dynamic pricing are retained. Other
+surfaces keep their canonical definitions. Unknown annotations remain untouched.
+The API parity test checks canonical agent definitions verbatim and compares MCP
+parameter validation independently of client-facing descriptions.
+
+The benchmark checks that only tool descriptions and schema `description`
+annotations differ. Tool order/count, names, arguments, required fields, defaults,
+enums, bounds, formats, patterns, references, permissions, annotations, credit and
+mutation metadata, and output schemas compare identically. Every result fixture,
+including text, structured data and combined payload, is identical. Schema
+traversal preserves literal `description` fields in defaults, examples and enum
+objects, and user properties named `description`.
+
+Standalone tools retain brand selection, quote/approval/credit guidance, media
+type/operation restrictions, exact-prompt receipts, public publishing effects and
+recovery steps. Tests exercise these contracts without paid generation or
+production calls. Keeping validation and useful guidance accounts for the
+remaining size; these measurements do not establish an absolute token minimum.
+The input-only client projection includes name, description and parameters,
+excluding outputSchema/metadata; it is not captured client billing or a live
+agent-task success evaluation.
+
+To reproduce this follow-up, export the existing fixture from the baseline and
+candidate using the dependency setup and commands below (no fixture copy is
+needed). Compare with the stricter input-documentation mode:
+
+```bash
+python3 -m unittest discover -s scripts/mcp -p 'test_token_benchmark_contract.py' -v
+node_modules/.cache/mcp-tokenizer/bin/python scripts/mcp/compare-token-benchmarks.py \
+  "$TOKEN_BASELINE/node_modules/.cache/mcp-tokens/payloads.json" \
+  "$TOKEN_CURRENT/node_modules/.cache/mcp-tokens/payloads.json" \
+  --change input-documentation
+```
+
+Without the flag, the historical output-only mode remains strict about input
+definitions. Input-documentation mode additionally rejects changed output schemas
+or result fixtures. Contract tests reject renamed/removed tools, changed roles,
+prices, constraints and instance data, including Python's `True == 1` pitfall.
+
+## Original output optimization (#7815)
+
 ## Contract
 
 Tools advertise the compact data, object-data, media or discovery schema selected

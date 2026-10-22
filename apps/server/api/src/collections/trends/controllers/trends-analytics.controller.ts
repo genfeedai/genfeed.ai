@@ -47,17 +47,7 @@ export class TrendsAnalyticsController {
     @Query() query: GetViralVideosDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const readScope = resolveTenantReadScope(user);
-    const brandId = query.brandId || readScope.brandId;
-    if (
-      query.relevance !== 'market' &&
-      !getIsSuperAdmin(user) &&
-      (!user.brandId || brandId !== user.brandId)
-    ) {
-      throw new ForbiddenException(
-        'Select an authorized brand before reading its videos.',
-      );
-    }
+    const { organizationId, brandId } = this.resolveBrandScope(query, user);
     const videos =
       query.relevance === 'market'
         ? await this.trendsService.getViralVideos({
@@ -66,7 +56,7 @@ export class TrendsAnalyticsController {
             timeframe: query.timeframe,
           })
         : await this.trendsService.getBrandViralVideos(
-            readScope.organizationId,
+            organizationId,
             brandId ?? '',
             {
               limit: query.limit,
@@ -118,17 +108,31 @@ export class TrendsAnalyticsController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get('hashtags')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'TrendsController.getTrendingHashtags',
     summary: 'getTrendingHashtags',
   })
-  async getTrendingHashtags(@Query() query: GetTrendingHashtagsDto) {
-    const hashtags = await this.trendsService.getTrendingHashtags({
+  async getTrendingHashtags(
+    @Query() query: GetTrendingHashtagsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const { organizationId, brandId } = this.resolveBrandScope(query, user);
+    const options = {
       limit: query.limit,
       platform: query.platform,
-    });
+      timeframe: query.timeframe,
+    };
+    const hashtags =
+      query.relevance === 'market'
+        ? await this.trendsService.getTrendingHashtags(options)
+        : await this.trendsService.getBrandTrendingHashtags(
+            organizationId,
+            brandId ?? '',
+            options,
+          );
 
     return {
       hashtags,
@@ -149,16 +153,31 @@ export class TrendsAnalyticsController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get('sounds')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'TrendsController.getTrendingSounds',
     summary: 'getTrendingSounds',
   })
-  async getTrendingSounds(@Query() query: GetTrendingSoundsDto) {
-    const sounds = await this.trendsService.getTrendingSounds({
+  async getTrendingSounds(
+    @Query() query: GetTrendingSoundsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const { organizationId, brandId } = this.resolveBrandScope(query, user);
+    const options = {
       limit: query.limit,
-    });
+      platform: query.platform,
+      timeframe: query.timeframe,
+    };
+    const sounds =
+      query.relevance === 'market'
+        ? await this.trendsService.getTrendingSounds(options)
+        : await this.trendsService.getBrandTrendingSounds(
+            organizationId,
+            brandId ?? '',
+            options,
+          );
 
     return {
       sounds,
@@ -247,6 +266,21 @@ export class TrendsAnalyticsController {
     return this.trendsService.getTrendTimeline(
       this.parseTurnoverDays(daysParam),
     );
+  }
+
+  private resolveBrandScope(query: GetViralVideosDto, user: AuthenticatedUser) {
+    const readScope = resolveTenantReadScope(user);
+    const brandId = query.brandId || readScope.brandId;
+    if (
+      query.relevance !== 'market' &&
+      !getIsSuperAdmin(user) &&
+      (!user.brandId || brandId !== user.brandId)
+    ) {
+      throw new ForbiddenException(
+        'Select an authorized brand before reading its trends.',
+      );
+    }
+    return { organizationId: readScope.organizationId, brandId };
   }
 
   private parseTurnoverDays(daysParam?: string): 7 | 30 | 90 {

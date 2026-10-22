@@ -1,4 +1,5 @@
 import {
+  getRetiredMcpCatalogTool,
   getToolsetNames,
   MCP_CREDIT_COST_META_KEY,
   MCP_MUTATION_POLICY_META_KEY,
@@ -158,7 +159,10 @@ function handleDescribeTool(
 ) {
   const name = typeof args.name === 'string' ? args.name.trim() : '';
   const tools = registry.getDiscoverableTools();
-  const tool = tools.find((candidate) => candidate.name === name);
+  const retired = getRetiredMcpCatalogTool(name);
+  const tool = tools.find(
+    (candidate) => candidate.name === (retired?.canonicalName ?? name),
+  );
 
   if (!tool) {
     const closest = closestMatches(name, tools);
@@ -179,7 +183,7 @@ function handleDescribeTool(
     return `- ${key}${required.has(key) ? ' (required)' : ' (optional)'}${typeof description === 'string' ? `: ${description}` : ''}`;
   });
   return textResult(
-    `${tool.title || readableLabel(tool.name)}\n\n${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}`,
+    `${tool.title || readableLabel(tool.name)}\n\n${retired ? `Use ${retired.canonicalName}(action=${retired.action}).\n\n` : ''}${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}`,
     {
       tool,
     },

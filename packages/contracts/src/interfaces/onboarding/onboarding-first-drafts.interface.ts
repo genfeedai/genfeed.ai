@@ -37,8 +37,8 @@ export interface IOnboardingFirstDraft {
 }
 
 /**
- * `ready`: every channel and the image came back.
- * `partial`: at least one channel is missing or the image failed.
+ * `ready`: every channel and the generated media came back.
+ * `partial`: at least one channel or media asset is unavailable.
  * `unavailable`: nothing could be generated (for example no provider key on a
  * self-hosted install).
  */
@@ -46,6 +46,9 @@ export type OnboardingFirstDraftsStatus = 'ready' | 'partial' | 'unavailable';
 
 export interface IOnboardingFirstDraftsResult {
   drafts: IOnboardingFirstDraft[];
+  videoIngredientId?: string | null;
+  videoUrl?: string | null;
+  videoStatus?: 'pending' | 'ready' | 'failed';
   /** Library id of the shared image, attached to a post when it is scheduled. */
   imageIngredientId: string | null;
   /** The one image shared by the X, Instagram and LinkedIn drafts. */
@@ -53,4 +56,12 @@ export interface IOnboardingFirstDraftsResult {
   /** Request key of the X draft, passed back to link a regeneration to it. */
   requestKey: string | null;
   status: OnboardingFirstDraftsStatus;
+}
+
+/** Server-owned onboarding outputs; reads never create or charge for content. */
+export interface IOnboardingDraftRun {
+  id: string;
+  status: 'running' | 'complete' | 'interrupted';
+  result: IOnboardingFirstDraftsResult | null;
+  verdicts: Record<string, 'up' | 'down'>;
 }

@@ -11,6 +11,7 @@ import {
   ComponentSize,
   PageScope,
 } from '@genfeedai/contracts';
+import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -19,6 +20,7 @@ import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winne
 import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
 import AnalyticsPostsGrid from '@pages/analytics/posts-list/analytics-posts-grid';
 import AnalyticsWinnersTable from '@pages/analytics/posts-list/analytics-winners-table';
+import TrackPostLinkModal from '@pages/analytics/posts-list/track-post-link-modal';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import {
   POSTS_SOURCE_EXTENSION,
@@ -32,7 +34,7 @@ import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const METRIC_OPTIONS: Array<{
   label: string;
@@ -71,7 +73,12 @@ export default function AnalyticsPostsList() {
   const [localFocusedPostId, setLocalFocusedPostId] = useState<
     string | null | undefined
   >(undefined);
-  const { filters, setFilter } = useAnalyticsContext();
+  const { filters, setFilter, brandId } = useAnalyticsContext();
+  const trackTriggerRef = useRef<HTMLButtonElement>(null);
+  const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+  const [trackingResult, setTrackingResult] =
+    useState<ExtensionPublicationCaptureResult | null>(null);
+  const translateTrack = useTranslations('pages.analytics.trackPost');
   const focusedPostId =
     (localFocusedPostId === undefined
       ? (filters.postId ?? urlFocusedPostId)
@@ -108,6 +115,7 @@ export default function AnalyticsPostsList() {
   );
 
   const { isLoading, topPosts, error, refetch } = useTopPosts({
+    brandId,
     limit: 50,
     metric,
     platform: platform === 'all' ? undefined : platform,
@@ -147,6 +155,8 @@ export default function AnalyticsPostsList() {
         totalEngagement: post.totalEngagement || 0,
         totalViews: post.totalViews || 0,
         visibility: post.visibility,
+        source: post.source,
+        metricsStatus: post.metricsStatus,
       });
       return acc;
     }, []);
@@ -241,6 +251,15 @@ export default function AnalyticsPostsList() {
             onClick={() => setFocusedPost()}
           />
         ) : null}
+        <Button
+          ref={trackTriggerRef}
+          label={translateTrack('title')}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          isDisabled={!brandId}
+          tooltip={!brandId ? translateTrack('selectBrand') : undefined}
+          onClick={() => setIsTrackModalOpen(true)}
+        />
         <FormSearchbar
           ariaLabel="Search posts"
           placeholder="Search posts..."
@@ -261,6 +280,8 @@ export default function AnalyticsPostsList() {
       </div>
     );
   }, [
+    brandId,
+    translateTrack,
     focusedPostId,
     isWinnersView,
     search,
@@ -277,6 +298,39 @@ export default function AnalyticsPostsList() {
 
   return (
     <>
+      {isTrackModalOpen && brandId ? (
+        <TrackPostLinkModal
+          key={brandId}
+          brandId={brandId}
+          triggerRef={trackTriggerRef}
+          onClose={() => setIsTrackModalOpen(false)}
+          onTracked={(result) => {
+            setTrackingResult(result);
+            setFilter('query', undefined);
+            setFilter('show', undefined);
+            setFilter('postId', result.postId);
+            setFocusedPost(result.postId);
+            void refetch();
+          }}
+        />
+      ) : null}
+      {trackingResult ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {!trackingResult.created
+            ? translateTrack('alreadyImported')
+            : translateTrack('imported')}
+          {' · '}
+          {translateTrack(
+            trackingResult.analyticsAvailability === 'eligible'
+              ? 'tracking'
+              : trackingResult.analyticsAvailability === 'api-access-required'
+                ? 'linkedInNotice'
+                : trackingResult.analyticsAvailability === 'missing-credential'
+                  ? 'connectAccount'
+                  : 'unavailable',
+          )}
+        </p>
+      ) : null}
       {isWinnersView ? (
         <AnalyticsWinnersTable
           winners={winnerPosts.winners}

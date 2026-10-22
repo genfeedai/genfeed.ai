@@ -63,7 +63,7 @@ export class TrendsService extends BaseService<Trend> {
    * @returns List of viral videos sorted by viral score
    */
   async getViralVideos(
-    options: IViralVideoOptions = {},
+    options: IViralVideoOptions & { signal?: AbortSignal } = {},
   ): Promise<ITrendVideo[]> {
     const params: Record<string, string | number> = {};
     if (options.relevance) params.relevance = options.relevance;
@@ -80,7 +80,7 @@ export class TrendsService extends BaseService<Trend> {
 
     const response = await this.instance.get<{ videos?: ITrendVideo[] }>(
       '/videos',
-      { params },
+      { params, signal: options.signal },
     );
     return response.data?.videos || [];
   }
@@ -117,6 +117,9 @@ export class TrendsService extends BaseService<Trend> {
     options: ITrendingHashtagOptions & { signal?: AbortSignal } = {},
   ): Promise<ITrendHashtag[]> {
     const params: Record<string, string | number> = {};
+    if (options.relevance) params.relevance = options.relevance;
+    if (options.brandId) params.brandId = options.brandId;
+    if (options.timeframe) params.timeframe = options.timeframe;
     if (options.platform) {
       params.platform = options.platform;
     }
@@ -140,6 +143,10 @@ export class TrendsService extends BaseService<Trend> {
     options: ITrendingSoundOptions & { signal?: AbortSignal } = {},
   ): Promise<ITrendSound[]> {
     const params: Record<string, string | number> = {};
+    if (options.relevance) params.relevance = options.relevance;
+    if (options.brandId) params.brandId = options.brandId;
+    if (options.timeframe) params.timeframe = options.timeframe;
+    if (options.platform) params.platform = options.platform;
     if (options.limit) {
       params.limit = options.limit;
     }
@@ -156,8 +163,10 @@ export class TrendsService extends BaseService<Trend> {
    * Matches GET /trends controller with platform/refresh query params
    */
   async getTrendsDiscovery(options?: {
+    brandId?: string;
     relevance?: 'market' | 'brand';
     platform?: string;
+    timeframe?: IViralVideoOptions['timeframe'];
     signal?: AbortSignal;
   }): Promise<TrendsResponse> {
     const params: Record<string, string> = {};
@@ -165,7 +174,9 @@ export class TrendsService extends BaseService<Trend> {
       params.platform = options.platform;
     }
 
+    if (options?.brandId) params.brandId = options.brandId;
     if (options?.relevance) params.relevance = options.relevance;
+    if (options?.timeframe) params.timeframe = options.timeframe;
     const response = await this.instance.get<TrendsResponse>('/discovery', {
       params,
       signal: options?.signal,

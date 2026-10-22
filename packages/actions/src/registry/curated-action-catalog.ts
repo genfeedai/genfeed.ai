@@ -65,6 +65,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'knowledge',
   },
   { name: 'capture_memory', surfaces: ['agent'], toolset: 'memory' },
+  { name: 'check_channel', surfaces: ['mcp'], toolset: 'scheduler' },
   { name: 'check_goal_progress', surfaces: ['agent'], toolset: 'goals' },
   {
     name: 'check_onboarding_status',
@@ -362,7 +363,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'list_brand_publishing_readiness',
     surfaces: ['mcp'],
-    toolset: 'brand',
+    toolset: 'scheduler',
   },
   { name: 'list_clip_projects', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'list_genfeed_tools', surfaces: ['agent'], toolset: 'core' },
@@ -562,6 +563,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'track_post_link', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   {
     name: 'transfer_agent_conversation',
     surfaces: ['agent'],
@@ -581,6 +583,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'scheduler',
   },
   { name: 'update_strategy_state', surfaces: ['agent'], toolset: 'engagement' },
+  { name: 'upload_media', surfaces: ['mcp'], toolset: 'content' },
   {
     name: 'validate_scheduler_target',
     surfaces: ['mcp'],

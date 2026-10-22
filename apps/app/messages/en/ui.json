@@ -1,7 +1,7 @@
 {
   "discovery": {
     "relevance": "Trend relevance",
-    "market": "All trends",
+    "market": "Market trends",
     "brand": "For this brand",
     "reload": "Reload data",
     "loadError": "Some trend data could not be loaded. Reload to retry.",
@@ -96,7 +96,15 @@
       "fallback_source_preview": "Source previews use fallback data.",
       "stale_source_preview": "Source previews are stale.",
       "refresh_failed": "Collection failed."
-    }
+    },
+    "brandDescription": "Topics and videos matched to this brand, with hashtags and sounds observed in those videos. Missing or expired evidence stays empty.",
+    "marketDescription": "Global market trends across brands. Hashtags and sounds are observed in videos from the selected period.",
+    "noScopedHashtags": "No hashtags observed for these filters. Try another platform, period, or Market.",
+    "noScopedSounds": "No TikTok sounds observed for these filters. Try another platform, period, or Market.",
+    "platformFilter": "Trend platform",
+    "timeframeFilter": "Trend timeframe",
+    "hashtagPlatformFilter": "Hashtag platform",
+    "allPlatforms": "All platforms"
   },
   "promptBarSubmitSlot": {
     "stop": "Stop"

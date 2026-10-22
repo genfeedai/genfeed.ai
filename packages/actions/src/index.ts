@@ -29,6 +29,11 @@ export type {
 } from './interfaces/action-execution.interface';
 export { GENFEED_ACTION_NODE_TYPE } from './interfaces/action-execution.interface';
 export type {
+  McpCatalogCanonicalName,
+  McpCatalogOperation,
+  ResolvedMcpCatalogCall,
+} from './interfaces/mcp-catalog-call.interface';
+export type {
   CanonicalToolDefinition,
   ToolAnnotations,
   ToolCategory,
@@ -97,6 +102,13 @@ export {
   MCP_BRAND_REQUIRED_TOOL_NAMES,
   readMcpBrandId,
 } from './registry/mcp-brand-required';
+export {
+  getMcpCatalogOperations,
+  getRetiredMcpCatalogTool,
+  isMcpListedToolName,
+  resolveMcpCatalogCall,
+  validateMcpCatalogBindings,
+} from './registry/mcp-catalog-calls';
 export {
   getMcpToolOutputSchema,
   getMcpToolResultFamily,

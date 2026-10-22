@@ -269,7 +269,7 @@ rewrote your prompt, send `harness: false` so it is not enhanced twice.
 
 ## Publishing readiness
 
-Before scheduling, call `get_scheduler_capabilities` and
+Before scheduling, call `check_channel` with `action: capabilities` and
 `list_brand_publishing_readiness` for the selected brand. A connected account
 alone does not make its channel schedulable. Readiness combines credential
 health with the canonical scheduler capability catalog.
@@ -458,20 +458,19 @@ knowledge to use them well. Install the catalog with
 
 ## Uploading local media
 
-The default MCP profile includes `request_media_upload`, `complete_media_upload`,
-and `get_posts`. Select a brand before reserving an upload.
+The default MCP profile includes `upload_media` and `get_posts`. Select a brand before reserving an upload.
 
-1. Call `request_media_upload` with `filename`, `contentType`, and `category`.
+1. Call `upload_media` with `action: request` and `input: { filename, contentType, category }`.
 2. Upload to the returned `uploadUrl` before it expires. For `method: PUT`, send
    the file bytes with the returned headers. For self-hosted `method: POST_JSON`,
    send the returned `localUpload` object as JSON, adding the base64-encoded file
    bytes as `localUpload.source.data`. Respect the returned file constraints.
-3. Call `complete_media_upload` with the returned `assetId`. Its `media` entries
+3. Call `upload_media` with `action: complete` and `input: { assetId }`. Its `media` entries
    can be passed to `create_scheduled_release`; a returned hosted `url` can also
    be used in `create_post` `mediaUrls`. Scheduling retains its approval checks.
 4. Use `get_posts` with `postId` to read a post's targets, state, media, and timestamps.
 
-Upload reservation creates a pending asset. Both upload tools are non-destructive
+Upload reservation creates a pending asset. Both upload actions are non-destructive
 writes; `get_posts` is read-only. None of these tools publishes a post.
 
 ## Interactive content cards

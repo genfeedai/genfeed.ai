@@ -41,6 +41,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
   let actorRole: MemberRole;
   let membership: { isActive: boolean; isDeleted: boolean } | null;
   let targetRoleKey: string;
+  let targetIsDeleted: boolean;
   let nextRoleKey: string;
   const members = {
     findMembershipRoleKey: vi.fn(),
@@ -113,9 +114,15 @@ describe('Organization member mutations (real HTTP role guard)', () => {
           }
           return { id: ownMemberId, ...membership, role: { key: actorRole } };
         }
-        return { id: query.id, organizationId };
+        if (
+          targetIsDeleted &&
+          (!Object.hasOwn(query, 'isDeleted') || query.isDeleted === false)
+        )
+          return null;
+        return { id: query.id, organizationId, isDeleted: targetIsDeleted };
       },
     );
+    targetIsDeleted = false;
     targetRoleKey = MemberRole.USER;
     nextRoleKey = MemberRole.USER;
     members.findMembershipRoleKey.mockImplementation(
@@ -190,14 +197,17 @@ describe('Organization member mutations (real HTTP role guard)', () => {
       expect(members.findOne).toHaveBeenCalledWith({
         id: otherMemberId,
         organizationId,
+        isDeleted: false,
       });
       expect(brands.findAll).toHaveBeenCalledWith(
         { where: { id: { in: [brandId] }, isDeleted: false, organizationId } },
         expect.objectContaining({ pagination: false }),
       );
-      expect(members.patch).toHaveBeenCalledWith(otherMemberId, {
-        brandIds: [brandId],
-      });
+      expect(members.patch).toHaveBeenCalledWith(
+        otherMemberId,
+        { brandIds: [brandId] },
+        expect.any(Array),
+      );
     });
 
     it.each([
@@ -216,7 +226,11 @@ describe('Organization member mutations (real HTTP role guard)', () => {
       actorRole = role;
       principal = { ...principal, isApiKey: true, scopes: [ApiKeyScope.ADMIN] };
       await patchMember(otherMemberId, { roleId }).expect(200);
-      expect(members.patch).toHaveBeenCalledWith(otherMemberId, { roleId });
+      expect(members.patch).toHaveBeenCalledWith(
+        otherMemberId,
+        { roleId },
+        expect.any(Array),
+      );
     });
   });
 
@@ -248,11 +262,57 @@ describe('Organization member mutations (real HTTP role guard)', () => {
     expect(members.findOne).toHaveBeenCalledWith({
       id: otherMemberId,
       organizationId,
+      isDeleted: false,
     });
     expect(members.patch).not.toHaveBeenCalled();
   });
 
   describe('owner membership', () => {
+    it('lets an owner restore a soft-deleted owner while retaining organization scope', async () => {
+      actorRole = MemberRole.OWNER;
+      targetRoleKey = MemberRole.OWNER;
+      targetIsDeleted = true;
+      await patchMember(otherMemberId, { isDeleted: false }).expect(200);
+      expect(members.findOne).toHaveBeenCalledWith({
+        id: otherMemberId,
+        organizationId,
+        isDeleted: undefined,
+      });
+      expect(members.patch).toHaveBeenCalledWith(
+        otherMemberId,
+        { isDeleted: false },
+        expect.any(Array),
+      );
+    });
+
+    it('keeps restoration idempotent for an active member', async () => {
+      actorRole = MemberRole.OWNER;
+      await patchMember(otherMemberId, { isDeleted: false }).expect(200);
+      expect(members.patch).toHaveBeenCalledWith(
+        otherMemberId,
+        { isDeleted: false },
+        expect.any(Array),
+      );
+    });
+
+    it('keeps deleted members hidden from ordinary edits', async () => {
+      actorRole = MemberRole.OWNER;
+      targetIsDeleted = true;
+      await patchMember(otherMemberId, { isActive: true }).expect(404);
+      expect(members.patch).not.toHaveBeenCalled();
+    });
+
+    it('does not allow restoration outside the authenticated organization', async () => {
+      actorRole = MemberRole.OWNER;
+      targetIsDeleted = true;
+      await patchMember(
+        otherMemberId,
+        { isDeleted: false },
+        testId('org', 9),
+      ).expect(403);
+      expect(members.patch).not.toHaveBeenCalled();
+    });
+
     it.each(mutations.filter(([field]) => field !== 'brandIds'))(
       'denies an admin changing an owner %s',
       async (_field, body) => {
@@ -277,6 +337,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
     });
 
     it('denies an admin restoring a soft-deleted owner', async () => {
+      targetIsDeleted = true;
       targetRoleKey = MemberRole.OWNER;
       await patchMember(otherMemberId, { isDeleted: false }).expect(403);
       expect(members.findMembershipRoleKey).toHaveBeenCalledWith(

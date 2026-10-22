@@ -64,7 +64,7 @@ describe('PostsListToolbar.tsx', () => {
     );
   });
 
-  it('shows the lowercase extension source as the Extension label', () => {
+  it('shows the stored extension source as the Imported label', () => {
     render(
       <Module
         onSearchChange={vi.fn()}
@@ -77,7 +77,7 @@ describe('PostsListToolbar.tsx', () => {
       />,
     );
     expect(screen.getByRole('combobox', { name: 'Source' })).toHaveTextContent(
-      'Extension',
+      'Imported',
     );
   });
 });

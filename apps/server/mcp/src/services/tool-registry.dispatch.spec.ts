@@ -19,6 +19,15 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
     ...actual,
+    get ALL_TOOLS() {
+      return [
+        ...actual.ALL_TOOLS,
+        ...mockState.tools.map((tool) => ({
+          ...tool,
+          surfaces: { mcp: true },
+        })),
+      ];
+    },
     getToolByName: vi.fn(),
     getToolsForSurface: vi.fn(
       (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
@@ -34,6 +43,8 @@ describe('ToolRegistryService.classify', () => {
   it.each([
     // Tool discovery meta tools are handled entirely in-process (no API
     // call); they classify first so nothing else can shadow them.
+    ['check_channel', 'scheduler'],
+    ['upload_media', 'agent-executor'],
     ['find_tools', 'tool-discovery'],
     ['send_chat_message', 'agent-chat'],
     // inspect_workflow is BOTH an CuratedActionName and a workflow-control tool;

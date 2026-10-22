@@ -1,3 +1,4 @@
+import { getRetiredMcpCatalogTool } from './mcp-catalog-calls';
 /** Endpoint and OAuth grant policy, independent of the client's reported name. */
 export type McpAccessMode = 'standard' | 'claude';
 
@@ -32,8 +33,7 @@ export const CLAUDE_MCP_TOOL_NAMES: ReadonlySet<string> = new Set([
   'get_articles',
   'create_article_draft',
   'get_article_preview',
-  'get_scheduler_capabilities',
-  'validate_scheduler_target',
+  'check_channel',
   'create_scheduled_release',
   'get_scheduled_release',
   'update_scheduled_release',
@@ -50,7 +50,9 @@ export const CLAUDE_MCP_TOOL_NAMES: ReadonlySet<string> = new Set([
 
 /** The onboarding MCP adapter invokes these reviewed internal operations. */
 export const CLAUDE_MCP_AGENT_TOOL_NAMES: ReadonlySet<string> = new Set([
-  ...CLAUDE_MCP_TOOL_NAMES,
+  ...[...CLAUDE_MCP_TOOL_NAMES].filter((name) => name !== 'check_channel'),
+  'get_scheduler_capabilities',
+  'validate_scheduler_target',
   'scan_brand_url',
   'save_onboarding_answers',
   'complete_onboarding',
@@ -66,6 +68,10 @@ export function isToolAllowedInMcpAccessMode(
     (surface === 'agent'
       ? CLAUDE_MCP_AGENT_TOOL_NAMES
       : CLAUDE_MCP_TOOL_NAMES
-    ).has(name)
+    ).has(
+      surface === 'mcp'
+        ? (getRetiredMcpCatalogTool(name)?.canonicalName ?? name)
+        : name,
+    )
   );
 }

@@ -1,214 +1,320 @@
 'use client';
-
+import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboarding-progress';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/contracts';
-import {
-  ONBOARDING_DRAFT_PLATFORMS,
-  ONBOARDING_MAX_DRAFT_ROUNDS,
-} from '@genfeedai/contracts/constants';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ONBOARDING_DRAFT_PLATFORMS } from '@genfeedai/contracts/constants';
+import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
+import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
+import DesktopSidebar from '@ui/layouts/app/DesktopSidebar';
 import { Button } from '@ui/primitives/button';
-import Field from '@ui/primitives/field';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { useRef, useState } from 'react';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
 import ScheduleStep from './schedule-step';
 import { useFirstDrafts } from './use-first-drafts';
 
-/**
- * The one onboarding page: a link in, first posts out. Brand context is only
- * asked for when the first drafts don't look right, and never more than
- * `ONBOARDING_MAX_DRAFT_ROUNDS` rounds.
- */
+const GALLERY_ORDER = ['instagram', 'tiktok', 'twitter', 'linkedin'];
+
 export default function FirstDraftsOnboarding() {
   const t = useTranslations('pages.onboarding.firstDrafts');
   const state = useFirstDrafts();
-  const { brandId } = useBrand();
-
-  if (!state.isReady) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Spinner ariaLabel={t('loading')} className="size-6 text-foreground" />
-      </div>
-    );
-  }
-
-  if (state.phase === 'working') {
-    return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
-        <Spinner className="size-6 text-foreground" />
-        <p role="status" className="text-muted-foreground">
-          {t(`working.${state.workingStep}`)}
-        </p>
-      </div>
-    );
-  }
-
-  if (state.phase === 'context') {
-    return (
-      <ContextForm
-        audienceSuggestions={state.scan?.summary?.suggestions?.audiences ?? []}
-        hasError={state.error === 'generate'}
-        isScanFailed={state.isScanFailed}
-        isWebsiteMissing={state.scan === null}
-        offerSuggestions={state.scan?.summary?.suggestions?.offers ?? []}
-        onSubmit={state.onSubmitContext}
-      />
-    );
-  }
-
-  if (state.phase === 'schedule' && state.result) {
-    return (
-      <ScheduleStep
-        brandId={brandId}
-        imageIngredientId={state.result.imageIngredientId}
-        isFinishing={state.isContinuing}
-        likedDrafts={state.likedDrafts}
-        onFinish={state.onContinue}
-      />
-    );
-  }
-
-  if (state.phase === 'review' && state.result) {
-    const { drafts, imageUrl, status } = state.result;
-    const hasMissingChannels = ONBOARDING_DRAFT_PLATFORMS.some(
-      (platform) => !drafts.some((draft) => draft.platform === platform),
-    );
-    const brandName = state.scan?.summary?.name;
-    return (
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold">{t('review.title')}</h1>
-          <p className="text-muted-foreground">
-            {brandName
-              ? t('review.description', { brand: brandName })
-              : t('review.descriptionNoBrand')}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {t('review.round', {
-              max: ONBOARDING_MAX_DRAFT_ROUNDS,
-              round: state.round,
-            })}
-          </p>
-        </div>
-
-        {status === 'unavailable' ? (
-          <p role="status" className="text-muted-foreground">
-            {t('review.unavailable')}
-          </p>
-        ) : (
-          <>
-            <div className="grid gap-4 md:grid-cols-2">
-              {drafts.map((draft) => (
-                <DraftCard
-                  key={draft.postId}
-                  draft={draft}
-                  imageUrl={imageUrl}
-                  onVerdict={state.onVerdict}
-                  verdict={state.verdicts[draft.postId]}
-                />
-              ))}
-            </div>
-            {state.canRetry && drafts.some((draft) => draft.isProvisional) ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t('review.generic')}
-              </p>
-            ) : null}
-            {status === 'partial' && hasMissingChannels ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t('review.partial')}
-              </p>
-            ) : null}
-            {status === 'partial' && !imageUrl ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t('review.imageFailed')}
-              </p>
-            ) : null}
-          </>
-        )}
-
-        {state.error === 'continue' ? (
-          <p role="alert" className="text-sm text-destructive">
-            {t('errors.continue')}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          {state.likedDrafts.length > 0 ? (
-            <Button
-              label={t('review.schedule', { count: state.likedDrafts.length })}
-              isDisabled={state.isContinuing}
-              onClick={state.onSchedule}
-            />
-          ) : null}
-          <Button
-            label={
-              status === 'unavailable'
-                ? t('review.continueAnyway')
-                : state.likedDrafts.length > 0
-                  ? t('review.skipScheduling')
-                  : t('review.looksRight')
-            }
-            isLoading={state.isContinuing}
-            onClick={state.onContinue}
-            variant={
-              state.likedDrafts.length > 0
-                ? ButtonVariant.GHOST
-                : ButtonVariant.DEFAULT
-            }
-          />
-          {state.canRetry && status !== 'unavailable' ? (
-            <Button
-              label={t('review.notRight')}
-              variant={ButtonVariant.SECONDARY}
-              isDisabled={state.isContinuing}
-              onClick={state.onNotRight}
-            />
-          ) : null}
-        </div>
-      </div>
-    );
-  }
+  const { brandId, selectedBrand } = useBrand();
+  const logoUrl = useThemeLogo();
+  const [skipOpen, setSkipOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const step =
+    state.phase === 'schedule'
+      ? 3
+      : state.phase === 'review'
+        ? 2
+        : state.phase === 'working'
+          ? 1
+          : 0;
+  const labels = [
+    t('steps.brand'),
+    t('steps.create'),
+    t('steps.review'),
+    t('steps.connect'),
+  ];
+  const loading = !state.isReady || state.isRestoring;
+  const canContinue =
+    Boolean(state.result) &&
+    (state.phase === 'url' ||
+      state.phase === 'review' ||
+      state.phase === 'schedule');
+  const result = state.result;
 
   return (
-    <Form
-      spacing="section"
-      onSubmit={(event) => {
-        event.preventDefault();
-        state.onStart();
-      }}
-    >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">{t('url.title')}</h1>
-        <p className="text-muted-foreground">{t('url.description')}</p>
+    <div className="h-dvh overflow-hidden bg-gray-100 [--desktop-sidebar-width:220px]">
+      <header className="flex h-12 items-center gap-3 px-6">
+        {logoUrl && (
+          <Image
+            src={logoUrl}
+            alt={t('appName')}
+            width={22}
+            height={22}
+            className="dark:invert"
+          />
+        )}
+        <span className="text-xs font-semibold">{t('appName')}</span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {labels[step]}
+        </span>
+      </header>
+      <div className="flex h-[calc(100dvh-3.5rem)] overflow-hidden border border-border bg-background md:mx-2 md:rounded-lg">
+        <DesktopSidebar
+          embedded
+          isCollapsed={false}
+          width={220}
+          ariaLabel={t('progress')}
+        >
+          <div className="p-3">
+            <p className="px-2.5 pb-5 pt-3 text-xs font-medium uppercase text-muted-foreground">
+              {t('gettingStarted')}
+            </p>
+            <OnboardingProgress
+              orientation="vertical"
+              currentStep={step}
+              totalSteps={4}
+              stepLabels={labels}
+              disabledSteps={[0, 1, 2, 3].filter(
+                (index) =>
+                  loading ||
+                  state.isContinuing ||
+                  (index === 1 && (!state.isGenerating || Boolean(result))) ||
+                  (index > 1 && !result),
+              )}
+              onStepChange={(index) => {
+                state.onNavigate(index);
+                if (mainRef.current) mainRef.current.scrollTop = 0;
+              }}
+            />
+          </div>
+        </DesktopSidebar>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div
+            className="flex min-h-14 shrink-0 items-center justify-end gap-2 border-b border-border px-4 md:px-7"
+            role="toolbar"
+            aria-label={t('actions.label')}
+          >
+            {state.phase !== 'url' && !loading && (
+              <Button
+                className="mr-auto"
+                withWrapper={false}
+                ariaLabel={t('actions.back')}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                isDisabled={state.isContinuing}
+                onClick={() => {
+                  state.onBack();
+                  if (mainRef.current) mainRef.current.scrollTop = 0;
+                }}
+              >
+                <ArrowLeft className="size-4" />
+              </Button>
+            )}
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              label={t('actions.skip')}
+              isDisabled={state.isContinuing}
+              onClick={() => setSkipOpen(true)}
+            />
+            {canContinue && !loading && (
+              <Button
+                size={ButtonSize.SM}
+                isLoading={state.isContinuing}
+                onClick={() => {
+                  state.phase === 'schedule'
+                    ? state.onContinue()
+                    : state.phase === 'url'
+                      ? state.onStart()
+                      : state.onSchedule();
+                  if (mainRef.current) mainRef.current.scrollTop = 0;
+                }}
+              >
+                {t(
+                  state.phase === 'schedule'
+                    ? 'actions.finish'
+                    : 'actions.continue',
+                )}
+                <ArrowRight className="size-4" />
+              </Button>
+            )}
+          </div>
+          <main
+            ref={mainRef}
+            className="min-h-0 flex-1 overflow-auto p-4 md:p-7"
+            aria-label={labels[step]}
+          >
+            {loading ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <Spinner ariaLabel={t('loading')} />
+              </div>
+            ) : state.phase === 'working' ? (
+              <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
+                <Spinner />
+                <p role="status" className="text-sm text-muted-foreground">
+                  {t(`working.${state.workingStep}`)}
+                </p>
+              </div>
+            ) : state.phase === 'context' ? (
+              <div className="mx-auto max-w-xl">
+                <ContextForm
+                  audienceSuggestions={
+                    state.scan?.summary?.suggestions?.audiences ?? []
+                  }
+                  hasError={state.error === 'generate'}
+                  isScanFailed={state.isScanFailed}
+                  isWebsiteMissing={state.scan === null}
+                  offerSuggestions={
+                    state.scan?.summary?.suggestions?.offers ?? []
+                  }
+                  onSubmit={state.onSubmitContext}
+                />
+              </div>
+            ) : state.phase === 'schedule' && result ? (
+              <ScheduleStep brandId={brandId} />
+            ) : state.phase === 'review' && result ? (
+              <div className="mx-auto max-w-5xl">
+                <OrderedMasonry minColumnWidth={420} maxColumns={2} gap={24}>
+                  {result.drafts
+                    .toSorted(
+                      (left, right) =>
+                        GALLERY_ORDER.indexOf(left.platform) -
+                        GALLERY_ORDER.indexOf(right.platform),
+                    )
+                    .map((draft) => (
+                      <DraftCard
+                        key={draft.postId}
+                        draft={draft}
+                        imageUrl={result.imageUrl}
+                        videoUrl={result.videoUrl}
+                        videoStatus={result.videoStatus}
+                        brandName={
+                          state.scan?.summary?.name || selectedBrand?.label
+                        }
+                        avatarUrl={
+                          state.scan?.summary?.logoUrl || selectedBrand?.logoUrl
+                        }
+                        isSaving={state.savingPostIds.includes(draft.postId)}
+                        onVerdict={state.onVerdict}
+                        verdict={state.verdicts[draft.postId]}
+                      />
+                    ))}
+                </OrderedMasonry>
+                {!state.isGenerating &&
+                  !result.imageUrl &&
+                  result.drafts.length > 0 && (
+                    <p
+                      role="status"
+                      className="mt-4 text-sm text-muted-foreground"
+                    >
+                      {t('review.imageFailed')}
+                    </p>
+                  )}
+                {!state.isGenerating &&
+                  result.drafts.length < ONBOARDING_DRAFT_PLATFORMS.length && (
+                    <p
+                      role="status"
+                      className="mt-4 text-sm text-muted-foreground"
+                    >
+                      {t(
+                        result.status === 'unavailable'
+                          ? 'review.unavailable'
+                          : 'review.partial',
+                      )}
+                    </p>
+                  )}
+              </div>
+            ) : (
+              <Form
+                spacing="none"
+                className="mx-auto mt-8 max-w-xl"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  state.onStart();
+                }}
+              >
+                <h1 className="text-2xl font-semibold">{t('url.title')}</h1>
+                <p
+                  id="brand-link-help"
+                  className="mt-3 text-sm text-muted-foreground"
+                >
+                  {t('url.description')}
+                </p>
+                <div className="mt-6 flex items-center gap-2">
+                  <Input
+                    aria-label={t('url.label')}
+                    aria-describedby="brand-link-help"
+                    value={state.url}
+                    placeholder={t('url.placeholder')}
+                    autoComplete="url"
+                    className="min-w-0 flex-1"
+                    onChange={(event) => state.onUrlChange(event.target.value)}
+                  />
+                  <Button
+                    type="submit"
+                    ariaLabel={t('url.submit')}
+                    isDisabled={!state.url.trim()}
+                  >
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+                <Button
+                  className="mt-3"
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  label={t('url.noWebsite')}
+                  onClick={state.onSkipLink}
+                />
+              </Form>
+            )}
+            {state.error && (
+              <p
+                role="alert"
+                className="mx-auto mt-4 max-w-5xl text-sm text-destructive"
+              >
+                {t(`errors.${state.error}`)}
+              </p>
+            )}
+          </main>
+        </div>
       </div>
-      <Field label={t('url.label')}>
-        <Input
-          value={state.url}
-          placeholder={t('url.placeholder')}
-          autoFocus
-          onChange={(event) => state.onUrlChange(event.target.value)}
-        />
-      </Field>
-      {state.error === 'generate' ? (
-        <p role="alert" className="text-sm text-destructive">
-          {t('errors.generate')}
-        </p>
-      ) : null}
-      <div className="flex flex-wrap gap-3">
-        <Button
-          type="submit"
-          label={t('url.submit')}
-          isDisabled={state.url.trim().length === 0}
-        />
-        <Button
-          label={t('url.noWebsite')}
-          variant={ButtonVariant.GHOST}
-          onClick={state.onSkipLink}
-        />
-      </div>
-    </Form>
+      <Dialog open={skipOpen} onOpenChange={setSkipOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('skip.title')}</DialogTitle>
+            <DialogDescription>{t('skip.description')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              label={t('actions.skip')}
+              isLoading={state.isContinuing}
+              onClick={() => {
+                setSkipOpen(false);
+                state.onContinue();
+              }}
+            />
+            <Button label={t('skip.stay')} onClick={() => setSkipOpen(false)} />
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

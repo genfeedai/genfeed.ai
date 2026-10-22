@@ -194,6 +194,28 @@ describe('TrendVideoService', () => {
     );
   });
 
+  it('rechecks cached video freshness and publication windows without collection', async () => {
+    const recent = new Date().toISOString();
+    mockCacheService.get.mockResolvedValue([
+      { externalId: 'fresh', isCurrent: true, publishedAt: recent },
+      {
+        externalId: 'expired',
+        isCurrent: true,
+        publishedAt: recent,
+        expiresAt: '2020-01-01',
+      },
+      { externalId: 'old', isCurrent: true, publishedAt: '2020-01-01' },
+      { externalId: 'retired', isCurrent: false, publishedAt: recent },
+    ]);
+    expect(
+      (await service.getViralVideos({ timeframe: Timeframe.H24 })).map(
+        (video) => video.externalId,
+      ),
+    ).toEqual(['fresh']);
+    expect(mockPrisma.trendingVideo.findMany).not.toHaveBeenCalled();
+    expect(mockApifyService.getTikTokVideos).not.toHaveBeenCalled();
+  });
+
   it('hydrates hashtag and sound IDs while labeling sample-derived metrics', async () => {
     mockPrisma.trendingHashtag.findMany.mockResolvedValue([
       makeHashtagDoc({ platform: 'instagram', hashtag: 'example' }),

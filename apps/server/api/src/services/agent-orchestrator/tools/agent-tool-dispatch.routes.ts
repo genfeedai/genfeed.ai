@@ -249,6 +249,8 @@ function dispatchInsightsFamily(
   ctx: ToolExecutionContext,
 ): FamilyResult {
   switch (toolName) {
+    case 'track_post_link':
+      return handlers.analyticsHandler.trackPostLink(params, ctx);
     case 'get_analytics':
       return handlers.analyticsHandler.getAnalytics(params, ctx);
     case 'list_outlier_posts':

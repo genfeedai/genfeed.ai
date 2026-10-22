@@ -1,120 +1,119 @@
 'use client';
-
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  InstagramIcon,
+  LinkedinIcon,
+  TiktokIcon,
+  XTwitterIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import type { FirstDraftsScheduleProps } from '@genfeedai/props/onboarding/first-drafts.props';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { CredentialsService } from '@services/organization/credentials.service';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useScheduleStep } from './use-schedule-step';
+import { useEffect, useRef, useState } from 'react';
 
-/**
- * The step after "yes, I'd post this": connect the account each liked draft is
- * for, then schedule them all at once. Nothing is published before this click.
- */
-export default function ScheduleStep(props: FirstDraftsScheduleProps) {
+const PLATFORMS = [
+  { id: 'instagram', Icon: InstagramIcon },
+  { id: 'tiktok', Icon: TiktokIcon },
+  { id: 'twitter', Icon: XTwitterIcon },
+  { id: 'linkedin', Icon: LinkedinIcon },
+] as const;
+
+export default function ScheduleStep({ brandId }: FirstDraftsScheduleProps) {
   const t = useTranslations('pages.onboarding.firstDrafts');
-  const state = useScheduleStep(props);
-
-  if (state.isLoading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Spinner ariaLabel={t('loading')} className="size-6 text-foreground" />
-      </div>
-    );
-  }
-
-  const readyCount = state.rows.filter(
-    (row) => row.state === 'ready' || row.state === 'failed',
-  ).length;
-  const isDone =
-    state.rows.some((row) => row.state === 'scheduled') &&
-    state.rows.every(
-      (row) => row.state === 'scheduled' || row.state === 'unsupported',
-    );
-
+  const { getToken } = useAuthIdentity();
+  const tokenRef = useRef(getToken);
+  tokenRef.current = getToken;
+  const connect = usePlatformOAuthConnect({
+    brandId,
+    returnTo: '/onboarding/brand?step=schedule',
+  });
+  const [connected, setConnected] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsLoading(true);
+    setConnected([]);
+    setHasError(false);
+    void (async () => {
+      try {
+        const token = await resolveAuthToken(tokenRef.current);
+        if (!token) throw new Error('Not authenticated');
+        const rows = await CredentialsService.getInstance(
+          token,
+        ).listBrandPublishingReadiness(brandId, controller.signal);
+        if (!controller.signal.aborted)
+          setConnected(
+            rows
+              .filter((row) => row.credentialId)
+              .map((row) => String(row.providerKey).toLowerCase()),
+          );
+      } catch {
+        if (!controller.signal.aborted) setHasError(true);
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [brandId]);
+  if (isLoading) return <Spinner ariaLabel={t('loading')} />;
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">{t('schedule.title')}</h1>
-        <p className="text-muted-foreground">{t('schedule.description')}</p>
-      </div>
-
-      <ul className="flex flex-col gap-3">
-        {state.rows.map((row) => {
-          const platform = t(`platforms.${row.draft.platform}`);
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {PLATFORMS.map(({ id, Icon }) => {
+          const label = t(`platforms.${id}`);
+          const isConnected = connected.includes(id);
           return (
-            <li
-              key={row.draft.postId}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+            <Card
+              key={id}
+              bodyClassName="gap-5 p-5"
+              data-testid={`connect-card-${id}`}
             >
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="font-medium">{platform}</span>
-                <span className="line-clamp-2 text-sm text-muted-foreground">
-                  {row.draft.text}
-                </span>
-                {row.scheduledAt ? (
-                  <span className="text-xs text-muted-foreground">
-                    {t('schedule.when', {
-                      date: new Date(row.scheduledAt).toLocaleString('en-US', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      }),
-                    })}
-                  </span>
-                ) : null}
+              <div className="flex items-center gap-3">
+                <Icon className="size-8 shrink-0" aria-hidden="true" />
+                <h2 className="text-sm font-semibold">{label}</h2>
               </div>
-              {row.state === 'connect' ? (
-                <Button
-                  label={t('schedule.connect', { platform })}
-                  onClick={() => state.connect(row.draft.platform)}
-                />
-              ) : (
-                <span
-                  role="status"
-                  className={
-                    row.state === 'failed'
-                      ? 'text-sm text-destructive'
-                      : 'text-sm text-muted-foreground'
-                  }
-                >
-                  {t(`schedule.state.${row.state}`)}
-                </span>
-              )}
-            </li>
+              <Button
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                isDisabled={isConnected || connecting !== null}
+                isLoading={connecting === id}
+                ariaLabel={t(
+                  isConnected
+                    ? 'connections.connectedLabel'
+                    : 'schedule.connect',
+                  { platform: label },
+                )}
+                onClick={() => {
+                  setConnecting(id);
+                  setHasError(false);
+                  void connect(id)
+                    .catch(() => setHasError(true))
+                    .finally(() => setConnecting(null));
+                }}
+              >
+                {isConnected && <Check className="size-3.5" />}
+                {t(
+                  isConnected ? 'connections.connected' : 'connections.connect',
+                )}
+              </Button>
+            </Card>
           );
         })}
-      </ul>
-
-      {state.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {t(`errors.${state.error}`)}
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap gap-3">
-        {isDone ? (
-          <Button
-            label={t('schedule.finish')}
-            isLoading={props.isFinishing}
-            onClick={props.onFinish}
-          />
-        ) : (
-          <>
-            <Button
-              label={t('schedule.submit', { count: readyCount })}
-              isDisabled={readyCount === 0}
-              isLoading={state.isScheduling}
-              onClick={state.schedule}
-            />
-            <Button
-              label={t('schedule.skip')}
-              variant={ButtonVariant.GHOST}
-              isDisabled={state.isScheduling}
-              onClick={props.onFinish}
-            />
-          </>
-        )}
       </div>
+      {hasError && (
+        <p role="alert" className="mt-4 text-sm text-destructive">
+          {t('errors.connect')}
+        </p>
+      )}
     </div>
   );
 }

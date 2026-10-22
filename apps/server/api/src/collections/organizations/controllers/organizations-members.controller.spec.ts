@@ -353,9 +353,14 @@ describe('OrganizationsMembersController', () => {
         mockUser,
       );
 
-      expect(membersService.patch).toHaveBeenCalledWith(memberId, {
-        brandIds: [],
-      });
+      expect(membersService.patch).toHaveBeenCalledWith(
+        memberId,
+        { brandIds: [] },
+        expect.arrayContaining([
+          { path: 'role' },
+          { path: 'brands', where: { organizationId, isDeleted: false } },
+        ]),
+      );
       expect(result).toBeDefined();
     });
 

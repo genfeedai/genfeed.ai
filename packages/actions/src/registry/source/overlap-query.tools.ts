@@ -1,11 +1,45 @@
 import { LIBRARY_SHELF_ORDER } from '@genfeedai/contracts';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
+import type { ToolParameterSchema } from '../../interfaces/tool-definition.interface';
 
 /**
  * Read/list overlap definitions split out of `overlap.tools.ts` to keep that
  * module under the per-file line budget (`source-tools.test.ts`). Surface
  * availability is declared only in `curated-action-catalog.ts`.
  */
+export const REQUEST_MEDIA_UPLOAD_PARAMETERS: ToolParameterSchema = {
+  properties: {
+    category: {
+      default: 'image',
+      description: 'Media category for the pending asset.',
+      enum: ['image', 'video', 'audio', 'music'],
+      type: 'string',
+    },
+    contentType: {
+      description:
+        'MIME type signed into the upload URL. The PUT Content-Type must match it.',
+      type: 'string',
+    },
+    filename: {
+      description: 'Original filename, including the extension.',
+      type: 'string',
+    },
+  },
+  required: ['filename', 'contentType'],
+  type: 'object',
+};
+
+export const COMPLETE_MEDIA_UPLOAD_PARAMETERS: ToolParameterSchema = {
+  properties: {
+    assetId: {
+      description: 'assetId returned by request_media_upload.',
+      type: 'string',
+    },
+  },
+  required: ['assetId'],
+  type: 'object',
+};
+
 export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
@@ -200,27 +234,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     description:
       'Reserve a pending asset for the selected brand and return uploadUrl, assetId, method, and constraints. For PUT, send file bytes with the returned headers. For POST_JSON, send localUpload as JSON, adding base64 file bytes in localUpload.source.data. Then call complete_media_upload. Does not publish or attach the file.',
     name: 'request_media_upload',
-    parameters: {
-      properties: {
-        category: {
-          default: 'image',
-          description: 'Media category for the pending asset.',
-          enum: ['image', 'video', 'audio', 'music'],
-          type: 'string',
-        },
-        contentType: {
-          description:
-            'MIME type signed into the upload URL. The PUT Content-Type must match it.',
-          type: 'string',
-        },
-        filename: {
-          description: 'Original filename, including the extension.',
-          type: 'string',
-        },
-      },
-      required: ['filename', 'contentType'],
-      type: 'object',
-    },
+    parameters: REQUEST_MEDIA_UPLOAD_PARAMETERS,
     requiredRole: 'user',
   },
   {
@@ -228,16 +242,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     description:
       'Finalize a presigned media upload. Returns assetId and, when available, the hosted URL. Use assetId to attach media to a scheduled release, or use the hosted URL to attach media to a post draft.',
     name: 'complete_media_upload',
-    parameters: {
-      properties: {
-        assetId: {
-          description: 'assetId returned by request_media_upload.',
-          type: 'string',
-        },
-      },
-      required: ['assetId'],
-      type: 'object',
-    },
+    parameters: COMPLETE_MEDIA_UPLOAD_PARAMETERS,
     requiredRole: 'user',
   },
   {

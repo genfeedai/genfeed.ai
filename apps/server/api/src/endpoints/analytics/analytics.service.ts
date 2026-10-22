@@ -374,6 +374,12 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       platformFilter,
       orgFilter,
       source,
+      organizationId
+        ? Prisma.sql`AND p."organizationId" = ${organizationId}
+        ${brandId ? Prisma.sql`AND p."brandId" = ${brandId}` : Prisma.empty}
+        ${platform ? Prisma.sql`AND p.platform = ${platform}` : Prisma.empty}`
+        : Prisma.sql`AND false`,
+      metric,
     );
 
     return analyticsResponseProjection.buildTopContent(
@@ -390,16 +396,18 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     platformFilter: PrismaSql,
     orgFilter: PrismaSql,
-    source?: 'extension',
+    source: 'extension' | undefined,
+    uncollectedScope: PrismaSql,
+    metric: AnalyticsMetric,
   ): Promise<RawAnalyticsRow[]> {
     const postJoin = source
       ? Prisma.sql`INNER JOIN "posts" p ON p.id = pa."postId" AND p."organizationId" = pa."organizationId" AND p."brandId" = pa."brandId" AND p."isDeleted" = false`
-      : Prisma.sql`LEFT JOIN "posts" p ON p.id = pa."postId"`;
+      : Prisma.sql`LEFT JOIN "posts" p ON p.id = pa."postId" AND p."organizationId" = pa."organizationId" AND p."brandId" = pa."brandId" AND p."isDeleted" = false`;
     const brandJoin = source
       ? Prisma.sql`INNER JOIN "brands" b ON b.id = pa."brandId" AND b."organizationId" = pa."organizationId" AND b."isDeleted" = false`
-      : Prisma.sql`LEFT JOIN "brands" b ON b.id = pa."brandId"`;
+      : Prisma.sql`LEFT JOIN "brands" b ON b.id = pa."brandId" AND b."organizationId" = pa."organizationId" AND b."isDeleted" = false`;
     const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
-      SELECT
+      WITH collected AS (SELECT
         pa.id,
         pa."postId" AS post_id,
         pa."platform"::text AS platform,
@@ -414,6 +422,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         p.label AS label,
         p.description AS description,
         p.visibility AS visibility,
+        p.source AS source,
+        'collected' AS metrics_status,
         b.label AS brand_name,
         NULL AS brand_logo,
         i.id AS ingredient_id,
@@ -432,6 +442,33 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ${orgFilter}
         ${source ? Prisma.sql`AND p.source = ${source}` : Prisma.empty}
       ORDER BY ${sortExpr}
+      LIMIT ${safeLimit})
+      SELECT * FROM collected
+      UNION ALL
+      SELECT p.id, p.id AS post_id, p.platform::text, p."publishedAt" AS date,
+        0 AS total_views, 0 AS total_likes, 0 AS total_comments, 0 AS total_saves,
+        0 AS total_shares, 0 AS engagement_rate, 0 AS total_engagement,
+        p.label, p.description, p.visibility, p.source,
+        CASE WHEN p."isAnalyticsEnabled" THEN 'pending' ELSE 'unavailable' END AS metrics_status,
+        b.label AS brand_name, NULL AS brand_logo, NULL AS ingredient_id, NULL AS ingredient_category
+      FROM posts p
+      INNER JOIN brands b ON b.id = p."brandId" AND b."organizationId" = p."organizationId" AND b."isDeleted" = false
+      WHERE p."isDeleted" = false AND p.source = 'extension'
+        AND p."targetExecutionState" = 'PUBLISHED'
+        AND p."publishedAt" >= ${startDate} AND p."publishedAt" <= ${endDate}
+        ${uncollectedScope}
+        AND NOT EXISTS (
+          SELECT 1 FROM post_analytics uncollected
+          WHERE uncollected."postId" = p.id AND uncollected."organizationId" = p."organizationId"
+            AND uncollected."brandId" = p."brandId" AND uncollected."isDeleted" = false
+        )
+      ORDER BY ${
+        metric === AnalyticsMetric.ENGAGEMENT
+          ? Prisma.sql`total_engagement`
+          : metric === AnalyticsMetric.LIKES
+            ? Prisma.sql`total_likes`
+            : Prisma.sql`total_views`
+      } DESC, post_id
       LIMIT ${safeLimit}
     `;
 

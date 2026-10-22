@@ -31,28 +31,30 @@ export default function TrendVideoGallery({
             {translate('contentDescription')}
           </p>
         </div>
-        <div className="flex gap-1">
-          {(
-            [
-              { label: translate('hours24'), value: Timeframe.H24 },
-              { label: translate('hours72'), value: Timeframe.H72 },
-              { label: translate('days7'), value: Timeframe.D7 },
-            ] as const
-          ).map((option) => (
-            <Button
-              key={option.value}
-              size={ButtonSize.SM}
-              variant={
-                timeframe === option.value
-                  ? ButtonVariant.SECONDARY
-                  : ButtonVariant.GHOST
-              }
-              onClick={() => onTimeframeChange?.(option.value)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
+        {onTimeframeChange ? (
+          <div className="flex gap-1">
+            {(
+              [
+                { label: translate('hours24'), value: Timeframe.H24 },
+                { label: translate('hours72'), value: Timeframe.H72 },
+                { label: translate('days7'), value: Timeframe.D7 },
+              ] as const
+            ).map((option) => (
+              <Button
+                key={option.value}
+                size={ButtonSize.SM}
+                variant={
+                  timeframe === option.value
+                    ? ButtonVariant.SECONDARY
+                    : ButtonVariant.GHOST
+                }
+                onClick={() => onTimeframeChange?.(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
       </div>
       {selectedHashtag ? (
         <Button

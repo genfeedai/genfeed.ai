@@ -11,6 +11,33 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
+    name: 'track_post_link',
+    description:
+      'Import an already published X or YouTube post by URL and track analytics when its author matches a connected account. LinkedIn posts and articles are saved as links without metrics until API access is approved. This never publishes content.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['brandId', 'url'],
+      properties: {
+        brandId: { type: 'string', minLength: 1 },
+        url: { type: 'string', minLength: 1, maxLength: 2048 },
+        title: {
+          type: 'string',
+          maxLength: 10000,
+          description: 'Optional label for LinkedIn links only',
+        },
+        publishedAt: {
+          type: 'string',
+          format: 'date-time',
+          description:
+            'Optional LinkedIn publication date when the URL does not encode one',
+        },
+      },
+    },
+  },
+  {
     name: 'link_external_publication_credential',
     description:
       'Link an already recorded own publication to its matching connected account for analytics. This never publishes or schedules content.',

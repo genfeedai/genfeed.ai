@@ -12,6 +12,7 @@ import type {
   IUser,
   ProductEmailTopic,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { Setting } from '@genfeedai/models/analytics/setting.model';
 import { User } from '@genfeedai/models/auth/user.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
@@ -20,7 +21,9 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { normalizeOperationError } from '@services/core/operation-error';
 import { serializeRequest } from '@services/core/request-serializers';
+import type { AxiosRequestConfig } from 'axios';
 
 export class UsersService extends BaseService<User> {
   constructor(token: string) {
@@ -238,6 +241,41 @@ export class UsersService extends BaseService<User> {
     return await this.instance
       .get<JsonApiResponseDocument>('me')
       .then((res) => this.mapOne(res.data));
+  }
+
+  public async updateAdminProfile(
+    userId: string,
+    profile: Pick<IUser, 'firstName' | 'lastName' | 'handle'>,
+  ): Promise<IUser> {
+    const options: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [400, 409, 422, 500, 502, 503, 504],
+    };
+    try {
+      const response = await this.instance.patch<JsonApiResponseDocument>(
+        `/${userId}/profile`,
+        profile,
+        options,
+      );
+      return this.mapOne(response.data);
+    } catch (error) {
+      throw normalizeOperationError('updateAdminProfile', error);
+    }
+  }
+
+  public async resetOnboarding(userId: string): Promise<IUser> {
+    const options: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [400, 409, 422, 500, 502, 503, 504],
+    };
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        `/${userId}/onboarding/reset`,
+        undefined,
+        options,
+      );
+      return this.mapOne(response.data);
+    } catch (error) {
+      throw normalizeOperationError('resetOnboarding', error);
+    }
   }
 
   public async patchMe(body: Partial<IUser>): Promise<IUser> {

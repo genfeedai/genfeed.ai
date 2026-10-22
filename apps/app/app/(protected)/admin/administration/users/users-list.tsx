@@ -8,7 +8,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -28,6 +28,7 @@ function formatUserDate(value: string | Date | null | undefined): string {
 }
 
 export default function UsersList() {
+  const queryClient = useQueryClient();
   const translate = useTranslations('pages.adminUsers');
   const impersonateUser = useImpersonateUser();
   const currentPage = Number(useSearchParams().get('page')) || 1;
@@ -130,6 +131,16 @@ export default function UsersList() {
           render: (u) => (
             <UserDetailPanel
               user={u}
+              onUpdated={(updated) => {
+                queryClient.setQueryData<IUser[]>(
+                  ['admin-users', currentPage],
+                  (current) =>
+                    current?.map((item) =>
+                      item.id === updated.id ? updated : item,
+                    ),
+                );
+                queryClient.setQueryData(['admin-user', updated.id], updated);
+              }}
               onImpersonate={(target) => {
                 void impersonateUser(target);
               }}

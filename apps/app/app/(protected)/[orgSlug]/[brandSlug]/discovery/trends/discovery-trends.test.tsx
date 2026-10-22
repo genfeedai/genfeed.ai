@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { Platform, Timeframe } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DiscoveryTrends from './discovery-trends';
@@ -19,6 +20,12 @@ const mocks = vi.hoisted(() => ({
   getTrendsService: vi.fn(),
   getViralVideos: vi.fn(),
   push: vi.fn(),
+  scope: {
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  },
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -27,12 +34,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isBrandResourceReady: () => true,
-  useCollectionScope: () => ({
-    brandId: 'brand-1',
-    isReady: true,
-    organizationId: 'org-1',
-    pageScope: 'brand',
-  }),
+  useCollectionScope: () => mocks.scope,
 }));
 
 vi.mock('@helpers/formatting/date/date.helper', () => ({
@@ -76,7 +78,6 @@ vi.mock('@services/social/trends.service', () => ({
 vi.mock('@ui/analytics/trends', () => ({
   TrendingHashtags: ({
     hashtags,
-    onPlatformChange,
     onHashtagClick,
     selectedPlatform,
   }: {
@@ -87,9 +88,6 @@ vi.mock('@ui/analytics/trends', () => ({
   }) => (
     <section>
       <div>Selected hashtag platform: {selectedPlatform || 'all'}</div>
-      <button type="button" onClick={() => onPlatformChange('youtube')}>
-        Filter YouTube Hashtags
-      </button>
       {hashtags.map((hashtag) => (
         <button
           key={hashtag.hashtag}
@@ -325,7 +323,16 @@ function configureSuccessfulService() {
 
 describe('DiscoveryTrends', () => {
   beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+  beforeEach(() => {
     vi.clearAllMocks();
+    mocks.scope = {
+      brandId: 'brand-1',
+      isReady: true,
+      organizationId: 'org-1',
+      pageScope: 'brand',
+    };
     configureSuccessfulService();
     mocks.getTrendsService.mockResolvedValue({
       getCorpusFreshnessHealth: mocks.getCorpusFreshnessHealth,
@@ -378,19 +385,28 @@ describe('DiscoveryTrends', () => {
       '/org-1/brand-1/discovery/trends/detail/trend-1',
     );
 
-    // Market viral videos, not the brand's own uploads.
+    // Brand relevance applies to public discovery evidence.
     await waitFor(() => {
       expect(mocks.getViralVideos).toHaveBeenCalledWith({
+        brandId: 'brand-1',
         limit: 100,
-        relevance: 'market',
+        relevance: 'brand',
+        platform: undefined,
+        signal: expect.any(AbortSignal),
         timeframe: Timeframe.H72,
       });
     });
-    fireEvent.click(screen.getByRole('button', { name: '7 days' }));
+    const user = userEvent.setup();
+    screen.getByRole('combobox', { name: 'Trend timeframe' }).focus();
+    await user.keyboard('{ArrowDown}');
+    await user.click(screen.getByRole('option', { name: '7 days' }));
     await waitFor(() => {
       expect(mocks.getViralVideos).toHaveBeenLastCalledWith({
+        brandId: 'brand-1',
         limit: 100,
-        relevance: 'market',
+        relevance: 'brand',
+        platform: undefined,
+        signal: expect.any(AbortSignal),
         timeframe: Timeframe.D7,
       });
     });
@@ -410,25 +426,135 @@ describe('DiscoveryTrends', () => {
     ).toBe(true);
   });
 
-  it('makes brand relevance explicit without changing the market default', async () => {
+  it('defaults every surface to brand and changes all reads on explicit Market opt-in', async () => {
     renderDiscoveryTrends();
     await screen.findByText('AI video');
-    expect(mocks.getTrendsDiscovery).toHaveBeenCalledWith({
-      relevance: 'market',
-      signal: expect.any(AbortSignal),
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'For this brand' }));
-    await waitFor(() =>
-      expect(mocks.getViralVideos).toHaveBeenLastCalledWith({
-        limit: 100,
-        relevance: 'brand',
-        timeframe: Timeframe.H72,
-      }),
+    expect(screen.getByRole('tab', { name: 'For this brand' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
-    expect(mocks.getTrendsDiscovery).toHaveBeenLastCalledWith({
-      relevance: 'brand',
-      signal: expect.any(AbortSignal),
+    for (const read of [
+      mocks.getTrendsDiscovery,
+      mocks.getViralVideos,
+      mocks.getTrendingHashtags,
+      mocks.getTrendingSounds,
+    ]) {
+      expect(read).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          relevance: 'brand',
+          timeframe: Timeframe.H72,
+        }),
+      );
+    }
+    await userEvent
+      .setup()
+      .click(screen.getByRole('tab', { name: 'Market trends' }));
+    await waitFor(() => {
+      for (const read of [
+        mocks.getTrendsDiscovery,
+        mocks.getViralVideos,
+        mocks.getTrendingHashtags,
+        mocks.getTrendingSounds,
+      ]) {
+        expect(read).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            relevance: 'market',
+            timeframe: Timeframe.H72,
+          }),
+        );
+      }
     });
+  });
+
+  it('changes every platform read and clears the dependent hashtag filter', async () => {
+    renderDiscoveryTrends();
+    await screen.findByText('#AIAgents');
+    fireEvent.click(screen.getByRole('button', { name: '#AIAgents' }));
+    expect(screen.queryByText('External video')).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    screen.getByRole('combobox', { name: 'Trend platform' }).focus();
+    await user.keyboard('{ArrowDown}');
+    await user.click(screen.getByRole('option', { name: 'YouTube' }));
+    await waitFor(() => {
+      for (const read of [
+        mocks.getTrendsDiscovery,
+        mocks.getViralVideos,
+        mocks.getTrendingHashtags,
+        mocks.getTrendingSounds,
+      ]) {
+        expect(read).toHaveBeenLastCalledWith(
+          expect.objectContaining({ platform: 'youtube', relevance: 'brand' }),
+        );
+      }
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Clear hashtag filter' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('resets scope-dependent state and keeps query caches separate across brand switches', async () => {
+    const view = renderDiscoveryTrends();
+    await screen.findByText('#AIAgents');
+    await userEvent
+      .setup()
+      .click(screen.getByRole('tab', { name: 'Market trends' }));
+    await waitFor(() =>
+      expect(mocks.getTrendingSounds).toHaveBeenLastCalledWith(
+        expect.objectContaining({ relevance: 'market' }),
+      ),
+    );
+    mocks.scope = {
+      ...mocks.scope,
+      brandId: 'brand-2',
+      organizationId: 'org-2',
+    };
+    mocks.getTrendingHashtags.mockResolvedValue([]);
+    mocks.getTrendingSounds.mockResolvedValue([]);
+    view.rerender(
+      <QueryClientProvider client={view.queryClient}>
+        <DiscoveryTrends />
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(mocks.getTrendingHashtags).toHaveBeenLastCalledWith(
+        expect.objectContaining({ relevance: 'brand', brandId: 'brand-2' }),
+      ),
+    );
+    expect(screen.queryByText('#AIAgents')).not.toBeInTheDocument();
+    expect(
+      view.queryClient.getQueryData([
+        'discovery-hashtags',
+        'org-1',
+        'brand-1',
+        'market',
+        '',
+        Timeframe.H72,
+      ]),
+    ).toHaveLength(1);
+    expect(
+      view.queryClient.getQueryData([
+        'discovery-hashtags',
+        'org-2',
+        'brand-2',
+        'brand',
+        '',
+        Timeframe.H72,
+      ]),
+    ).toEqual([]);
+    mocks.scope = {
+      ...mocks.scope,
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+    };
+    view.rerender(
+      <QueryClientProvider client={view.queryClient}>
+        <DiscoveryTrends />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole('tab', { name: 'For this brand' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   it('filters the content gallery by the selected hashtag', async () => {
@@ -514,7 +640,14 @@ describe('DiscoveryTrends', () => {
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(
-      queryClient.getQueryData(['discovery-hashtags', 'org-1', 'brand-1', '']),
+      queryClient.getQueryData([
+        'discovery-hashtags',
+        'org-1',
+        'brand-1',
+        'brand',
+        '',
+        Timeframe.H72,
+      ]),
     ).toEqual([{ hashtag: '#AIAgents', platform: Platform.TIKTOK }]);
   });
 

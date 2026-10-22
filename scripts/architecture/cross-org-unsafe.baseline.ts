@@ -91,7 +91,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // The member role-authority helpers moved it again, unchanged.
     {
       file: 'apps/server/api/src/collections/members/services/members.service.ts',
-      line: 177,
+      line: 179,
     },
     // #6120: hidden system-workflow mirror upsert. System-principal rows are
     // platform-global and owned by the system principal, not the request

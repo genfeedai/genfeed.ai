@@ -1,5 +1,8 @@
 import { Timeframe } from '@genfeedai/contracts';
-import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
+import type {
+  IDiscoveryTrendFilters,
+  ITrendVideo,
+} from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -28,27 +31,78 @@ export function useDiscoveryTrends() {
   const getService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );
-  const [relevance, setRelevance] = useState<'market' | 'brand'>('market');
-  const [videoTimeframe, setVideoTimeframe] = useState<ViralVideoTimeframe>(
-    Timeframe.H72,
-  );
-  const [hashtagPlatform, setHashtagPlatform] = useState('');
-  const [selectedHashtag, setSelectedHashtag] = useState('');
+  const scopeKey = JSON.stringify([scope.organizationId, scope.brandId]);
+  const initialFilters: IDiscoveryTrendFilters = {
+    scopeKey,
+    relevance: 'brand',
+    timeframe: Timeframe.H72,
+    platform: '',
+    hashtag: '',
+  };
+  const [filters, setFilters] = useState(initialFilters);
+  const activeFilters =
+    filters.scopeKey === scopeKey ? filters : initialFilters;
+  const {
+    relevance,
+    timeframe: videoTimeframe,
+    platform: hashtagPlatform,
+    hashtag: selectedHashtag,
+  } = activeFilters;
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
+  if (filters.scopeKey !== scopeKey) {
+    setFilters(initialFilters);
+    setRemixVideo(null);
+  }
+  function setRelevance(value: 'market' | 'brand') {
+    setFilters({ ...activeFilters, relevance: value, hashtag: '' });
+    setRemixVideo(null);
+  }
+  function setVideoTimeframe(value: ViralVideoTimeframe) {
+    setFilters({ ...activeFilters, timeframe: value, hashtag: '' });
+    setRemixVideo(null);
+  }
+  function setHashtagPlatform(value: string) {
+    setFilters({ ...activeFilters, platform: value, hashtag: '' });
+    setRemixVideo(null);
+  }
+  function setSelectedHashtag(value: string) {
+    setFilters({ ...activeFilters, hashtag: value });
+  }
   const identity = [scope.organizationId, scope.brandId];
   const topics = useQuery({
-    queryKey: ['discovery-topics', ...identity, relevance],
+    queryKey: [
+      'discovery-topics',
+      ...identity,
+      relevance,
+      hashtagPlatform,
+      videoTimeframe,
+    ],
     enabled,
     queryFn: async ({ signal }) =>
-      (await getService()).getTrendsDiscovery({ relevance, signal }),
+      (await getService()).getTrendsDiscovery({
+        brandId: scope.brandId,
+        relevance,
+        platform: hashtagPlatform || undefined,
+        timeframe: videoTimeframe,
+        signal,
+      }),
     staleTime: 30000,
     retry: false,
   });
   const videos = useQuery({
-    queryKey: ['discovery-videos', ...identity, relevance, videoTimeframe],
+    queryKey: [
+      'discovery-videos',
+      ...identity,
+      relevance,
+      hashtagPlatform,
+      videoTimeframe,
+    ],
     enabled,
-    queryFn: async () =>
+    queryFn: async ({ signal }) =>
       (await getService()).getViralVideos({
+        brandId: scope.brandId,
+        signal,
+        platform: hashtagPlatform || undefined,
         relevance,
         limit: 100,
         timeframe: videoTimeframe,
@@ -65,10 +119,20 @@ export function useDiscoveryTrends() {
     retry: false,
   });
   const hashtags = useQuery({
-    queryKey: ['discovery-hashtags', ...identity, hashtagPlatform],
+    queryKey: [
+      'discovery-hashtags',
+      ...identity,
+      relevance,
+      hashtagPlatform,
+      videoTimeframe,
+    ],
     enabled,
-    queryFn: async () =>
+    queryFn: async ({ signal }) =>
       (await getService()).getTrendingHashtags({
+        brandId: scope.brandId,
+        signal,
+        relevance,
+        timeframe: videoTimeframe,
         platform: hashtagPlatform || undefined,
         limit: 24,
       }),
@@ -76,9 +140,23 @@ export function useDiscoveryTrends() {
     retry: false,
   });
   const sounds = useQuery({
-    queryKey: ['discovery-sounds', ...identity],
+    queryKey: [
+      'discovery-sounds',
+      ...identity,
+      relevance,
+      hashtagPlatform,
+      videoTimeframe,
+    ],
     enabled,
-    queryFn: async () => (await getService()).getTrendingSounds({ limit: 12 }),
+    queryFn: async ({ signal }) =>
+      (await getService()).getTrendingSounds({
+        brandId: scope.brandId,
+        limit: 12,
+        relevance,
+        platform: hashtagPlatform || undefined,
+        timeframe: videoTimeframe,
+        signal,
+      }),
     staleTime: 30000,
     retry: false,
   });
@@ -131,7 +209,7 @@ export function useDiscoveryTrends() {
           totalMentions: leading.mentions,
         }
       : null,
-    remixVideo,
+    remixVideo: filters.scopeKey === scopeKey ? remixVideo : null,
     handleRemixClose: () => setRemixVideo(null),
     handleVideoClick: setRemixVideo,
     reload: () =>

@@ -13,6 +13,7 @@ import UserDetails from './user-details';
 export default function UserDetailPanel({
   user,
   onImpersonate,
+  onUpdated,
 }: AdminUserDetailPanelProps) {
   const translate = useTranslations('pages.adminUsers');
 
@@ -36,7 +37,7 @@ export default function UserDetailPanel({
         ) : null}
       </div>
 
-      <UserDetails user={user} />
+      <UserDetails key={user.id} user={user} onUpdated={onUpdated} />
     </div>
   );
 }

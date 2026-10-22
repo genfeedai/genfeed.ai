@@ -167,4 +167,46 @@ describe('UsersService', () => {
       expect(attributionDelegate.createMany).not.toHaveBeenCalled();
     });
   });
+  it('resets all onboarding progress atomically, leaving unrelated account fields alone', async () => {
+    await service.resetOnboarding('opaque-user');
+    expect(delegate.update).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'opaque-user', isDeleted: false },
+      data: {
+        isOnboardingCompleted: false,
+        onboardingStartedAt: null,
+        onboardingCompletedAt: null,
+        onboardingType: null,
+        onboardingStepsCompleted: [],
+      },
+    });
+  });
+
+  it('keeps the authentication display name in sync with edited profile names', async () => {
+    await service.updateAdminProfile('opaque-user', {
+      firstName: ' Jane ',
+      lastName: ' Example ',
+      handle: ' jane ',
+    });
+    expect(delegate.update).toHaveBeenCalledWith({
+      where: { id: 'opaque-user', isDeleted: false },
+      data: {
+        firstName: 'Jane',
+        lastName: 'Example',
+        name: 'Jane Example',
+        handle: 'jane',
+      },
+    });
+  });
+
+  it('reports a duplicate handle as a conflict without retrying the write', async () => {
+    delegate.update.mockRejectedValue({ code: 'P2002' });
+    await expect(
+      service.updateAdminProfile('opaque-user', {
+        firstName: '',
+        lastName: '',
+        handle: 'taken',
+      }),
+    ).rejects.toThrow('This handle is already in use.');
+    expect(delegate.update).toHaveBeenCalledTimes(1);
+  });
 });

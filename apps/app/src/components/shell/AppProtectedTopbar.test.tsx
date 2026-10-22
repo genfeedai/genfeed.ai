@@ -201,6 +201,7 @@ vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) =>
     (
       ({
+        'common.plugins': { title: 'Plugins', breadcrumbLabel: 'Breadcrumb' },
         'common.appRail': {
           launcher: 'Plugins',
         },
@@ -399,6 +400,15 @@ describe('AppProtectedTopbar', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('shows a single Plugins breadcrumb with organization selection and no brand selector', () => {
+    mockPathname.value = '/acme/~/plugins';
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+    expect(
+      screen.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toHaveTextContent(/^Plugins$/);
+    expect(screen.queryByTestId('brand-switcher')).toBeNull();
   });
 
   it('leaves app navigation to the rail', () => {

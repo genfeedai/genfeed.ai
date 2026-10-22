@@ -9,6 +9,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
+import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
@@ -34,6 +35,7 @@ import { Module } from '@nestjs/common';
     UsersModule,
   ],
   providers: [
+    OnboardingDraftRunsService,
     OnboardingFirstDraftsService,
     OnboardingReadinessService,
     OnboardingService,

@@ -1,8 +1,13 @@
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { OnboardingProgressProps } from '@props/onboarding/onboarding-progress.props';
 import { Progress } from '@ui/primitives';
+import { Button } from '@ui/primitives/button';
 import { Check } from 'lucide-react';
 
 export default function OnboardingProgress({
+  orientation = 'horizontal',
+  onStepChange,
+  disabledSteps = [],
   currentStep,
   totalSteps,
   stepLabels,
@@ -21,13 +26,24 @@ export default function OnboardingProgress({
         className="h-1 bg-background-tertiary rounded-full overflow-hidden mb-6"
       />
 
-      <div className="flex justify-between">
+      <div
+        className={
+          orientation === 'vertical'
+            ? 'flex flex-col gap-1'
+            : 'flex justify-between'
+        }
+      >
         {stepLabels.map((label, index) => {
           const isCompleted = index < currentStep;
           const isCurrent = index === currentStep;
 
-          return (
-            <div key={label} className="flex items-center gap-2">
+          const className =
+            orientation === 'vertical'
+              ? 'flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left ' +
+                (isCurrent ? 'bg-hover' : '')
+              : 'flex items-center gap-2';
+          const content = (
+            <>
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-2xs font-bold transition-colors duration-300 ${
                   isCompleted
@@ -52,6 +68,27 @@ export default function OnboardingProgress({
               >
                 {label}
               </span>
+            </>
+          );
+          return onStepChange ? (
+            <Button
+              key={label}
+              withWrapper={false}
+              variant={ButtonVariant.UNSTYLED}
+              className={className}
+              aria-current={isCurrent ? 'step' : undefined}
+              isDisabled={disabledSteps.includes(index)}
+              onClick={() => onStepChange(index)}
+            >
+              {content}
+            </Button>
+          ) : (
+            <div
+              key={label}
+              className={className}
+              aria-current={isCurrent ? 'step' : undefined}
+            >
+              {content}
             </div>
           );
         })}

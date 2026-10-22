@@ -20,6 +20,9 @@ const SIBLING_DIM_CLASS =
 export default function OrderedMasonry({
   children,
   className,
+  minColumnWidth = TILE_WIDTH,
+  maxColumns = COLUMNS.desktop,
+  gap = TILE_GAP,
 }: OrderedMasonryProps): React.ReactElement {
   const tiles = useMemo(
     () =>
@@ -32,12 +35,16 @@ export default function OrderedMasonry({
       })),
     [children],
   );
+  const columns = useMemo(
+    () => ({ ...COLUMNS, desktop: maxColumns }),
+    [maxColumns],
+  );
   const { containerHeight, containerRef, isLayoutReady } = useMasonryGrid(
     tiles,
     {
-      columns: COLUMNS,
-      gap: TILE_GAP,
-      minColumnWidth: TILE_WIDTH,
+      columns,
+      gap,
+      minColumnWidth,
     },
   );
 
@@ -48,8 +55,8 @@ export default function OrderedMasonry({
       data-masonry-layout="ordered"
       style={{
         display: isLayoutReady ? 'block' : 'grid',
-        gap: TILE_GAP,
-        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${TILE_WIDTH}px), 1fr))`,
+        gap,
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${minColumnWidth}px), 1fr))`,
         height: isLayoutReady ? containerHeight : undefined,
         position: 'relative',
         width: '100%',

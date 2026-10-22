@@ -194,21 +194,29 @@ function parsePublicationUrl(
       valid = valid && postId !== null;
       replyId = postId;
       break;
-    case 'linkedin':
-      valid =
-        (segments.length === 3 &&
-          segments[0] === 'feed' &&
-          segments[1] === 'update') ||
-        (segments.length === 2 &&
-          segments[0] === 'posts' &&
-          /activity-/.test(segments[1]));
+    case 'linkedin': {
+      const feedUrn =
+        segments.length === 3 &&
+        segments[0] === 'feed' &&
+        segments[1] === 'update'
+          ? /^urn:li:(activity|share|ugcPost):(\d+)$/.exec(segments[2])
+          : null;
+      const activity =
+        segments.length === 2 && segments[0] === 'posts'
+          ? /activity-(\d+)(?:-|$)/.exec(segments[1])
+          : null;
+      const isArticle = segments.length === 2 && segments[0] === 'pulse';
+      valid = Boolean(feedUrn || activity || isArticle);
       postId =
-        segments[0] === 'feed'
-          ? (/^urn:li:activity:(\d+)$/.exec(segments[2] ?? '')?.[1] ?? null)
-          : (/activity-(\d+)-/.exec(segments[1] ?? '')?.[1] ?? null);
-      urlToken = segments[0] === 'feed' ? segments[2] : segments[1];
+        feedUrn?.[1] === 'activity' ? feedUrn[2] : (activity?.[1] ?? null);
+      urlToken = feedUrn
+        ? feedUrn[1] === 'activity'
+          ? feedUrn[2]
+          : segments[2]
+        : (activity?.[1] ?? (isArticle ? segments[1] : null));
       replyId = retained.get('commentUrn') || null;
       break;
+    }
     case 'reddit': {
       const offset = segments[0] === 'r' ? 2 : 0;
       valid =
@@ -344,7 +352,11 @@ export function normalizeExtensionPublication(
       if (compatible) externalId = input.externalId;
       else if (
         input.externalId !== parsed.urlToken &&
-        input.externalId !== parsed.id
+        input.externalId !== parsed.id &&
+        !(
+          input.platform === 'linkedin' &&
+          input.externalId === `urn:li:activity:${parsed.id}`
+        )
       )
         return invalidUrl();
     }
@@ -412,6 +424,8 @@ export function extensionPublicationAnalyticsError(
 ): Prisma.InputJsonObject | undefined {
   if (reason === 'eligible') return undefined;
   const messages = {
+    'api-access-required':
+      'LinkedIn links are saved without metrics until API access is approved.',
     'missing-external-id':
       'The reported publication has no external identity for analytics.',
     'missing-credential':
@@ -485,6 +499,8 @@ export function extensionPublicationCaptureAnalyticsAvailability(
   post: ExtensionPublicationAnalyticsRecord,
 ): ExtensionPublicationAnalyticsAvailability {
   const metadata = captureMetadata(post.targetSettings);
+  if (post.platform === 'linkedin' && metadata?.origin === 'link')
+    return 'api-access-required';
   const urlIdentity = urlIdentitySchema.safeParse(metadata?.urlIdentity);
   return extensionPublicationAnalyticsAvailability(
     post.externalId ?? null,

@@ -83,6 +83,7 @@ function AnalyticsPostCard({
   onSelectPost,
 }: AnalyticsPostCardProps) {
   const translate = useTranslations('pages.analytics.postCard');
+  const translateTrack = useTranslations('pages.analytics.trackPost');
   const { href } = useOrgUrl();
   const translateSource = useTranslations('pages.analytics.sourceFilter');
   const translateAudience = useTranslations('pages.posts.list.captured');
@@ -131,20 +132,36 @@ function AnalyticsPostCard({
           </p>
         </div>
 
-        <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-left">
-          <AnalyticsPostStat
-            label={translate('views')}
-            value={formatCompactNumber(item.totalViews)}
-          />
-          <AnalyticsPostStat
-            label={translate('engagement')}
-            value={formatCompactNumber(item.totalEngagement)}
-          />
-          <AnalyticsPostStat
-            label={translate('engagementRate')}
-            value={`${item.engagementRate.toFixed(2)}%`}
-          />
-        </dl>
+        {item.source === 'extension' ? (
+          <div>
+            <Badge variant="secondary">{translateTrack('badge')}</Badge>
+          </div>
+        ) : null}
+        {item.metricsStatus === 'pending' ||
+        item.metricsStatus === 'unavailable' ? (
+          <p className="text-sm text-muted-foreground">
+            {translateTrack(
+              item.metricsStatus === 'pending'
+                ? 'pendingMetrics'
+                : 'unavailableMetrics',
+            )}
+          </p>
+        ) : (
+          <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-left">
+            <AnalyticsPostStat
+              label={translate('views')}
+              value={formatCompactNumber(item.totalViews)}
+            />
+            <AnalyticsPostStat
+              label={translate('engagement')}
+              value={formatCompactNumber(item.totalEngagement)}
+            />
+            <AnalyticsPostStat
+              label={translate('engagementRate')}
+              value={`${item.engagementRate.toFixed(2)}%`}
+            />
+          </dl>
+        )}
 
         {audience ? (
           <div className="flex items-center gap-2 text-left">

@@ -36,7 +36,6 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'playwright-pr-smoke.yml',
   'pr-heavy-ci.yml',
   'selfhosted-install-contract.yml',
-  'server-image-pr.yml',
   'visual-code-isolation.yml',
 ];
 
@@ -75,6 +74,17 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
 
   for (const fileName of workflows) {
     const workflow = readWorkflow(fileName);
+    if (fileName === 'ci.yml') {
+      const parsed = parseYaml(workflow);
+      assert.equal(parsed.concurrency, undefined);
+      for (const id of ['core', 'frontend']) {
+        assert.equal(
+          parsed.jobs[id].concurrency['cancel-in-progress'],
+          "${{ github.event_name == 'pull_request' }}",
+        );
+      }
+      continue;
+    }
     const concurrency = topLevelConcurrencyBlock(workflow, fileName);
     const group = concurrency.match(/^ {2}group: (.+)$/m)?.[1];
 
@@ -123,12 +133,16 @@ test('keeps privileged PR triggers limited to metadata and trusted master code',
     )
     .sort();
 
-  assert.deepEqual(targetWorkflows, [
-    'cla-status-recovery.yml',
-    'pr-title.yml',
-  ]);
-  const title = readWorkflow('pr-title.yml');
-  assert.match(title, /^permissions:\n {2}pull-requests: read$/m);
+  assert.deepEqual(targetWorkflows, ['ci.yml', 'cla-status-recovery.yml']);
+  const title = jobBlock(
+    readWorkflow('ci.yml'),
+    'conventional-title',
+    'ci.yml',
+  );
+  assert.deepEqual(
+    parseYaml(readWorkflow('ci.yml')).jobs['conventional-title'].permissions,
+    { 'pull-requests': 'read' },
+  );
   assert.doesNotMatch(title, /uses: actions\/checkout@/);
   assert.doesNotMatch(title, /uses: \.\//);
   const cla = readWorkflow('cla-status-recovery.yml');
@@ -148,7 +162,7 @@ test('enforces executable contracts through the aggregate suite', () => {
   // #1011 still requires CI to block new hard-coded content cron/action/publish
   // paths. Those scanners, Bull Board parity, and relation-alias ratchets run
   // from `test:executable-contracts` so a dead rule is deleted with its test.
-  const workflow = readWorkflow('ci.yml');
+  const workflow = readWorkflow('_ci-validation.yml');
   const staticChecks = jobBlock(workflow, 'static-checks', 'ci.yml');
   const packageJson = JSON.parse(
     readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
@@ -244,7 +258,7 @@ test('consolidates static validation into one runner slot', () => {
   // sequentially inside one static-checks job, with gitleaks folded in too.
   // The tests gate reads static-checks directly, so any red static check still
   // fails the gate.
-  const workflow = readWorkflow('ci.yml');
+  const workflow = readWorkflow('_ci-validation.yml');
   const staticChecks = jobBlock(workflow, 'static-checks', 'ci.yml');
 
   assert.match(staticChecks, /^ {4}name: Static Checks$/m);
@@ -400,23 +414,33 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
   );
 });
 
-test('caps the CI job inventory at twenty jobs', () => {
-  // Runner-slot starvation is a head-count problem: every job occupies a
-  // slot for its full queue+setup+run span. New validation belongs inside an
-  // existing job (a step, or a test in test:executable-contracts) — see
-  // feedback_code_ci_not_workflow_gates. Raising this ceiling needs an explicit
-  // capacity review, not a drive-by.
-  const workflow = readWorkflow('ci.yml');
-  const jobsSection = workflow.slice(workflow.indexOf('\njobs:\n') + 1);
-  const jobIds = [...jobsSection.matchAll(/^ {2}([A-Za-z0-9_-]+):$/gm)].map(
-    (match) => match[1],
-  );
-
-  assert.ok(jobIds.length > 0, 'ci.yml must define jobs');
-  assert.ok(
-    jobIds.length <= 20,
-    `ci.yml defines ${jobIds.length} jobs (${jobIds.join(', ')}); the ceiling is 20`,
-  );
+test('caps the recursively reachable CI runnable inventory at twenty jobs', () => {
+  const graph = new Map([
+    ['ci.yml', new Set(['_ci-validation.yml', '_ci-frontend.yml'])],
+    ['_ci-validation.yml', new Set()],
+    ['_ci-frontend.yml', new Set(['_bundle-size.yml'])],
+    ['_bundle-size.yml', new Set()],
+  ]);
+  const seen = new Set();
+  function count(file) {
+    assert.ok(graph.has(file), 'unknown helper graph');
+    assert.ok(!seen.has(file), 'duplicate or cyclic helper');
+    seen.add(file);
+    let runners = 0;
+    for (const job of Object.values(parseYaml(readWorkflow(file)).jobs)) {
+      if (job.uses) {
+        const child = job.uses.match(/^\.\/\.github\/workflows\/([^/]+)$/)?.[1];
+        assert.ok(graph.get(file).has(child), 'unbounded caller edge');
+        runners += count(child);
+      } else {
+        assert.equal(job['runs-on'], 'ubuntu-latest');
+        runners++;
+      }
+    }
+    return runners;
+  }
+  assert.equal(count('ci.yml'), 20);
+  assert.equal(seen.size, 4);
 });
 
 test('reusable CI callers grant the failure tracker permission ceiling', () => {
@@ -541,12 +565,12 @@ test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
 
 test('draft pull requests run no CI until marked ready', () => {
   for (const [fileName, jobId] of [
-    ['ci.yml', 'plan'],
+    ['_ci-validation.yml', 'plan'],
     ['playwright-pr-smoke.yml', 'detect'],
   ]) {
     const workflow = readWorkflow(fileName);
     assert.match(
-      workflow,
+      fileName === '_ci-validation.yml' ? readWorkflow('ci.yml') : workflow,
       /^ {4}types: \[opened, synchronize, reopened, ready_for_review\]$/m,
       `${fileName} must run when a draft is marked ready`,
     );
@@ -627,194 +651,35 @@ test('runs desktop QA weekly and for release callers', () => {
   assert.match(workflow, /^ {2}workflow_call:$/m);
 });
 
-test('server image PR validation bounds cache export without changing reachability', () => {
-  const workflow = readWorkflow('server-image-pr.yml');
-
-  assert.match(workflow, /^ {2}pull_request:\n/m);
-  for (const pathFilter of [
-    'docker/Dockerfile.server',
-    'webpack.base.config.js',
-    'bun.lock',
-    '.github/workflows/server-image-pr.yml',
-  ]) {
-    assert.ok(
-      workflow.includes(`      - '${pathFilter}'\n`),
-      `server-image-pr.yml must stay reachable for ${pathFilter}`,
-    );
-  }
-  // Source paths are validated by normal CI and by build-server-image.yml on
-  // every master push (build-server-image.yml); the PR docker build is scoped to the image definition.
-  for (const droppedPath of ['apps/server/**', 'packages/**']) {
-    assert.ok(
-      !workflow.includes(`      - '${droppedPath}'\n`),
-      `server-image-pr.yml must not rebuild the image for ${droppedPath}`,
-    );
-  }
-  assert.match(
-    workflow,
-    /uses: docker\/build-push-action@[0-9a-f]{40} # v7\.\d+\.\d+[\s\S]*?push: false/,
-  );
-  assert.match(workflow, /^ {10}cache-from: type=gha,scope=server-image-pr$/m);
-  assert.match(
-    workflow,
-    /^ {10}cache-to: type=gha,mode=min,scope=server-image-pr,timeout=3m,ignore-error=true$/m,
-  );
-  assert.doesNotMatch(workflow, /cache-to: type=gha,mode=max/);
-  assert.match(workflow, /^permissions:\n {2}contents: read$/m);
-});
-
 function imageScopeCondition(expression, context) {
   const condition = expression?.replace(/^\$\{\{\s*|\s*\}\}$/g, '') ?? 'true';
-  // Actions adds success() unless an explicit status function overrides it.
   const effective = /\b(?:success|failure|cancelled|always)\(/.test(condition)
     ? condition
-    : `success() && (${condition})`;
+    : 'success() && (' + condition + ')';
   return runInNewContext(effective, context);
 }
 
-test('server image check runs after every detector result unless the workflow is cancelled', () => {
-  const { build } = parseYaml(readWorkflow('server-image-pr.yml')).jobs;
-  assert.equal(build.if, `\${{ !cancelled() }}`);
-  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
-    for (const image of ['true', 'false', '', 'malformed']) {
-      for (const cancelled of [false, true]) {
-        assert.equal(
-          imageScopeCondition(build.if, {
-            cancelled: () => cancelled,
-            success: () => result === 'success',
-            needs: { detect: { result, outputs: { image } } },
-          }),
-          !cancelled,
-          JSON.stringify({ result, image, cancelled }),
-        );
-      }
-    }
-  }
-});
-
-test('server image validation rejects invalid detection before either later branch', () => {
-  const { build } = parseYaml(readWorkflow('server-image-pr.yml')).jobs;
-  const [validation, ...branches] = build.steps;
-  assert.equal(validation.name, 'Validate image scope detection');
-  assert.equal(validation.shell, 'bash');
-  assert.equal(validation.if, undefined);
-  assert.deepEqual(validation.env, {
-    DETECT_RESULT: `\${{ needs.detect.result }}`,
-    IMAGE_CHANGED: `\${{ needs.detect.outputs.image }}`,
-  });
-  assert.equal(validation['continue-on-error'], undefined);
-  assert.doesNotMatch(validation.run, /\$\{\{|\beval\b/);
-  assert.deepEqual(
-    branches.map((step) => step.name),
-    [
-      'Skip (no image-definition change)',
-      'Checkout code',
-      'Set up Docker Buildx',
-      'Build unified server image',
-    ],
+test('server image keeps exact build inputs and fail-closed scope with bounded phases', () => {
+  const root = parseYaml(readWorkflow('ci.yml'));
+  const image = root.jobs['server-image'];
+  const composite = parseYaml(
+    readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        '.github/actions/build-pr-server-image/action.yml',
+      ),
+      'utf8',
+    ),
   );
-  assert.equal(branches[0].if, "needs.detect.outputs.image == 'false'");
-  for (const step of branches.slice(1)) {
-    assert.equal(step.if, "needs.detect.outputs.image == 'true'");
-  }
-  for (const step of branches) {
-    assert.equal(step['continue-on-error'], undefined);
-    assert.doesNotMatch(step.if, /\b(?:success|failure|cancelled|always)\(/);
-  }
-  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
-    for (const image of [
-      'true',
-      'false',
-      '',
-      'malformed',
-      'TRUE',
-      'false\n',
-      '$(exit 0)',
-    ]) {
-      const needs = { detect: { result, outputs: { image } } };
-      const env = Object.fromEntries(
-        Object.entries(validation.env).map(([key, expression]) => [
-          key,
-          runInNewContext(expression.slice(3, -2).trim(), { needs }),
-        ]),
-      );
-      const shell = spawnSync(
-        'bash',
-        ['--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', validation.run],
-        { env, encoding: 'utf8' },
-      );
-      assert.ifError(shell.error);
-      const valid = result === 'success' && ['true', 'false'].includes(image);
-      const label = JSON.stringify({ result, image });
-      assert.equal(shell.status, valid ? 0 : 1, label);
-      assert.equal(shell.stderr, '', label);
-      assert.equal(
-        shell.stdout,
-        valid ? '' : '::error::Invalid server image scope detection.\n',
-        label,
-      );
-      const executed = branches
-        .filter((step) =>
-          imageScopeCondition(step.if, {
-            needs,
-            success: () => shell.status === 0,
-          }),
-        )
-        .map((step) => step.name);
-      assert.deepEqual(
-        executed,
-        !valid
-          ? []
-          : image === 'false'
-            ? [branches[0].name]
-            : branches.slice(1).map((step) => step.name),
-        label,
-      );
-    }
-  }
-});
-
-test('server image detection guard preserves image selection and build inputs', () => {
-  const workflow = parseYaml(readWorkflow('server-image-pr.yml'));
-  assert.equal(workflow.name, 'Server Image PR Guard');
-  assert.deepEqual(workflow.on, { pull_request: null });
-  assert.deepEqual(workflow.concurrency, {
-    group: `server-image-pr-\${{ github.event.pull_request.number }}`,
+  assert.deepEqual(image.permissions, { contents: 'read' });
+  assert.equal(image['timeout-minutes'], 46);
+  assert.equal(image.steps[0]['timeout-minutes'], 3);
+  assert.equal(image.steps[1]['timeout-minutes'], 3);
+  assert.deepEqual(image.concurrency, {
+    group: 'server-image-pr-${{ github.event.pull_request.number }}',
     'cancel-in-progress': true,
   });
-  assert.deepEqual(workflow.permissions, { contents: 'read' });
-  assert.deepEqual(Object.keys(workflow.jobs), ['detect', 'build']);
-  const { detect, build } = workflow.jobs;
-  assert.deepEqual(
-    { ...build, steps: undefined, if: undefined },
-    {
-      name: 'Build Server Image',
-      needs: 'detect',
-      'runs-on': 'ubuntu-latest',
-      'timeout-minutes': 40,
-      steps: undefined,
-      if: undefined,
-    },
-  );
-  assert.equal(detect.name, 'Detect Server Image Scope');
-  assert.equal(detect['runs-on'], 'ubuntu-latest');
-  assert.equal(detect['timeout-minutes'], 3);
-  assert.equal(detect.if, undefined);
-  assert.deepEqual(detect.outputs, {
-    image: `\${{ steps.changes.outputs.image }}`,
-  });
-  const checkout = {
-    uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
-    with: { 'persist-credentials': false },
-  };
-  assert.deepEqual(detect.steps[0], checkout);
-  assert.equal(detect.steps.length, 2);
-  assert.equal(
-    detect.steps[1].uses,
-    'dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d',
-  );
-  assert.equal(detect.steps[1].id, 'changes');
-  assert.deepEqual(parseYaml(detect.steps[1].with.filters), {
+  assert.deepEqual(parseYaml(image.steps[1].with.filters), {
     image: [
       'docker/Dockerfile.server',
       '.dockerignore',
@@ -827,31 +692,123 @@ test('server image detection guard preserves image selection and build inputs', 
       'bun.lock',
       'package.json',
       '.github/workflows/server-image-pr.yml',
+      '.github/workflows/ci.yml',
+      '.github/actions/build-pr-server-image/**',
     ],
   });
-  assert.deepEqual(build.steps[2], {
-    name: 'Checkout code',
-    if: "needs.detect.outputs.image == 'true'",
-    ...checkout,
-  });
-  assert.deepEqual(build.steps[3], {
-    name: 'Set up Docker Buildx',
-    if: "needs.detect.outputs.image == 'true'",
-    uses: 'docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069',
-  });
-  assert.deepEqual(build.steps[4], {
-    name: 'Build unified server image',
-    if: "needs.detect.outputs.image == 'true'",
-    uses: 'docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc',
-    with: {
-      context: '.',
-      file: 'docker/Dockerfile.server',
-      push: false,
-      'cache-from': 'type=gha,scope=server-image-pr',
-      'cache-to':
-        'type=gha,mode=min,scope=server-image-pr,timeout=3m,ignore-error=true',
+  assert.equal(
+    image.steps[0].uses,
+    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+  );
+  assert.deepEqual(image.steps[0].with, { 'persist-credentials': false });
+  assert.equal(
+    image.steps[1].uses,
+    'dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d',
+  );
+  assert.equal(image.steps[1].id, 'changes');
+  assert.equal(composite.runs.using, 'composite');
+  assert.deepEqual(composite.runs.steps, [
+    {
+      name: 'Checkout code',
+      uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+      with: { 'persist-credentials': false },
     },
+    {
+      name: 'Set up Docker Buildx',
+      uses: 'docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069',
+    },
+    {
+      name: 'Build unified server image',
+      uses: 'docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc',
+      with: {
+        context: '.',
+        file: 'docker/Dockerfile.server',
+        push: false,
+        'cache-from': 'type=gha,scope=server-image-pr',
+        'cache-to':
+          'type=gha,mode=min,scope=server-image-pr,timeout=3m,ignore-error=true',
+      },
+    },
+  ]);
+  const validation = image.steps[2];
+  const branches = image.steps.slice(3);
+  assert.equal(validation.if, '${{ !cancelled() }}');
+  assert.equal(validation.shell, 'bash');
+  assert.deepEqual(validation.env, {
+    DETECT_RESULT: '${{ steps.changes.outcome }}',
+    IMAGE_CHANGED: '${{ steps.changes.outputs.image }}',
   });
+  assert.equal(validation['continue-on-error'], undefined);
+  assert.doesNotMatch(validation.run, /\$\{\{|\beval\b/);
+  assert.deepEqual(
+    branches.map((step) => step.name),
+    ['Skip (no image-definition change)', 'Build complete server image'],
+  );
+  assert.equal(branches[0].if, "steps.changes.outputs.image == 'false'");
+  assert.equal(branches[1].if, "steps.changes.outputs.image == 'true'");
+  assert.equal(branches[1]['timeout-minutes'], 40);
+  assert.equal(branches[1].uses, './.github/actions/build-pr-server-image');
+  for (const branch of branches) {
+    assert.equal(branch['continue-on-error'], undefined);
+    assert.doesNotMatch(branch.if, /\b(?:success|failure|cancelled|always)\(/);
+  }
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+    for (const value of [
+      'true',
+      'false',
+      '',
+      'malformed',
+      'TRUE',
+      'false\n',
+      '$(exit 0)',
+    ]) {
+      const steps = { changes: { outcome: result, outputs: { image: value } } };
+      const env = Object.fromEntries(
+        Object.entries(validation.env).map(([key, expression]) => [
+          key,
+          runInNewContext(expression.slice(3, -2).trim(), { steps }),
+        ]),
+      );
+      const shell = spawnSync(
+        'bash',
+        ['--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', validation.run],
+        { env, encoding: 'utf8' },
+      );
+      assert.ifError(shell.error);
+      const valid = result === 'success' && ['true', 'false'].includes(value);
+      assert.equal(
+        shell.status,
+        valid ? 0 : 1,
+        JSON.stringify({ result, value }),
+      );
+      assert.equal(shell.stderr, '');
+      assert.equal(
+        shell.stdout,
+        valid ? '' : '::error::Invalid server image scope detection.\n',
+      );
+      for (const cancelled of [false, true]) {
+        assert.equal(
+          imageScopeCondition(validation.if, {
+            cancelled: () => cancelled,
+            success: () => result === 'success',
+          }),
+          !cancelled,
+        );
+      }
+      const selected = branches
+        .filter((step) =>
+          imageScopeCondition(step.if, {
+            steps,
+            success: () => shell.status === 0,
+          }),
+        )
+        .map((step) => step.name);
+      assert.deepEqual(
+        selected,
+        !valid ? [] : [value === 'false' ? branches[0].name : branches[1].name],
+      );
+    }
+  }
 });
 
 test('self-hosted publisher can PATCH the draft GitHub release', () => {
@@ -935,7 +892,10 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
     /^ {4}types: \[opened, synchronize, reopened, ready_for_review\]$/m,
   );
   assert.doesNotMatch(ci, /\b(?:labeled|unlabeled)\b/);
-  assert.match(ci, /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/);
+  assert.match(
+    readWorkflow('_ci-validation.yml'),
+    /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/,
+  );
 
   assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
   assert.ok(
@@ -950,7 +910,7 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
 });
 
 test('external contributor pull requests run the heavy tier maintainers skip', () => {
-  const ci = readWorkflow('ci.yml');
+  const ci = readWorkflow('_ci-validation.yml');
   const trust = jobBlock(ci, 'plan', 'ci.yml');
 
   assert.match(
@@ -990,7 +950,7 @@ test('external contributor pull requests run the heavy tier maintainers skip', (
 });
 
 test('spec typecheck scope escalates shared server configs before ignoring apps', () => {
-  const ci = readWorkflow('ci.yml');
+  const ci = readWorkflow('_ci-validation.yml');
   const loop = ci
     .slice(ci.indexOf('declare -A affected=()'))
     .split('done <<<"${changed}"')[0];
@@ -1015,7 +975,7 @@ test('spec typecheck scope escalates shared server configs before ignoring apps'
 });
 
 test('reusable full-suite callers preserve planner applicability at the tests gate', () => {
-  const ci = readWorkflow('ci.yml');
+  const ci = readWorkflow('_ci-validation.yml');
 
   for (const [environmentKey, outputKey] of [
     ['PLAN_APP_TESTS', 'app_tests'],
@@ -1141,7 +1101,7 @@ test('pins mocked core E2E builds to Community mode', () => {
 });
 
 test('bundle graph keeps fork measurements independent and skips drafts and duplicate heavy callers', () => {
-  const ci = readWorkflow('ci.yml');
+  const ci = readWorkflow('_ci-frontend.yml');
   const shared = readWorkflow('_bundle-size.yml');
   const caller = jobBlock(ci, 'bundle-size', 'ci.yml');
   const detect = jobBlock(shared, 'detect', '_bundle-size.yml');
@@ -2051,7 +2011,7 @@ test('runtime acceptance workflows upload plaintext evidence without a public ke
 });
 
 test('MCP real transport job is planned, required and publishes only its sanitized receipt', () => {
-  const workflow = readWorkflow('ci.yml');
+  const workflow = readWorkflow('_ci-validation.yml');
   const runtime = jobBlock(workflow, 'mcp-auth-runtime', 'ci.yml');
   const gate = jobBlock(workflow, 'tests-gate', 'ci.yml');
   assert.match(runtime, /if: needs\.plan\.outputs\.mcp_auth_runtime == 'true'/);
@@ -2069,7 +2029,9 @@ test('MCP real transport job is planned, required and publishes only its sanitiz
 });
 
 test('link routing preserves ready direct PRs across fork trust and heavy callers', () => {
-  const ci = parseYaml(readWorkflow('ci.yml'));
+  const root = parseYaml(readWorkflow('ci.yml'));
+  const ci = parseYaml(readWorkflow('_ci-frontend.yml'));
+  const core = parseYaml(readWorkflow('_ci-validation.yml'));
   const manual = parseYaml(readWorkflow('link-check.yml'));
   assert.deepEqual(Object.keys(manual.on), ['workflow_dispatch']);
   assert.equal(manual.name, 'Link Check');
@@ -2077,8 +2039,7 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
     group: '${{ github.workflow }}-${{ github.ref }}',
     'cancel-in-progress': true,
   });
-  assert.deepEqual(ci.on.pull_request, {
-    branches: ['master'],
+  assert.deepEqual(root.on.pull_request, {
     types: ['opened', 'synchronize', 'reopened', 'ready_for_review'],
   });
   const detector = ci.jobs['link-check-detect'];
@@ -2107,10 +2068,13 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
                 },
               };
               assert.equal(
-                runInNewContext(detector.if, {
-                  github,
-                  inputs: { run_heavy_tests: heavy },
-                }),
+                runInNewContext(
+                  detector.steps.find((step) => step.id === 'scope').if,
+                  {
+                    github,
+                    inputs: { run_heavy_tests: heavy },
+                  },
+                ),
                 event === 'pull_request' && !draft && heavy !== true,
               );
               assert.equal(
@@ -2139,10 +2103,19 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
       assert.equal(job['timeout-minutes'], timeout);
       assert.deepEqual(job.permissions, { contents: 'read' });
       assert.equal(job.uses, undefined);
-      assert.deepEqual(job.steps[0], {
-        uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
-        with: { 'fetch-depth': 0, 'persist-credentials': false },
-      });
+      assert.deepEqual(
+        {
+          ...job.steps.find((step) =>
+            step.uses?.startsWith('actions/checkout@'),
+          ),
+          if: undefined,
+        },
+        {
+          uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+          if: undefined,
+          with: { 'fetch-depth': 0, 'persist-credentials': false },
+        },
+      );
       if (id === detectorId) continue;
       assert.equal(job.needs, detectorId);
       const scope = id === 'website-links' ? 'website' : 'docs';
@@ -2162,7 +2135,7 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
       }
     }
   }
-  assert.deepEqual(ci.jobs['tests-gate'].needs, [
+  assert.deepEqual(core.jobs['tests-gate'].needs, [
     'plan',
     'static-checks',
     'spec-typecheck',
@@ -2173,4 +2146,385 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
     'mcp-auth-runtime',
     'build',
   ]);
+});
+
+function evaluateCandidate(expression, context) {
+  return runInNewContext(expression.replace(/^\$\{\{\s*|\s*\}\}$/g, ''), {
+    always: () => true,
+    cancelled: () => false,
+    fromJSON: JSON.parse,
+    contains: (values, value) => values.includes(value),
+    ...context,
+  });
+}
+
+test('combined entrypoint evaluates actual routing and required names across all event domains', () => {
+  const root = parseYaml(readWorkflow('ci.yml'));
+  assert.deepEqual(Object.keys(root.on), [
+    'pull_request',
+    'pull_request_target',
+    'merge_group',
+    'workflow_call',
+  ]);
+  assert.deepEqual(root.on.pull_request, {
+    types: ['opened', 'synchronize', 'reopened', 'ready_for_review'],
+  });
+  assert.deepEqual(root.on.pull_request_target, {
+    types: ['opened', 'edited', 'synchronize', 'reopened'],
+  });
+  assert.deepEqual(root.on.merge_group, { types: ['checks_requested'] });
+  assert.deepEqual(root.on.workflow_call.inputs.called_workflow, {
+    type: 'boolean',
+    required: false,
+    default: true,
+  });
+  const actions = [
+    'opened',
+    'synchronize',
+    'reopened',
+    'ready_for_review',
+    'edited',
+    'closed',
+    'converted_to_draft',
+    'labeled',
+  ];
+  for (const event of [
+    'pull_request',
+    'pull_request_target',
+    'merge_group',
+    'push',
+    'workflow_dispatch',
+    'release',
+  ]) {
+    for (const action of actions) {
+      for (const base of ['master', 'other']) {
+        for (const draft of [false, true]) {
+          for (const fork of [false, true]) {
+            for (const called of [undefined, false, true]) {
+              for (const heavy of [undefined, false, true]) {
+                const context = {
+                  github: {
+                    event_name: event,
+                    base_ref: base,
+                    event: {
+                      action,
+                      pull_request: { draft, head: { repo: { fork } } },
+                    },
+                  },
+                  inputs: { called_workflow: called, run_heavy_tests: heavy },
+                };
+                const selectedSource =
+                  event !== 'pull_request_target' &&
+                  (called === true ||
+                    event === 'merge_group' ||
+                    (event === 'pull_request' &&
+                      base === 'master' &&
+                      [
+                        'opened',
+                        'synchronize',
+                        'reopened',
+                        'ready_for_review',
+                      ].includes(action)));
+                const selectedTitle =
+                  event === 'pull_request_target' &&
+                  ['opened', 'edited', 'synchronize', 'reopened'].includes(
+                    action,
+                  );
+                const selectedImage =
+                  event === 'pull_request' &&
+                  ['opened', 'synchronize', 'reopened'].includes(action);
+                const selectedGate =
+                  selectedSource &&
+                  ['pull_request', 'merge_group', 'push'].includes(event);
+                for (const id of ['core', 'frontend'])
+                  assert.equal(
+                    evaluateCandidate(root.jobs[id].if, context),
+                    selectedSource,
+                    JSON.stringify({
+                      id,
+                      event,
+                      action,
+                      base,
+                      draft,
+                      fork,
+                      called,
+                      heavy,
+                    }),
+                  );
+                for (const [id, selected, requiredName, offName] of [
+                  [
+                    'conventional-title',
+                    selectedTitle,
+                    'PR Title',
+                    'Not selected - PR title',
+                  ],
+                  [
+                    'server-image',
+                    selectedImage,
+                    'Build Server Image',
+                    'Not selected - server image',
+                  ],
+                  [
+                    'tests-gate',
+                    selectedGate,
+                    'Tests Gate',
+                    'Not selected - source gate',
+                  ],
+                ]) {
+                  assert.equal(
+                    evaluateCandidate(root.jobs[id].if, context),
+                    selected,
+                  );
+                  assert.equal(
+                    evaluateCandidate(root.jobs[id].name, context),
+                    selected ? requiredName : offName,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+test('combined workflow isolates metadata and image from source secrets and checkout', () => {
+  const root = parseYaml(readWorkflow('ci.yml'));
+  const core = parseYaml(readWorkflow('_ci-validation.yml'));
+  const frontend = parseYaml(readWorkflow('_ci-frontend.yml'));
+  const bundle = parseYaml(readWorkflow('_bundle-size.yml'));
+  assert.deepEqual(root.permissions, {});
+  assert.equal(root.env, undefined);
+  assert.equal(root.concurrency, undefined);
+  const schema = {
+    TURBO_TOKEN: { required: false },
+    GITLEAKS_LICENSE: { required: false },
+    BETTER_AUTH_SECRET: { required: false },
+  };
+  assert.deepEqual(root.on.workflow_call.secrets, schema);
+  assert.deepEqual(core.on.workflow_call.secrets, schema);
+  assert.deepEqual(frontend.on.workflow_call.secrets, {
+    TURBO_TOKEN: { required: false },
+  });
+  assert.deepEqual(bundle.on.workflow_call.secrets, {
+    TURBO_TOKEN: { required: false },
+  });
+  for (const helper of [core, frontend]) {
+    assert.deepEqual(helper.on.workflow_call.inputs.run_heavy_tests, {
+      type: 'boolean',
+      required: false,
+      default: false,
+    });
+    assert.equal(helper.concurrency, undefined);
+    assert.equal(helper.env.TURBO_TOKEN, '${{ secrets.TURBO_TOKEN }}');
+    assert.equal(helper.env.TURBO_TEAM, '${{ vars.TURBO_TEAM }}');
+    assert.equal(helper.env.TZ, 'UTC');
+  }
+  assert.deepEqual(root.jobs.core.secrets, {
+    TURBO_TOKEN: '${{ secrets.TURBO_TOKEN }}',
+    GITLEAKS_LICENSE: '${{ secrets.GITLEAKS_LICENSE }}',
+    BETTER_AUTH_SECRET: '${{ secrets.BETTER_AUTH_SECRET }}',
+  });
+  for (const job of [root.jobs.frontend, frontend.jobs['bundle-size']]) {
+    assert.deepEqual(job.secrets, {
+      TURBO_TOKEN: '${{ secrets.TURBO_TOKEN }}',
+    });
+  }
+  for (const job of [root.jobs.core, root.jobs.frontend]) {
+    assert.deepEqual(job.with, {
+      run_heavy_tests: '${{ inputs.run_heavy_tests == true }}',
+    });
+  }
+  const title = root.jobs['conventional-title'];
+  assert.deepEqual(title.permissions, { 'pull-requests': 'read' });
+  assert.equal(title.steps.length, 1);
+  assert.equal(
+    title.steps[0].uses,
+    'amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50',
+  );
+  assert.deepEqual(title.steps[0].env, {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  });
+  assert.equal(
+    title.steps[0].with.types,
+    'feat\nfix\ndocs\nrefactor\ntest\nchore\nbuild\nci\nperf\n',
+  );
+  for (const id of ['conventional-title', 'server-image', 'tests-gate']) {
+    const job = root.jobs[id];
+    assert.equal(job.secrets, undefined);
+    assert.equal(job.env, undefined);
+    assert.equal(job['continue-on-error'], undefined);
+    const serialized = JSON.stringify(job);
+    assert.doesNotMatch(
+      serialized,
+      /TURBO_TOKEN|TURBO_TEAM|GITLEAKS_LICENSE|BETTER_AUTH_SECRET|secrets: inherit/,
+    );
+    if (id === 'conventional-title')
+      assert.doesNotMatch(serialized, /checkout|\.\/\.github/);
+  }
+  const bridge = root.jobs['tests-gate'];
+  assert.deepEqual(bridge.permissions, { contents: 'read', actions: 'read' });
+  assert.equal(bridge.needs, 'core');
+  assert.equal(bridge['timeout-minutes'], 5);
+  assert.equal(bridge.steps.at(-1).run, 'node scripts/ci/ci-job-verdict.mjs');
+  assert.deepEqual(bridge.steps.at(-1).env, {
+    GH_TOKEN: '${{ github.token }}',
+    EXPECTED_EVENT: '${{ github.event_name }}',
+    EXPECTED_WORKFLOW_REF: '${{ github.workflow_ref }}',
+    EXPECTED_SOURCE_SHA: '${{ github.sha }}',
+    EXPECTED_PR_NUMBER: '${{ github.event.pull_request.number }}',
+    EXPECTED_PR_HEAD: '${{ github.event.pull_request.head.sha }}',
+  });
+  for (const [file, id] of [
+    ['full-suite.yml', 'ci'],
+    ['pr-heavy-ci.yml', 'full-suite'],
+  ]) {
+    assert.equal(
+      parseYaml(readWorkflow(file)).jobs[id].permissions.actions,
+      'read',
+    );
+  }
+  assert.equal(root.jobs.frontend.needs, undefined);
+  assert.equal(root.jobs.core.needs, undefined);
+  assert.equal(root.jobs.frontend.permissions['pull-requests'], 'write');
+  assert.equal(
+    frontend.jobs['bundle-size'].permissions['pull-requests'],
+    'write',
+  );
+});
+
+test('frontend admission witness runs only the cheap false scope on inapplicable cases', () => {
+  const detector = parseYaml(readWorkflow('_ci-frontend.yml')).jobs[
+    'link-check-detect'
+  ];
+  assert.equal(detector.if, undefined);
+  assert.equal(detector.needs, undefined);
+  const [witness, checkout, scope] = detector.steps;
+  assert.equal(witness.id, 'admission');
+  assert.equal(witness.uses, undefined);
+  assert.equal(witness.shell, 'bash');
+  assert.equal(
+    witness.run,
+    'echo "website=false" >> "$GITHUB_OUTPUT"\necho "docs=false" >> "$GITHUB_OUTPUT"\n',
+  );
+  assert.equal(checkout.if, scope.if);
+  for (const event of [
+    'pull_request',
+    'merge_group',
+    'push',
+    'workflow_dispatch',
+    'release',
+  ]) {
+    for (const draft of [false, true]) {
+      for (const heavy of [undefined, false, true]) {
+        const context = {
+          github: { event_name: event, event: { pull_request: { draft } } },
+          inputs: { run_heavy_tests: heavy },
+        };
+        const applicable = event === 'pull_request' && !draft && heavy !== true;
+        assert.equal(evaluateCandidate(witness.if, context), !applicable);
+        assert.equal(evaluateCandidate(checkout.if, context), applicable);
+        assert.equal(evaluateCandidate(scope.if, context), applicable);
+      }
+    }
+  }
+});
+
+test('domain sequences preserve independent workload replacement and never cancel on metadata or ready image events', () => {
+  const root = parseYaml(readWorkflow('ci.yml'));
+  const events = [
+    ['pull_request', 'opened', false, 'master'],
+    ['pull_request', 'synchronize', false, 'master'],
+    ['pull_request', 'reopened', false, 'master'],
+    ['pull_request', 'ready_for_review', false, 'master'],
+    ['pull_request_target', 'opened', false, 'master'],
+    ['pull_request_target', 'edited', false, 'master'],
+    ['pull_request_target', 'synchronize', false, 'other'],
+    ['pull_request', 'opened', false, 'other'],
+    ['pull_request', 'ready_for_review', false, 'other'],
+    ['pull_request', 'labeled', true, 'master'],
+    ['workflow_dispatch', '', true, 'master'],
+    ['release', '', true, 'master'],
+  ];
+  const domains = ['conventional-title', 'server-image', 'core', 'frontend'];
+  function context([event, action, called, base], pr = 42) {
+    return {
+      github: {
+        event_name: event,
+        workflow: called ? 'PR Heavy CI' : 'CI',
+        ref:
+          called && event !== 'pull_request'
+            ? 'refs/heads/master'
+            : 'refs/pull/' + pr + '/merge',
+        base_ref: base,
+        event: { action, pull_request: { number: pr } },
+      },
+      inputs: { called_workflow: called },
+    };
+  }
+  function group(expression, values) {
+    return expression.replace(/\$\{\{(.*?)\}\}/g, (_, inner) =>
+      String(evaluateCandidate(inner, values)),
+    );
+  }
+  let sequences = 0;
+  for (const first of events) {
+    for (const second of events) {
+      for (const third of events) {
+        for (const sibling of [false, true]) {
+          const actual = new Map();
+          const independent = new Map();
+          for (const [index, event] of [first, second, third].entries()) {
+            const values = context(event, sibling && index === 1 ? 43 : 42);
+            for (const id of domains) {
+              const job = root.jobs[id];
+              if (!evaluateCandidate(job.if, values)) continue;
+              const key = group(job.concurrency.group, values);
+              const cancel =
+                typeof job.concurrency['cancel-in-progress'] === 'boolean'
+                  ? job.concurrency['cancel-in-progress']
+                  : evaluateCandidate(
+                      job.concurrency['cancel-in-progress'],
+                      values,
+                    );
+              const domainKey = id + ':' + key;
+              const before = actual.get(key) ?? {
+                running: null,
+                pending: null,
+              };
+              const baseline = independent.get(domainKey) ?? {
+                running: null,
+                pending: null,
+              };
+              function admit(state) {
+                if (state.running === null || cancel)
+                  return { running: index, pending: null };
+                return { running: state.running, pending: index };
+              }
+              actual.set(key, admit(before));
+              independent.set(domainKey, admit(baseline));
+              assert.deepEqual(actual.get(key), independent.get(domainKey));
+              if (id === 'conventional-title') assert.equal(cancel, false);
+              if (id === 'core' || id === 'frontend')
+                assert.equal(cancel, event[0] === 'pull_request');
+              if (id === 'server-image') {
+                assert.equal(cancel, true);
+                assert.ok(
+                  ['opened', 'synchronize', 'reopened'].includes(event[1]),
+                );
+              }
+            }
+          }
+          assert.equal(
+            actual.size,
+            independent.size,
+            'domains must never share a cancellation group',
+          );
+          sequences++;
+        }
+      }
+    }
+  }
+  assert.equal(sequences, 3456);
 });

@@ -26,6 +26,52 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('literal MCP instruction contract', () => {
+  it.each([
+    'get_scheduler_capabilities',
+    'validate_scheduler_target',
+    'request_media_upload',
+    'complete_media_upload',
+  ])('rejects retired %s in every active instruction form', (name) => {
+    writeFileSync(
+      catalog,
+      `export const CURATED_ACTION_CATALOG = [
+        { name: '${name}', surfaces: ['mcp'] },
+        { name: 'check_channel', surfaces: ['mcp'] },
+        { name: 'upload_media', surfaces: ['mcp'] },
+      ] as const;
+`,
+    );
+    for (const text of [
+      `Call \`${name}\`.`,
+      `Use \`${name}\`.`,
+      `Invoke \`${name}\`.`,
+      `This name is retired; call \`${name}\`.`,
+      `This name is historical; use \`${name}\`.`,
+      `This name was removed; invoke \`${name}\`.`,
+      `Call \`mcp__genfeed__${name}\`.`,
+      `| Tool | Description |\n| --- | --- |\n| \`${name}\` | Execute |`,
+      `Genfeed call:\n\`\`\`json\n{ "tool": "${name}" }\n\`\`\``,
+    ]) {
+      expect(checkReferenceSources(catalog, source(text))).toEqual([
+        expect.objectContaining({ name }),
+      ]);
+    }
+    for (const text of [
+      `Historical: \`${name}\`.`,
+      `Retired MCP tool: \`${name}\`.`,
+      `\`${name}\` was removed.`,
+    ])
+      expect(checkReferenceSources(catalog, source(text))).toEqual([]);
+    expect(
+      checkReferenceSources(
+        catalog,
+        source(
+          'Call `check_channel` with action capabilities or validate.\nCall `upload_media` with action request or complete.',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
   it('accepts available tools and excludes schema keys, IDs and unrelated examples', () => {
     expect(
       checkReferenceSources(

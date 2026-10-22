@@ -5,11 +5,39 @@ import {
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
+import { isMcpListedToolName } from './mcp-catalog-calls';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
+  it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
+    expect(ALL_TOOLS).toHaveLength(217);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(147);
+    const listed = getToolsForSurface('mcp').map((tool) => tool.name);
+    expect(listed).toHaveLength(143);
+    expect(listed).toContain('check_channel');
+    expect(listed).toContain('upload_media');
+    for (const name of [
+      'get_scheduler_capabilities',
+      'validate_scheduler_target',
+      'request_media_upload',
+      'complete_media_upload',
+    ]) {
+      expect(getToolByName(name)?.surfaces.mcp).toBe(true);
+      expect(listed).not.toContain(name);
+    }
+  });
+  it('exposes link imports on agent and MCP in the analytics toolset', () => {
+    expect(getToolByName('track_post_link')).toMatchObject({
+      creditCost: 0,
+      requiredRole: 'user',
+      toolset: 'analytics',
+      mutationPolicy: 'direct',
+      surfaces: { agent: true, mcp: true },
+      parameters: { additionalProperties: false, required: ['brandId', 'url'] },
+    });
+  });
   it.each(['create_brand_from_url', 'get_brand_scan_status'])(
     'exposes %s on agent and MCP in the brand toolset',
     (name) => {
@@ -92,7 +120,9 @@ describe('curated action catalog', () => {
     for (const surface of ['agent', 'mcp'] as const) {
       const expected = CURATED_ACTION_CATALOG.filter((entry) =>
         isActionOnSurface(entry, surface),
-      ).map((entry) => entry.name);
+      )
+        .filter((entry) => surface !== 'mcp' || isMcpListedToolName(entry.name))
+        .map((entry) => entry.name);
       const actual = getToolsForSurface(surface).map((tool) => tool.name);
       expect(actual).toEqual(expected);
     }
@@ -405,7 +435,7 @@ describe('curated action catalog', () => {
       ['list_x_account_activity', 'social-inbox'],
       ['get_brand_completeness', 'brand'],
       ['get_brand_context', 'brand'],
-      ['list_brand_publishing_readiness', 'brand'],
+      ['list_brand_publishing_readiness', 'scheduler'],
       ['start_brand_interview', 'brand'],
       ['list_meta_ad_accounts', 'ads'],
       ['list_ads_research', 'ads'],

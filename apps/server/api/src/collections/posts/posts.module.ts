@@ -1,5 +1,8 @@
 import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
+import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 /**
  * Posts Module
@@ -69,6 +72,7 @@ import { Module } from '@nestjs/common';
     PostsController,
   ],
   exports: [
+    PostLinkTrackingService,
     AnalyticsCollectionModule,
     PostAccountFanoutModule,
     PostLifecycleModule,
@@ -77,6 +81,8 @@ import { Module } from '@nestjs/common';
     ReviewablePostsService,
   ],
   imports: [
+    TwitterModule,
+    YoutubeModule,
     MediaUrlsModule,
     PlatformSettingsModule,
     EvaluationReadModule,
@@ -111,6 +117,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
   ],
   providers: [
+    PostLinkTrackingService,
     CreditsGuard,
     CreditsInterceptor,
     PostRetryService,

@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftContext,
+  IOnboardingDraftRun,
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
   OnboardingAccessMode,
@@ -127,6 +128,17 @@ export class OnboardingService extends HTTPBaseService {
       logger.error('POST /brands/:brandId/scan failed', error);
       throw error;
     }
+  }
+
+  async readDrafts(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<IOnboardingDraftRun | null> {
+    const response = await this.instance.get<IOnboardingDraftRun | null>(
+      `brands/${brandId}/drafts`,
+      { signal },
+    );
+    return response.data;
   }
 
   /** Draft one post each for X, Instagram, TikTok and LinkedIn with one shared image. */

@@ -1,6 +1,7 @@
 import {
   describeCreditPricing,
   estimateToolCreditCost,
+  getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
   getToolsForSurface,
@@ -37,6 +38,10 @@ import {
   collectBrandIds,
   withBrandNames,
 } from '@mcp/services/mcp-brand-names.util';
+import {
+  resolveAuthorizedMcpCatalogCall,
+  validateMcpCatalogDispatchCoverage,
+} from '@mcp/services/mcp-catalog-call.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
@@ -232,19 +237,10 @@ export class ToolRegistryService implements OnModuleInit {
    * catalog policy must not advertise a write the server cannot resume).
    */
   static validateDispatchCoverage(): void {
-    const mcpTools = toMcpTools(getToolsForSurface('mcp'));
-
-    const unroutable = mcpTools
-      .map((tool) => tool.name)
-      .filter((name) => !PRE_DISPATCH_TOOL_NAMES.has(name))
-      .filter((name) => ToolRegistryService.classify(name) === 'unknown');
-    if (unroutable.length > 0) {
-      throw new Error(
-        `MCP tool registry drift: no executor dispatch for [${unroutable.join(
-          ', ',
-        )}]. Add a handler + classify() entry, or unset surfaces.mcp.`,
-      );
-    }
+    validateMcpCatalogDispatchCoverage(
+      (name) => ToolRegistryService.classify(name),
+      PRE_DISPATCH_TOOL_NAMES,
+    );
   }
 
   constructor(
@@ -370,8 +366,8 @@ export class ToolRegistryService implements OnModuleInit {
       requestedArgs.action === 'create_from_url'
         ? resolveOnboardBrandCall(requestedArgs)
         : null;
-    const name = brandCreation?.agentToolName ?? params.name;
-    const args = brandCreation?.parameters ?? requestedArgs;
+    let name = brandCreation?.agentToolName ?? params.name;
+    let args = brandCreation?.parameters ?? requestedArgs;
 
     this.logger.debug(`Handling tool call: ${name}`, args);
 
@@ -394,6 +390,17 @@ export class ToolRegistryService implements OnModuleInit {
           this.requestRole,
           canonicalTool.requiredRole,
         );
+      }
+
+      const catalogCall = resolveAuthorizedMcpCatalogCall(
+        name,
+        args,
+        this.requestRole,
+        this.requestAccessMode,
+      );
+      if (catalogCall) {
+        name = catalogCall.executionName;
+        args = catalogCall.arguments;
       }
 
       // The resolver runs the deferred action; it must not be gated as a write.
@@ -489,6 +496,14 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   static classify(name: string): ExecutorKind {
+    const operations = getMcpCatalogOperations(name);
+    if (operations.length > 0) {
+      const kinds = operations.map((operation) =>
+        ToolRegistryService.classify(operation.executionName),
+      );
+      const first = kinds[0];
+      return first && kinds.every((kind) => kind === first) ? first : 'unknown';
+    }
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';

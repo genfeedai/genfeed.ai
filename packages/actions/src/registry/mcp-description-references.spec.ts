@@ -103,3 +103,19 @@ describe('MCP tool descriptions only name tools on the same connection (#7177)',
     expect(offenders).toEqual([]);
   });
 });
+
+it('keeps canonical guidance free of legacy alias escapes', () => {
+  const names = [
+    'get_scheduler_capabilities',
+    'validate_scheduler_target',
+    'request_media_upload',
+    'complete_media_upload',
+  ];
+  for (const view of VIEWS) {
+    for (const tool of toMcpTools(view.tools)) {
+      expect(names).not.toContain(tool.name);
+      for (const text of collectTexts(tool))
+        for (const alias of names) expect(text).not.toContain(alias);
+    }
+  }
+});

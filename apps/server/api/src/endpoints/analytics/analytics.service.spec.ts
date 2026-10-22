@@ -446,7 +446,7 @@ describe('AnalyticsService', () => {
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
 
-    it('retains original unfiltered joins and bound analytics scope', async () => {
+    it('keeps collected and uncollected imports within the bound tenant and active records', async () => {
       const queries = captureQueryRawCalls();
       await service.getTopContent(
         '2026-01-01',
@@ -463,11 +463,11 @@ describe('AnalyticsService', () => {
       expect(queries[0].sql).toContain(
         'LEFT JOIN "brands" b ON b.id = pa."brandId"',
       );
-      expect(queries[0].sql).not.toContain('p."organizationId"');
-      expect(queries[0].sql).not.toContain('b."organizationId"');
-      expect(queries[0].sql).not.toContain('p."isDeleted"');
-      expect(queries[0].sql).not.toContain('b."isDeleted"');
-      expect(queries[0].sql).not.toContain('p.source');
+      expect(queries[0].sql).toContain('p."organizationId"');
+      expect(queries[0].sql).toContain('b."organizationId"');
+      expect(queries[0].sql).toContain('p."isDeleted"');
+      expect(queries[0].sql).toContain('b."isDeleted"');
+      expect(queries[0].sql).toContain('p.source');
       expect(queries[0].sql).toContain('pa."isDeleted" = false');
       expect(queries[0].values).toEqual(
         expect.arrayContaining([
@@ -553,9 +553,8 @@ describe('AnalyticsService', () => {
       expect(capturedQueries[0].values).toContain(brandId);
       // genfeedai/genfeed.ai#5425: the column holds the Prisma label.
       expect(capturedQueries[0].values).toContain('YOUTUBE');
-      expect(capturedQueries[0].values).not.toContain(
-        CredentialPlatform.YOUTUBE,
-      );
+      // Post.platform is the lowercase domain id; PostAnalytics.platform is the Prisma enum.
+      expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
       expect(capturedQueries[0].values).toContain(organizationId);
     });
   });

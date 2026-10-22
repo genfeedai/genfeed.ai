@@ -306,3 +306,34 @@ describe('TrendsService HTTP methods', () => {
     });
   });
 });
+
+describe('Discovery filter transport', () => {
+  it('passes relevance, platform, timeframe and cancellation for hashtag and sound reads', async () => {
+    const service = new TrendsService('trends-token');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(axiosResponse({}));
+    const signal = new AbortController().signal;
+    const options = {
+      brandId: 'brand-1',
+      relevance: 'brand',
+      platform: 'tiktok',
+      timeframe: '72h',
+      limit: 12,
+      signal,
+    } as const;
+    await service.getTrendingHashtags(options);
+    await service.getTrendingSounds(options);
+    for (const endpoint of ['/hashtags', '/sounds']) {
+      expect(http.get).toHaveBeenCalledWith(endpoint, {
+        params: {
+          brandId: 'brand-1',
+          relevance: 'brand',
+          platform: 'tiktok',
+          timeframe: '72h',
+          limit: 12,
+        },
+        signal,
+      });
+    }
+  });
+});

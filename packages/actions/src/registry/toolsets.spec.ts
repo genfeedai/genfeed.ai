@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isMcpListedToolName } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
 import {
   CORE_TOOLSET_NAME,
@@ -179,9 +180,11 @@ describe('getToolsets', () => {
 describe('getToolsForToolsets', () => {
   it('returns every tool on the surface when the selection is empty', () => {
     for (const surface of ['agent', 'mcp'] as const) {
-      const expected = ALL_TOOLS.filter((tool) => tool.surfaces[surface]).sort(
-        (a, b) => a.name.localeCompare(b.name),
-      );
+      const expected = ALL_TOOLS.filter(
+        (tool) =>
+          tool.surfaces[surface] &&
+          (surface !== 'mcp' || isMcpListedToolName(tool.name)),
+      ).sort((a, b) => a.name.localeCompare(b.name));
       expect(getToolsForToolsets(surface, [])).toEqual(expected);
     }
   });

@@ -2,9 +2,27 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
+import {
+  getRetiredMcpCatalogTool,
+  isMcpListedToolName,
+} from '../../packages/actions/src/registry/mcp-catalog-calls';
 
 const CATALOG = 'packages/actions/src/registry/curated-action-catalog.ts';
 const TOKEN = /^[a-z][a-z0-9_]*$/u;
+function isHistoricalRetiredMention(
+  line: string,
+  offset: number,
+  name: string,
+): boolean {
+  return Boolean(
+    getRetiredMcpCatalogTool(name) &&
+      /\b(?:historical|retired|removed)\b/iu.test(line) &&
+      !/\b(?:call|calling|invoke|invoking|use|using)\b[^\x60]*$/iu.test(
+        line.slice(0, offset),
+      ),
+  );
+}
+
 function isToolInstruction(
   line: string,
   offset: number,
@@ -147,8 +165,9 @@ export function checkReferenceSources(
           const name = token.replace(/^mcp__genfeed__/u, '');
           if (
             TOKEN.test(name) &&
+            !isHistoricalRetiredMention(line, match.index ?? 0, name) &&
             (token.startsWith('mcp__genfeed__') ||
-              actions.has(name) ||
+              (actions.has(name) && isMcpListedToolName(name)) ||
               isToolInstruction(line, match.index ?? 0, name))
           )
             candidates.add(name);
@@ -157,16 +176,19 @@ export function checkReferenceSources(
       for (const match of line.matchAll(
         /\bmcp__genfeed__([a-z][a-z0-9_]*)\b/gu,
       ))
-        candidates.add(match[1] ?? '');
+        if (!isHistoricalRetiredMention(line, match.index ?? 0, match[1] ?? ''))
+          candidates.add(match[1] ?? '');
       for (const field of fencedFields.get(index) ?? []) candidates.add(field);
       for (const name of candidates) {
         const action = actions.get(name);
-        if (!action?.surfaces.includes('mcp'))
+        if (!action?.surfaces.includes('mcp') || !isMcpListedToolName(name))
           violations.push({
             path: source.path,
             line: index + 1,
             name,
-            surface: action?.surfaces.join(', ') ?? 'missing',
+            surface: getRetiredMcpCatalogTool(name)
+              ? 'retired from MCP'
+              : (action?.surfaces.join(', ') ?? 'missing'),
           });
       }
     }

@@ -79,6 +79,7 @@ test('root build inputs and the detector itself conservatively select both apps'
     '.github/actions/check-website-links/action.yml',
     '.github/actions/check-docs-links/action.yml',
     '.github/workflows/ci.yml',
+    '.github/workflows/_ci-frontend.yml',
     '.github/workflows/_bundle-size.yml',
     '.github/workflows/bundle-size.yml',
     'configs/build.ts',

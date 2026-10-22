@@ -298,7 +298,7 @@ test('master-heavy plans activate browser tests and keep IDE dormant', () => {
 
 test('keeps the workflow wired to the planner matrices and outputs', () => {
   const workflowPath = fileURLToPath(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
   );
   const workflow = readFileSync(workflowPath, 'utf8');
 
@@ -349,7 +349,13 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     5,
     'static checks, workspace, app, API, and build jobs read the planned base',
   );
-  assert.match(workflow, /merge_group:\n {4}types: \[checks_requested\]/);
+  assert.match(
+    readFileSync(
+      new URL('../../.github/workflows/ci.yml', import.meta.url),
+      'utf8',
+    ),
+    /merge_group:\n {4}types: \[checks_requested\]/,
+  );
   assert.match(workflow, /git merge-base --is-ancestor "\$\{base\}" HEAD/);
   // PR runs carry no coverage instrumentation; full-repository coverage
   // stays in the weekly Coverage workflow.
@@ -423,7 +429,7 @@ test('existing workspace groups retain affected-task applicability and declared 
 
 test('browser workspace legs run the full filtered suite while other groups retain affected selection', () => {
   const workflow = readFileSync(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const workspaceStep = workflow.slice(
@@ -439,7 +445,7 @@ test('browser workspace legs run the full filtered suite while other groups reta
 
 test('server workspace leg runs the workers cron specs with affected selection', () => {
   const workflow = readFileSync(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const cronStep = workflow.slice(
@@ -458,7 +464,7 @@ test('server workspace leg runs the workers cron specs with affected selection',
 
 test('server workspace leg runs the MCP e2e specs with affected selection', () => {
   const workflow = readFileSync(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const e2eStep = workflow.slice(
@@ -477,7 +483,7 @@ test('server workspace leg runs the MCP e2e specs with affected selection', () =
 
 test('UI shards retain the environment gate, dependency builds, distinct cache arguments and failure semantics', () => {
   const workflow = readFileSync(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const turbo = readFileSync(

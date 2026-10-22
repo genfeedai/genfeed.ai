@@ -290,16 +290,27 @@ describe('OrganizationsService HTTP methods', () => {
 
     it('updateOrganizationMember PATCHes the member', async () => {
       http.patch.mockResolvedValue(
-        axiosResponse(resourceDocument({ role: 'editor' }, { id: 'member_2' })),
+        axiosResponse(
+          resourceDocument(
+            { roleId: 'role-creator', isActive: false, brands: [] },
+            { id: 'member_2' },
+          ),
+        ),
       );
 
       const result = await service.updateOrganizationMember(orgId, 'member_2', {
-        role: 'editor',
+        roleId: 'role-creator',
+        isActive: false,
+        brandIds: [],
       });
 
-      expect(http.patch).toHaveBeenCalledWith(`/${orgId}/members/member_2`, {
-        role: 'editor',
-      });
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${orgId}/members/member_2`,
+        { roleId: 'role-creator', isActive: false, brandIds: [] },
+        expect.objectContaining({
+          handledErrorStatuses: expect.arrayContaining([409, 503]),
+        }),
+      );
       expect(result.id).toBe('member_2');
     });
 

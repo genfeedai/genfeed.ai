@@ -22,6 +22,7 @@ runs:
             - 'lychee.toml'
             - '.github/workflows/link-check.yml'
             - '.github/workflows/ci.yml'
+            - '.github/workflows/_ci-frontend.yml'
             - '.github/actions/detect-link-check-scope/**'
             - '.github/actions/check-website-links/**'
             - '.github/actions/check-docs-links/**'

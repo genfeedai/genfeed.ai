@@ -1,4 +1,5 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import type { ToolParameterSchema } from '../../../interfaces/tool-definition.interface';
 import { JSON_OBJECT_SCHEMA } from '../../contracts/schema-builders';
 
 const credentialPlatforms = [
@@ -146,11 +147,115 @@ const updateProperties = {
  * Thin MCP access to the canonical `/post-groups` scheduler lifecycle plus the
  * existing channel-capability and brand publishing-readiness routes.
  */
+const SCHEDULER_CAPABILITIES_PARAMETERS: ToolParameterSchema = {
+  properties: {
+    platform: {
+      description: 'One channel to describe. Omit to list all channels.',
+      enum: credentialPlatforms,
+      type: 'string',
+    },
+    includeHidden: {
+      description:
+        'List only. Include hidden channels that exist but refuse scheduling.',
+      type: 'boolean',
+    },
+    includePlanned: {
+      description:
+        'List only. Include planned channels with no live publish path yet.',
+      type: 'boolean',
+    },
+  },
+  type: 'object',
+};
+
+const SCHEDULER_VALIDATE_PARAMETERS: ToolParameterSchema = {
+  properties: {
+    caption: {
+      description: 'Caption or shared base content to validate',
+      type: 'string',
+    },
+    credentialId: { type: 'string' },
+    media: {
+      description: 'Media items for this target',
+      items: {
+        properties: {
+          id: { type: 'string' },
+          isAnimated: {
+            description: 'Whether the source media is animated (GIF)',
+            type: 'boolean',
+          },
+          kind: {
+            enum: ['image', 'video', 'short_video', 'carousel', 'link'],
+            type: 'string',
+          },
+        },
+        required: ['kind'],
+        type: 'object',
+      },
+      type: 'array',
+    },
+    platform: {
+      enum: credentialPlatforms,
+      type: 'string',
+    },
+    publishMode: {
+      enum: ['draft', 'publish_now', 'scheduled'],
+      type: 'string',
+    },
+    settings: {
+      description: 'Publishing settings',
+      ...JSON_OBJECT_SCHEMA,
+    },
+    visibility: audienceVisibilitySchema,
+  },
+  required: ['platform'],
+  type: 'object',
+};
+
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
+  {
+    name: 'check_channel',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Check publishing channel capabilities or validate a proposed target. capabilities lists channels when input is omitted; validate checks input.platform and returns errors/warnings/validationState. Read-only.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        action: { type: 'string', enum: ['capabilities', 'validate'] },
+        input: {
+          anyOf: [
+            SCHEDULER_CAPABILITIES_PARAMETERS,
+            SCHEDULER_VALIDATE_PARAMETERS,
+          ],
+        },
+      },
+      required: ['action'],
+      oneOf: [
+        {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['capabilities'] },
+            input: SCHEDULER_CAPABILITIES_PARAMETERS,
+          },
+          required: ['action'],
+        },
+        {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['validate'] },
+            input: SCHEDULER_VALIDATE_PARAMETERS,
+          },
+          required: ['action', 'input'],
+        },
+      ],
+    },
+  },
   {
     creditCost: 0,
     description:
-      'Create a multi-channel release from prepared content and existing media. Use after validate_scheduler_target for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. If this connection cannot resolve approvals, review and release it in Genfeed.',
+      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. If this connection cannot resolve approvals, review and release it in Genfeed.',
     name: 'create_scheduled_release',
     parameters: {
       properties: {
@@ -183,7 +288,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then validate_scheduler_target before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
+      'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then check_channel(action=validate) before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
     name: 'update_scheduled_release',
     parameters: {
       properties: {
@@ -209,7 +314,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check validate_scheduler_target before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
+      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {
@@ -246,26 +351,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
     description:
       'Scheduler channel capabilities: caption limits, media rules, publish modes, required settings, status. Pass platform for one channel; omit it to list every channel. Read-only.',
     name: 'get_scheduler_capabilities',
-    parameters: {
-      properties: {
-        platform: {
-          description: 'One channel to describe. Omit to list all channels.',
-          enum: credentialPlatforms,
-          type: 'string',
-        },
-        includeHidden: {
-          description:
-            'List only. Include hidden channels that exist but refuse scheduling.',
-          type: 'boolean',
-        },
-        includePlanned: {
-          description:
-            'List only. Include planned channels with no live publish path yet.',
-          type: 'boolean',
-        },
-      },
-      type: 'object',
-    },
+    parameters: SCHEDULER_CAPABILITIES_PARAMETERS,
     requiredRole: 'user',
   },
   {
@@ -273,49 +359,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
     description:
       'Validate a proposed target against the channel-capability contract; returns errors/warnings/validationState. Read-only.',
     name: 'validate_scheduler_target',
-    parameters: {
-      properties: {
-        caption: {
-          description: 'Caption or shared base content to validate',
-          type: 'string',
-        },
-        credentialId: { type: 'string' },
-        media: {
-          description: 'Media items for this target',
-          items: {
-            properties: {
-              id: { type: 'string' },
-              isAnimated: {
-                description: 'Whether the source media is animated (GIF)',
-                type: 'boolean',
-              },
-              kind: {
-                enum: ['image', 'video', 'short_video', 'carousel', 'link'],
-                type: 'string',
-              },
-            },
-            required: ['kind'],
-            type: 'object',
-          },
-          type: 'array',
-        },
-        platform: {
-          enum: credentialPlatforms,
-          type: 'string',
-        },
-        publishMode: {
-          enum: ['draft', 'publish_now', 'scheduled'],
-          type: 'string',
-        },
-        settings: {
-          description: 'Publishing settings',
-          ...JSON_OBJECT_SCHEMA,
-        },
-        visibility: audienceVisibilitySchema,
-      },
-      required: ['platform'],
-      type: 'object',
-    },
+    parameters: SCHEDULER_VALIDATE_PARAMETERS,
     requiredRole: 'user',
   },
 ];

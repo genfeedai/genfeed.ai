@@ -7,8 +7,12 @@ import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service'
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { type ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { of } from 'rxjs';
 
 vi.mock('@api/collections/brands/controllers/brand-access.helpers', () => ({
   verifyBrandAccess: vi.fn(),
@@ -46,7 +50,7 @@ describe('OnboardingController', () => {
         { provide: BrandsService, useValue: {} },
         {
           provide: OnboardingFirstDraftsService,
-          useValue: { generate: vi.fn(), scan: vi.fn() },
+          useValue: { generate: vi.fn(), scan: vi.fn(), read: vi.fn() },
         },
         {
           provide: LoggerService,
@@ -206,5 +210,50 @@ describe('OnboardingController', () => {
       ).rejects.toThrow('Not found');
       expect(firstDraftsService.generate).not.toHaveBeenCalled();
     });
+  });
+  it('checks brand access before recovering saved content', async () => {
+    firstDraftsService.read.mockResolvedValue(null);
+    await expect(
+      controller.readDrafts(mockUser, 'brand_1'),
+    ).resolves.toBeNull();
+    expect(verifyBrandAccess).toHaveBeenCalledWith(
+      expect.anything(),
+      'brand_1',
+      mockUser,
+    );
+    expect(firstDraftsService.read).toHaveBeenCalledWith(mockUser, 'brand_1');
+  });
+  it('rejects an organization override before recovering owner-bound onboarding', () => {
+    const user: User = {
+      id: testId('user'),
+      userId: testId('user'),
+      organizationId: testId('org'),
+      brandId: testId('brand'),
+      isSuperAdmin: true,
+    };
+    const request = {
+      method: 'GET',
+      user,
+      query: { organizationId: testId('org', 2) },
+    };
+    const context = {
+      getHandler: () => OnboardingController.prototype.readDrafts,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as ExecutionContext;
+    const next = { handle: vi.fn(() => of(null)) };
+    expect(() =>
+      new TenantContextInterceptor().intercept(context, next),
+    ).toThrow(ForbiddenException);
+    expect(next.handle).not.toHaveBeenCalled();
+    expect(firstDraftsService.read).not.toHaveBeenCalled();
+    expect(user.organizationId).toBe(testId('org'));
+  });
+
+  it('never reads another organization’s saved onboarding content', async () => {
+    vi.mocked(verifyBrandAccess).mockRejectedValueOnce(new Error('forbidden'));
+    await expect(
+      controller.readDrafts(mockUser, 'brand_other'),
+    ).rejects.toThrow('forbidden');
+    expect(firstDraftsService.read).not.toHaveBeenCalled();
   });
 });

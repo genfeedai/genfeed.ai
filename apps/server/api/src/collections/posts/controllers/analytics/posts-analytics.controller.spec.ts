@@ -1,5 +1,6 @@
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
 import { BaseQueryNormalizationAdapter } from '@api/shared/services/base/base-query-normalization.adapter';
 import { MemberRole } from '@genfeedai/contracts';
 import { Controller, type ExecutionContext, Get } from '@nestjs/common';
@@ -104,6 +105,7 @@ describe('PostsAnalyticsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PostsAnalyticsController],
       providers: [
+        { provide: PostLinkTrackingService, useValue: { trackLink: vi.fn() } },
         {
           provide: CredentialsService,
           useValue: mockCredentialsService,
@@ -478,6 +480,11 @@ describe('publication insights actual HTTP route boundary', () => {
     expect(order.indexOf(PostsAnalyticsController)).toBeLessThan(
       order.indexOf(PostsController),
     );
+    const trackLink = vi.fn().mockResolvedValue({
+      postId: testId('imported-post'),
+      created: true,
+      analyticsAvailability: 'eligible',
+    });
     const getPublicationInsights = vi
       .fn()
       .mockResolvedValue({ docs: [{ id: 'insight' }], totalDocs: 1 });
@@ -490,6 +497,7 @@ describe('publication insights actual HTTP route boundary', () => {
         PublicationFixtureCatchAllController,
       ],
       providers: [
+        { provide: PostLinkTrackingService, useValue: { trackLink } },
         {
           provide: PostsService,
           useValue: { getPublicationInsights, findPublicationInsightById },
@@ -532,6 +540,61 @@ describe('publication insights actual HTTP route boundary', () => {
     });
     await app.init();
     try {
+      const imported = await supertest(app.getHttpServer())
+        .post('/posts/track-link')
+        .set('x-test-role', MemberRole.ANALYTICS)
+        .send({
+          brandId: testId('brand'),
+          url: 'https://x.com/alice/status/123',
+        });
+      expect(imported.status).toBe(201);
+      expect(imported.body).toMatchObject({
+        data: {
+          id: testId('imported-post'),
+          type: 'post-link-tracking',
+          attributes: { created: true, analyticsAvailability: 'eligible' },
+        },
+      });
+      expect(trackLink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: testId('brand'),
+          url: 'https://x.com/alice/status/123',
+        }),
+        {
+          organizationId: testId('org'),
+          userId: testId('user'),
+          brandId: testId('brand'),
+        },
+      );
+      for (const extra of [
+        { credentialId: testId('forged') },
+        { organizationId: testId('forged-org') },
+        { brandId: 'not-an-id' },
+      ]) {
+        expect(
+          (
+            await supertest(app.getHttpServer())
+              .post('/posts/track-link')
+              .set('x-test-role', MemberRole.ANALYTICS)
+              .send({
+                brandId: testId('brand'),
+                url: 'https://x.com/alice/status/123',
+                ...extra,
+              })
+          ).status,
+        ).toBe(400);
+      }
+      expect(
+        (
+          await supertest(app.getHttpServer())
+            .post('/posts/track-link')
+            .set('x-test-role', 'VIEWER')
+            .send({
+              brandId: testId('brand'),
+              url: 'https://x.com/alice/status/123',
+            })
+        ).status,
+      ).toBe(403);
       const read = (path: string, role: string = MemberRole.OWNER) =>
         supertest(app.getHttpServer()).get(path).set('x-test-role', role);
       const response = await read(

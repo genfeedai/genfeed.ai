@@ -82,6 +82,128 @@ const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(
   ).map((entry) => entry.name),
 );
 
+/** Presentation-only corrections for audited handlers that write or incur spend. */
+const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
+  new Map([
+    [
+      'check_channel',
+      {
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+        readOnlyHint: true,
+      },
+    ],
+    [
+      'upload_media',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_account',
+      {
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_analytics',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_brand_context',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_clip_project',
+      {
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_content_analytics',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_generation_options',
+      {
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_instagram_inspiration_detail',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_remix_run',
+      {
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'list_instagram_inspiration',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'search_knowledge',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'verify_skills_pro_entitlement',
+      {
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+  ]);
+
 export function toolTitleFromName(name: string): string {
   return name
     .split('_')
@@ -111,7 +233,7 @@ function isDefaultReadOnly(
 
 /**
  * Title plus the four MCP hints for one tool. Defaults come from
- * `mutationPolicy` and the read classifier; the pinned name sets win.
+ * `mutationPolicy` and the read classifier; audited presentation overrides win.
  */
 export function deriveMcpToolPresentation(
   name: string,
@@ -138,6 +260,7 @@ export function deriveMcpToolPresentation(
     idempotentHint: readOnlyHint,
     openWorldHint: isOpenWorldTool(name),
     readOnlyHint,
+    ...AUDITED_BEHAVIOR_HINT_OVERRIDES.get(name),
   };
 
   return { annotations, title: toolTitleFromName(name) };

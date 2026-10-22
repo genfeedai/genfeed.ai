@@ -316,15 +316,28 @@ describe('nested tool input contracts', () => {
   it.each(fixtures)(
     'publishes a usable Agent/MCP schema for $id',
     ({ id, input }) => {
-      const tools = ALL_TOOLS.filter((tool) => tool.name === id);
+      const legacyScheduler = id === 'validate_scheduler_target';
+      const publishedName = legacyScheduler ? 'check_channel' : id;
+      const tools = ALL_TOOLS.filter((tool) => tool.name === publishedName);
       const schemas = [
         ...toAgentTools(tools).map((tool) => tool.parameters),
         ...toMcpTools(tools).map((tool) => tool.inputSchema),
       ];
+      if (legacyScheduler) {
+        expect(getActionDefinition(id)).toBeDefined();
+        expect(
+          toMcpTools(ALL_TOOLS.filter((tool) => tool.name === id)),
+        ).toEqual([]);
+      }
       expect(schemas.length).toBeGreaterThan(0);
+      const publishedInput = legacyScheduler
+        ? { action: 'validate', input }
+        : input;
       for (const schema of schemas) {
         const validate = createAdvertisedSchemaAjv().compile(schema);
-        expect(validate(input), JSON.stringify(validate.errors)).toBe(true);
+        expect(validate(publishedInput), JSON.stringify(validate.errors)).toBe(
+          true,
+        );
       }
     },
   );

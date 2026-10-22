@@ -7537,14 +7537,6 @@
       "workspace": "services"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/services/organization/organizations.service.http.test.ts",
-      "fingerprint": "bbd42fad29455a1fcc32",
-      "message": "Object literal may only specify known properties, and 'role' does not exist in type 'UpdateMemberData'.",
-      "workspace": "services"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/services/social/brands.service.http.test.ts",

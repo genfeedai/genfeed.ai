@@ -441,7 +441,31 @@
     "members": {
       "allBrands": "All brands",
       "columnBrands": "Brands",
-      "columnMember": "Member"
+      "columnMember": "Member",
+      "inlineEdit": {
+        "editMember": "Edit member",
+        "email": "Email",
+        "role": "Role",
+        "selectRole": "Select role",
+        "loadingRoles": "Loading roles…",
+        "retryRoles": "Retry loading roles",
+        "brands": "Brands",
+        "status": "Status",
+        "activeMember": "Active member",
+        "active": "Active",
+        "inactive": "Inactive",
+        "joined": "Joined",
+        "save": "Save",
+        "cancel": "Cancel",
+        "saved": "Member saved",
+        "saveFailed": "Could not save member. Please try again.",
+        "loadRolesFailed": "Could not load roles. Please try again.",
+        "allBrands": "All brands",
+        "allBrandsHint": "Owners and admins can access all brands. Assignments are kept for future role changes.",
+        "brandSelectionHint": "No selection gives access to all brands.",
+        "membersTitle": "Members",
+        "inviteMember": "Invite Member"
+      }
     },
     "organizationIdentity": {
       "editHandle": "Edit organization handle",
@@ -2480,6 +2504,17 @@
   },
   "plugins": {
     "title": "Plugins",
+    "breadcrumbLabel": "Breadcrumb",
+    "allCategories": "All categories",
+    "selectApp": "Select {app}",
+    "selectedApp": "{app}, selected",
+    "status": {
+      "label": "App status",
+      "all": "ALL",
+      "installed": "Installed",
+      "available": "Available",
+      "restricted": "Restricted"
+    },
     "search": "Search plugins",
     "installedTitle": "Installed",
     "catalogTitle": "Plugins",

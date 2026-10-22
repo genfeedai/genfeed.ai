@@ -15,13 +15,20 @@ export type FirstDraftsPhase =
 /** The member's own answer to "would you post this?" for one draft. */
 export type FirstDraftVerdict = 'up' | 'down';
 export type FirstDraftsWorkingStep = 'scanning' | 'drafting';
-export type FirstDraftsError = 'generate' | 'continue';
+export type FirstDraftsError =
+  | 'generate'
+  | 'continue'
+  | 'recovery'
+  | 'feedback';
 
 export interface FirstDraftsState {
   canRetry: boolean;
   error: FirstDraftsError | null;
   isContinuing: boolean;
   isReady: boolean;
+  isRestoring: boolean;
+  isGenerating: boolean;
+  savingPostIds: readonly string[];
   isScanFailed: boolean;
   likedDrafts: IOnboardingFirstDraft[];
   phase: FirstDraftsPhase;
@@ -31,10 +38,15 @@ export interface FirstDraftsState {
   url: string;
   verdicts: Readonly<Record<string, FirstDraftVerdict>>;
   workingStep: FirstDraftsWorkingStep;
+  onNavigate: (step: number) => void;
+  onBack: () => void;
   onContinue: () => void;
   onNotRight: () => void;
   onSchedule: () => void;
-  onVerdict: (draft: IOnboardingFirstDraft, verdict: FirstDraftVerdict) => void;
+  onVerdict: (
+    draft: IOnboardingFirstDraft,
+    verdict: FirstDraftVerdict | null,
+  ) => void;
   onSkipLink: () => void;
   onStart: (link?: string) => void;
   onSubmitContext: (context: IOnboardingDraftContext) => void;
@@ -53,44 +65,18 @@ export interface FirstDraftsContextFormProps {
 export interface FirstDraftCardProps {
   draft: IOnboardingFirstDraft;
   imageUrl: string | null;
-  onVerdict: (draft: IOnboardingFirstDraft, verdict: FirstDraftVerdict) => void;
+  videoUrl?: string | null;
+  videoStatus?: string;
+  brandName?: string;
+  avatarUrl?: string;
+  isSaving?: boolean;
+  onVerdict: (
+    draft: IOnboardingFirstDraft,
+    verdict: FirstDraftVerdict | null,
+  ) => void;
   verdict?: FirstDraftVerdict;
-}
-
-export type ScheduleRowState =
-  | 'connect'
-  | 'ready'
-  | 'scheduled'
-  | 'failed'
-  | 'unsupported';
-
-export interface ScheduleRow {
-  credentialId: string | null;
-  draft: IOnboardingFirstDraft;
-  scheduledAt: string;
-  state: ScheduleRowState;
 }
 
 export interface FirstDraftsScheduleProps {
   brandId: string;
-  imageIngredientId: string | null;
-  isFinishing: boolean;
-  likedDrafts: IOnboardingFirstDraft[];
-  onFinish: () => void;
-}
-
-/** What survives the provider redirect of an account connect. */
-export interface FirstDraftsScheduleResume {
-  brandId: string;
-  likedPostIds: string[];
-  result: IOnboardingFirstDraftsResult;
-}
-
-export interface FirstDraftsScheduleState {
-  connect: (platform: string) => void;
-  error: 'connect' | 'schedule' | null;
-  isLoading: boolean;
-  isScheduling: boolean;
-  rows: ScheduleRow[];
-  schedule: () => void;
 }

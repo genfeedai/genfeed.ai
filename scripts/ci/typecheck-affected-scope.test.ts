@@ -163,7 +163,7 @@ describe('alias-aware type-check scope', () => {
 
   it('runs the scope in the PR typecheck step', () => {
     const workflow = readFileSync(
-      path.join(repositoryRoot, '.github/workflows/ci.yml'),
+      path.join(repositoryRoot, '.github/workflows/_ci-validation.yml'),
       'utf8',
     );
 

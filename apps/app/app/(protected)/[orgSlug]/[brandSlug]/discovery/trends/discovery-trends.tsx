@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
@@ -10,8 +10,16 @@ import TrendVideoGallery from '@ui/analytics/trends/trend-video-gallery';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { Flame, Hash, Music } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import TrendingTopicsSection from './TrendingTopicsSection';
@@ -66,28 +74,70 @@ export default function DiscoveryTrends() {
 
       <Container bodyClassName="space-y-8" moduleChrome={false}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <fieldset className="flex gap-1" aria-label={discovery('relevance')}>
-            {(
-              [
-                { value: 'market', label: discovery('market') },
-                { value: 'brand', label: discovery('brand') },
-              ] as const
-            ).map((option) => (
-              <Button
-                key={option.value}
-                size={ButtonSize.SM}
-                aria-pressed={relevance === option.value}
-                variant={
-                  relevance === option.value
-                    ? ButtonVariant.SECONDARY
-                    : ButtonVariant.GHOST
-                }
-                onClick={() => setRelevance(option.value)}
+          <Tabs
+            activeTab={relevance}
+            ariaLabel={discovery('relevance')}
+            fullWidth={false}
+            items={[
+              { id: 'brand', label: discovery('brand') },
+              { id: 'market', label: discovery('market') },
+            ]}
+            onTabChange={(value) => {
+              if (value === 'brand' || value === 'market') setRelevance(value);
+            }}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              value={hashtagPlatform || 'all'}
+              onValueChange={(value) =>
+                setHashtagPlatform(value === 'all' ? '' : value)
+              }
+            >
+              <SelectTrigger
+                aria-label={discovery('platformFilter')}
+                className="w-40"
               >
-                {option.label}
-              </Button>
-            ))}
-          </fieldset>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{discovery('allPlatforms')}</SelectItem>
+                {TRENDS_PLATFORMS.map(({ id, label }) => (
+                  <SelectItem key={id} value={id}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={videoTimeframe}
+              onValueChange={(value) => {
+                if (
+                  value === Timeframe.H24 ||
+                  value === Timeframe.H72 ||
+                  value === Timeframe.D7
+                )
+                  setVideoTimeframe(value);
+              }}
+            >
+              <SelectTrigger
+                aria-label={discovery('timeframeFilter')}
+                className="w-36"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={Timeframe.H24}>
+                  {discovery('hours24')}
+                </SelectItem>
+                <SelectItem value={Timeframe.H72}>
+                  {discovery('hours72')}
+                </SelectItem>
+                <SelectItem value={Timeframe.D7}>
+                  {discovery('days7')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
@@ -98,6 +148,11 @@ export default function DiscoveryTrends() {
             {discovery('reload')}
           </Button>
         </div>
+        <p className="text-sm text-muted-foreground">
+          {relevance === 'brand'
+            ? discovery('brandDescription')
+            : discovery('marketDescription')}
+        </p>
         {error ? (
           <p role="alert" className="text-sm text-destructive">
             {discovery('loadError')}
@@ -134,50 +189,29 @@ export default function DiscoveryTrends() {
         </section>
 
         <section>
-          <Card className="backdrop-blur" bodyClassName="space-y-6">
-            <TrendVideoGallery
-              selectedHashtag={selectedHashtag}
-              onClearHashtag={() => setSelectedHashtag('')}
-              videos={viralVideos}
-              isLoading={isLoadingVideos}
-              timeframe={videoTimeframe}
-              onTimeframeChange={setVideoTimeframe}
-              onVideoClick={handleVideoClick}
-            />
-          </Card>
+          <TrendVideoGallery
+            selectedHashtag={selectedHashtag}
+            onClearHashtag={() => setSelectedHashtag('')}
+            videos={viralVideos}
+            isLoading={isLoadingVideos}
+            timeframe={videoTimeframe}
+            onVideoClick={handleVideoClick}
+          />
         </section>
 
         <section>
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-6"
-            label={translate('trendingHashtags')}
-            icon={Hash}
-          >
-            <TrendingHashtags
-              onHashtagClick={(hashtag) =>
-                setSelectedHashtag(hashtag.hashtag.replace(/^#/, ''))
-              }
-              hashtags={trendingHashtags}
-              isLoading={isLoadingHashtags}
-              selectedPlatform={hashtagPlatform}
-              onPlatformChange={setHashtagPlatform}
-            />
-          </Card>
+          <TrendingHashtags
+            onHashtagClick={(hashtag) =>
+              setSelectedHashtag(hashtag.hashtag.replace(/^#/, ''))
+            }
+            hashtags={trendingHashtags}
+            isLoading={isLoadingHashtags}
+            selectedPlatform={hashtagPlatform}
+          />
         </section>
 
         <section>
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-6"
-            label={translate('trendingSounds')}
-            icon={Music}
-          >
-            <TrendingSounds
-              sounds={trendingSounds}
-              isLoading={isLoadingSounds}
-            />
-          </Card>
+          <TrendingSounds sounds={trendingSounds} isLoading={isLoadingSounds} />
         </section>
       </Container>
 

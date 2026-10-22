@@ -129,4 +129,7 @@ export interface MasonryProps {
 export interface OrderedMasonryProps {
   children: ReactNode;
   className?: string;
+  minColumnWidth?: number;
+  maxColumns?: number;
+  gap?: number;
 }

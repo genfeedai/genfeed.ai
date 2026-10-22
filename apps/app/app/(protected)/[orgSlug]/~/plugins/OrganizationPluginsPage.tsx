@@ -15,27 +15,33 @@ import {
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type {
   PluginAppAccessNoteProps,
+  PluginAppActionsProps,
   PluginAppEntry,
-  PluginAppRowProps,
+  PluginAppStateProps,
   PluginFilterId,
+  PluginStatusFilter,
 } from '@genfeedai/props/plugins/organization-plugins-page.props';
-import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionSection from '@ui/collection/CollectionSection';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import ListRow from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import {
   APP_RAIL_REGISTRY,
   getAppRailHref,
   isAppRailItemEnabled,
 } from '@ui/shell/app-rail/app-rail.registry';
-import { Puzzle, Workflow } from 'lucide-react';
+import { Check, ChevronRight, LockKeyhole, Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -49,15 +55,6 @@ import { useRailPreferencesContext } from '@/components/shell/rail-preferences.p
 
 const ALL_FILTER = 'all';
 
-const STORE_SKELETON_KEYS = [
-  'plugins-skeleton-1',
-  'plugins-skeleton-2',
-  'plugins-skeleton-3',
-  'plugins-skeleton-4',
-] as const;
-
-const ROW_GRID_CLASS = 'grid gap-x-6 gap-y-1 md:grid-cols-2';
-
 function isAppOpenable(app: PluginAppEntry): boolean {
   return app.state === 'installed' || app.state === 'pinned';
 }
@@ -70,6 +67,11 @@ function isAppOpenable(app: PluginAppEntry): boolean {
  * for the platform or not released to the organization are not listed.
  */
 export default function OrganizationPluginsPage() {
+  const { orgSlug } = useOrgUrl();
+  return <OrganizationPluginsCatalog key={orgSlug} />;
+}
+
+function OrganizationPluginsCatalog() {
   const translate = useTranslations('common.plugins');
   const translateRail = useTranslations('common.appRail');
   const { selectedBrand, settings, settingsLoading } = useBrand();
@@ -82,6 +84,9 @@ export default function OrganizationPluginsPage() {
   >({});
   const [filter, setFilter] = useState<PluginFilterId>(ALL_FILTER);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PluginStatusFilter>('all');
+  const [selectedAppId, setSelectedAppId] =
+    useState<NativeSecondaryAppId | null>(null);
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
   const isLoading = settingsLoading || installedApps.status === 'loading';
 
@@ -158,11 +163,17 @@ export default function OrganizationPluginsPage() {
       (app) =>
         (activeFilter === ALL_FILTER ||
           PLUGIN_APP_CATALOG[app.appId].category === activeFilter) &&
+        (statusFilter === 'all' ||
+          (statusFilter === 'installed'
+            ? app.isInstalled && isAppOpenable(app)
+            : statusFilter === 'available'
+              ? app.state === 'not-installed'
+              : !isAppOpenable(app) && app.state !== 'not-installed')) &&
         (term === '' ||
           app.label.toLowerCase().includes(term) ||
           app.description.toLowerCase().includes(term)),
     );
-  }, [activeFilter, apps, searchQuery]);
+  }, [activeFilter, apps, searchQuery, statusFilter]);
 
   // No per-member app usage is recorded anywhere, so "most used" cannot be
   // computed. Installed apps the member can open come first, pinned ones
@@ -205,47 +216,22 @@ export default function OrganizationPluginsPage() {
     }
   };
 
-  const renderRow = (app: PluginAppEntry) => (
-    <PluginAppRow
-      key={app.appId}
+  const orderedApps = [...installedRows, ...catalogApps];
+  const selectedApp =
+    orderedApps.find((app) => app.appId === selectedAppId) ?? orderedApps[0];
+  const selectedCategory = selectedApp
+    ? PLUGIN_APP_CATALOG[selectedApp.appId].category
+    : undefined;
+  const renderActions = (app: PluginAppEntry) => (
+    <PluginAppActions
       app={app}
-      failedAction={failedActions[app.appId] ?? null}
       isPending={installedApps.pendingAppIds.includes(app.appId)}
       isPinned={pinnedAppIds.includes(app.appId)}
-      manageModulesHref={createOrganizationAppRoute(
-        orgSlug,
-        APP_ROUTES.SETTINGS.MODULES,
-      )}
       onInstall={(appId) => void runAction(appId, 'install')}
       onTogglePin={togglePin}
       onUninstall={(appId) => void runAction(appId, 'uninstall')}
-      subscriptionHref={createOrganizationAppRoute(
-        orgSlug,
-        APP_ROUTES.SETTINGS.SUBSCRIPTION,
-      )}
     />
   );
-
-  const filterFacets: FilterMenuFacet[] = [
-    {
-      defaultValue: ALL_FILTER,
-      key: 'category',
-      label: translate('filters.category'),
-      onChange: (value) =>
-        setFilter(
-          filterIds.find((filterId) => filterId === value) ?? ALL_FILTER,
-        ),
-      options: [
-        { label: translate('filterAll'), value: ALL_FILTER },
-        ...filterIds.map((filterId) => ({
-          label: translate(`categories.${filterId}`),
-          value: filterId,
-        })),
-      ],
-      selection: 'single',
-      value: activeFilter,
-    },
-  ];
 
   return (
     <AdminPageShell
@@ -262,240 +248,310 @@ export default function OrganizationPluginsPage() {
         />
       }
       filters={
-        filterIds.length > 1 ? (
-          <FilterMenu
-            allLabel={translate('filterAll')}
-            clearLabel={translate('filters.clear')}
-            facets={filterFacets}
-            getActiveCountLabel={(count) =>
-              translate('filters.activeCount', { count })
-            }
-            label={translate('filters.menu')}
-            onClear={() => setFilter(ALL_FILTER)}
-          />
-        ) : undefined
+        <Select
+          value={activeFilter}
+          onValueChange={(value) =>
+            setFilter(filterIds.find((id) => id === value) ?? ALL_FILTER)
+          }
+        >
+          <SelectTrigger
+            aria-label={translate('filters.category')}
+            className="h-8 w-40"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_FILTER}>
+              {translate('allCategories')}
+            </SelectItem>
+            {filterIds.map((id) => (
+              <SelectItem key={id} value={id}>
+                {translate(`categories.${id}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       }
+      tabs={{
+        activeTab: statusFilter,
+        ariaLabel: translate('status.label'),
+        fullWidth: false,
+        items: [
+          { id: 'all', label: translate('status.all') },
+          { id: 'installed', label: translate('status.installed') },
+          { id: 'available', label: translate('status.available') },
+          { id: 'restricted', label: translate('status.restricted') },
+        ],
+        onTabChange: (value) => {
+          if (
+            value === 'all' ||
+            value === 'installed' ||
+            value === 'available' ||
+            value === 'restricted'
+          )
+            setStatusFilter(value);
+        },
+      }}
     >
       {installedApps.status === 'error' ? (
-        <p className="px-1 text-sm text-destructive" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {translate('loadFailed')}
         </p>
-      ) : null}
-
-      {isLoading ? (
-        <CollectionSection
-          isLoading
-          itemCount={apps.length}
-          title={translate('catalogTitle')}
+      ) : isLoading ? (
+        <div
+          className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
+          role="status"
+          aria-busy="true"
+          aria-label={translate('loadingApp')}
         >
-          <div className={ROW_GRID_CLASS} data-testid="plugins-apps">
-            {STORE_SKELETON_KEYS.map((key) => (
-              <SkeletonCard
-                key={key}
-                label={translate('loadingApp')}
-                showImage={false}
+          <SkeletonCard label={translate('loadingApp')} showImage={false} />
+          <SkeletonCard label={translate('loadingApp')} />
+        </div>
+      ) : selectedApp ? (
+        <div
+          className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
+          data-testid="plugins-browser"
+        >
+          <nav
+            className="max-h-60 overflow-y-auto rounded-card border border-border lg:sticky lg:top-4 lg:max-h-none"
+            aria-label={translate('catalogTitle')}
+            data-testid="plugins-apps"
+          >
+            {orderedApps.map((app) => (
+              <ListRow
+                key={app.appId}
+                density="compact"
+                ariaLabel={translate(
+                  app.appId === selectedApp.appId ? 'selectedApp' : 'selectApp',
+                  { app: app.label },
+                )}
+                onClick={() => setSelectedAppId(app.appId)}
+                leading={
+                  <app.icon
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
+                }
+                title={app.label}
+                meta={<PluginAppState app={app} />}
+                trailing={
+                  app.appId === selectedApp.appId ? (
+                    <Check className="size-4 text-foreground" aria-hidden />
+                  ) : (
+                    <ChevronRight
+                      className="size-4 text-muted-foreground"
+                      aria-hidden
+                    />
+                  )
+                }
+                className={
+                  app.appId === selectedApp.appId ? 'bg-accent' : undefined
+                }
+                data-testid={`plugins-app-${app.appId}`}
               />
             ))}
-          </div>
-        </CollectionSection>
-      ) : (
-        <div className="flex flex-col gap-8">
-          <CollectionSection
-            data-testid="plugins-installed"
-            itemCount={installedRows.length}
-            title={translate('installedTitle')}
-          >
-            <div className={ROW_GRID_CLASS}>{installedRows.map(renderRow)}</div>
-          </CollectionSection>
-
-          <div className="flex flex-col gap-8" data-testid="plugins-apps">
-            {PLUGIN_CATEGORY_IDS.map((categoryId) => {
-              const categoryApps = catalogApps.filter(
-                (app) => PLUGIN_APP_CATALOG[app.appId].category === categoryId,
-              );
-              return (
-                <CollectionSection
-                  key={categoryId}
-                  data-testid={`plugins-category-${categoryId}`}
-                  itemCount={categoryApps.length}
-                  title={translate(`categories.${categoryId}`)}
-                >
-                  <div className={ROW_GRID_CLASS}>
-                    {categoryApps.map(renderRow)}
-                  </div>
-                </CollectionSection>
-              );
-            })}
-          </div>
-
-          {visibleApps.length === 0 ? (
-            <p
-              className="px-1 text-sm text-muted-foreground"
-              data-testid="plugins-empty"
-            >
-              {translate('noMatches')}
-            </p>
-          ) : null}
-        </div>
-      )}
-
-      {isWorkflowLibraryShown ? (
-        <CollectionSection itemCount={1} title={translate('workflowsTitle')}>
+          </nav>
           <Card
-            bodyClassName="flex flex-col gap-3"
-            data-testid="plugins-workflows"
+            className="min-w-0"
+            bodyClassName="gap-0 p-0"
+            data-testid="plugins-app-detail"
           >
-            <div className="flex items-center gap-3">
-              <Workflow
-                aria-hidden="true"
-                className="size-4 shrink-0 text-primary"
-              />
-              <p className="text-sm text-muted-foreground">
-                {translate('workflowsDescription')}
-              </p>
-            </div>
-            <div>
-              <Button
-                asChild
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-              >
-                <Link
-                  href={
-                    brandSlug
-                      ? createBrandAppRoute(
-                          orgSlug,
-                          brandSlug,
-                          `${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates`,
-                        )
-                      : createOrganizationAppRoute(
-                          orgSlug,
-                          APP_ROUTES.AUTOMATION.ROOT,
-                        )
-                  }
-                >
-                  {translate('openWorkflows')}
-                </Link>
-              </Button>
+            <PluginAppThumbnail
+              appId={selectedApp.appId}
+              icon={selectedApp.icon}
+              label={selectedApp.label}
+              size="preview"
+            />
+            <div className="flex flex-col gap-4 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="mb-1 text-xs text-muted-foreground">
+                    {selectedCategory
+                      ? translate(`categories.${selectedCategory}`)
+                      : null}
+                  </p>
+                  <h2 className="text-xl font-semibold">{selectedApp.label}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {selectedApp.description}
+                  </p>
+                </div>
+                {renderActions(selectedApp)}
+              </div>
+              <div className="border-t border-border pt-4">
+                <PluginAppState app={selectedApp} />
+                <PluginAppAccessNote
+                  manageModulesHref={createOrganizationAppRoute(
+                    orgSlug,
+                    APP_ROUTES.SETTINGS.MODULES,
+                  )}
+                  state={selectedApp.state}
+                  subscriptionHref={createOrganizationAppRoute(
+                    orgSlug,
+                    APP_ROUTES.SETTINGS.SUBSCRIPTION,
+                  )}
+                />
+              </div>
+              {selectedApp.appId === 'automation' && isWorkflowLibraryShown ? (
+                <div data-testid="plugins-workflows">
+                  <Button
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    <Link
+                      href={
+                        brandSlug
+                          ? createBrandAppRoute(
+                              orgSlug,
+                              brandSlug,
+                              `${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates`,
+                            )
+                          : createOrganizationAppRoute(
+                              orgSlug,
+                              APP_ROUTES.AUTOMATION.ROOT,
+                            )
+                      }
+                    >
+                      {translate('openWorkflows')}
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+              {failedActions[selectedApp.appId] ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {translate(
+                    failedActions[selectedApp.appId] === 'install'
+                      ? 'installFailed'
+                      : 'uninstallFailed',
+                    { app: selectedApp.label },
+                  )}
+                </p>
+              ) : null}
             </div>
           </Card>
-        </CollectionSection>
-      ) : null}
+        </div>
+      ) : (
+        <div
+          className="flex flex-col items-center gap-3 py-12"
+          data-testid="plugins-empty"
+        >
+          <p className="text-sm text-muted-foreground">
+            {translate('noMatches')}
+          </p>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            onClick={() => {
+              setSearchQuery('');
+              setFilter(ALL_FILTER);
+              setStatusFilter('all');
+            }}
+          >
+            {translate('filters.clear')}
+          </Button>
+        </div>
+      )}
     </AdminPageShell>
   );
 }
 
-function PluginAppRow({
+function PluginAppActions({
   app,
-  failedAction,
   isPending,
   isPinned,
-  manageModulesHref,
   onInstall,
   onTogglePin,
   onUninstall,
-  subscriptionHref,
-}: PluginAppRowProps) {
+}: PluginAppActionsProps) {
   const translate = useTranslations('common.plugins');
   const translateRail = useTranslations('common.appRail');
   const isOpenable = isAppOpenable(app);
   const isLocked = !isOpenable && app.state !== 'not-installed';
 
   return (
-    <div
-      className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
-      data-app-state={app.state}
-      data-locked={isLocked}
-      data-testid={`plugins-app-${app.appId}`}
-    >
-      <PluginAppThumbnail
-        appId={app.appId}
-        icon={app.icon}
-        label={app.label}
-        size="compact"
-      />
-      <div
-        className={isLocked ? 'min-w-0 flex-1 opacity-60' : 'min-w-0 flex-1'}
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {app.label}
-          </p>
-          {isPinned && isOpenable ? (
-            <Badge variant="primary">{translate('pinned')}</Badge>
-          ) : null}
-        </div>
-        <p className="truncate text-sm text-muted-foreground">
-          {app.description}
-        </p>
-        <PluginAppAccessNote
-          manageModulesHref={manageModulesHref}
-          state={app.state}
-          subscriptionHref={subscriptionHref}
-        />
-        {failedAction ? (
-          <p className="mt-1 text-xs text-destructive" role="alert">
-            {translate(
-              failedAction === 'install' ? 'installFailed' : 'uninstallFailed',
-              { app: app.label },
-            )}
-          </p>
-        ) : null}
-      </div>
+    <CollectionItemActions
+      primary={
+        isOpenable ? (
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link
+              aria-label={`${translate('open')} ${app.label}`}
+              href={app.openHref}
+            >
+              {translate('open')}
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            ariaLabel={`${translate('install')} ${app.label}`}
+            isDisabled={isPending || isLocked}
+            onClick={() => onInstall(app.appId)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            {translate('install')}
+          </Button>
+        )
+      }
+      overflow={
+        app.isInstalled
+          ? [
+              ...(isOpenable
+                ? [
+                    {
+                      id: 'pin',
+                      isDisabled: isPending,
+                      label: translateRail(isPinned ? 'unpin' : 'pin', {
+                        app: app.label,
+                      }),
+                      onSelect: () => onTogglePin(app.appId),
+                    },
+                  ]
+                : []),
+              {
+                id: 'uninstall',
+                isDisabled: isPending,
+                label: translate('uninstall'),
+                onSelect: () => onUninstall(app.appId),
+              },
+            ]
+          : undefined
+      }
+      overflowLabel={app.label}
+    />
+  );
+}
 
-      <CollectionItemActions
-        primary={
-          isOpenable ? (
-            <Button
-              asChild
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              <Link
-                aria-label={`${translate('open')} ${app.label}`}
-                href={app.openHref}
-              >
-                {translate('open')}
-              </Link>
-            </Button>
-          ) : (
-            <Button
-              ariaLabel={`${translate('install')} ${app.label}`}
-              isDisabled={isPending || isLocked}
-              onClick={() => onInstall(app.appId)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              {translate('install')}
-            </Button>
-          )
-        }
-        overflow={
-          app.isInstalled
-            ? [
-                ...(isOpenable
-                  ? [
-                      {
-                        id: 'pin',
-                        label: translateRail(isPinned ? 'unpin' : 'pin', {
-                          app: app.label,
-                        }),
-                        onSelect: () => onTogglePin(app.appId),
-                      },
-                    ]
-                  : []),
-                {
-                  id: 'uninstall',
-                  isDisabled: isPending,
-                  label: translate('uninstall'),
-                  onSelect: () => onUninstall(app.appId),
-                },
-              ]
-            : undefined
-        }
-        overflowLabel={app.label}
-      />
-    </div>
+function PluginAppState({ app }: PluginAppStateProps) {
+  const translate = useTranslations('common.plugins');
+  const Icon = isAppOpenable(app)
+    ? Check
+    : app.state === 'not-installed'
+      ? app.icon
+      : LockKeyhole;
+  const label =
+    app.state === 'pinned'
+      ? translate('pinned')
+      : app.state === 'installed'
+        ? translate('status.installed')
+        : app.state === 'not-installed'
+          ? translate('status.available')
+          : app.state === 'organization-disabled'
+            ? translate('organizationDisabled')
+            : app.state === 'subscription-required'
+              ? translate('subscriptionRequired')
+              : translate('unavailable');
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+      data-app-state={app.state}
+    >
+      <Icon className="size-3 shrink-0" aria-hidden />
+      {label}
+    </span>
   );
 }
 

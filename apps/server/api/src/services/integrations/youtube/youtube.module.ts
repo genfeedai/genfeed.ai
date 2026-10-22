@@ -44,7 +44,11 @@ const BaseModule = createServiceModule(YoutubeService, {
 
 @Module({
   controllers: [YoutubeController],
-  exports: [...(BaseModule.exports ?? []), YoutubeAuthorizedSignalsService],
+  exports: [
+    ...(BaseModule.exports ?? []),
+    YoutubeAuthorizedSignalsService,
+    YoutubeMetadataService,
+  ],
   imports: [
     ...(BaseModule.imports ?? []),
     SocialWarmupEnrollmentsModule,

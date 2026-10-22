@@ -4,6 +4,7 @@ export const userAttributes = createEntityAttributes([
   'settings',
   'signupAttribution',
   'handle',
+  'name',
   'firstName',
   'lastName',
   'email',

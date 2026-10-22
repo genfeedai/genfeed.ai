@@ -196,6 +196,8 @@ export class OrganizationsMembersController {
     const member = await this.membersService.findOne({
       id: memberId,
       organizationId,
+      // Explicit undefined opts out of BaseService's live-only default for restore.
+      isDeleted: updateMemberDto.isDeleted === false ? undefined : false,
     });
 
     if (!member) {
@@ -259,6 +261,14 @@ export class OrganizationsMembersController {
     const updatedMember = await this.membersService.patch(
       memberId,
       memberUpdate,
+      [
+        {
+          path: 'user',
+          select: ['id', 'avatar', 'email', 'firstName', 'lastName', 'handle'],
+        },
+        { path: 'role' },
+        { path: 'brands', where: { organizationId, isDeleted: false } },
+      ],
     );
 
     return serializeSingle(request, MemberSerializer, updatedMember);
