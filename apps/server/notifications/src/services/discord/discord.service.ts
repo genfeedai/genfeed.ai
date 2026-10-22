@@ -12,12 +12,20 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { downloadDiscordAttachment } from '@libs/security/discord-media-attachment';
+import {
+  downloadDiscordAttachment,
+  type IDiscordMediaAttachment,
+} from '@libs/security/discord-media-attachment';
 import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
+import {
+  buildIngredientButtons,
+  buildIngredientFields,
+  getIngredientEmbedColor,
+} from '@notifications/services/discord/ingredient-card.util';
 import { discordMessage } from '@notifications/services/discord/system-notification.util';
 import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import {
@@ -159,14 +167,14 @@ export class DiscordService {
       await this.discordBotService.getIngredientsWebhook(),
       url,
       async (webhookClient) => {
-        const embedColor = this.getIngredientEmbedColor(category);
+        const embedColor = getIngredientEmbedColor(category);
 
         const categoryString =
           category.charAt(0).toUpperCase() + category.slice(1);
 
         const embedTitle = `New ${categoryString} Generated`;
 
-        const fields = this.buildIngredientFields(ingredient);
+        const fields = buildIngredientFields(ingredient);
 
         const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
         const ingredientManagerUrl = managerUrl
@@ -179,10 +187,7 @@ export class DiscordService {
             ? `${appUrl}${storyboard.layoutPath}`
             : null;
 
-        const buttons = this.buildIngredientButtons(
-          ingredientManagerUrl,
-          layoutUrl,
-        );
+        const buttons = buildIngredientButtons(ingredientManagerUrl, layoutUrl);
 
         const embed: IDiscordEmbed = {
           color: embedColor,
@@ -198,28 +203,13 @@ export class DiscordService {
           embed.fields = fields;
         }
 
-        // The media URLs are short-lived grants that expire before anyone may
-        // open the card, so the media is attached rather than linked.
-        const stillSource =
-          category === IngredientCategory.IMAGE
-            ? cdnUrl
-            : category === IngredientCategory.VIDEO
-              ? ingredient.thumbnailUrl
-              : undefined;
-        const still = stillSource
-          ? await downloadDiscordAttachment(stillSource, ingredient.id, 'image')
-          : null;
-        if (still) {
-          embed.image = { url: `attachment://${still.name}` };
-        } else if (stillSource) {
-          this.loggerService.warn(
-            `${url} media unavailable; posting no image`,
-            {
-              category,
-              ingredientId: ingredient.id,
-            },
-          );
-        }
+        const still = await this.attachIngredientStill(
+          category,
+          cdnUrl,
+          ingredient,
+          embed,
+          url,
+        );
 
         const avatarUrl =
           (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
@@ -300,6 +290,44 @@ export class DiscordService {
     );
   }
 
+  /**
+   * The media URLs are short-lived grants that expire before anyone may open
+   * the card, so the still is attached rather than linked. Without one the
+   * card posts with no image.
+   */
+  private async attachIngredientStill(
+    category: IngredientCategory,
+    cdnUrl: string,
+    ingredient: IIngredientNotificationData,
+    embed: IDiscordEmbed,
+    context: string,
+  ): Promise<IDiscordMediaAttachment | null> {
+    const source =
+      category === IngredientCategory.IMAGE
+        ? cdnUrl
+        : category === IngredientCategory.VIDEO
+          ? ingredient.thumbnailUrl
+          : undefined;
+    if (!source) return null;
+    const still = await downloadDiscordAttachment(
+      source,
+      ingredient.id,
+      'image',
+    );
+    if (!still) {
+      this.loggerService.warn(
+        `${context} media unavailable; posting no image`,
+        {
+          category,
+          ingredientId: ingredient.id,
+        },
+      );
+      return null;
+    }
+    embed.image = { url: `attachment://${still.name}` };
+    return still;
+  }
+
   async sendVercelNotification(embed: IDiscordEmbed): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
@@ -366,100 +394,6 @@ export class DiscordService {
       this.loggerService.error(`${context} failed`, error);
       throw error;
     }
-  }
-
-  private getIngredientEmbedColor(category: IngredientCategory): number {
-    const colorMap: Partial<Record<IngredientCategory, number>> = {
-      [IngredientCategory.IMAGE]: 0x00ff00,
-      [IngredientCategory.VIDEO]: 0x0099ff,
-      [IngredientCategory.AUDIO]: 0xff00ff,
-    };
-    return colorMap[category] ?? 0xff00ff;
-  }
-
-  private buildIngredientFields(
-    ingredient: IIngredientNotificationData,
-  ): Array<{ name: string; value: string; inline: boolean }> {
-    const fields: Array<{ name: string; value: string; inline: boolean }> = [];
-
-    if (ingredient.prompt?.original) {
-      const escapedPrompt = ingredient.prompt.original.replace(/`/g, "'");
-      const truncatedPrompt =
-        escapedPrompt.length > 1020
-          ? `${escapedPrompt.substring(0, 1020)}...`
-          : escapedPrompt;
-
-      fields.push({ inline: false, name: 'Prompt', value: truncatedPrompt });
-    }
-
-    if (ingredient.metadata?.model) {
-      fields.push({
-        inline: true,
-        name: 'Model',
-        value: ingredient.metadata.model,
-      });
-    }
-
-    if (ingredient.metadata?.externalProvider) {
-      fields.push({
-        inline: true,
-        name: 'Provider',
-        value: ingredient.metadata.externalProvider,
-      });
-    }
-
-    if (ingredient.brand?.label) {
-      fields.push({
-        inline: true,
-        name: 'Brand',
-        value: ingredient.brand.label,
-      });
-    }
-
-    if (ingredient.metadata?.width && ingredient.metadata?.height) {
-      fields.push({
-        inline: true,
-        name: 'Dimensions',
-        value: `${ingredient.metadata.width}x${ingredient.metadata.height}`,
-      });
-    }
-
-    if (ingredient.metadata?.duration) {
-      fields.push({
-        inline: true,
-        name: 'Duration',
-        value: `${ingredient.metadata.duration}s`,
-      });
-    }
-
-    return fields;
-  }
-
-  private buildIngredientButtons(
-    managerUrl: string | null,
-    storyboardUrl: string | null = null,
-  ): ButtonBuilder[] {
-    const buttons: ButtonBuilder[] = [];
-
-    if (storyboardUrl) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel('Open Storyboard')
-          .setStyle(ButtonStyle.Link)
-          .setURL(storyboardUrl),
-      );
-    }
-
-    if (managerUrl) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel('Open in Manager')
-          .setStyle(ButtonStyle.Link)
-          .setURL(managerUrl),
-      );
-    }
-
-    return buttons;
   }
 
   async sendModelDiscoveryNotification(payload: {
