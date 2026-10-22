@@ -52,11 +52,16 @@ describe('generate_content as the single content generation tool', () => {
 describe('get_generation_options', () => {
   const tool = getToolByName('get_generation_options');
 
-  it('is one read-only agent and MCP generation tool with an optional type', () => {
+  it('is one agent and MCP generation-options tool with an optional type and audited effects', () => {
     expect(tool?.surfaces).toMatchObject({ agent: true, mcp: true });
     expect(tool?.toolset).toBe('generation');
     expect(tool?.mutationPolicy).toBeUndefined();
-    expect(tool?.annotations?.readOnlyHint).toBe(true);
+    expect(tool?.annotations).toEqual({
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(tool?.parameters.properties.type).toMatchObject({
       enum: ['image', 'image-edit', 'video', 'voice', 'music'],

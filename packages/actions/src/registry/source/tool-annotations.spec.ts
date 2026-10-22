@@ -11,6 +11,8 @@ import {
 } from '../mutation-policy';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from '../tool-registry';
 
+import { deriveMcpToolPresentation } from './tool-annotations';
+
 const READ_ONLY_PREFIXES = [
   'describe_',
   'get_',
@@ -150,7 +152,809 @@ const AUDITED_PRESENTATIONS = [
   Pick<CanonicalToolDefinition, 'name' | 'title' | 'annotations'>
 >;
 
+const AUDITED_READ_PRESENTATIONS = [
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'get_account',
+    title: 'Get Account',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    name: 'get_analytics',
+    title: 'Get Analytics',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'get_brand_context',
+    title: 'Get Brand Context',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    name: 'get_clip_project',
+    title: 'Get Clip Project',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    name: 'get_content_analytics',
+    title: 'Get Content Analytics',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'get_generation_options',
+    title: 'Get Generation Options',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'get_instagram_inspiration_detail',
+    title: 'Get Instagram Inspiration Detail',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'get_remix_run',
+    title: 'Get Remix Run',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'list_instagram_inspiration',
+    title: 'List Instagram Inspiration',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'search_knowledge',
+    title: 'Search Knowledge',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'verify_skills_pro_entitlement',
+    title: 'Verify Skills Pro Entitlement',
+  },
+] satisfies ReadonlyArray<
+  Pick<CanonicalToolDefinition, 'name' | 'title' | 'annotations'>
+>;
+
+const FROZEN_MCP_PRESENTATIONS = [
+  ['analyze_clip_project', 'Analyze Clip Project', false, true, false, false],
+  ['analyze_performance', 'Analyze Performance', true, false, true, false],
+  ['approve_social_draft', 'Approve Social Draft', false, true, false, true],
+  [
+    'archive_knowledge_source',
+    'Archive Knowledge Source',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['archive_skill', 'Archive Skill', false, true, false, false],
+  [
+    'assign_knowledge_purpose',
+    'Assign Knowledge Purpose',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'assign_social_conversation',
+    'Assign Social Conversation',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'attach_remix_analysis_source',
+    'Attach Remix Analysis Source',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'cancel_visual_code_project',
+    'Cancel Visual Code Project',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['capture_knowledge', 'Capture Knowledge', false, true, false, false],
+  [
+    'compare_meta_campaigns',
+    'Compare Meta Campaigns',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'complete_media_upload',
+    'Complete Media Upload',
+    false,
+    false,
+    false,
+    false,
+  ],
+  [
+    'connect_social_account',
+    'Connect Social Account',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'control_remix_generation',
+    'Control Remix Generation',
+    false,
+    true,
+    false,
+    true,
+  ],
+  [
+    'control_scheduled_release',
+    'Control Scheduled Release',
+    false,
+    true,
+    false,
+    true,
+  ],
+  [
+    'create_ad_remix_workflow',
+    'Create Ad Remix Workflow',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['create_article_draft', 'Create Article Draft', false, true, false, false],
+  ['create_brand_from_url', 'Create Brand From Url', false, true, false, false],
+  ['create_chat', 'Create Chat', false, true, false, false],
+  [
+    'create_clip_project_from_youtube',
+    'Create Clip Project From Youtube',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'create_instagram_remix_workflow',
+    'Create Instagram Remix Workflow',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['create_post', 'Create Post', false, false, false, true],
+  ['create_remix_concept', 'Create Remix Concept', false, false, false, false],
+  [
+    'create_scheduled_release',
+    'Create Scheduled Release',
+    false,
+    true,
+    false,
+    true,
+  ],
+  ['create_skill', 'Create Skill', false, true, false, false],
+  [
+    'create_social_reply_draft',
+    'Create Social Reply Draft',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'create_storyboard_remix',
+    'Create Storyboard Remix',
+    false,
+    false,
+    false,
+    false,
+  ],
+  ['create_workflow', 'Create Workflow', false, true, false, false],
+  ['duplicate_workflow', 'Duplicate Workflow', false, true, false, false],
+  ['enhance_prompt', 'Enhance Prompt', false, false, false, true],
+  ['execute_workflow', 'Execute Workflow', false, true, false, true],
+  ['export_skill', 'Export Skill', true, false, true, false],
+  [
+    'export_visual_code_project',
+    'Export Visual Code Project',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['find_tools', 'Find Tools', true, false, true, false],
+  ['fork_skill', 'Fork Skill', false, true, false, false],
+  ['generate', 'Generate', false, false, false, true],
+  ['generate_clips', 'Generate Clips', false, true, false, true],
+  ['generate_content', 'Generate Content', false, true, false, true],
+  [
+    'generate_turbo_content',
+    'Generate Turbo Content',
+    false,
+    true,
+    false,
+    true,
+  ],
+  ['generate_visual_code', 'Generate Visual Code', false, true, false, true],
+  ['get_account', 'Get Account', false, false, true, false],
+  [
+    'get_ad_research_detail',
+    'Get Ad Research Detail',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_ads_ad_insights', 'Get Ads Ad Insights', true, false, true, true],
+  ['get_ads_adset_insights', 'Get Ads Adset Insights', true, false, true, true],
+  ['get_analytics', 'Get Analytics', false, false, false, false],
+  ['get_article_preview', 'Get Article Preview', true, false, true, false],
+  ['get_articles', 'Get Articles', true, false, true, false],
+  [
+    'get_brand_completeness',
+    'Get Brand Completeness',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_brand_context', 'Get Brand Context', false, false, false, true],
+  ['get_brand_scan_status', 'Get Brand Scan Status', true, false, true, false],
+  ['get_brands', 'Get Brands', true, false, true, false],
+  ['get_clip_highlights', 'Get Clip Highlights', true, false, true, false],
+  ['get_clip_project', 'Get Clip Project', false, true, true, true],
+  ['get_connection_status', 'Get Connection Status', true, false, true, false],
+  [
+    'get_content_analytics',
+    'Get Content Analytics',
+    false,
+    false,
+    false,
+    false,
+  ],
+  [
+    'get_generation_options',
+    'Get Generation Options',
+    false,
+    true,
+    true,
+    false,
+  ],
+  [
+    'get_google_ads_adgroup_insights',
+    'Get Google Ads Adgroup Insights',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_google_ads_campaign_metrics',
+    'Get Google Ads Campaign Metrics',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_google_ads_keyword_performance',
+    'Get Google Ads Keyword Performance',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_google_ads_search_terms',
+    'Get Google Ads Search Terms',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_instagram_inspiration_detail',
+    'Get Instagram Inspiration Detail',
+    false,
+    false,
+    false,
+    true,
+  ],
+  ['get_job_status', 'Get Job Status', true, false, true, false],
+  [
+    'get_linkedin_analytics',
+    'Get Linkedin Analytics',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_linkedin_connection_status',
+    'Get Linkedin Connection Status',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_meta_ad_insights', 'Get Meta Ad Insights', true, false, true, false],
+  [
+    'get_meta_adset_insights',
+    'Get Meta Adset Insights',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_meta_campaign_insights',
+    'Get Meta Campaign Insights',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_meta_top_performers',
+    'Get Meta Top Performers',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_posts', 'Get Posts', true, false, true, false],
+  ['get_remix_run', 'Get Remix Run', false, true, true, false],
+  ['get_scheduled_release', 'Get Scheduled Release', true, false, true, false],
+  [
+    'get_scheduler_capabilities',
+    'Get Scheduler Capabilities',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_social_conversation',
+    'Get Social Conversation',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_tiktok_campaign_insights',
+    'Get Tiktok Campaign Insights',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_tiktok_top_performers',
+    'Get Tiktok Top Performers',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_trends', 'Get Trends', true, false, true, false],
+  ['get_video_analytics', 'Get Video Analytics', true, false, true, false],
+  [
+    'get_visual_code_catalog',
+    'Get Visual Code Catalog',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'get_visual_code_project',
+    'Get Visual Code Project',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_workflow_run', 'Get Workflow Run', true, false, true, false],
+  ['get_workflow_status', 'Get Workflow Status', true, false, true, false],
+  ['get_x_posts', 'Get X Posts', false, false, false, true],
+  ['import_source_post', 'Import Source Post', false, false, false, true],
+  [
+    'initiate_oauth_connect',
+    'Initiate Oauth Connect',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['inspect_workflow', 'Inspect Workflow', true, false, true, false],
+  [
+    'install_skills_pro_skill',
+    'Install Skills Pro Skill',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'install_system_workflow',
+    'Install System Workflow',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['list_ads_research', 'List Ads Research', true, false, true, false],
+  ['list_assets', 'List Assets', true, false, true, false],
+  [
+    'list_brand_publishing_readiness',
+    'List Brand Publishing Readiness',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['list_clip_projects', 'List Clip Projects', true, false, true, false],
+  [
+    'list_google_ads_campaigns',
+    'List Google Ads Campaigns',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'list_google_ads_customers',
+    'List Google Ads Customers',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'list_instagram_inspiration',
+    'List Instagram Inspiration',
+    false,
+    false,
+    false,
+    true,
+  ],
+  [
+    'list_knowledge_sources',
+    'List Knowledge Sources',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['list_meta_ad_accounts', 'List Meta Ad Accounts', true, false, true, false],
+  [
+    'list_meta_ad_creatives',
+    'List Meta Ad Creatives',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['list_meta_campaigns', 'List Meta Campaigns', true, false, true, false],
+  ['list_orgs', 'List Orgs', true, false, true, false],
+  [
+    'list_social_conversations',
+    'List Social Conversations',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'list_system_workflow_catalog',
+    'List System Workflow Catalog',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'list_tiktok_ad_accounts',
+    'List Tiktok Ad Accounts',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['list_tiktok_adgroups', 'List Tiktok Adgroups', true, false, true, false],
+  ['list_tiktok_ads', 'List Tiktok Ads', true, false, true, false],
+  ['list_tiktok_campaigns', 'List Tiktok Campaigns', true, false, true, false],
+  ['list_workflow_runs', 'List Workflow Runs', true, false, true, false],
+  [
+    'list_workflow_templates',
+    'List Workflow Templates',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['list_workflows', 'List Workflows', true, false, true, false],
+  [
+    'list_x_account_activity',
+    'List X Account Activity',
+    false,
+    false,
+    false,
+    true,
+  ],
+  [
+    'mark_social_conversation_resolved',
+    'Mark Social Conversation Resolved',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['onboard_brand', 'Onboard Brand', false, true, false, true],
+  ['open_in_editor', 'Open In Editor', false, false, false, false],
+  ['post_social_reply', 'Post Social Reply', false, true, false, true],
+  ['publish_article', 'Publish Article', false, true, false, false],
+  ['publish_skill', 'Publish Skill', false, true, false, false],
+  [
+    'quote_remix_generation',
+    'Quote Remix Generation',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'quote_visual_code_generation',
+    'Quote Visual Code Generation',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['read_knowledge_source', 'Read Knowledge Source', true, false, true, false],
+  ['reject_social_draft', 'Reject Social Draft', false, true, false, false],
+  [
+    'replace_storyboard_character',
+    'Replace Storyboard Character',
+    false,
+    true,
+    false,
+    true,
+  ],
+  ['repurpose_post', 'Repurpose Post', false, true, false, false],
+  ['request_media_upload', 'Request Media Upload', false, false, false, false],
+  ['resolve_approval', 'Resolve Approval', false, true, false, false],
+  [
+    'retry_knowledge_ingestion',
+    'Retry Knowledge Ingestion',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'retry_visual_code_project',
+    'Retry Visual Code Project',
+    false,
+    true,
+    false,
+    false,
+  ],
+  [
+    'revise_visual_code_project',
+    'Revise Visual Code Project',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['rollback_skill', 'Rollback Skill', false, true, false, false],
+  ['search_knowledge', 'Search Knowledge', false, false, false, true],
+  ['send_chat_message', 'Send Chat Message', false, true, false, false],
+  ['send_social_dm', 'Send Social Dm', false, true, false, true],
+  [
+    'set_generation_settings',
+    'Set Generation Settings',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['set_workflow_schedule', 'Set Workflow Schedule', false, true, false, false],
+  [
+    'skip_brand_interview_question',
+    'Skip Brand Interview Question',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['start_brand_interview', 'Start Brand Interview', false, true, false, false],
+  [
+    'start_remix_generation',
+    'Start Remix Generation',
+    false,
+    true,
+    false,
+    true,
+  ],
+  [
+    'storyboard_run_capabilities',
+    'Storyboard Run Capabilities',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'submit_brand_interview_answer',
+    'Submit Brand Interview Answer',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['switch_org', 'Switch Org', false, true, false, false],
+  [
+    'tag_social_conversation',
+    'Tag Social Conversation',
+    false,
+    true,
+    false,
+    false,
+  ],
+  ['track_post_link', 'Track Post Link', false, true, false, false],
+  ['transform_media', 'Transform Media', false, false, false, true],
+  ['update_remix_concept', 'Update Remix Concept', false, true, false, false],
+  [
+    'update_scheduled_release',
+    'Update Scheduled Release',
+    false,
+    true,
+    false,
+    true,
+  ],
+  [
+    'validate_scheduler_target',
+    'Validate Scheduler Target',
+    true,
+    false,
+    true,
+    false,
+  ],
+  [
+    'verify_skills_pro_entitlement',
+    'Verify Skills Pro Entitlement',
+    false,
+    false,
+    true,
+    false,
+  ],
+] as const;
+
 describe('MCP tool annotations', () => {
+  it.each(AUDITED_READ_PRESENTATIONS)(
+    'emits audited read presentation for $name',
+    ({ name, title, annotations }) => {
+      const canonical = getToolByName(name);
+      expect(canonical, name).toBeDefined();
+      expect(canonical?.title, name).toBe(title);
+      expect(canonical?.annotations, name).toEqual(annotations);
+      const [listed] = toMcpTools(canonical ? [canonical] : []);
+      expect(listed?.title, name).toBe(title);
+      expect(listed?.annotations, name).toEqual(annotations);
+    },
+  );
+
+  it('preserves the frozen complete MCP presentation catalog', () => {
+    const rows = toMcpTools(getToolsForSurface('mcp'))
+      .map(({ name, title, annotations }) => [
+        name,
+        title,
+        annotations.readOnlyHint,
+        annotations.destructiveHint,
+        annotations.idempotentHint,
+        annotations.openWorldHint,
+      ])
+      .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+    expect(rows).toHaveLength(145);
+    expect(rows.map((row) => row[0])).toEqual(
+      FROZEN_MCP_PRESENTATIONS.map((row) => row[0]),
+    );
+    expect(rows).toEqual(FROZEN_MCP_PRESENTATIONS);
+  });
+
+  it('isolates every derived annotations object from stored overrides and other calls', () => {
+    const first = deriveMcpToolPresentation('get_account', undefined);
+    const second = deriveMcpToolPresentation('get_account', undefined);
+    expect(first.annotations).not.toBe(second.annotations);
+    first.annotations.readOnlyHint = true;
+    first.annotations.destructiveHint = true;
+    first.annotations.idempotentHint = false;
+    first.annotations.openWorldHint = true;
+    expect(
+      deriveMcpToolPresentation('get_account', undefined).annotations,
+    ).toEqual({
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(second.annotations).toEqual({
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(
+      deriveMcpToolPresentation('get_brands', undefined).annotations,
+    ).toEqual({
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: true,
+    });
+  });
+
   it.each(AUDITED_PRESENTATIONS)(
     'emits audited presentation for $name',
     ({ name, title, annotations }) => {
@@ -229,6 +1033,7 @@ describe('MCP tool annotations', () => {
       );
       if (
         !matchesPrefix ||
+        AUDITED_READ_PRESENTATIONS.some(({ name }) => name === tool.name) ||
         isApprovalRequiredToolName(tool.name) ||
         !isReadOnlyToolName(tool.name)
       ) {
@@ -261,7 +1066,6 @@ describe('MCP tool annotations', () => {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(false);
     }
     for (const name of [
-      'get_account',
       'get_brands',
       'list_assets',
       'validate_scheduler_target',
@@ -282,6 +1086,11 @@ describe('MCP tool annotations', () => {
 
     for (const tool of getToolsForSurface('mcp')) {
       const isOpenWorld =
+        tool.name === 'get_brand_context' ||
+        tool.name === 'get_clip_project' ||
+        tool.name === 'get_instagram_inspiration_detail' ||
+        tool.name === 'list_instagram_inspiration' ||
+        tool.name === 'search_knowledge' ||
         tool.name === 'onboard_brand' ||
         tool.name === 'execute_workflow' ||
         tool.name === 'enhance_prompt' ||

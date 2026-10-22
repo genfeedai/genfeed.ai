@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
-import { getToolsForSurface } from '../registry/tool-registry';
+import { getToolByName, getToolsForSurface } from '../registry/tool-registry';
 import {
   MCP_CREDIT_COST_META_KEY,
   MCP_TOOLSET_META_KEY,
@@ -175,6 +175,121 @@ const OPEN_WORLD_PRESENTATIONS = [
   >
 >;
 
+const AUDITED_READ_PRESENTATIONS = [
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'get_account',
+    title: 'Get Account',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    name: 'get_analytics',
+    title: 'Get Analytics',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'get_brand_context',
+    title: 'Get Brand Context',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    name: 'get_clip_project',
+    title: 'Get Clip Project',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    name: 'get_content_analytics',
+    title: 'Get Content Analytics',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'get_generation_options',
+    title: 'Get Generation Options',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'get_instagram_inspiration_detail',
+    title: 'Get Instagram Inspiration Detail',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'get_remix_run',
+    title: 'Get Remix Run',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'list_instagram_inspiration',
+    title: 'List Instagram Inspiration',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    name: 'search_knowledge',
+    title: 'Search Knowledge',
+  },
+  {
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    name: 'verify_skills_pro_entitlement',
+    title: 'Verify Skills Pro Entitlement',
+  },
+] satisfies ReadonlyArray<
+  Pick<CanonicalToolDefinition, 'name' | 'title' | 'annotations'>
+>;
+
 function buildTool(
   overrides: Partial<CanonicalToolDefinition> = {},
 ): CanonicalToolDefinition {
@@ -196,6 +311,41 @@ function buildTool(
 }
 
 describe('toMcpTools', () => {
+  it.each(AUDITED_READ_PRESENTATIONS)(
+    'derives audited read fallback and assembly for $name',
+    ({ name, title, annotations }) => {
+      const canonical = getToolByName(name);
+      expect(canonical, name).toBeDefined();
+      if (!canonical) throw new Error(`Missing canonical tool ${name}`);
+      const [fallback] = toMcpTools([
+        buildTool({ ...canonical, annotations: undefined, title: undefined }),
+      ]);
+      expect(fallback?.title, name).toBe(title);
+      expect(fallback?.annotations, name).toEqual(annotations);
+      const [assembled] = toMcpTools([canonical]);
+      expect(assembled?.title, name).toBe(title);
+      expect(assembled?.annotations, name).toEqual(annotations);
+    },
+  );
+
+  it('preserves supplied presentation for an audited read override', () => {
+    const annotations = {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: true,
+    };
+    const [tool] = toMcpTools([
+      buildTool({
+        name: 'get_account',
+        annotations,
+        title: 'Stored audited presentation',
+      }),
+    ]);
+    expect(tool?.title).toBe('Stored audited presentation');
+    expect(tool?.annotations).toEqual(annotations);
+  });
+
   it('advertises an object output schema for every MCP-surfaced action', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     expect(tools.length).toBeGreaterThan(0);
