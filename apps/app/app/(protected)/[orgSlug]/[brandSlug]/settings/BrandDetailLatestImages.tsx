@@ -1,12 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestImagesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Card from '@ui/card/Card';
 import { LazyMasonryImage } from '@ui/lazy/masonry/LazyMasonry';
-import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
+import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 export default function BrandDetailLatestImages({
   images,
@@ -16,23 +13,13 @@ export default function BrandDetailLatestImages({
   const createHref = `${EnvironmentService.apps.app}${href(APP_ROUTES.AGENT.NEW)}`;
 
   return (
-    <Card
+    <BrandDetailLatestContentCard
       label="Latest Images"
-      bodyClassName="gap-3 p-4"
-      headerAction={
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        >
-          <Link
-            href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
-          >
-            View all
-          </Link>
-        </Button>
-      }
+      viewAllHref={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
+      emptyTitle="No images yet"
+      emptyDescription="Generate an image for this brand to populate this strip."
+      createLabel="Create an image"
+      createHref={createHref}
     >
       {images && images.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -45,25 +32,7 @@ export default function BrandDetailLatestImages({
             />
           ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-foreground/70">
-            No images yet
-          </p>
-          <p className="max-w-xs text-xs leading-5 text-muted-foreground">
-            Generate an image for this brand to populate this strip.
-          </p>
-          <Button
-            asChild
-            className="mt-2"
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <Link href={createHref}>Create an image</Link>
-          </Button>
-        </div>
-      )}
-    </Card>
+      ) : null}
+    </BrandDetailLatestContentCard>
   );
 }

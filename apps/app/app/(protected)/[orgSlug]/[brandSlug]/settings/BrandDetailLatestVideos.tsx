@@ -1,12 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestVideosProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Card from '@ui/card/Card';
 import { LazyMasonryVideo } from '@ui/lazy/masonry/LazyMasonry';
-import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
+import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 export default function BrandDetailLatestVideos({
   videos,
@@ -16,23 +13,13 @@ export default function BrandDetailLatestVideos({
   const createHref = `${EnvironmentService.apps.app}${href(APP_ROUTES.AGENT.NEW)}`;
 
   return (
-    <Card
+    <BrandDetailLatestContentCard
       label="Latest Videos"
-      bodyClassName="gap-3 p-4"
-      headerAction={
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        >
-          <Link
-            href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
-          >
-            View all
-          </Link>
-        </Button>
-      }
+      viewAllHref={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
+      emptyTitle="No videos yet"
+      emptyDescription="Generate a video for this brand to populate this strip."
+      createLabel="Create a video"
+      createHref={createHref}
     >
       {videos && videos.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -45,25 +32,7 @@ export default function BrandDetailLatestVideos({
             />
           ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-foreground/70">
-            No videos yet
-          </p>
-          <p className="max-w-xs text-xs leading-5 text-muted-foreground">
-            Generate a video for this brand to populate this strip.
-          </p>
-          <Button
-            asChild
-            className="mt-2"
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <Link href={createHref}>Create a video</Link>
-          </Button>
-        </div>
-      )}
-    </Card>
+      ) : null}
+    </BrandDetailLatestContentCard>
   );
 }

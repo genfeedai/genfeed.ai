@@ -4,10 +4,10 @@ import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import NextLink from 'next/link';
+import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 // Writing starts in the Agent; the artifact editor takes over once a draft exists.
 const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
@@ -20,21 +20,13 @@ export default function BrandDetailLatestArticles({
   const { href } = useOrgUrl();
 
   return (
-    <Card
+    <BrandDetailLatestContentCard
       label="Latest Articles"
-      bodyClassName="gap-3 p-4"
-      headerAction={
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        >
-          <NextLink href={`${href(APP_ROUTES.PUBLISHING.POSTS)}?type=article`}>
-            View all
-          </NextLink>
-        </Button>
-      }
+      viewAllHref={`${href(APP_ROUTES.PUBLISHING.POSTS)}?type=article`}
+      emptyTitle="No articles yet"
+      emptyDescription="Draft an article for this brand to populate this strip."
+      createLabel="Create an article"
+      createHref={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
     >
       {articles && articles.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -82,29 +74,7 @@ export default function BrandDetailLatestArticles({
             </div>
           ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-foreground/70">
-            No articles yet
-          </p>
-          <p className="max-w-xs text-xs leading-5 text-muted-foreground">
-            Draft an article for this brand to populate this strip.
-          </p>
-          <Button
-            asChild
-            className="mt-2"
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <NextLink
-              href={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
-            >
-              Create an article
-            </NextLink>
-          </Button>
-        </div>
-      )}
-    </Card>
+      ) : null}
+    </BrandDetailLatestContentCard>
   );
 }
