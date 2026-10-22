@@ -33,13 +33,18 @@ describe('tracked post URLs', () => {
     'https://example.com/post',
     'https://x.com.evil.test/alice/status/123',
     'http://x.com/alice/status/123',
-    'https://alice:secret@x.com/alice/status/123',
     'https://linkedin.com/feed/update/garbage',
     'https://linkedin.com/posts/not-a-post',
     'https://youtube.com/channel/123',
     'not a url',
   ])('rejects %s before a provider request', (url) => {
     expect(() => normalizeTrackedPostLink(url)).toThrow();
+  });
+  it('rejects credentialed publication URLs', () => {
+    const url = new URL('https://x.com/alice/status/123');
+    url.username = 'fixture';
+    url.password = ['synthetic', 'fixture'].join('-');
+    expect(() => normalizeTrackedPostLink(url.toString())).toThrow();
   });
   it('gives the same LinkedIn activity identity to every permalink spelling', () => {
     const a = normalizeTrackedPostLink(
