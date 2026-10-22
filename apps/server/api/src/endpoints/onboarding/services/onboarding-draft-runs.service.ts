@@ -30,6 +30,9 @@ const resultSchema = z.object({
   videoUrl: z.string().nullable().optional(),
   videoStatus: z.enum(['pending', 'ready', 'failed']).optional(),
 });
+const legacyArtifactSchema = z.object({
+  artifact: z.object({ kind: z.literal('post'), id: z.string() }),
+});
 const configSchema = z.object({
   surface: z.literal('onboarding'),
   result: resultSchema.nullable(),
@@ -104,25 +107,7 @@ export class OnboardingDraftRunsService {
         config.result.videoStatus = 'failed';
       }
     }
-    const feedback = await this.prisma.brandedGenerationFeedback.findMany({
-      where: {
-        organizationId: String(user.organizationId),
-        brandId,
-        isDeleted: false,
-        actorId: String(user.id),
-        receiptId: {
-          in: config.result?.drafts.map((draft) => draft.receiptId) ?? [],
-        },
-      },
-      select: { receiptId: true, rating: true },
-    });
-    const verdicts: IOnboardingDraftRun['verdicts'] = {};
-    for (const draft of config.result?.drafts ?? []) {
-      const rating = feedback.find(
-        (entry) => entry.receiptId === draft.receiptId,
-      )?.rating;
-      if (rating === 'up' || rating === 'down') verdicts[draft.postId] = rating;
-    }
+    const verdicts = await this.readVerdicts(user, brandId, config.result);
     return {
       id: row.id,
       result: config.result,
@@ -139,6 +124,33 @@ export class OnboardingDraftRunsService {
     };
   }
 
+  private async readVerdicts(
+    user: AuthenticatedUser,
+    brandId: string,
+    result: IOnboardingFirstDraftsResult | null,
+  ): Promise<IOnboardingDraftRun['verdicts']> {
+    const feedback = await this.prisma.brandedGenerationFeedback.findMany({
+      where: {
+        organizationId: String(user.organizationId),
+        brandId,
+        isDeleted: false,
+        actorId: String(user.id),
+        receiptId: {
+          in: result?.drafts.map((draft) => draft.receiptId) ?? [],
+        },
+      },
+      select: { receiptId: true, rating: true },
+    });
+    const verdicts: IOnboardingDraftRun['verdicts'] = {};
+    for (const draft of result?.drafts ?? []) {
+      const rating = feedback.find(
+        (entry) => entry.receiptId === draft.receiptId,
+      )?.rating;
+      if (rating === 'up' || rating === 'down') verdicts[draft.postId] = rating;
+    }
+    return verdicts;
+  }
+
   private async recoverLegacy(
     user: AuthenticatedUser,
     brandId: string,
@@ -153,15 +165,35 @@ export class OnboardingDraftRunsService {
       },
       orderBy: { createdAt: 'desc' },
       take: 32,
-      select: { id: true, requestKey: true, state: true },
+      select: { id: true, requestKey: true, state: true, projection: true },
     });
     if (!receipts.length) return null;
+    const boundReceipts = receipts.map((receipt) => {
+      const parsed = legacyArtifactSchema.safeParse(receipt.projection);
+      return {
+        ...receipt,
+        postId: parsed.success ? parsed.data.artifact.id : null,
+      };
+    });
     const posts = await this.prisma.post.findMany({
       where: {
         organizationId,
         brandId,
         isDeleted: false,
-        brandedReceiptId: { in: receipts.map((receipt) => receipt.id) },
+        OR: [
+          {
+            brandedReceiptId: {
+              in: boundReceipts.map((receipt) => receipt.id),
+            },
+          },
+          {
+            id: {
+              in: boundReceipts.flatMap((receipt) =>
+                receipt.postId ? [receipt.postId] : [],
+              ),
+            },
+          },
+        ],
       },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -182,8 +214,8 @@ export class OnboardingDraftRunsService {
       )
         continue;
       if (drafts.some((draft) => draft.platform === platform)) continue;
-      const receipt = receipts.find(
-        (item) => item.id === post.brandedReceiptId,
+      const receipt = boundReceipts.find(
+        (item) => item.id === post.brandedReceiptId || item.postId === post.id,
       );
       if (!receipt) continue;
       drafts.push({
@@ -222,7 +254,12 @@ export class OnboardingDraftRunsService {
       ],
       skipDuplicates: true,
     });
-    return { id, status: 'complete', result, verdicts: {} };
+    return {
+      id,
+      status: 'complete',
+      result,
+      verdicts: await this.readVerdicts(user, brandId, result),
+    };
   }
 
   async execute(

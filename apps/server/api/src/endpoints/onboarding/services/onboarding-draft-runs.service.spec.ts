@@ -245,4 +245,34 @@ describe('OnboardingDraftRunsService', () => {
       expect.objectContaining({ skipDuplicates: true }),
     );
   });
+  it('recovers posts referenced by a receipt artifact even without a post receipt field', async () => {
+    prisma.contentRun.findFirst.mockResolvedValue(null);
+    prisma.brandedGenerationReceipt.findMany.mockResolvedValue([
+      {
+        id: 'receipt-1',
+        requestKey: 'key-1',
+        state: 'ready',
+        projection: { artifact: { kind: 'post', id: 'post-legacy' } },
+      },
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      {
+        id: 'post-legacy',
+        platform: 'instagram',
+        description: 'Already paid for',
+        brandedReceiptId: null,
+      },
+    ]);
+    prisma.brandedGenerationFeedback.findMany.mockResolvedValue([
+      { receiptId: 'receipt-1', rating: 'up' },
+    ]);
+    const run = await service.latest(user, 'brand-1');
+    expect(run?.result?.drafts[0]).toMatchObject({
+      postId: 'post-legacy',
+      receiptId: 'receipt-1',
+      text: 'Already paid for',
+    });
+    expect(run?.verdicts).toEqual({ 'post-legacy': 'up' });
+    expect(prisma.contentRun.findFirst).toHaveBeenCalledTimes(1);
+  });
 });
