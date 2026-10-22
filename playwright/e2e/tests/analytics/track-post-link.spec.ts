@@ -31,7 +31,13 @@ test.describe('Import published posts for analytics', () => {
             status: 400,
             contentType: 'application/json',
             body: JSON.stringify({
-              message: 'Supported platforms are X, YouTube and LinkedIn',
+              errors: [
+                {
+                  status: '400',
+                  title: 'Bad Request',
+                  detail: 'Supported platforms are X, YouTube and LinkedIn',
+                },
+              ],
             }),
           });
           return;

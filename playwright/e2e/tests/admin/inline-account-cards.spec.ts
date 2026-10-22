@@ -37,7 +37,15 @@ test.describe('Inline account cards', () => {
             failNextSave = false;
             await route.fulfill({
               status: 503,
-              json: { message: 'Please retry this save' },
+              json: {
+                errors: [
+                  {
+                    status: '503',
+                    title: 'Service Unavailable',
+                    detail: 'Please retry this save',
+                  },
+                ],
+              },
             });
             return;
           }
