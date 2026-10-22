@@ -1,7 +1,12 @@
 import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
+import {
+  CONTENT_CAMPAIGN_TOOL_NAMES,
+  handleContentCampaignTool,
+} from '@mcp/tools/content-campaign.tool';
 
 export const CONTENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  ...CONTENT_CAMPAIGN_TOOL_NAMES,
   'create_article_draft',
   'get_article_preview',
   'publish_article',
@@ -27,6 +32,8 @@ export async function handleContentTool(
   args: Record<string, unknown>,
 ) {
   switch (name) {
+    case 'manage_campaign':
+      return handleContentCampaignTool(client, name, args);
     case 'create_article_draft': {
       const label = requireArticleString(args, 'label', 200);
       const slug = requireArticleString(args, 'slug', 160);
