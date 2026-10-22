@@ -45,7 +45,8 @@ interface OnboardingFixtures {
   desktopOnboardingPage: Page;
   /**
    * Signed up from a personal inbox (gmail.com): no brand domain can be read
-   * from the email, so the page asks for a link instead of drafting at once.
+   * from the email, so the brand-link prompt starts empty. Work domains prefill
+   * the same prompt; both require explicit submission before generating.
    */
   personalEmailOnboardingPage: Page;
 
@@ -59,8 +60,8 @@ interface OnboardingFixtures {
   /**
    * The same page signed up from a personal-inbox email (gmail.com) instead
    * of the default work-domain address, so `resolveSignupBrandDomain` finds
-   * no brand signal and the brand step shows the website prompt instead of
-   * skipping straight to the loading step.
+   * no brand signal and the brand-link prompt starts empty. Work-domain users
+   * confirm their prefilled link through the same explicit submission.
    */
 }
 
