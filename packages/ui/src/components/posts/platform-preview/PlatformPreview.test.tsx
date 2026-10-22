@@ -79,6 +79,36 @@ describe('PlatformPreview', () => {
     expect(screen.queryByText('X feed preview')).not.toBeInTheDocument();
   });
 
+  it.each([CredentialPlatform.INSTAGRAM, CredentialPlatform.TWITTER])(
+    'fits a single %s image to its actual dimensions without letterboxing',
+    (platform) => {
+      render(
+        <PlatformPreview
+          headerPresentation="account"
+          target={{
+            platform,
+            caption: 'A saved image',
+            media: [
+              {
+                id: 'natural',
+                kind: 'image',
+                url: '/landscape.png',
+                alt: 'Landscape',
+              },
+            ],
+          }}
+        />,
+      );
+      const image = screen.getByAltText('Landscape');
+      Object.defineProperty(image, 'naturalWidth', { value: 1200 });
+      Object.defineProperty(image, 'naturalHeight', { value: 800 });
+      fireEvent.load(image);
+      expect(screen.getByTestId('platform-preview-media-natural')).toHaveStyle({
+        aspectRatio: '1.5',
+      });
+    },
+  );
+
   it('keeps compact hover video previews idle until playback is requested', () => {
     const { container } = render(
       <PlatformPreview

@@ -375,7 +375,9 @@ function MediaTile({
   index,
   className,
   animatedConsequence,
+  intrinsic = false,
 }: {
+  intrinsic?: boolean;
   item: PlatformPreviewMedia;
   index: number;
   className?: string;
@@ -384,6 +386,7 @@ function MediaTile({
   const translate = useTranslations('ui.platformPreview');
   const { renderMedia, presentation } = useContext(PreviewPresentation);
   const [isPlaybackRequested, setIsPlaybackRequested] = useState(false);
+  const [imageAspect, setImageAspect] = useState<number>();
   const isVideo = item.kind === 'video' || item.kind === 'short_video';
   const src = item.thumbnailUrl ?? item.url;
   const label = item.kind.replace('_', ' ');
@@ -392,10 +395,24 @@ function MediaTile({
   return (
     <div
       className={cn(
-        'relative flex min-h-24 items-center justify-center overflow-hidden rounded-lg bg-muted text-xs text-muted-foreground',
+        'relative flex items-center justify-center overflow-hidden rounded-lg bg-muted text-xs text-muted-foreground',
+        !intrinsic ? 'min-h-24' : 'aspect-square',
         consequence ? 'ring-1 ring-warning/50' : undefined,
         className,
       )}
+      style={
+        intrinsic && imageAspect ? { aspectRatio: imageAspect } : undefined
+      }
+      onLoadCapture={(event) => {
+        const image = event.target;
+        if (
+          intrinsic &&
+          image instanceof HTMLImageElement &&
+          image.naturalWidth &&
+          image.naturalHeight
+        )
+          setImageAspect(image.naturalWidth / image.naturalHeight);
+      }}
       data-testid={`platform-preview-media-${item.id}`}
     >
       {renderMedia ? (
@@ -491,6 +508,8 @@ function MediaGrid({
   variant?: 'grid' | 'square' | 'video' | 'vertical';
 }) {
   const translate = useTranslations('ui.platformPreview');
+  const { headerPresentation } = useContext(PreviewPresentation);
+  const mediaMargin = headerPresentation === 'account' ? undefined : 'mt-3';
   const platform = resolvePreviewPlatform(target.platform);
   const aspect = platform
     ? getPlatformPreviewLimit(platform)?.mediaAspect
@@ -527,16 +546,12 @@ function MediaGrid({
 
   if (variant === 'vertical') {
     return (
-      <div
-        className="mt-3"
-        data-testid="preview-media"
-        data-media-aspect={aspect}
-      >
+      <div data-testid="preview-media" data-media-aspect={aspect}>
         <MediaTile
           item={visibleMedia[0]}
           index={0}
           animatedConsequence={animatedConsequence}
-          className="aspect-[9/16] min-h-80"
+          className="aspect-[9/16]"
         />
       </div>
     );
@@ -568,7 +583,7 @@ function MediaGrid({
 
   return (
     <div
-      className={cn('mt-3 grid gap-1.5', gridClassName)}
+      className={cn(mediaMargin, 'grid gap-1.5', gridClassName)}
       data-testid="preview-media"
       data-media-aspect={aspect}
     >
@@ -578,7 +593,14 @@ function MediaGrid({
           item={item}
           index={index}
           animatedConsequence={animatedConsequence}
-          className={variant === 'square' ? 'aspect-[4/5]' : 'aspect-video'}
+          intrinsic={visibleMedia.length === 1 && item.kind === 'image'}
+          className={
+            visibleMedia.length === 1 && item.kind === 'image'
+              ? undefined
+              : variant === 'square'
+                ? 'aspect-square'
+                : 'aspect-video'
+          }
         />
       ))}
       {overflowCount > 0 ? (
@@ -817,7 +839,9 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
             <CharacterCounter state={target.captionState} />
           </div>
           <ThreadSegments target={target} />
-          <MediaGrid target={target} />
+          <div className={target.media.length ? 'mt-3' : undefined}>
+            <MediaGrid target={target} />
+          </div>
           <LinkPreviewCard target={target} />
           <div className="mt-4 flex justify-between text-muted-foreground">
             <MessageCircle className="size-4" />

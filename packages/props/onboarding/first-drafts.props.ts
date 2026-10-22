@@ -38,6 +38,7 @@ export interface FirstDraftsState {
   url: string;
   verdicts: Readonly<Record<string, FirstDraftVerdict>>;
   workingStep: FirstDraftsWorkingStep;
+  onNavigate: (step: number) => void;
   onBack: () => void;
   onContinue: () => void;
   onNotRight: () => void;

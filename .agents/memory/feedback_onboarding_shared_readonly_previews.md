@@ -5,9 +5,9 @@ type: feedback
 last_verified: 2026-10-22
 ---
 
-Onboarding reuses the existing application frame, sidebar, buttons, social preview layouts and brand icons. The left sidebar shows non-clickable step progress. Back, Continue and confirmed Skip onboarding belong in the sub-topbar.
+Onboarding reuses the existing application frame, sidebar, buttons, social preview layouts and brand icons. The left sidebar doubles as step navigation: available brand, review and connection steps are clickable; completed Create content is disabled. Back is an arrow-only button at the far left of the sub-topbar; Continue and confirmed Skip onboarding sit at the right.
 
-Generated pieces are read-only during onboarding. Keep, reject with a dimmed preview, and Undo are sufficient; editing happens afterward in the workspace. Use two wider preview columns rather than compressing all four platforms into one row. Account connections use shared cards and platform logos.
+Generated pieces are read-only during onboarding. Keep, reject with a dimmed preview, and Undo are sufficient; editing happens afterward in the workspace. Use the shared ordered masonry with two readable columns, natural image ratios and no artificial media padding; collapse to one column when narrow. Account connections use shared cards and platform logos.
 
 Brand entry is a single-line website or public-profile input with an inline submit and one short explanation. Remove repeated titles, save/restore notices and explanatory copy that does not help a decision.
 

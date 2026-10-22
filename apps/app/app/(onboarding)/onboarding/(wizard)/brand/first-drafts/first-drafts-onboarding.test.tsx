@@ -235,6 +235,44 @@ describe('FirstDraftsOnboarding', () => {
     );
   });
 
+  it('navigates through saved steps while completed generation stays disabled', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    const back = screen.getByRole('button', { name: 'Back' });
+    expect(back.textContent).toBe('');
+    expect(
+      screen.getByRole('button', { name: /Create content/i }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /Your brand/i }));
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Review drafts/i }));
+    expect(screen.getByText('twitter draft text')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Connect accounts/i }));
+    expect(
+      await screen.findByRole('button', { name: 'Connect Instagram' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Review drafts/i }));
+    expect(screen.getByText('twitter draft text')).toBeInTheDocument();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+    expect(mocks.scanBrand).not.toHaveBeenCalled();
+  });
+
+  it('disables future steps before any run exists', async () => {
+    render(<FirstDraftsOnboarding />);
+    await screen.findByRole('textbox');
+    expect(
+      screen.getByRole('button', { name: /Create content/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Review drafts/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Connect accounts/i }),
+    ).toBeDisabled();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+  });
+
   it('normalizes an X handle before scanning', async () => {
     render(<FirstDraftsOnboarding />);
     await startFromLink('@acme');

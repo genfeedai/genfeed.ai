@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ONBOARDING_DRAFT_PLATFORMS } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
+import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import DesktopSidebar from '@ui/layouts/app/DesktopSidebar';
 import { Button } from '@ui/primitives/button';
 import {
@@ -90,6 +91,17 @@ export default function FirstDraftsOnboarding() {
               currentStep={step}
               totalSteps={4}
               stepLabels={labels}
+              disabledSteps={[0, 1, 2, 3].filter(
+                (index) =>
+                  loading ||
+                  state.isContinuing ||
+                  (index === 1 && (!state.isGenerating || Boolean(result))) ||
+                  (index > 1 && !result),
+              )}
+              onStepChange={(index) => {
+                state.onNavigate(index);
+                if (mainRef.current) mainRef.current.scrollTop = 0;
+              }}
             />
           </div>
         </DesktopSidebar>
@@ -102,6 +114,8 @@ export default function FirstDraftsOnboarding() {
             {state.phase !== 'url' && !loading && (
               <Button
                 className="mr-auto"
+                withWrapper={false}
+                ariaLabel={t('actions.back')}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
                 isDisabled={state.isContinuing}
@@ -111,7 +125,6 @@ export default function FirstDraftsOnboarding() {
                 }}
               >
                 <ArrowLeft className="size-4" />
-                {t('actions.back')}
               </Button>
             )}
             <Button
@@ -178,7 +191,7 @@ export default function FirstDraftsOnboarding() {
               <ScheduleStep brandId={brandId} />
             ) : state.phase === 'review' && result ? (
               <div className="mx-auto max-w-5xl">
-                <div className="grid items-start gap-7 min-[1100px]:grid-cols-2">
+                <OrderedMasonry minColumnWidth={420} maxColumns={2} gap={24}>
                   {result.drafts
                     .toSorted(
                       (left, right) =>
@@ -203,7 +216,7 @@ export default function FirstDraftsOnboarding() {
                         verdict={state.verdicts[draft.postId]}
                       />
                     ))}
-                </div>
+                </OrderedMasonry>
                 {!state.isGenerating &&
                   !result.imageUrl &&
                   result.drafts.length > 0 && (

@@ -30,6 +30,20 @@ describe('OrderedMasonry', () => {
     ).toEqual(['Portrait', 'Landscape', 'Square']);
   });
 
+  it('supports readable preview columns without changing the library defaults', () => {
+    const { container } = render(
+      <OrderedMasonry minColumnWidth={420} maxColumns={2} gap={24}>
+        <div key="post">Post</div>
+      </OrderedMasonry>,
+    );
+    expect(
+      container.querySelector('[data-masonry-layout="ordered"]'),
+    ).toHaveStyle({
+      gap: '24px',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 420px), 1fr))',
+    });
+  });
+
   it('keeps keyed tile identity and keyboard order when the sort changes', () => {
     const first = (
       <button key="first" type="button">

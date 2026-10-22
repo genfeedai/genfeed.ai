@@ -368,6 +368,23 @@ export function useFirstDrafts(): FirstDraftsState {
     likedDrafts,
     onContinue,
     onNotRight: () => setPhase('context'),
+    onNavigate: (step) => {
+      if (isRestoring || isContinuing || resolvedScope !== scopeKey) return;
+      const next =
+        step === 0
+          ? 'url'
+          : step === 1 && isGenerating && !result
+            ? 'working'
+            : step === 2 && result
+              ? 'review'
+              : step === 3 && result
+                ? 'schedule'
+                : null;
+      if (!next) return;
+      if (next !== 'schedule' && searchParams.get('step') === 'schedule')
+        replace('/onboarding/brand');
+      setPhase(next);
+    },
     onBack: () => {
       if (phase === 'schedule' && searchParams.get('step') === 'schedule')
         replace('/onboarding/brand');
