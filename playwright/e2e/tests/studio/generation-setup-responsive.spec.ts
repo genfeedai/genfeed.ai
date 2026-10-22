@@ -111,7 +111,16 @@ for (const viewport of [
             bounds.x + bounds.width <= viewport.width
           );
         })
-        .toBe(true);
+        .toBe(true)
+        .catch(async (error) => {
+          const info = await page.evaluate(() =>
+            Array.from(document.querySelectorAll('[role="menu"]')).map((el) => {
+              const r = el.getBoundingClientRect();
+              return { cls: el.className.slice(0, 120), x: r.x, w: r.width, label: el.getAttribute('aria-label') };
+            }),
+          );
+          throw new Error(`DIAG ${viewport.width} ${JSON.stringify(info)} ${error}`);
+        });
       await page.screenshot({
         path: testInfo.outputPath('generation-setup-in-viewport.png'),
       });
