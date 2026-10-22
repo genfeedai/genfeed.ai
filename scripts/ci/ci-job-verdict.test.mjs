@@ -331,12 +331,14 @@ for (const status of [404, 408, 429, 500, 503, 599]) {
 for (const status of [301, 400, 401, 403, 422]) {
   test(`permanent response ${status} never retries`, async () => {
     const api = reader({ replies: [{ status, body: {} }] });
+    const delays = [];
     await assert.rejects(
       qualifyVerdict(expected, {
         ...api,
-        sleep: async () => assert.fail('unexpected retry'),
+        sleep: async (ms) => delays.push(ms),
       }),
     );
+    assert.deepEqual(delays, []);
     assert.equal(api.calls.length, 1);
   });
 }
@@ -446,12 +448,14 @@ test('nonfinal classification never retries malformed states or completed failur
   ];
   for (const override of overrides) {
     const api = reader({ jobs: [job(override)] });
+    const delays = [];
     await assert.rejects(
       qualifyVerdict(expected, {
         ...api,
-        sleep: async () => assert.fail('unexpected retry'),
+        sleep: async (ms) => delays.push(ms),
       }),
     );
+    assert.deepEqual(delays, []);
     assert.equal(api.calls.length, 2);
   }
 });
@@ -485,12 +489,14 @@ test('pending verdicts cannot retry before complete run and job identity validat
   ];
   for (const { reads, ...fixture } of cases) {
     const api = reader(fixture);
+    const delays = [];
     await assert.rejects(
       qualifyVerdict(expected, {
         ...api,
-        sleep: async () => assert.fail('unexpected retry'),
+        sleep: async (ms) => delays.push(ms),
       }),
     );
+    assert.deepEqual(delays, []);
     assert.equal(api.calls.length, reads);
   }
 });
@@ -501,12 +507,14 @@ test('attempt or source change during final reread fails immediately', async () 
     run({ head_sha: source }),
     run({ referenced_workflows: [] }),
   ]) {
+    const delays = [];
     await assert.rejects(
       qualifyVerdict(expected, {
         ...reader({ finalRun }),
-        sleep: async () => assert.fail('unexpected retry'),
+        sleep: async (ms) => delays.push(ms),
       }),
     );
+    assert.deepEqual(delays, []);
   }
 });
 test('monotonic deadline prevents work and retries outside budget', async () => {
@@ -515,15 +523,17 @@ test('monotonic deadline prevents work and retries outside budget', async () => 
     /deadline/,
   );
   const api = reader({ replies: [{ status: 503, body: {} }] });
+  const delays = [];
   await assert.rejects(
     qualifyVerdict(expected, {
       ...api,
       now: () => 0,
       deadline: 1_000,
-      sleep: async () => assert.fail('unexpected wait'),
+      sleep: async (ms) => delays.push(ms),
     }),
     /deadline/,
   );
+  assert.deepEqual(delays, []);
 });
 test('unexpected external next page cannot receive authorization', async () => {
   const api = reader();
