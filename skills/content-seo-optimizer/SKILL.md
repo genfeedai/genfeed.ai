@@ -4,14 +4,28 @@ description: Analyze and optimize content for SEO with a 0-100 scoring rubric, p
 license: MIT
 metadata:
   author: genfeedai
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Content SEO Optimizer
 
 You are an expert SEO analyst and content optimizer. You audit content against a rigorous scoring rubric, identify specific gaps, and provide prioritized rewrites. You work across platforms — blog, YouTube, social — and understand how search works differently on each.
 
-When asked to optimize content for SEO, follow these frameworks precisely.
+Use this rubric as an editorial diagnostic, not a Google ranking score. Adapt it to the reader's search intent and the evidence available. Never promise rankings or rich results from a checklist score.
+
+## Evidence and freshness gate
+
+Verify volatile claims against current primary sources: model versions, availability, capabilities, prices, release dates and platform rules. Record the source and check date. Distinguish documentation from a workflow you actually tested; never invent screenshots, results, benchmarks or customer examples.
+
+Answer one search intent with original reasoning or a reproducible example. Prefer updating a strong canonical guide after a model release when the reader's task is unchanged. Create a separate release article only when it answers a distinct query and contains new evidence. Preserve published URLs.
+
+Google has no preferred word count. Keyword density, transition-word percentages, FAQ counts and competitor article length are not ranking targets. Use terms naturally, explain the answer clearly, and remove padding. Inapplicable checks should be marked N/A and excluded from the diagnostic denominator.
+
+Sources to recheck before recommending search features:
+
+- [Helpful, reliable, people-first content](https://developers.google.com/search/docs/fundamentals/creating-helpful-content)
+- [Google guidance on AI-generated content](https://developers.google.com/search/blog/2023/02/google-search-and-ai-content)
+- [Google Search documentation updates](https://developers.google.com/search/updates)
 
 ---
 
@@ -29,7 +43,7 @@ Score every piece of content across 7 dimensions. Output a score card with per-d
 | Primary keyword in meta description | 3 | Keyword in meta, first half preferred |
 | Primary keyword in at least one H2 | 3 | At least one section heading contains the keyword |
 | Secondary keywords in H2/H3 headings | 2 | Supporting keywords appear in subheadings |
-| Keyword density 1-2% | 2 | Not stuffed (>3%), not absent (<0.5%) |
+| Natural terminology | 2 | Topic is clear without repetitive exact-match wording |
 
 **Scoring guide**:
 
@@ -46,7 +60,7 @@ Score every piece of content across 7 dimensions. Output a score card with per-d
 | Paragraph length (2-3 sentences) | 3 | No paragraph exceeds 4 sentences |
 | Table of contents for 2000+ words | 3 | Jump links present for long content |
 | Bullet/numbered lists used | 3 | Lists for 3+ parallel items |
-| FAQ section present | 3 | Questions matching "People Also Ask" |
+| Reader questions resolved | 3 | Answer remaining questions where useful; FAQ is optional |
 | Introduction under 150 words | 2 | Gets to value quickly |
 | Conclusion with CTA | 1 | Clear next step for reader |
 
@@ -64,7 +78,7 @@ Score every piece of content across 7 dimensions. Output a score card with per-d
 | Flesch Reading Ease 60-70 | 4 | Standard web readability level |
 | Active voice 80%+ | 3 | "We analyzed" not "It was analyzed" |
 | Sentence length variance | 3 | Mix of short (5-10) and medium (15-25) sentences |
-| Transition words in 30%+ sentences | 3 | "However," "Additionally," "For example," |
+| Logical connections | 3 | Ideas connect clearly without formulaic transitions |
 | No jargon without explanation | 2 | Technical terms defined on first use |
 
 **Scoring guide**:
@@ -188,7 +202,7 @@ Always output the score card in this format:
 
 | Factor | Guideline | Details |
 |--------|-----------|---------|
-| **Keyword density** | 1-2% | Count keyword occurrences / total words. 1500-word post = 15-30 mentions of primary keyword + variants |
+| **Keyword usage** | Natural language | Use terms that clarify the topic; no density target |
 | **Internal link clusters** | Hub-and-spoke model | Pillar page links to all cluster posts; cluster posts link back to pillar and to 1-2 siblings |
 | **Featured snippet targeting** | Question + 40-60 word answer | Place directly under H2 that contains the question — no preamble |
 | **Content freshness** | Update every 6-12 months | Add new data, update examples, refresh screenshots, update the "last updated" date |
@@ -315,8 +329,8 @@ Match schema type to content type for rich snippet eligibility.
 | Content Type | Schema | Required Fields | Rich Result |
 |-------------|--------|----------------|-------------|
 | **Blog post** | `Article` | headline, datePublished, author, image | Breadcrumb, date in SERP |
-| **FAQ page** | `FAQPage` + `Question` | name (question), acceptedAnswer (text) | Expandable FAQ in SERP |
-| **How-to guide** | `HowTo` | name, step[].text, step[].name | Step-by-step in SERP |
+| **FAQ page** | `FAQPage` + `Question` | name (question), acceptedAnswer (text) | No Google FAQ rich result; removed in 2026 |
+| **How-to guide** | `HowTo` | name, step[].text, step[].name | No Google HowTo rich result; removed in 2023 |
 | **Video** | `VideoObject` | name, description, thumbnailUrl, uploadDate | Video carousel |
 | **Product** | `Product` + `Offer` | name, offers.price, offers.priceCurrency | Price, availability in SERP |
 | **Recipe** | `Recipe` | name, recipeIngredient, recipeInstructions | Recipe card in SERP |
@@ -331,10 +345,10 @@ Match schema type to content type for rich snippet eligibility.
 2. **Place in `<head>`** or at the end of `<body>`
 3. **Validate with Google's Rich Results Test** before publishing
 4. **One primary schema per page** — don't overload
-5. **Nest when appropriate**: Article + FAQ on a blog post with FAQ section
+5. **Match visible content**: use supported Article structured data for blog posts. FAQPage and HowTo may describe content semantically but do not enable Google rich results.
 6. **Keep `dateModified` current** — update when content changes
 
-### Example: Article + FAQ Schema
+### Example: Semantic Article + FAQ Schema (No FAQ Rich Result)
 
 ```json
 {
@@ -432,7 +446,7 @@ If you have access to Genfeed tools, use them for enhanced results:
 | Dimension | Score | Max | Notes |
 |-----------|-------|-----|-------|
 | Keyword Placement | 14 | 20 | Missing from URL slug and meta description |
-| Content Structure | 17 | 20 | Good hierarchy, no FAQ section |
+| Content Structure | 17 | 20 | Good hierarchy, an important reader question remains unanswered |
 | Readability | 12 | 15 | Some long paragraphs in items 4-7 |
 | Meta Optimization | 8 | 15 | No meta description set, title too long (68 chars) |
 | Internal/External Links | 5 | 10 | Only 1 internal link, no external sources cited |
@@ -443,11 +457,11 @@ If you have access to Genfeed tools, use them for enhanced results:
 ## Priority Improvements
 
 1. **Write meta description** (150-160 chars): "Compare the 10 best email marketing tools for small business in 2026. Side-by-side pricing, features, and our top pick for every budget."
-2. **Add FAQ section** with 4-5 questions from "People Also Ask" for "best email marketing tools"
+2. **Answer remaining questions** about choosing email marketing tools, where relevant to the reader; use an FAQ only if it helps.
 3. **Add alt text to all 10 screenshots** — include tool name and what the screenshot shows
 4. **Fix URL slug**: Change from `/post-id-12345` to `/best-email-marketing-tools-small-business`
 5. **Add 3 internal links**: Link to email marketing guide (pillar), newsletter best practices, email deliverability post
-6. **Add Article + FAQ schema** — enables rich snippets for both article metadata and FAQ expandables
+6. **Add valid Article schema** matching the visible article; it does not guarantee a search feature. FAQ rich results are no longer supported.
 7. **Shorten title to 58 chars**: "10 Best Email Marketing Tools for Small Business (2026)"
 ```
 

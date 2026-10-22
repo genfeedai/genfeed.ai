@@ -1,6 +1,6 @@
 {
   "name": "content-reviewer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Review and score content quality across six dimensions with actionable feedback",
   "author": "genfeedai",
   "license": "MIT",
