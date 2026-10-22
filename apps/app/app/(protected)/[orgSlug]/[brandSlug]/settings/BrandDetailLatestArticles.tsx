@@ -22,7 +22,11 @@ export default function BrandDetailLatestArticles({
   return (
     <BrandDetailLatestContentCard
       label="Latest Articles"
-      viewAllHref={`${href(APP_ROUTES.PUBLISHING.POSTS)}?type=article`}
+      viewAllLink={
+        <NextLink href={`${href(APP_ROUTES.PUBLISHING.POSTS)}?type=article`}>
+          View all
+        </NextLink>
+      }
       emptyTitle="No articles yet"
       emptyDescription="Draft an article for this brand to populate this strip."
       createLabel="Create an article"

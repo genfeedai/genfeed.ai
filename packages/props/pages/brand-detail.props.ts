@@ -43,7 +43,7 @@ export interface BrandDetailSystemPromptProps {
 
 export interface BrandDetailLatestContentCardProps {
   label: string;
-  viewAllHref: string;
+  viewAllLink: ReactNode;
   emptyTitle: string;
   emptyDescription: string;
   createLabel: string;

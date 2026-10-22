@@ -3,6 +3,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestVideosProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { LazyMasonryVideo } from '@ui/lazy/masonry/LazyMasonry';
+import Link from 'next/link';
 import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 export default function BrandDetailLatestVideos({
@@ -15,7 +16,13 @@ export default function BrandDetailLatestVideos({
   return (
     <BrandDetailLatestContentCard
       label="Latest Videos"
-      viewAllHref={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
+      viewAllLink={
+        <Link
+          href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
+        >
+          View all
+        </Link>
+      }
       emptyTitle="No videos yet"
       emptyDescription="Generate a video for this brand to populate this strip."
       createLabel="Create a video"

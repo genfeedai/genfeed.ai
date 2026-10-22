@@ -1,10 +1,15 @@
 import { render, screen } from '@testing-library/react';
+import Link from 'next/link';
 import { describe, expect, it } from 'vitest';
 import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 const props = {
   label: 'Latest content',
-  viewAllHref: '/all?type=example',
+  viewAllLink: (
+    <Link href="/all?type=example" data-caller-link="preserved">
+      View all
+    </Link>
+  ),
   emptyTitle: 'Nothing here',
   emptyDescription: 'Create content to begin.',
   createLabel: 'Create content',
@@ -25,6 +30,7 @@ describe('BrandDetailLatestContentCard', () => {
       ).toBe('H3');
       const viewAll = screen.getByRole('link', { name: 'View all' });
       expect(viewAll).toHaveAttribute('href', '/all?type=example');
+      expect(viewAll).toHaveAttribute('data-caller-link', 'preserved');
       expect(viewAll).toHaveClass(
         'h-8 px-2.5 bg-tertiary border border-border',
       );

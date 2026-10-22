@@ -3,6 +3,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestImagesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { LazyMasonryImage } from '@ui/lazy/masonry/LazyMasonry';
+import Link from 'next/link';
 import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 export default function BrandDetailLatestImages({
@@ -15,7 +16,13 @@ export default function BrandDetailLatestImages({
   return (
     <BrandDetailLatestContentCard
       label="Latest Images"
-      viewAllHref={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
+      viewAllLink={
+        <Link
+          href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
+        >
+          View all
+        </Link>
+      }
       emptyTitle="No images yet"
       emptyDescription="Generate an image for this brand to populate this strip."
       createLabel="Create an image"

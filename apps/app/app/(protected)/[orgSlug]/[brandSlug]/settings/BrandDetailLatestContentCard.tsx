@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function BrandDetailLatestContentCard({
   label,
-  viewAllHref,
+  viewAllLink,
   emptyTitle,
   emptyDescription,
   createLabel,
@@ -24,7 +24,7 @@ export default function BrandDetailLatestContentCard({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
-          <Link href={viewAllHref}>View all</Link>
+          {viewAllLink}
         </Button>
       }
     >
