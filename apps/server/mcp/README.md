@@ -59,7 +59,7 @@ Widget layout uses shared utilities; it must not recreate component styling.
 
 ## Toolsets
 
-The bare endpoint uses the default profile (up to 26 canonical tools before
+The bare endpoint uses the default profile (up to 27 canonical tools before
 role filtering). `?profile=full` exposes the complete catalog (144 tools at the
 #7815 benchmark revision). Compact output schemas and bounded readable results
 reduce serialized payload size; model-token savings depend on the client.
@@ -78,7 +78,7 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
   a handful of always-needed account/status tools.
 - **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
   a bare URL gets the `default` profile: `core`, `generation`, `content` and
-  `scheduler`, capped at 26 tools. Use `?profile=full` for every tool.
+  `scheduler`, capped at 27 tools. Use `?profile=full` for every tool.
 - **An unknown toolset name is rejected with an HTTP 400** and a JSON-RPC
   `-32602` error naming the valid toolsets, before authentication runs (so it
   also applies to the unauthenticated public `tools/list` discovery path).

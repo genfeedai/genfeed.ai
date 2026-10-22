@@ -110,6 +110,40 @@ describe('CampaignsService', () => {
     expect(prisma.campaign.create).not.toHaveBeenCalled();
   });
 
+  it('rejects an MCP brand scope that changed before the update reached the API', async () => {
+    asMock(prisma.campaign.findFirst).mockResolvedValue(null);
+    await expect(
+      service.update(ORG_ID, CAMPAIGN_ID, { tone: 'Candid' }, BRAND_ID),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.campaign.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: CAMPAIGN_ID,
+        organizationId: ORG_ID,
+        brandId: BRAND_ID,
+        isDeleted: false,
+      },
+    });
+    expect(prisma.campaign.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps the selected brand in the atomic context write', async () => {
+    asMock(prisma.campaign.findFirst).mockResolvedValue(campaignRow());
+    asMock(prisma.campaign.update).mockResolvedValue(
+      campaignRow({ tone: 'Candid' }),
+    );
+    await service.update(ORG_ID, CAMPAIGN_ID, { tone: 'Candid' }, BRAND_ID);
+    expect(prisma.campaign.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: CAMPAIGN_ID,
+          organizationId: ORG_ID,
+          brandId: BRAND_ID,
+          isDeleted: false,
+        },
+      }),
+    );
+  });
+
   it('rejects a brand change while campaign assets are still associated', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(
       campaignRow({ assetIds: ['asset-1'] }),

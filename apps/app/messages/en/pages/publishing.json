@@ -162,7 +162,7 @@
       "inheritance": "Brand context stays available. Add the direction specific to this campaign.",
       "inherited": "Uses the brand context",
       "assets": "Campaign assets",
-      "assetCount": "{count} Library assets selected",
+      "assetCount": "{count, plural, one {# Library asset selected} other {# Library assets selected}}",
       "addImages": "Add images",
       "addVideos": "Add videos",
       "viewAsset": "View asset {number}",

@@ -1,7 +1,9 @@
 import { ContentCampaignStatus } from '@genfeedai/contracts';
+import { contentCampaignResourceSchema } from '@genfeedai/contracts/api-types/contracts/content-campaign.contract';
 import { campaignAttributes } from '@serializers/attributes/content/campaign.attributes';
 import { CampaignSerializer } from '@serializers/server/content/campaign.serializer';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 type SerializedCampaign = {
   data: {
@@ -12,6 +14,42 @@ type SerializedCampaign = {
 };
 
 describe('CampaignSerializer publish content-campaign contract', () => {
+  it('round-trips creative context and Library membership through the real MCP wire schema', () => {
+    const serialized = CampaignSerializer.serialize({
+      id: 'campaign-wire',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'opaque-user',
+      name: 'Launch',
+      status: ContentCampaignStatus.DRAFT,
+      isDeleted: false,
+      createdAt: new Date('2026-10-22T12:00:00Z'),
+      updatedAt: new Date('2026-10-22T12:00:00Z'),
+      audience: 'Small teams',
+      tone: 'Candid',
+      creativeDirection: 'Show the fixes',
+      assetIds: ['asset-1'],
+      brief: null,
+      objective: null,
+      startDate: null,
+      endDate: null,
+    });
+    const wire: unknown = JSON.parse(JSON.stringify(serialized));
+    const envelope = z
+      .object({ data: contentCampaignResourceSchema })
+      .parse(wire);
+    expect(envelope.data).toMatchObject({
+      id: 'campaign-wire',
+      brandId: 'brand-1',
+      audience: 'Small teams',
+      tone: 'Candid',
+      creativeDirection: 'Show the fixes',
+      assetIds: ['asset-1'],
+      createdAt: '2026-10-22T12:00:00.000Z',
+      brief: null,
+    });
+  });
+
   it('serializes the campaign brief, window, and scope without relations', () => {
     const output = CampaignSerializer.serialize({
       brandId: 'brand-1',

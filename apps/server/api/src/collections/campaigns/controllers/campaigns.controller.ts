@@ -3,6 +3,7 @@ import {
   CampaignPostsDto,
   RestoreCampaignDto,
 } from '@api/collections/campaigns/dto/campaign-action.dto';
+import { CampaignBrandScopeDto } from '@api/collections/campaigns/dto/campaign-brand-scope.dto';
 import { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns-query.dto';
 import { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
@@ -132,9 +133,14 @@ export class CampaignsController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Query() scope: CampaignBrandScopeDto = {},
   ) {
     const readScope = resolveTenantReadScope(user);
-    const data = await this.service.getOne(readScope.organizationId, id);
+    const data = await this.service.getOne(
+      readScope.organizationId,
+      id,
+      scope.brandId,
+    );
     return serializeSingle(request, CampaignSerializer, data);
   }
 
@@ -261,8 +267,14 @@ export class CampaignsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: UpdateCampaignDto,
+    @Query() scope: CampaignBrandScopeDto = {},
   ) {
-    const data = await this.service.update(user.organizationId, id, dto);
+    const data = await this.service.update(
+      user.organizationId,
+      id,
+      dto,
+      scope.brandId,
+    );
     return serializeSingle(request, CampaignSerializer, data);
   }
 

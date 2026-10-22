@@ -34,7 +34,8 @@ export class CampaignClient {
         }
         const { campaignId } = input.input;
         const path = `/campaigns/${encodeURIComponent(campaignId)}`;
-        const response = await http.get(path);
+        const params = { brandId: input.input.brandId };
+        const response = await http.get(path, { params });
         const campaign = z
           .object({ data: resourceSchema })
           .parse(response.data).data;
@@ -44,7 +45,7 @@ export class CampaignClient {
           campaignId: _campaignId,
           ...changes
         } = input.input;
-        const updated = await http.patch(path, changes);
+        const updated = await http.patch(path, changes, { params });
         return z.object({ data: resourceSchema }).parse(updated.data).data;
       },
       this.base.failWithDetail(`Failed to ${action} campaign`),

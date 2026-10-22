@@ -87,6 +87,29 @@ describe('CampaignsController', () => {
     );
   });
 
+  it('forwards the explicitly selected brand to scoped reads and writes', async () => {
+    const scope = { brandId: 'cbrand0000001' };
+    await controller.getOne(request, user, CAMPAIGN_ID, scope);
+    expect(service.getOne).toHaveBeenCalledWith(
+      'org-1',
+      CAMPAIGN_ID,
+      scope.brandId,
+    );
+    await controller.update(
+      request,
+      user,
+      CAMPAIGN_ID,
+      { tone: 'Candid' },
+      scope,
+    );
+    expect(service.update).toHaveBeenCalledWith(
+      'org-1',
+      CAMPAIGN_ID,
+      { tone: 'Candid' },
+      scope.brandId,
+    );
+  });
+
   it.each([
     ['generatePlan', 170_000],
     ['generate', 290_000],

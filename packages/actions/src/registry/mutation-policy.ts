@@ -141,6 +141,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   install_official_workflow: 'approval-required',
   install_skills_pro_skill: 'approval-required',
   install_system_workflow: 'direct',
+  manage_campaign: 'direct',
   manage_livestream_bot: 'direct',
   mark_social_conversation_resolved: 'direct',
   open_in_editor: 'direct',

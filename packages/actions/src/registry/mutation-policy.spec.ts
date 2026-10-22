@@ -36,6 +36,22 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('manages campaign context directly while publishing still requires approval', () => {
+    expect(getToolByName('manage_campaign')).toMatchObject({
+      creditCost: 0,
+      mutationPolicy: 'direct',
+      requiredRole: 'user',
+      toolset: 'content',
+    });
+    for (const name of [
+      'create_scheduled_release',
+      'update_scheduled_release',
+      'control_scheduled_release',
+    ]) {
+      expect(getToolByName(name)?.mutationPolicy).toBe('approval-required');
+    }
+  });
+
   it('preserves direct free upload and read-only channel-check semantics', () => {
     expect(MUTATION_POLICY_BY_NAME.upload_media).toBe('direct');
     expect(MUTATION_POLICY_BY_NAME.check_channel).toBeUndefined();

@@ -359,7 +359,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'agent-chat',
   },
-  { name: 'manage_campaign', surfaces: ['mcp'], toolset: 'content' },
   { name: 'list_assets', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'list_brand_publishing_readiness',
@@ -416,6 +415,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'manage_campaign', surfaces: ['mcp'], toolset: 'content' },
   { name: 'manage_livestream_bot', surfaces: ['agent'], toolset: 'engagement' },
   {
     name: 'mark_social_conversation_resolved',

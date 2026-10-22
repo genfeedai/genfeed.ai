@@ -65,3 +65,19 @@ it('removes one asset without changing the remaining membership', () => {
   );
   expect(onChange).toHaveBeenCalledWith({ assetIds: ['asset-2'] });
 });
+
+it('can add the final asset without counting existing membership twice', () => {
+  render(
+    <CampaignCreativeContextFields
+      brandId="brand-1"
+      value={{
+        assetIds: Array.from({ length: 49 }, (_, index) => `asset-${index}`),
+      }}
+      onChange={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'context.addImages' }));
+  const config = mocks.openGallery.mock.calls.at(-1)?.[0];
+  expect(config.maxSelectableItems).toBe(1);
+  expect(config.selectedReferences ?? []).toHaveLength(0);
+});

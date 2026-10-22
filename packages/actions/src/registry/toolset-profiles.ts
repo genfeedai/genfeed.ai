@@ -20,8 +20,8 @@ export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
 
 /**
  * Hard cap on tools advertised by the bare MCP URL (`tools/list`). Includes
- * publishing readiness so a caller can select a healthy brand channel before
- * scheduling without reconnecting with additional toolsets.
+ * native campaign context and publishing readiness so a caller can associate
+ * content and select a healthy brand channel before scheduling.
  */
 export const BARE_MCP_URL_TOOL_CAP = 27;
 

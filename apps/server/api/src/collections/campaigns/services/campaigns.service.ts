@@ -76,8 +76,12 @@ export class CampaignsService {
     };
   }
 
-  async getOne(organizationId: string, id: string): Promise<ICampaign> {
-    return toCampaign(await this.requireCampaign(organizationId, id));
+  async getOne(
+    organizationId: string,
+    id: string,
+    brandId?: string,
+  ): Promise<ICampaign> {
+    return toCampaign(await this.requireCampaign(organizationId, id, brandId));
   }
 
   async create(
@@ -162,8 +166,9 @@ export class CampaignsService {
     organizationId: string,
     id: string,
     dto: UpdateCampaignDto,
+    brandId?: string,
   ): Promise<ICampaign> {
-    const existing = await this.requireCampaign(organizationId, id);
+    const existing = await this.requireCampaign(organizationId, id, brandId);
     if (dto.brandId && dto.brandId !== existing.brandId) {
       if ((existing.assetIds?.length ?? 0) > 0) {
         throw new BadRequestException(
@@ -397,9 +402,13 @@ export class CampaignsService {
   private async requireCampaign(
     organizationId: string,
     id: string,
+    brandId?: string,
   ): Promise<Campaign> {
     const campaign = await this.prisma.campaign.findFirst({
-      where: scopedWhere(organizationId, { id }),
+      where: scopedWhere(organizationId, {
+        id,
+        ...(brandId ? { brandId } : {}),
+      }),
     });
     if (!campaign) {
       throw new NotFoundException('Campaign', id);

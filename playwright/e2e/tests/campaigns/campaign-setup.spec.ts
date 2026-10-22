@@ -157,3 +157,65 @@ test.describe('Campaign setup and responsive actions', () => {
     ).toBeVisible();
   });
 });
+
+test('saves campaign creative context and explicit Library membership through the real form', async ({
+  authenticatedPage: page,
+}, testInfo) => {
+  await mockCampaign(page);
+  const current = {
+    ...campaign,
+    attributes: {
+      ...campaign.attributes,
+      audience: 'Small teams',
+      tone: 'Candid',
+      creativeDirection: 'Show the fixes',
+      assetIds: ['asset-1', 'asset-2'],
+    },
+  };
+  let saved: Record<string, unknown> | undefined;
+  await page.route(
+    /\/v1\/campaigns\/campaign-layout(?:\?.*)?$/,
+    async (route) => {
+      if (route.request().method() === 'PATCH') {
+        saved = route.request().postDataJSON();
+        Object.assign(current.attributes, saved);
+      }
+      await route.fulfill({ json: { data: current } });
+    },
+  );
+  await page.goto(brandPath(`${campaignPath}/edit`));
+  await expect(page.getByLabel('Audience', { exact: true })).toHaveValue(
+    'Small teams',
+  );
+  await page
+    .getByLabel('Audience', { exact: true })
+    .fill('Small marketing teams');
+  await page
+    .getByLabel('Campaign voice', { exact: true })
+    .fill('Specific and candid');
+  await page
+    .getByLabel('Creative direction', { exact: true })
+    .fill('Show the chosen direction and every correction');
+  await page
+    .getByRole('button', { name: 'Remove asset 1', exact: true })
+    .click();
+  await testInfo.attach('campaign-creative-context-edit', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  });
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${campaignId}$`));
+  expect(saved).toMatchObject({
+    brandId: 'brand-1',
+    audience: 'Small marketing teams',
+    tone: 'Specific and candid',
+    creativeDirection: 'Show the chosen direction and every correction',
+    assetIds: ['asset-2'],
+  });
+  await expect(
+    page.getByText('Specific and candid', { exact: true }).last(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'View asset 1', exact: true }),
+  ).toBeVisible();
+});

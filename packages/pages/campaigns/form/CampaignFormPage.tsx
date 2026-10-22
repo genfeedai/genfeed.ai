@@ -92,6 +92,9 @@ export default function CampaignFormPage({
     emptyForm(defaultBrandId),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [createRequestKey, setCreateRequestKey] = useState(() =>
+    crypto.randomUUID(),
+  );
   const canPickBrand = collectionScope.pageScope === 'org' && !isEdit;
 
   useEffect(() => {
@@ -155,7 +158,7 @@ export default function CampaignFormPage({
         name: form.name.trim(),
         objective: form.objective.trim() || null,
         startDate: form.startDate || null,
-        ...(isEdit ? {} : { idempotencyKey: crypto.randomUUID() }),
+        ...(isEdit ? {} : { idempotencyKey: createRequestKey }),
       };
       const saved =
         isEdit && campaignId
@@ -197,9 +200,10 @@ export default function CampaignFormPage({
           <div className="flex flex-col gap-2">
             <Label htmlFor="campaign-brand">{translate('columns.brand')}</Label>
             <Select
-              onValueChange={(brandId) =>
-                setForm((current) => ({ ...current, brandId, assetIds: [] }))
-              }
+              onValueChange={(brandId) => {
+                setCreateRequestKey(crypto.randomUUID());
+                setForm((current) => ({ ...current, brandId, assetIds: [] }));
+              }}
               value={form.brandId}
             >
               <SelectTrigger id="campaign-brand">

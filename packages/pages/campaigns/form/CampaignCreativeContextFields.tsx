@@ -28,7 +28,6 @@ export default function CampaignCreativeContextFields({
       category,
       maxSelectableItems: 50 - assetIds.length,
       title: translate('context.assets'),
-      selectedReferences: assetIds,
       onSelect: (items) => {
         const owned = items.filter(
           (item) => item.brandId === brandId && !item.isDeleted,

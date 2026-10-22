@@ -40,6 +40,10 @@ const BASE_CRUD_CREATE = '__BASE_CRUD_CREATE__';
  * inherit their collection routes from `BaseCRUDController`.
  */
 const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
+  campaigns: {
+    file: 'collections/campaigns/controllers/campaigns.controller.ts',
+    prefix: 'campaigns',
+  },
   storyboardRuns: {
     file: 'collections/content-runs/controllers/storyboard-runs.controller.ts',
     prefix: 'brands/:brandId/storyboard-runs',
@@ -184,6 +188,17 @@ interface ContractRoute {
  * route below plus the coverage assertion.
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
+  ...[
+    { method: 'Get' as const, sub: '' },
+    { method: 'Get' as const, sub: ':id' },
+    { method: 'Post' as const, sub: '' },
+    { method: 'Patch' as const, sub: ':id' },
+  ].map((route) => ({
+    ...route,
+    controller: 'campaigns',
+    tools: ['manage_campaign'],
+  })),
+
   {
     method: 'Post',
     sub: '',

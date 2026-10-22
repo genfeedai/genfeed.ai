@@ -1,7 +1,7 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 const contextProperties = {
-  brandId: { type: 'string', description: 'Owning brand ID from get_brands.' },
+  brandId: { type: 'string', description: 'Explicit owning brand ID.' },
   campaignId: { type: 'string', description: 'Required for get and update.' },
   name: { type: 'string', maxLength: 200 },
   objective: { type: ['string', 'null'], maxLength: 1000 },
@@ -15,7 +15,7 @@ const contextProperties = {
     maxItems: 50,
     uniqueItems: true,
     description:
-      'Existing same-brand Library asset IDs from list_assets. Replaces membership; [] clears it.',
+      'Existing same-brand Library asset IDs. Replaces membership; [] clears it.',
   },
   startDate: {
     type: ['string', 'null'],
@@ -37,7 +37,7 @@ export const MCP_CONTENT_CAMPAIGN_TOOLS: SourceTool[] = [
   {
     name: 'manage_campaign',
     description:
-      'Manage a native content campaign inside an explicit brand. action list reads campaigns; get reads a campaign and its reusable context/assets; create saves a draft (name and idempotencyKey required); update changes context or replaces asset membership (campaignId required). Campaign objective, audience, tone and creative direction complement inherited brand context. Read the campaign before generating assets, then save returned Library IDs as assetIds. To schedule, use create_scheduled_release with the same brandId and campaignId; existing publishing approval still applies. This tool never publishes or starts ad spend.',
+      'Manage a native content campaign inside an explicit brand. action list reads campaigns; get reads a campaign and its reusable context/assets; create saves a draft (name and idempotencyKey required); update changes context or replaces asset membership (campaignId required). Campaign objective, audience, tone and creative direction complement inherited brand context. Read the campaign before generating assets, then save returned Library IDs as assetIds. Schedule through the scheduler toolset with the same brandId and campaignId; existing publishing approval still applies. This tool never publishes or starts ad spend.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {

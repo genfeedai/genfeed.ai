@@ -44,6 +44,7 @@ describe('ToolRegistryService.classify', () => {
     // Tool discovery meta tools are handled entirely in-process (no API
     // call); they classify first so nothing else can shadow them.
     ['check_channel', 'scheduler'],
+    ['manage_campaign', 'content-campaign'],
     ['upload_media', 'agent-executor'],
     ['find_tools', 'tool-discovery'],
     ['send_chat_message', 'agent-chat'],

@@ -74,9 +74,13 @@ it('updates only after reading a campaign in the requested brand', async () => {
     action: 'update',
     input: { brandId: 'brand-1', campaignId: 'campaign-1', tone: 'Precise' },
   });
-  expect(patch).toHaveBeenCalledWith('/campaigns/campaign-1', {
-    tone: 'Precise',
-  });
+  expect(patch).toHaveBeenCalledWith(
+    '/campaigns/campaign-1',
+    {
+      tone: 'Precise',
+    },
+    { params: { brandId: 'brand-1' } },
+  );
 });
 
 it('does not mutate a campaign from a different brand', async () => {
