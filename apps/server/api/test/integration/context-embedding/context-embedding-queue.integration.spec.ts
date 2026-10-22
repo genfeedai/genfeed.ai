@@ -160,6 +160,7 @@ describe('real context embedding database and WorkerHost acceptance', () => {
       ...runtime.environment,
       pgvectorVersion: runtime.pgvectorVersion,
       migrationCount: runtime.migrationCount,
+      migrationInventory: runtime.migrationInventory,
       providerCalls: runtime.transport.calls.length,
       maxProviderConcurrency: runtime.transport.maxActive,
       measurements,
@@ -170,7 +171,18 @@ describe('real context embedding database and WorkerHost acceptance', () => {
       resolve(directory, 'runtime-receipt.json'),
       JSON.stringify(receipt, null, 2),
     );
-    await runtime.close();
+    const cleanup = await runtime.close();
+    await writeFile(
+      resolve(directory, 'cleanup-receipt.json'),
+      JSON.stringify(
+        {
+          ...runtime.environment,
+          ...cleanup,
+        },
+        null,
+        2,
+      ),
+    );
     expect(runtime.unexpectedQueueErrors).toEqual([]);
   });
 

@@ -196,6 +196,8 @@ describe('actual predecessor migration upgrade', () => {
             ...environment,
             pgvectorVersion,
             predecessorCount: predecessor.length,
+            predecessorInventory: predecessor,
+            migrationInventory: inventory,
             migrationCount: inventory.length,
             legacyVectorBytesPreserved: true,
             legacyGeneration: 0,

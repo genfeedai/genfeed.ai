@@ -235,6 +235,8 @@ export class ContextEmbeddingRuntime {
   environment!: Awaited<ReturnType<typeof acceptanceEnvironment>>;
   pgvectorVersion = '';
   migrationCount = 0;
+  migrationInventory: Awaited<ReturnType<typeof assertRealMigrationLedger>> =
+    [];
   redisOutageExpected = false;
   readonly unexpectedQueueErrors: string[] = [];
   private readonly config: ConfigService;
@@ -280,7 +282,8 @@ export class ContextEmbeddingRuntime {
     await deployRealMigrations('runtime');
     const identity = await connectDedicated('runtime');
     try {
-      this.migrationCount = (await assertRealMigrationLedger(identity)).length;
+      this.migrationInventory = await assertRealMigrationLedger(identity);
+      this.migrationCount = this.migrationInventory.length;
       this.pgvectorVersion = await verifyPgvector(identity);
     } finally {
       await identity.end();
@@ -527,14 +530,14 @@ export class ContextEmbeddingRuntime {
     await this.app.get(ContextEmbeddingProcessor).worker.waitUntilReady();
     this.redisOutageExpected = false;
   }
-  async close(): Promise<void> {
+  async close() {
     this.transport.releaseAll();
     await this.app?.close();
     await this.db.$disconnect();
     await this.transport.close();
     if (this.redis.status !== 'ready') {
       this.redis.disconnect();
-      return;
+      throw new Error('Disposable Redis cleanup could not be verified');
     }
     let cursor = '0';
     do {
@@ -550,6 +553,16 @@ export class ContextEmbeddingRuntime {
         throw new Error('Refusing foreign Redis cleanup');
       if (result[1].length) await this.redis.unlink(...result[1]);
     } while (cursor !== '0');
+    const remaining = await this.redis.keys(this.prefix + ':*');
+    if (remaining.length)
+      throw new Error('Disposable Redis namespace cleanup left keys');
     await this.redis.quit();
+    return {
+      redisPrefix: this.prefix,
+      redisKeysRemaining: remaining.length,
+      applicationClosed: true,
+      databaseClientDisconnected: true,
+      loopbackServerClosed: true,
+    };
   }
 }
