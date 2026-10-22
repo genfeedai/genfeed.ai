@@ -13,6 +13,7 @@ import type {
   ILink,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
+import type { ReactNode } from 'react';
 
 export interface BrandDetailBannerProps {
   brand: IBrand;
@@ -38,6 +39,16 @@ export interface BrandDetailOverviewProps {
 export interface BrandDetailSystemPromptProps {
   text: string;
   onCopy: (value?: string) => void;
+}
+
+export interface BrandDetailLatestContentCardProps {
+  label: string;
+  viewAllLink: ReactNode;
+  emptyTitle: string;
+  emptyDescription: string;
+  createLabel: string;
+  createHref: string;
+  children: ReactNode;
 }
 
 export interface BrandDetailLatestVideosProps {

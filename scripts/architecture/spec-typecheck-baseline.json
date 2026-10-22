@@ -4313,46 +4313,6 @@
       "workspace": "app"
     },
     {
-      "code": 2741,
-      "count": 3,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestArticles.test.tsx",
-      "fingerprint": "2d982499144de513a29f",
-      "message": "Property 'articles' is missing in type '{}' but required in type 'BrandDetailLatestArticlesProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestImages.test.tsx",
-      "fingerprint": "3123c234d5c0fa163297",
-      "message": "Property 'images' is missing in type '{}' but required in type 'BrandDetailLatestImagesProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestImages.test.tsx",
-      "fingerprint": "8d70e78987dcdb3e7847",
-      "message": "Property 'images' is missing in type '{}' but required in type 'BrandDetailLatestImagesProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestVideos.test.tsx",
-      "fingerprint": "a1da5a500e92c39b661e",
-      "message": "Property 'videos' is missing in type '{}' but required in type 'BrandDetailLatestVideosProps'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestVideos.test.tsx",
-      "fingerprint": "dc9d5b23aca70d4b77e2",
-      "message": "Property 'videos' is missing in type '{}' but required in type 'BrandDetailLatestVideosProps'.",
-      "workspace": "app"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
