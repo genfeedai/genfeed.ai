@@ -7,9 +7,13 @@ from pathlib import Path
 
 import tiktoken
 
+from token_benchmark_contract import validate_catalog
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('before', type=Path)
 parser.add_argument('after', type=Path)
+parser.add_argument('--change', choices=('output', 'input-documentation'), default='output',
+                    help='Allowed catalog change; validation and other metadata must stay identical')
 args = parser.parse_args()
 version = importlib.metadata.version('tiktoken')
 if version != '0.12.0':
@@ -37,10 +41,12 @@ for name, original in before['payloads'].items():
     if name.endswith('/structured') and original != compact:
         parser.error(f'{name}: complete structured payload changed')
     if name.startswith('catalog/'):
-        def without_schema(catalog):
-            return [{key: value for key, value in tool.items() if key != 'outputSchema'} for tool in catalog['tools']]
-        if without_schema(original) != without_schema(compact):
-            parser.error(f'{name}: tool metadata changed beyond outputSchema')
+        try:
+            validate_catalog(original, compact, args.change)
+        except ValueError as error:
+            parser.error(f'{name}: {error}')
+    if args.change == 'input-documentation' and name.startswith('result/') and serialized(original) != serialized(compact):
+        parser.error(f'{name}: result behavior changed')
     old_text, new_text = serialized(original), serialized(compact)
     old_bytes, new_bytes = len(old_text.encode()), len(new_text.encode())
     row = {'case': name, 'bytes': {'before': old_bytes, 'after': new_bytes}, 'tokens': {}}
@@ -50,4 +56,4 @@ for name, original in before['payloads'].items():
         old_count, new_count = (len(encoder.encode(text, disallowed_special=())) for text in (old_text, new_text))
         row['tokens'][encoding] = {'before': old_count, 'after': new_count, 'saved': old_count - new_count, 'reductionPercent': round(100 * (old_count - new_count) / old_count, 2) if old_count else 0}
     cases.append(row)
-print(json.dumps({'fixtureVersion': before['fixtureVersion'], 'tokenizer': f'tiktoken=={version}', 'serialization': 'compact sorted-key UTF-8 JSON', 'scope': 'Serialized payload tokens; excludes client wrappers, caching and image/audio model costs. Not billed model usage.', 'cases': cases}, indent=2))
+print(json.dumps({'fixtureVersion': before['fixtureVersion'], 'catalogChange': args.change, 'tokenizer': f'tiktoken=={version}', 'serialization': 'compact sorted-key UTF-8 JSON', 'scope': 'Serialized payload tokens; excludes client wrappers, caching and image/audio model costs. Not billed model usage.', 'cases': cases}, indent=2))

@@ -8,6 +8,10 @@ import {
   MCP_BRAND_REQUIRED_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
+import {
+  compactMcpInputDocumentation,
+  compactMcpToolDescription,
+} from '../registry/mcp-input-documentation';
 import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
 import {
   projectMcpDescription,
@@ -81,7 +85,10 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
       const parameters = requiresBrand
         ? withRequiredMcpBrandId(projected)
         : projected;
-      const description = projectMcpDescription(tool.name, tool.description);
+      const description = compactMcpToolDescription(
+        tool.name,
+        projectMcpDescription(tool.name, tool.description),
+      );
       return {
         _meta: {
           [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
@@ -98,12 +105,7 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
             : description,
           creditPricing,
         ),
-        inputSchema: {
-          ...parameters,
-          properties: parameters.properties,
-          required: parameters.required,
-          type: parameters.type,
-        },
+        inputSchema: compactMcpInputDocumentation(parameters),
         name: tool.name,
         outputSchema: getMcpToolOutputSchema(tool),
         requiredRole: tool.requiredRole,
