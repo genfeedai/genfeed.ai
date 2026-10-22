@@ -368,6 +368,133 @@ test('completed-helper absence retries without fabricating success', async () =>
   await qualifyVerdict(expected, { get, sleep: async (ms) => delays.push(ms) });
   assert.deepEqual(delays, [2_000, 5_000]);
 });
+for (const status of ['queued', 'in_progress']) {
+  test(`matched ${status} verdict retries a complete snapshot before genuine success`, async () => {
+    const api = reader();
+    const delays = [];
+    let snapshots = 0;
+    const get = async (...args) => {
+      const response = await api.get(...args);
+      if (args[0].includes('/jobs?') && snapshots++ === 0)
+        response.body.jobs = [job({ status, conclusion: null })];
+      return response;
+    };
+    assert.equal(
+      (
+        await qualifyVerdict(expected, {
+          get,
+          sleep: async (ms) => delays.push(ms),
+        })
+      ).id,
+      11,
+    );
+    assert.deepEqual(delays, [2_000]);
+    assert.equal(
+      api.calls.filter((call) => call.route.includes('/jobs?')).length,
+      2,
+    );
+    assert.equal(
+      api.calls.filter((call) => call.route.endsWith('/123')).length,
+      3,
+    );
+  });
+  test(`matched ${status} verdict exhausts the existing propagation budget without success`, async () => {
+    const api = reader({ jobs: [job({ status, conclusion: null })] });
+    const delays = [];
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...api,
+        sleep: async (ms) => delays.push(ms),
+      }),
+      /not completed/,
+    );
+    assert.deepEqual(delays, [2_000, 5_000]);
+    assert.equal(
+      api.calls.filter((call) => call.route.includes('/jobs?')).length,
+      3,
+    );
+    assert.equal(
+      api.calls.filter((call) => call.route.endsWith('/123')).length,
+      3,
+    );
+  });
+}
+
+test('nonfinal classification never retries malformed states or completed failures', async () => {
+  const overrides = [
+    ...[
+      null,
+      '',
+      'failure',
+      'cancelled',
+      'skipped',
+      'neutral',
+      'timed_out',
+      'success',
+    ]
+      .map((conclusion) => ({ status: 'completed', conclusion }))
+      .filter((value) => value.conclusion !== 'success'),
+    ...['queued', 'in_progress'].flatMap((status) =>
+      [undefined, '', 'success', 'failure', 'cancelled'].map((conclusion) => ({
+        status,
+        conclusion,
+      })),
+    ),
+    ...[undefined, null, '', 'waiting', 'pending', 'requested', 'unknown'].map(
+      (status) => ({ status, conclusion: null }),
+    ),
+  ];
+  for (const override of overrides) {
+    const api = reader({ jobs: [job(override)] });
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...api,
+        sleep: async () => assert.fail('unexpected retry'),
+      }),
+    );
+    assert.equal(api.calls.length, 2);
+  }
+});
+
+test('pending verdicts cannot retry before complete run and job identity validation', async () => {
+  const pending = job({ status: 'in_progress', conclusion: null });
+  const cases = [
+    ...[
+      { id: 124 },
+      { run_attempt: 1 },
+      { event: 'push' },
+      { path: '.github/workflows/fake.yml' },
+      { workflow_id: 1 },
+      { repository: { full_name: 'other/repo' } },
+      { head_sha: 'c'.repeat(40) },
+      { pull_requests: [] },
+      { referenced_workflows: [] },
+    ].map((override) => ({
+      metadata: run(override),
+      jobs: [pending],
+      reads: 1,
+    })),
+    ...[
+      { id: 0 },
+      { run_id: 124 },
+      { run_attempt: 1 },
+      { head_sha: source },
+    ].map((override) => ({ jobs: [{ ...pending, ...override }], reads: 2 })),
+    { jobs: [pending, { ...pending, id: 12 }], reads: 2 },
+    { jobs: [pending, { ...pending, name: 'Plan' }], reads: 2 },
+  ];
+  for (const { reads, ...fixture } of cases) {
+    const api = reader(fixture);
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...api,
+        sleep: async () => assert.fail('unexpected retry'),
+      }),
+    );
+    assert.equal(api.calls.length, reads);
+  }
+});
+
 test('attempt or source change during final reread fails immediately', async () => {
   for (const finalRun of [
     run({ run_attempt: 3 }),
