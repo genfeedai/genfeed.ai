@@ -462,7 +462,9 @@
         "loadRolesFailed": "Could not load roles. Please try again.",
         "allBrands": "All brands",
         "allBrandsHint": "Owners and admins can access all brands. Assignments are kept for future role changes.",
-        "brandSelectionHint": "No selection gives access to all brands."
+        "brandSelectionHint": "No selection gives access to all brands.",
+        "membersTitle": "Members",
+        "inviteMember": "Invite Member"
       }
     },
     "organizationIdentity": {

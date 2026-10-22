@@ -243,6 +243,11 @@ test.describe('Inline account cards', () => {
     );
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(orgPath(APP_ROUTES.SETTINGS.MEMBERS));
+    await expect(
+      page
+        .getByTestId('section-topbar-actions')
+        .getByRole('button', { name: 'Invite Member', exact: true }),
+    ).toBeVisible();
     await page.getByText('Jane Example', { exact: true }).first().click();
     await page
       .getByRole('button', { name: 'Edit member', exact: true })
@@ -270,6 +275,15 @@ test.describe('Inline account cards', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     await expect(page.getByText('Inactive', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByTestId('section-topbar-actions')
+        .getByRole('button', { name: 'Invite Member', exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: test.info().outputPath('member-topbar-narrow.png'),
+      fullPage: true,
+    });
     await page.getByText('Jane Example', { exact: true }).first().click();
     await page
       .getByRole('button', { name: 'Edit member', exact: true })

@@ -32,6 +32,7 @@ import { MembersService } from '@services/organization/members.service';
 import { RolesService } from '@services/organization/roles.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
+import Container from '@ui/layout/container/Container';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -367,17 +368,21 @@ function MembersListContent() {
   const upgradeTierLabel = formatTierLabel(upgradeTier, 'a paid plan');
 
   return (
-    <div className="space-y-4">
-      {!isTeamSubscriptionLocked && canManageInvitations ? (
-        <div className="flex justify-end">
+    <Container
+      label={translate('inlineEdit.membersTitle')}
+      titleVisibility="sr-only"
+      moduleChrome
+      bodyClassName="space-y-4"
+      right={
+        !isTeamSubscriptionLocked && canManageInvitations ? (
           <Button
             onClick={() => openModal(ModalEnum.MEMBER)}
             icon={<UserPlus className="size-4" />}
-            label="Invite Member"
+            label={translate('inlineEdit.inviteMember')}
           />
-        </div>
-      ) : null}
-
+        ) : undefined
+      }
+    >
       {isTeamSubscriptionLocked ? (
         <CardEmpty
           actions={
@@ -426,7 +431,7 @@ function MembersListContent() {
           />
         </>
       )}
-    </div>
+    </Container>
   );
 }
 

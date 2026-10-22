@@ -9,7 +9,8 @@ export default function OrganizationSettingsContainerLayout({
   children,
 }: LayoutProps) {
   const segment = useSelectedLayoutSegment();
-  if (segment === 'usage') {
+  // These pages own their full-width chrome and body inset.
+  if (segment === 'usage' || segment === 'members') {
     return <OrganizationSettingsLayout>{children}</OrganizationSettingsLayout>;
   }
 
