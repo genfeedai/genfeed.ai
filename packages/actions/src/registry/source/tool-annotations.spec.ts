@@ -156,6 +156,76 @@ const AUDITED_PRESENTATIONS = [
 const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_ad_research_detail',
+    title: 'Get Ad Research Detail',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_articles',
+    title: 'Get Articles',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+    name: 'get_connection_status',
+    title: 'Get Connection Status',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_social_conversation',
+    title: 'Get Social Conversation',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'list_ads_research',
+    title: 'List Ads Research',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'list_social_conversations',
+    title: 'List Social Conversations',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+    name: 'list_workflows',
+    title: 'List Workflows',
+  },
+  {
+    annotations: {
       readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: true,
@@ -439,16 +509,16 @@ const FROZEN_MCP_PRESENTATIONS = [
   [
     'get_ad_research_detail',
     'Get Ad Research Detail',
-    true,
+    false,
+    false,
     false,
     true,
-    false,
   ],
   ['get_ads_ad_insights', 'Get Ads Ad Insights', true, false, true, true],
   ['get_ads_adset_insights', 'Get Ads Adset Insights', true, false, true, true],
   ['get_analytics', 'Get Analytics', false, false, false, false],
   ['get_article_preview', 'Get Article Preview', true, false, true, false],
-  ['get_articles', 'Get Articles', true, false, true, false],
+  ['get_articles', 'Get Articles', false, false, false, true],
   [
     'get_brand_completeness',
     'Get Brand Completeness',
@@ -462,7 +532,14 @@ const FROZEN_MCP_PRESENTATIONS = [
   ['get_brands', 'Get Brands', true, false, true, false],
   ['get_clip_highlights', 'Get Clip Highlights', true, false, true, false],
   ['get_clip_project', 'Get Clip Project', false, true, true, true],
-  ['get_connection_status', 'Get Connection Status', true, false, true, false],
+  [
+    'get_connection_status',
+    'Get Connection Status',
+    false,
+    false,
+    false,
+    false,
+  ],
   [
     'get_content_analytics',
     'Get Content Analytics',
@@ -575,10 +652,10 @@ const FROZEN_MCP_PRESENTATIONS = [
   [
     'get_social_conversation',
     'Get Social Conversation',
-    true,
+    false,
+    false,
     false,
     true,
-    false,
   ],
   [
     'get_tiktok_campaign_insights',
@@ -643,7 +720,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
-  ['list_ads_research', 'List Ads Research', true, false, true, false],
+  ['list_ads_research', 'List Ads Research', false, false, false, true],
   ['list_assets', 'List Assets', true, false, true, false],
   [
     'list_brand_publishing_readiness',
@@ -700,10 +777,10 @@ const FROZEN_MCP_PRESENTATIONS = [
   [
     'list_social_conversations',
     'List Social Conversations',
-    true,
+    false,
+    false,
     false,
     true,
-    false,
   ],
   [
     'list_system_workflow_catalog',
@@ -733,7 +810,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  ['list_workflows', 'List Workflows', true, false, true, false],
+  ['list_workflows', 'List Workflows', false, false, false, false],
   [
     'list_x_account_activity',
     'List X Account Activity',
@@ -900,6 +977,12 @@ describe('MCP tool annotations', () => {
       expect(canonical, name).toBeDefined();
       expect(canonical?.title, name).toBe(title);
       expect(canonical?.annotations, name).toEqual(annotations);
+      const first = deriveMcpToolPresentation(name, canonical?.mutationPolicy);
+      const second = deriveMcpToolPresentation(name, canonical?.mutationPolicy);
+      expect(first.annotations, name).toEqual(annotations);
+      expect(first.annotations).not.toBe(second.annotations);
+      first.annotations.readOnlyHint = !annotations.readOnlyHint;
+      expect(second.annotations, name).toEqual(annotations);
       const [listed] = toMcpTools(canonical ? [canonical] : []);
       expect(listed?.title, name).toBe(title);
       expect(listed?.annotations, name).toEqual(annotations);
@@ -1105,6 +1188,11 @@ describe('MCP tool annotations', () => {
 
     for (const tool of getToolsForSurface('mcp')) {
       const isOpenWorld =
+        tool.name === 'get_ad_research_detail' ||
+        tool.name === 'get_articles' ||
+        tool.name === 'get_social_conversation' ||
+        tool.name === 'list_ads_research' ||
+        tool.name === 'list_social_conversations' ||
         tool.name === 'get_brand_context' ||
         tool.name === 'get_clip_project' ||
         tool.name === 'get_instagram_inspiration_detail' ||

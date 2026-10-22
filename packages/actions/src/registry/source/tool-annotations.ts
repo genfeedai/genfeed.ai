@@ -86,6 +86,69 @@ const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(
 const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
   new Map([
     [
+      'get_ad_research_detail',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_articles',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_connection_status',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'get_social_conversation',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'list_ads_research',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'list_social_conversations',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+    ],
+    [
+      'list_workflows',
+      {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+    ],
+    [
       'check_channel',
       {
         destructiveHint: false,

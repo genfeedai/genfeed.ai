@@ -2232,7 +2232,12 @@ test('combined entrypoint evaluates actual routing and required names across all
                   );
                 const selectedImage =
                   event === 'pull_request' &&
-                  ['opened', 'synchronize', 'reopened'].includes(action);
+                  [
+                    'opened',
+                    'synchronize',
+                    'reopened',
+                    'ready_for_review',
+                  ].includes(action);
                 const selectedGate =
                   selectedSource &&
                   ['pull_request', 'merge_group', 'push'].includes(event);
@@ -2511,7 +2516,12 @@ test('domain sequences preserve independent workload replacement and never cance
               if (id === 'server-image') {
                 assert.equal(cancel, true);
                 assert.ok(
-                  ['opened', 'synchronize', 'reopened'].includes(event[1]),
+                  [
+                    'opened',
+                    'synchronize',
+                    'reopened',
+                    'ready_for_review',
+                  ].includes(event[1]),
                 );
               }
             }
