@@ -59,7 +59,7 @@ Widget layout uses shared utilities; it must not recreate component styling.
 
 ## Toolsets
 
-The bare endpoint uses the default profile (up to 27 canonical tools before
+The bare endpoint uses the default profile (up to 26 canonical tools before
 role filtering). `?profile=full` exposes the complete catalog (144 tools at the
 #7815 benchmark revision). Compact output schemas and bounded readable results
 reduce serialized payload size; model-token savings depend on the client.
