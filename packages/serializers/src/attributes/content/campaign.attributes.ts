@@ -1,6 +1,10 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const campaignAttributes = createEntityAttributes([
+  'assetIds',
+  'audience',
+  'tone',
+  'creativeDirection',
   'brandId',
   'brief',
   'endDate',

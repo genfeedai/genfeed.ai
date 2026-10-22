@@ -5,6 +5,7 @@ import {
   canApplyContentCampaignLifecycle,
   toCampaign,
 } from '@api/collections/campaigns/services/campaign.utils';
+import { assertCampaignAssets } from '@api/collections/campaigns/services/campaign-assets.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -57,6 +58,12 @@ export class CampaignGenerationService {
       );
     }
 
+    await assertCampaignAssets(
+      this.prisma,
+      organizationId,
+      campaign.brandId,
+      campaign.assetIds ?? [],
+    );
     const credentials = await this.loadCredentials(campaign, dto.credentialIds);
     if (credentials.length === 0) {
       throw new BadRequestException(
@@ -304,6 +311,13 @@ export class CampaignGenerationService {
               'Write a platform-native variant of this campaign brief.',
               'Write publishable copy for the first post idea, not the campaign plan itself. Keep the objective and verified offer identical. Do not invent facts.',
               `Campaign objective: ${campaign.objective ?? campaign.name}`,
+              ...(campaign.audience
+                ? [`Campaign audience: ${campaign.audience}`]
+                : []),
+              ...(campaign.tone ? [`Campaign tone: ${campaign.tone}`] : []),
+              ...(campaign.creativeDirection
+                ? [`Campaign creative direction: ${campaign.creativeDirection}`]
+                : []),
             ],
             brandId: campaign.brandId,
             platform,

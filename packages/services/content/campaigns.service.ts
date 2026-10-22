@@ -18,6 +18,10 @@ import {
 export interface CreateCampaignInput {
   brandId: string;
   brief?: string | null;
+  assetIds?: string[];
+  audience?: string | null;
+  tone?: string | null;
+  creativeDirection?: string | null;
   endDate?: string | null;
   idempotencyKey?: string;
   name: string;
@@ -54,6 +58,10 @@ export interface CampaignListQuery {
 export class Campaign implements ICampaign {
   brandId!: string;
   brief?: string | null;
+  assetIds?: string[];
+  audience?: string | null;
+  tone?: string | null;
+  creativeDirection?: string | null;
   createdAt!: string;
   endDate?: string | null;
   id!: string;

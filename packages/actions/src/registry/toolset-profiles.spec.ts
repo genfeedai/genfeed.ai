@@ -33,14 +33,14 @@ describe('MCP toolset profiles', () => {
 
   it('pins truthful canonical maximum and ordinary role profile counts', () => {
     const defaults = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
-    expect(BARE_MCP_URL_TOOL_CAP).toBe(26);
-    expect(defaults).toHaveLength(26);
+    expect(BARE_MCP_URL_TOOL_CAP).toBe(27);
+    expect(defaults).toHaveLength(27);
     expect(
       defaults.filter((tool) => tool.requiredRole === 'user'),
-    ).toHaveLength(25);
+    ).toHaveLength(26);
     expect(
       getToolsForToolsets('mcp', DIRECTORY_MCP_PROFILE_TOOLSETS),
-    ).toHaveLength(20);
+    ).toHaveLength(21);
   });
   it('uses default for the bare URL and exposes the three profile names', () => {
     expect(BARE_URL_MCP_PROFILE).toBe('default');

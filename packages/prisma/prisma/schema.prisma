@@ -3147,6 +3147,10 @@ model Campaign {
   name           String
   objective      String?
   brief          String?
+  audience       String?
+  tone           String?
+  creativeDirection String?
+  assetIds       String[]     @default([])
   startDate      DateTime?
   endDate        DateTime?
   // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/contracts)

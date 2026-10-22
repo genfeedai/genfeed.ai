@@ -1665,10 +1665,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   Campaign: {
     allFields: [
+      'audience',
       'brand',
       'brandId',
       'brief',
       'createdAt',
+      'creativeDirection',
       'endDate',
       'id',
       'idempotencyKey',
@@ -1679,11 +1681,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'organizationId',
       'startDate',
       'status',
+      'tone',
       'updatedAt',
       'user',
       'userId',
     ],
-    listFields: ['paidActivations', 'postGroups', 'posts'],
+    listFields: ['assetIds', 'paidActivations', 'postGroups', 'posts'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',

@@ -1,3 +1,4 @@
+import type { ContentCampaignMcpInput } from '@genfeedai/contracts/api-types/contracts/content-campaign.contract';
 import { storyboardCharacterReplacementSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { storyboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { storyboardRunCapabilitiesSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
@@ -19,6 +20,7 @@ import { AdsClient } from '@mcp/services/client/ads.client';
 import { AgentClient } from '@mcp/services/client/agent.client';
 import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
+import { CampaignClient } from '@mcp/services/client/campaign.client';
 import type {
   AdsGatewayInsightsParams,
   CreateTurboRunParams,
@@ -136,6 +138,7 @@ export class ClientService {
   private readonly clips: ClipsClient;
   private readonly editor: EditorClient;
   private readonly scheduler: SchedulerClient;
+  private readonly campaigns: CampaignClient;
   private readonly remix: RemixClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
@@ -159,6 +162,7 @@ export class ClientService {
     this.clips = new ClipsClient(this.base);
     this.editor = new EditorClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
+    this.campaigns = new CampaignClient(this.base);
     this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
@@ -166,6 +170,10 @@ export class ClientService {
     this.socialMessages = new SocialMessagesClient(this.base);
     this.skillsPro = new SkillsProClient(this.base);
     this.linkedin = new LinkedInClient(this.base);
+  }
+
+  manageCampaign(input: ContentCampaignMcpInput) {
+    return this.campaigns.manage(input);
   }
 
   setBearerToken(token: string): void {

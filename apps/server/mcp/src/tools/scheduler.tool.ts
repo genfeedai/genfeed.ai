@@ -17,6 +17,7 @@ export const SCHEDULER_TOOL_NAMES = new Set([
 ]);
 
 const RELEASE_UPDATE_FIELDS = new Set([
+  'campaignId',
   'attachments',
   'baseContent',
   'media',

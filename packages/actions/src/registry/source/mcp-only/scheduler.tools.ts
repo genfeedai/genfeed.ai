@@ -104,6 +104,10 @@ const releaseCreateProperties = {
   attachments: { items: attachmentSchema, type: 'array' },
   baseContent: { type: 'string' },
   brandId: { type: 'string' },
+  campaignId: {
+    type: 'string',
+    description: 'Native content campaign in the same brand.',
+  },
   media: { items: mediaSchema, type: 'array' },
   recurrence: recurrenceSchema,
   scheduledDate: { description: 'ISO 8601, with offset', type: 'string' },
@@ -121,6 +125,11 @@ const releaseCreateProperties = {
 };
 
 const releaseUpdateProperties = {
+  campaignId: {
+    type: ['string', 'null'],
+    description:
+      'Assign or clear the native campaign; must match the release brand.',
+  },
   attachments: { items: attachmentSchema, type: 'array' },
   baseContent: { type: 'string' },
   media: { items: mediaSchema, type: 'array' },

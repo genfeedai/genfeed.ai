@@ -6,6 +6,7 @@ import {
   campaignItemOutcome,
   toCampaign,
 } from '@api/collections/campaigns/services/campaign.utils';
+import { assertCampaignAssets } from '@api/collections/campaigns/services/campaign-assets.util';
 import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { type AggregatePaginateResult, scopedWhere } from '@api/index';
@@ -86,7 +87,18 @@ export class CampaignsService {
   ): Promise<ICampaign> {
     await this.assertBrand(organizationId, dto.brandId);
 
+    await assertCampaignAssets(
+      this.prisma,
+      organizationId,
+      dto.brandId,
+      dto.assetIds ?? [],
+    );
+
     const data = {
+      assetIds: dto.assetIds ?? [],
+      audience: dto.audience ?? null,
+      tone: dto.tone ?? null,
+      creativeDirection: dto.creativeDirection ?? null,
       brandId: dto.brandId,
       brief: dto.brief ?? null,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
@@ -153,12 +165,29 @@ export class CampaignsService {
   ): Promise<ICampaign> {
     const existing = await this.requireCampaign(organizationId, id);
     if (dto.brandId && dto.brandId !== existing.brandId) {
+      if ((existing.assetIds?.length ?? 0) > 0) {
+        throw new BadRequestException(
+          'Remove campaign assets before changing its brand.',
+        );
+      }
       await this.assertBrand(organizationId, dto.brandId);
       await this.assertBrandChangeAllowed(organizationId, id);
     }
 
+    await assertCampaignAssets(
+      this.prisma,
+      organizationId,
+      dto.brandId ?? existing.brandId,
+      dto.assetIds ?? [],
+    );
     const updated = await this.prisma.campaign.update({
       data: {
+        ...(dto.assetIds !== undefined ? { assetIds: dto.assetIds } : {}),
+        ...(dto.audience !== undefined ? { audience: dto.audience } : {}),
+        ...(dto.tone !== undefined ? { tone: dto.tone } : {}),
+        ...(dto.creativeDirection !== undefined
+          ? { creativeDirection: dto.creativeDirection }
+          : {}),
         ...(dto.brandId !== undefined ? { brandId: dto.brandId } : {}),
         ...(dto.brief !== undefined ? { brief: dto.brief ?? null } : {}),
         ...(dto.endDate !== undefined

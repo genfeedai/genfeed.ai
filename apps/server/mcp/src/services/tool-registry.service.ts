@@ -67,6 +67,10 @@ import {
   handleClipProjectsTool,
 } from '@mcp/tools/clip-projects.tool';
 import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
+import {
+  CONTENT_CAMPAIGN_TOOL_NAMES,
+  handleContentCampaignTool,
+} from '@mcp/tools/content-campaign.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
@@ -213,6 +217,7 @@ type ExecutorKind =
   | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
+  | 'content-campaign'
   | 'skills-pro'
   | 'unknown';
 
@@ -522,6 +527,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
+    if (CONTENT_CAMPAIGN_TOOL_NAMES.has(name)) return 'content-campaign';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
     return 'unknown';
@@ -634,6 +640,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleStoryboardTool(this.clientService, name, args);
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
+      case 'content-campaign':
+        return handleContentCampaignTool(this.clientService, name, args);
       case 'scheduler':
         return handleSchedulerTool(this.clientService, name, args);
       case 'skills-pro':

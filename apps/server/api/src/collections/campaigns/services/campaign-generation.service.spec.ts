@@ -83,6 +83,28 @@ describe('CampaignGenerationService', () => {
     });
   });
 
+  it('includes campaign-specific audience, voice and creative direction in generation', async () => {
+    asMock(prisma.campaign.findFirst).mockResolvedValue(
+      campaignRow({
+        audience: 'Small marketing teams',
+        tone: 'Candid and specific',
+        creativeDirection: 'Show the human corrections',
+      }),
+    );
+    await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {});
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
+      ORG_ID,
+      expect.objectContaining({
+        brandId: BRAND_ID,
+        additionalContext: expect.arrayContaining([
+          'Campaign audience: Small marketing teams',
+          'Campaign tone: Candid and specific',
+          'Campaign creative direction: Show the human corrections',
+        ]),
+      }),
+    );
+  });
+
   it('creates draft platform variants stamped with campaign and lineage', async () => {
     const result = await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {
       contentRunId: 'crun0000000001',

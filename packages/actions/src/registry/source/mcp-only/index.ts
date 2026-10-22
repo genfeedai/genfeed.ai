@@ -6,6 +6,7 @@ import { MCP_ANALYTICS_TOOLS } from './analytics.tools';
 import { MCP_CAMPAIGN_TOOLS } from './campaign.tools';
 import { MCP_CLIP_TOOLS } from './clips.tools';
 import { MCP_CONTENT_TOOLS } from './content.tools';
+import { MCP_CONTENT_CAMPAIGN_TOOLS } from './content-campaign.tools';
 import { MCP_DISCOVERY_TOOLS } from './discovery.tools';
 import { MCP_EDITOR_TOOLS } from './editor.tools';
 import { MCP_GENERATION_TOOLS } from './generation.tools';
@@ -22,6 +23,7 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_GENERATION_TOOLS,
   ...MCP_ANALYTICS_TOOLS,
   ...MCP_CONTENT_TOOLS,
+  ...MCP_CONTENT_CAMPAIGN_TOOLS,
   ...MCP_DISCOVERY_TOOLS,
   ...MCP_OTHER_TOOLS,
   ...MCP_ONBOARDING_TOOLS,

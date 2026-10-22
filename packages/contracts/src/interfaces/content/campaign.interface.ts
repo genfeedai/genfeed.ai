@@ -9,6 +9,10 @@ import type { IBaseEntity } from '../core/base.interface';
  * Distinct from the outreach campaign in Messages and from an Automate program.
  */
 export interface ICampaign extends IBaseEntity {
+  assetIds?: string[];
+  audience?: string | null;
+  tone?: string | null;
+  creativeDirection?: string | null;
   brandId: string;
   /** Shared creative brief every release in the campaign is produced from. */
   brief?: string | null;

@@ -20,6 +20,10 @@ export { canApplyContentCampaignLifecycle };
  */
 export function toCampaign(row: Campaign): ICampaign {
   return {
+    assetIds: row.assetIds ?? [],
+    audience: row.audience ?? null,
+    tone: row.tone ?? null,
+    creativeDirection: row.creativeDirection ?? null,
     brandId: row.brandId,
     brief: row.brief,
     createdAt: row.createdAt.toISOString(),

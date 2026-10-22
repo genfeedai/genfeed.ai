@@ -23,7 +23,7 @@ export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
  * publishing readiness so a caller can select a healthy brand channel before
  * scheduling without reconnecting with additional toolsets.
  */
-export const BARE_MCP_URL_TOOL_CAP = 26;
+export const BARE_MCP_URL_TOOL_CAP = 27;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',

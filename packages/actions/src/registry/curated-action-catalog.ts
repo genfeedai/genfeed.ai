@@ -359,6 +359,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'agent-chat',
   },
+  { name: 'manage_campaign', surfaces: ['mcp'], toolset: 'content' },
   { name: 'list_assets', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'list_brand_publishing_readiness',

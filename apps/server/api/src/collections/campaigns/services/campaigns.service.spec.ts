@@ -44,6 +44,7 @@ describe('CampaignsService', () => {
   const prisma = {
     $transaction: vi.fn(),
     brand: { findFirst: vi.fn() },
+    ingredient: { findMany: vi.fn() },
     campaign: {
       count: vi.fn(),
       create: vi.fn(),
@@ -64,6 +65,59 @@ describe('CampaignsService', () => {
         callback(prisma),
     );
     asMock(prisma.brand.findFirst).mockResolvedValue({ id: BRAND_ID });
+  });
+
+  it('persists campaign context and same-brand Library assets', async () => {
+    asMock(prisma.ingredient.findMany).mockResolvedValue([{ id: 'asset-1' }]);
+    asMock(prisma.campaign.create).mockImplementation(async ({ data }) =>
+      campaignRow(data),
+    );
+    const result = await service.create(ORG_ID, USER_ID, {
+      brandId: BRAND_ID,
+      name: 'Launch',
+      audience: 'Small teams',
+      tone: 'Candid',
+      creativeDirection: 'Show real work',
+      assetIds: ['asset-1'],
+    });
+    expect(result).toMatchObject({
+      audience: 'Small teams',
+      tone: 'Candid',
+      creativeDirection: 'Show real work',
+      assetIds: ['asset-1'],
+    });
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: ORG_ID,
+          brandId: BRAND_ID,
+          isDeleted: false,
+          id: { in: ['asset-1'] },
+        }),
+      }),
+    );
+  });
+
+  it('rejects missing or foreign campaign assets before creating content', async () => {
+    asMock(prisma.ingredient.findMany).mockResolvedValue([]);
+    await expect(
+      service.create(ORG_ID, USER_ID, {
+        brandId: BRAND_ID,
+        name: 'Launch',
+        assetIds: ['foreign-asset'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.campaign.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a brand change while campaign assets are still associated', async () => {
+    asMock(prisma.campaign.findFirst).mockResolvedValue(
+      campaignRow({ assetIds: ['asset-1'] }),
+    );
+    await expect(
+      service.update(ORG_ID, CAMPAIGN_ID, { brandId: OTHER_BRAND_ID }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.campaign.update).not.toHaveBeenCalled();
   });
 
   it('scopes the list to the organization, brand and tombstone state', async () => {
