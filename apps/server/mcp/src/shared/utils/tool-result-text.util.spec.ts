@@ -105,7 +105,7 @@ describe('MCP readable tool results', () => {
     expect(formatToolData({ brands: [] })).toBe('Brands: None found.');
   });
 
-  it('preserves content verbatim, bounds lists, and does not invent success', () => {
+  it('preserves short content, bounds lists, and does not invent success', () => {
     expect(
       formatToolData({ status: 'FAILED', message: 'Try again.' }),
     ).toContain('Status: Failed');
@@ -119,7 +119,7 @@ describe('MCP readable tool results', () => {
       formatToolData(
         Array.from({ length: 30 }, (_, i) => ({ name: `Item ${i}` })),
       ),
-    ).toContain('6 more');
+    ).toContain('25 more');
   });
 
   it('keeps validation and token health metrics visible, while omitting auth material', () => {
@@ -150,6 +150,64 @@ describe('MCP readable tool results', () => {
       'private',
     );
     expect(result.structuredContent.data).toBe(data);
+  });
+
+  it('bounds deep, wide and long summaries while retaining full machine data', () => {
+    const data = {
+      status: 'FAILED',
+      message: 'Reconnect first.',
+      rows: Array.from({ length: 30 }, (_, i) => ({
+        name: `Row ${i}`,
+        content: 'Long paragraph '.repeat(1000),
+        nested: { a: { b: { c: 'deep' } } },
+      })),
+    };
+    const result = dataToolResult(data);
+    expect(result.structuredContent.data).toBe(data);
+    const text = result.content[0].text;
+    expect(text.length).toBeLessThanOrEqual(2400);
+    expect(text).toContain('Status: Failed');
+    expect(text).toContain('Reconnect first.');
+    expect(text).toContain('structured result');
+    expect(text).not.toContain('Row 5');
+  });
+
+  it('keeps usable links atomic and preserves omitted fields in structured data', () => {
+    const data = {
+      name: 'Example',
+      ...Object.fromEntries(
+        Array.from({ length: 40 }, (_, i) => [
+          `field${i}`,
+          'Details '.repeat(50),
+        ]),
+      ),
+      authorizationUrl: `https://example.com/auth?state=${'x'.repeat(4000)}`,
+    };
+    const result = dataToolResult(data);
+    expect(result.structuredContent.data).toBe(data);
+    const text = result.content[0].text;
+    expect(text.length).toBeLessThanOrEqual(
+      2400 + data.authorizationUrl.length + 30,
+    );
+    expect(text).toContain('Example');
+    expect(text).not.toMatch(/\[[^\]]*$/);
+    expect(text).toContain(`](${data.authorizationUrl})`);
+    expect(text).toContain('structured result');
+  });
+
+  it('keeps unicode previews valid and prioritizes errors after many details', () => {
+    const result = formatToolData({
+      ...Object.fromEntries(
+        Array.from({ length: 20 }, (_, i) => [`field${i}`, 'detail']),
+      ),
+      message: 'Correct the input.',
+      status: 'FAILED',
+      name: '😀'.repeat(300),
+    });
+    expect(result).toContain('Correct the input.');
+    expect(result).toContain('Status: Failed');
+    expect(result).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/u);
+    expect(result).toContain('structured result');
   });
 
   describe('generation harness receipt', () => {

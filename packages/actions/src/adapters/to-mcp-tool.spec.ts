@@ -204,13 +204,28 @@ describe('toMcpTools', () => {
         'outputSchema',
         expect.objectContaining({
           properties: expect.objectContaining({
-            data: expect.any(Object),
             message: { type: 'string' },
           }),
           type: 'object',
         }),
       );
     }
+  });
+
+  it('advertises compact result-family schemas instead of every envelope field', () => {
+    const tools = toMcpTools(getToolsForSurface('mcp'));
+    for (const tool of tools) {
+      expect(JSON.stringify(tool.outputSchema).length, tool.name).toBeLessThan(
+        180,
+      );
+    }
+    const schema = (name: string) =>
+      tools.find((tool) => tool.name === name)?.outputSchema;
+    expect(schema('get_account')?.properties.data).toEqual({ type: 'object' });
+    expect(schema('find_tools')?.properties).toHaveProperty('toolsets');
+    expect(schema('find_tools')?.properties).not.toHaveProperty('artifact');
+    expect(schema('generate')?.properties).toHaveProperty('artifact');
+    expect(schema('get_account')?.properties).not.toHaveProperty('tools');
   });
 
   it('emits only MCP-surfaced actions', () => {

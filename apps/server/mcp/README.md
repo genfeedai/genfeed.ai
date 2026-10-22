@@ -59,10 +59,12 @@ Widget layout uses shared utilities; it must not recreate component styling.
 
 ## Toolsets
 
-`tools/list` can return ~120 tools (tens of thousands of tokens), which is
-more than most MCP clients need to load per connection. Callers can narrow
-the advertised tool set with a `?toolsets=` query parameter on the `/mcp`
-endpoint:
+The bare endpoint uses the default profile (up to 27 canonical tools before
+role filtering). `?profile=full` exposes the complete catalog (144 tools at the
+#7815 benchmark revision). Compact output schemas and bounded readable results
+reduce serialized payload size; model-token savings depend on the client.
+See the [token benchmark](TOKEN_BENCHMARK.md) for measurements and reproduction.
+Callers can narrow the advertised tools with `?toolsets=` on the `/mcp` endpoint:
 
 ```
 https://mcp.genfeed.ai/mcp?toolsets=content,generation

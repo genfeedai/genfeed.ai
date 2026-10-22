@@ -1,5 +1,7 @@
 import type { ToolsetName } from '@genfeedai/actions';
 import {
+  getMcpToolOutputSchema,
+  getToolByName,
   MCP_TOOL_OUTPUT_SCHEMA,
   type McpAccessMode,
   mostRestrictiveMcpAccessMode,
@@ -171,9 +173,10 @@ export class StreamableHttpService {
         name: request.params.name,
         arguments: request.params.arguments ?? {},
       });
+      const tool = getToolByName(request.params.name);
       return server.projectCallToolResult(
-        withMcpStructuredContent(CallToolResultSchema.parse(result)),
-        MCP_TOOL_OUTPUT_SCHEMA,
+        withMcpStructuredContent(CallToolResultSchema.parse(result), tool),
+        tool ? getMcpToolOutputSchema(tool) : MCP_TOOL_OUTPUT_SCHEMA,
       );
     });
 

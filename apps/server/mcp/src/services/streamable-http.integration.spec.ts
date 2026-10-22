@@ -109,6 +109,29 @@ describe('StreamableHttpService (real SDK integration)', () => {
     });
   });
 
+  it('rejects a result that violates the advertised tool-specific schema on the wire', async () => {
+    const malformed = {
+      content: [{ type: 'text' as const, text: 'Account' }],
+      structuredContent: { data: {} },
+    };
+    Object.defineProperty(malformed.structuredContent, 'data', { value: [] });
+    const call = vi
+      .spyOn(ToolRegistryService.prototype, 'handleToolCall')
+      .mockResolvedValue(malformed);
+    try {
+      await withServer(async (baseUrl) => {
+        const result = await postModern(baseUrl, 'tools/call', {
+          name: 'get_account',
+          arguments: { sections: ['profile'] },
+        });
+        expect(result.body.error).toBeDefined();
+        expect(result.body.result).toBeUndefined();
+      });
+    } finally {
+      call.mockRestore();
+    }
+  });
+
   it('returns structured text for a declined action without executing it', async () => {
     const notice = 'Approval declined. The action was not executed.';
     const call = vi

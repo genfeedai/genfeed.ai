@@ -98,6 +98,11 @@ export {
   readMcpBrandId,
 } from './registry/mcp-brand-required';
 export {
+  getMcpToolOutputSchema,
+  getMcpToolResultFamily,
+  MCP_RESULT_SCHEMAS,
+} from './registry/mcp-output-schema';
+export {
   findInapplicableMediaGenerationParameters,
   getMediaGenerationCreditFloor,
   getMediaGenerationType,

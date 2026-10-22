@@ -1,3 +1,4 @@
+import { getToolByName } from '@genfeedai/actions';
 import { withMcpStructuredContent } from '@mcp/services/mcp-structured-result.util';
 import type { CallToolResultSchema } from '@modelcontextprotocol/core';
 import { describe, expect, it } from 'vitest';
@@ -55,7 +56,10 @@ describe('withMcpStructuredContent', () => {
       ],
     } satisfies McpCallResult;
     const before = structuredClone(result);
-    const normalized = withMcpStructuredContent(result);
+    const normalized = withMcpStructuredContent(
+      result,
+      getToolByName('generate'),
+    );
     expect(normalized).toEqual({
       ...before,
       structuredContent: { message: 'Image ready.\nSaved in Library.' },
@@ -81,6 +85,40 @@ describe('withMcpStructuredContent', () => {
         message: 'tool result withheld: suspected instruction injection',
       },
     });
+  });
+
+  it('validates the requested tool family as well as standard envelope fields', () => {
+    const account = getToolByName('get_account');
+    const discovery = getToolByName('find_tools');
+    expect(account).toBeDefined();
+    expect(discovery).toBeDefined();
+    expect(() =>
+      withMcpStructuredContent(
+        { content: [], structuredContent: { data: [] } },
+        account,
+      ),
+    ).toThrow();
+    expect(() =>
+      withMcpStructuredContent(
+        { content: [], structuredContent: { toolsets: {} } },
+        discovery,
+      ),
+    ).toThrow();
+    expect(() =>
+      withMcpStructuredContent(
+        { content: [], structuredContent: { creditsDebited: '8' } },
+        account,
+      ),
+    ).toThrow();
+    const structuredContent = {
+      data: { profile: {} },
+      creditsDebited: 0,
+      extra: { citations: [] },
+    };
+    expect(
+      withMcpStructuredContent({ content: [], structuredContent }, account)
+        .structuredContent,
+    ).toBe(structuredContent);
   });
 
   it('supports a contentless result without inventing success or a domain payload', () => {

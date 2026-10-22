@@ -8,6 +8,7 @@ import {
   MCP_BRAND_REQUIRED_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
+import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
 import {
   projectMcpDescription,
   projectMcpParameters,
@@ -104,7 +105,7 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
           type: parameters.type,
         },
         name: tool.name,
-        outputSchema: MCP_TOOL_OUTPUT_SCHEMA,
+        outputSchema: getMcpToolOutputSchema(tool),
         requiredRole: tool.requiredRole,
         title: presentation.title,
       };

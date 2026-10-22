@@ -1,7 +1,34 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
-const MAX_ITEMS = 24;
-const MAX_DEPTH = 6;
+const MAX_ITEMS = 5;
+const MAX_DEPTH = 3;
+const MAX_FIELDS = 10;
+const MAX_STRING_CHARS = 240;
+const MAX_TEXT_CHARS = 2400;
+const MORE_DETAILS = '… More details are available in the structured result.';
+const PRIORITY_FIELD =
+  /^(status|state|executionState|message|error|reason|warnings?|diagnostics|correctiveAction|requiredAction|canSchedule|authorizationUrl|nextStepUrl|editorUrl|name|label|title)$/i;
+
+function preview(value: string): string {
+  return value.length <= MAX_STRING_CHARS
+    ? value
+    : `${value.slice(0, MAX_STRING_CHARS).replace(/[\uD800-\uDBFF]$/u, '')}… [full text in structured result]`;
+}
+
+/** Keep complete lines (especially signed links); never cut a URL in half. */
+function boundedSummary(value: string): string {
+  if (value.length <= MAX_TEXT_CHARS) return value;
+  const lines: string[] = [];
+  let length = MORE_DETAILS.length + 1;
+  for (const line of value.split('\n')) {
+    // Action/resource links remain usable for clients that only show text.
+    const isLink = /^\s*\[Open [^\]]+\]\(https?:\/\/.*\)$/.test(line);
+    if (!isLink && length + line.length + 1 > MAX_TEXT_CHARS) continue;
+    lines.push(line);
+    if (!isLink) length += line.length + 1;
+  }
+  return [...lines, MORE_DETAILS].join('\n');
+}
 const ID_FIELD = /(?:^|[ _-])ids?$|^uuid$/i;
 const PRIVATE_FIELD =
   /token$|secret|password|^authorization$|^authorizationCode$|credentials|^headers$|^uploadUrl$|cursor|^generationHarness$/i;
@@ -27,14 +54,16 @@ function scalar(value: unknown): string {
     return Number.isFinite(value)
       ? String(Number(value.toPrecision(15)))
       : 'Unavailable';
-  return typeof value === 'string' ? value : '';
+  return typeof value === 'string' ? preview(value) : '';
 }
 
 function fields(value: unknown, depth: number): string {
-  if (depth > MAX_DEPTH)
+  if (depth > MAX_DEPTH && value !== null && typeof value === 'object')
     return 'Additional details are available in the structured result.';
   if (Array.isArray(value)) {
     if (!value.length) return 'None found.';
+    if (depth >= MAX_DEPTH && value.some(isRecord))
+      return `${value.length} items; details are available in the structured result.`;
     const rows = value
       .slice(0, MAX_ITEMS)
       .map((item) => fields(item, depth + 1))
@@ -42,20 +71,24 @@ function fields(value: unknown, depth: number): string {
     const remaining = value.length - MAX_ITEMS;
     return (
       rows.map((row) => `- ${row.replaceAll('\n', '\n  ')}`).join('\n') +
-      (remaining > 0
-        ? `\n… ${remaining} more; request the next page for more results.`
-        : '')
+      (remaining > 0 ? `\n… ${remaining} more in the structured result.` : '')
     );
   }
   if (!isRecord(value)) return scalar(value);
-  return Object.entries(value)
+  const entries = Object.entries(value)
+    .filter(
+      ([key, item]) =>
+        !ID_FIELD.test(key.replace(/([a-z0-9])([A-Z])/g, '$1_$2')) &&
+        !PRIVATE_FIELD.test(key) &&
+        item !== undefined,
+    )
+    .sort(
+      ([left], [right]) =>
+        Number(PRIORITY_FIELD.test(right)) - Number(PRIORITY_FIELD.test(left)),
+    );
+  const rendered = entries
+    .slice(0, MAX_FIELDS)
     .flatMap(([key, item]) => {
-      if (
-        ID_FIELD.test(key.replace(/([a-z0-9])([A-Z])/g, '$1_$2')) ||
-        PRIVATE_FIELD.test(key) ||
-        item === undefined
-      )
-        return [];
       if (/url$/i.test(key) && typeof item === 'string') {
         try {
           const url = new URL(item);
@@ -90,11 +123,14 @@ function fields(value: unknown, depth: number): string {
       ];
     })
     .join('\n');
+  return entries.length > MAX_FIELDS
+    ? `${rendered}\n${MORE_DETAILS}`
+    : rendered;
 }
 
 /** Display text is a summary. Identifiers and complete payloads stay in structuredContent. */
 export function formatToolData(value: unknown): string {
-  return fields(value, 0) || 'No additional details returned.';
+  return boundedSummary(fields(value, 0)) || 'No additional details returned.';
 }
 
 const HARNESS_SOURCES: Readonly<Record<string, string>> = {
