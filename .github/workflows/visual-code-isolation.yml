@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/visual-code/**'
+      - 'scripts/ci/install-visual-runtime-deps.mjs'
+      - 'scripts/ci/install-visual-runtime-deps.test.mjs'
       - 'docker/Dockerfile.visual-code'
       - '.github/workflows/visual-code-isolation.yml'
       - '.dockerignore'
@@ -67,8 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg zstd
+          sudo "$(command -v node)" "$GITHUB_WORKSPACE/scripts/ci/install-visual-runtime-deps.mjs"
           curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd
           curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd.sha512
           sha512sum -c gvisor.tar.zstd.sha512
@@ -87,8 +88,7 @@ jobs:
           timeout "${remaining}s" bash <<'RUNSC'
             set -euo pipefail
             cd "$RUNNER_TEMP"
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg zstd
+            sudo "$(command -v node)" "$GITHUB_WORKSPACE/scripts/ci/install-visual-runtime-deps.mjs"
             curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd
             curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd.sha512
             sha512sum -c gvisor.tar.zstd.sha512
@@ -186,8 +186,7 @@ jobs:
           timeout "${remaining}s" bash <<'RUNSC'
             set -euo pipefail
             cd "$RUNNER_TEMP"
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg zstd
+            sudo "$(command -v node)" "$GITHUB_WORKSPACE/scripts/ci/install-visual-runtime-deps.mjs"
             curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd
             curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd.sha512
             sha512sum -c gvisor.tar.zstd.sha512

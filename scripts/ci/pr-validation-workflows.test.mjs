@@ -9,6 +9,7 @@ import { runInNewContext } from 'node:vm';
 
 import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
 
+import './install-visual-runtime-deps.test.mjs';
 import './coverage-failure-reporter.test.mjs';
 import './cla-status-recovery.test.mjs';
 import './full-suite-evidence.test.mjs';
@@ -1439,6 +1440,11 @@ test('final visual proof uses separate bounded isolation and connected jobs with
       block.includes(`${budget}000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS`),
     );
     assert.match(block, /sha512sum -c gvisor\.tar\.zstd\.sha512/);
+    assert.match(
+      block,
+      /sudo "\$\(command -v node\)" "\$GITHUB_WORKSPACE\/scripts\/ci\/install-visual-runtime-deps\.mjs"/,
+    );
+    assert.doesNotMatch(block, /sudo apt-get (update|install)/);
     assert.match(block, /genfeed-visual-code:4\.0\.530/);
     assert.match(
       block,
