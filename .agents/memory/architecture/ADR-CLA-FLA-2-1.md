@@ -53,6 +53,12 @@ for the exact commit's result; its HTTP 302 response alone is not a verdict.
 A hosted outage must remain visible rather than prompting a human to sign
 again or synthesizing success.
 
+The maintainer's OAuth authorization and recorded CLA signature are separate
+records. Retire the obsolete personal grant after App-owned reporting is working,
+then verify another fresh signed commit without reauthorizing. Administrative
+edits in the hosted dashboard may still require signing in; automated reporting
+must not depend on that session or grant.
+
 ## Agent-account exemption
 
 Commits authored by the maintainer's coding agents are exempt from `license/cla` via CLA
