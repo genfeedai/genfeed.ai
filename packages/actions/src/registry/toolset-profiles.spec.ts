@@ -31,7 +31,7 @@ describe('MCP toolset profiles', () => {
   });
 
   it('keeps media upload and get_posts on content inside the bare-URL profile', () => {
-    const names = new Set(
+    const names = new Set<string>(
       getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
         (tool) => tool.name,
       ),

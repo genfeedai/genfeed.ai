@@ -90,7 +90,7 @@ describe('mutation policy map', () => {
   });
 
   it('only names cataloged actions', () => {
-    const catalogNames = new Set(
+    const catalogNames = new Set<string>(
       CURATED_ACTION_CATALOG.map((entry) => entry.name),
     );
     const unknown = Object.keys(MUTATION_POLICY_BY_NAME).filter(

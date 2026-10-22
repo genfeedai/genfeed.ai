@@ -7,6 +7,122 @@ import {
   toMcpTools,
 } from './to-mcp-tool';
 
+const AUDITED_PRESENTATIONS = [
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 1,
+    mutationPolicy: 'direct',
+    name: 'enhance_prompt',
+    title: 'Enhance Prompt',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 10,
+    mutationPolicy: 'direct',
+    name: 'generate',
+    title: 'Generate',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 1,
+    mutationPolicy: 'direct',
+    name: 'get_x_posts',
+    title: 'Get X Posts',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 1,
+    mutationPolicy: 'direct',
+    name: 'list_x_account_activity',
+    title: 'List X Account Activity',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+      readOnlyHint: true,
+    },
+    creditCost: 0,
+    mutationPolicy: undefined,
+    name: 'get_ads_ad_insights',
+    title: 'Get Ads Ad Insights',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+      readOnlyHint: true,
+    },
+    creditCost: 0,
+    mutationPolicy: undefined,
+    name: 'get_ads_adset_insights',
+    title: 'Get Ads Adset Insights',
+  },
+  {
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+    creditCost: 0,
+    mutationPolicy: 'direct',
+    name: 'cancel_visual_code_project',
+    title: 'Cancel Visual Code Project',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 0,
+    mutationPolicy: 'direct',
+    name: 'transform_media',
+    title: 'Transform Media',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    creditCost: 1,
+    mutationPolicy: 'approval-required',
+    name: 'create_post',
+    title: 'Create Post',
+  },
+] satisfies ReadonlyArray<
+  Pick<
+    CanonicalToolDefinition,
+    'name' | 'title' | 'annotations' | 'creditCost' | 'mutationPolicy'
+  >
+>;
+
 function buildTool(
   overrides: Partial<CanonicalToolDefinition> = {},
 ): CanonicalToolDefinition {
@@ -90,15 +206,14 @@ describe('toMcpTools', () => {
     }
   });
 
-  it('derives annotations when a fixture has not stored them', () => {
-    const [tool] = toMcpTools([buildTool({ mutationPolicy: 'direct' })]);
-
-    expect(tool?.title).toBe('Generate');
-    expect(tool?.annotations).toEqual({
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: true,
-      readOnlyHint: false,
-    });
-  });
+  it.each(AUDITED_PRESENTATIONS)(
+    'derives audited presentation for $name when the fixture has not stored it',
+    ({ name, creditCost, mutationPolicy, title, annotations }) => {
+      const [tool] = toMcpTools([
+        buildTool({ creditCost, mutationPolicy, name }),
+      ]);
+      expect(tool?.title).toBe(title);
+      expect(tool?.annotations).toEqual(annotations);
+    },
+  );
 });
