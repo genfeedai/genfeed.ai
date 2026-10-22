@@ -2,12 +2,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('next/image', () => ({
-  default: ({ alt, onError, src }: import('react').ComponentProps<'input'>) => (
-    <input alt={alt} onError={onError} src={src} type="image" />
-  ),
-}));
-
 const props = {
   alt: 'Genfeed',
   fallbackClassName: 'fallback',

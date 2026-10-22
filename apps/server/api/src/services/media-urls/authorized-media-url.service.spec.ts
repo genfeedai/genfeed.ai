@@ -169,7 +169,7 @@ describe('AuthorizedMediaUrlService', () => {
     expect(prisma.asset.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          category: { in: ['LOGO', 'BANNER'] },
+          category: { in: ['BANNER', 'LOGO'] },
           parentType: 'BRAND',
         }),
       }),
