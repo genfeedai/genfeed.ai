@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
 import { useBillingAccount } from '@hooks/data/billing/use-billing-account/use-billing-account';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
@@ -9,6 +10,7 @@ import type { SubscriptionStatCellProps } from '@props/settings/subscription-pag
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';
@@ -65,6 +67,30 @@ function StatCell({ label, value }: SubscriptionStatCellProps) {
 
 /** Plan, entitlements, Stripe portal — not credit top-ups. */
 export default function SettingsSubscriptionPage() {
+  const runtime = useDesktopRuntimeContext();
+  const translate = useTranslations('common.subscription');
+  const isSubscriptionAvailable =
+    runtime.status === 'web' ||
+    (runtime.status === 'ready' && runtime.context?.runtimeMode === 'cloud');
+
+  if (!isSubscriptionAvailable) {
+    return (
+      <div className="flex flex-col gap-4 pb-10">
+        <h1 className="sr-only">{translate('title')}</h1>
+        <Alert>
+          <AlertTitle>{translate('unavailableTitle')}</AlertTitle>
+          <AlertDescription>
+            {translate('unavailableDescription')}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return <SettingsSubscriptionContent />;
+}
+
+function SettingsSubscriptionContent() {
   const translate = useTranslations('common');
   const { isReady, settings } = useBrand();
   const { subscription, isLoading, isSubscriptionActive, openBillingPortal } =

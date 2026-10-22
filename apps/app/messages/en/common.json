@@ -2333,6 +2333,9 @@
     "title": "Refer & earn"
   },
   "subscription": {
+    "title": "Subscription",
+    "unavailableTitle": "Subscription unavailable",
+    "unavailableDescription": "Subscription is unavailable for the current runtime.",
     "billingAccount": {
       "linked": "Linked",
       "linkedHeading": "Linked to a shared billing account",

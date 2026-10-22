@@ -2221,3 +2221,181 @@ describe('desktop Credits navigation', () => {
     unmount();
   });
 });
+
+describe('Subscription runtime boundary', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error('Unexpected fetch');
+      }),
+    );
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      class {
+        constructor() {
+          throw new Error('Unexpected XHR');
+        }
+      },
+    );
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        constructor() {
+          throw new Error('Unexpected WebSocket');
+        }
+      },
+    );
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => {
+        throw new Error('Unexpected browser open');
+      }),
+    );
+
+    mockPathname.value = '/acme/~/settings/general';
+    mockRouteParams.orgSlug = 'acme';
+    mockRouteParams.brandSlug = undefined;
+    mockCreditsBilling.value = true;
+    mockCreditsRuntime.mockReturnValue({
+      status: 'ready',
+      context: creditsLocalContext,
+    });
+  });
+  it('omits only Subscription from the local sidebar with a billing hint', () => {
+    const { result, unmount } = renderHook(() => useAppProtectedLayout());
+    expect(
+      result.current.settingsMenuItems.some(
+        (item) => item.href === '/settings/subscription',
+      ),
+    ).toBe(false);
+    expect(
+      result.current.settingsMenuItems.some(
+        (item) => item.href === '/settings/general',
+      ),
+    ).toBe(true);
+    unmount();
+  });
+  it.each([
+    ['web', { status: 'web', context: null }, true],
+    ['cloud', { status: 'ready', context: creditsCloudContext }, true],
+    [
+      'self-hosted cloud',
+      {
+        status: 'ready',
+        context: { ...creditsCloudContext, selectedServerKind: 'self-hosted' },
+      },
+      true,
+    ],
+    [
+      'unknown execution cloud',
+      {
+        status: 'ready',
+        context: { ...creditsCloudContext, generationExecution: 'unknown' },
+      },
+      true,
+    ],
+    ['local Ollama', { status: 'ready', context: creditsLocalContext }, false],
+    [
+      'local remote BYOK',
+      {
+        status: 'ready',
+        context: {
+          ...creditsLocalContext,
+          localProvider: { provider: 'replicate', networkAccess: 'remote' },
+        },
+      },
+      false,
+    ],
+    [
+      'local unknown',
+      {
+        status: 'ready',
+        context: {
+          ...creditsLocalContext,
+          generationExecution: 'unknown',
+          localProvider: null,
+        },
+      },
+      false,
+    ],
+    ['loading', { status: 'loading', context: null }, false],
+    ['unavailable', { status: 'unavailable', context: null }, false],
+    [
+      'switching from cloud',
+      { status: 'switching', context: creditsCloudContext },
+      false,
+    ],
+    [
+      'switching from local',
+      { status: 'switching', context: creditsLocalContext },
+      false,
+    ],
+  ] satisfies [string, DesktopRuntimeSnapshot, boolean][])(
+    'keeps Subscription and sibling destinations correct for %s',
+    (_name, snapshot, allowed) => {
+      mockCreditsRuntime.mockReturnValue(snapshot);
+      const { result, unmount } = renderHook(() => useAppProtectedLayout());
+      const hrefs = result.current.settingsMenuItems.map((item) => item.href);
+      expect(hrefs.includes('/settings/subscription')).toBe(allowed);
+      expect(hrefs).toEqual(
+        expect.arrayContaining([
+          '/settings/general',
+          '/settings/memory',
+          '/settings/referrals',
+        ]),
+      );
+      unmount();
+    },
+  );
+  it.each(['cloud', 'self-hosted'] as const)(
+    'updates the same %s sidebar across runtime transitions',
+    (selectedServerKind) => {
+      const cloud: IDesktopRuntimeContext = {
+        ...creditsCloudContext,
+        selectedServerKind,
+      };
+      const transitions: [DesktopRuntimeSnapshot, boolean][] = [
+        [{ status: 'loading', context: null }, false],
+        [{ status: 'web', context: null }, true],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'switching', context: cloud }, false],
+        [{ status: 'ready', context: creditsLocalContext }, false],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'unavailable', context: null }, false],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'ready', context: creditsLocalContext }, false],
+        [{ status: 'ready', context: cloud }, true],
+      ];
+      mockCreditsRuntime.mockReturnValue({ status: 'loading', context: null });
+      const { result, rerender, unmount } = renderHook(() =>
+        useAppProtectedLayout(),
+      );
+      for (const [snapshot, allowed] of transitions) {
+        mockCreditsRuntime.mockReturnValue(snapshot);
+        rerender();
+        const hrefs = result.current.settingsMenuItems.map((item) => item.href);
+        expect(hrefs.includes('/settings/subscription')).toBe(allowed);
+        expect(hrefs).toEqual(
+          expect.arrayContaining([
+            '/settings/general',
+            '/settings/memory',
+            '/settings/referrals',
+          ]),
+        );
+      }
+      unmount();
+    },
+  );
+  it('keeps the existing false-hint denial in web mode', () => {
+    mockCreditsBilling.value = false;
+    mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
+    const { result, unmount } = renderHook(() => useAppProtectedLayout());
+    expect(
+      result.current.settingsMenuItems.some(
+        (item) => item.href === '/settings/subscription',
+      ),
+    ).toBe(false);
+    unmount();
+  });
+});

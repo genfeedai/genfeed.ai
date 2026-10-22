@@ -1,4 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import Route from '@app/(protected)/[orgSlug]/~/settings/(organization)/subscription/page';
+import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+import type { NotificationsService } from '@services/core/notifications.service';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsSubscriptionPage from './content';
 import '@testing-library/jest-dom/vitest';
@@ -29,9 +39,33 @@ vi.mock('@hooks/data/billing/use-billing-account/use-billing-account', () => ({
   useBillingAccount: () => useBillingAccountMock(),
 }));
 
+const createCheckoutSession = vi.fn();
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: () => async () => ({ createCheckoutSession }),
 }));
+vi.mock('@services/billing/stripe.service', () => ({
+  StripeService: { getInstance: vi.fn() },
+}));
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: vi.fn(), info: vi.fn() },
+}));
+const notifications = vi.hoisted(() => ({
+  error: vi.fn<NotificationsService['error']>(),
+  success: vi.fn(),
+}));
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: { getInstance: () => notifications },
+}));
+vi.mock('@genfeedai/pricing', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/pricing')>();
+  return {
+    ...actual,
+    getPlanByTier: (tier: Parameters<typeof actual.getPlanByTier>[0]) => ({
+      ...actual.getPlanByTier(tier),
+      stripePriceId: `price_${tier}`,
+    }),
+  };
+});
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(() => ({
@@ -41,9 +75,43 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
+const runtime = vi.hoisted(() => vi.fn<() => DesktopRuntimeSnapshot>());
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({ useDesktopRuntimeContext: runtime }),
+);
+vi.mock('@helpers/media/metadata/page-metadata.helper', () => ({
+  createPageMetadata: () => ({}),
+}));
+vi.mock('next/navigation', () => ({
+  redirect: (url: string) => {
+    throw new Error(`redirect:${url}`);
+  },
+}));
+const subscriptionCloudContext: IDesktopRuntimeContext = {
+  version: 1,
+  runtimeId: 'subscription-runtime',
+  revision: 1,
+  status: 'ready',
+  selectedServerId: 'subscription-cloud',
+  selectedServerKind: 'cloud',
+  selectedApiEndpoint: 'https://example.invalid/v1',
+  runtimeMode: 'cloud',
+  generationExecution: 'remote',
+  localProvider: null,
+};
+const subscriptionLocalContext: IDesktopRuntimeContext = {
+  ...subscriptionCloudContext,
+  revision: 2,
+  runtimeMode: 'local',
+  generationExecution: 'local-byok',
+  localProvider: { provider: 'ollama', networkAccess: 'local' },
+};
+
 describe('SettingsSubscriptionPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    runtime.mockReturnValue({ status: 'web', context: null });
     useBrandMock.mockReturnValue({
       isReady: true,
       organizationId: 'org-123',
@@ -227,5 +295,325 @@ describe('SettingsSubscriptionPage', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.queryByText('Available')).not.toBeInTheDocument();
     expect(screen.queryByText('Funded organizations')).not.toBeInTheDocument();
+  });
+  describe('Subscription runtime boundary', () => {
+    beforeEach(() => {
+      vi.stubEnv('GENFEED_CLOUD', 'true');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'false');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_LICENSE_KEY', '');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => {
+          throw new Error('Unexpected fetch');
+        }),
+      );
+      vi.stubGlobal(
+        'XMLHttpRequest',
+        class {
+          constructor() {
+            throw new Error('Unexpected XHR');
+          }
+        },
+      );
+      vi.stubGlobal(
+        'WebSocket',
+        class {
+          constructor() {
+            throw new Error('Unexpected WebSocket');
+          }
+        },
+      );
+      vi.stubGlobal(
+        'open',
+        vi.fn(() => {
+          throw new Error('Unexpected browser open');
+        }),
+      );
+    });
+    it('withholds billing in a local renderer after the hosted server admits the route', async () => {
+      const element = await Route({
+        params: Promise.resolve({ orgSlug: 'acme' }),
+      });
+      vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', { clientSurface: 'desktop' });
+      runtime.mockReturnValue({
+        status: 'ready',
+        context: subscriptionLocalContext,
+      });
+      render(element);
+      expect(
+        screen.queryByRole('button', { name: 'Open Billing Portal' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Plans' }),
+      ).not.toBeInTheDocument();
+      expect(useSubscriptionMock).not.toHaveBeenCalled();
+      expect(useBillingAccountMock).not.toHaveBeenCalled();
+    });
+    it.each([
+      ['cloud web', 'true', 'false', '', { status: 'web', context: null }],
+      [
+        'licensed self-host web',
+        'false',
+        'false',
+        'cosmetic-test-only',
+        { status: 'web', context: null },
+      ],
+      [
+        'cloud desktop',
+        'true',
+        'false',
+        '',
+        { status: 'ready', context: subscriptionCloudContext },
+      ],
+      [
+        'licensed self-host desktop',
+        'false',
+        'true',
+        'cosmetic-test-only',
+        {
+          status: 'ready',
+          context: {
+            ...subscriptionCloudContext,
+            selectedServerKind: 'self-hosted',
+          },
+        },
+      ],
+      [
+        'unknown execution',
+        'false',
+        'true',
+        'cosmetic-test-only',
+        {
+          status: 'ready',
+          context: {
+            ...subscriptionCloudContext,
+            selectedServerKind: 'self-hosted',
+            generationExecution: 'unknown',
+          },
+        },
+      ],
+    ] satisfies [string, string, string, string, DesktopRuntimeSnapshot][])(
+      'preserves the admitted route for %s',
+      async (_name, cloud, desktop, license, snapshot) => {
+        vi.stubEnv('GENFEED_CLOUD', cloud);
+        vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', cloud);
+        vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', desktop);
+        vi.stubEnv('NEXT_PUBLIC_GENFEED_LICENSE_KEY', license);
+        runtime.mockReturnValue(snapshot);
+        const element = await Route({
+          params: Promise.resolve({ orgSlug: 'acme' }),
+        });
+        if (snapshot.status !== 'web')
+          vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', {
+            clientSurface: 'desktop',
+          });
+        render(element);
+        expect(
+          screen.getByRole('button', { name: 'Open Billing Portal' }),
+        ).toBeVisible();
+        expect(screen.getByRole('heading', { name: 'Plans' })).toBeVisible();
+        expect(useSubscriptionMock).toHaveBeenCalledTimes(2);
+        expect(useBillingAccountMock).toHaveBeenCalledTimes(1);
+      },
+    );
+    it.each([
+      ['local Ollama', { status: 'ready', context: subscriptionLocalContext }],
+      [
+        'remote BYOK',
+        {
+          status: 'ready',
+          context: {
+            ...subscriptionLocalContext,
+            localProvider: { provider: 'replicate', networkAccess: 'remote' },
+          },
+        },
+      ],
+      [
+        'unknown local execution',
+        {
+          status: 'ready',
+          context: {
+            ...subscriptionLocalContext,
+            generationExecution: 'unknown',
+            localProvider: null,
+          },
+        },
+      ],
+      ['loading', { status: 'loading', context: null }],
+      ['unavailable', { status: 'unavailable', context: null }],
+      [
+        'switching from cloud',
+        { status: 'switching', context: subscriptionCloudContext },
+      ],
+      [
+        'switching from local',
+        { status: 'switching', context: subscriptionLocalContext },
+      ],
+    ] satisfies [string, DesktopRuntimeSnapshot][])(
+      'renders a neutral unavailable state for %s even with a cosmetic license hint',
+      async (_name, snapshot) => {
+        vi.stubEnv('NEXT_PUBLIC_GENFEED_LICENSE_KEY', 'cosmetic-test-only');
+        runtime.mockReturnValue(snapshot);
+        render(await Route({ params: Promise.resolve({ orgSlug: 'acme' }) }));
+        expect(
+          screen.getByRole('heading', { name: 'Subscription' }),
+        ).toHaveClass('sr-only');
+        expect(screen.getByText('Subscription unavailable')).toBeVisible();
+        expect(
+          screen.getByText(
+            'Subscription is unavailable for the current runtime.',
+          ),
+        ).toBeVisible();
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('heading', { name: 'Plans' }),
+        ).not.toBeInTheDocument();
+        expect(screen.queryByText('Billing account')).not.toBeInTheDocument();
+        expect(useSubscriptionMock).not.toHaveBeenCalled();
+        expect(useBillingAccountMock).not.toHaveBeenCalled();
+      },
+    );
+    it.each(['community web', 'unlicensed bundled desktop'])(
+      'keeps the server redirect for %s before any billing hook',
+      async (name) => {
+        vi.stubEnv('GENFEED_CLOUD', 'false');
+        vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'false');
+        vi.stubEnv(
+          'NEXT_PUBLIC_DESKTOP_SHELL',
+          name === 'unlicensed bundled desktop' ? 'true' : 'false',
+        );
+        await expect(
+          Route({ params: Promise.resolve({ orgSlug: 'acme' }) }),
+        ).rejects.toThrow('redirect:/acme/~/settings/credits');
+        expect(useSubscriptionMock).not.toHaveBeenCalled();
+        expect(useBillingAccountMock).not.toHaveBeenCalled();
+      },
+    );
+    it('preserves direct community web content behind the server-owned hint guard', () => {
+      vi.stubEnv('GENFEED_CLOUD', 'false');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'false');
+      render(<SettingsSubscriptionPage />);
+      expect(screen.getByRole('heading', { name: 'Plans' })).toBeVisible();
+    });
+    it.each(['cloud', 'self-hosted'] as const)(
+      'mounts and removes the data child through same-instance %s transitions',
+      (selectedServerKind) => {
+        const cloud: IDesktopRuntimeContext = {
+          ...subscriptionCloudContext,
+          selectedServerKind,
+        };
+        const transitions: [DesktopRuntimeSnapshot, boolean][] = [
+          [{ status: 'loading', context: null }, false],
+          [{ status: 'web', context: null }, true],
+          [{ status: 'ready', context: cloud }, true],
+          [{ status: 'switching', context: cloud }, false],
+          [{ status: 'ready', context: subscriptionLocalContext }, false],
+          [{ status: 'ready', context: cloud }, true],
+          [{ status: 'unavailable', context: null }, false],
+          [{ status: 'ready', context: cloud }, true],
+          [{ status: 'ready', context: subscriptionLocalContext }, false],
+          [{ status: 'ready', context: cloud }, true],
+        ];
+        vi.stubEnv('NEXT_PUBLIC_GENFEED_LICENSE_KEY', 'cosmetic-test-only');
+        if (selectedServerKind === 'self-hosted') {
+          vi.stubEnv('GENFEED_CLOUD', 'false');
+          vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'false');
+        }
+        useBillingAccountMock.mockReturnValue({
+          account: {
+            kind: 'account',
+            status: 'active',
+            isIdentityStale: false,
+            capabilities: { canOpenPortal: true },
+            wallet: { available: 100, held: 10, settled: 110 },
+            linkedOrganizations: [],
+          },
+        });
+        runtime.mockReturnValue({ status: 'loading', context: null });
+        const { rerender } = render(<SettingsSubscriptionPage />);
+        for (const [snapshot, allowed] of transitions) {
+          useSubscriptionMock.mockClear();
+          useBillingAccountMock.mockClear();
+          runtime.mockReturnValue(snapshot);
+          rerender(<SettingsSubscriptionPage />);
+          expect(
+            Boolean(screen.queryByRole('heading', { name: 'Plans' })),
+          ).toBe(allowed);
+          expect(Boolean(screen.queryByText('Billing account'))).toBe(allowed);
+          expect(
+            Boolean(
+              screen.queryByRole('button', { name: 'Open Billing Portal' }),
+            ),
+          ).toBe(allowed);
+          if (allowed) {
+            expect(useSubscriptionMock).toHaveBeenCalled();
+            expect(useBillingAccountMock).toHaveBeenCalled();
+          } else {
+            expect(screen.getByText('Subscription unavailable')).toBeVisible();
+            expect(useSubscriptionMock).not.toHaveBeenCalled();
+            expect(useBillingAccountMock).not.toHaveBeenCalled();
+          }
+        }
+      },
+    );
+    it('cancels an already scheduled Plans retry when runtime denial unmounts it', async () => {
+      const previewPlanChange = vi.fn().mockRejectedValue({
+        response: {
+          data: {
+            errors: [
+              {
+                code: 'billing_provider_unavailable',
+                meta: {
+                  isRetryable: true,
+                  maxRetries: 1,
+                  retryAfterSeconds: 30,
+                },
+              },
+            ],
+          },
+        },
+      });
+      useSubscriptionMock.mockReturnValue({
+        subscription: { stripeSubscriptionId: 'sub_fixture', status: 'active' },
+        isLoading: false,
+        isSubscriptionActive: true,
+        openBillingPortal: vi.fn(),
+        previewPlanChange,
+        changeSubscriptionPlan: vi.fn(),
+      });
+      runtime.mockReturnValue({
+        status: 'ready',
+        context: subscriptionCloudContext,
+      });
+      const { rerender } = render(<SettingsSubscriptionPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Switch to Scale' }));
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const retry = notifications.error.mock.calls[0]?.[1]?.onAction;
+      expect(retry).toBeTypeOf('function');
+      vi.useFakeTimers();
+      try {
+        act(() => retry?.());
+        expect(vi.getTimerCount()).toBeGreaterThan(0);
+        useSubscriptionMock.mockClear();
+        useBillingAccountMock.mockClear();
+        runtime.mockReturnValue({
+          status: 'ready',
+          context: subscriptionLocalContext,
+        });
+        rerender(<SettingsSubscriptionPage />);
+        expect(
+          screen.queryByRole('heading', { name: 'Plans' }),
+        ).not.toBeInTheDocument();
+        expect(useSubscriptionMock).not.toHaveBeenCalled();
+        expect(useBillingAccountMock).not.toHaveBeenCalled();
+        await act(() => vi.advanceTimersByTimeAsync(35_000));
+        expect(previewPlanChange).toHaveBeenCalledTimes(1);
+        expect(createCheckoutSession).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

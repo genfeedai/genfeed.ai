@@ -13,7 +13,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { SettingsSurface } from '@genfeedai/contracts';
-import { parseScopedAppPath } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, parseScopedAppPath } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { useOnboardingRouteAccess } from '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
@@ -99,6 +99,9 @@ function resolvePriority(currentApp: AppContext | undefined): number {
  */
 export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
   const runtime = useDesktopRuntimeContext();
+  const isSubscriptionAvailable =
+    runtime.status === 'web' ||
+    (runtime.status === 'ready' && runtime.context?.runtimeMode === 'cloud');
   const showCredits = shouldShowCreditsNav(
     getDesktopCreditsVisibility(runtime),
   );
@@ -157,7 +160,12 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
       ...(orgSlug && brandSlug
         ? buildCommandsForScope(SettingsSurface.BRAND, options)
         : []),
-    ];
+    ].filter(
+      (command) =>
+        isSubscriptionAvailable ||
+        command.id !==
+          `settings-catalog:organization:${APP_ROUTES.SETTINGS.SUBSCRIPTION}`,
+    );
 
     const registeredIds =
       commands.length > 0
@@ -173,6 +181,7 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
     brandSlug,
     isAccessible,
     isEnterprise,
+    isSubscriptionAvailable,
     navigate,
     orgSlug,
     priority,

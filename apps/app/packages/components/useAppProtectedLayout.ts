@@ -103,6 +103,9 @@ export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
 ) {
   const runtime = useDesktopRuntimeContext();
+  const isSubscriptionAvailable =
+    runtime.status === 'web' ||
+    (runtime.status === 'ready' && runtime.context?.runtimeMode === 'cloud');
   const showCredits = shouldShowCreditsNav(
     getDesktopCreditsVisibility(runtime),
   );
@@ -451,13 +454,24 @@ export function useAppProtectedLayout(
         scope: settingsScope,
         showCredits,
         isEnterprise: hasOrganizationBillingHint(),
-      }).map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [settingsScope, showCredits, taskContextSearchParams],
+      })
+        .filter(
+          (item) =>
+            isSubscriptionAvailable ||
+            item.href !== APP_ROUTES.SETTINGS.SUBSCRIPTION,
+        )
+        .map(
+          (item): MenuItemConfig => ({
+            ...item,
+            href: withTaskContextHref(item.href, taskContextSearchParams),
+          }),
+        ),
+    [
+      isSubscriptionAvailable,
+      settingsScope,
+      showCredits,
+      taskContextSearchParams,
+    ],
   );
 
   // The rail picks the admin category; the sidebar lists only its pages.

@@ -763,3 +763,204 @@ describe('desktop Credits navigation', () => {
     expect(mockUnregisterCommands).toHaveBeenCalledWith(previousIds);
   });
 });
+
+describe('Subscription runtime boundary', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error('Unexpected fetch');
+      }),
+    );
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      class {
+        constructor() {
+          throw new Error('Unexpected XHR');
+        }
+      },
+    );
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        constructor() {
+          throw new Error('Unexpected WebSocket');
+        }
+      },
+    );
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => {
+        throw new Error('Unexpected browser open');
+      }),
+    );
+
+    vi.clearAllMocks();
+    mockAccess.canRender = true;
+    mockAccess.redirectTarget = null;
+    mockPathname.value = '/acme/~/settings/general';
+    mockBilling.value = true;
+    mockDesktop.value = true;
+    mockUseBrand.mockReturnValue({ selectedBrand: null });
+    mockUseRoutedOrganization.mockReturnValue({
+      status: 'matched',
+      organizations: [],
+      isRouteConfirmed: true,
+      confirmedOrganizationSlug: 'acme',
+    });
+    mockCreditsRuntime.mockReturnValue({
+      status: 'ready',
+      context: creditsLocalContext,
+    });
+  });
+  it('omits only Subscription from local commands with a billing hint', () => {
+    const { unmount } = renderHook(() => useSettingsCommandsRegistration());
+    expect(getRegisteredIds()).not.toContain(
+      'settings-catalog:organization:/settings/subscription',
+    );
+    expect(getRegisteredIds()).toContain(
+      'settings-catalog:organization:/settings/general',
+    );
+    unmount();
+  });
+  it.each([
+    ['web', { status: 'web', context: null }, true],
+    ['cloud', { status: 'ready', context: creditsCloudContext }, true],
+    [
+      'self-hosted cloud',
+      {
+        status: 'ready',
+        context: { ...creditsCloudContext, selectedServerKind: 'self-hosted' },
+      },
+      true,
+    ],
+    [
+      'unknown execution cloud',
+      {
+        status: 'ready',
+        context: { ...creditsCloudContext, generationExecution: 'unknown' },
+      },
+      true,
+    ],
+    ['local Ollama', { status: 'ready', context: creditsLocalContext }, false],
+    [
+      'local remote BYOK',
+      {
+        status: 'ready',
+        context: {
+          ...creditsLocalContext,
+          localProvider: { provider: 'replicate', networkAccess: 'remote' },
+        },
+      },
+      false,
+    ],
+    [
+      'local unknown',
+      {
+        status: 'ready',
+        context: {
+          ...creditsLocalContext,
+          generationExecution: 'unknown',
+          localProvider: null,
+        },
+      },
+      false,
+    ],
+    ['loading', { status: 'loading', context: null }, false],
+    ['unavailable', { status: 'unavailable', context: null }, false],
+    [
+      'switching from cloud',
+      { status: 'switching', context: creditsCloudContext },
+      false,
+    ],
+    [
+      'switching from local',
+      { status: 'switching', context: creditsLocalContext },
+      false,
+    ],
+  ] satisfies [string, DesktopRuntimeSnapshot, boolean][])(
+    'keeps Subscription and sibling destinations correct for %s',
+    (_name, snapshot, allowed) => {
+      mockCreditsRuntime.mockReturnValue(snapshot);
+      const { unmount } = renderHook(() => useSettingsCommandsRegistration());
+      expect(
+        getRegisteredIds().includes(
+          'settings-catalog:organization:/settings/subscription',
+        ),
+      ).toBe(allowed);
+      expect(getRegisteredIds()).toEqual(
+        expect.arrayContaining([
+          'settings-catalog:organization:/settings/general',
+          'settings-catalog:organization:/settings/memory',
+          'settings-catalog:organization:/settings/referrals',
+        ]),
+      );
+      unmount();
+    },
+  );
+  it.each(['cloud', 'self-hosted'] as const)(
+    'cleans prior %s commands before replacements and unregisters the final list',
+    (selectedServerKind) => {
+      const cloud: IDesktopRuntimeContext = {
+        ...creditsCloudContext,
+        selectedServerKind,
+      };
+      const transitions: [DesktopRuntimeSnapshot, boolean][] = [
+        [{ status: 'web', context: null }, true],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'switching', context: cloud }, false],
+        [{ status: 'ready', context: creditsLocalContext }, false],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'unavailable', context: null }, false],
+        [{ status: 'ready', context: cloud }, true],
+        [{ status: 'ready', context: creditsLocalContext }, false],
+        [{ status: 'ready', context: cloud }, true],
+      ];
+      mockCreditsRuntime.mockReturnValue({ status: 'loading', context: null });
+      const { rerender, unmount } = renderHook(() =>
+        useSettingsCommandsRegistration(),
+      );
+      let previousIds = getRegisteredIds();
+      expect(previousIds).not.toContain(
+        'settings-catalog:organization:/settings/subscription',
+      );
+      for (const [snapshot, allowed] of transitions) {
+        mockRegisterCommands.mockClear();
+        mockUnregisterCommands.mockClear();
+        mockCreditsRuntime.mockReturnValue(snapshot);
+        rerender();
+        if (mockRegisterCommands.mock.calls.length > 0) {
+          expect(mockUnregisterCommands).toHaveBeenCalledWith(previousIds);
+          expect(
+            mockUnregisterCommands.mock.invocationCallOrder[0],
+          ).toBeLessThan(mockRegisterCommands.mock.invocationCallOrder[0]);
+          previousIds = getRegisteredIds();
+        }
+        expect(
+          previousIds.includes(
+            'settings-catalog:organization:/settings/subscription',
+          ),
+        ).toBe(allowed);
+        expect(previousIds).toEqual(
+          expect.arrayContaining([
+            'settings-catalog:organization:/settings/general',
+            'settings-catalog:organization:/settings/memory',
+            'settings-catalog:organization:/settings/referrals',
+          ]),
+        );
+      }
+      mockUnregisterCommands.mockClear();
+      unmount();
+      expect(mockUnregisterCommands).toHaveBeenCalledWith(previousIds);
+    },
+  );
+  it('keeps the original billing-hint denial for community and unlicensed desktop web snapshots', () => {
+    mockBilling.value = false;
+    mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
+    const { unmount } = renderHook(() => useSettingsCommandsRegistration());
+    expect(getRegisteredIds()).not.toContain(
+      'settings-catalog:organization:/settings/subscription',
+    );
+    unmount();
+  });
+});
