@@ -9,6 +9,7 @@ import type {
   IBotCallbackContext,
   IBotPlatformAdapter,
 } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -130,6 +131,16 @@ describe('BotCallbackResponderService', () => {
           useValue: { getPublisher: vi.fn(() => publisher) },
         },
         {
+          provide: ConfigService,
+          useValue: {
+            get: vi.fn((key: string) =>
+              key === 'GENFEEDAI_APP_URL'
+                ? 'https://app.genfeed.ai'
+                : undefined,
+            ),
+          },
+        },
+        {
           provide: LoggerService,
           useValue: { ...loggerService, log: vi.fn() },
         },
@@ -160,6 +171,7 @@ describe('BotCallbackResponderService', () => {
         resultUrl,
         'video',
         "Here's your generated video!",
+        `https://app.genfeed.ai/ingredients/Video/${ingredientId}`,
       );
       await expect(
         callbackContextService.get(ingredientId),

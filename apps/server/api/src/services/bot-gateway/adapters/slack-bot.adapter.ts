@@ -221,6 +221,7 @@ export class SlackBotAdapter implements IBotPlatformAdapter {
     mediaUrl: string,
     type: 'image' | 'video',
     caption?: string,
+    viewUrl?: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -243,7 +244,7 @@ export class SlackBotAdapter implements IBotPlatformAdapter {
       } else {
         blocks.push({
           text: {
-            text: `<${mediaUrl}|View generated video>`,
+            text: `<${viewUrl ?? mediaUrl}|View generated video>`,
             type: 'mrkdwn',
           },
           type: 'section',

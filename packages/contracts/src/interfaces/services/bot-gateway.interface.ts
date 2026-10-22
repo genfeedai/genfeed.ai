@@ -75,7 +75,9 @@ export interface IBotPlatformAdapter {
   ): Promise<void>;
 
   /**
-   * Send media (image/video) as a follow-up
+   * Send media (image/video) as a follow-up. `url` is a short-lived grant:
+   * an adapter may fetch or upload it while posting but must not link it from
+   * a message; `viewUrl` is the durable page to link instead.
    */
   sendFollowupMedia(
     applicationId: string,
@@ -83,6 +85,7 @@ export interface IBotPlatformAdapter {
     url: string,
     type: 'image' | 'video',
     caption?: string,
+    viewUrl?: string,
   ): Promise<void>;
 }
 

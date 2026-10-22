@@ -53,3 +53,13 @@ Stop preparation independently with its flag when delivery is disabled. During a
 remaining one is listed with its reason (flag-off branch, stable hashed input
 that is authorized at the provider call, or response-only), and a count that
 grows or shrinks fails, so new media reads must issue a grant instead.
+
+## Guard against short-lived grants in long-lived messages
+
+Grants expire in minutes, so only a consumer that fetches the URL when it is
+issued (a provider, the files app, a renderer, a publisher) may receive one. A
+chat card, email or stored record opened later must copy the media or link a
+durable page: Discord loads embed images lazily, and a card that linked a grant
+rendered as a broken image. `bun run check:short-lived-media-grants` (part of
+`check:architecture`) lists every file that issues a grant with the reason its
+consumer is safe; a new caller, or a changed count, fails until it is reviewed.

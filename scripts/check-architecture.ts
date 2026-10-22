@@ -86,6 +86,14 @@ const checks = [
     name: 'ID-derived media URLs (#4895)',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-short-lived-media-grants.ts',
+    ],
+    name: 'Short-lived media grants (#4895)',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-local-type-guards.ts'],
     name: 'Local type-guard helpers',
   },

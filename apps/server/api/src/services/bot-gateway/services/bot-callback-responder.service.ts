@@ -4,6 +4,7 @@ import {
 } from '@api/services/bot-gateway/services/bot-callback-context.service';
 import { BotPlatformAdapterRegistryService } from '@api/services/bot-gateway/services/bot-platform-adapter-registry.service';
 import type { IBotPlatformAdapter } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -25,6 +26,7 @@ export class BotCallbackResponderService {
   constructor(
     private readonly adapterRegistry: BotPlatformAdapterRegistryService,
     private readonly callbackContextService: BotCallbackContextService,
+    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -50,6 +52,7 @@ export class BotCallbackResponderService {
         resultUrl,
         mediaType,
         `Here's your generated ${mediaType}!`,
+        this.viewUrl(ingredientId, mediaType),
       );
 
       this.loggerService.log(`${url} sent completion response`, {
@@ -60,6 +63,17 @@ export class BotCallbackResponderService {
       this.loggerService.error(`${url} failed to send completion`, error);
       await this.restoreClaimed(url, ingredientId, delivery.claimed);
     }
+  }
+
+  /** The ingredient's page in the app, for links that must outlive the grant. */
+  private viewUrl(
+    ingredientId: string,
+    mediaType: 'image' | 'video',
+  ): string | undefined {
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+    if (!appUrl) return undefined;
+    const category = mediaType === 'image' ? 'Image' : 'Video';
+    return `${appUrl}/ingredients/${category}/${ingredientId}`;
   }
 
   /**

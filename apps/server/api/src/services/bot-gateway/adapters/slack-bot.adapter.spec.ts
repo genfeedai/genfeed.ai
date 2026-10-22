@@ -290,5 +290,22 @@ describe('SlackBotAdapter', () => {
       };
       expect(payload.blocks.every((b) => b.type === 'section')).toBe(true);
     });
+
+    it('links the durable page, not the short-lived grant, for video', async () => {
+      httpService.post.mockReturnValue(of({ data: 'ok' }) as never);
+
+      await adapter.sendFollowupMedia(
+        'T123',
+        'https://hooks.slack.com/r',
+        'https://cdn.example.com/vid.mp4?Signature=secret',
+        'video',
+        undefined,
+        'https://app.genfeed.ai/ingredients/Video/ing-1',
+      );
+
+      const body = JSON.stringify(httpService.post.mock.calls[0][1]);
+      expect(body).toContain('https://app.genfeed.ai/ingredients/Video/ing-1');
+      expect(body).not.toContain('Signature');
+    });
   });
 });
