@@ -59,13 +59,14 @@ async function knowledge(
   world: EmbeddingWorld,
   chunks: string[],
   executionId = randomUUID(),
+  scope: 'brand' | 'personal' = 'brand',
 ) {
   const source = await runtime.db.knowledgeSource.create({
     data: {
       organizationId: world.organizationId,
       userId: world.ownerId,
-      brandId: world.brandId,
-      scope: 'brand',
+      brandId: scope === 'personal' ? null : world.brandId,
+      scope,
       title: 'Synthetic cited source',
       kind: 'TEXT',
       purpose: 'BRAND_TRUTH',
@@ -89,7 +90,7 @@ async function knowledge(
       sourceBrandId: world.brandId,
       createdById: world.ownerId,
       data: {
-        knowledgeScope: 'brand',
+        knowledgeScope: scope,
         purpose: 'knowledge-base',
         label: 'Knowledge',
         entryCount: 0,
@@ -1626,90 +1627,131 @@ describe('real context embedding database and WorkerHost acceptance', () => {
     ).toMatchObject({ consecutiveFailures: 1, syncState: 'FAILED' });
   });
 
-  it.each(['deleted', 'purged', 'expired', 'private'])(
-    'fences a Knowledge source made %s during provider work',
-    async (kind) => {
-      const world = await runtime.world();
-      const text = 'source-fence-' + kind + '-' + randomUUID();
-      const hold = runtime.transport.hold(text);
-      const item = await knowledge(world, [text]);
-      await hold.received;
-      if (kind === 'deleted')
-        await runtime.db.knowledgeSource.updateMany({
-          where: {
-            id: item.source.id,
-            organizationId: world.organizationId,
-            isDeleted: false,
-          },
-          data: { isDeleted: true },
-        });
-      if (kind === 'purged')
-        await runtime.db.knowledgeSourceVersion.updateMany({
-          where: {
-            id: item.version.id,
-            organizationId: world.organizationId,
-            isDeleted: false,
-          },
-          data: {
-            retentionState: 'PAYLOAD_PURGED',
-            purgedAt: new Date(),
-            payload: Prisma.DbNull,
-            provenance: Prisma.DbNull,
-          },
-        });
-      if (kind === 'expired')
-        await runtime.db.knowledgeSourceVersion.updateMany({
-          where: {
-            id: item.version.id,
-            organizationId: world.organizationId,
-            isDeleted: false,
-          },
-          data: { expiresAt: new Date(Date.now() - 1000) },
-        });
-      if (kind === 'private')
-        await runtime.db.knowledgeSource.updateMany({
-          where: {
-            id: item.source.id,
-            organizationId: world.organizationId,
-            isDeleted: false,
-          },
-          data: { scope: 'personal', userId: world.otherUserId, brandId: null },
-        });
-      hold.release();
-      await waitFor(
-        async () =>
-          (await runtime.db.contextEmbeddingJob.count({
-            where: {
-              organizationId: world.organizationId,
-              isDeleted: false,
-              status: 'CANCELLED',
-            },
-          })) === 1,
-      );
-      const entries = await runtime.db.contextEntry.findMany({
+  it.each([
+    { kind: 'deleted', label: 'deleted source' },
+    { kind: 'purged', label: 'purged source' },
+    { kind: 'expired', label: 'expired source' },
+    { kind: 'private', label: 'personal base-owner revocation' },
+  ])('fences $label during provider work', async ({ kind }) => {
+    const world = await runtime.world();
+    const text = 'source-fence-' + kind + '-' + randomUUID();
+    const hold = runtime.transport.hold(text);
+    const item = await knowledge(
+      world,
+      [text],
+      randomUUID(),
+      kind === 'private' ? 'personal' : 'brand',
+    );
+    await hold.received;
+    if (kind === 'private') {
+      expect(item.source).toMatchObject({
+        scope: 'personal',
+        userId: world.ownerId,
+        brandId: null,
+      });
+      expect(item.base.createdById).toBe(world.ownerId);
+      const admittedEntry = await runtime.db.contextEntry.findFirstOrThrow({
         where: {
           organizationId: world.organizationId,
-          isDeleted: false,
           knowledgeSourceVersionId: item.version.id,
+          isDeleted: false,
         },
       });
-      expect(entries).toHaveLength(1);
+      expect(await runtime.intent(world, admittedEntry.id)).toMatchObject({
+        status: 'PROCESSING',
+        actorUserId: world.ownerId,
+      });
+    }
+    if (kind === 'deleted')
+      await runtime.db.knowledgeSource.updateMany({
+        where: {
+          id: item.source.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+        data: { isDeleted: true },
+      });
+    if (kind === 'purged')
+      await runtime.db.knowledgeSourceVersion.updateMany({
+        where: {
+          id: item.version.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+        data: {
+          retentionState: 'PAYLOAD_PURGED',
+          purgedAt: new Date(),
+          payload: Prisma.DbNull,
+          provenance: Prisma.DbNull,
+        },
+      });
+    if (kind === 'expired')
+      await runtime.db.knowledgeSourceVersion.updateMany({
+        where: {
+          id: item.version.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+    if (kind === 'private') {
+      const changed = await runtime.db.contextBase.updateMany({
+        where: {
+          id: item.base.id,
+          organizationId: world.organizationId,
+          isDeleted: false,
+        },
+        data: { createdById: world.otherUserId },
+      });
+      expect(changed.count).toBe(1);
       expect(
-        (await vector(entries[0].id, world.organizationId)).embedding,
-      ).toBeNull();
-      expect(
-        await runtime.retrieval.retrieveSelectedBrandContentMemory(
-          {
+        await runtime.db.knowledgeSource.findFirstOrThrow({
+          where: {
+            id: item.source.id,
             organizationId: world.organizationId,
-            brandId: world.brandId,
-            userId: world.ownerId,
-            query: 'revoked source query',
+            isDeleted: false,
           },
-          [item.source.id],
-        ),
-      ).toEqual([]);
-    },
-  );
+        }),
+      ).toMatchObject({
+        scope: 'personal',
+        userId: world.ownerId,
+        brandId: null,
+      });
+    }
+    hold.release();
+    await waitFor(
+      async () =>
+        (await runtime.db.contextEmbeddingJob.count({
+          where: {
+            organizationId: world.organizationId,
+            isDeleted: false,
+            status: 'CANCELLED',
+          },
+        })) === 1,
+    );
+    const entries = await runtime.db.contextEntry.findMany({
+      where: {
+        organizationId: world.organizationId,
+        isDeleted: false,
+        knowledgeSourceVersionId: item.version.id,
+      },
+    });
+    expect(entries).toHaveLength(1);
+    expect(
+      (await vector(entries[0].id, world.organizationId)).embedding,
+    ).toBeNull();
+    await expect(
+      runtime.retrieval.retrieveSelectedBrandContentMemory(
+        {
+          organizationId: world.organizationId,
+          brandId: world.brandId,
+          userId: world.ownerId,
+          query: 'revoked source query',
+        },
+        [item.source.id],
+      ),
+    ).rejects.toEqual(new Error('knowledge_unavailable'));
+  });
 
   it('admits bounded history only on an explicit current OWNER request and never duplicates a concurrent intent', async () => {
     const world = await runtime.world();
