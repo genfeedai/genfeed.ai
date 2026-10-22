@@ -560,7 +560,7 @@ describe('toMcpTools', () => {
 
 it('projects the raw eligible catalog without advertising legacy aliases', () => {
   const names = toMcpTools(ALL_TOOLS).map((tool) => tool.name);
-  expect(names).toHaveLength(143);
+  expect(names).toHaveLength(144);
   for (const name of [
     'get_scheduler_capabilities',
     'validate_scheduler_target',

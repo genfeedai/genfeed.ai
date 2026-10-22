@@ -1005,6 +1005,7 @@ describe('MCP tool annotations', () => {
         isMcpListedToolName(String(row[0])),
       ),
       ['check_channel', 'Check Channel', true, false, true, false],
+      ['manage_campaign', 'Manage Campaign', false, true, false, false],
       ['upload_media', 'Upload Media', false, false, false, false],
     ].sort((left, right) => String(left[0]).localeCompare(String(right[0])));
     for (const row of FROZEN_MCP_PRESENTATIONS.filter(
@@ -1020,7 +1021,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(143);
+    expect(rows).toHaveLength(144);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
