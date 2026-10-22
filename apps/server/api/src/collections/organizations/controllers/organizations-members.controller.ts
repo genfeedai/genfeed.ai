@@ -196,7 +196,8 @@ export class OrganizationsMembersController {
     const member = await this.membersService.findOne({
       id: memberId,
       organizationId,
-      isDeleted: false,
+      // Explicit undefined opts out of BaseService's live-only default for restore.
+      isDeleted: updateMemberDto.isDeleted === false ? undefined : false,
     });
 
     if (!member) {
