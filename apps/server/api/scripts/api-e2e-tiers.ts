@@ -307,6 +307,23 @@ export function validateContextEmbeddingReport(
   return errors;
 }
 
+export function countFailedFileRecords(
+  report: VitestJsonReport,
+): number | null {
+  const files = report.testResults;
+  if (
+    !files?.length ||
+    files.some(
+      (file) =>
+        typeof file.name !== 'string' ||
+        !file.name.trim() ||
+        (file.status !== 'passed' && file.status !== 'failed'),
+    )
+  )
+    return null;
+  return files.filter((file) => file.status === 'failed').length;
+}
+
 function writeRunReport(reportPath: string, report: ApiE2eRunReport): void {
   mkdirSync(path.dirname(reportPath), { recursive: true });
   writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
@@ -413,11 +430,7 @@ function runApiE2eTier(options: CliOptions): number {
         vitestExitCode = 1;
       }
     }
-    failedFileCount =
-      vitestReport.numFailedTestSuites ??
-      vitestReport.testResults?.filter(({ status }) => status === 'failed')
-        .length ??
-      0;
+    failedFileCount = countFailedFileRecords(vitestReport);
   } else if (vitestExitCode === 0) {
     console.error(
       '[api-e2e] Vitest exited cleanly without writing its JSON report.',

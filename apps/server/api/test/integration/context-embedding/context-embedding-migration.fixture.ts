@@ -54,6 +54,40 @@ export function dedicatedDatabaseUrl(kind: 'runtime' | 'upgrade'): string {
   return value;
 }
 
+export function validateContextEmbeddingRuntime(input: {
+  nodeVersion: string;
+  bunVersion: string;
+  selector: string;
+  packageManager: string;
+  ciCheckRuntime: string | undefined;
+  platform: string;
+  architecture: string;
+}) {
+  const node = input.nodeVersion.trim();
+  const bun = input.bunVersion.trim();
+  const selector = input.selector.trim();
+  const stableVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+  if (
+    input.platform !== 'linux' ||
+    input.architecture !== 'x64' ||
+    !/^24\.\d+\.\d+$/.test(node) ||
+    !stableVersion.test(bun) ||
+    (selector !== 'latest' &&
+      (!stableVersion.test(selector) || selector !== bun)) ||
+    input.ciCheckRuntime !== 'Linux/X64/' + bun + '/v' + node
+  )
+    throw new Error(
+      'Context embedding acceptance requires the declared selector and exact canonical Linux/X64 Node 24 CI runtime identity',
+    );
+  return {
+    node,
+    bun,
+    bunSelector: selector,
+    packageManager: input.packageManager,
+    ciCheckRuntime: input.ciCheckRuntime,
+  };
+}
+
 export async function acceptanceEnvironment() {
   const runtime = new URL(dedicatedDatabaseUrl('runtime'));
   const upgrade = new URL(dedicatedDatabaseUrl('upgrade'));
@@ -75,19 +109,30 @@ export async function acceptanceEnvironment() {
     throw new Error(
       'Context embedding acceptance requires the exact checked-out candidate head',
     );
-  const { stdout: bun } = await command('bun', ['--version']);
+  const root = resolve(MIGRATION_ROOT, '../../../..');
+  const manifest: unknown = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
   if (
-    Number(process.versions.node.split('.')[0]) !== 24 ||
-    bun.trim() !== '1.4.3'
+    !manifest ||
+    typeof manifest !== 'object' ||
+    !('packageManager' in manifest) ||
+    typeof manifest.packageManager !== 'string'
   )
     throw new Error(
-      'Context embedding acceptance requires declared Node 24 and Bun 1.4.3',
+      'Acceptance requires the actual checked-out packageManager declaration',
     );
-  return {
-    candidateSHA: candidate,
-    node: process.versions.node,
-    bun: bun.trim(),
-  };
+  const { stdout: bun } = await command('bun', ['--version']);
+  const identity = validateContextEmbeddingRuntime({
+    nodeVersion: process.versions.node,
+    bunVersion: bun,
+    selector: await readFile(join(root, '.bun-version'), 'utf8'),
+    packageManager: manifest.packageManager,
+    ciCheckRuntime: process.env.CI_CHECK_RUNTIME,
+    platform: process.platform,
+    architecture: process.arch,
+  });
+  return { candidateSHA: candidate, ...identity };
 }
 
 export async function connectDedicated(

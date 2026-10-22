@@ -1,9 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { validateContextEmbeddingRuntime } from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   buildApiE2eTierPlan,
+  countFailedFileRecords,
   discoverApiE2eSpecs,
   validateApiE2eTierManifest,
   validateContextEmbeddingReport,
@@ -339,5 +341,81 @@ describe('dedicated Context Embedding Acceptance lane', () => {
         files,
       ),
     ).not.toEqual([]);
+  });
+});
+
+describe('observed acceptance runtime identity', () => {
+  const healthy = {
+    nodeVersion: '24.22.0',
+    bunVersion: '1.4.4',
+    selector: 'latest',
+    packageManager: 'bun@1.4.3',
+    ciCheckRuntime: 'Linux/X64/1.4.4/v24.22.0',
+    platform: 'linux',
+    architecture: 'x64',
+  };
+  it('accepts exact rolling stable identity while retaining the distinct packageManager declaration', () => {
+    expect(validateContextEmbeddingRuntime(healthy)).toEqual({
+      node: '24.22.0',
+      bun: '1.4.4',
+      bunSelector: 'latest',
+      packageManager: 'bun@1.4.3',
+      ciCheckRuntime: healthy.ciCheckRuntime,
+    });
+  });
+  it('accepts a matching explicit stable selector', () => {
+    expect(
+      validateContextEmbeddingRuntime({ ...healthy, selector: '1.4.4' }).bun,
+    ).toBe('1.4.4');
+  });
+  it.each([
+    { nodeVersion: '26.12.1', ciCheckRuntime: 'Linux/X64/1.4.4/v26.12.1' },
+    { ciCheckRuntime: undefined },
+    { ciCheckRuntime: 'Linux/X64/1.4.3/v24.22.0' },
+    { platform: 'darwin', ciCheckRuntime: 'macOS/X64/1.4.4/v24.22.0' },
+    { architecture: 'arm64', ciCheckRuntime: 'Linux/ARM64/1.4.4/v24.22.0' },
+    { bunVersion: '1.4.4-canary.1' },
+    { bunVersion: 'invalid' },
+    { selector: '1.4.3' },
+    { selector: 'nightly' },
+    { nodeVersion: '24.invalid' },
+  ])('rejects invalid or mismatched runtime identity %j', (change) => {
+    expect(() =>
+      validateContextEmbeddingRuntime({ ...healthy, ...change }),
+    ).toThrow();
+  });
+});
+
+describe('actual failed file accounting', () => {
+  it('counts two failed files independently of four nested failed suites', () => {
+    expect(
+      countFailedFileRecords({
+        numFailedTestSuites: 4,
+        testResults: [
+          { name: '/a.spec.ts', status: 'failed' },
+          { name: '/b.spec.ts', status: 'failed' },
+        ],
+      }),
+    ).toBe(2);
+  });
+  it('retains a failed file when a sibling file passes', () => {
+    expect(
+      countFailedFileRecords({
+        numFailedTestSuites: 4,
+        testResults: [
+          { name: '/a.spec.ts', status: 'passed' },
+          { name: '/b.spec.ts', status: 'failed' },
+        ],
+      }),
+    ).toBe(1);
+  });
+  it.each([
+    {},
+    { numFailedTestSuites: 0 },
+    { testResults: [] },
+    { testResults: [{ name: '/a.spec.ts' }] },
+    { testResults: [{ status: 'passed' }] },
+  ])('keeps absent or incomplete file records unknown %j', (report) => {
+    expect(countFailedFileRecords(report)).toBeNull();
   });
 });
