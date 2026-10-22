@@ -182,6 +182,76 @@ const OPEN_WORLD_PRESENTATIONS = [
 const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_ad_research_detail',
+    title: 'Get Ad Research Detail',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_articles',
+    title: 'Get Articles',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+    name: 'get_connection_status',
+    title: 'Get Connection Status',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'get_social_conversation',
+    title: 'Get Social Conversation',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'list_ads_research',
+    title: 'List Ads Research',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
+    name: 'list_social_conversations',
+    title: 'List Social Conversations',
+  },
+  {
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+    name: 'list_workflows',
+    title: 'List Workflows',
+  },
+  {
+    annotations: {
       readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: true,
@@ -332,23 +402,26 @@ describe('toMcpTools', () => {
     },
   );
 
-  it('preserves supplied presentation for an audited read override', () => {
-    const annotations = {
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: true,
-      readOnlyHint: true,
-    };
-    const [tool] = toMcpTools([
-      buildTool({
-        name: 'get_account',
-        annotations,
-        title: 'Stored audited presentation',
-      }),
-    ]);
-    expect(tool?.title).toBe('Stored audited presentation');
-    expect(tool?.annotations).toEqual(annotations);
-  });
+  it.each(AUDITED_READ_PRESENTATIONS)(
+    'preserves supplied presentation for audited read $name',
+    ({ name }) => {
+      const annotations = {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+        readOnlyHint: true,
+      };
+      const [tool] = toMcpTools([
+        buildTool({
+          name,
+          annotations,
+          title: 'Stored audited presentation',
+        }),
+      ]);
+      expect(tool?.title).toBe('Stored audited presentation');
+      expect(tool?.annotations).toEqual(annotations);
+    },
+  );
 
   it('advertises an object output schema for every MCP-surfaced action', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
