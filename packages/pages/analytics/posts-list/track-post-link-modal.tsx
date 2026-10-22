@@ -15,6 +15,7 @@ import { type FormEvent, useState } from 'react';
 
 export default function TrackPostLinkModal({
   brandId,
+  triggerRef,
   onClose,
   onTracked,
 }: TrackPostLinkModalProps) {
@@ -65,7 +66,22 @@ export default function TrackPostLinkModal({
         if (!isOpen && !isSubmitting) onClose();
       }}
     >
-      <Modal.Content size="md">
+      <Modal.Content
+        size="md"
+        onCloseAutoFocus={(event) => {
+          const trigger = triggerRef?.current;
+          if (!trigger?.isConnected) return;
+          const closingContent = event.target;
+          if (
+            document.activeElement !== document.body &&
+            closingContent instanceof HTMLElement &&
+            !closingContent.contains(document.activeElement)
+          )
+            return;
+          event.preventDefault();
+          trigger.focus({ preventScroll: true });
+        }}
+      >
         <Modal.Header>
           <Modal.Title>{translate('title')}</Modal.Title>
           <Modal.Description>{translate('description')}</Modal.Description>

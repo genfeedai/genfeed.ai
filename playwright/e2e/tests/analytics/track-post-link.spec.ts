@@ -173,4 +173,33 @@ test.describe('Import published posts for analytics', () => {
     await page.getByPlaceholder('Search posts...').fill('existing-post');
     await expect(page).toHaveURL(/postId=existing-post/);
   });
+  test('keeps the import form usable on a narrow screen and restores keyboard focus', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(brandPath(APP_ROUTES.ANALYTICS.POSTS));
+    const trigger = page.getByRole('button', {
+      name: 'Track a post',
+      exact: true,
+    });
+    await trigger.click();
+    const modal = page.getByRole('dialog', { name: 'Track a post' });
+    await modal
+      .getByLabel(/Post link/)
+      .fill('https://linkedin.com/pulse/hello-alice');
+    await expect(
+      modal.getByRole('button', { name: 'Import post', exact: true }),
+    ).toBeVisible();
+    const box = await modal.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.width).toBeLessThanOrEqual(390);
+    await page.screenshot({
+      path: testInfo.outputPath('track-post-mobile.png'),
+      timeout: 10000,
+      animations: 'disabled',
+    });
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible();
+    await expect(trigger).toBeFocused({ timeout: 5000 });
+  });
 });

@@ -34,7 +34,7 @@ import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const METRIC_OPTIONS: Array<{
   label: string;
@@ -74,6 +74,7 @@ export default function AnalyticsPostsList() {
     string | null | undefined
   >(undefined);
   const { filters, setFilter, brandId } = useAnalyticsContext();
+  const trackTriggerRef = useRef<HTMLButtonElement>(null);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [trackingResult, setTrackingResult] =
     useState<ExtensionPublicationCaptureResult | null>(null);
@@ -251,6 +252,7 @@ export default function AnalyticsPostsList() {
           />
         ) : null}
         <Button
+          ref={trackTriggerRef}
           label={translateTrack('title')}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
@@ -300,6 +302,7 @@ export default function AnalyticsPostsList() {
         <TrackPostLinkModal
           key={brandId}
           brandId={brandId}
+          triggerRef={trackTriggerRef}
           onClose={() => setIsTrackModalOpen(false)}
           onTracked={(result) => {
             setTrackingResult(result);
