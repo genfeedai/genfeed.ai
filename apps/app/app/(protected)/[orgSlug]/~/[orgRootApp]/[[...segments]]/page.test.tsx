@@ -6,6 +6,7 @@ import {
   LibraryShelf,
   PageScope,
 } from '@genfeedai/contracts';
+import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +16,7 @@ const {
   notFoundMock,
   redirectMock,
   renderPostsListPageMock,
+  routeContext,
 } = vi.hoisted(() => ({
   loadProtectedBootstrapMock: vi.fn(),
   notFoundMock: vi.fn(() => {
@@ -24,6 +26,11 @@ const {
     throw new Error(`NEXT_REDIRECT:${destination}`);
   }),
   renderPostsListPageMock: vi.fn(),
+  routeContext: {
+    orgSlug: 'org-A',
+    brandSlug: undefined as string | undefined,
+    brandId: '',
+  },
 }));
 
 vi.mock('@app-server/protected-bootstrap.server', () => ({
@@ -32,9 +39,22 @@ vi.mock('@app-server/protected-bootstrap.server', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
+  useParams: () => ({
+    orgSlug: routeContext.orgSlug,
+    brandSlug: routeContext.brandSlug,
+  }),
   notFound: notFoundMock,
   redirect: redirectMock,
 }));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: routeContext.brandId }),
+}));
+
+vi.mock('next/dynamic', async () => {
+  const { lazy } = await import('react');
+  return { default: lazy };
+});
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -153,17 +173,35 @@ vi.mock('../../../[brandSlug]/messages/reply-drip/page', () => ({
 }));
 
 vi.mock('../../../[brandSlug]/studio/editor/[id]/page', () => ({
-  default: async ({
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }) => {
-    const { id } = await params;
-    return <div data-id={id} data-testid="editor-detail-page" />;
+  default: () => {
+    throw new Error('route entry must not be invoked by another route');
   },
 }));
+
+vi.mock(
+  '../../../[brandSlug]/studio/editor/[id]/editor-page-content',
+  async () => {
+    const { useBrand } = await import(
+      '@contexts/user/brand-context/brand-context'
+    );
+    const { useParams } = await import('next/navigation');
+    return {
+      default: ({ projectId }: { projectId: string }) => {
+        const { brandId } = useBrand();
+        const params = useParams();
+        return (
+          <div
+            data-id={projectId}
+            data-brand-id={brandId}
+            data-org={params.orgSlug}
+            data-brand={params.brandSlug}
+            data-testid="editor-detail-page"
+          />
+        );
+      },
+    };
+  },
+);
 
 vi.mock('../../../[brandSlug]/studio/editor/new/page', () => ({
   default: () => <div data-testid="editor-new-page" />,
@@ -195,11 +233,35 @@ vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
 }));
 
 vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
-  default: async ({ params }: { params: Promise<{ id: string }> }) => {
-    const { id } = await params;
-    return <div data-content-id={id} data-testid="publishing-content-detail" />;
+  default: () => {
+    throw new Error('route entry must not be invoked by another route');
   },
 }));
+
+vi.mock(
+  '../../../[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage',
+  async () => {
+    const { useBrand } = await import(
+      '@contexts/user/brand-context/brand-context'
+    );
+    const { useParams } = await import('next/navigation');
+    return {
+      default: ({ contentId }: { contentId: string }) => {
+        const { brandId } = useBrand();
+        const params = useParams();
+        return (
+          <div
+            data-content-id={contentId}
+            data-brand-id={brandId}
+            data-org={params.orgSlug}
+            data-brand={params.brandSlug}
+            data-testid="publishing-content-detail"
+          />
+        );
+      },
+    };
+  },
+);
 
 vi.mock('../../../[brandSlug]/publishing/campaigns/compare/page', () => ({
   default: () => <div data-testid="publishing-campaign-compare" />,
@@ -252,6 +314,11 @@ const { default: OrgRootAppPage } = await import('./page');
 describe('OrgRootAppPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.assign(routeContext, {
+      orgSlug: 'org-A',
+      brandSlug: undefined,
+      brandId: '',
+    });
     loadProtectedBootstrapMock.mockResolvedValue(null);
   });
 
@@ -668,6 +735,13 @@ describe('OrgRootAppPage', () => {
       scope: PageScope.ORGANIZATION,
       searchParams,
     });
+    expect(renderPostsListPageMock.mock.calls[0][0].searchParams).toBe(
+      searchParams,
+    );
+    expect(screen.getByTestId('campaign-detail-shell')).toHaveAttribute(
+      'data-section',
+      'content',
+    );
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
   });
 
@@ -833,7 +907,7 @@ describe('OrgRootAppPage', () => {
     });
     render(detailElement);
 
-    expect(screen.getByTestId('editor-detail-page')).toHaveAttribute(
+    expect(await screen.findByTestId('editor-detail-page')).toHaveAttribute(
       'data-id',
       'project-1',
     );
@@ -863,5 +937,62 @@ describe('OrgRootAppPage', () => {
     ).rejects.toThrow('NEXT_NOT_FOUND');
 
     expect(notFoundMock).toHaveBeenCalled();
+  });
+  it.each([
+    ['studio', 'editor', 'project-org-2', 'editor-detail-page', 'data-id'],
+    [
+      'publishing',
+      'posts',
+      'content-org-2',
+      'publishing-content-detail',
+      'data-content-id',
+    ],
+  ])(
+    'awaits real %s params and forwards the literal detail ID without brand params',
+    async (orgRootApp, section, id, testId, attribute) => {
+      const params =
+        Promise.withResolvers<Awaited<OrgRootAppPageProps['params']>>();
+      const settled = vi.fn();
+      const pending = OrgRootAppPage({ params: params.promise }).then(
+        (element) => {
+          settled();
+          return element;
+        },
+      );
+      await Promise.resolve();
+      expect(settled).not.toHaveBeenCalled();
+      params.resolve({ orgRootApp, orgSlug: 'org-A', segments: [section, id] });
+      render(await pending);
+      const detail = await screen.findByTestId(testId);
+      expect(detail).toHaveAttribute(attribute, id);
+      expect(detail).toHaveAttribute('data-org', 'org-A');
+      expect(detail).toHaveAttribute('data-brand-id', '');
+      expect(detail).not.toHaveAttribute('data-brand');
+    },
+  );
+
+  it('propagates rejected real route params without catching server control', async () => {
+    const failure = new Error('params failed');
+    await expect(
+      OrgRootAppPage({ params: Promise.reject(failure) }),
+    ).rejects.toBe(failure);
+    expect(notFoundMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it('retains permissive trailing Editor segments', async () => {
+    render(
+      await OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'org-A',
+          segments: ['editor', 'project-trailing', 'extra'],
+        }),
+      }),
+    );
+    expect(await screen.findByTestId('editor-detail-page')).toHaveAttribute(
+      'data-id',
+      'project-trailing',
+    );
   });
 });
