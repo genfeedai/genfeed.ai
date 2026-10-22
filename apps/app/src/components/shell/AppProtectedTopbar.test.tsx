@@ -401,6 +401,15 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
+  it('shows a single Plugins breadcrumb with organization selection and no brand selector', () => {
+    mockPathname.value = '/acme/~/plugins';
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+    expect(
+      screen.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toHaveTextContent(/^Plugins$/);
+    expect(screen.queryByTestId('brand-switcher')).toBeNull();
+  });
+
   it('leaves app navigation to the rail', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="playground" />);
 

@@ -39,7 +39,13 @@ export type PluginThumbnailArt =
 
 export type PluginThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
 
-export type PluginThumbnailSize = 'compact' | 'standard';
+export type PluginThumbnailSize = 'compact' | 'standard' | 'preview';
+
+export type PluginStatusFilter =
+  | 'all'
+  | 'installed'
+  | 'available'
+  | 'restricted';
 
 /** Plugins-only presentation data for one native app, keyed by app id. */
 export interface PluginAppCatalogEntry {
@@ -57,20 +63,19 @@ export interface PluginAppThumbnailProps {
   size: PluginThumbnailSize;
 }
 
-export interface PluginAppRowProps {
+export interface PluginAppActionsProps {
   app: PluginAppEntry;
-  /** Set after the last install or uninstall request for this app failed. */
-  failedAction: 'install' | 'uninstall' | null;
   isPending: boolean;
   isPinned: boolean;
-  manageModulesHref: string;
   onInstall: (appId: NativeSecondaryAppId) => void;
   onTogglePin: (appId: NativeSecondaryAppId) => void;
   onUninstall: (appId: NativeSecondaryAppId) => void;
-  subscriptionHref: string;
 }
 
-export interface PluginAppAccessNoteProps
-  extends Pick<PluginAppRowProps, 'manageModulesHref' | 'subscriptionHref'> {
+export type PluginAppStateProps = Pick<PluginAppActionsProps, 'app'>;
+
+export interface PluginAppAccessNoteProps {
+  manageModulesHref: string;
+  subscriptionHref: string;
   state: PluginAppEntry['state'];
 }

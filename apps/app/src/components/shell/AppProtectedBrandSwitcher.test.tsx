@@ -267,6 +267,18 @@ describe('AppProtectedBrandSwitcher', () => {
     expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
   });
 
+  it('hides the brand selector only on the organization Plugins route', () => {
+    mockPathname.value = '/acme/~/plugins';
+    render(<AppProtectedBrandSwitcher orgSlug="acme" />);
+    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+  });
+
+  it('keeps the selector for an organization collection with optional brand scope', () => {
+    mockPathname.value = '/acme/~/library/assets';
+    render(<AppProtectedBrandSwitcher orgSlug="acme" />);
+    expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
+  });
+
   it('hides the brand switcher on organization settings routes', () => {
     mockPathname.value = '/acme/~/settings/api-keys';
 

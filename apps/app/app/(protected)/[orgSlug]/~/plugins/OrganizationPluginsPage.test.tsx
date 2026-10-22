@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
     settingsLoading: false,
   },
   flags: {} as Record<string, unknown>,
+  orgSlug: 'acme',
+  pinnedAppIds: [] as string[],
+  togglePin: vi.fn(),
   install: vi.fn(),
   installed: {
     installedAppIds: ['playground'] as string[],
@@ -33,13 +36,19 @@ vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({ flags: mocks.flags, isConfigured: false }),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ orgSlug: 'acme' }),
+  useOrgUrl: () => ({ orgSlug: mocks.orgSlug }),
 }));
 vi.mock('@/components/shell/installed-apps.provider', () => ({
   useInstalledApps: () => ({
     ...mocks.installed,
     install: mocks.install,
     uninstall: mocks.uninstall,
+  }),
+}));
+vi.mock('@/components/shell/rail-preferences.provider', () => ({
+  useRailPreferencesContext: () => ({
+    pinnedAppIds: mocks.pinnedAppIds,
+    togglePin: mocks.togglePin,
   }),
 }));
 vi.mock('next/link', () => ({
@@ -58,6 +67,7 @@ vi.mock('next/link', () => ({
 }));
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/~/plugins',
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('next-intl', async () => {
@@ -82,12 +92,22 @@ function card(appId: string): HTMLElement {
 }
 
 function appState(appId: string): string | null {
-  return card(appId).getAttribute('data-app-state');
+  return (
+    card(appId)
+      .querySelector('[data-app-state]')
+      ?.getAttribute('data-app-state') ?? null
+  );
 }
 
-describe('OrganizationPluginsPage (#5502)', () => {
+describe('OrganizationPluginsPage (#7842)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.orgSlug = 'acme';
+    mocks.pinnedAppIds = [];
+    Element.prototype.scrollIntoView = vi.fn();
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.setPointerCapture = vi.fn();
+    Element.prototype.releasePointerCapture = vi.fn();
     mocks.brand.selectedBrand = { slug: 'moonrise' };
     mocks.brand.settings = {
       hasOrganizationBilling: true,
@@ -108,7 +128,7 @@ describe('OrganizationPluginsPage (#5502)', () => {
 
     expect(
       screen
-        .getAllByTestId(/^plugins-app-/)
+        .getAllByTestId(/^plugins-app-(?!detail)/)
         .map((element) => element.dataset.testid),
     ).toEqual([
       'plugins-app-playground',
@@ -118,35 +138,36 @@ describe('OrganizationPluginsPage (#5502)', () => {
     ]);
   });
 
-  it('lists installed apps first and the rest by category', () => {
+  it('shows one status tablist with ALL and a category dropdown', () => {
     render(<OrganizationPluginsPage />);
+    expect(screen.getAllByRole('tablist')).toHaveLength(1);
+    expect(screen.getByRole('tab', { name: 'ALL' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'Category' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /All apps/i })).toBeNull();
+    expect(
+      screen.getByRole('heading', { name: 'Playground' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('plugins-thumbnail-playground'),
+    ).toBeInTheDocument();
+  });
 
-    // Only the installed, openable app is listed under Installed; it is not
-    // repeated in the catalog below.
+  it('changes the preview when an app is selected', async () => {
+    const user = userEvent.setup();
+    render(<OrganizationPluginsPage />);
+    await user.click(card('storyboard'));
     expect(
-      within(screen.getByTestId('plugins-installed'))
-        .getAllByTestId(/^plugins-app-/)
-        .map((element) => element.dataset.testid),
-    ).toEqual(['plugins-app-playground']);
+      screen.getByRole('heading', { name: 'Storyboard' }),
+    ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('plugins-apps'))
-        .getAllByTestId(/^plugins-app-/)
-        .map((element) => element.dataset.testid),
-    ).toEqual([
-      'plugins-app-storyboard',
-      'plugins-app-turbo',
-      'plugins-app-discovery',
-    ]);
-    // Every row leads with its app thumbnail.
-    for (const appId of ['playground', 'storyboard', 'discovery']) {
-      expect(
-        within(card(appId)).getByTestId(`plugins-thumbnail-${appId}`),
-      ).toBeInTheDocument();
-    }
-    expect(screen.getByTestId('plugins-category-create')).toBeInTheDocument();
-    expect(screen.getByTestId('plugins-category-publish')).toBeInTheDocument();
-    expect(screen.queryByTestId('plugins-category-automate')).toBeNull();
-    expect(screen.queryByTestId('plugins-empty')).toBeNull();
+      screen.getByTestId('plugins-thumbnail-storyboard'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('plugins-thumbnail-playground')).toBeNull();
   });
 
   it('narrows the list with the search box', async () => {
@@ -160,7 +181,7 @@ describe('OrganizationPluginsPage (#5502)', () => {
 
     expect(
       screen
-        .getAllByTestId(/^plugins-app-/)
+        .getAllByTestId(/^plugins-app-(?!detail)/)
         .map((element) => element.dataset.testid),
     ).toEqual(['plugins-app-storyboard']);
 
@@ -170,7 +191,7 @@ describe('OrganizationPluginsPage (#5502)', () => {
       'zzzz',
     );
 
-    expect(screen.queryAllByTestId(/^plugins-app-/)).toHaveLength(0);
+    expect(screen.queryAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(0);
     expect(screen.getByTestId('plugins-empty')).toHaveTextContent(
       'No plugins match your search.',
     );
@@ -180,17 +201,14 @@ describe('OrganizationPluginsPage (#5502)', () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
 
-    await user.click(screen.getByRole('button', { name: /Filters/ }));
-    screen.getByRole('menuitem', { name: /Category/ }).focus();
-    await user.keyboard('{ArrowRight}');
+    await user.click(screen.getByRole('combobox', { name: 'Category' }));
     await user.click(
-      await screen.findByRole('menuitemradio', { name: 'Publish & grow' }),
+      await screen.findByRole('option', { name: 'Publish & grow' }),
     );
 
-    expect(screen.queryByTestId('plugins-category-create')).toBeNull();
     expect(
       screen
-        .getAllByTestId(/^plugins-app-/)
+        .getAllByTestId(/^plugins-app-(?!detail)/)
         .map((element) => element.dataset.testid),
     ).toEqual(['plugins-app-discovery']);
   });
@@ -204,7 +222,7 @@ describe('OrganizationPluginsPage (#5502)', () => {
     };
     render(<OrganizationPluginsPage />);
 
-    expect(screen.getAllByTestId(/^plugins-app-/)).toHaveLength(9);
+    expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(9);
   });
 
   it('opens an installed app and installs one that is not installed', async () => {
@@ -212,14 +230,25 @@ describe('OrganizationPluginsPage (#5502)', () => {
     render(<OrganizationPluginsPage />);
 
     expect(
-      within(card('playground')).getByRole('link', { name: 'Open Playground' }),
+      within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
+        name: 'Open Playground',
+      }),
     ).toHaveAttribute('href', '/acme/moonrise/studio/playground');
+    await user.click(card('storyboard'));
     await user.click(
-      within(card('storyboard')).getByRole('button', {
+      within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
         name: 'Add Storyboard',
       }),
     );
     expect(mocks.install).toHaveBeenCalledWith('storyboard');
+  });
+
+  it('opens through the organization route when no brand is selected', () => {
+    mocks.brand.selectedBrand = undefined;
+    render(<OrganizationPluginsPage />);
+    expect(
+      screen.getByRole('link', { name: 'Open Playground' }),
+    ).toHaveAttribute('href', '/acme/~/studio/playground');
   });
 
   it('explains a failed install without showing the app as installed', async () => {
@@ -227,20 +256,22 @@ describe('OrganizationPluginsPage (#5502)', () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
 
+    await user.click(card('storyboard'));
     await user.click(
-      within(card('storyboard')).getByRole('button', {
+      within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
         name: 'Add Storyboard',
       }),
     );
     await waitFor(() =>
-      expect(within(card('storyboard')).getByRole('alert')).toHaveTextContent(
-        "Couldn't add Storyboard. Try again.",
-      ),
+      expect(
+        within(screen.getByTestId('plugins-app-detail')).getByRole('alert'),
+      ).toHaveTextContent("Couldn't add Storyboard. Try again."),
     );
     expect(appState('storyboard')).toBe('not-installed');
   });
 
-  it('shows truthful locked states instead of an install', () => {
+  it('shows truthful locked states instead of an install', async () => {
+    const user = userEvent.setup();
     mocks.brand.settings = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: false,
@@ -248,18 +279,24 @@ describe('OrganizationPluginsPage (#5502)', () => {
     };
     render(<OrganizationPluginsPage />);
 
+    await user.click(card('turbo'));
     expect(appState('turbo')).toBe('organization-disabled');
     expect(
-      within(card('turbo')).getByRole('button', { name: 'Add Turbo' }),
+      within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
+        name: 'Add Turbo',
+      }),
     ).toBeDisabled();
     expect(
-      within(card('turbo')).getByRole('link', {
+      within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
         name: 'Organization settings',
       }),
     ).toHaveAttribute('href', '/acme/~/settings/modules');
+    await user.click(card('discovery'));
     expect(appState('discovery')).toBe('subscription-required');
     expect(
-      within(card('discovery')).getByRole('link', { name: 'View plans' }),
+      within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
+        name: 'View plans',
+      }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
   });
 
@@ -279,7 +316,8 @@ describe('OrganizationPluginsPage (#5502)', () => {
     expect(screen.queryByTestId('plugins-app-motion')).toBeNull();
   });
 
-  it('shows the workflow library only while Automation is installed and eligible', () => {
+  it('offers the workflow library in the eligible installed Automation preview', async () => {
+    const user = userEvent.setup();
     const { rerender } = render(<OrganizationPluginsPage />);
     expect(screen.queryByTestId('plugins-workflows')).toBeNull();
 
@@ -291,6 +329,8 @@ describe('OrganizationPluginsPage (#5502)', () => {
     };
     mocks.installed.installedAppIds = ['playground', 'automation'];
     rerender(<OrganizationPluginsPage />);
+    expect(screen.queryByTestId('plugins-workflows')).toBeNull();
+    await user.click(card('automation'));
     expect(
       within(screen.getByTestId('plugins-workflows')).getByRole('link', {
         name: 'Open workflow library',
@@ -320,6 +360,119 @@ describe('OrganizationPluginsPage (#5502)', () => {
         "Couldn't load your plugins. Reload the page to try again.",
       ),
     ).toBeInTheDocument();
-    expect(appState('playground')).toBe('not-installed');
+    expect(screen.queryByTestId('plugins-browser')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Add / })).toBeNull();
+  });
+  it('filters by installation state and falls back when selection leaves the results', async () => {
+    const user = userEvent.setup();
+    render(<OrganizationPluginsPage />);
+    await user.click(card('storyboard'));
+    await user.click(screen.getByRole('tab', { name: 'Installed' }));
+    expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(1);
+    expect(
+      screen.getByRole('heading', { name: 'Playground' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Available' }));
+    expect(screen.queryByTestId('plugins-app-playground')).toBeNull();
+    expect(
+      screen.getByRole('heading', { name: 'Storyboard' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Restricted' }));
+    expect(appState('turbo')).toBe('organization-disabled');
+    expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
+  });
+
+  it('blocks repeat installs and removals while saving', async () => {
+    const user = userEvent.setup();
+    mocks.installed.pendingAppIds = ['storyboard', 'playground'];
+    render(<OrganizationPluginsPage />);
+    await user.click(
+      screen.getByRole('button', { name: 'Playground', exact: true }),
+    );
+    expect(screen.getByRole('menuitem', { name: 'Remove' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    await user.keyboard('{Escape}');
+    await user.click(card('storyboard'));
+    expect(
+      screen.getByRole('button', { name: 'Add Storyboard' }),
+    ).toBeDisabled();
+    expect(mocks.install).not.toHaveBeenCalled();
+  });
+
+  it('uses the saved pin/remove actions and reports a failed removal', async () => {
+    const user = userEvent.setup();
+    mocks.uninstall.mockResolvedValue(false);
+    render(<OrganizationPluginsPage />);
+    await user.click(
+      screen.getByRole('button', { name: 'Playground', exact: true }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: /Pin Playground/ }));
+    expect(mocks.togglePin).toHaveBeenCalledWith('playground');
+    await user.click(
+      screen.getByRole('button', { name: 'Playground', exact: true }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Remove' }));
+    expect(mocks.uninstall).toHaveBeenCalledWith('playground');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Couldn't remove Playground. Try again.",
+    );
+    expect(appState('playground')).toBe('installed');
+  });
+
+  it('keeps apps out of the chooser while access/installations are loading', () => {
+    mocks.installed.status = 'loading';
+    render(<OrganizationPluginsPage />);
+    expect(
+      screen
+        .getAllByRole('status', { name: 'Loading app' })
+        .find((element) => element.getAttribute('aria-busy') === 'true'),
+    ).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByTestId('plugins-browser')).toBeNull();
+  });
+
+  it('resets selection and ignores an old organization action after switching scope', async () => {
+    const user = userEvent.setup();
+    let finishInstall: (value: boolean) => void = () => {};
+    mocks.install.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishInstall = resolve;
+        }),
+    );
+    const { rerender } = render(<OrganizationPluginsPage />);
+    await user.click(card('storyboard'));
+    await user.click(screen.getByRole('button', { name: 'Add Storyboard' }));
+    mocks.orgSlug = 'other';
+    rerender(<OrganizationPluginsPage />);
+    await act(async () => finishInstall(false));
+    expect(
+      screen.getByRole('heading', { name: 'Playground' }),
+    ).toBeInTheDocument();
+    await user.click(card('storyboard'));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('provides the approved large preview for every offered app', async () => {
+    const user = userEvent.setup();
+    mocks.brand.settings = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: {},
+    };
+    render(<OrganizationPluginsPage />);
+    const rows = screen.getAllByTestId(/^plugins-app-(?!detail)/);
+    expect(rows).toHaveLength(9);
+    for (const row of rows) {
+      await user.click(row);
+      const detail = screen.getByTestId('plugins-app-detail');
+      expect(
+        decodeURIComponent(
+          within(detail).getByRole('img').getAttribute('src') ?? '',
+        ),
+      ).toContain('/plugins/');
+    }
   });
 });

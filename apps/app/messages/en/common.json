@@ -2504,6 +2504,16 @@
   },
   "plugins": {
     "title": "Plugins",
+    "allCategories": "All categories",
+    "selectApp": "Select {app}",
+    "selectedApp": "{app}, selected",
+    "status": {
+      "label": "App status",
+      "all": "ALL",
+      "installed": "Installed",
+      "available": "Available",
+      "restricted": "Restricted"
+    },
     "search": "Search plugins",
     "installedTitle": "Installed",
     "catalogTitle": "Plugins",
