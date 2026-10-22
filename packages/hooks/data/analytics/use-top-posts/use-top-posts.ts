@@ -12,6 +12,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface TopPostData {
   postId: string;
+  source?: string | null;
+  metricsStatus?: 'pending' | 'unavailable' | 'collected';
   label?: string;
   description?: string;
   platform: string;

@@ -562,6 +562,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'track_post_link', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   {
     name: 'transfer_agent_conversation',
     surfaces: ['agent'],

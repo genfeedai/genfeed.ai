@@ -157,6 +157,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   publish_skill: 'direct',
   link_external_publication_credential: 'direct',
   record_external_publication: 'direct',
+  track_post_link: 'direct',
   rate_content: 'direct',
   rate_ingredient: 'direct',
   replace_storyboard_character: 'approval-required',

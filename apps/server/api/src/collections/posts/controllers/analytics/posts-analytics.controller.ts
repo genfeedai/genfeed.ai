@@ -5,7 +5,9 @@ import {
   PublicationInsightScopeQueryDto,
   PublicationInsightsQueryDto,
 } from '@api/collections/posts/dto/publication-insights-query.dto';
+import { TrackPostLinkDto } from '@api/collections/posts/dto/track-post-link.dto';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
 import {
   extensionPublicationCaptureAnalyticsAvailability,
   isExtensionPublicationCapture,
@@ -34,10 +36,12 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   HttpException,
@@ -96,7 +100,35 @@ export class PostsAnalyticsController {
     private readonly postAnalyticsService: PostAnalyticsService,
     private readonly analyticsSyncWorkflowService: AnalyticsSyncWorkflowService,
     private readonly loggerService: LoggerService,
+    private readonly postLinkTrackingService: PostLinkTrackingService,
   ) {}
+
+  @Post('track-link')
+  @SetMetadata('roles', [
+    'superadmin',
+    MemberRole.OWNER,
+    MemberRole.ADMIN,
+    MemberRole.CREATOR,
+    MemberRole.ANALYTICS,
+  ])
+  @UsePipes(ValidationPipe)
+  async trackLink(
+    @CurrentUser() user: User,
+    @Body() input: TrackPostLinkDto,
+  ): Promise<JsonApiSingleResponse<ExtensionPublicationCaptureResult>> {
+    const result = await this.postLinkTrackingService.trackLink(input, {
+      organizationId: user.organizationId,
+      userId: user.userId,
+      brandId: input.brandId,
+    });
+    return {
+      data: {
+        type: 'post-link-tracking',
+        id: result.postId,
+        attributes: result,
+      },
+    };
+  }
 
   @Get('publication-insights')
   @SetMetadata('roles', [

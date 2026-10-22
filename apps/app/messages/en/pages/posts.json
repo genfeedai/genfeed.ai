@@ -112,16 +112,16 @@
         "published": "Published",
         "source": "Source"
       },
-      "description": "Read-only records of publications observed by the browser extension. They cannot be scheduled, rescheduled or retried.",
+      "description": "Imported records of posts already published on a social platform. They cannot be scheduled, rescheduled or retried.",
       "empty": {
-        "description": "Publications the browser extension records will appear here.",
-        "label": "No captured publications"
+        "description": "Posts imported by link or recorded by the browser extension will appear here.",
+        "label": "No imported posts"
       },
-      "loadError": "Captured publications could not be loaded. Refresh to try again.",
+      "loadError": "Imported posts could not be loaded. Refresh to try again.",
       "openAnalytics": "Open analytics for {title}",
-      "sourceBadge": "Extension",
-      "tableLabel": "Captured from the extension",
-      "untitled": "Captured publication"
+      "sourceBadge": "Imported",
+      "tableLabel": "Imported posts",
+      "untitled": "Imported post"
     },
     "channelCount": "{count, plural, one {# channel} other {# channels}}",
     "empty": {
@@ -179,7 +179,7 @@
       "sortAria": "Sort",
       "sourceAll": "All sources",
       "sourceAria": "Source",
-      "sourceExtension": "Extension"
+      "sourceExtension": "Imported"
     },
     "unscheduled": "Unscheduled",
     "untitled": "Untitled post",

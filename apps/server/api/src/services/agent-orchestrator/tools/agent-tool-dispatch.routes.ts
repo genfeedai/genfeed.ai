@@ -148,6 +148,8 @@ function dispatchWorkspaceFamily(
         params,
         ctx,
       );
+    case 'track_post_link':
+      return handlers.publishHandler.trackPostLink(params, ctx);
     case 'record_external_publication':
       return handlers.publishHandler.recordExternalPublication(params, ctx);
     case 'create_post':

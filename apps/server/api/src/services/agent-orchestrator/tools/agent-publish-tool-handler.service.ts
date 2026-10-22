@@ -5,6 +5,8 @@ import type { CredentialsService } from '@api/collections/credentials/services/c
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
+import { parseTrackPostLinkInput } from '@api/collections/posts/services/post-link-tracking.util';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService, SERVER_TOKENS } from '@api/index';
@@ -28,7 +30,10 @@ import {
   resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
-import { assertAgentPublishingScope } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
+import {
+  assertAgentPublishingScope,
+  authorizeExternalPublicationBrand,
+} from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -75,6 +80,8 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -123,7 +130,33 @@ export class AgentPublishToolHandler {
     private readonly autonomousPublishPolicyService?: AutonomousPublishPolicyService,
     @Optional()
     private readonly turboRunService?: TurboRunService,
+    @Optional()
+    private readonly postLinkTrackingService?: PostLinkTrackingService,
   ) {}
+
+  async trackPostLink(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const input = parseTrackPostLinkInput(params);
+    if (!ctx.brandId || ctx.brandId !== input.brandId)
+      throw new ForbiddenException(
+        'Post link must match the authenticated brand context',
+      );
+    await authorizeExternalPublicationBrand(
+      this.agentScopeContextService,
+      input.brandId,
+      ctx,
+    );
+    if (!this.postLinkTrackingService)
+      throw new BadRequestException('Post link tracking is unavailable');
+    const result = await this.postLinkTrackingService.trackLink(input, {
+      brandId: input.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    return { success: true, creditsUsed: 0, data: { ...result } };
+  }
 
   async recordExternalPublication(
     params: Record<string, unknown>,

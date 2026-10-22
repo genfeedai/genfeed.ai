@@ -7,32 +7,34 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('API key publishing scope policy', () => {
-  it.each([ApiKeyScope.POSTS_DRAFT])(
-    'accepts %s for recording without publish capability',
-    (scope) => {
-      expect(() =>
-        assertApiKeyAgentPublishingScope(
-          { isApiKey: true, scopes: [scope] },
-          'record_external_publication',
-          {},
-        ),
-      ).not.toThrow();
+  describe.each(['record_external_publication', 'track_post_link'])(
+    '%s',
+    (toolName) => {
+      it('accepts draft capability without publishing capability', () => {
+        expect(() =>
+          assertApiKeyAgentPublishingScope(
+            { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
+            toolName,
+            {},
+          ),
+        ).not.toThrow();
+      });
+      it.each([
+        { scopes: [] },
+        { scopes: [ApiKeyScope.ANALYTICS_READ] },
+        { scopes: [ApiKeyScope.POSTS_PUBLISH] },
+        { scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+      ])('rejects missing draft capability: %j', ({ scopes }) => {
+        expect(() =>
+          assertApiKeyAgentPublishingScope(
+            { isApiKey: true, scopes },
+            toolName,
+            {},
+          ),
+        ).toThrow(ForbiddenException);
+      });
     },
   );
-  it.each([
-    { scopes: [] },
-    { scopes: [ApiKeyScope.ANALYTICS_READ] },
-    { scopes: [ApiKeyScope.POSTS_PUBLISH] },
-    { scopes: [ApiKeyScope.POSTS_SCHEDULE] },
-  ])('rejects recording without draft capability: %j', ({ scopes }) => {
-    expect(() =>
-      assertApiKeyAgentPublishingScope(
-        { isApiKey: true, scopes },
-        'record_external_publication',
-        {},
-      ),
-    ).toThrow(ForbiddenException);
-  });
   it('accepts the canonical draft scope', () => {
     expect(() =>
       assertApiKeyPublishingScope(

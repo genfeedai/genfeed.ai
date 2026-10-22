@@ -108,6 +108,30 @@ describe('AnalyticsPostsList', () => {
     });
   });
 
+  it('labels imports and hides unavailable metric numbers in the all-sources view', () => {
+    useTopPostsMock.mockReturnValue({
+      isLoading: false,
+      topPosts: [
+        {
+          postId: 'imported',
+          label: 'LinkedIn article',
+          platform: 'linkedin',
+          brandName: 'Acme',
+          source: 'extension',
+          metricsStatus: 'unavailable',
+          totalViews: 0,
+          totalEngagement: 0,
+          engagementRate: 0,
+        },
+      ],
+    });
+    renderPostsList();
+    const card = screen.getByTestId('analytics-post-card');
+    expect(within(card).getByText('Imported')).toBeInTheDocument();
+    expect(within(card).getByText('Metrics unavailable')).toBeInTheDocument();
+    expect(within(card).queryByText('0.00%')).not.toBeInTheDocument();
+  });
+
   it('renders every filter through the shared filter menu', () => {
     renderPostsList();
 
@@ -171,7 +195,7 @@ describe('AnalyticsPostsList', () => {
     );
     expect(
       within(screen.getByRole('group', { name: 'Source' })).getByText(
-        'Extension',
+        'Imported',
       ),
     ).toHaveAttribute('data-selected', 'true');
     expect(screen.getAllByText('Audience')).toHaveLength(2);

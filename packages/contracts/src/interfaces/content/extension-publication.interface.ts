@@ -38,6 +38,7 @@ export interface ExtensionPublicationCaptureScope {
 }
 
 export type ExtensionPublicationAnalyticsAvailability =
+  | 'api-access-required'
   | 'eligible'
   | 'missing-external-id'
   | 'missing-credential'
@@ -66,4 +67,15 @@ export interface ExtensionPublicationCaptureResult {
   analyticsAvailability: ExtensionPublicationAnalyticsAvailability;
   observedVisibility: ExtensionPublicationObservedVisibility;
   urlIdentity: ExtensionPublicationUrlIdentity | null;
+}
+
+export interface TrackPostLinkInput {
+  brandId: string;
+  url: string;
+  title?: string;
+  publishedAt?: string;
+}
+
+export interface PublicationCaptureOptions {
+  origin: 'link';
 }

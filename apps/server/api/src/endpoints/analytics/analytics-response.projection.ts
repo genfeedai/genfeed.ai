@@ -191,6 +191,12 @@ export class AnalyticsResponseProjection {
         label: row.label as string,
         platform: toDomainPlatform(row.platform),
         postId: row.post_id as string,
+        source: typeof row.source === 'string' ? row.source : null,
+        metricsStatus:
+          row.metrics_status === 'pending' ||
+          row.metrics_status === 'unavailable'
+            ? row.metrics_status
+            : 'collected',
         thumbnailUrl: media.thumbnailUrl,
         totalComments: Number(row.total_comments),
         totalEngagement: Number(row.total_engagement),

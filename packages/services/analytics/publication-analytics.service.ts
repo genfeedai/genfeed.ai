@@ -4,13 +4,19 @@ import type {
   IPostAnalyticsSummary,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ExtensionPublicationCaptureResult,
+  TrackPostLinkInput,
+} from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import type { AxiosResponse } from 'axios';
+import { normalizeOperationError } from '@services/core/operation-error';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export class PostAnalyticsService extends HTTPBaseService {
   constructor(token: string) {
@@ -22,6 +28,26 @@ export class PostAnalyticsService extends HTTPBaseService {
       PostAnalyticsService,
       token,
     ) as PostAnalyticsService;
+  }
+
+  public async trackLink(
+    input: TrackPostLinkInput,
+  ): Promise<ExtensionPublicationCaptureResult> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [400, 409, 429, 500, 502, 503, 504],
+    };
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        '/track-link',
+        input,
+        config,
+      );
+      return deserializeResource<ExtensionPublicationCaptureResult>(
+        response.data,
+      );
+    } catch (error) {
+      throw normalizeOperationError('Import post link', error);
+    }
   }
 
   public async getPostAnalytics(

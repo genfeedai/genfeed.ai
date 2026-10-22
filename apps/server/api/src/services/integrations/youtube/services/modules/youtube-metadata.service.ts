@@ -8,6 +8,7 @@ import { google, type youtube_v3 } from 'googleapis';
 
 export interface YoutubeVideoMetadata {
   id: string;
+  channelId?: string;
   title?: string;
   description?: string;
   duration?: number;
@@ -62,6 +63,7 @@ export class YoutubeMetadataService {
       const duration = this.parseDuration(video.contentDetails?.duration || '');
 
       return {
+        channelId: video.snippet?.channelId || undefined,
         categoryId: video.snippet?.categoryId || undefined,
         description: video.snippet?.description || undefined,
         duration,

@@ -250,6 +250,8 @@ function safeMessage(
   hasAuthor: boolean,
 ): string | null {
   switch (insight.analyticsAvailability) {
+    case 'api-access-required':
+      return 'LinkedIn metrics are unavailable until API access is approved.';
     case 'missing-credential':
       return insight.isCapturedObservation && !hasAuthor
         ? 'This recording has no observed author to link. Connect the original account to recover analytics.'

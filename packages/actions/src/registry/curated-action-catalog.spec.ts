@@ -10,6 +10,16 @@ import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
+  it('exposes link imports on agent and MCP in the analytics toolset', () => {
+    expect(getToolByName('track_post_link')).toMatchObject({
+      creditCost: 0,
+      requiredRole: 'user',
+      toolset: 'analytics',
+      mutationPolicy: 'direct',
+      surfaces: { agent: true, mcp: true },
+      parameters: { additionalProperties: false, required: ['brandId', 'url'] },
+    });
+  });
   it.each(['create_brand_from_url', 'get_brand_scan_status'])(
     'exposes %s on agent and MCP in the brand toolset',
     (name) => {

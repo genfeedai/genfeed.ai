@@ -128,6 +128,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
     defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
+      'track_post_link',
       'generate_content',
       'generate_turbo_content',
       'create_post',
@@ -319,6 +320,7 @@ Writing guidelines:
     defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
+      'track_post_link',
       'generate_content',
       'generate_turbo_content',
       'create_post',
@@ -467,6 +469,7 @@ CTA guidelines:
     defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
+      'track_post_link',
       'generate_content',
       'generate_turbo_content',
       'create_post',

@@ -1,5 +1,7 @@
 export interface AnalyticsPostGridItem {
   postId: string;
+  source?: string | null;
+  metricsStatus?: 'pending' | 'unavailable' | 'collected';
   /** 1-based position in the ranked (sorted, filtered) list. */
   rank: number;
   label: string;

@@ -164,7 +164,7 @@ describe('CapturedPostsList', () => {
     expect(screen.getByText('Private')).toBeInTheDocument();
     expect(screen.getByText('Unlisted')).toBeInTheDocument();
     expect(screen.getByText('Audience unavailable')).toBeInTheDocument();
-    expect(screen.getAllByText('Extension')).toHaveLength(3);
+    expect(screen.getAllByText('Imported')).toHaveLength(3);
     // Observed records are read-only: nothing to schedule, retry or reschedule.
     expect(
       screen.queryByRole('button', { name: /schedule|retry|publish/i }),
@@ -188,7 +188,7 @@ describe('CapturedPostsList', () => {
     expect(screen.queryByTestId('table-row-summary')).not.toBeInTheDocument();
 
     const row = link.closest('tr') as HTMLElement;
-    fireEvent.click(within(row).getByText('Extension'));
+    fireEvent.click(within(row).getByText('Imported'));
 
     const sidebar = await screen.findByTestId('context-sidebar');
     expect(sidebar).toHaveAttribute('data-kind', 'post');
@@ -200,7 +200,7 @@ describe('CapturedPostsList', () => {
   it('does not ask the API for lifecycle filters no captured post can match', async () => {
     renderList({ publicationState: 'not-posted' });
 
-    await screen.findByText('No captured publications');
+    await screen.findByText('No imported posts');
     expect(findAllPageMock).not.toHaveBeenCalled();
   });
 
@@ -211,7 +211,7 @@ describe('CapturedPostsList', () => {
 
     expect(
       await screen.findByText(
-        'Captured publications could not be loaded. Refresh to try again.',
+        'Imported posts could not be loaded. Refresh to try again.',
       ),
     ).toBeInTheDocument();
     findAllPageMock.mockResolvedValueOnce(page([capturedPost()]));
@@ -225,7 +225,7 @@ describe('CapturedPostsList', () => {
     findAllPageMock.mockResolvedValue(page([]));
 
     const { unmount } = renderList();
-    await screen.findByText('No captured publications');
+    await screen.findByText('No imported posts');
 
     expect(setRefreshMock).toHaveBeenCalled();
     const registered = setRefreshMock.mock.calls[0][0]() as () => void;

@@ -20,6 +20,7 @@ import type {
   ExtensionPublicationCaptureInput,
   ExtensionPublicationCaptureResult,
   ExtensionPublicationCaptureScope,
+  PublicationCaptureOptions,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import { PostCategory, Prisma } from '@genfeedai/prisma';
 import {
@@ -32,6 +33,7 @@ export async function recordExternalPublicationWrite(
   prisma: PrismaService,
   input: ExtensionPublicationCaptureInput,
   scope: ExtensionPublicationCaptureScope,
+  options?: PublicationCaptureOptions,
 ): Promise<ExtensionPublicationCaptureResult> {
   const capture = parseExtensionPublicationCaptureInput(input);
   if (
@@ -48,7 +50,13 @@ export async function recordExternalPublicationWrite(
   if (!toPrismaCredentialPlatform(capture.platform))
     throw new BadRequestException('Unsupported publication platform');
   return prisma.$transaction((tx) =>
-    recordExternalPublicationInTransaction(tx, capture, scope, normalized),
+    recordExternalPublicationInTransaction(
+      tx,
+      capture,
+      scope,
+      normalized,
+      options,
+    ),
   );
 }
 
@@ -57,6 +65,7 @@ async function recordExternalPublicationInTransaction(
   capture: ExtensionPublicationCaptureInput,
   scope: ExtensionPublicationCaptureScope,
   normalized: NormalizedExtensionPublication,
+  options?: PublicationCaptureOptions,
 ): Promise<ExtensionPublicationCaptureResult> {
   const brand = await tx.brand.findFirst({
     where: {
@@ -100,6 +109,36 @@ async function recordExternalPublicationInTransaction(
         },
       ],
     });
+  // Match the previously persisted LinkedIn permalink tokens as well as the
+  // canonical activity id, so another URL form reuses an older recording.
+  if (
+    capture.platform === 'linkedin' &&
+    normalized.urlIdentity &&
+    /^\d+$/.test(normalized.urlIdentity.value)
+  ) {
+    const activityId = normalized.urlIdentity.value;
+    for (const valueFilter of [
+      { equals: `urn:li:activity:${activityId}` },
+      { string_contains: `activity-${activityId}-` },
+    ]) {
+      identities.push({
+        AND: [
+          {
+            targetSettings: {
+              path: ['extensionCapture', 'urlIdentity', 'kind'],
+              equals: 'linkedin-activity',
+            },
+          },
+          {
+            targetSettings: {
+              path: ['extensionCapture', 'urlIdentity', 'value'],
+              ...valueFilter,
+            },
+          },
+        ],
+      });
+    }
+  }
   const existing = await tx.post.findMany({
     where: {
       organizationId: scope.organizationId,
@@ -124,7 +163,13 @@ async function recordExternalPublicationInTransaction(
     return extensionPublicationCaptureResult(existing[0], false);
   }
   const credentialId = await findCaptureCredentialId(tx, capture, scope);
-  const data = buildCapturedPostData(capture, scope, normalized, credentialId);
+  const data = buildCapturedPostData(
+    capture,
+    scope,
+    normalized,
+    credentialId,
+    options,
+  );
   return extensionPublicationCaptureResult(
     await tx.post.create({ data }),
     true,
@@ -173,14 +218,18 @@ function buildCapturedPostData(
   scope: ExtensionPublicationCaptureScope,
   normalized: NormalizedExtensionPublication,
   credentialId: string | null,
+  options?: PublicationCaptureOptions,
 ): Prisma.PostUncheckedCreateInput {
-  const availability = extensionPublicationAnalyticsAvailability(
-    normalized.externalId,
-    credentialId,
-    capture.platform,
-    capture.publicationKind,
-    normalized.urlIdentity,
-  );
+  const availability =
+    options?.origin === 'link' && capture.platform === 'linkedin'
+      ? 'api-access-required'
+      : extensionPublicationAnalyticsAvailability(
+          normalized.externalId,
+          credentialId,
+          capture.platform,
+          capture.publicationKind,
+          normalized.urlIdentity,
+        );
   const observedVisibility = resolveExtensionPublicationObservedVisibility(
     capture.observedVisibility,
   );
@@ -199,7 +248,9 @@ function buildCapturedPostData(
     platform: capture.platform,
     credentialId,
     description: capture.description,
-    label: capture.description.slice(0, 80) || 'Captured publication',
+    label:
+      capture.description.slice(0, 80) ||
+      (options?.origin === 'link' ? 'Imported post' : 'Captured publication'),
     category: PostCategory.TEXT,
     source: 'extension',
     externalId: normalized.externalId,
@@ -216,6 +267,7 @@ function buildCapturedPostData(
     targetSettings: {
       extensionCapture: {
         version: 1,
+        ...(options ? { origin: options.origin } : {}),
         observedByUserId: scope.userId,
         observedAt: new Date().toISOString(),
         publicationDate: capture.publicationDate,
@@ -226,7 +278,12 @@ function buildCapturedPostData(
           ? { ...normalized.urlIdentity }
           : null,
         author: capture.author ? { ...capture.author } : null,
-        evidence: 'client-reported-publication',
+        evidence:
+          options?.origin === 'link'
+            ? capture.platform === 'linkedin'
+              ? 'url-reported-publication'
+              : 'provider-read'
+            : 'client-reported-publication',
         observedVisibility,
       },
     },

@@ -213,9 +213,7 @@ describe('publication URL identities', () => {
                   : 'platform-publication-id',
           value:
             platform === 'linkedin'
-              ? decodeURIComponent(
-                  new URL(normalized).pathname.split('/').at(-1) ?? '',
-                )
+              ? id
               : platform === 'facebook'
                 ? (new URL(normalized).searchParams.get('story_fbid') ?? id)
                 : id,
@@ -313,14 +311,14 @@ describe('publication URL identities', () => {
       parents.linkedin,
       'urn:li:share:999',
       'linkedin-activity',
-      'urn:li:activity:123',
+      '123',
     ],
     [
       'linkedin',
       parents.linkedin,
       'urn:li:ugcPost:999',
       'linkedin-activity',
-      'urn:li:activity:123',
+      '123',
     ],
     [
       'facebook',
