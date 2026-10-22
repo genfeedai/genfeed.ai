@@ -132,6 +132,8 @@ export default function AppProtectedBrandSwitcher({
   // whether this is a personal-account settings page, flat or org-scoped copy,
   // so no brand switcher appears there even with a brand in session (#4659).
   if (
+    (pathname.split('/').filter(Boolean)[1] === '~' &&
+      pathname.split('/').filter(Boolean)[2] === 'plugins') ||
     isAdminChrome ||
     brands.length === 0 ||
     isOrganizationSettingsRoute ||

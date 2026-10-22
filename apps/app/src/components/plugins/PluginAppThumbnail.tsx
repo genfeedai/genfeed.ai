@@ -32,11 +32,13 @@ const TONE_FILL_CLASSES: Record<PluginThumbnailTone, string> = {
 
 const SIZE_CLASSES: Record<PluginThumbnailSize, string> = {
   compact: 'size-10 rounded-md',
+  preview: 'aspect-video w-full rounded-t-card',
   standard: 'h-28 w-full rounded-t-card',
 };
 
 const ICON_SIZE_CLASSES: Record<PluginThumbnailSize, string> = {
   compact: 'size-5',
+  preview: 'size-6',
   standard: 'size-6',
 };
 
@@ -45,6 +47,7 @@ const ICON_WRAPPER_CLASSES: Record<
   string
 > = {
   standard: 'size-12 rounded-lg',
+  preview: 'size-12 rounded-lg',
 };
 
 const PANEL_CLASSES = 'rounded-sm border border-border bg-card/80';
@@ -249,11 +252,18 @@ export default function PluginAppThumbnail({
       >
         <Image
           alt={label}
-          className="object-cover object-center outline-media"
+          className={cn(
+            size === 'preview' ? 'object-contain' : 'object-cover',
+            'object-center outline-media',
+          )}
           fill
           loading="lazy"
           sizes={
-            size === 'compact' ? '2.5rem' : '(min-width: 768px) 26rem, 85vw'
+            size === 'compact'
+              ? '2.5rem'
+              : size === 'preview'
+                ? '(min-width: 1024px) 70vw, 95vw'
+                : '(min-width: 768px) 26rem, 85vw'
           }
           src={thumbnailSrc}
           unoptimized={!canOptimizeImageSource(thumbnailSrc)}
