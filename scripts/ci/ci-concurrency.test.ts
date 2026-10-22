@@ -23,7 +23,7 @@ describe('CI concurrency', () => {
     expect(workflow).toMatch(
       /cancel-in-progress:\s*\$\{\{\s*github\.event_name\s*==\s*'pull_request'\s*\}\}/,
     );
-    expect(workflow).not.toMatch(/^\s*cancel-in-progress:\s*true\s*$/m);
+    expect(workflow).not.toMatch(/^concurrency:/m);
   });
 
   it('keeps the ci- group prefix that stops a workflow_call from cancelling itself', () => {
@@ -37,6 +37,25 @@ describe('CI concurrency', () => {
     );
   });
 
+  it('keeps source, frontend, image and metadata cancellation independent', () => {
+    const workflow = readWorkflow('ci.yml');
+    expect(workflow).toContain(
+      'group: ci-frontend-${{ github.workflow }}-${{ github.ref }}',
+    );
+    expect(workflow).toContain(
+      'group: server-image-pr-${{ github.event.pull_request.number }}',
+    );
+    expect(workflow).toContain(
+      'group: PR Title-${{ github.event.pull_request.number }}',
+    );
+    expect(workflow).toContain('cancel-in-progress: false');
+    for (const name of ['_ci-validation.yml', '_ci-frontend.yml']) {
+      expect(readWorkflow(name)).not.toMatch(/^concurrency:/m);
+    }
+    expect(workflow).toContain('timeout-minutes: 5');
+    expect(workflow).toContain('node scripts/ci/ci-job-verdict.mjs');
+  });
+
   it('keeps the server image build serialized rather than cancelled', () => {
     const workflow = readWorkflow('build-server-image.yml');
 
@@ -46,7 +65,7 @@ describe('CI concurrency', () => {
   });
 
   it('runs the executable-contract suite from the static-checks job', () => {
-    const workflow = readWorkflow('ci.yml');
+    const workflow = readWorkflow('_ci-validation.yml');
     const staticChecksJob =
       workflow
         .split(/\n {2}static-checks:\n/)[1]

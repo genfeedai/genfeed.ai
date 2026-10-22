@@ -44,7 +44,7 @@ import type {
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
-import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
+import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
 import type { ContentProps } from '@props/layout/content.props';
 import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
 import type { ChangeEvent, ReactNode } from 'react';

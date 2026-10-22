@@ -72,7 +72,7 @@ function classificationOf(result, name) {
 
 function workflowGate() {
   const workflow = readFileSync(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const block = workflow.match(
@@ -360,12 +360,12 @@ test('fails closed when a successful plan omits its outputs', () => {
 
 test('keeps the workflow contract stable', () => {
   const workflowPath = fileURLToPath(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
   );
   const workflow = readFileSync(workflowPath, 'utf8');
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
-  assert.match(workflow, /^ {4}name: Tests Gate\n/m);
+  assert.match(workflow, /^ {4}name: Validation Verdict\n/m);
   // Draft and ready pull requests reach a conclusive gate. The `push` arm is
   // dormant (the Full Suite no longer runs on master pushes); the Full Suite
   // dispatch/release path (workflow_dispatch) uses its own SHA verdict.

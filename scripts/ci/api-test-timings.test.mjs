@@ -261,7 +261,7 @@ test('real Vitest sharding preserves the selected union, skips, retries and fail
 
 test('CI retains affected selection and connected fixtures and uploads after failure', () => {
   const source = readFileSync(
-    path.join(ROOT, '.github/workflows/ci.yml'),
+    path.join(ROOT, '.github/workflows/_ci-validation.yml'),
     'utf8',
   );
   const api = source.split('\n  test-api:\n')[1].split('\n  build:\n')[0];

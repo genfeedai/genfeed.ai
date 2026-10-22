@@ -37,6 +37,7 @@ import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { GlobalModalGalleryConfig } from '@genfeedai/props/modals/global-modals.props';
+import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
 import type { PromptsService } from '@genfeedai/services/content/prompts.service';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
@@ -54,16 +55,11 @@ import type {
   UseFormReturn,
 } from 'react-hook-form';
 
+export type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
+
 export interface PromptBarFeatures {
   collapsible?: boolean;
   dragDrop?: boolean;
-}
-
-export interface CrunVideoPromptBinding {
-  prepareRequest: (draft: PromptTextareaSchema) => CrunVideoQuoteRequest | null;
-  submit: (
-    request: CrunVideoQuoteRequest & { crunQuoteId: string },
-  ) => Promise<void>;
 }
 
 export interface PromptBarProps {

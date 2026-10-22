@@ -171,7 +171,7 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
     // Plan job, directly before "Build spec typecheck matrix" reads its
     // `workspaces`/`build_filters` outputs (ci throughput restructuring,
     // #5362, moved scope resolution out of the spec-typecheck job itself).
-    const workflow = readWorkflow('ci.yml');
+    const workflow = readWorkflow('_ci-validation.yml');
     const match = workflow.match(
       /\n {6}- name: Resolve turbo-affected packages\n([\s\S]+?)\n {6}- name: Build spec typecheck matrix\n/,
     );

@@ -150,7 +150,7 @@ test('bundle PR execution belongs to CI while master and manual keep their entry
   assert.match(entrypoint, /^ {2}push:\n {4}branches: \[master\]/m);
   assert.match(entrypoint, /^ {2}workflow_dispatch:/m);
   assert.match(entrypoint, /uses: \.\/\.github\/workflows\/_bundle-size\.yml/);
-  const ci = read('.github/workflows/ci.yml');
+  const ci = read('.github/workflows/_ci-frontend.yml');
   const bundle = ci.match(/^ {2}bundle-size:\n((?: {4}.*(?:\n|$)|\n)+)/m)?.[1];
   assert.ok(bundle, 'CI must call the bundle graph');
   assert.match(bundle, /uses: \.\/\.github\/workflows\/_bundle-size\.yml/);
@@ -256,7 +256,7 @@ test('link checks run inside direct CI independently of the trust planner', () =
   const manual = read('.github/workflows/link-check.yml');
   assert.doesNotMatch(manual, /^ {2}pull_request:/m);
   assert.doesNotMatch(manual, /^ {2}push:/m);
-  const ci = read('.github/workflows/ci.yml');
+  const ci = read('.github/workflows/_ci-frontend.yml');
   const detect = ci.match(
     /^ {2}link-check-detect:\n((?: {4}.*(?:\n|$)|\n)+)/m,
   )?.[1];
@@ -504,6 +504,7 @@ test('shared link scope retains original filters and validates relocated routing
       'lychee.toml',
       '.github/workflows/link-check.yml',
       '.github/workflows/ci.yml',
+      '.github/workflows/_ci-frontend.yml',
       '.github/actions/detect-link-check-scope/**',
       '.github/actions/check-website-links/**',
       '.github/actions/check-docs-links/**',
@@ -512,18 +513,31 @@ test('shared link scope retains original filters and validates relocated routing
     ],
   });
   for (const [file, detectorId] of [
-    ['ci.yml', 'link-check-detect'],
+    ['_ci-frontend.yml', 'link-check-detect'],
     ['link-check.yml', 'detect'],
   ]) {
     const workflow = parseYaml(read(`.github/workflows/${file}`));
+    const moved = file === '_ci-frontend.yml';
     assert.deepEqual(workflow.jobs[detectorId].outputs, {
-      website: '${{ steps.scope.outputs.website }}',
-      docs: '${{ steps.scope.outputs.docs }}',
+      website: moved
+        ? '${{ steps.scope.outputs.website || steps.admission.outputs.website }}'
+        : '${{ steps.scope.outputs.website }}',
+      docs: moved
+        ? '${{ steps.scope.outputs.docs || steps.admission.outputs.docs }}'
+        : '${{ steps.scope.outputs.docs }}',
     });
-    assert.deepEqual(workflow.jobs[detectorId].steps[1], {
-      id: 'scope',
-      uses: './.github/actions/detect-link-check-scope',
-    });
+    assert.deepEqual(
+      workflow.jobs[detectorId].steps.find((step) => step.id === 'scope'),
+      {
+        id: 'scope',
+        ...(moved
+          ? {
+              if: "github.event_name == 'pull_request' && !github.event.pull_request.draft && inputs.run_heavy_tests != true",
+            }
+          : {}),
+        uses: './.github/actions/detect-link-check-scope',
+      },
+    );
     assert.deepEqual(workflow.jobs['website-links'].steps[1], {
       uses: './.github/actions/check-website-links',
     });
@@ -532,7 +546,10 @@ test('shared link scope retains original filters and validates relocated routing
       with: { 'github-token': '${{ secrets.GITHUB_TOKEN }}' },
     });
     for (const id of [detectorId, 'website-links', 'docs-links']) {
-      assert.equal(workflow.jobs[id].steps.length, 2);
+      assert.equal(
+        workflow.jobs[id].steps.length,
+        moved && id === detectorId ? 3 : 2,
+      );
     }
     assert.equal(workflow.env.TURBO_TEAM, '${{ vars.TURBO_TEAM }}');
     assert.equal(workflow.env.TURBO_TOKEN, '${{ secrets.TURBO_TOKEN }}');

@@ -17,6 +17,9 @@ name: Bundle Measurements
 
 on:
   workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
 
 permissions:
   contents: read

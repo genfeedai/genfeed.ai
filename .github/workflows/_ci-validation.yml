@@ -1,0 +1,1095 @@
+name: Core Validation
+
+on:
+  workflow_call:
+    inputs:
+      run_heavy_tests:
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      TURBO_TOKEN:
+        required: false
+      GITLEAKS_LICENSE:
+        required: false
+      BETTER_AUTH_SECRET:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  # The diff base for every "changed since base" step (turbo `--affected`,
+  # vitest `--changed`, the PR test plan) is CI_BASE_SHA, resolved once by the
+  # Plan job and passed to each job through `needs.plan.outputs.base`. Only
+  # PRs and merge groups have one; other events run the full paths.
+  CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
+
+jobs:
+  # Trust, heavy tier, test plan, and spec-typecheck scope in one runner slot.
+  # Every test job below needs this one, so an untrusted fork PR (the trust step
+  # fails the job) skips the whole graph and the Tests Gate fails closed.
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    outputs:
+      base: ${{ steps.base.outputs.sha }}
+      setup_benchmark: ${{ steps.plan.outputs.setup_benchmark }}
+      heavy-tier: ${{ steps.tier.outputs.heavy }}
+      app: ${{ steps.plan.outputs.app }}
+      api: ${{ steps.plan.outputs.api }}
+      app_tests: ${{ steps.plan.outputs.app_tests }}
+      api_tests: ${{ steps.plan.outputs.api_tests }}
+      mcp_auth_runtime: ${{ steps.plan.outputs.mcp_auth_runtime }}
+      app_matrix: ${{ steps.plan.outputs.app_matrix }}
+      api_matrix: ${{ steps.plan.outputs.api_matrix }}
+      force_full: ${{ steps.plan.outputs.force_full }}
+      workspace_tests: ${{ steps.plan.outputs.workspace_tests }}
+      workspace_matrix: ${{ steps.plan.outputs.workspace_matrix }}
+      spec_run: ${{ steps.spec-matrix.outputs.run }}
+      spec_matrix: ${{ steps.spec-matrix.outputs.matrix }}
+      spec_build_filters: ${{ steps.turbo-scope.outputs.build_filters }}
+    steps:
+      - name: Check contributor trust
+        id: check
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const association = pr.author_association;
+            const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const isSameRepository =
+              pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+            const isTrusted = isSameRepository || trustedRoles.includes(association);
+            const hasLabel = pr.labels.some(l => l.name === 'run-ci');
+
+            // Trust decides *whether* CI runs; this decides *how much* of it.
+            // An external contributor stays external even once a maintainer
+            // adds `run-ci`: the label buys them a run, not the light tier.
+            core.setOutput('external', isTrusted ? 'false' : 'true');
+
+            if (isTrusted) {
+              const trustReason = isSameRepository
+                ? 'same-repo PR'
+                : `trusted contributor (${association})`;
+              core.info(`${trustReason} - CI allowed`);
+            } else if (hasLabel) {
+              core.info('External contributor with run-ci label - CI allowed');
+            } else {
+              core.setFailed(
+                `External contributor (${association}) - add the \`run-ci\` label to allow CI. ` +
+                'A maintainer must review the code and add the label.'
+              );
+            }
+
+      # Trust-tiered heavy matrix (open-source PR policy). Maintainer and
+      # same-repo PRs run the affected tier; the on-demand Full Suite runs the
+      # complete matrix. A fork PR from an external contributor gets
+      # the full heavy matrix on the PR itself. `run_heavy_tests` (full-suite /
+      # release path) and the `full-suite` label escalate for anyone.
+      - name: Resolve heavy test tier
+        id: tier
+        env:
+          EXTERNAL_CONTRIBUTOR: ${{ steps.check.outputs.external }}
+          FULL_SUITE_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'full-suite') }}
+          RUN_HEAVY_INPUT: ${{ inputs.run_heavy_tests }}
+        run: |
+          set -euo pipefail
+          heavy=false
+          reason='affected tier'
+          if [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            heavy=true
+            reason='merge group (preserve all member escalations)'
+          elif [ "${RUN_HEAVY_INPUT}" = "true" ]; then
+            heavy=true
+            reason='run_heavy_tests input'
+          elif [ "${FULL_SUITE_LABEL}" = "true" ]; then
+            heavy=true
+            reason='full-suite label'
+          elif [ "${EXTERNAL_CONTRIBUTOR}" = "true" ]; then
+            heavy=true
+            reason='external contributor PR'
+          fi
+          echo "heavy=${heavy}" >>"${GITHUB_OUTPUT}"
+          echo "Heavy test tier: ${heavy} (${reason})"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # A pull request checks out GitHub's merge commit, whose first parent is
+      # the base it was actually built on. The event payload's
+      # `pull_request.base.sha` can be far older: diffing against it drags every
+      # commit merged since into the "changed" set and escalated ordinary PRs
+      # to the full tier (e.g. a `.claude/launch.json` change on master forced
+      # a full spec typecheck on an unrelated website PR, 2026-09-27).
+      - name: Resolve diff base
+        id: base
+        env:
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          base=''
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            base="$(git rev-parse HEAD^1)"
+          elif [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            base="${MERGE_GROUP_BASE_SHA}"
+            if ! [[ "${base}" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid merge group base SHA"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${base}" HEAD; then
+              echo "::error::Merge group base is not an ancestor of HEAD"
+              exit 1
+            fi
+          fi
+          echo "sha=${base}" >>"${GITHUB_OUTPUT}"
+          echo "CI_BASE_SHA=${base}" >>"${GITHUB_ENV}"
+          echo "Diff base: ${base:-<none, full paths>}"
+      - name: Setup Bun environment
+        if: steps.tier.outputs.heavy != 'true'
+        uses: ./.github/actions/setup-bun-env
+      # Vitest supplies the exact affected app/API files; Turbo supplies the
+      # affected workspace tasks. Lockfile, turbo, vitest config, bun-setup, and
+      # the planner itself escalate to the full sharded path.
+      - name: Compute affected test plan
+        id: plan
+        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ steps.tier.outputs.heavy }}"
+      - name: Upload pull-request test plan
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pr-test-plan-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: ${{ steps.plan.outputs.manifest }}
+          retention-days: 7
+
+      # Spec files are invisible to the Typecheck step inside Static Checks:
+      # every workspace tsconfig excludes them. The spec-typecheck ratchet
+      # checks them per workspace (tsconfig.typecheck.specs.json). On change
+      # runs this narrows the ratchet to the workspaces the diff can affect; a
+      # `packages/**` change resolves through turbo's dependency graph below.
+      # Anything genuinely global (root configs, scripts, the lockfile, this
+      # workflow, shared apps/server files) escalates to every workspace, as do
+      # heavy runs and runs without a diff base.
+      - name: Determine spec typecheck scope
+        id: scope
+        env:
+          RUN_HEAVY: ${{ steps.tier.outputs.heavy == 'true' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          all_workspaces=()
+          for config in apps/server/*/tsconfig.typecheck.specs.json \
+            apps/*/tsconfig.typecheck.specs.json \
+            packages/*/tsconfig.typecheck.specs.json; do
+            workspace="${config%/tsconfig.typecheck.specs.json}"
+            all_workspaces+=("${workspace##*/}")
+          done
+          shopt -u nullglob
+
+          emit() {
+            echo "workspaces=$1" >>"${GITHUB_OUTPUT}"
+            echo "needs_turbo=false" >>"${GITHUB_OUTPUT}"
+            echo "Spec typecheck scope: ${1:-<none>} ($2)"
+          }
+
+          if [ "${RUN_HEAVY}" = "true" ] || [ "${CI_IS_CHANGE_RUN}" != "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            emit "${all_workspaces[*]}" "full: heavy tier or no diff base"
+            exit 0
+          fi
+
+          if ! changed="$(git diff --name-only "${CI_BASE_SHA}...HEAD")"; then
+            emit "${all_workspaces[*]}" "full: diff base unresolvable"
+            exit 0
+          fi
+
+          declare -A affected=()
+          while IFS= read -r file; do
+            [ -n "${file}" ] || continue
+            case "${file}" in
+              apps/server/*/*)
+                workspace="${file#apps/server/}"
+                workspace="${workspace%%/*}"
+                # A changed workspace without its own ratchet config feeds
+                # every program.
+                if [ -f "apps/server/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                else
+                  emit "${all_workspaces[*]}" "full: shared server surface ${file}"
+                  exit 0
+                fi
+                ;;
+              apps/server/*)
+                # Shallow files under apps/server are the shared configs every
+                # program extends. `case` globs span `/`, so these fall through
+                # apps/server/*/* and would otherwise be swallowed by apps/*.
+                emit "${all_workspaces[*]}" "full: shared server config ${file}"
+                exit 0
+                ;;
+              apps/*/*)
+                # Not every app is enrolled in the ratchet, so a missing config
+                # means "not part of this guard" rather than "escalate".
+                workspace="${file#apps/}"
+                workspace="${workspace%%/*}"
+                if [ -f "apps/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                fi
+                ;;
+              docs/*|.agents/*|*.md)
+                ;;
+              apps/*)
+                ;;
+              packages/*/*)
+                # Which package(s) and their dependents is turbo's job below.
+                packages_touched=1
+                ;;
+              *)
+                # Root tsconfigs, scripts, the lockfile, this workflow: no
+                # dependency graph to consult, so escalate.
+                emit "${all_workspaces[*]}" "full: shared surface ${file}"
+                exit 0
+                ;;
+            esac
+          done <<<"${changed}"
+
+          scoped=()
+          for workspace in "${all_workspaces[@]}"; do
+            if [ -n "${affected[${workspace}]:-}" ]; then
+              scoped+=("${workspace}")
+            fi
+          done
+
+          if [ "${packages_touched:-0}" = "1" ]; then
+            echo "needs_turbo=true" >>"${GITHUB_OUTPUT}"
+            echo "apps_affected=${scoped[*]-}" >>"${GITHUB_OUTPUT}"
+            echo "Spec typecheck scope: apps=${scoped[*]:-<none>}, packages touched — resolving affected packages via turbo"
+          else
+            emit "${scoped[*]-}" "affected only"
+          fi
+      # turbo's own dependency graph (package.json dependencies) is the
+      # "cheaply derivable" affected-set turbo already computes for every
+      # other --affected call in this workflow (lint, type-check, test
+      # sharding above). `--affected` returns each changed package under
+      # packages/** plus every workspace — app or package — that
+      # (transitively) depends on it, so a leaf utility change stays small
+      # while a widely-imported package (e.g. contracts) still fans out to
+      # most of the monorepo — correctly, since that IS what could break.
+      # The merge logic (which workspaces end up in scope, and whether the
+      # "Build packages" step below can narrow itself to just the affected
+      # packages) lives in scripts/ci/spec-typecheck-scope.ts, unit-tested
+      # directly in scripts/ci/spec-typecheck-scope.test.ts (#5315) instead
+      # of only through assertions on this workflow's own YAML.
+      - name: Resolve turbo-affected packages
+        id: turbo-scope
+        if: steps.scope.outputs.needs_turbo == 'true'
+        env:
+          APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
+        run: bun run scripts/ci/spec-typecheck-scope.ts
+      # Three balanced pools preserve the selected union while reducing runner
+      # startup/build repetition and queue pressure. Weights affect scheduling only.
+      - name: Build spec typecheck matrix
+        id: spec-matrix
+        env:
+          SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
+          SOLO_WORKSPACES: app agent hooks pages props ui
+        run: node scripts/ci/spec-typecheck-matrix.mjs
+
+  # Measurements only when the shared action changes. Two isolated Linux
+  # runners compare complete frozen installs; no node_modules reuse or skipped
+  # lifecycle hooks. Results do not alter the validation topology automatically.
+  setup-benchmark:
+    name: Setup Benchmark (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    needs: plan
+    if: needs.plan.outputs.setup_benchmark == 'true'
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - mode: warm
+            cache: 'true'
+          - mode: cold
+            cache: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Start setup clock
+        run: echo "SETUP_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - name: Measure shared setup
+        id: setup
+        uses: ./.github/actions/setup-bun-env
+        with:
+          cache-dependencies: ${{ matrix.cache }}
+      - name: Record setup measurement
+        env:
+          SETUP_MODE: ${{ matrix.mode }}
+          SETUP_BUN_VERSION: ${{ steps.setup.outputs.resolved-bun-version }}
+          SETUP_CACHE_HIT: ${{ steps.setup.outputs.dependency-cache-hit }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, writeFileSync } from 'node:fs';
+          const result = {
+            sourceSha: process.env.GITHUB_SHA,
+            mode: process.env.SETUP_MODE,
+            seconds: Math.round(Date.now() / 1000 - Number(process.env.SETUP_STARTED)),
+            bunVersion: process.env.SETUP_BUN_VERSION,
+            nodeVersion: process.version,
+            exactCacheHit: process.env.SETUP_CACHE_HIT === 'true',
+          };
+          writeFileSync('setup-measurement.json', JSON.stringify(result, null, 2) + '\n');
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Setup ${result.mode}: **${result.seconds}s**, Bun ${result.bunVersion}, exact cache hit ${result.exactCacheHit}.\n`);
+          NODE
+      - name: Upload setup measurement
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: setup-measurement-${{ matrix.mode }}
+          path: setup-measurement.json
+          retention-days: 7
+
+  # Gitleaks, format, secretlint, lint, typecheck, and the executable contracts
+  # share one runner slot (#1969), with bounded independent work overlapping.
+  # Each separate job paid its own
+  # checkout + Bun setup and held a queue slot while the runner pool was
+  # saturated. The Tests Gate holds their failure semantics.
+  static-checks:
+    name: Static Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: plan
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # Pull requests scan their own commits; the release path scans history.
+      # The Full Suite skips it: every master commit arrived through a
+      # scanned pull request. Dependabot runs read the Dependabot secret store,
+      # where GITLEAKS_LICENSE is empty and the action hard-fails; their
+      # manifest/lockfile diffs still pass through secretlint below.
+      - name: Scan for secrets with gitleaks
+        if: github.event_name != 'push' && github.actor != 'dependabot[bot]'
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Guard destructive migration release compatibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --test --test-concurrency=1 scripts/ci/migration-safety.test.mjs scripts/deploy/hosted-saas/verify-serving-schema.test.mjs
+          node scripts/ci/migration-safety.mjs --base "${CI_BASE_SHA:-HEAD^1}"
+      - name: Check pinned product skill catalog
+        run: bun run check:skills-catalog
+      - name: Check env files and .env.example drift
+        run: bun run env:check
+      # Formatting reads files only and can overlap secretlint/lint. Explicit
+      # wait propagates its failure before memory-intensive typechecking.
+      - name: Check formatting
+        id: formatting
+        background: true
+        run: bun run format:check
+      - name: Get changed files for secretlint
+        id: changed
+        run: |
+          if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
+            FILES=$(git diff --name-only --diff-filter=ACMR "$CI_BASE_SHA" HEAD | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml|toml|sh|env.*)$' || true)
+          else
+            FILES=$(git diff --name-only --diff-filter=ACMR HEAD~1 HEAD | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml|toml|sh|env.*)$' || true)
+          fi
+          if [ -z "$FILES" ]; then
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "No scannable files changed"
+          else
+            {
+              echo "files<<EOF"
+              echo "$FILES"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "Scanning $(echo "$FILES" | wc -l | xargs) files"
+          fi
+      - name: Run secretlint on changed files
+        if: steps.changed.outputs.files != ''
+        run: echo "${{ steps.changed.outputs.files }}" | xargs bunx secretlint
+        timeout-minutes: 5
+      - name: Run lint
+        run: |
+          if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
+            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run lint --affected --concurrency=1
+          else
+            bun run lint
+          fi
+      - name: Wait for formatting
+        wait: formatting
+      # `--affected` follows package.json dependencies only. The scope adds
+      # workspaces whose type-check hashes a changed sibling source through a
+      # tsconfig-alias input (scripts/ci/typecheck-affected-scope.ts).
+      - name: Run typecheck
+        run: |
+          set -o pipefail
+          if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
+            filters="$(bun run scripts/ci/typecheck-affected-scope.ts)"
+            if [ -n "${filters}" ]; then
+              # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+              bunx turbo run type-check ${filters} --concurrency=1 \
+                2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
+            else
+              # Selects nothing, but turbo still logs its remote cache status.
+              TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1 \
+                2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
+            fi
+          else
+            bunx turbo run type-check --concurrency=1 \
+              2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
+          fi
+      # Annotation only, never a gate: a rejected TURBO_TOKEN makes turbo print
+      # one warning, exit 0, and rebuild every task cold, so the remote cache
+      # can sit dead for months while CI stays green and slow.
+      - name: Check Turbo remote cache is live
+        if: ${{ !cancelled() && env.TURBO_TOKEN != '' }}
+        continue-on-error: true
+        run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
+      # Real workspace imports resolve the contracts package dist exports even
+      # when metadata-only changes select no affected typecheck build tasks.
+      - name: Build contracts for executable imports
+        run: bun run --cwd packages/contracts build
+      - name: Run executable contracts
+        run: bun run test:executable-contracts
+      - name: Check scoring provenance and optional calibration
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bun scripts/ci/calibration-gate.ts
+
+  # Typechecks spec/test files against each workspace's compiler options and
+  # ratchets the pre-existing debt. The Plan job decides the scope and splits
+  # it into legs (see "Build spec typecheck matrix"). Each workspace is checked
+  # in a fresh Bun process so TypeScript releases the previous program's
+  # memory, and every workspace in a leg runs even after one fails so one
+  # baseline fix never costs a CI round-trip per workspace.
+  spec-typecheck:
+    name: Spec Typecheck (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: plan
+    if: needs.plan.outputs.spec_run == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.spec_matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      # The typecheck base config resolves @genfeedai/contracts to its dist
+      # output, so the package graph has to exist before any program is
+      # created. A packages-only scope builds just the turbo-affected packages.
+      - name: Build packages
+        env:
+          BUILD_FILTERS: ${{ needs.plan.outputs.spec_build_filters }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BUILD_FILTERS}" ]; then
+            # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+            bunx turbo run build ${BUILD_FILTERS} --concurrency=1
+          else
+            bunx turbo run build --filter='./packages/*' --concurrency=1
+          fi
+      - name: Spec Typecheck Ratchet
+        env:
+          SCOPED_WORKSPACES: ${{ matrix.workspaces }}
+        run: |
+          set -euo pipefail
+          log_dir="$(mktemp -d)"
+          failed=()
+          checked=0
+          for workspace in ${SCOPED_WORKSPACES}; do
+            checked=$((checked + 1))
+            echo "::group::Spec typecheck: ${workspace}"
+            if ! bun run check:spec-typecheck --workspace "${workspace}" 2>&1 \
+              | tee "${log_dir}/${workspace}.log"; then
+              failed+=("${workspace}")
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ "${#failed[@]}" -eq 0 ]; then
+            echo "Spec typecheck ratchet passed across ${checked} workspace(s)."
+            exit 0
+          fi
+
+          echo "::error::Spec typecheck ratchet failed in ${#failed[@]} of ${checked} workspace(s): ${failed[*]}"
+          for workspace in "${failed[@]}"; do
+            echo "----- ${workspace} -----"
+            cat "${log_dir}/${workspace}.log"
+          done
+          exit 1
+
+  # Packages, server services (everything under apps/server except the API),
+  # and web/mobile. One job definition, one matrix leg per applicable group:
+  # run as a single turbo invocation the three groups contended for one
+  # runner's CPUs and took ~25 minutes, the slowest job in the graph. The
+  # planner owns the legs and their filters, including dormant-surface
+  # exclusion.
+  test-workspaces:
+    name: Test Workspaces (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      # Four package pools plus server/web/browser. Bound simultaneous setup
+      # and test workers rather than allowing an unbounded package fan-out.
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: genfeed_local
+          POSTGRES_USER: genfeed
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      # #5252 review: the real-Redis pending-execution-reconciler integration
+      # spec (apps/server/workers) otherwise skips silently in CI.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+      DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      CRUN_TEST_REDIS_URL: redis://localhost:6379
+      REDIS_URL: redis://localhost:6379
+    needs: plan
+    if: needs.plan.outputs.workspace_tests == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Run workspace tests
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          WORKSPACE_GROUP: ${{ matrix.group }}
+          WORKSPACE_FILTERS: ${{ matrix.filters }}
+        run: |
+          set -euo pipefail
+          # UI-only pools have no ordinary Turbo test entrypoints. An empty
+          # filter would select the entire repository, so never invoke it.
+          if [ -z "${WORKSPACE_FILTERS}" ]; then exit 0; fi
+          # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+          if [ "${WORKSPACE_GROUP}" = "browser-extension" ] || [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test --continue --concurrency=1 ${WORKSPACE_FILTERS}
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --concurrency=1 --affected ${WORKSPACE_FILTERS}
+          fi
+      - name: Run UI shard
+        if: ${{ !cancelled() && matrix.ui_shard != '' }}
+        env:
+          UI_SHARD: ${{ matrix.ui_shard }}
+        run: |
+          set -euo pipefail
+          bunx turbo run test:shard --filter=@genfeedai/ui --concurrency=1 -- "$UI_SHARD"
+      # Workers cron specs run under their own Vitest config
+      # (apps/server/workers/vitest.cron.config.ts), outside `test`.
+      - name: Run workers cron specs
+        if: ${{ !cancelled() && matrix.group == 'server' }}
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test:cron --filter=@genfeedai/workers
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test:cron --affected --filter=@genfeedai/workers
+          fi
+      # MCP e2e specs (apps/server/mcp/test/e2e) run under their own Vitest
+      # config, outside `test`. They boot the real MCP request path against an
+      # in-process fake API, so they need no database or Redis.
+      - name: Run MCP e2e specs
+        if: ${{ !cancelled() && matrix.group == 'server' }}
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test:e2e --filter=@genfeedai/mcp
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test:e2e --affected --filter=@genfeedai/mcp
+          fi
+
+  # App tests. The planner emits the shard matrix: on the affected tier it
+  # counts the exact Vitest changed graph and picks one, two, or four shards;
+  # on the full tier it emits four shards over the whole suite.
+  test-app:
+    name: Test App (shard ${{ matrix.shard }}/${{ matrix.total }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: plan
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+    if: needs.plan.outputs.app_tests == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.app_matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Build app workspace
+        run: bunx turbo run build --filter='@genfeedai/app^...'
+      - name: Run app tests
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          NODE_ENV: test
+        run: |
+          set -euo pipefail
+          SELECTION=()
+          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
+            echo "Running app tests changed since ${CI_BASE_SHA}"
+            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
+          fi
+          cd apps/app && bunx vitest run --config ./vitest.config.mts \
+            --maxWorkers=2 "${SELECTION[@]}" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }}
+
+  # API tests mirror the app job: the planner's matrix, changed selection on
+  # the affected tier, the whole suite on the full tier.
+  test-api:
+    name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: genfeed_local
+          POSTGRES_USER: genfeed
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      # #5252 review: the real-Redis integration specs (queue isolation,
+      # pending-execution reconciler) otherwise skip silently in CI.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      CRUN_TEST_REDIS_URL: redis://localhost:6379
+      # Separate, fully-migrated databases on the same Postgres service
+      # (#5217 / #5191): these run `prisma migrate deploy` for real, so the
+      # billing-account-scope and credit-balance *.postgres.spec.ts suites get
+      # an actual schema instead of self-skipping.
+      BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
+      CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
+      REDIS_URL: redis://localhost:6379
+    needs: plan
+    if: needs.plan.outputs.api_tests == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.api_matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      # `working-directory: packages/prisma` + `bun x` (not root `bunx`): the
+      # pinned `prisma` is workspace-local and Prisma 7 reads the datasource URL
+      # only from packages/prisma/prisma.config.mjs. Migrate once, then copy the
+      # second database with `CREATE DATABASE ... TEMPLATE` (a file-level copy).
+      # Every shard provisions both: `vitest list --shard` ignores the shard, so
+      # which shard gets a *.postgres.spec.ts file is not knowable ahead of time.
+      - name: Provision billing-account-scope and credit-balance test databases
+        working-directory: packages/prisma
+        env:
+          PGPASSWORD: genfeed_local
+        run: |
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE billing_scope_test;"
+          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bun x prisma migrate deploy
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
+      - name: Build API dependencies
+        run: bunx turbo run build --filter=./packages/**
+      - name: Run API tests
+        id: api-tests
+        env:
+          API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          NODE_ENV: test
+        run: |
+          set -euo pipefail
+          SELECTION=()
+          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
+            echo "Running API tests changed since ${CI_BASE_SHA}"
+            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
+          fi
+          cd apps/server/api && bunx vitest run --config vitest.config.ts \
+            --maxWorkers=2 "${SELECTION[@]}" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }} \
+            --reporter=default \
+            --reporter=github-actions \
+            --reporter="$GITHUB_WORKSPACE/scripts/ci/api-test-timings-reporter.mjs"
+      - name: Summarize API test timings
+        if: always() && steps.api-tests.outcome != 'skipped' && steps.api-tests.outcome != ''
+        env:
+          API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
+        run: node scripts/ci/api-test-timings-reporter.mjs "$API_TEST_TIMINGS_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload API test timings
+        if: always() && steps.api-tests.outcome != 'skipped' && steps.api-tests.outcome != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: api-test-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
+          retention-days: 7
+          if-no-files-found: error
+
+  cloud-tenant-guard:
+    name: Cloud Tenant Guard Sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUD_SWEEP_BASE_SHA: ${{ needs.plan.outputs.base || github.sha }}
+    needs: plan
+    if: needs.plan.outputs.api_tests == 'true'
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch trusted baseline commit
+        run: git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      # Build uploads only OpenAPI, not API dist. Keep this job independent:
+      # waiting for all of Build would serialize unrelated package/docs work.
+      # Workflow-level TURBO_TOKEN/TURBO_TEAM apply here; cache hits are expected.
+      # Runtime CLOUD configuration is loaded only after compilation.
+      - name: Build API (compiled bundle)
+        run: bunx turbo run build --filter=@genfeedai/api
+      - name: Validate synthetic CLOUD configuration
+        run: node --test scripts/ci/cloud-tenant-guard-sweep/*.test.mjs
+      - name: Load job-local placeholder environment
+        run: |
+          sed '/^#/d; /^$/d' scripts/ci/cloud-tenant-guard-sweep/cloud-sweep.placeholders >> "$GITHUB_ENV"
+      - name: Create owned private evidence directory
+        run: |
+          set -euo pipefail
+          sweep_run_dir="$(mktemp -d "$RUNNER_TEMP/cloud-tenant-XXXXXX")"
+          chmod 700 "$sweep_run_dir"
+          echo "CLOUD_SWEEP_RUN_DIR=$sweep_run_dir" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_DIAGNOSTICS=1" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_CPU_PROFILE=0" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_API_LOG=$sweep_run_dir/api.log" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_REPORT=$sweep_run_dir/cloud-tenant-guard-report.json" >> "$GITHUB_ENV"
+      - name: Apply Prisma migrations to test DB
+        run: bun x prisma migrate deploy
+        working-directory: packages/prisma
+      - name: Prepare required verification policy before API boot
+        run: bun scripts/ci/cloud-tenant-guard-sweep/prepare-fixture.mjs
+      - name: Start restricted verification transport
+        run: |
+          set -euo pipefail
+          node scripts/ci/cloud-tenant-guard-sweep/local-mail-stub.mjs > "$CLOUD_SWEEP_RUN_DIR/mail.log" 2>&1 &
+          echo "$!" > "$CLOUD_SWEEP_RUN_DIR/mail.pid"
+          for attempt in $(seq 1 20); do
+            if curl -fsS -H "Authorization: Bearer $GENFEEDAI_API_KEY" http://localhost:3011/v1/internal/email-deliveries | node -e 'let value="";process.stdin.on("data",chunk=>value+=chunk);process.stdin.on("end",()=>process.exit(JSON.parse(value).isConfigured===true?0:1))'; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/mail.pid")" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          echo "::error::Restricted verification transport unavailable"
+          exit 1
+      - name: Start real API in CLOUD mode
+        id: cloud-api
+        run: |
+          set -euo pipefail
+          node --import ./scripts/ci/cloud-tenant-guard-sweep/api-observer.mjs apps/server/dist/apps/api/main.js > "$CLOUD_SWEEP_API_LOG" 2>&1 &
+          echo "$!" > "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid"
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3010/v1/health >/dev/null 2>&1; then
+              echo "CLOUD API healthy after ~$((attempt * 2))s"
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          echo "::error::CLOUD API did not become healthy within 120s"
+          exit 1
+      - name: Sweep handlers with tenant enforcement enabled
+        timeout-minutes: 10
+        run: bun run ci:cloud-tenant-guard-sweep
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid" ]; then
+            kill "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null || true
+            for _ in $(seq 1 10); do
+              if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then break; fi
+              sleep 1
+            done
+            if kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then
+              echo "::error::Owned CLOUD API did not stop within existing bound"
+              exit 1
+            fi
+            (umask 077; printf 'stopped\n' > "$CLOUD_SWEEP_RUN_DIR/api-stopped")
+          fi
+      - name: Scan final API stdout for swallowed tenant errors
+        if: always()
+        env:
+          CLOUD_SWEEP_API_BOOT_OUTCOME: ${{ steps.cloud-api.outcome }}
+        run: node scripts/ci/cloud-tenant-guard-sweep/scan-log.mjs
+      - name: Stop restricted verification transport
+        if: always()
+        run: |
+          if [ -f "$CLOUD_SWEEP_RUN_DIR/mail.pid" ]; then
+            kill "$(cat "$CLOUD_SWEEP_RUN_DIR/mail.pid")" 2>/dev/null || true
+          fi
+      - name: Upload sanitized CLOUD tenant diagnostic summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cloud-tenant-guard-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CLOUD_SWEEP_RUN_DIR }}/diagnostic-summary.json
+          retention-days: 7
+
+  # Build, plus the OpenAPI documentation gate (#1247) whenever the API is in
+  # scope. The spec is a generated artifact and is NOT committed: it is emitted
+  # fresh from the compiled bundle (headless — no DB/Redis), must be
+  # byte-identical across two emits, must validate, and is uploaded for review.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: plan
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Run build
+        run: |
+          if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
+            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run build --filter='./packages/*' --filter=@genfeedai/docs --affected
+          else
+            bun run build
+          fi
+      - name: Build api (compiled bundle)
+        if: needs.plan.outputs.api == 'true'
+        run: bunx turbo run build --filter=@genfeedai/api
+      - name: Emit OpenAPI spec twice — must be byte-identical
+        if: needs.plan.outputs.api == 'true'
+        run: |
+          cd apps/server/api
+          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-1.json
+          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
+          cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
+      - name: Upload generated OpenAPI spec
+        if: needs.plan.outputs.api == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: openapi-spec-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/openapi-emit-1.json
+          retention-days: 7
+      - name: Validate OpenAPI spec (operationId coverage/uniqueness + allowlist)
+        if: needs.plan.outputs.api == 'true'
+        run: cd apps/server/api && bun run openapi:validate -- --spec=/tmp/openapi-emit-1.json
+
+  # Stable aggregate and the required status check. Every upstream job is
+  # declared explicitly so an expression error that leaves an applicable job
+  # skipped cannot produce a false-green gate; plan-filtered skips are accepted
+  # only when the exact plan marked them non-applicable.
+  #
+  # Runs on every pull request and merge group. A skipped required check is
+  # merge-acceptable to GitHub: drafts must fail this cheap gate so their same
+  # head cannot auto-merge while ready_for_review validation is still running.
+  # The `push` arm is dormant
+  # since the Full Suite stopped running on master pushes: it would only match a
+  # Full Suite called from a push. The Full Suite paths (workflow_dispatch,
+  # release) are gated by the Master
+  # SHA Verdict job in full-suite.yml.
+  mcp-auth-runtime:
+    name: MCP Auth Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: plan
+    if: needs.plan.outputs.mcp_auth_runtime == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Build real API and MCP packages
+        run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/mcp --concurrency=2
+      - name: Select owned report path
+        shell: bash
+        run: echo "MCP_AUTH_STATE=$RUNNER_TEMP/mcp-auth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+      - name: Execute isolated real auth and brand policy journey
+        shell: bash
+        run: |
+          tested_sha="$(git rev-parse HEAD)"
+          node scripts/ci/mcp-auth-runtime.mjs --case-family brand-access --candidate-sha "$tested_sha" --tested-sha "$tested_sha" --state "$MCP_AUTH_STATE"
+      - name: Upload sanitized runtime receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mcp-auth-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.MCP_AUTH_STATE }}/report.json
+          if-no-files-found: error
+          retention-days: 7
+
+  tests-gate:
+    name: Validation Verdict
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - plan
+      - static-checks
+      - spec-typecheck
+      - test-workspaces
+      - test-app
+      - test-api
+      - cloud-tenant-guard
+      - mcp-auth-runtime
+      - build
+    if: >-
+      ${{ always()
+      && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') }}
+    steps:
+      - name: Require a ready pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft
+        shell: bash
+        run: |
+          echo "::error::Draft pull request: mark ready to run validation before merging."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A pull request run is cancelled when a newer push supersedes it. Its
+      # jobs then read "cancelled" and, without this, the gate paints the old
+      # commit red although nothing failed. Only a run whose PR head has since
+      # moved counts as superseded; a failed lookup fails closed.
+      - name: Detect a pull request run superseded by a newer push
+        id: supersession
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          current_head="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.sha' 2>/dev/null || true)"
+          if [ -n "${current_head}" ] && [ "${current_head}" != "${RUN_HEAD_SHA}" ]; then
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+            echo "superseded_by=${current_head}" >> "$GITHUB_OUTPUT"
+          else
+            echo "superseded=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Aggregate test and build results
+        env:
+          RUN_SUPERSEDED: ${{ steps.supersession.outputs.superseded }}
+          SUPERSEDED_BY: ${{ steps.supersession.outputs.superseded_by }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+          PLAN_APP_TESTS: ${{ needs.plan.outputs.app_tests }}
+          PLAN_API_TESTS: ${{ needs.plan.outputs.api_tests }}
+          PLAN_WORKSPACE_TESTS: ${{ needs.plan.outputs.workspace_tests }}
+          PLAN_SPEC_TYPECHECK: ${{ needs.plan.outputs.spec_run }}
+          STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
+          SPEC_TYPECHECK_RESULT: ${{ needs.spec-typecheck.result }}
+          TEST_WORKSPACES_RESULT: ${{ needs.test-workspaces.result }}
+          TEST_APP_RESULT: ${{ needs.test-app.result }}
+          TEST_API_RESULT: ${{ needs.test-api.result }}
+          CLOUD_TENANT_GUARD_RESULT: ${{ needs.cloud-tenant-guard.result }}
+          PLAN_MCP_AUTH_RUNTIME: ${{ needs.plan.outputs.mcp_auth_runtime }}
+          MCP_AUTH_RUNTIME_RESULT: ${{ needs.mcp-auth-runtime.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        shell: bash
+        run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"

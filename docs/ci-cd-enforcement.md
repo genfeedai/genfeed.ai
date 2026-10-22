@@ -18,6 +18,91 @@ hand-maintained path approximation, and cancels only superseded pull-request
 runs. Release, deployment, full E2E, and broad coverage remain separate because
 they have different permissions, secrets, and runtime budgets.
 
+## Combined PR validation graph — 2026-10-22
+
+The CI entrypoint admits all-base ordinary pull requests on opened,
+synchronize, reopened and ready-for-review, plus the original four metadata
+pull_request_target actions (opened, edited, synchronize, reopened). It keeps
+merge-group checks and existing reusable callers; it adds no direct push or
+manual entrypoint. Overlapping ordinary and metadata events still create two
+natural runs. This change does not promise one workflow run per push.
+
+| Domain | Applicable events | Required leaf / execution |
+| --- | --- | --- |
+| Title | Original four metadata actions, every base/draft/fork | PR Title; pinned semantic-title action only, no checkout/local action/source secrets |
+| Image | Ordinary opened/synchronize/reopened, every base/draft, normal fork approval | Build Server Image; independent scope guard and complete image build |
+| Core | Master ordinary PR including ready, merge groups, existing reusable origins | _ci-validation.yml; unchanged eleven-job trust/planner/workload graph and inner Validation Verdict |
+| Frontend | Same selected source origins, independent of Core | _ci-frontend.yml and existing Bundle graph; original applicable workloads, cheap false detector witness otherwise |
+| Source bridge | Selected PR/merge-group or dormant called-push source cases | Direct Tests Gate, qualifying the exact genuine current-attempt inner job |
+
+Off-event leaves use Not selected - PR title, Not selected - server image and
+Not selected - source gate, never a required name. Manual/release Full Suite
+retains its existing master verdict and Final Connected Acceptance; historical
+recovery profiles remain unchanged. Ordinary worker contexts gain actual
+reusable prefixes.
+
+Root permissions are empty and root has no workflow environment. Only Core
+receives the optional Turbo, gitleaks and API auth secrets; Frontend and its
+Bundle caller receive only optional Turbo. No new forwarding edge inherits
+secrets. Title has only pull-request read permission, image only contents read,
+and the source bridge only contents/Actions read. Existing source overrides,
+Bundle's comment permission ceiling and normal fork downgrades remain intact.
+Source selectors explicitly refuse metadata events even with reusable inputs.
+
+Cancellation belongs to separate title/image/Core/Frontend domains. Title keeps
+the literal PR Title-PRnumber group and never cancels running work; its default
+single pending slot can still replace an older pending run. Image keeps
+server-image-pr-PRnumber and is unaffected by ready/metadata events. Core keeps
+ci-workflow-ref; Frontend uses ci-frontend-workflow-ref. Source callers cancel
+only originating ordinary PRs. Helpers add no self-cancelling group. A superseded
+bridge may finish its own verdict within five minutes; it cannot transfer a
+verdict to another head/run/attempt. This is an accepted scheduling difference,
+not a terminal-status parity claim. Reopen, ready and retarget on the same head
+retain the existing strict=false protection policy; no new freshness guarantee
+is asserted.
+
+The bridge reads only fixed GitHub Actions metadata GET routes for its own run
+and exact attempt, with complete bounded pagination and a final identity reread.
+It distinguishes PR head from tested merge/source SHA and requires exact
+referenced helper source plus one completed-success actual inner job. Outputs,
+overall workflow conclusion, lookalike names and earlier attempts cannot grant
+green. Unknown callers, permanent identity/conclusion errors and API
+unavailability fail closed. At most three snapshots, two/five-second retry waits,
+ten-second HTTP limits and a 240-second monotonic deadline fit within the
+existing five-minute gate. This introduces an explicit Actions API availability
+dependency, not a replacement status producer.
+
+Image detection requires a successful detector and exact true/false output.
+Missing, skipped, cancelled, failed or malformed scope fails before either
+branch; only explicit false is cheap success. Its outer 46-minute ceiling
+contains bootstrap/filter steps capped at three minutes each and the original
+complete forty-minute build. All original filters remain, including the deleted
+entrypoint path, plus ci.yml and the new composite. Consequently any shared CI
+hunk selects the full image build, even if unrelated to Docker. There is no
+structural hunk parser.
+
+Core's original timeouts and commands remain intact, including the optional
+fifteen-minute warm/cold Setup Benchmark. That benchmark is nongating, but the
+bridge waits for the helper and can inherit that delay. Complete build,
+API/runtime and twenty-minute website workloads retain their inline exceptions
+rather than being truncated at ten minutes. Frontend's otherwise-empty cases
+now occupy one cheap witness runner without checkout/source validation.
+Reachable runnable definitions remain twenty: before Core 11 + Frontend 3 +
+Bundle 3 + image 2 + title 1; after root 3 + Core 11 + Frontend 3 + Bundle 3.
+Reusable caller jobs are not runners; matrix legs are measured separately.
+
+Budget acceptance still needs fifty distinct successful latest heads, median
+<=10 minutes and p95<=20 minutes, with all applicable benchmark, witness and
+expanded-image heads in the overall cohort. Flags/strata supplement that cohort;
+they never remove expensive heads. Report all relevant event domains, real
+runner-minutes per push and job timestamps. Models and source tests cannot
+establish hosted scheduling parity or replace green current-head checks.
+Unobserved fork/other-base/merge-group/manual/release/cancellation cases must be
+listed honestly; no synthetic dispatch or rerun loop manufactures evidence.
+The installed workflow validator's preserved background/wait-step limitations
+are recorded separately from changed-construct validation. #5950 remains open
+until its measurement and closure requirements are actually met.
+
 ## Studio remediation contract
 
 Studio verification narrows repair work; it does not mint reusable GitHub
@@ -29,7 +114,8 @@ surface failed.
 After a code fix is pushed, GitHub sees a new commit SHA and recomputes the
 affected graph for that SHA. The pull-request workflow runs the cheap
 static/security gates plus the changed surfaces and their dependents. Draft
-pull requests run no CI; it starts when the PR is marked ready for review.
+pull requests retain metadata/image checks, a cheap frontend admission witness,
+and a failing source verdict; full source validation starts when marked ready.
 GitHub's **Re-run failed jobs** is reserved for a transient failure on the same
 SHA; it cannot carry green jobs forward to a new commit.
 
@@ -120,7 +206,7 @@ The alternatives considered for this audit were:
 | Rule | Mechanical enforcement | Scope and failure behavior | Owner |
 | --- | --- | --- | --- |
 | `master` is PR-only | GitHub ruleset `Passing CI on master`; required `Tests Gate`; on-demand `full-suite.yml` (dispatch and release) | Every PR must pass its own aggregate gate; integration drift between concurrently merged PRs surfaces at the next manual or release Full Suite | GitHub setting + repository workflows |
-| Superseded PR work is disposable; landed and release work is not | Top-level workflow concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; the master Full Suite, release, deploy, and shared-cache writers queue or complete | Repository code |
+| Superseded PR work is disposable; landed and release work is not | Domain-scoped caller/job concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; the master Full Suite, release, deploy, and shared-cache writers queue or complete | Repository code |
 | Changed scope must preserve dependency reachability | `scripts/ci/pr-test-plan.mjs`, Vitest `--changed`, Turbo `--affected --dry=json`, adaptive 1/2/4 shard matrices, fail-closed `Tests Gate` | Root toolchain and planner changes escalate to the full matrix; invalid or missing plans fail | Repository code |
 | Lint, format, type, build, tests, schema, and boundaries are deterministic | Frozen Bun install in `.github/actions/setup-bun-env`; format, lint, and typecheck in `Static Checks`; `Spec Typecheck`; `Build` with OpenAPI drift; and `test:executable-contracts` | Architecture contracts live in executable tests rather than new one-off workflow steps | Repository code |
 | Lockfile changes are reviewed for known-bad packages | `dependency-review.yml` runs the dependency-review action on every pull request and fails on a newly introduced high or critical advisory; `Socket Security: Project Report` is a required check | Only packages added or upgraded by the PR are judged; advisories that already exist are tracked in issues | Repository code + required check |
@@ -130,7 +216,7 @@ The alternatives considered for this audit were:
 | Checkouts do not leave a token on disk | Every `actions/checkout` sets `persist-credentials: false`, except `deps-update.yml`, which pushes its weekly branch | Later steps (including install scripts of a compromised dependency) cannot read the job token from `.git/config` | Repository code |
 | External Actions are immutable | Every external `uses:` reference is a full 40-character upstream commit SHA; `check-github-action-versions.ts` rejects mutable refs or inconsistent SHAs | The release tag remains as a review comment; unlabeled manual SHA pins are intentionally not moved | Repository code |
 | Action updates remain routine | `bun run deps:update` calls `deps:update:actions`; the updater resolves the latest release tag to its upstream commit SHA and rewrites workflows plus composite actions | A failed lookup leaves the existing immutable pin unchanged; the weekly PR exposes every SHA change for review | Repository code |
-| Untrusted pull-request code stays outside privileged event context | Code validation runs on `pull_request`; an executable workflow contract limits `pull_request_target` to `pr-title.yml` and rejects checkout or local-action execution there | Fork code cannot turn metadata validation into execution with the base repository token | Repository code |
+| Untrusted pull-request code stays outside privileged event context | Code validation runs on `pull_request`; an executable workflow contract limits `pull_request_target` to the metadata-only title leaf in `ci.yml` (plus the existing trusted CLA recovery workflow), and rejects checkout or local-action execution in that leaf | Fork code cannot turn metadata validation into execution with the base repository token | Repository code |
 | Fork code never receives repository secrets | GitHub fork approval policy requires approval for every external contributor; CI uses `pull_request`, and GitHub withholds secrets from fork runs | Maintainers review and apply `run-ci`; secret-consuming publish/deploy paths are not PR-triggered | GitHub setting + repository workflows |
 | Secret regressions fail before merge | Gitleaks and changed-file secretlint inside `Static Checks`, held by the required `Tests Gate`; staged-content secret scan remains mandatory before commits | Findings fail Static Checks and therefore the gate | Repository code + required checks |
 | Failure evidence must be actionable and bounded | Exact test-plan artifacts, Vitest JSON reports, Playwright traces/screenshots, coverage reports, SARIF uploads, and job summaries use explicit retention and `if: always()`/`failure()` where applicable | Artifacts diagnose the exact run without making advisory coverage a merge gate | Repository code |
@@ -145,7 +231,7 @@ organization or repository policy changes:
 
 - Active master ruleset `17728734` requires `PR Title`, `license/cla`,
   `Socket Security: Project Report`, and the exact aggregate context
-  `Tests Gate`, with no merge queue. Every other check (gitleaks, format,
+  `Tests Gate`, and `Build Server Image`, with no merge queue. Every other check (gitleaks, format,
   lint, typecheck, spec typecheck, tests, build) is held by `Tests Gate`.
 - Repository Actions currently default `GITHUB_TOKEN` to write. Workflows
   override that default, but administrators should change the repository

@@ -53,7 +53,7 @@ test('failed API boot reports a skipped sweep without another failing step', (co
 
 test('workflow passes the explicit boot outcome and prints 200 log lines on boot failure', () => {
   const workflow = readFileSync(
-    new URL('../../../.github/workflows/ci.yml', import.meta.url),
+    new URL('../../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const job = workflow.split('  cloud-tenant-guard:')[1].split('\n  build:')[0];

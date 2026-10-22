@@ -228,7 +228,7 @@ function literalCaseCount(source, file) {
 test('retains all connected cases and their real fixture-owning API job', () => {
   const root = fileURLToPath(new URL('../..', import.meta.url));
   const workflow = readFileSync(
-    path.join(root, '.github/workflows/ci.yml'),
+    path.join(root, '.github/workflows/_ci-validation.yml'),
     'utf8',
   );
   const apiJob = workflow.split('  test-api:')[1]?.split('  build:')[0];

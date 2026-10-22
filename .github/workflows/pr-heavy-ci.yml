@@ -21,6 +21,7 @@ jobs:
     # GitHub validates nested permissions before evaluating job conditions.
     # Match the failure tracker's ceiling even though PRs skip that job.
     permissions:
+      actions: read
       contents: read
       issues: write
       pull-requests: write

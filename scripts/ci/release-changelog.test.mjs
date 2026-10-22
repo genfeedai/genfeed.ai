@@ -45,7 +45,8 @@ const recoveryEvidenceScript = readRepoFile(
 const recoveryNpmGuardPath = fileURLToPath(
   new URL('./recovery-npm-plan-guard.mjs', import.meta.url),
 );
-const prTitleWorkflow = readRepoFile('.github/workflows/pr-title.yml');
+const prTitleWorkflow = readRepoFile('.github/workflows/ci.yml');
+const prTitleJob = jobBlock(prTitleWorkflow, 'conventional-title', 'ci.yml');
 const cliffConfig = readRepoFile('cliff.toml');
 const pullRequestTemplate = readRepoFile('.github/pull_request_template.md');
 const rootPackage = JSON.parse(readRepoFile('package.json'));
@@ -855,40 +856,42 @@ test('PR titles are checked without executing fork code and stay in sync with th
     prTitleWorkflow,
     /^ {2}pull_request_target:\n {4}types: \[opened, edited, synchronize, reopened\]$/m,
   );
-  assert.doesNotMatch(
-    prTitleWorkflow,
-    /^ {2}pull_request:/m,
-    'the check must not need run-ci approval',
-  );
-  assert.doesNotMatch(
-    prTitleWorkflow,
-    /actions\/checkout/,
-    'pull_request_target must never check out PR code',
-  );
-  assert.match(prTitleWorkflow, /^permissions:\n {2}pull-requests: read$/m);
+  assert.match(prTitleWorkflow, /^permissions: \{\}$/m);
   assert.match(
-    prTitleWorkflow,
-    /uses: amannn\/action-semantic-pull-request@[0-9a-f]{40} # v6\.\d+\.\d+/,
+    prTitleJob,
+    /^ {4}if: github\.event_name == 'pull_request_target' && contains\(fromJSON\('\["opened","edited","synchronize","reopened"\]'\), github\.event\.action\)$/m,
   );
   assert.match(
-    prTitleWorkflow,
-    /group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \}\}/,
+    prTitleJob,
+    /^ {4}name:.*'PR Title'.*'Not selected - PR title'/m,
   );
   assert.doesNotMatch(
-    prTitleWorkflow,
-    /merge_group/,
-    'master has no merge queue; PR Title reports on the pull request only',
+    prTitleJob,
+    /actions\/checkout|uses: \.\//,
+    'the metadata leaf must never execute fork source',
   );
-
-  const typesBlock = prTitleWorkflow.match(
-    /^ {10}types: \|\n((?: {12}\w+\n)+)/m,
+  assert.match(prTitleJob, /^ {4}permissions:\n {6}pull-requests: read$/m);
+  assert.doesNotMatch(
+    prTitleJob,
+    /TURBO_TOKEN|TURBO_TEAM|GITLEAKS_LICENSE|BETTER_AUTH_SECRET|inherit/,
   );
-  assert.ok(typesBlock, 'pr-title.yml must list the allowed types');
+  assert.match(
+    prTitleJob,
+    /uses: amannn\/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6\.1\.1/,
+  );
+  assert.match(
+    prTitleJob,
+    /group: PR Title-\$\{\{ github\.event\.pull_request\.number \}\}/,
+  );
+  assert.match(prTitleJob, /^ {6}cancel-in-progress: false$/m);
+  assert.doesNotMatch(prTitleJob, /merge_group/);
+  const typesBlock = prTitleJob.match(/^ {10}types: \|\n((?: {12}\w+\n)+)/m);
+  assert.ok(typesBlock, 'the title leaf must list the allowed types');
   const workflowTypes = typesBlock[1].trim().split(/\s+/).sort();
   assert.deepEqual(
     workflowTypes,
     [...conventionalTypesFromTemplate()].sort(),
-    'pr-title.yml types must equal the list in pull_request_template.md',
+    'title leaf types must equal the list in pull_request_template.md',
   );
 });
 
