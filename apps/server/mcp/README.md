@@ -59,7 +59,7 @@ Widget layout uses shared utilities; it must not recreate component styling.
 
 ## Toolsets
 
-The bare endpoint uses the default profile (up to 26 canonical tools before
+The bare endpoint uses the default profile (up to 27 canonical tools before
 role filtering). `?profile=full` exposes the complete catalog (144 tools at the
 #7815 benchmark revision). Compact output schemas and bounded readable results
 reduce serialized payload size; model-token savings depend on the client.
@@ -87,6 +87,13 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
   selection can still be invoked directly. Toolsets only shape discovery, not
   authorization (role-based access control is unchanged and still
   authoritative).
+
+### Brand campaigns
+
+The content toolset includes `manage_campaign` for native campaign context and
+Library asset membership. The default profile also includes publishing readiness
+and approved scheduling. Follow [Brand campaigns through MCP](../../../docs/brand-campaign-mcp.md)
+for the complete context → asset → release workflow.
 
 ### Tool discovery meta tools
 
