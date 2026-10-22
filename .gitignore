@@ -39,7 +39,8 @@ apps/app/packages/**/*.js.map
 coverage/
 coverage-all/
 coverage-cron/
-apps/*/.vitest-reports/
+.vitest/
+.vitest-reports/
 .vercel
 out/
 *.log
