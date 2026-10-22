@@ -26,7 +26,10 @@ describe('CronTrendsService', () => {
   let config: { isDevSchedulersEnabled: boolean };
   let queue: { queueSystemWorkflow: ReturnType<typeof vi.fn> };
   let trends: Record<string, ReturnType<typeof vi.fn>>;
-  let prisma: { credential: { findMany: ReturnType<typeof vi.fn> } };
+  let prisma: {
+    credential: { findMany: ReturnType<typeof vi.fn> };
+    trendPreferences: { findMany: ReturnType<typeof vi.fn> };
+  };
   let workflowRunner: {
     registerAction: ReturnType<typeof vi.fn>;
     registerWorkflow: ReturnType<typeof vi.fn>;
@@ -38,9 +41,13 @@ describe('CronTrendsService', () => {
     queue = {
       queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
     };
-    prisma = { credential: { findMany: vi.fn().mockResolvedValue([]) } };
+    prisma = {
+      credential: { findMany: vi.fn().mockResolvedValue([]) },
+      trendPreferences: { findMany: vi.fn().mockResolvedValue([]) },
+    };
     trends = {
       fetchAndCacheHashtags: vi.fn().mockResolvedValue(0),
+      fetchAndCacheBrandNicheVideos: vi.fn().mockResolvedValue(0),
       fetchAndCachePlatformTrends: vi.fn().mockResolvedValue([]),
       fetchAndCacheSounds: vi.fn().mockResolvedValue(0),
       fetchAndCacheTrends: vi.fn().mockResolvedValue([{ id: 'trend-1' }]),
@@ -153,8 +160,59 @@ describe('CronTrendsService', () => {
           organizationId: 'org-1',
           platform: 'tiktok',
         },
+        {
+          brandId: 'brand-1',
+          dataset: 'niche-videos',
+          organizationId: 'org-1',
+          platform: 'tiktok',
+        },
       ],
     });
+  });
+
+  it('schedules one niche video search per brand that set niche keywords', async () => {
+    prisma.trendPreferences.findMany.mockResolvedValue([
+      {
+        brandId: 'brand-2',
+        config: { keywords: ['ai influencers'] },
+        organizationId: 'org-2',
+      },
+      { brandId: 'brand-3', config: { keywords: [] }, organizationId: 'org-3' },
+    ]);
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.DISCOVER_SCOPED);
+
+    await expect(action?.({ input: {} })).resolves.toEqual({
+      items: [
+        {
+          brandId: 'brand-2',
+          dataset: 'niche-videos',
+          organizationId: 'org-2',
+          platform: 'tiktok',
+        },
+      ],
+    });
+  });
+
+  it('refreshes a brand niche video task without the native trend refresh', async () => {
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SCOPED);
+    await expect(
+      action?.({
+        input: {
+          task: {
+            brandId: 'brand-1',
+            dataset: 'niche-videos',
+            organizationId: 'org-1',
+            platform: 'tiktok',
+          },
+        },
+      }),
+    ).resolves.toEqual({ count: 0, platform: 'tiktok' });
+
+    expect(trends.fetchAndCacheBrandNicheVideos).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+    );
+    expect(trends.fetchAndCachePlatformTrends).not.toHaveBeenCalled();
   });
 
   it('refreshes a connected scope through native providers without Apify fallback', async () => {

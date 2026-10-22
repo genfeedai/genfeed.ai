@@ -148,6 +148,8 @@ export interface ApifyTikTokVideo {
   webVideoUrl?: string;
   mediaUrls?: string[];
   hashtags?: Array<{ id?: string; name?: string }>;
+  /** The search query that returned this item, when scraped via `searchQueries`. */
+  searchQuery?: string;
 }
 
 /**
@@ -393,6 +395,8 @@ export interface ApifyVideoData {
   soundAuthorName?: string;
   soundDuration?: number;
   hook?: string;
+  /** Niche search query that surfaced this video (brand-scoped searches only). */
+  nicheQuery?: string;
 }
 
 /**

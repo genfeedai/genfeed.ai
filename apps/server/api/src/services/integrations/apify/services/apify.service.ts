@@ -112,6 +112,18 @@ export class ApifyService {
     return this.tiktokService.searchTikTokByHashtag(hashtag, options);
   }
 
+  searchTikTokByQueries(
+    queries: string[],
+    options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
+  ): Promise<ApifyVideoData[]> {
+    return this.tiktokService.searchTikTokByQueries(
+      queries,
+      options,
+      researchContext,
+    );
+  }
+
   getInstagramTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.instagramService.getInstagramTrends(options);
   }

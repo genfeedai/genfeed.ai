@@ -47,6 +47,8 @@ export default function UserDetailPage() {
     }
   }, [userError]);
 
+  const displayName = user ? getUserDisplayName(user) : undefined;
+
   return (
     <AdminPageShell
       title={translate('title')}
@@ -55,31 +57,35 @@ export default function UserDetailPage() {
         void refetch();
       }}
       isRefreshing={isFetching && !isLoading}
+      primaryAction={
+        user && user.platformRole !== PlatformRole.SUPERADMIN ? (
+          <Button
+            icon={<VenetianMask />}
+            label={translate('impersonate')}
+            onClick={() => {
+              void impersonateUser(user);
+            }}
+            variant={ButtonVariant.SECONDARY}
+          />
+        ) : undefined
+      }
     >
       {user ? (
-        <div className="mx-auto max-w-2xl space-y-8">
-          <div className="flex items-center gap-4">
-            <UserAvatar className="size-14" user={user} />
+        <div className="space-y-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <UserAvatar className="size-10" user={user} />
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-xl font-semibold">
-                {getUserDisplayName(user) ?? EMPTY_VALUE}
+              <h2 className="truncate text-lg font-semibold">
+                {displayName || user.email || EMPTY_VALUE}
               </h2>
               <p className="truncate text-sm text-muted-foreground">
-                {user.email || EMPTY_VALUE}
+                {displayName
+                  ? user.email || EMPTY_VALUE
+                  : user.handle || EMPTY_VALUE}
               </p>
             </div>
-            {user.platformRole !== PlatformRole.SUPERADMIN ? (
-              <Button
-                icon={<VenetianMask />}
-                label={translate('impersonate')}
-                onClick={() => {
-                  void impersonateUser(user);
-                }}
-                variant={ButtonVariant.SECONDARY}
-              />
-            ) : null}
           </div>
-          <UserDetails user={user} />
+          <UserDetails className="lg:grid-cols-2" user={user} />
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">

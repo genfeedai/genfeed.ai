@@ -23,6 +23,7 @@ import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/tr
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
 import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import {
@@ -36,6 +37,11 @@ import { TrendSourcePreviewService } from '@api/collections/trends/services/modu
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import {
+  buildBrandNicheQueries,
+  isWithinTimeframe,
+  rankBrandVideos,
+} from '@api/collections/trends/utils/brand-niche.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
@@ -65,6 +71,7 @@ export class TrendsService {
     private readonly trendVideoService: TrendVideoService,
     private readonly trendQueryService: TrendQueryService,
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
+    private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -653,6 +660,12 @@ export class TrendsService {
       this.trendPreferencesService.getPreferences(organizationId, brandId),
     ]);
     if (!brand) throw new NotFoundException('Brand');
+    const queries = buildBrandNicheQueries({
+      categories: preferences?.categories,
+      description: brand.description,
+      hashtags: preferences?.hashtags,
+      keywords: preferences?.keywords,
+    });
     const context = [
       brand.description,
       ...(preferences?.keywords ?? []),
@@ -662,35 +675,88 @@ export class TrendsService {
       .filter(Boolean)
       .join(' ');
     if (!context.trim()) return [];
+    const isPlatformAllowed = (video: TrendingVideoDocument) =>
+      (!preferences?.platforms?.length ||
+        (typeof video.platform === 'string' &&
+          preferences.platforms.includes(video.platform))) &&
+      (!options?.platform || video.platform === options.platform);
     // Match before applying the requested page size, so popular unrelated
     // videos cannot crowd brand-relevant candidates out of the first page.
-    const videos = await this.trendVideoService.getViralVideos({
-      ...options,
-      limit: 100,
-    });
-    const candidates = videos
-      .filter(
-        (video) =>
-          !preferences?.platforms?.length ||
-          (typeof video.platform === 'string' &&
-            preferences.platforms.includes(video.platform)),
-      )
-      .map((video) => ({
-        topic: [
-          video.title,
-          video.description,
-          video.hook,
-          ...(video.hashtags ?? []),
-        ]
-          .filter(Boolean)
-          .join(' '),
-        video,
-        viralityScore: video.viralScore ?? 0,
-      }));
-    return this.trendFilteringService
+    const [globalVideos, nicheVideos] = await Promise.all([
+      this.trendVideoService.getViralVideos({
+        ...options,
+        limit: 100,
+      }),
+      this.trendBrandNicheVideoService.get(organizationId, brandId),
+    ]);
+    const candidates = globalVideos.filter(isPlatformAllowed).map((video) => ({
+      topic: [
+        video.title,
+        video.description,
+        video.hook,
+        ...(video.hashtags ?? []),
+      ]
+        .filter(Boolean)
+        .join(' '),
+      video,
+      viralityScore: video.viralScore ?? 0,
+    }));
+    const globalMatches = this.trendFilteringService
       .filterTrendsByBrandDescription(candidates, context, true)
-      .map(({ video }) => video)
-      .slice(0, options?.limit ?? 12);
+      .map(({ video }) => video);
+    // Videos found by searching the brand's own niche lead the feed: the
+    // shared pool is only generic viral clips filtered after the fact.
+    const seen = new Set<string>();
+    const merged = [
+      ...nicheVideos.filter(
+        (video) =>
+          isPlatformAllowed(video) &&
+          isWithinTimeframe(video, options?.timeframe),
+      ),
+      ...globalMatches,
+    ].filter((video) => {
+      const key = `${video.platform}:${video.externalId ?? video.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return rankBrandVideos(merged, queries).slice(0, options?.limit ?? 12);
+  }
+
+  /**
+   * Refresh the niche videos for one brand from its keywords, hashtags and
+   * categories. Runs from the scheduled scoped refresh, never from a read.
+   */
+  async fetchAndCacheBrandNicheVideos(
+    organizationId: string,
+    brandId: string,
+  ): Promise<number> {
+    const [brand, preferences] = await Promise.all([
+      this.brandsService.findOne({
+        id: brandId,
+        organizationId,
+        isDeleted: false,
+      }),
+      this.trendPreferencesService.getPreferences(organizationId, brandId),
+    ]);
+    if (!brand) throw new NotFoundException('Brand');
+    const queries = buildBrandNicheQueries({
+      categories: preferences?.categories,
+      description: brand.description,
+      hashtags: preferences?.hashtags,
+      keywords: preferences?.keywords,
+    });
+    if (
+      preferences?.platforms?.length &&
+      !preferences.platforms.includes('tiktok')
+    ) {
+      return 0;
+    }
+    return this.trendBrandNicheVideoService.fetchAndCache(
+      organizationId,
+      brandId,
+      queries,
+    );
   }
 
   /**

@@ -4,6 +4,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
@@ -168,6 +169,7 @@ describe('TrendsService', () => {
         TrendSourceItemsService,
         TrendSourcePreviewService,
         TrendVideoService,
+        TrendBrandNicheVideoService,
         {
           provide: TrendRefreshHealthService,
           useValue: { record: vi.fn().mockResolvedValue(undefined) },

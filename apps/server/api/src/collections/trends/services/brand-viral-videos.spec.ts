@@ -12,6 +12,10 @@ function setup(description: string) {
       platforms: [],
     }),
   };
+  const niche = {
+    fetchAndCache: vi.fn().mockResolvedValue(2),
+    get: vi.fn().mockResolvedValue([]),
+  };
   const videos = {
     getViralVideos: vi.fn().mockResolvedValue([
       { id: 'music', title: 'Popular official music video', viralScore: 99 },
@@ -32,8 +36,9 @@ function setup(description: string) {
     videos as never,
     {} as never,
     {} as never,
+    niche as never,
   );
-  return { service, brands, videos, preferences };
+  return { service, brands, videos, preferences, niche };
 }
 
 describe('Brand viral videos', () => {
@@ -84,6 +89,96 @@ describe('Brand viral videos', () => {
     brands.findOne.mockResolvedValue(null as never);
     await expect(
       service.getTrendContent('org-1', 'foreign-brand', {}),
+    ).rejects.toThrow('Brand not found');
+  });
+
+  it('leads with videos found by searching the brand niche, ranked by relevance then engagement', async () => {
+    const { service, niche, preferences } = setup('AI marketing automation');
+    preferences.getPreferences.mockResolvedValue({
+      keywords: ['ai influencers'],
+      categories: [],
+      hashtags: [],
+      platforms: [],
+    });
+    niche.get.mockResolvedValue([
+      {
+        externalId: 'quiet',
+        nicheQuery: 'ai influencers',
+        platform: 'tiktok',
+        title: 'no caption match',
+        viewCount: 10,
+        viralScore: 5,
+      },
+      {
+        externalId: 'big',
+        nicheQuery: 'ai influencers',
+        platform: 'tiktok',
+        title: 'Exposing AI influencers',
+        viewCount: 90,
+        viralScore: 40,
+      },
+      {
+        externalId: 'popular',
+        nicheQuery: 'ai influencers',
+        platform: 'tiktok',
+        title: 'AI influencers are here',
+        viewCount: 500,
+        viralScore: 90,
+      },
+    ]);
+
+    const result = await service.getBrandViralVideos('org-1', 'brand-1', {
+      limit: 4,
+    });
+
+    expect(niche.get).toHaveBeenCalledWith('org-1', 'brand-1');
+    expect(result.map((video) => video.externalId)).toEqual([
+      'popular',
+      'big',
+      'quiet',
+      undefined,
+    ]);
+    expect(result[3]).toMatchObject({ id: 'agents' });
+  });
+
+  it('respects the platform filter for niche videos', async () => {
+    const { service, niche, preferences } = setup('fitness');
+    preferences.getPreferences.mockResolvedValue({
+      keywords: ['ai influencers'],
+      categories: [],
+      hashtags: [],
+      platforms: ['instagram'],
+    });
+    niche.get.mockResolvedValue([
+      { externalId: 'tt', nicheQuery: 'q', platform: 'tiktok', title: 'x' },
+    ]);
+
+    expect(await service.getBrandViralVideos('org-1', 'brand-1', {})).toEqual(
+      [],
+    );
+  });
+
+  it('refreshes niche videos from the brand keywords and rejects foreign brands', async () => {
+    const { service, niche, brands, preferences } = setup('fitness');
+    preferences.getPreferences.mockResolvedValue({
+      keywords: ['ai influencers', 'ugc'],
+      categories: [],
+      hashtags: ['#aiavatar'],
+      platforms: [],
+    });
+
+    expect(
+      await service.fetchAndCacheBrandNicheVideos('org-1', 'brand-1'),
+    ).toBe(2);
+    expect(niche.fetchAndCache).toHaveBeenCalledWith('org-1', 'brand-1', [
+      'ai influencers',
+      'ugc',
+      'aiavatar',
+    ]);
+
+    brands.findOne.mockResolvedValue(null as never);
+    await expect(
+      service.fetchAndCacheBrandNicheVideos('org-1', 'foreign-brand'),
     ).rejects.toThrow('Brand not found');
   });
 

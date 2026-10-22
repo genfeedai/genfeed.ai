@@ -12,6 +12,7 @@ export interface AdminUserEmailProps {
 
 export interface AdminUserDetailsProps {
   user: IUser;
+  className?: string;
 }
 
 export interface AdminUserDetailPanelProps {

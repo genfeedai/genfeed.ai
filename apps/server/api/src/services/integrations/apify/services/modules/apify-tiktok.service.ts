@@ -281,6 +281,56 @@ export class ApifyTikTokService {
     }
   }
 
+  /**
+   * Search TikTok for the given queries (the "Top" results a person sees when
+   * searching the app) and return normalized videos. Billed to the
+   * organization through the hosted research runner when a context is given.
+   */
+  async searchTikTokByQueries(
+    queries: string[],
+    options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
+  ): Promise<ApifyVideoData[]> {
+    const searchQueries = queries.map((query) => query.trim()).filter(Boolean);
+    if (searchQueries.length === 0) {
+      return [];
+    }
+
+    try {
+      const input = {
+        resultsPerPage: Math.max(
+          1,
+          Math.ceil((options?.limit || 30) / searchQueries.length),
+        ),
+        searchQueries,
+        searchSection: '',
+      };
+
+      const rawVideos = await (researchContext?.organizationId
+        ? this.runner.run<ApifyTikTokVideo>(
+            researchContext.organizationId,
+            this.baseService.ACTORS.TIKTOK_SCRAPER,
+            input,
+            { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+          )
+        : this.baseService.runActor<ApifyTikTokVideo>(
+            this.baseService.ACTORS.TIKTOK_SCRAPER,
+            input,
+          ));
+
+      return this.normalizeTikTokVideos(rawVideos).map((video, index) => ({
+        ...video,
+        nicheQuery: rawVideos[index]?.searchQuery || searchQueries[0],
+      }));
+    } catch (error: unknown) {
+      this.baseService.loggerService.error(
+        `${this.constructorName}.searchTikTokByQueries failed`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   private normalizeTikTokTrends(trends: ApifyTikTokTrend[]): ApifyTrendData[] {
     return trends
       .filter((trend) => Boolean(trend.name || trend.hashtag || trend.title))
