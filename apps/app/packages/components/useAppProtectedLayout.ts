@@ -26,7 +26,10 @@ import {
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -36,6 +39,8 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
@@ -97,6 +102,10 @@ export function isProtectedWorkspaceRoute(pathname: string): boolean {
 export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
 ) {
+  const runtime = useDesktopRuntimeContext();
+  const showCredits = shouldShowCreditsNav(
+    getDesktopCreditsVisibility(runtime),
+  );
   const rawPathname = usePathname();
   const routeParams = useParams<{ brandSlug?: string; orgSlug?: string }>();
   const searchParams = useSearchParams();
@@ -440,6 +449,7 @@ export function useAppProtectedLayout(
     () =>
       buildSettingsMenuItems({
         scope: settingsScope,
+        showCredits,
         isEnterprise: hasOrganizationBillingHint(),
       }).map(
         (item): MenuItemConfig => ({
@@ -447,7 +457,7 @@ export function useAppProtectedLayout(
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [settingsScope, taskContextSearchParams],
+    [settingsScope, showCredits, taskContextSearchParams],
   );
 
   // The rail picks the admin category; the sidebar lists only its pages.

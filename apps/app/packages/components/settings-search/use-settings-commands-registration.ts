@@ -5,7 +5,10 @@ import {
   resolveSettingsSearchHref,
 } from '@app-config/settings-search-catalog';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
@@ -14,9 +17,11 @@ import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { useOnboardingRouteAccess } from '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { SettingsSearchItem } from '@genfeedai/props/ui/settings-search/settings-search.props';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
+import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
@@ -25,6 +30,7 @@ import { useSettingsNavigation } from './use-settings-navigation';
 interface BuildScopeCommandsOptions {
   brandSlug: string;
   isEnterprise: boolean;
+  showCredits: boolean;
   navigate: (href: string) => void;
   orgSlug: string;
   /** Boosted priority for a result matching the operator's current module. */
@@ -55,6 +61,7 @@ function buildCommandsForScope(
   return buildSettingsSearchCatalog({
     isEnterprise: options.isEnterprise,
     scope,
+    showCredits: options.showCredits,
   }).flatMap((item) => {
     const href = resolveSettingsSearchHref(item, {
       brandSlug: options.brandSlug,
@@ -91,6 +98,10 @@ function resolvePriority(currentApp: AppContext | undefined): number {
  * active context, and brand items require a matching organization.
  */
 export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
+  const runtime = useDesktopRuntimeContext();
+  const showCredits = shouldShowCreditsNav(
+    getDesktopCreditsVisibility(runtime),
+  );
   const navigate = useSettingsNavigation();
   const pathname = usePathname();
   const { canRender, redirectTarget } =
@@ -135,6 +146,7 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
       navigate,
       orgSlug,
       priority,
+      showCredits,
     };
 
     const commands: ICommand[] = [
@@ -157,5 +169,13 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
         CommandPaletteService.unregisterCommands(registeredIds);
       }
     };
-  }, [brandSlug, isAccessible, isEnterprise, navigate, orgSlug, priority]);
+  }, [
+    brandSlug,
+    isAccessible,
+    isEnterprise,
+    navigate,
+    orgSlug,
+    priority,
+    showCredits,
+  ]);
 }

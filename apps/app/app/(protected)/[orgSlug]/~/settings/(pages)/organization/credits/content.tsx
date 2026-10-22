@@ -1,16 +1,21 @@
 'use client';
 
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import { Alert, AlertDescription } from '@ui/primitives/alert';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { Text } from '@ui/typography/text';
@@ -28,6 +33,30 @@ import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
  * - Managed Genfeed Cloud checkout only for community self-host without PAYG.
  */
 export default function SettingsCreditsPage() {
+  const runtime = useDesktopRuntimeContext();
+  const showCredits = shouldShowCreditsNav(
+    getDesktopCreditsVisibility(runtime),
+  );
+  const translate = useTranslations('common.settings.creditsBalance');
+
+  if (!showCredits) {
+    return (
+      <div className="flex flex-col gap-4 pb-10">
+        <h1 className="sr-only">{translate('title')}</h1>
+        <Alert>
+          <AlertTitle>{translate('unavailableTitle')}</AlertTitle>
+          <AlertDescription>
+            {translate('unavailableDescription')}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return <SettingsCreditsContent />;
+}
+
+function SettingsCreditsContent() {
   const { creditsBreakdown, error, isLoading, refreshCreditsBreakdown } =
     useSubscription();
   const [isRetryingBalance, setIsRetryingBalance] = useState(false);

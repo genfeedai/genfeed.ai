@@ -422,6 +422,8 @@
   },
   "settings": {
     "creditsBalance": {
+      "unavailableTitle": "Credits unavailable",
+      "unavailableDescription": "Credits are unavailable for the current runtime.",
       "balance": "Balance",
       "creditsLeft": "Credits left",
       "cycleNote": "Based on this cycle's total: subscription credits plus packs bought this cycle.",
