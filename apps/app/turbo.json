@@ -39,7 +39,12 @@
         "$TURBO_ROOT$/packages/props/**",
         "$TURBO_ROOT$/packages/serializers/**",
         "$TURBO_ROOT$/packages/services/**",
-        "$TURBO_ROOT$/packages/utils/**"
+        "$TURBO_ROOT$/packages/ui/**",
+        "$TURBO_ROOT$/packages/utils/**",
+        "!$TURBO_ROOT$/packages/ui/.turbo/**",
+        "!$TURBO_ROOT$/packages/ui/dist/**",
+        "!$TURBO_ROOT$/packages/ui/node_modules/**",
+        "!$TURBO_ROOT$/packages/ui/**/*.tsbuildinfo"
       ]
     }
   }
