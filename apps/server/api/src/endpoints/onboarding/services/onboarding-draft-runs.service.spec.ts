@@ -53,6 +53,22 @@ describe('OnboardingDraftRunsService', () => {
       service.execute(user, 'brand-1', undefined, generate),
     ).resolves.toEqual(result);
     expect(generate).toHaveBeenCalledTimes(1);
+    expect(prisma.contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          config: expect.objectContaining({
+            brief: { angle: expect.any(String) },
+            variants: [
+              expect.objectContaining({
+                id: 'post-1',
+                platform: 'twitter',
+                content: 'Saved text',
+              }),
+            ],
+          }),
+        },
+      }),
+    );
     prisma.contentRun.createMany.mockResolvedValue({ count: 0 });
     prisma.contentRun.findFirst.mockResolvedValue({
       status: 'complete',
@@ -87,10 +103,10 @@ describe('OnboardingDraftRunsService', () => {
     ).rejects.toThrow('interrupted');
     expect(prisma.contentRun.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: {
-          status: 'interrupted',
-          config: { surface: 'onboarding', result },
-        },
+        data: expect.objectContaining({
+          status: 'failed',
+          config: expect.objectContaining({ surface: 'onboarding', result }),
+        }),
       }),
     );
     expect(prisma.contentRun.createMany).toHaveBeenCalledTimes(1);

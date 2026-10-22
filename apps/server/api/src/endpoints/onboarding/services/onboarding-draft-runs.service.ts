@@ -3,6 +3,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { toContentRunJsonValue } from '@api/collections/content-runs/utils/content-run-data.util';
 import { readUsableCdnAssetUrl } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import type {
   IOnboardingDraftRun,
   IOnboardingFirstDraftsResult,
@@ -44,6 +45,35 @@ export class OnboardingDraftRunsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {}
+
+  private configFor(result: IOnboardingFirstDraftsResult | null) {
+    return toContentRunJsonValue({
+      surface: 'onboarding',
+      brief: { angle: 'First posts' },
+      variants: (result?.drafts ?? []).map((draft) => ({
+        id: draft.postId,
+        platform: draft.platform,
+        content: draft.text,
+        status: 'draft',
+        type:
+          draft.platform === 'tiktok'
+            ? 'video'
+            : result?.imageIngredientId
+              ? 'image'
+              : 'text',
+        assetIds:
+          draft.platform === 'tiktok'
+            ? result?.videoIngredientId
+              ? [result.videoIngredientId]
+              : []
+            : result?.imageIngredientId
+              ? [result.imageIngredientId]
+              : [],
+        metadata: { source: 'onboarding', receiptId: draft.receiptId },
+      })),
+      result,
+    });
+  }
 
   async latest(
     user: AuthenticatedUser,
@@ -113,11 +143,13 @@ export class OnboardingDraftRunsService {
       result: config.result,
       verdicts,
       status:
-        row.status === 'complete' &&
+        (row.status === ContentRunStatus.COMPLETED ||
+          row.status === 'complete') &&
         !isImageProcessing &&
         config.result?.videoStatus !== 'pending'
           ? 'complete'
-          : row.status === 'interrupted' ||
+          : row.status === ContentRunStatus.FAILED ||
+              row.status === 'interrupted' ||
               Date.now() - row.updatedAt.getTime() > 10 * 60_000
             ? 'interrupted'
             : 'running',
@@ -248,8 +280,8 @@ export class OnboardingDraftRunsService {
           id,
           organizationId,
           brandId,
-          status: 'complete',
-          config: toContentRunJsonValue({ surface: 'onboarding', result }),
+          status: ContentRunStatus.COMPLETED,
+          config: this.configFor(result),
         },
       ],
       skipDuplicates: true,
@@ -289,8 +321,8 @@ export class OnboardingDraftRunsService {
           id,
           organizationId,
           brandId,
-          status: 'running',
-          config: { surface: 'onboarding', result: null },
+          status: ContentRunStatus.RUNNING,
+          config: this.configFor(null),
         },
       ],
       skipDuplicates: true,
@@ -299,7 +331,8 @@ export class OnboardingDraftRunsService {
       const existing = await this.prisma.contentRun.findFirst({ where });
       const config = configSchema.safeParse(existing?.config);
       if (
-        existing?.status === 'complete' &&
+        (existing?.status === ContentRunStatus.COMPLETED ||
+          existing?.status === 'complete') &&
         config.success &&
         config.data.result
       )
@@ -314,7 +347,7 @@ export class OnboardingDraftRunsService {
       await this.prisma.contentRun.updateMany({
         where,
         data: {
-          config: toContentRunJsonValue({ surface: 'onboarding', result }),
+          config: this.configFor(result),
         },
       });
       for (const draft of result.drafts) {
@@ -368,18 +401,15 @@ export class OnboardingDraftRunsService {
       await save(result);
       await this.prisma.contentRun.updateMany({
         where,
-        data: { status: 'complete' },
+        data: { status: ContentRunStatus.COMPLETED },
       });
       return result;
     } catch (error) {
       await this.prisma.contentRun.updateMany({
         where,
         data: {
-          status: 'interrupted',
-          config: toContentRunJsonValue({
-            surface: 'onboarding',
-            result: saved,
-          }),
+          status: ContentRunStatus.FAILED,
+          config: this.configFor(saved),
         },
       });
       throw error;
