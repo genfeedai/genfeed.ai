@@ -23,7 +23,7 @@ function boundedSummary(value: string): string {
   let omitted = false;
   for (const line of value.split('\n')) {
     // Action/resource links remain usable for clients that only show text.
-    const isLink = /^\s*\[Open [^\]]+\]\(https?:\/\/.*\)$/.test(line);
+    const isLink = /^\s*(?:-\s+)*\[Open [^\]]+\]\(https?:\/\/.*\)$/.test(line);
     if (!isLink && length + line.length + 1 > MAX_TEXT_CHARS) {
       omitted = true;
       continue;

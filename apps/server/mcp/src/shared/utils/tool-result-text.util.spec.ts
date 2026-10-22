@@ -192,6 +192,9 @@ describe('MCP readable tool results', () => {
     expect(text).toContain('Example');
     expect(text).not.toMatch(/\[[^\]]*$/);
     expect(text).toContain(`](${data.authorizationUrl})`);
+    expect(formatToolData([{ authorizationUrl: data.authorizationUrl }])).toBe(
+      `- [Open authorization](${data.authorizationUrl})`,
+    );
     expect(formatToolData({ authorizationUrl: data.authorizationUrl })).toBe(
       `[Open authorization](${data.authorizationUrl})`,
     );
