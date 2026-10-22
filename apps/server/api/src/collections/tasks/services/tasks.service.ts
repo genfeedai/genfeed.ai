@@ -1,3 +1,4 @@
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import {
@@ -596,8 +597,14 @@ export class TasksService extends BaseService<
     id: string,
     organizationId: string,
     userId?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
-    return this.taskActionsService.approve(id, organizationId, userId);
+    return this.taskActionsService.approve(
+      id,
+      organizationId,
+      userId,
+      initiatingActor,
+    );
   }
 
   async requestChanges(
@@ -605,12 +612,14 @@ export class TasksService extends BaseService<
     organizationId: string,
     userId: string,
     reason: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     return this.taskActionsService.requestChanges(
       id,
       organizationId,
       userId,
       reason,
+      initiatingActor,
     );
   }
 
@@ -619,8 +628,15 @@ export class TasksService extends BaseService<
     organizationId: string,
     userId: string,
     reason?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
-    return this.taskActionsService.dismiss(id, organizationId, userId, reason);
+    return this.taskActionsService.dismiss(
+      id,
+      organizationId,
+      userId,
+      reason,
+      initiatingActor,
+    );
   }
 
   async keepOutput(
@@ -628,12 +644,14 @@ export class TasksService extends BaseService<
     outputId: string,
     organizationId: string,
     userId?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     return this.taskActionsService.keepOutput(
       id,
       outputId,
       organizationId,
       userId,
+      initiatingActor,
     );
   }
 
@@ -650,12 +668,14 @@ export class TasksService extends BaseService<
     outputId: string,
     organizationId: string,
     userId?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     return this.taskActionsService.trashOutput(
       id,
       outputId,
       organizationId,
       userId,
+      initiatingActor,
     );
   }
 

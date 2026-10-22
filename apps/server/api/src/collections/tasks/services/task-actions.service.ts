@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { TaskFeedbackMemoryAdapterService } from '@api/collections/agent-memories/services/task-feedback-memory-adapter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
@@ -62,6 +63,7 @@ export class TaskActionsService {
     id: string,
     organizationId: string,
     userId?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     const task = await this.tasksService.requireTask(id, organizationId);
     const updated = await this.applyReviewTransition(id, {
@@ -82,6 +84,7 @@ export class TaskActionsService {
       },
     );
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'approved',
       organizationId,
       task: updated,
@@ -95,6 +98,7 @@ export class TaskActionsService {
     organizationId: string,
     userId: string,
     reason: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     await this.tasksService.requireTask(id, organizationId);
     const updated = await this.applyReviewTransition(id, {
@@ -108,6 +112,7 @@ export class TaskActionsService {
       type: 'task_changes_requested',
     });
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'changes_requested',
       note: reason,
       organizationId,
@@ -122,6 +127,7 @@ export class TaskActionsService {
     organizationId: string,
     userId: string,
     reason?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     await this.tasksService.requireTask(id, organizationId);
     const updated = await this.applyReviewTransition(id, {
@@ -137,6 +143,7 @@ export class TaskActionsService {
       type: 'task_dismissed',
     });
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'dismissed',
       note: reason,
       organizationId,
@@ -151,6 +158,7 @@ export class TaskActionsService {
     outputId: string,
     organizationId: string,
     userId?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     const task = await this.requireLinkedOutputTask(
       id,
@@ -175,6 +183,7 @@ export class TaskActionsService {
       },
     );
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'output_kept',
       organizationId,
       outputId,
@@ -214,6 +223,7 @@ export class TaskActionsService {
     outputId: string,
     organizationId: string,
     userId?: string,
+    initiatingActor?: WorkflowInitiatingActor,
   ): Promise<TaskDocument> {
     const task = await this.requireLinkedOutputTask(
       id,
@@ -243,6 +253,7 @@ export class TaskActionsService {
       },
     );
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'output_trashed',
       organizationId,
       outputId,

@@ -5,6 +5,7 @@ import type { CreateKnowledgeSpaceDto } from '@api/collections/contexts/dto/crea
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
 import type { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { assertKnowledgeGovernance } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { captureIdempotentKnowledgeSource } from '@api/collections/contexts/utils/knowledge-idempotent-capture';
@@ -33,6 +34,7 @@ export class KnowledgeRecordsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly brandAccessService: BrandAccessService,
+    private readonly embeddingCompletion: KnowledgeEmbeddingCompletionService,
   ) {}
 
   async assertCanBackfill(actor: KnowledgeActor): Promise<void> {
@@ -741,7 +743,10 @@ export class KnowledgeRecordsService {
     id: string,
     mutation: (
       version: Awaited<ReturnType<KnowledgeRecordsService['getVersion']>>,
-    ) => Prisma.KnowledgeSourceVersionUpdateInput,
+      tx: Prisma.TransactionClient,
+    ) =>
+      | Prisma.KnowledgeSourceVersionUpdateInput
+      | Promise<Prisma.KnowledgeSourceVersionUpdateInput>,
     afterUpdate?: (tx: Prisma.TransactionClient) => Promise<void>,
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -757,7 +762,7 @@ export class KnowledgeRecordsService {
       if (!version) ErrorResponse.notFound('Knowledge source version', id);
       const updated = await tx.knowledgeSourceVersion.update({
         where,
-        data: mutation(version),
+        data: await mutation(version, tx),
       });
       await afterUpdate?.(tx);
       return updated;
@@ -787,41 +792,14 @@ export class KnowledgeRecordsService {
     state: KnowledgeProcessingState,
     processingError?: string,
   ) {
-    return this.mutateVersion(actor, sourceId, id, (version) => {
-      if (
-        !version.isCurrent ||
-        version.retentionState !== KnowledgeRetentionState.RETAINED
-      )
-        throw new BadRequestException(
-          'Only a retained current version can be processed',
-        );
-      const allowed: Record<
-        KnowledgeProcessingState,
-        readonly KnowledgeProcessingState[]
-      > = {
-        QUEUED: [KnowledgeProcessingState.PROCESSING],
-        PROCESSING: [
-          KnowledgeProcessingState.READY,
-          KnowledgeProcessingState.FAILED,
-        ],
-        FAILED: [KnowledgeProcessingState.QUEUED],
-        READY: [],
-      };
-      if (
-        version.processingState !== state &&
-        !allowed[version.processingState].includes(state)
-      )
-        throw new BadRequestException('Invalid processing transition');
-      // The database rejects a reason outside FAILED; clear it on every other
-      // transition so a requeued version starts clean.
-      return {
-        processingState: state,
-        processingError:
-          state === KnowledgeProcessingState.FAILED
-            ? (processingError ?? version.processingError ?? null)
-            : null,
-      };
-    });
+    return this.mutateVersion(actor, sourceId, id, (version, tx) =>
+      this.embeddingCompletion.processingUpdate(
+        tx,
+        version,
+        state,
+        processingError,
+      ),
+    );
   }
 
   setEligibility(

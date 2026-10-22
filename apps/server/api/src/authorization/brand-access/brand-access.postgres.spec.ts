@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { toKnowledgeWorkflowActor } from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
@@ -47,6 +50,7 @@ const migrations = [
   '20260910180000_knowledge_version_legal_hold',
   '20260917180000_knowledge_refresh_and_transcripts',
   '20260918120000_knowledge_capture_request_hash',
+  '20261022090000_context_embedding_queue',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -58,7 +62,12 @@ const migrations = [
 );
 const fixtureSql = `
 CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
-CREATE TABLE users (id text PRIMARY KEY);
+CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
+CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id),
+ "userId" text, "brandId" text, "campaignId" text, scope text, content text, type text, kind text, "contentType" text,
+ platform text, summary text, tags text[], "sourceType" text, "sourceUrl" text, "sourceContentId" text, "sourceMessageId" text,
+ metadata jsonb, importance integer, confidence double precision, "performanceSnapshot" jsonb, "isDeleted" boolean NOT NULL DEFAULT false);
+CREATE TABLE agent_campaigns (id text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "userId" text, "isDeleted" boolean NOT NULL DEFAULT false);
 CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
 CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
 CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean NOT NULL DEFAULT false, UNIQUE(id,"organizationId"));
@@ -107,13 +116,26 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
     });
     const db = prisma as unknown as PrismaService;
     policy = new BrandAccessService(db);
-    records = new KnowledgeRecordsService(db, policy);
-    ingest = new KnowledgeSourceIngestService(
-      db,
-      { addEntry: embeddings } as never,
-      policy,
-      records,
+    const provider = new ContextEmbeddingProviderService(
+      { getDefaultModel: vi.fn().mockResolvedValue('fixture-model') } as never,
+      { embeddings } as never,
     );
+    const queue = { enqueue: vi.fn() };
+    const writer = new ContextEmbeddingWriteService(
+      db,
+      policy,
+      provider,
+      queue as never,
+      { warn: vi.fn() } as never,
+    );
+    const completion = new KnowledgeEmbeddingCompletionService(
+      db,
+      writer,
+      provider,
+      queue as never,
+    );
+    records = new KnowledgeRecordsService(db, policy, completion);
+    ingest = new KnowledgeSourceIngestService(db, policy, records, completion);
   });
   afterAll(async () => {
     await prisma?.$disconnect();
@@ -293,11 +315,14 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
       'Knowledge access denied',
     );
     await expect(
-      ingest.replaceChunks({
-        ...state,
-        extracted: { text: 'Fixture text' },
-        chunks: ['Fixture text'],
-      }),
+      ingest.replaceChunks(
+        {
+          ...state,
+          extracted: { text: 'Fixture text' },
+          chunks: ['Fixture text'],
+        },
+        'denied-test-execution',
+      ),
     ).rejects.toThrow('Knowledge access denied');
     expect(embeddings).not.toHaveBeenCalled();
     await expect(

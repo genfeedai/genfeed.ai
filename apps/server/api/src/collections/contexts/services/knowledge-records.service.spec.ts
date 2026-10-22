@@ -1,12 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import {
   buildCaptureVersion,
   KnowledgeCaptureService,
 } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
@@ -39,6 +43,7 @@ const migrations = [
   '20260910180000_knowledge_version_legal_hold',
   '20260917180000_knowledge_refresh_and_transcripts',
   '20260918120000_knowledge_capture_request_hash',
+  '20261022090000_context_embedding_queue',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -74,6 +79,7 @@ const capture: CreateKnowledgeVersionDto = {
 let pool: Pool;
 let prisma: PrismaClient;
 let records: KnowledgeRecordsService;
+let completion: KnowledgeEmbeddingCompletionService;
 let schema: string;
 
 function buildSourcesController() {
@@ -115,12 +121,27 @@ async function ready(sourceId: string, versionId: string) {
     versionId,
     KnowledgeProcessingState.PROCESSING,
   );
-  await records.setProcessing(
-    actor,
+  await expect(
+    records.setProcessing(
+      actor,
+      sourceId,
+      versionId,
+      KnowledgeProcessingState.READY,
+    ),
+  ).rejects.toThrow('incomplete');
+  await completion.stage({
+    organizationId: actor.organizationId,
     sourceId,
     versionId,
-    KnowledgeProcessingState.READY,
-  );
+    contextBaseId: 'empty-manifest-has-no-base-rows',
+    initiatingActor: toWorkflowActor(actor),
+    admissionExecutionId: randomUUID(),
+    chunks: [],
+    observedValidators: {},
+  });
+  await expect(
+    completion.complete(actor.organizationId, sourceId, versionId),
+  ).resolves.toBe('completed');
 }
 
 describePostgres('Knowledge collection with PostgreSQL', () => {
@@ -135,7 +156,8 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       await client.query(`SET search_path TO "${schema}", public`);
       await client.query(`
         CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
-        CREATE TABLE users (id text PRIMARY KEY);
+        CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
+        CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id));
         CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
         INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
         INSERT INTO users(id) VALUES ('legacyBase62User'), ('otherUser');
@@ -165,9 +187,38 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         { schema },
       ),
     });
+    const db = prisma as unknown as PrismaService;
+    const policy = brandAccessFixture(db);
+    const provider = new ContextEmbeddingProviderService(
+      {
+        getDefaultModel: vi.fn().mockResolvedValue('fixture-embedding'),
+      } as never,
+      {
+        embeddings: vi
+          .fn()
+          .mockRejectedValue(
+            new Error('Empty Knowledge sources require no provider work'),
+          ),
+      } as never,
+    );
+    const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+    const writer = new ContextEmbeddingWriteService(
+      db,
+      policy,
+      provider,
+      queue as never,
+      { warn: vi.fn() } as never,
+    );
+    completion = new KnowledgeEmbeddingCompletionService(
+      db,
+      writer,
+      provider,
+      queue as never,
+    );
     records = new KnowledgeRecordsService(
       prisma as unknown as PrismaService,
       brandAccessFixture(prisma as unknown as PrismaService as never),
+      completion,
     );
   });
 
@@ -595,7 +646,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ...capture,
       expiresAt: '2026-02-01T00:00:00.000Z',
     });
-    await ready(source.id, expired.id);
+    await expect(ready(source.id, expired.id)).rejects.toThrow('expired');
     expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
   });
 
@@ -672,9 +723,10 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         contentHash: `sha256:${id}`,
         provenance: {},
         observedAt: new Date(capture.observedAt),
-        processingState: KnowledgeProcessingState.READY,
+        processingState: KnowledgeProcessingState.QUEUED,
       })),
     });
+    for (const id of ids) await ready('source-' + id, 'version-' + id);
     const first = await records.listEligibleVersions(actor, 1, 100);
     const second = await records.listEligibleVersions(actor, 2, 100);
     expect(first).toMatchObject({

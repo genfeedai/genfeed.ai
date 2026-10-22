@@ -13,7 +13,6 @@ vi.mock(
 
 import {
   KnowledgeSourceIngestService,
-  type KnowledgeSourceIngestState,
   toSafeFailureReason,
 } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
@@ -26,7 +25,14 @@ import {
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 
+const initiatingActor = {
+  userId: 'user-1',
+  organizationId: 'org-1',
+  isApiKey: false,
+  scopes: [],
+};
 const request = {
+  initiatingActor,
   organizationId: 'org-1',
   sourceId: 'source-1',
   versionId: 'version-1',
@@ -96,6 +102,7 @@ function buildService(
     knowledgeSource,
     knowledgeSourceRefreshRun,
     knowledgeSourceVersion,
+    knowledgeEmbeddingManifest: { findFirst: vi.fn().mockResolvedValue(null) },
   };
   const prisma = {
     ...tx,
@@ -104,18 +111,24 @@ function buildService(
     ),
     knowledgeSourceVersion,
   };
-  const addEntry = vi.fn().mockResolvedValue({ id: 'entry' });
+  const completion = {
+    stage: vi.fn().mockResolvedValue({ id: 'sealed-manifest' }),
+    complete: vi.fn().mockResolvedValue('queued'),
+    assertReady: vi.fn(),
+  };
   const service = new KnowledgeSourceIngestService(
     prisma as never,
-    { addEntry } as never,
-    brandAccessFixture(prisma as never),
+    brandAccessFixture(),
     new KnowledgeRecordsService(
       prisma as never,
-      brandAccessFixture(prisma as never),
+      brandAccessFixture(),
+      completion as never,
     ),
+    completion as never,
   );
+
   return {
-    addEntry,
+    completion,
     contextBase,
     contextEntry,
     executeRaw,
@@ -131,205 +144,128 @@ describe('KnowledgeSourceIngestService', () => {
     vi.clearAllMocks();
   });
 
-  it('ingests captured text into version-linked chunks in a per-scope base', async () => {
+  it('extracts text then delegates one bounded snapshot with actual execution identity and actor', async () => {
     const {
       service,
-      addEntry,
+      completion,
       contextBase,
       contextEntry,
       knowledgeSourceVersion,
-      prisma,
     } = buildService();
-
     const loaded = await service.loadSource(request);
     expect(loaded).toMatchObject({
       status: 'ready',
-      source: { id: 'source-1', purpose: KnowledgeSourcePurpose.BRAND_TRUTH },
-      version: { id: 'version-1', text: 'Plans start at $29 per month.' },
+      version: { text: 'Plans start at $29 per month.' },
     });
-    expect(knowledgeSourceVersion.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          id: 'version-1',
-          organizationId: 'org-1',
-          sourceId: 'source-1',
-          isDeleted: false,
-        }),
-      }),
-    );
-
     const marked = await service.markSource(loaded);
-    expect(knowledgeSourceVersion.updateMany).toHaveBeenLastCalledWith({
-      where: {
-        id: 'version-1',
-        sourceId: 'source-1',
-        organizationId: 'org-1',
-        isDeleted: false,
-      },
-      data: {
-        processingState: KnowledgeProcessingState.PROCESSING,
-        processingError: null,
-      },
-    });
-
-    const extracted = await service.extractSource(marked);
-    expect(extracted.extracted).toEqual({
-      mimeType: 'text/plain',
-      text: 'Plans start at $29 per month.',
-    });
-    const chunked = await service.chunkSource(extracted);
-    expect(chunked.chunks).toEqual(['Plans start at $29 per month.']);
-
-    await service.replaceChunks(chunked);
-    // One transaction creates the scope base, one locks the source to scope
-    // the chunk delete.
-    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
-    expect(contextBase.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          organizationId: 'org-1',
-          sourceBrandId: 'brand-1',
-          data: expect.objectContaining({
-            knowledgeScope: KnowledgeMemoryScope.BRAND,
-            purpose: 'knowledge-base',
-            type: 'knowledge',
-          }),
-        }),
-      }),
-    );
-    expect(contextEntry.groupBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          organizationId: 'org-1',
-          isDeleted: false,
-          knowledgeSourceId: 'source-1',
-        },
-      }),
-    );
-    expect(addEntry).toHaveBeenCalledWith(
-      'base-created',
-      {
-        content: 'Plans start at $29 per month.',
-        metadata: expect.objectContaining({
-          chunkIndex: 0,
-          kind: 'knowledge-source-chunk',
-          purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
-          sourceId: 'source-1',
-          sourceTitle: 'Pricing',
-          versionId: 'version-1',
-        }),
-      },
-      'org-1',
-      { knowledgeSourceId: 'source-1', knowledgeSourceVersionId: 'version-1' },
-    );
-
-    await expect(service.finalizeSource(chunked)).resolves.toEqual({
-      chunkCount: 1,
-      sourceId: 'source-1',
-      status: 'completed',
-      versionId: 'version-1',
-    });
-    expect(knowledgeSourceVersion.updateMany).toHaveBeenLastCalledWith(
+    expect(knowledgeSourceVersion.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
-          processingState: KnowledgeProcessingState.READY,
+          processingState: KnowledgeProcessingState.PROCESSING,
           processingError: null,
         },
       }),
     );
+    const extracted = await service.extractSource(marked);
+    const chunked = await service.chunkSource(extracted);
+    const staged = await service.replaceChunks(chunked, 'server-execution');
+    expect(staged.embeddingManifestId).toBe('sealed-manifest');
+    expect(completion.stage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        sourceId: 'source-1',
+        versionId: 'version-1',
+        admissionExecutionId: 'server-execution',
+        initiatingActor,
+        chunks: [
+          {
+            content: 'Plans start at $29 per month.',
+            metadata: expect.objectContaining({
+              chunkIndex: 0,
+              versionId: 'version-1',
+              sourceId: 'source-1',
+            }),
+          },
+        ],
+      }),
+    );
+    expect(contextBase.create).toHaveBeenCalledOnce();
+    expect(contextEntry.updateMany).not.toHaveBeenCalled();
+    await expect(service.finalizeSource(staged)).resolves.toMatchObject({
+      status: 'queued',
+      chunkCount: 1,
+    });
+    expect(completion.complete).toHaveBeenCalledWith(
+      'org-1',
+      'source-1',
+      'version-1',
+      'sealed-manifest',
+    );
+    expect(knowledgeSourceVersion.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          processingState: KnowledgeProcessingState.READY,
+        }),
+      }),
+    );
   });
 
-  it('reuses an existing scope base and soft-deletes prior chunks before re-ingest', async () => {
-    const { service, contextBase, contextEntry, executeRaw, prisma } =
-      buildService();
-    contextBase.findFirst.mockResolvedValue({ id: 'base-existing' });
-    contextEntry.groupBy.mockResolvedValue([
-      { _count: { _all: 3 }, contextBaseId: 'base-existing' },
-    ]);
-    contextEntry.updateMany.mockResolvedValue({ count: 3 });
-
-    const state: KnowledgeSourceIngestState = {
+  it('reuses the scope base and leaves retirement to the atomic stage transaction', async () => {
+    const { service, completion, contextBase, contextEntry } = buildService();
+    contextBase.findFirst.mockResolvedValue({ id: 'existing-base' });
+    const state = {
       ...(await service.loadSource(request)),
       chunks: ['a', 'b'],
       extracted: { text: 'a b' },
     };
-    await service.replaceChunks(state);
-
+    await service.replaceChunks(state, 'server-execution');
     expect(contextBase.create).not.toHaveBeenCalled();
-    expect(prisma.knowledgeSource.updateMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org-1', isDeleted: false, id: 'source-1' },
-      data: { updatedAt: expect.any(Date) },
-    });
-    expect(contextEntry.updateMany).toHaveBeenCalledWith({
-      where: {
-        organizationId: 'org-1',
-        isDeleted: false,
-        knowledgeSourceId: 'source-1',
-      },
-      data: { isDeleted: true },
-    });
-    const decrement = executeRaw.mock.calls[0]?.[0] as {
-      sql: string;
-      values: unknown[];
-    };
-    expect(decrement.sql).toContain('jsonb_set');
-    expect(decrement.values).toEqual(
-      expect.arrayContaining([3, 'org-1', 'base-existing']),
+    expect(contextEntry.updateMany).not.toHaveBeenCalled();
+    expect(completion.stage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contextBaseId: 'existing-base',
+        chunks: [
+          expect.objectContaining({ content: 'a' }),
+          expect.objectContaining({ content: 'b' }),
+        ],
+      }),
     );
   });
 
-  it('keeps live source chunks when replacing a candidate version', async () => {
-    const { service, contextBase, contextEntry } = buildService(
+  it('stages candidates by their exact version and never retires predecessor chunks on the ingest adapter', async () => {
+    const { service, completion, contextEntry } = buildService(
       versionRow({
         isCurrent: false,
         processingState: KnowledgeProcessingState.QUEUED,
       }),
     );
-    contextBase.findFirst.mockResolvedValue({ id: 'base-existing' });
-    contextEntry.groupBy.mockResolvedValue([]);
-
-    const state: KnowledgeSourceIngestState = {
-      ...(await service.loadSource(request)),
-      chunks: ['candidate'],
-      extracted: { text: 'candidate' },
-    };
-    await service.replaceChunks(state);
-
-    expect(contextEntry.groupBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          organizationId: 'org-1',
-          isDeleted: false,
-          knowledgeSourceId: 'source-1',
-          knowledgeSourceVersionId: 'version-1',
-        },
-      }),
+    await service.replaceChunks(
+      {
+        ...(await service.loadSource(request)),
+        chunks: ['candidate'],
+        extracted: { text: 'candidate' },
+      },
+      'server-execution',
     );
+    expect(completion.stage).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceId: 'source-1', versionId: 'version-1' }),
+    );
+    expect(contextEntry.updateMany).not.toHaveBeenCalled();
   });
 
-  it('scopes the delete to its own version once a newer version became current', async () => {
-    const { service, contextBase, contextEntry, knowledgeSourceVersion } =
-      buildService();
-    contextBase.findFirst.mockResolvedValue({ id: 'base-existing' });
-    const state: KnowledgeSourceIngestState = {
+  it('keeps the captured version identity when a current-version flag changes during extraction', async () => {
+    const { service, completion, knowledgeSourceVersion } = buildService();
+    const state = {
       ...(await service.loadSource(request)),
       chunks: ['stale'],
       extracted: { text: 'stale' },
     };
-    expect(state.version?.isCurrent).toBe(true);
-    // A new version superseded this one while the run was extracting.
     knowledgeSourceVersion.findFirst.mockResolvedValue({ isCurrent: false });
-
-    await service.replaceChunks(state);
-
-    expect(contextEntry.groupBy).toHaveBeenCalledWith(
+    await service.replaceChunks(state, 'server-execution');
+    expect(completion.stage).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          organizationId: 'org-1',
-          isDeleted: false,
-          knowledgeSourceId: 'source-1',
-          knowledgeSourceVersionId: 'version-1',
-        },
+        versionId: 'version-1',
+        admissionExecutionId: 'server-execution',
       }),
     );
   });
@@ -364,7 +300,7 @@ describe('KnowledgeSourceIngestService', () => {
   });
 
   it('carries etag and lastModified from a web fetch through to finalize and persists them for re-sync', async () => {
-    const { service, prisma } = buildService(
+    const { service, completion, prisma } = buildService(
       versionRow({
         payload: { referenceUrl: 'https://brand.example/pricing' },
         source: {
@@ -391,16 +327,18 @@ describe('KnowledgeSourceIngestService', () => {
     });
 
     const chunked = await service.chunkSource(extracted);
-    await service.replaceChunks(chunked);
+    await service.replaceChunks(chunked, 'server-execution');
     await service.finalizeSource(chunked);
 
-    expect(prisma.knowledgeSource.updateMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org-1', isDeleted: false, id: 'source-1' },
-      data: {
-        etag: 'W/"abc123"',
-        lastModified: 'Wed, 24 Sep 2026 09:00:00 GMT',
-      },
-    });
+    expect(completion.stage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        observedValidators: {
+          etag: 'W/"abc123"',
+          lastModified: 'Wed, 24 Sep 2026 09:00:00 GMT',
+        },
+      }),
+    );
+    expect(prisma.knowledgeSource.updateMany).not.toHaveBeenCalled();
   });
 
   it('skips missing, historical and purged versions without touching state', async () => {
@@ -511,22 +449,19 @@ describe('KnowledgeSourceIngestService', () => {
     );
   });
 
-  it('completes the capture requests when the current version ingests', async () => {
-    const { service, prisma } = buildService();
+  it('leaves capture settlement to the vector barrier while indexing is pending', async () => {
+    const { service, completion, prisma } = buildService();
     const state = await service.loadSource(request);
-
     await expect(service.finalizeSource(state)).resolves.toMatchObject({
-      status: 'completed',
+      status: 'queued',
     });
-    expect(prisma.knowledgeCaptureRequest.updateMany).toHaveBeenCalledWith({
-      where: {
-        organizationId: 'org-1',
-        isDeleted: false,
-        sourceId: 'source-1',
-        status: 'queued',
-      },
-      data: { status: 'completed' },
-    });
+    expect(completion.complete).toHaveBeenCalledWith(
+      'org-1',
+      'source-1',
+      'version-1',
+      undefined,
+    );
+    expect(prisma.knowledgeCaptureRequest.updateMany).not.toHaveBeenCalled();
   });
 
   it('fails the capture requests when the current version cannot ingest', async () => {

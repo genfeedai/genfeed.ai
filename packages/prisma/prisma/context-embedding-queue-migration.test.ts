@@ -1,0 +1,108 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const sql = readFileSync(
+  new URL(
+    './migrations/20261022090000_context_embedding_queue/migration.sql',
+    import.meta.url,
+  ),
+  'utf8',
+);
+const schema = readFileSync(
+  new URL('./schema.prisma', import.meta.url),
+  'utf8',
+);
+
+describe('context embedding durable admission migration', () => {
+  it('preserves legacy generations before selecting the new-version default', () => {
+    const add = sql.indexOf(
+      'ADD COLUMN "embeddingGeneration" INTEGER NOT NULL DEFAULT 0',
+    );
+    const defaultOne = sql.indexOf(
+      'ALTER COLUMN "embeddingGeneration" SET DEFAULT 1',
+    );
+    expect(add).toBeGreaterThan(-1);
+    expect(defaultOne).toBeGreaterThan(add);
+    expect(sql).toMatch(
+      /"embeddingStoredGeneration" INTEGER NOT NULL DEFAULT 0/,
+    );
+  });
+  it('never creates historical intents or rewrites existing vectors and source states', () => {
+    expect(sql).not.toMatch(
+      /INSERT\s+INTO|UPDATE\s+"(?:context_entries|knowledge_source_versions|models)"/i,
+    );
+    expect(sql).not.toMatch(
+      /DROP\s+(?:TABLE|COLUMN)|ALTER\s+COLUMN\s+"embedding"/i,
+    );
+    expect(schema).toContain('embeddingClaimedAt');
+    expect(schema).toContain('embeddingFailedAt');
+  });
+  it('fences the exact tenant entry and committed memory source with composite keys', () => {
+    expect(sql).toMatch(
+      /FOREIGN KEY \("contextEntryId", "organizationId"\) REFERENCES "context_entries"\("id", "organizationId"\)/,
+    );
+    expect(sql).toMatch(
+      /FOREIGN KEY \("sourceMemoryId", "organizationId"\) REFERENCES "agent_memories"\("id", "organizationId"\)/,
+    );
+    expect(sql).toMatch(
+      /FOREIGN KEY \("sourceAgentMemoryId", "organizationId"\) REFERENCES "agent_memories"\("id", "organizationId"\)/,
+    );
+  });
+  it('keeps a canonical opaque actor user FK without blocking API-key deletion', () => {
+    expect(sql).toMatch(
+      /FOREIGN KEY \("actorUserId"\) REFERENCES "users"\("id"\) ON DELETE RESTRICT/,
+    );
+    expect(sql).not.toMatch(/FOREIGN KEY \("actorApiKeyId"\)/);
+    expect(sql).toContain('"context_embedding_jobs_origin_check"');
+    expect(sql).toContain('"actorScopes" TEXT[] NOT NULL');
+  });
+  it('caps attempts and permits a complete lease only while processing', () => {
+    expect(sql).toContain('"attempts" BETWEEN 0 AND 3');
+    expect(sql).toContain('"dimension" = 1024');
+    expect(sql).toContain('"generation" >= 1');
+    expect(sql).toContain(
+      `"status" = 'PROCESSING' AND "leaseToken" IS NOT NULL AND "leaseExpiresAt" IS NOT NULL`,
+    );
+    expect(sql).toContain(
+      `"status" <> 'PROCESSING' AND "leaseToken" IS NULL AND "leaseExpiresAt" IS NULL`,
+    );
+  });
+  it('binds chunks to the exact manifest, version, source and tenant', () => {
+    expect(sql).toMatch(
+      /FOREIGN KEY \("knowledgeEmbeddingManifestId", "knowledgeSourceVersionId", "knowledgeSourceId", "organizationId"\) REFERENCES "knowledge_embedding_manifests"\("id", "versionId", "sourceId", "organizationId"\)/,
+    );
+    expect(sql).toContain(
+      '"knowledgeChunkIndex" IS NOT NULL AND "knowledgeChunkIndex" BETWEEN 0 AND 199',
+    );
+    expect(sql).toContain('"expectedChunkCount" BETWEEN 0 AND 200');
+    expect(sql).toContain(
+      '"embeddingStoredGeneration" <= "embeddingGeneration"',
+    );
+  });
+  it('retains execution replay and generation history behind distinct unique constraints', () => {
+    expect(sql).toContain('("versionId", "admissionExecutionId")');
+    expect(sql).toContain('("versionId", "generation")');
+    expect(sql).toContain('("contextEntryId", "generation")');
+  });
+  it('makes sealed manifest identity immutable while leaving terminal settlement possible', () => {
+    expect(sql).toContain('BEFORE UPDATE ON "knowledge_embedding_manifests"');
+    const body = sql.slice(
+      sql.indexOf('CREATE FUNCTION "knowledge_embedding_manifest_immutable"'),
+    );
+    for (const field of [
+      'generation',
+      'expectedChunkCount',
+      'orderedChunksHash',
+      'modelIdentifier',
+      'observedValidators',
+      'initiatingActor',
+      'admissionExecutionId',
+      'sealedAt',
+    ]) {
+      expect(body).toContain('NEW."' + field + '"');
+      expect(body).toContain('OLD."' + field + '"');
+    }
+    expect(body).not.toContain('NEW."finalizedAt"');
+    expect(body).not.toContain('NEW."failedAt"');
+  });
+});

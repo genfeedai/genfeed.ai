@@ -2,6 +2,8 @@ import {
   type PerformanceContentItem,
   PerformanceSummaryService,
 } from '@api/collections/content-performance/services/performance-summary.service';
+import type { ContextEmbeddingAdmissionPrincipal } from '@api/collections/contexts/interfaces/context-embedding-write.interface';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
@@ -59,6 +61,7 @@ export type PromotedWinner = {
 export class HarnessWinnerPromotionService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly embeddingWriter: ContextEmbeddingWriteService,
     @Optional()
     private readonly performanceSummaryService?: PerformanceSummaryService,
     @Optional()
@@ -133,6 +136,7 @@ export class HarnessWinnerPromotionService {
     organizationId: string,
     contextBaseId: string,
     candidate: WinnerPromotionCandidate,
+    principal: ContextEmbeddingAdmissionPrincipal,
   ): Promise<{ promoted: number; skipped: number }> {
     const postId = candidate.item.postId;
     const already = await this.findExistingWinnerEntry(
@@ -163,27 +167,26 @@ export class HarnessWinnerPromotionService {
           relevanceWeight: 1,
         },
         organizationId,
+        undefined,
+        principal,
       );
     } else {
-      await this.prisma.contextEntry.create({
-        data: {
-          contextBaseId,
-          data: {
-            content: candidate.content,
+      await this.embeddingWriter.write({
+        contextBaseId,
+        organizationId,
+        principal,
+        dto: {
+          content: candidate.content,
+          metadata: {
+            engagementRate: candidate.item.engagementRate,
             kind: PERFORMANCE_WINNER_KIND,
             origin: candidate.item.origin,
-            metadata: {
-              engagementRate: candidate.item.engagementRate,
-              kind: PERFORMANCE_WINNER_KIND,
-              origin: candidate.item.origin,
-              platform: candidate.item.platform,
-              postId,
-              promotedAt: new Date().toISOString(),
-              source: PERFORMANCE_WINNER_SOURCE,
-            },
-            relevanceWeight: 1,
-          } as Prisma.InputJsonValue,
-          organizationId,
+            platform: candidate.item.platform,
+            postId,
+            promotedAt: new Date().toISOString(),
+            source: PERFORMANCE_WINNER_SOURCE,
+          },
+          relevanceWeight: 1,
         },
       });
     }

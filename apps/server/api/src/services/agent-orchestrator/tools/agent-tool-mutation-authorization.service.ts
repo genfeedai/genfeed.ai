@@ -148,6 +148,11 @@ export class AgentToolMutationAuthorizationService {
       agentMode,
       definition?.mutationPolicy,
     );
+    // An explicit capture redemption keeps the approved write's claim/replay contract
+    // even if the thread changed from Manual to Auto after the confirmation.
+    if (toolName === 'capture_memory' && context.approvedApprovalId) {
+      effectivePolicy = 'approval-required';
+    }
     const proactiveDraft = await this.resolveProactiveTextDraftConstraint(
       toolName,
       parameters,

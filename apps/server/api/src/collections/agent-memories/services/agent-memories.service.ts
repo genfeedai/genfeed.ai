@@ -8,6 +8,7 @@ import {
   type AgentMemoryKind,
   type AgentMemoryScope,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
+import { softDeleteContextEntries } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
@@ -577,19 +578,17 @@ export class AgentMemoriesService extends BaseService<
       return;
     }
 
-    await tx.contextEntry.updateMany({
-      data: { isDeleted: true },
-      where: {
-        isDeleted: false,
-        organizationId,
-        OR: sourceIds.map((sourceId) => ({
-          data: {
-            equals: sourceId,
-            path: ['metadata', 'sourceId'],
-          },
+    const where: Prisma.ContextEntryWhereInput = {
+      isDeleted: false,
+      organizationId,
+      OR: [
+        { sourceAgentMemoryId: memory.id },
+        ...sourceIds.map((sourceId) => ({
+          data: { equals: sourceId, path: ['metadata', 'sourceId'] },
         })),
-      },
-    });
+      ],
+    };
+    await softDeleteContextEntries(tx, organizationId, where);
   }
 
   private skillLabelFor(memory: AgentMemoryDocument): string {

@@ -157,6 +157,74 @@ jobs:
           path: apps/server/api/test-results/api-e2e/
           retention-days: 7
 
+  # Job-local databases and loopback HTTP; no provider or production access.
+  context-embedding-acceptance:
+    name: Context Embedding Acceptance
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: context_embedding_test
+          POSTGRES_PASSWORD: context_embedding_fixture
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U context_embedding_test -d postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      CONTEXT_EMBEDDING_REDIS_URL: redis://localhost:6379/0
+      CONTEXT_EMBEDDING_ACCEPTANCE: "1"
+      CONTEXT_EMBEDDING_CANDIDATE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Configure dedicated disposable database bindings
+        env:
+          FIXTURE_DATABASE_ROLE: context_embedding_test
+          FIXTURE_DATABASE_PASSWORD: context_embedding_fixture
+        run: |
+          set -euo pipefail
+          printf -v runtime_url '%s://%s:%s@localhost:5432/%s' postgresql "$FIXTURE_DATABASE_ROLE" "$FIXTURE_DATABASE_PASSWORD" genfeed_context_embedding_test
+          printf -v upgrade_url '%s://%s:%s@localhost:5432/%s' postgresql "$FIXTURE_DATABASE_ROLE" "$FIXTURE_DATABASE_PASSWORD" genfeed_context_embedding_upgrade_test
+          printf 'DATABASE_URL=%s\nCONTEXT_EMBEDDING_TEST_DATABASE_URL=%s\nCONTEXT_EMBEDDING_UPGRADE_DATABASE_URL=%s\n' "$runtime_url" "$runtime_url" "$upgrade_url" >> "$GITHUB_ENV"
+      - name: Setup declared runtime and build packages
+        uses: ./.github/actions/build-e2e-packages
+        with:
+          install-command: "bun install"
+      - name: Create dedicated runtime and predecessor upgrade databases
+        env:
+          PGPASSWORD: context_embedding_fixture
+        run: |
+          psql -h localhost -U context_embedding_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE genfeed_context_embedding_test'
+          psql -h localhost -U context_embedding_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE genfeed_context_embedding_upgrade_test'
+      - name: Run real migration and worker acceptance
+        env:
+          CONTEXT_EMBEDDING_REDIS_CONTAINER_ID: ${{ job.services.redis.id }}
+        working-directory: apps/server/api
+        run: bun run scripts/api-e2e-tiers.ts context-embedding
+      - name: Upload exact-head embedding receipts and assertions
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: context-embedding-acceptance-${{ github.sha }}
+          path: |
+            apps/server/api/test-results/context-embedding/
+            apps/server/api/test-results/api-e2e/context-embedding.json
+            apps/server/api/test-results/api-e2e/vitest-context-embedding.json
+          if-no-files-found: error
+          retention-days: 7
+
   # API E2E full tier — discovery-based coverage for every compatible API E2E
   # and integration spec. It runs on manual/nightly workflows, never inside the
   # production workflow_call path, so release deploys remain gated by core.
@@ -743,7 +811,7 @@ jobs:
     name: E2E Gate (all shards)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance]
+    needs: [e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance, context-embedding-acceptance]
     if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     steps:
       - name: Check shard results
@@ -765,6 +833,9 @@ jobs:
             test "${{ needs.runtime-acceptance.outputs.result }}" = passed
           else
             test "${{ needs.runtime-acceptance.result }}" = skipped
+          fi
+          if [[ "${{ needs.context-embedding-acceptance.result }}" != "success" ]]; then
+            echo "Context Embedding Acceptance did not pass" && exit 1
           fi
           echo "All required E2E checks passed."
 
@@ -900,7 +971,7 @@ jobs:
   # 2026-08-01 the full tier failed and this job was skipped.
   nightly-failure-report:
     name: Report nightly E2E failure
-    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish, agent-production-acceptance, brand-acceptance, e2e-api-full-gate]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish, agent-production-acceptance, brand-acceptance, e2e-api-full-gate, context-embedding-acceptance]
     # `!cancelled()` rather than `always()`: both keep the reporter eligible when
     # an upstream job goes red, but `always()` also fires when the whole run is
     # cancelled — which marks every job 'cancelled' and would file a phantom
@@ -917,6 +988,7 @@ jobs:
         || needs.e2e-isolated-publish.result == 'cancelled'
         || needs.agent-production-acceptance.result != 'success'
         || needs.brand-acceptance.result != 'success'
+        || needs.context-embedding-acceptance.result != 'success'
         || needs.e2e-api-full-gate.result != 'success')
     # Serialize the complete label lookup + issue lookup/mutation path across
     # scheduled runs and rerun attempts. Keep all pending reporters queued.
@@ -982,7 +1054,7 @@ jobs:
                 per_page: 100,
               },
             );
-            const sourceName = /^(?:E2E Route Reference Inventory|API E2E Tests|API E2E Full|Isolated Publish E2E|Proactive Production Turn Acceptance|BRAND Receipt and Relocation Acceptance|API E2E Full Gate|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
+            const sourceName = /^(?:E2E Route Reference Inventory|API E2E Tests|API E2E Full|Isolated Publish E2E|Proactive Production Turn Acceptance|BRAND Receipt and Relocation Acceptance|API E2E Full Gate|Context Embedding Acceptance|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
             const failedJobs = jobs.filter(
               (job) =>
                 sourceName.test(job.name) &&
@@ -1001,6 +1073,7 @@ jobs:
               if (name === 'BRAND Receipt and Relocation Acceptance') return 'brand-acceptance';
               if (name === 'API E2E Full Gate') return 'e2e-api-full';
               if (name === 'API E2E Full') return 'e2e-api-full';
+              if (name === 'Context Embedding Acceptance') return 'context-embedding-acceptance';
               if (name === 'API E2E Tests') return 'e2e-api';
               if (name === 'Isolated Publish E2E') return 'e2e-isolated-publish';
               if (name === 'E2E Route Reference Inventory') return 'e2e-route-coverage';
@@ -1035,7 +1108,7 @@ jobs:
 
   nightly-recovery-report:
     name: Record nightly E2E recovery
-    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish, agent-production-acceptance, brand-acceptance, e2e-api-full-gate]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish, agent-production-acceptance, brand-acceptance, e2e-api-full-gate, context-embedding-acceptance]
     if: >-
       !cancelled()
       && (github.event_name == 'schedule' && github.workflow == 'E2E Tests')
@@ -1046,6 +1119,7 @@ jobs:
       && needs.e2e-isolated-publish.result == 'success'
       && needs.agent-production-acceptance.result == 'success'
       && needs.brand-acceptance.result == 'success'
+      && needs.context-embedding-acceptance.result == 'success'
       && needs.e2e-api-full-gate.result == 'success'
     concurrency:
       group: nightly-e2e-failure-reporter

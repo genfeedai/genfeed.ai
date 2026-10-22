@@ -1,3 +1,4 @@
+import { buildMemorySourceSnapshotHashQuery } from '@api/collections/contexts/utils/context-embedding-claim-query.util';
 import {
   KnowledgeMemoryScope,
   type KnowledgeSourcePurpose,
@@ -6,6 +7,8 @@ import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 
 export interface ContextSimilarityQueryOptions {
+  /** Canonical authenticated viewer; never a request-body identity. */
+  viewerUserId?: string;
   /** Restrict hits to chunks of these Knowledge sources. */
   knowledgeSourceIds?: string[];
   /** Restrict Knowledge hits to these purposes; legacy chunks stay eligible. */
@@ -103,6 +106,8 @@ export function buildContextSimilarityQuery(
       v."provenance"->>'url' AS "knowledgeSourceUrl",
       1 - (e."embedding" <=> ${embedding}::vector) AS "similarity"
     FROM "context_entries" e
+    JOIN "context_bases" b ON b."id" = e."contextBaseId" AND b."organizationId" = e."organizationId" AND b."isDeleted" = false
+    LEFT JOIN "agent_memories" m ON m."id" = e."sourceAgentMemoryId" AND m."organizationId" = e."organizationId"
     LEFT JOIN "knowledge_source_versions" v
       ON v."id" = e."knowledgeSourceVersionId"
       AND v."sourceId" = e."knowledgeSourceId"
@@ -112,8 +117,37 @@ export function buildContextSimilarityQuery(
       AND s."organizationId" = e."organizationId"
     WHERE e."organizationId" = ${organizationId}
       AND e."isDeleted" = false
+      AND (b."data"->>'knowledgeScope' IS DISTINCT FROM 'personal' OR b."createdById" = ${options.viewerUserId ?? null})
+      AND (COALESCE(NULLIF(b."sourceBrandId", ''), NULLIF(b."data"->>'brandId', ''), NULLIF(b."data"->>'sourceBrand', '')) IS NULL
+        OR EXISTS (SELECT 1 FROM "brands" bb WHERE bb."id" = COALESCE(NULLIF(b."sourceBrandId", ''), NULLIF(b."data"->>'brandId', ''), NULLIF(b."data"->>'sourceBrand', ''))
+          AND bb."organizationId" = e."organizationId" AND bb."isDeleted" = false))
+
       AND e."contextBaseId" IN (${Prisma.join(contextBaseIds)})
       AND e."embedding" IS NOT NULL
+      AND e."embeddingStoredGeneration" = e."embeddingGeneration"
+      AND (
+        e."sourceAgentMemoryId" IS NULL
+        OR (
+          m."id" IS NOT NULL AND m."isDeleted" = false
+          AND e."sourceSnapshotHash" = ${buildMemorySourceSnapshotHashQuery()}
+          AND m."content" = e."data"->>'content'
+          AND m."scope" IN ('personal', 'org', 'brand')
+          AND (m."scope" <> 'personal' OR m."userId" = ${options.viewerUserId ?? null})
+          AND EXISTS (SELECT 1 FROM "users" u WHERE u."id" = m."userId" AND u."isDeleted" = false)
+          AND EXISTS (SELECT 1 FROM "organizations" o WHERE o."id" = e."organizationId" AND o."isDeleted" = false)
+          AND (m."brandId" IS NULL OR EXISTS (
+            SELECT 1 FROM "brands" mb WHERE mb."id" = m."brandId" AND mb."organizationId" = e."organizationId" AND mb."isDeleted" = false))
+          AND m."brandId" IS NOT DISTINCT FROM COALESCE(NULLIF(b."sourceBrandId", ''), NULLIF(b."data"->>'brandId', ''), NULLIF(b."data"->>'sourceBrand', ''))
+          AND (NULLIF(b."sourceBrandId", '') IS NULL OR b."sourceBrandId" = m."brandId")
+          AND (NULLIF(b."data"->>'brandId', '') IS NULL OR b."data"->>'brandId' = m."brandId")
+          AND (NULLIF(b."data"->>'sourceBrand', '') IS NULL OR b."data"->>'sourceBrand' = m."brandId")
+          AND (b."data"->>'knowledgeScope' IS DISTINCT FROM 'personal' OR b."createdById" = m."userId")
+          AND (m."campaignId" IS NULL OR EXISTS (
+            SELECT 1 FROM "agent_campaigns" c WHERE c."id" = m."campaignId" AND c."organizationId" = e."organizationId"
+              AND c."isDeleted" = false AND c."userId" = m."userId" AND c."brandId" IS NOT DISTINCT FROM m."brandId"))
+        )
+      )
+
       AND (
         e."knowledgeSourceVersionId" IS NULL
         OR (
@@ -123,6 +157,7 @@ export function buildContextSimilarityQuery(
           AND v."isCurrent" = true
           AND v."isDeleted" = false
           AND (v."expiresAt" IS NULL OR v."expiresAt" > NOW())
+          AND (s."scope" <> 'personal' OR (s."userId" = ${options.viewerUserId ?? null} AND b."createdById" = s."userId"))
           AND s."isVisible" = true
           AND s."isDeleted" = false
           AND (s."syncState" IS DISTINCT FROM 'STALE')

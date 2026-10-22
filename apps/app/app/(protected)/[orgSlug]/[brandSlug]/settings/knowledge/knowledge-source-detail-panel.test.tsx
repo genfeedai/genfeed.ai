@@ -75,6 +75,22 @@ function renderPanel(row: KnowledgeSourceRow | null) {
 }
 
 describe('KnowledgeSourceDetailPanel', () => {
+  it('shows processing while asynchronous indexing is pending without claiming Ready', () => {
+    renderPanel({
+      ...ROW,
+      version: {
+        ...ROW.version,
+        processingState: KnowledgeProcessingState.PROCESSING,
+        processingError: null,
+      },
+    } as KnowledgeSourceRow);
+    expect(screen.getByText('Processing')).toBeInTheDocument();
+    expect(screen.queryByText('Ready')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry ingestion' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders nothing into the sidebar without a selected source', () => {
     renderPanel(null);
 

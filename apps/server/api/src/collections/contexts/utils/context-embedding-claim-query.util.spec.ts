@@ -1,3 +1,5 @@
+import { buildMemorySourceSnapshotHashQuery } from '@api/collections/contexts/utils/context-embedding-claim-query.util';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -69,5 +71,47 @@ describe('context embedding claim query', () => {
     expect(query.sql).toContain('"embeddingFailedAt" = NOW()');
     expect(query.sql).toContain('"embeddingClaimedAt" = NULL');
     expect(query.values).toEqual(expect.arrayContaining(['entry-1', 'org-1']));
+  });
+});
+
+describe('committed memory SQL snapshot', () => {
+  it('has one versioned ordered source encoding without an extension or request alias', () => {
+    const fragment = buildMemorySourceSnapshotHashQuery();
+    expect(fragment.values).toEqual([]);
+    const sql = fragment.sql;
+    expect(sql).toContain("'agent-memory-source-v1'::text");
+    expect(sql).toContain('encode(sha256(convert_to(jsonb_build_array(');
+    expect(sql).not.toMatch(/pgcrypto|digest\(/);
+    const fields = [
+      'id',
+      'organizationId',
+      'userId',
+      'brandId',
+      'campaignId',
+      'scope',
+      'content',
+      'type',
+      'kind',
+      'contentType',
+      'platform',
+      'summary',
+      'tags',
+      'sourceType',
+      'sourceUrl',
+      'sourceContentId',
+      'sourceMessageId',
+      'metadata',
+      'importance',
+      'confidence',
+      'performanceSnapshot',
+      'isDeleted',
+    ];
+    let previous = -1;
+    for (const field of fields) {
+      const position = sql.indexOf('m."' + field + '"');
+      expect(position).toBeGreaterThan(previous);
+      previous = position;
+    }
+    expect(sql).not.toMatch(/updatedAt|createdAt|promoted/);
   });
 });

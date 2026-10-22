@@ -89,3 +89,37 @@ export function buildEmbeddingFailureQuery(
       AND "isDeleted" = false
   `;
 }
+
+/** The only snapshot encoding. Every caller aliases its locked live AgentMemory row as m. */
+export function buildMemorySourceSnapshotHashQuery(): ReturnType<
+  typeof Prisma.sql
+> {
+  return Prisma.sql`encode(sha256(convert_to(jsonb_build_array(
+    'agent-memory-source-v1'::text,
+    m."id", m."organizationId", m."userId", m."brandId", m."campaignId",
+    m."scope", m."content", m."type", m."kind", m."contentType", m."platform",
+    m."summary", m."tags", m."sourceType", m."sourceUrl", m."sourceContentId",
+    m."sourceMessageId", m."metadata", m."importance", m."confidence",
+    m."performanceSnapshot", m."isDeleted"
+  )::text, 'UTF8')), 'hex')`;
+}
+
+/** Single database-clock claim; provider execution is never part of this transaction. */
+export function buildContextEmbeddingClaimQuery(
+  jobId: string,
+  organizationId: string,
+  generation: number,
+  leaseToken: string,
+): ReturnType<typeof Prisma.sql> {
+  return Prisma.sql`
+    UPDATE "context_embedding_jobs" SET
+      "status" = 'PROCESSING', "attempts" = "attempts" + 1,
+      "leaseToken" = ${leaseToken}, "leaseExpiresAt" = clock_timestamp() + INTERVAL '120 seconds',
+      "startedAt" = COALESCE("startedAt", clock_timestamp()), "updatedAt" = clock_timestamp()
+    WHERE "id" = ${jobId} AND "organizationId" = ${organizationId}
+      AND "generation" = ${generation} AND "isDeleted" = false AND "attempts" < 3
+      AND (("status" IN ('PENDING', 'RETRYABLE') AND "nextAttemptAt" <= clock_timestamp())
+        OR ("status" = 'PROCESSING' AND "leaseExpiresAt" <= clock_timestamp()))
+    RETURNING "id"
+  `;
+}

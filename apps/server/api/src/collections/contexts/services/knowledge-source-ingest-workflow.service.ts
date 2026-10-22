@@ -1,4 +1,5 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { hiddenExecutionRef } from '@api/authorization/brand-access/hidden-execution-chain.util';
 import {
   KnowledgeSourceIngestService,
   type KnowledgeSourceIngestState,
@@ -63,10 +64,6 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         KNOWLEDGE_SOURCE_ACTION_IDS.CHUNK,
         (state: KnowledgeSourceIngestState) => this.ingest.chunkSource(state),
       ],
-      [
-        KNOWLEDGE_SOURCE_ACTION_IDS.REPLACE,
-        (state: KnowledgeSourceIngestState) => this.ingest.replaceChunks(state),
-      ],
     ] as const) {
       this.runner.registerAction(actionId, async (action) => {
         const state = action.input.state as KnowledgeSourceIngestState;
@@ -78,6 +75,22 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         return run({ ...state, initiatingActor: request.initiatingActor });
       });
     }
+    this.runner.registerAction(
+      KNOWLEDGE_SOURCE_ACTION_IDS.REPLACE,
+      async (action) => {
+        const state = action.input.state as KnowledgeSourceIngestState;
+        const request = await this.admit(
+          action,
+          KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+          state,
+        );
+        const ref = hiddenExecutionRef(action.context, action.provenance);
+        return this.ingest.replaceChunks(
+          { ...state, initiatingActor: request.initiatingActor },
+          ref.executionId,
+        );
+      },
+    );
     this.runner.registerAction(
       KNOWLEDGE_SOURCE_ACTION_IDS.FINALIZE,
       async (action) => {

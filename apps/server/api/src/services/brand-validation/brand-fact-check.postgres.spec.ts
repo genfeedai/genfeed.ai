@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { ContextEmbeddingService } from '@api/collections/contexts/services/context-embedding.service';
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import {
   type AcceptanceWorld,
   acceptanceDatabaseUrl,
@@ -54,13 +58,32 @@ describe.skipIf(!connectionString)(
     });
 
     const brandAccess = new BrandAccessService(prisma);
-    const contexts = new ContextsService(
-      prisma,
-      logger,
-      {} as never,
-      {} as never,
+    const provider = new ContextEmbeddingProviderService(
+      {
+        getDefaultModel: vi.fn().mockResolvedValue('fixture-embedding'),
+      } as never,
+      {
+        embeddings: vi
+          .fn()
+          .mockResolvedValue({ data: [{ embedding: vector, index: 0 }] }),
+      } as never,
     );
-    Object.assign(contexts, { generateEmbedding: async () => vector });
+    const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+    const writer = new ContextEmbeddingWriteService(
+      prisma,
+      brandAccess,
+      provider,
+      queue as never,
+      logger,
+    );
+    const completion = new KnowledgeEmbeddingCompletionService(
+      prisma,
+      writer,
+      provider,
+      queue as never,
+    );
+    const execution = new ContextEmbeddingService(prisma, writer, provider);
+    const contexts = new ContextsService(prisma, logger, provider, writer);
     const retrieval = new KnowledgeContentRetrievalService(
       prisma,
       contexts,
@@ -103,7 +126,7 @@ describe.skipIf(!connectionString)(
         data: {
           brandId,
           id: `src-${id}`,
-          isDeleted: options.isDeleted ?? false,
+          isDeleted: false,
           kind: 'TEXT',
           organizationId: world.organizationId,
           purpose: options.purpose ?? 'BRAND_TRUTH',
@@ -119,29 +142,82 @@ describe.skipIf(!connectionString)(
           isCurrent: true,
           observedAt: new Date(),
           organizationId: world.organizationId,
-          processingState: 'READY',
+          processingState: 'PROCESSING',
           provenance: { url: 'https://example.test/about' },
-          retrievalState: options.retrievalState ?? 'ACTIVE',
+          retrievalState: 'ACTIVE',
           retentionState: 'RETAINED',
           sourceId: source.id,
           version: 1,
         },
       });
-      const entry = await db.contextEntry.create({
-        data: {
-          contextBaseId: contextBase.id,
-          data: { content, kind: 'knowledge', metadata: {} },
-          id: `ent-${id}`,
-          knowledgeSourceId: source.id,
-          knowledgeSourceVersionId: version.id,
+      const actor = {
+        organizationId: world.organizationId,
+        userId: world.owner.id,
+        isApiKey: false,
+        scopes: [],
+      };
+      const manifest = await completion.stage({
+        organizationId: world.organizationId,
+        sourceId: source.id,
+        versionId: version.id,
+        contextBaseId: contextBase.id,
+        admissionExecutionId: randomUUID(),
+        initiatingActor: actor,
+        observedValidators: {},
+        chunks: [{ content, metadata: {} }],
+      });
+      expect(
+        (
+          await db.knowledgeSourceVersion.findFirstOrThrow({
+            where: {
+              id: version.id,
+              organizationId: world.organizationId,
+              isDeleted: false,
+            },
+          })
+        ).processingState,
+      ).toBe('PROCESSING');
+      const jobs = await db.contextEmbeddingJob.findMany({
+        where: {
           organizationId: world.organizationId,
+          generation: manifest.generation,
+          isDeleted: false,
+          contextEntry: {
+            is: {
+              organizationId: world.organizationId,
+              knowledgeEmbeddingManifestId: manifest.id,
+              isDeleted: false,
+            },
+          },
         },
       });
-      await db.$executeRawUnsafe(
-        'UPDATE "context_entries" SET "embedding" = $1::vector WHERE "id" = $2',
-        VECTOR,
-        entry.id,
-      );
+      expect(jobs).toHaveLength(1);
+      await execution.process({
+        jobId: jobs[0].id,
+        organizationId: world.organizationId,
+        generation: manifest.generation,
+      });
+      await expect(
+        completion.complete(world.organizationId, source.id, version.id),
+      ).resolves.toBe('completed');
+      if (options.isDeleted)
+        await db.knowledgeSource.updateMany({
+          where: {
+            id: source.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+          },
+          data: { isDeleted: true },
+        });
+      if (options.retrievalState)
+        await db.knowledgeSourceVersion.updateMany({
+          where: {
+            id: version.id,
+            organizationId: world.organizationId,
+            isDeleted: false,
+          },
+          data: { retrievalState: options.retrievalState },
+        });
       return {
         contextBaseId: contextBase.id,
         sourceId: source.id,

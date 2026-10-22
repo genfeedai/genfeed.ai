@@ -609,3 +609,119 @@ describe('hidden execution chain validation', () => {
     });
   });
 });
+
+describe('hidden single-child execution authority', () => {
+  const rule: HiddenWorkflowRule = {
+    matches: (id) => id === 'child',
+    parents: [
+      { kind: 'hidden-single-child', nodeId: (id) => id === 'run', rule: ROOT },
+    ],
+  };
+  function singleChildRows() {
+    const parent = {
+      ...rootRow({ inputValues: { organizationId: 'org' } }),
+      workflowVersion: {
+        ...rootRow().workflowVersion,
+        graph: {
+          edges: [],
+          nodes: [
+            {
+              id: 'run',
+              type: 'genfeedAction',
+              data: {
+                config: {
+                  actionId: 'workflow.run-child',
+                  childWorkflowId: 'child',
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const child = childRow({
+      inputValues: { organizationId: 'org' },
+      metadata: {
+        parentExecutionId: 'root',
+        parentNodeId: 'run',
+        parentWorkflowId: 'workflow-root',
+        source: 'workflow.run-child:root:run',
+      },
+    });
+    child.trigger = 'api';
+    return { parent, child };
+  }
+  it('admits the exact actorless pinned single child without a fan-out index or unfinished parent output', async () => {
+    const { parent, child } = singleChildRows();
+    const { tx, findDiscovery } = harness([parent, child]);
+    await expect(
+      validateHiddenExecutionChain(tx, ref(child), rule),
+    ).resolves.toEqual({ actor: undefined, holder: { organizationId: 'org' } });
+    expect(findDiscovery).not.toHaveBeenCalled();
+  });
+  it.each([
+    [
+      'wrong source',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.child.result.metadata.source = 'workflow.run-child:wrong:run';
+      },
+    ],
+    [
+      'forged index',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.child.result.metadata.workflowForEachIndex = 0;
+      },
+    ],
+    [
+      'wrong trigger',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.child.trigger = 'scheduled';
+      },
+    ],
+    [
+      'wrong parent node',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.child.result.metadata.parentNodeId = 'other';
+      },
+    ],
+    [
+      'wrong child',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.parent.workflowVersion.graph.nodes[0].data.config.childWorkflowId =
+          'other';
+      },
+    ],
+    [
+      'wrong action',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.parent.workflowVersion.graph.nodes[0].data.config.actionId =
+          'other';
+      },
+    ],
+    [
+      'mismatched input',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.child.result.inputValues.organizationId = 'other';
+      },
+    ],
+    [
+      'cross-user parent',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.parent.userId = 'other';
+      },
+    ],
+    [
+      'cross-tenant parent',
+      (rows: ReturnType<typeof singleChildRows>) => {
+        rows.parent.organizationId = 'other';
+      },
+    ],
+  ])('denies %s', async (_label, mutate) => {
+    const rows = singleChildRows();
+    mutate(rows);
+    const { tx } = harness([rows.parent, rows.child]);
+    await expect(
+      validateHiddenExecutionChain(tx, ref(rows.child), rule),
+    ).rejects.toThrow('Brand access denied');
+  });
+});

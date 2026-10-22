@@ -1,9 +1,11 @@
 import { BrandRelocationJobsModule } from '@api/collections/brands/brand-relocation-jobs.module';
+import { ContextEmbeddingCoreModule } from '@api/collections/contexts/context-embedding-core.module';
 import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { VisualProjectsCoreModule } from '@api/collections/visual-projects/visual-projects-core.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { AccountGenerationProcessor } from '@workers/processors/api/queues/account-generation/account-generation.processor';
 import { BrandRelocationProcessor } from '@workers/processors/api/queues/brand-relocation/brand-relocation.processor';
+import { ContextEmbeddingProcessor } from '@workers/processors/api/queues/context-embedding/context-embedding.processor';
 import { LlmCostSettlementProcessor } from '@workers/processors/api/queues/llm-cost-settlement/llm-cost-settlement.processor';
 /**
  * Processors Module (Workers)
@@ -92,6 +94,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 
 @Module({
   imports: [
+    ContextEmbeddingCoreModule,
     BrandRelocationJobsModule,
     PostGenerationModule,
     VisualProjectsCoreModule,
@@ -161,6 +164,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => WhisperModule),
   ],
   providers: [
+    ContextEmbeddingProcessor,
     BrandRelocationProcessor,
     AccountGenerationProcessor,
     TurboRewriteProcessor,

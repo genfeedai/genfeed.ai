@@ -6,10 +6,12 @@ import type {
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
+import type { ContextMemoryCaptureAuthority } from '@api/collections/contexts/interfaces/context-embedding-write.interface';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 
 interface CaptureAgentMemoryPayload {
   campaignId?: string;
@@ -38,17 +40,32 @@ export class AgentMemoryCaptureService {
     private readonly contextsService: ContextsService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly loggerService: LoggerService,
+    private readonly embeddingWriter: ContextEmbeddingWriteService,
   ) {}
 
   async capture(
     userId: string,
     organizationId: string,
     payload: CaptureAgentMemoryPayload,
+    authority: ContextMemoryCaptureAuthority,
   ): Promise<{
     memory: Awaited<ReturnType<AgentMemoriesService['createMemory']>>;
     wroteBrandInsight: boolean;
     wroteContextMemory: boolean;
   }> {
+    if (
+      !authority ||
+      (authority.origin !== 'ACTOR' && authority.origin !== 'DERIVED_MEMORY')
+    ) {
+      throw new ForbiddenException(
+        'Memory capture requires authenticated or background provenance',
+      );
+    }
+    await this.embeddingWriter.assertCaptureAuthority(
+      authority,
+      organizationId,
+      payload.brandId,
+    );
     const memory = await this.agentMemoriesService.createMemory(
       userId,
       organizationId,
@@ -106,7 +123,19 @@ export class AgentMemoryCaptureService {
         relevanceWeight: this.normalizeScore(payload.importance, 0.75),
       };
 
-      await this.contextsService.addEntry(contextBaseId, entry, organizationId);
+      await this.contextsService.addEntry(
+        contextBaseId,
+        entry,
+        organizationId,
+        undefined,
+        authority.origin === 'ACTOR'
+          ? {
+              origin: 'ACTOR',
+              actor: authority.actor,
+              sourceMemoryId: String(memory.id),
+            }
+          : { origin: 'DERIVED_MEMORY', sourceMemoryId: String(memory.id) },
+      );
     }
 
     return {

@@ -6,6 +6,7 @@ import {
   buildApiE2eTierPlan,
   discoverApiE2eSpecs,
   validateApiE2eTierManifest,
+  validateContextEmbeddingReport,
 } from './api-e2e-tiers';
 import {
   API_E2E_TIER_MANIFEST,
@@ -241,5 +242,102 @@ describe('API E2E tiers', () => {
         tier: 'core',
       }).selectedFiles,
     ).toEqual(['test/e2e/core.e2e-spec.ts']);
+  });
+});
+
+describe('dedicated Context Embedding Acceptance lane', () => {
+  it('selects only its two actual files and delegates them out of full without changing core', () => {
+    const selected = API_E2E_TIER_MANIFEST.contextEmbeddingFiles ?? [];
+    expect(selected).toHaveLength(2);
+    expect(
+      buildApiE2eTierPlan({ tier: 'context-embedding' }).selectedFiles,
+    ).toEqual(selected);
+    for (const tier of ['core', 'full', 'isolated-publish'] as const) {
+      expect(
+        buildApiE2eTierPlan({ tier }).selectedFiles.some((file) =>
+          selected.includes(file),
+        ),
+      ).toBe(false);
+    }
+    expect(
+      buildApiE2eTierPlan({ tier: 'full' })
+        .excludedFiles.filter((row) => selected.includes(row.file))
+        .every((row) => row.trackingIssue === 5149),
+    ).toBe(true);
+  });
+  it('rejects missing, duplicate or undiscoverable dedicated ownership', () => {
+    const files = ['test/integration/a.spec.ts', 'test/integration/b.spec.ts'];
+    expect(
+      validateApiE2eTierManifest(
+        files,
+        {
+          coreFiles: [],
+          isolatedPublishFiles: [],
+          exclusions: [],
+          contextEmbeddingFiles: [files[0], files[0]],
+        },
+        'context-embedding',
+      ),
+    ).toContain('Duplicate context-embedding files');
+    expect(
+      validateApiE2eTierManifest(
+        files,
+        { coreFiles: [], isolatedPublishFiles: [], exclusions: [] },
+        'context-embedding',
+      ),
+    ).toContain('Context-embedding requires exactly two acceptance files');
+  });
+  it('rejects a missing report, zero assertions, skipped assertions, duplicate files and foreign file names', () => {
+    const files = API_E2E_TIER_MANIFEST.contextEmbeddingFiles ?? [];
+    const name = (file: string) =>
+      path.resolve(import.meta.dirname, '..', file);
+    const good = {
+      testResults: files.map((file) => ({
+        name: name(file),
+        status: 'passed',
+        assertionResults: [{ status: 'passed' }],
+      })),
+    };
+    expect(validateContextEmbeddingReport(good, files)).toEqual([]);
+    expect(validateContextEmbeddingReport({}, files)).not.toEqual([]);
+    expect(
+      validateContextEmbeddingReport(
+        {
+          testResults: good.testResults.map((row) => ({
+            ...row,
+            assertionResults: [],
+          })),
+        },
+        files,
+      ),
+    ).not.toEqual([]);
+    expect(
+      validateContextEmbeddingReport(
+        {
+          testResults: good.testResults.map((row) => ({
+            ...row,
+            assertionResults: [{ status: 'pending' }],
+          })),
+        },
+        files,
+      ),
+    ).not.toEqual([]);
+    expect(
+      validateContextEmbeddingReport(
+        { testResults: [good.testResults[0], good.testResults[0]] },
+        files,
+      ),
+    ).not.toEqual([]);
+    expect(
+      validateContextEmbeddingReport(
+        {
+          testResults: good.testResults.map((row) => ({
+            ...row,
+            name: name('test/integration/foreign.spec.ts'),
+          })),
+        },
+        files,
+      ),
+    ).not.toEqual([]);
   });
 });

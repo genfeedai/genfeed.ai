@@ -898,6 +898,7 @@ export class ContentEngineService {
           : `Campaign orchestrator dispatched ${dispatchedRuns.length} runs.`,
         tags: [`campaign:${String(campaign.id)}`, 'orchestrator', 'campaign'],
       },
+      { origin: 'DERIVED_MEMORY' },
     );
   }
 

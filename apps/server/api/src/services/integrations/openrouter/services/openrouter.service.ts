@@ -6,6 +6,7 @@ import {
   type OpenRouterChatCompletionResponse,
   type OpenRouterEmbeddingParams,
   type OpenRouterEmbeddingResponse,
+  type OpenRouterEmbeddingTransportOptions,
   type OpenRouterStreamChunk,
   type OpenRouterStreamTokenHandler,
   type OpenRouterToolCallResponse,
@@ -253,6 +254,7 @@ export class OpenRouterService {
   async embeddings(
     params: OpenRouterEmbeddingParams,
     apiKeyOverride?: string,
+    transport?: OpenRouterEmbeddingTransportOptions,
   ): Promise<OpenRouterEmbeddingResponse> {
     const apiKey = this.resolveApiKey(apiKeyOverride);
 
@@ -265,6 +267,10 @@ export class OpenRouterService {
             provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
           },
           {
+            ...(transport?.signal ? { signal: transport.signal } : {}),
+            ...(transport?.timeout !== undefined
+              ? { timeout: transport.timeout }
+              : {}),
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json',
@@ -277,10 +283,9 @@ export class OpenRouterService {
 
       return response.data;
     } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName}.embeddings failed`,
-        this.getSafeErrorDetails(error),
-      );
+      this.loggerService.error(`${this.constructorName}.embeddings failed`, {
+        status: this.getSafeErrorDetails(error).status,
+      });
       throw error;
     }
   }

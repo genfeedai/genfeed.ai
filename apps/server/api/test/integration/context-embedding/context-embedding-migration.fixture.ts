@@ -1,0 +1,239 @@
+import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import {
+  cp,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
+import { Client } from 'pg';
+
+const command = promisify(execFile);
+const require = createRequire(import.meta.url);
+export const EMBEDDING_MIGRATION = '20261022090000_context_embedding_queue';
+export const MIGRATION_ROOT = resolve(
+  import.meta.dirname,
+  '../../../../../../packages/prisma/prisma/migrations',
+);
+const SCHEMA_PATH = resolve(MIGRATION_ROOT, '../schema.prisma');
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+export function dedicatedDatabaseUrl(kind: 'runtime' | 'upgrade'): string {
+  if (process.env.CONTEXT_EMBEDDING_ACCEPTANCE !== '1')
+    throw new Error(
+      'Context embedding acceptance requires its explicit disposable runtime flag',
+    );
+  const key =
+    kind === 'runtime'
+      ? 'CONTEXT_EMBEDDING_TEST_DATABASE_URL'
+      : 'CONTEXT_EMBEDDING_UPGRADE_DATABASE_URL';
+  const value = process.env[key];
+  if (!value)
+    throw new Error(key + ' is required; DATABASE_URL is never a fallback');
+  const url = new URL(value);
+  if (
+    !['postgres:', 'postgresql:'].includes(url.protocol) ||
+    !LOOPBACK.has(url.hostname) ||
+    decodeURIComponent(url.username) !== 'context_embedding_test' ||
+    decodeURIComponent(url.pathname) !==
+      (kind === 'runtime'
+        ? '/genfeed_context_embedding_test'
+        : '/genfeed_context_embedding_upgrade_test') ||
+    url.searchParams.has('schema')
+  )
+    throw new Error(
+      'Context embedding databases must be distinct dedicated loopback test databases',
+    );
+  return value;
+}
+
+export async function acceptanceEnvironment() {
+  const runtime = new URL(dedicatedDatabaseUrl('runtime'));
+  const upgrade = new URL(dedicatedDatabaseUrl('upgrade'));
+  if (
+    runtime.origin !== upgrade.origin ||
+    runtime.host !== upgrade.host ||
+    runtime.pathname === upgrade.pathname
+  )
+    throw new Error(
+      'Runtime and upgrade require separate databases on their disposable instance',
+    );
+  const candidate = process.env.CONTEXT_EMBEDDING_CANDIDATE_SHA;
+  const { stdout: head } = await command('git', ['rev-parse', 'HEAD']);
+  if (
+    !candidate ||
+    !/^[a-f0-9]{40}$/.test(candidate) ||
+    head.trim() !== candidate
+  )
+    throw new Error(
+      'Context embedding acceptance requires the exact checked-out candidate head',
+    );
+  const { stdout: bun } = await command('bun', ['--version']);
+  if (
+    Number(process.versions.node.split('.')[0]) !== 24 ||
+    bun.trim() !== '1.4.3'
+  )
+    throw new Error(
+      'Context embedding acceptance requires declared Node 24 and Bun 1.4.3',
+    );
+  return {
+    candidateSHA: candidate,
+    node: process.versions.node,
+    bun: bun.trim(),
+  };
+}
+
+export async function connectDedicated(
+  kind: 'runtime' | 'upgrade',
+): Promise<Client> {
+  const client = new Client({ connectionString: dedicatedDatabaseUrl(kind) });
+  await client.connect();
+  const identity = await client.query<{
+    database: string;
+    role: string;
+    version: number;
+  }>(
+    "SELECT current_database() AS database, current_user AS role, current_setting('server_version_num')::int AS version",
+  );
+  const row = identity.rows[0];
+  if (
+    row.database !==
+      (kind === 'runtime'
+        ? 'genfeed_context_embedding_test'
+        : 'genfeed_context_embedding_upgrade_test') ||
+    row.role !== 'context_embedding_test' ||
+    Math.floor(row.version / 10000) !== 17
+  ) {
+    await client.end();
+    throw new Error(
+      'Disposable database identity or PostgreSQL 17 runtime did not match',
+    );
+  }
+  return client;
+}
+
+export async function migrationInventory(
+  includeEmbedding = true,
+): Promise<Array<{ name: string; checksum: string }>> {
+  const directories = (await readdir(MIGRATION_ROOT, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  const rows = [];
+  for (const name of directories) {
+    if (!includeEmbedding && name === EMBEDDING_MIGRATION) continue;
+    const sql = await readFile(join(MIGRATION_ROOT, name, 'migration.sql'));
+    rows.push({
+      name,
+      checksum: createHash('sha256').update(sql).digest('hex'),
+    });
+  }
+  if (!directories.includes(EMBEDDING_MIGRATION))
+    throw new Error('Prepared embedding migration is missing');
+  return rows;
+}
+
+export async function deployRealMigrations(
+  kind: 'runtime' | 'upgrade',
+  includeEmbedding = true,
+): Promise<void> {
+  const scratch = await mkdtemp(join(tmpdir(), 'context-embedding-migrate-'));
+  try {
+    const migrationsPath = includeEmbedding
+      ? MIGRATION_ROOT
+      : join(scratch, 'predecessors');
+    if (!includeEmbedding) {
+      await cp(MIGRATION_ROOT, migrationsPath, { recursive: true });
+      await rm(join(migrationsPath, EMBEDDING_MIGRATION), { recursive: true });
+    }
+    const config = join(scratch, 'prisma.config.mjs');
+    const configModule = pathToFileURL(require.resolve('prisma/config')).href;
+    await writeFile(
+      config,
+      [
+        'import { defineConfig } from ' + JSON.stringify(configModule) + ';',
+        'export default defineConfig({ schema: ' +
+          JSON.stringify(SCHEMA_PATH) +
+          ', migrations: { path: ' +
+          JSON.stringify(migrationsPath) +
+          ' }, datasource: { url: process.env.CONTEXT_EMBEDDING_ACTIVE_MIGRATION_DATABASE_URL } });',
+      ].join(String.fromCharCode(10)),
+    );
+    const packagePath = require.resolve('prisma/package.json');
+    const manifest = JSON.parse(await readFile(packagePath, 'utf8')) as {
+      bin: { prisma: string } | string;
+    };
+    const bin =
+      typeof manifest.bin === 'string' ? manifest.bin : manifest.bin.prisma;
+    const cli = resolve(dirname(packagePath), bin);
+    try {
+      await command(
+        process.execPath,
+        [cli, 'migrate', 'deploy', '--config', config],
+        {
+          cwd: resolve(MIGRATION_ROOT, '../..'),
+          env: {
+            ...process.env,
+            CONTEXT_EMBEDDING_ACTIVE_MIGRATION_DATABASE_URL:
+              dedicatedDatabaseUrl(kind),
+          },
+          timeout: 600000,
+          maxBuffer: 2 * 1024 * 1024,
+        },
+      );
+    } catch {
+      throw new Error(
+        'Real Prisma migration deploy failed for the disposable ' +
+          kind +
+          ' database',
+      );
+    }
+  } finally {
+    await rm(scratch, { recursive: true });
+  }
+}
+
+export async function assertRealMigrationLedger(
+  client: Client,
+  includeEmbedding = true,
+): Promise<Array<{ name: string; checksum: string }>> {
+  const expected = await migrationInventory(includeEmbedding);
+  const actual = await client.query<{
+    migration_name: string;
+    checksum: string;
+    finished_at: Date | null;
+    rolled_back_at: Date | null;
+  }>(
+    'SELECT migration_name, checksum, finished_at, rolled_back_at FROM "_prisma_migrations" ORDER BY migration_name',
+  );
+  if (
+    actual.rows.length !== expected.length ||
+    actual.rows.some(
+      (row, i) =>
+        row.migration_name !== expected[i].name ||
+        row.checksum !== expected[i].checksum ||
+        !row.finished_at ||
+        row.rolled_back_at,
+    )
+  )
+    throw new Error(
+      'Actual migration ledger does not match the complete checked-in inventory and checksums',
+    );
+  return expected;
+}
+
+export async function verifyPgvector(client: Client): Promise<string> {
+  const result = await client.query<{ extversion: string }>(
+    "SELECT extversion FROM pg_extension WHERE extname = 'vector'",
+  );
+  if (!result.rows[0]?.extversion)
+    throw new Error('Actual pgvector extension is required');
+  return result.rows[0].extversion;
+}

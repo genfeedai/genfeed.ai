@@ -1,32 +1,33 @@
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
 import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.dto';
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
+import type { ContextEmbeddingAdmissionPrincipal } from '@api/collections/contexts/interfaces/context-embedding-write.interface';
 import type { ContextBase } from '@api/collections/contexts/schemas/context-base.schema';
 import type {
   ContextEntry,
   ContextEntryKnowledgeLink,
-  ContextEntryPendingEmbeddingRow,
   ContextEntrySimilarityResult,
   ContextEntrySimilarityRow,
   ContextPromptEnhancement,
   ContextPromptEntry,
 } from '@api/collections/contexts/schemas/context-entry.schema';
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import {
   buildPromptContextBaseWhere,
   isContextBaseInBrandScope,
 } from '@api/collections/contexts/utils/context-brand-scope.util';
 import {
-  buildEmbeddingFailureQuery,
-  buildEmptyContentFailQuery,
-  buildPendingEmbeddingClaimQuery,
-} from '@api/collections/contexts/utils/context-embedding-claim-query.util';
+  type ContextRetrievalStage,
+  measureContextRetrievalStage,
+} from '@api/collections/contexts/utils/context-retrieval-metrics.util';
 import {
   buildContextSimilarityQuery,
   type ContextSimilarityQueryOptions,
-  serializeContextEmbedding,
 } from '@api/collections/contexts/utils/context-similarity-query.util';
 import {
   isKnowledgeSourceKind,
@@ -36,13 +37,10 @@ import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
-  ModelCategory,
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
@@ -51,9 +49,9 @@ import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import type { ContextEmbeddingBackfillInput } from '@genfeedai/contracts/interfaces/knowledge-base/context-embedding.interface';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -62,9 +60,17 @@ export class ContextsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly openRouterService: OpenRouterService,
-    private readonly routerService: RouterService,
+    private readonly embeddingProvider: ContextEmbeddingProviderService,
+    private readonly embeddingWriter: ContextEmbeddingWriteService,
   ) {}
+
+  measureRetrievalStage<T>(
+    stage: ContextRetrievalStage,
+    work: () => Promise<T> | T,
+    count?: (result: T) => number,
+  ): Promise<T> {
+    return measureContextRetrievalStage(this.logger, stage, work, count);
+  }
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -116,20 +122,6 @@ export class ContextsService {
 
   private normalizeContextEntries(entries: ContextEntry[]): ContextEntry[] {
     return entries.map((entry) => this.normalizeContextEntry(entry));
-  }
-
-  private async adjustContextBaseMetric(
-    contextBaseId: string,
-    organizationId: string,
-    metric: 'entryCount' | 'usageCount',
-    delta: number,
-  ): Promise<void> {
-    await this.adjustContextBaseMetrics(
-      [contextBaseId],
-      organizationId,
-      metric,
-      delta,
-    );
   }
 
   /**
@@ -306,21 +298,76 @@ export class ContextsService {
   }
 
   async remove(id: string, organizationId: string): Promise<void> {
-    await findOrThrow(
-      this.prisma.contextBase,
-      { where: scopedWhere(organizationId, { id }) },
-      'Context base',
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockRetirementSources(tx, organizationId, id);
+      await findOrThrow(
+        tx.contextBase,
+        { where: scopedWhere(organizationId, { id }) },
+        'Context base',
+      );
+      const where = { contextBaseId: id, organizationId, isDeleted: false };
+      await tx.contextEmbeddingJob.updateMany({
+        where: {
+          organizationId,
+          isDeleted: false,
+          status: { in: ['PENDING', 'RETRYABLE', 'PROCESSING'] },
+          contextEntry: { is: where },
+        },
+        data: {
+          status: 'CANCELLED',
+          leaseToken: null,
+          leaseExpiresAt: null,
+          safeFailureCode: 'SOURCE_RETIRED',
+        },
+      });
+      await tx.contextEntry.updateMany({
+        where,
+        data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
+      });
+      await tx.contextBase.update({
+        where: scopedWhere(organizationId, { id }),
+        data: { isDeleted: true },
+      });
+    });
+  }
+
+  private async lockRetirementSources(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    contextBaseId: string,
+    entryId?: string,
+  ): Promise<void> {
+    const entryFilter = entryId
+      ? Prisma.sql`AND e."id" = ${entryId}`
+      : Prisma.empty;
+    await tx.$queryRaw(Prisma.sql`SELECT s."id" FROM "knowledge_sources" s
+      JOIN "context_entries" e ON e."knowledgeSourceId" = s."id" AND e."organizationId" = s."organizationId"
+      WHERE e."organizationId" = ${organizationId} AND e."contextBaseId" = ${contextBaseId} AND e."isDeleted" = false AND s."isDeleted" = false ${entryFilter}
+      ORDER BY s."id" FOR UPDATE OF s`);
+    await tx.$queryRaw(Prisma.sql`SELECT m."id" FROM "agent_memories" m
+      JOIN "context_entries" e ON e."sourceAgentMemoryId" = m."id" AND e."organizationId" = m."organizationId"
+      WHERE e."organizationId" = ${organizationId} AND e."contextBaseId" = ${contextBaseId} AND e."isDeleted" = false AND m."isDeleted" = false ${entryFilter}
+      ORDER BY m."id" FOR UPDATE OF m`);
+    await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "context_bases" WHERE "id" = ${contextBaseId}
+      AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`);
+  }
+
+  async backfillEmbeddings(
+    contextBaseId: string,
+    organizationId: string,
+    actor: WorkflowInitiatingActor,
+    input: ContextEmbeddingBackfillInput,
+  ) {
+    const result = await this.embeddingWriter.backfill(
+      contextBaseId,
+      organizationId,
+      actor,
+      input,
     );
-
-    await this.prisma.contextBase.update({
-      data: { isDeleted: true },
-      where: scopedWhere(organizationId, { id }),
-    });
-
-    await this.prisma.contextEntry.updateMany({
-      data: { isDeleted: true },
-      where: { contextBaseId: id, isDeleted: false, organizationId },
-    });
+    return {
+      ...result,
+      contextBase: this.normalizeContextBase(result.contextBase),
+    };
   }
 
   async addEntry(
@@ -328,53 +375,18 @@ export class ContextsService {
     dto: AddEntryDto,
     organizationId: string,
     knowledgeLink?: ContextEntryKnowledgeLink,
+    admissionPrincipal?: ContextEmbeddingAdmissionPrincipal,
   ): Promise<ContextEntry> {
-    try {
-      this.logger.debug('Adding entry to context base', {
-        contextBaseId,
-        organizationId,
-      });
-
-      await this.findOne(contextBaseId, organizationId);
-
-      const embedding = await this.generateEmbedding(dto.content);
-
-      const metadata = (dto.metadata ?? {}) as Record<string, unknown>;
-      const kind =
-        typeof metadata.kind === 'string' && metadata.kind.trim()
-          ? metadata.kind.trim()
-          : undefined;
-
-      const entry = await this.prisma.contextEntry.create({
-        data: {
-          contextBaseId,
-          ...(knowledgeLink ?? {}),
-          data: toPrismaJson({
-            content: dto.content,
-            ...(kind ? { kind } : {}),
-            metadata,
-            relevanceWeight: dto.relevanceWeight || 1.0,
-          }),
-          organizationId,
-        },
-      });
-
-      await this.writeEntryEmbedding(entry.id, organizationId, embedding);
-
-      await this.adjustContextBaseMetric(
-        contextBaseId,
-        organizationId,
-        'entryCount',
-        1,
-      );
-
-      this.logger.debug('Entry added', { entryId: entry.id });
-
-      return this.normalizeContextEntry(entry);
-    } catch (error: unknown) {
-      this.logger.error('Failed to add entry', { error });
-      throw error;
-    }
+    if (!admissionPrincipal)
+      throw new BadRequestException('Context admission requires provenance');
+    const entry = await this.embeddingWriter.write({
+      contextBaseId,
+      dto,
+      organizationId,
+      knowledgeLink,
+      principal: admissionPrincipal,
+    });
+    return this.normalizeContextEntry(entry);
   }
 
   async removeEntry(
@@ -382,30 +394,47 @@ export class ContextsService {
     entryId: string,
     organizationId: string,
   ): Promise<void> {
-    await findOrThrow(
-      this.prisma.contextEntry,
-      {
-        where: scopedWhere(organizationId, { contextBaseId, id: entryId }),
-      },
-      'Entry',
-    );
-
-    await this.prisma.contextEntry.update({
-      data: { isDeleted: true },
-      where: scopedWhere(organizationId, { id: entryId }),
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockRetirementSources(
+        tx,
+        organizationId,
+        contextBaseId,
+        entryId,
+      );
+      await findOrThrow(
+        tx.contextEntry,
+        { where: scopedWhere(organizationId, { contextBaseId, id: entryId }) },
+        'Entry',
+      );
+      await tx.contextEmbeddingJob.updateMany({
+        where: {
+          organizationId,
+          contextEntryId: entryId,
+          isDeleted: false,
+          status: { in: ['PENDING', 'RETRYABLE', 'PROCESSING'] },
+        },
+        data: {
+          status: 'CANCELLED',
+          leaseToken: null,
+          leaseExpiresAt: null,
+          safeFailureCode: 'SOURCE_RETIRED',
+        },
+      });
+      await tx.contextEntry.update({
+        where: scopedWhere(organizationId, { id: entryId }),
+        data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
+      });
+      await tx.$executeRaw(Prisma.sql`UPDATE "context_bases"
+        SET "data" = jsonb_set(COALESCE("data", '{}'::jsonb), ARRAY['entryCount'],
+          to_jsonb(GREATEST(0, COALESCE("data"->>'entryCount', '0')::int - 1)))
+        WHERE "id" = ${contextBaseId} AND "organizationId" = ${organizationId} AND "isDeleted" = false`);
     });
-
-    await this.adjustContextBaseMetric(
-      contextBaseId,
-      organizationId,
-      'entryCount',
-      -1,
-    );
   }
 
   async enhancePrompt(
     dto: EnhancePromptDto,
     organizationId: string,
+    viewerUserId?: string,
   ): Promise<ContextPromptEnhancement> {
     try {
       this.logger.debug('Retrieving prompt context', {
@@ -433,6 +462,7 @@ export class ContextsService {
         dto.prompt,
         dto.maxResults || 5,
         organizationId,
+        viewerUserId,
       );
 
       if (relevantEntries.length === 0) {
@@ -462,7 +492,7 @@ export class ContextsService {
         originalPrompt: dto.prompt,
       };
     } catch (error: unknown) {
-      this.logger.error('Failed to enhance prompt', { error });
+      this.logger.error('Failed to enhance prompt');
       throw error;
     }
   }
@@ -470,6 +500,7 @@ export class ContextsService {
   async queryContext(
     dto: QueryContextDto,
     organizationId: string,
+    viewerUserId?: string,
   ): Promise<
     Array<{
       content: string;
@@ -478,7 +509,11 @@ export class ContextsService {
     }>
   > {
     try {
-      await this.findOne(dto.contextBaseId, organizationId);
+      await this.measureRetrievalStage(
+        'scope_validation',
+        () => this.findOne(dto.contextBaseId, organizationId),
+        () => 1,
+      );
       const queryEmbedding = await this.generateEmbedding(dto.query);
       const entries = await this.findSimilarEntries(
         organizationId,
@@ -486,6 +521,7 @@ export class ContextsService {
         queryEmbedding,
         dto.limit || 10,
         dto.minRelevance || 0.7,
+        { viewerUserId },
       );
 
       return entries.map((e) => ({
@@ -494,7 +530,7 @@ export class ContextsService {
         relevance: e.similarity,
       }));
     } catch (error: unknown) {
-      this.logger.error('Failed to query context', { error });
+      this.logger.error('Failed to query context');
       throw error;
     }
   }
@@ -503,6 +539,7 @@ export class ContextsService {
     dto: AutoCreateContextDto,
     organizationId: string,
     userId?: string,
+    admissionPrincipal?: ContextEmbeddingAdmissionPrincipal,
   ): Promise<ContextBase> {
     try {
       const contextBase = await this.create(
@@ -569,6 +606,8 @@ export class ContextsService {
               },
             },
             organizationId,
+            undefined,
+            admissionPrincipal,
           );
         }
       }
@@ -629,20 +668,9 @@ export class ContextsService {
     text: string,
     modelIdentifier?: string,
   ): Promise<number[]> {
-    const model =
-      modelIdentifier ??
-      (await this.routerService.getDefaultModel(ModelCategory.EMBEDDING));
-    const response = await this.openRouterService.embeddings({
-      input: text,
-      model,
-    });
-    const embedding = response.data[0]?.embedding;
-    if (!embedding || embedding.length !== CONTEXT_EMBEDDING_DIMENSION) {
-      throw new Error(
-        `Embedding model ${model} returned ${embedding?.length ?? 0} dimensions; expected ${CONTEXT_EMBEDDING_DIMENSION}`,
-      );
-    }
-    return embedding;
+    return this.measureRetrievalStage('query_embedding', () =>
+      this.embeddingProvider.query(text, modelIdentifier),
+    );
   }
 
   /** Active prompt-enhancement bases in the request brand's scope. */
@@ -651,27 +679,34 @@ export class ContextsService {
     dto: EnhancePromptDto,
   ): Promise<ContextBase[]> {
     const brandId = dto.brandId?.trim() || undefined;
-    const rows = await this.prisma.contextBase.findMany({
-      where: scopedWhere(
-        organizationId,
-        buildPromptContextBaseWhere(brandId, dto.contextBaseIds),
-      ),
-    });
+    return this.measureRetrievalStage(
+      'scope_validation',
+      async () => {
+        const rows = await this.prisma.contextBase.findMany({
+          where: scopedWhere(
+            organizationId,
+            buildPromptContextBaseWhere(brandId, dto.contextBaseIds),
+          ),
+        });
 
-    const types: string[] = [];
-    if (dto.useBrandVoice) types.push('brand_voice');
-    if (dto.useContentLibrary) types.push('content_library');
-    if (dto.useAudience) types.push('audience');
+        const types: string[] = [];
+        if (dto.useBrandVoice) types.push('brand_voice');
+        if (dto.useContentLibrary) types.push('content_library');
+        if (dto.useAudience) types.push('audience');
 
-    const filtered = rows.filter((row) => {
-      const d = this.getDataRecord(row.data);
-      if (!d.isActive) return false;
-      if (!isContextBaseInBrandScope(row, brandId)) return false;
-      if (types.length > 0 && !types.includes(d.type as string)) return false;
-      return true;
-    });
+        const filtered = rows.filter((row) => {
+          const d = this.getDataRecord(row.data);
+          if (!d.isActive) return false;
+          if (!isContextBaseInBrandScope(row, brandId)) return false;
+          if (types.length > 0 && !types.includes(d.type as string))
+            return false;
+          return true;
+        });
 
-    return this.normalizeContextBases(filtered);
+        return this.normalizeContextBases(filtered);
+      },
+      (result) => result.length,
+    );
   }
 
   private async retrieveRelevantEntries(
@@ -679,6 +714,7 @@ export class ContextsService {
     query: string,
     limit: number,
     organizationId: string,
+    viewerUserId?: string,
   ): Promise<ContextPromptEntry[]> {
     const queryEmbedding = await this.generateEmbedding(query);
     const contextBaseById = new Map(
@@ -690,6 +726,7 @@ export class ContextsService {
       queryEmbedding,
       limit,
       0.7,
+      { viewerUserId },
     );
 
     return entries.map((entry) => {
@@ -715,7 +752,7 @@ export class ContextsService {
     minSimilarity: number,
     options: ContextSimilarityQueryOptions = {},
   ): Promise<ContextEntrySimilarityResult[]> {
-    await this.rebuildMissingEntryEmbeddings(organizationId, contextBaseIds);
+    if (contextBaseIds.length === 0) return [];
 
     const rows = await this.querySimilarEntries(
       organizationId,
@@ -726,24 +763,30 @@ export class ContextsService {
       options,
     );
 
-    return rows.flatMap((row) => {
-      if (!row.content) {
-        return [];
-      }
-      const citation = this.toCitation(row);
-      return [
-        {
-          ...(citation ? { citation } : {}),
-          content: row.content,
-          contextBaseId: row.contextBaseId,
-          ...(row.kind ? { kind: row.kind } : {}),
-          ...(this.isPlainObject(row.metadata)
-            ? { metadata: row.metadata }
-            : {}),
-          similarity: Number(row.similarity),
-        },
-      ];
-    });
+    return this.measureRetrievalStage(
+      'result_validation',
+      () => {
+        return rows.flatMap((row) => {
+          if (!row.content) {
+            return [];
+          }
+          const citation = this.toCitation(row);
+          return [
+            {
+              ...(citation ? { citation } : {}),
+              content: row.content,
+              contextBaseId: row.contextBaseId,
+              ...(row.kind ? { kind: row.kind } : {}),
+              ...(this.isPlainObject(row.metadata)
+                ? { metadata: row.metadata }
+                : {}),
+              similarity: Number(row.similarity),
+            },
+          ];
+        });
+      },
+      (result) => result.length,
+    );
   }
 
   /** Citation identity travels with every Knowledge-linked passage. */
@@ -771,72 +814,6 @@ export class ContextsService {
   }
 
   /**
-   * Lazy inline backfill on the retrieval hot path (#2457).
-   *
-   * Empty-content rows are marked failed in SQL so they never re-enter the
-   * sweep. Pending rows are claimed with FOR UPDATE SKIP LOCKED so concurrent
-   * retrievals cannot duplicate provider work. Provider failures persist
-   * embeddingFailedAt. A queue-based off-request backfill remains the deeper
-   * follow-up for large lag.
-   */
-  private async rebuildMissingEntryEmbeddings(
-    organizationId: string,
-    contextBaseIds: string[],
-  ): Promise<void> {
-    if (contextBaseIds.length === 0) {
-      return;
-    }
-
-    await this.prisma.$executeRaw(
-      buildEmptyContentFailQuery(organizationId, contextBaseIds),
-    );
-
-    const rows = await this.prisma.$queryRaw<ContextEntryPendingEmbeddingRow[]>(
-      buildPendingEmbeddingClaimQuery(organizationId, contextBaseIds),
-    );
-
-    if (rows.length === 0) {
-      return;
-    }
-
-    const model = await this.routerService.getDefaultModel(
-      ModelCategory.EMBEDDING,
-    );
-    let rebuiltCount = 0;
-
-    for (const row of rows) {
-      if (!row.content) {
-        await this.prisma.$executeRaw(
-          buildEmbeddingFailureQuery(row.id, organizationId),
-        );
-        continue;
-      }
-
-      try {
-        const embedding = await this.generateEmbedding(row.content, model);
-        await this.writeEntryEmbedding(row.id, organizationId, embedding);
-        rebuiltCount += 1;
-      } catch (error: unknown) {
-        await this.prisma.$executeRaw(
-          buildEmbeddingFailureQuery(row.id, organizationId),
-        );
-        this.logger.error('Failed to lazily re-embed context entry', {
-          contextEntryId: row.id,
-          error,
-          organizationId,
-        });
-      }
-    }
-
-    if (rebuiltCount > 0) {
-      this.logger.log('Lazily rebuilt context entry embeddings', {
-        organizationId,
-        rebuiltCount,
-      });
-    }
-  }
-
-  /**
    * Small-tenant HNSW recall: iterative_scan keeps scanning after the org
    * filter removes candidates. `set_config(..., is_local := true)` only lasts
    * for this transaction, so it must share a transaction with the similarity
@@ -850,45 +827,31 @@ export class ContextsService {
     minSimilarity: number,
     options: ContextSimilarityQueryOptions = {},
   ): Promise<ContextEntrySimilarityRow[]> {
-    return this.prisma.$transaction(async (tx) => {
-      try {
-        await tx.$executeRaw(
-          Prisma.sql`SELECT set_config('hnsw.iterative_scan', 'relaxed_order', true)`,
-        );
-      } catch (error: unknown) {
-        this.logger.debug('hnsw.iterative_scan unavailable', { error });
-      }
+    return this.measureRetrievalStage(
+      'similarity_sql',
+      () => {
+        return this.prisma.$transaction(async (tx) => {
+          try {
+            await tx.$executeRaw(
+              Prisma.sql`SELECT set_config('hnsw.iterative_scan', 'relaxed_order', true)`,
+            );
+          } catch {
+            this.logger.debug('hnsw.iterative_scan unavailable');
+          }
 
-      return tx.$queryRaw<ContextEntrySimilarityRow[]>(
-        buildContextSimilarityQuery(
-          organizationId,
-          contextBaseIds,
-          queryEmbedding,
-          limit,
-          minSimilarity,
-          options,
-        ),
-      );
-    });
-  }
-
-  private async writeEntryEmbedding(
-    entryId: string,
-    organizationId: string,
-    embedding: number[],
-  ): Promise<void> {
-    const serializedEmbedding = serializeContextEmbedding(embedding);
-    const updatedCount = await this.prisma.$executeRaw(Prisma.sql`
-      UPDATE "context_entries"
-      SET "embedding" = ${serializedEmbedding}::vector,
-          "embeddingClaimedAt" = NULL
-      WHERE "id" = ${entryId}
-        AND "organizationId" = ${organizationId}
-        AND "isDeleted" = false
-    `);
-
-    if (updatedCount !== 1) {
-      throw new Error(`Context entry ${entryId} was not available for update`);
-    }
+          return tx.$queryRaw<ContextEntrySimilarityRow[]>(
+            buildContextSimilarityQuery(
+              organizationId,
+              contextBaseIds,
+              queryEmbedding,
+              limit,
+              minSimilarity,
+              options,
+            ),
+          );
+        });
+      },
+      (result) => result.length,
+    );
   }
 }

@@ -63,9 +63,11 @@ function buildService() {
     }),
   };
   const logger = { log: vi.fn(), warn: vi.fn() };
+  const completion = { complete: vi.fn().mockResolvedValue('queued') };
   return {
     prisma,
     logger,
+    completion,
     ingestWorkflow,
     records,
     service: new KnowledgeRefreshService(
@@ -73,6 +75,7 @@ function buildService() {
       records as never,
       ingestWorkflow as never,
       logger as never,
+      completion as never,
       { createWorkflow: vi.fn() } as never,
       { syncWorkflowScheduler: vi.fn() } as never,
     ),

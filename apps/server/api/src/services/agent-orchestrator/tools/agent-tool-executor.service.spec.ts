@@ -3550,6 +3550,12 @@ describe('AgentToolExecutorService', () => {
         tags: ['newsletter', 'hook'],
       },
       {
+        initiatingPrincipal: {
+          organizationId: testId('org'),
+          userId: testId('user'),
+          isApiKey: false,
+          scopes: [],
+        },
         organizationId: testId('org'),
         userId: testId('user'),
       },

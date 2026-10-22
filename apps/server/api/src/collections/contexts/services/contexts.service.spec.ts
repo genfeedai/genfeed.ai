@@ -1,3 +1,6 @@
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import type { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -65,20 +68,32 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     const contextBase = storeDelegate(options.contextBases ?? []);
     const contextEntry = storeDelegate(options.contextEntries ?? []);
 
+    const tx = {
+      contextBase,
+      contextEntry,
+      contextEmbeddingJob: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRaw: vi.fn().mockResolvedValue(1),
+    };
+    const prisma = {
+      ...tx,
+      $transaction: vi.fn().mockImplementation(async (work) => work(tx)),
+    };
     const service = new ContextsService(
-      {
-        $executeRaw: vi.fn().mockResolvedValue(1),
-        contextBase,
-        contextEntry,
-      } as unknown as PrismaService,
+      prisma as unknown as PrismaService,
       {
         debug: vi.fn(),
         error: vi.fn(),
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      {} as unknown as OpenRouterService,
-      {} as unknown as RouterService,
+      new ContextEmbeddingProviderService(
+        {} as unknown as RouterService,
+        {} as unknown as OpenRouterService,
+      ),
+      {} as unknown as ContextEmbeddingWriteService,
     );
 
     return { contextBase, contextEntry, service };
@@ -175,7 +190,7 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
       where: { id: 'ctx-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(contextEntry.updateMany).toHaveBeenCalledWith({
-      data: { isDeleted: true },
+      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
       where: {
         contextBaseId: 'ctx-1',
         isDeleted: false,
@@ -233,7 +248,7 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
       },
     });
     expect(contextEntry.update).toHaveBeenCalledWith({
-      data: { isDeleted: true },
+      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
       where: { id: 'entry-1', isDeleted: false, organizationId: 'org-1' },
     });
   });
@@ -281,8 +296,11 @@ describe('ContextsService.findAll pagination', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      {} as unknown as OpenRouterService,
-      {} as unknown as RouterService,
+      new ContextEmbeddingProviderService(
+        {} as unknown as RouterService,
+        {} as unknown as OpenRouterService,
+      ),
+      {} as unknown as ContextEmbeddingWriteService,
     );
     return { contextBase, service };
   }

@@ -180,6 +180,11 @@ export type OpenRouterStreamTokenHandler = (delta: string) => Promise<void>;
  * models (e.g. `baai/bge-large-en-v1.5`) behind the same ZDR/data-retention
  * policy as chat completions.
  */
+export interface OpenRouterEmbeddingTransportOptions {
+  signal?: AbortSignal;
+  timeout?: number;
+}
+
 export interface OpenRouterEmbeddingParams {
   model: string;
   input: string | string[];

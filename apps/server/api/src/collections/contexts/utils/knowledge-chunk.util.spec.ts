@@ -24,7 +24,14 @@ function buildTx(groups: Array<{ contextBaseId: string; count: number }>) {
   return {
     contextEntry,
     executeRaw,
-    tx: { $executeRaw: executeRaw, contextEntry },
+    tx: {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRaw: executeRaw,
+      contextEntry,
+      contextEmbeddingJob: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    },
   };
 }
 
@@ -61,7 +68,7 @@ describe('softDeleteKnowledgeChunks', () => {
         isDeleted: false,
         knowledgeSourceVersionId: 'v-1',
       },
-      data: { isDeleted: true },
+      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
     });
     expect(executeRaw).toHaveBeenCalledTimes(2);
     const [first, second] = executeRaw.mock.calls.map(
@@ -95,7 +102,7 @@ describe('softDeleteKnowledgeChunks', () => {
         knowledgeSourceId: 's-1',
         knowledgeSourceVersionId: { not: 'v-2' },
       },
-      data: { isDeleted: true },
+      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
     });
   });
 });

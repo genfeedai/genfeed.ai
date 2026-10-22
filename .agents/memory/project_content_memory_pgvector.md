@@ -3,7 +3,7 @@ name: content memory pgvector day-one
 description: Postgres pgvector is the vector store for brand content memory; no separate vector product
 type: project
 status: active
-last_verified: 2026-08-12
+last_verified: 2026-10-22
 topics: [harness, pgvector, content-memory, generation, context]
 ---
 
@@ -32,7 +32,7 @@ topics: [harness, pgvector, content-memory, generation, context]
 - Column: `context_entries.embedding vector(1024)`
 - Index: `context_entries_embedding_hnsw_idx` (HNSW, cosine, partial on non-null)
 - Constant: `CONTEXT_EMBEDDING_DIMENSION = 1024`
-- Embed provider: Replicate via `RouterService` embedding model
+- Embed provider: existing OpenRouter embeddings via the selected `RouterService` embedding model
 
 ## Code entry points
 
@@ -61,5 +61,9 @@ topics: [harness, pgvector, content-memory, generation, context]
 ## Scale notes
 
 - Tenant isolation: always filter `organizationId` (+ brand-scoped bases).  
-- HNSW is the production index; rebuild missing embeddings lazily on retrieve.  
+- HNSW is the production index. Retrieval never rebuilds stored vectors; transactional intents and the dedicated context-embedding worker handle admitted work.
 - If volume explodes later, **still** prefer Postgres partition / read replicas before a second vector product.
+
+## Durable indexing
+
+New entries commit with generation-fenced database intents; Redis is transport only. Knowledge uses a sealed bounded chunk manifest before READY. Historical missing vectors require explicit authorized bounded admission. See [queue architecture](../../docs/architecture/context-embedding-queue.md) for authority, recovery, and real acceptance gates. The ten-minute target is an engineering acceptance target, not a measured SLA.

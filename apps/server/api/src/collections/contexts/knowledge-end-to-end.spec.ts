@@ -1,9 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
+import { ContextEmbeddingService } from '@api/collections/contexts/services/context-embedding.service';
+import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
@@ -54,6 +58,7 @@ const migrations = [
   '20260910180000_knowledge_version_legal_hold',
   '20260917180000_knowledge_refresh_and_transcripts',
   '20260918120000_knowledge_capture_request_hash',
+  '20261022090000_context_embedding_queue',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -66,7 +71,12 @@ const migrations = [
 
 const FIXTURE_SQL = `
   CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
-  CREATE TABLE users (id text PRIMARY KEY);
+  CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
+CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id),
+ "userId" text, "brandId" text, "campaignId" text, scope text, content text, type text, kind text, "contentType" text,
+ platform text, summary text, tags text[], "sourceType" text, "sourceUrl" text, "sourceContentId" text, "sourceMessageId" text,
+ metadata jsonb, importance integer, confidence double precision, "performanceSnapshot" jsonb, "isDeleted" boolean NOT NULL DEFAULT false);
+CREATE TABLE agent_campaigns (id text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "userId" text, "isDeleted" boolean NOT NULL DEFAULT false);
   CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
   CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
   INSERT INTO roles(id,key) VALUES ('owner','owner');
@@ -134,6 +144,7 @@ let prisma: PrismaClient;
 let schema: string;
 let records: KnowledgeRecordsService;
 let contexts: ContextsService;
+let embeddingExecution: ContextEmbeddingService;
 let knowledgeContentRetrieval: KnowledgeContentRetrievalService;
 let ingest: KnowledgeSourceIngestService;
 let capture: KnowledgeCaptureService;
@@ -160,7 +171,39 @@ async function runIngest(request: KnowledgeSourceIngestWorkflowInput) {
   try {
     const extracted = await ingest.extractSource(marked);
     const chunked = await ingest.chunkSource(extracted);
-    const replaced = await ingest.replaceChunks(chunked);
+    const replaced = await ingest.replaceChunks(chunked, randomUUID());
+    const pending = await ingest.finalizeSource(replaced);
+    if (pending.status !== 'queued') return pending;
+    const version = await prisma.knowledgeSourceVersion.findFirstOrThrow({
+      where: {
+        id: request.versionId,
+        sourceId: request.sourceId,
+        organizationId: request.organizationId,
+        isDeleted: false,
+      },
+    });
+    expect(version.processingState).toBe(KnowledgeProcessingState.PROCESSING);
+    const jobs = await prisma.contextEmbeddingJob.findMany({
+      where: {
+        organizationId: request.organizationId,
+        generation: version.embeddingGeneration,
+        isDeleted: false,
+        contextEntry: {
+          is: {
+            organizationId: request.organizationId,
+            knowledgeSourceVersionId: request.versionId,
+            isDeleted: false,
+          },
+        },
+      },
+    });
+    expect(jobs.length).toBeGreaterThan(0);
+    for (const job of jobs)
+      await embeddingExecution.process({
+        jobId: job.id,
+        organizationId: job.organizationId,
+        generation: job.generation,
+      });
     return ingest.finalizeSource(replaced);
   } catch (error) {
     return ingest.finalizeSource(
@@ -246,13 +289,9 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
-    records = new KnowledgeRecordsService(
-      prismaService,
-      brandAccessFixture(prismaService as never),
-    );
-    contexts = new ContextsService(
-      prismaService,
-      logger as never,
+    const policy = brandAccessFixture(prismaService);
+    const provider = new ContextEmbeddingProviderService(
+      { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
       {
         embeddings: vi.fn(async ({ input }: { input: string | string[] }) => ({
           data: [
@@ -263,18 +302,43 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
           ],
         })),
       } as never,
-      { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
+    );
+    const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+    const writer = new ContextEmbeddingWriteService(
+      prismaService,
+      policy,
+      provider,
+      queue as never,
+      logger as never,
+    );
+    const completion = new KnowledgeEmbeddingCompletionService(
+      prismaService,
+      writer,
+      provider,
+      queue as never,
+    );
+    embeddingExecution = new ContextEmbeddingService(
+      prismaService,
+      writer,
+      provider,
+    );
+    records = new KnowledgeRecordsService(prismaService, policy, completion);
+    contexts = new ContextsService(
+      prismaService,
+      logger as never,
+      provider,
+      writer,
     );
     knowledgeContentRetrieval = new KnowledgeContentRetrievalService(
       prismaService,
       contexts,
-      brandAccessFixture(prismaService as never),
+      policy,
     );
     ingest = new KnowledgeSourceIngestService(
       prismaService,
-      contexts,
-      brandAccessFixture(prismaService),
+      policy,
       records,
+      completion,
     );
     capture = new KnowledgeCaptureService(
       records,

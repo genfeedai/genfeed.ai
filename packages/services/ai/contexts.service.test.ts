@@ -36,6 +36,56 @@ describe('ContextsService', () => {
     expect(ContextsService.getInstance(token)).not.toBe(first);
   });
 
+  it('preserves the serialized base and validates operation meta when admitting explicit historical work', async () => {
+    fetchMock.mockResolvedValue(
+      fetchResponse({
+        ...resourceDocument({ label: 'Docs' }, { id: 'ctx_1' }),
+        meta: { admitted: 1, skipped: 1, nextCursor: 'next' },
+      }),
+    );
+    const result = await ContextsService.getInstance(token).backfillEmbeddings(
+      'ctx_1',
+      { maxEntries: 2, cursor: 'prior' },
+    );
+    expect(result).toEqual({
+      contextBase: { id: 'ctx_1', label: 'Docs' },
+      admission: { admitted: 1, skipped: 1, nextCursor: 'next' },
+    });
+    const [url, init] = lastCall();
+    expect(url).toContain('/contexts/ctx_1/embeddings/backfill');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({
+      maxEntries: 2,
+      cursor: 'prior',
+    });
+  });
+
+  it.each([
+    undefined,
+    null,
+    {},
+    { admitted: -1, skipped: 0, nextCursor: null },
+    { admitted: 1.1, skipped: 0, nextCursor: null },
+    { admitted: '1', skipped: 0, nextCursor: null },
+    { admitted: 1, skipped: -1, nextCursor: null },
+    { admitted: 1, skipped: 0 },
+    { admitted: 1, skipped: 0, nextCursor: '' },
+    { admitted: 1, skipped: 0, nextCursor: 1 },
+    { admitted: 1, skipped: 0, nextCursor: null, leaseToken: 'must-not-cross' },
+  ])('rejects missing or malformed operation metadata %j', async (meta) => {
+    fetchMock.mockResolvedValue(
+      fetchResponse({
+        ...resourceDocument({ label: 'Docs' }, { id: 'ctx_1' }),
+        meta,
+      }),
+    );
+    await expect(
+      ContextsService.getInstance(token).backfillEmbeddings('ctx_1', {
+        maxEntries: 2,
+      }),
+    ).rejects.toThrow('metadata');
+  });
+
   it('createContext POSTs and deserializes the resource', async () => {
     fetchMock.mockResolvedValue(
       fetchResponse(resourceDocument({ label: 'Docs' }, { id: 'ctx_1' })),

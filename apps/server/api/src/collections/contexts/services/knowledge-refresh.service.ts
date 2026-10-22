@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { hashKnowledgeContent } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
@@ -69,6 +70,7 @@ export class KnowledgeRefreshService {
     private readonly records: KnowledgeRecordsService,
     private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
     private readonly logger: LoggerService,
+    private readonly embeddingCompletion: KnowledgeEmbeddingCompletionService,
     @Optional() private readonly workflows?: WorkflowsService,
     @Optional() private readonly workflowQueue?: WorkflowExecutionQueueService,
   ) {}
@@ -343,6 +345,24 @@ export class KnowledgeRefreshService {
     sourceId: string;
     versionId: string;
   }): Promise<void> {
+    const version = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: {
+        id: input.versionId,
+        sourceId: input.sourceId,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+    });
+    if (version && version.embeddingGeneration >= 1) {
+      const outcome = await this.embeddingCompletion.complete(
+        input.organizationId,
+        input.sourceId,
+        input.versionId,
+      );
+      if (outcome !== 'completed')
+        throw new BadRequestException('Knowledge indexing is incomplete');
+      return;
+    }
     const run = await this.prisma.knowledgeSourceRefreshRun.findFirst({
       where: scopedWhere(input.organizationId, {
         candidateVersionId: input.versionId,

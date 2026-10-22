@@ -6,11 +6,16 @@ export type ApiE2eExclusion = {
 
 export type ApiE2eTierManifest = {
   coreFiles: string[];
+  contextEmbeddingFiles?: string[];
   isolatedPublishFiles: string[];
   exclusions: ApiE2eExclusion[];
 };
 
 export const API_E2E_TIER_MANIFEST: ApiE2eTierManifest = {
+  contextEmbeddingFiles: [
+    'test/integration/context-embedding/context-embedding-migration.integration.spec.ts',
+    'test/integration/context-embedding/context-embedding-queue.integration.spec.ts',
+  ],
   isolatedPublishFiles: [
     'test/integration/isolated-publish/isolated-db-lane.integration.spec.ts',
     'test/integration/isolated-publish/approval-mint-enqueue.integration.spec.ts',

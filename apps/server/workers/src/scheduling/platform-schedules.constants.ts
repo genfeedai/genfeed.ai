@@ -18,6 +18,7 @@ import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.c
  * as a wire-level contract shared with the API.
  */
 export const PLATFORM_SCHEDULED_TASKS = {
+  CONTEXT_EMBEDDING_SWEEP: 'context-embedding-sweep',
   BRAND_RELOCATION_RECOVERY: 'brand-relocation-recovery',
   PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
   ANALYTICS_SYNC: 'analytics-sync',
@@ -77,6 +78,10 @@ export type PlatformSchedule = {
 };
 
 export const PLATFORM_SCHEDULE_CATALOG = {
+  [PLATFORM_SCHEDULED_TASKS.CONTEXT_EMBEDDING_SWEEP]: {
+    pattern: '* * * * *',
+    timezone: 'UTC',
+  },
   [PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY]: {
     pattern: '* * * * *',
     timezone: 'UTC',

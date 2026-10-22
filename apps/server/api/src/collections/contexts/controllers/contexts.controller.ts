@@ -1,15 +1,20 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
+import { BackfillContextEmbeddingsDto } from '@api/collections/contexts/dto/backfill-context-embeddings.dto';
 import { ContextsQueryDto } from '@api/collections/contexts/dto/contexts-query.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
 import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.dto';
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -17,6 +22,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { MemberRole } from '@genfeedai/contracts';
 import {
   ContextBaseSerializer,
   ContextEntrySerializer,
@@ -149,8 +155,32 @@ export class ContextsController {
       contextId,
       dto,
       organization,
+      undefined,
+      { origin: 'ACTOR', actor: toWorkflowActor(resolveKnowledgeActor(user)) },
     );
     return serializeSingle(req, ContextEntrySerializer, data);
+  }
+
+  @Post(':contextId/embeddings/backfill')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  async backfillEmbeddings(
+    @Req() req: Request,
+    @Param('contextId') contextId: string,
+    @Body() dto: BackfillContextEmbeddingsDto,
+    @CurrentUser() user: User,
+  ) {
+    const actor = toWorkflowActor(resolveKnowledgeActor(user));
+    const result = await this.contextsService.backfillEmbeddings(
+      contextId,
+      actor.organizationId,
+      actor,
+      dto,
+    );
+    return {
+      ...serializeSingle(req, ContextBaseSerializer, result.contextBase),
+      meta: result.admission,
+    };
   }
 
   /**
@@ -185,6 +215,7 @@ export class ContextsController {
       dto,
       organization,
       dbUserId?.toString(),
+      { origin: 'ACTOR', actor: toWorkflowActor(resolveKnowledgeActor(user)) },
     );
     return serializeSingle(req, ContextBaseSerializer, data);
   }
@@ -204,6 +235,7 @@ export class ContextsController {
     return this.contextsService.enhancePrompt(
       { ...dto, brandId },
       organization,
+      resolveKnowledgeActor(user).userId,
     );
   }
 
@@ -214,7 +246,11 @@ export class ContextsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async queryContext(@Body() dto: QueryContextDto, @CurrentUser() user: User) {
     const organization = user.organizationId;
-    return await this.contextsService.queryContext(dto, organization);
+    return await this.contextsService.queryContext(
+      dto,
+      organization,
+      resolveKnowledgeActor(user).userId,
+    );
   }
 
   /**

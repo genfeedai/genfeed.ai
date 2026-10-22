@@ -19,7 +19,11 @@ const DISCOVERY_ROOTS = ['test/e2e', 'test/integration'];
 const REPORT_DIRECTORY = 'test-results/api-e2e';
 const VITEST_CONFIG = 'vitest.config.e2e.ts';
 
-export type ApiE2eTier = 'core' | 'full' | 'isolated-publish';
+export type ApiE2eTier =
+  | 'core'
+  | 'full'
+  | 'isolated-publish'
+  | 'context-embedding';
 
 export type ApiE2eTierPlan = {
   discoveredFiles: string[];
@@ -46,6 +50,7 @@ type VitestJsonReport = {
   testResults?: Array<{
     name?: string;
     status?: string;
+    assertionResults?: Array<{ status?: string }>;
   }>;
 };
 
@@ -110,7 +115,24 @@ export function validateApiE2eTierManifest(
   const exclusionDuplicates = duplicateValues(excludedPaths);
   const isolatedPublishFiles = manifest.isolatedPublishFiles ?? [];
   const isolatedDuplicates = duplicateValues(isolatedPublishFiles);
+  const embeddingFiles = manifest.contextEmbeddingFiles ?? [];
   const errors: string[] = [];
+  if (duplicateValues(embeddingFiles).length)
+    errors.push('Duplicate context-embedding files');
+  if (tier === 'context-embedding' && embeddingFiles.length !== 2)
+    errors.push('Context-embedding requires exactly two acceptance files');
+  for (const file of embeddingFiles) {
+    if (!discovered.has(file))
+      errors.push('Context-embedding file is not discoverable: ' + file);
+    if (
+      manifest.coreFiles.includes(file) ||
+      isolatedPublishFiles.includes(file) ||
+      excludedPaths.includes(file)
+    )
+      errors.push(
+        'Context-embedding file cannot belong to another lane: ' + file,
+      );
+  }
 
   if (coreDuplicates.length > 0) {
     errors.push(`Duplicate core files: ${coreDuplicates.join(', ')}`);
@@ -189,14 +211,20 @@ export function buildApiE2eTierPlan(options: {
 
   const excludedPaths = new Set(manifest.exclusions.map(({ file }) => file));
   const isolatedPaths = new Set(manifest.isolatedPublishFiles ?? []);
+  const embeddingPaths = new Set(manifest.contextEmbeddingFiles ?? []);
   const selectedFiles =
     options.tier === 'core'
       ? [...manifest.coreFiles]
-      : options.tier === 'isolated-publish'
-        ? [...(manifest.isolatedPublishFiles ?? [])]
-        : discoveredFiles.filter(
-            (file) => !excludedPaths.has(file) && !isolatedPaths.has(file),
-          );
+      : options.tier === 'context-embedding'
+        ? [...(manifest.contextEmbeddingFiles ?? [])]
+        : options.tier === 'isolated-publish'
+          ? [...(manifest.isolatedPublishFiles ?? [])]
+          : discoveredFiles.filter(
+              (file) =>
+                !excludedPaths.has(file) &&
+                !isolatedPaths.has(file) &&
+                !embeddingPaths.has(file),
+            );
 
   const isolatedExclusions: ApiE2eExclusion[] = [
     ...(manifest.isolatedPublishFiles ?? []),
@@ -210,7 +238,16 @@ export function buildApiE2eTierPlan(options: {
     discoveredFiles,
     excludedFiles:
       options.tier === 'full'
-        ? [...manifest.exclusions, ...isolatedExclusions]
+        ? [
+            ...manifest.exclusions,
+            ...isolatedExclusions,
+            ...(manifest.contextEmbeddingFiles ?? []).map((file) => ({
+              file,
+              reason:
+                'Owned by the dedicated Context Embedding Acceptance lane.',
+              trackingIssue: 5149,
+            })),
+          ]
         : [],
     selectedFiles,
     tier: options.tier,
@@ -222,10 +259,11 @@ function parseCliOptions(args: string[]): CliOptions {
   if (
     tierValue !== 'core' &&
     tierValue !== 'full' &&
-    tierValue !== 'isolated-publish'
+    tierValue !== 'isolated-publish' &&
+    tierValue !== 'context-embedding'
   ) {
     throw new Error(
-      'Usage: bun run scripts/api-e2e-tiers.ts <core|full|isolated-publish> [--list] [vitest args...]',
+      'Usage: bun run scripts/api-e2e-tiers.ts <core|full|isolated-publish|context-embedding> [--list] [vitest args...]',
     );
   }
 
@@ -238,6 +276,35 @@ function parseCliOptions(args: string[]): CliOptions {
 
 function readVitestReport(reportPath: string): VitestJsonReport {
   return JSON.parse(readFileSync(reportPath, 'utf8')) as VitestJsonReport;
+}
+
+export function validateContextEmbeddingReport(
+  report: VitestJsonReport,
+  selectedFiles: string[],
+): string[] {
+  const errors: string[] = [];
+  const results = report.testResults ?? [];
+  const normalized = results.map(({ name }) =>
+    name ? toPosixPath(path.relative(API_ROOT, name)) : '',
+  );
+  if (
+    results.length !== selectedFiles.length ||
+    duplicateValues(normalized).length ||
+    selectedFiles.some((file) => !normalized.includes(file)) ||
+    normalized.some((file) => !selectedFiles.includes(file))
+  )
+    errors.push('Acceptance report must contain each exact selected file once');
+  for (const result of results) {
+    if (
+      result.status !== 'passed' ||
+      !result.assertionResults?.length ||
+      result.assertionResults.some((assertion) => assertion.status !== 'passed')
+    )
+      errors.push(
+        'Every acceptance file needs nonzero passed assertions and zero skipped or pending assertions',
+      );
+  }
+  return errors;
 }
 
 function writeRunReport(reportPath: string, report: ApiE2eRunReport): void {
@@ -336,6 +403,16 @@ function runApiE2eTier(options: CliOptions): number {
   if (existsSync(vitestReportPath)) {
     const vitestReport = readVitestReport(vitestReportPath);
     executedFileCount = vitestReport.testResults?.length ?? 0;
+    if (options.tier === 'context-embedding') {
+      const errors = validateContextEmbeddingReport(
+        vitestReport,
+        plan.selectedFiles,
+      );
+      if (errors.length) {
+        for (const error of errors) console.error('[api-e2e] ' + error);
+        vitestExitCode = 1;
+      }
+    }
     failedFileCount =
       vitestReport.numFailedTestSuites ??
       vitestReport.testResults?.filter(({ status }) => status === 'failed')

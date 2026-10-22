@@ -1,5 +1,6 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
+import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -10,6 +11,7 @@ import { AgentMemoryCaptureService } from './agent-memory-capture.service';
 
 describe('AgentMemoryCaptureService', () => {
   let service: AgentMemoryCaptureService;
+  let embeddingWriter: { assertCaptureAuthority: ReturnType<typeof vi.fn> };
   let agentMemoriesService: {
     createMemory: ReturnType<typeof vi.fn>;
   };
@@ -34,9 +36,16 @@ describe('AgentMemoryCaptureService', () => {
   const memoryId = 'test-object-id';
   const contextId = 'test-object-id';
 
+  const captureAuthority = {
+    origin: 'ACTOR' as const,
+    actor: { userId, organizationId: orgId, isApiKey: false, scopes: [] },
+  };
   const mockMemory = { id: memoryId };
 
   beforeEach(async () => {
+    embeddingWriter = {
+      assertCaptureAuthority: vi.fn().mockResolvedValue(undefined),
+    };
     agentMemoriesService = {
       createMemory: vi.fn().mockResolvedValue(mockMemory),
     };
@@ -57,6 +66,7 @@ describe('AgentMemoryCaptureService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentMemoryCaptureService,
+        { provide: ContextEmbeddingWriteService, useValue: embeddingWriter },
         { provide: AgentMemoriesService, useValue: agentMemoriesService },
         { provide: ContextsService, useValue: contextsService },
         { provide: BrandMemoryService, useValue: brandMemoryService },
@@ -76,10 +86,38 @@ describe('AgentMemoryCaptureService', () => {
   });
 
   describe('capture', () => {
+    it('rejects revoked capture authority before every memory, insight and context effect', async () => {
+      embeddingWriter.assertCaptureAuthority.mockRejectedValue(
+        new Error('Revoked actor'),
+      );
+      await expect(
+        service.capture(
+          userId,
+          orgId,
+          {
+            brandId,
+            content: 'Private',
+            saveToContextMemory: true,
+            scope: KnowledgeMemoryScope.BRAND,
+          },
+          captureAuthority,
+        ),
+      ).rejects.toThrow('Revoked actor');
+      expect(agentMemoriesService.createMemory).not.toHaveBeenCalled();
+      expect(brandMemoryService.addInsight).not.toHaveBeenCalled();
+      expect(contextsService.create).not.toHaveBeenCalled();
+      expect(contextsService.addEntry).not.toHaveBeenCalled();
+    });
+
     it('always creates a memory record and returns it', async () => {
-      const result = await service.capture(userId, orgId, {
-        content: 'This is a test memory',
-      });
+      const result = await service.capture(
+        userId,
+        orgId,
+        {
+          content: 'This is a test memory',
+        },
+        captureAuthority,
+      );
 
       expect(agentMemoriesService.createMemory).toHaveBeenCalledWith(
         userId,
@@ -92,12 +130,17 @@ describe('AgentMemoryCaptureService', () => {
     });
 
     it('passes campaignId through when capturing brand-scoped campaign memory', async () => {
-      await service.capture(userId, orgId, {
-        brandId,
-        campaignId,
-        content: 'Campaign insight',
-        scope: KnowledgeMemoryScope.BRAND,
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          campaignId,
+          content: 'Campaign insight',
+          scope: KnowledgeMemoryScope.BRAND,
+        },
+        captureAuthority,
+      );
 
       expect(agentMemoriesService.createMemory).toHaveBeenCalledWith(
         userId,
@@ -111,23 +154,33 @@ describe('AgentMemoryCaptureService', () => {
     });
 
     it('does not write brand insight when brandId is absent', async () => {
-      await service.capture(userId, orgId, {
-        content: 'No brand',
-        kind: 'winner',
-        scope: KnowledgeMemoryScope.BRAND,
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          content: 'No brand',
+          kind: 'winner',
+          scope: KnowledgeMemoryScope.BRAND,
+        },
+        captureAuthority,
+      );
 
       expect(brandMemoryService.addInsight).not.toHaveBeenCalled();
     });
 
     it('writes brand insight when brandId + scope=brand is provided', async () => {
-      await service.capture(userId, orgId, {
-        brandId,
-        content: 'Winning hook format',
-        kind: 'winner',
-        scope: KnowledgeMemoryScope.BRAND,
-        summary: 'Short hooks win',
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          content: 'Winning hook format',
+          kind: 'winner',
+          scope: KnowledgeMemoryScope.BRAND,
+          summary: 'Short hooks win',
+        },
+        captureAuthority,
+      );
 
       expect(brandMemoryService.addInsight).toHaveBeenCalledWith(
         orgId,
@@ -140,12 +193,17 @@ describe('AgentMemoryCaptureService', () => {
     });
 
     it('writes brand insight when kind=pattern even without scope=brand', async () => {
-      await service.capture(userId, orgId, {
-        brandId,
-        content: 'Carousel pattern',
-        kind: 'pattern',
-        scope: KnowledgeMemoryScope.PERSONAL,
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          content: 'Carousel pattern',
+          kind: 'pattern',
+          scope: KnowledgeMemoryScope.PERSONAL,
+        },
+        captureAuthority,
+      );
 
       expect(brandMemoryService.addInsight).toHaveBeenCalled();
     });
@@ -153,17 +211,28 @@ describe('AgentMemoryCaptureService', () => {
     it('writes context memory when saveToContextMemory=true', async () => {
       contextsService.findAll.mockResolvedValue({ docs: [] });
 
-      await service.capture(userId, orgId, {
-        brandId,
-        content: 'Sample newsletter copy',
-        saveToContextMemory: true,
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          content: 'Sample newsletter copy',
+          saveToContextMemory: true,
+        },
+        captureAuthority,
+      );
 
       expect(contextsService.create).toHaveBeenCalled();
       expect(contextsService.addEntry).toHaveBeenCalledWith(
         contextId,
         expect.any(Object),
         orgId,
+        undefined,
+        {
+          origin: 'ACTOR',
+          actor: captureAuthority.actor,
+          sourceMemoryId: memoryId,
+        },
       );
     });
 
@@ -175,12 +244,17 @@ describe('AgentMemoryCaptureService', () => {
       };
       contextsService.findAll.mockResolvedValue({ docs: [existingContext] });
 
-      await service.capture(userId, orgId, {
-        brandId,
-        content: 'Reuse check',
-        kind: 'reference',
-        scope: KnowledgeMemoryScope.BRAND,
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          content: 'Reuse check',
+          kind: 'reference',
+          scope: KnowledgeMemoryScope.BRAND,
+        },
+        captureAuthority,
+      );
 
       expect(contextsService.findAll).toHaveBeenCalledWith(
         orgId,
@@ -192,29 +266,45 @@ describe('AgentMemoryCaptureService', () => {
         contextId,
         expect.any(Object),
         orgId,
+        undefined,
+        {
+          origin: 'ACTOR',
+          actor: captureAuthority.actor,
+          sourceMemoryId: memoryId,
+        },
       );
     });
 
     it('returns wroteBrandInsight=false and wroteContextMemory=false when no qualifying fields', async () => {
-      const result = await service.capture(userId, orgId, {
-        content: 'Plain memory, no brand',
-        kind: 'preference',
-        scope: KnowledgeMemoryScope.PERSONAL,
-      });
+      const result = await service.capture(
+        userId,
+        orgId,
+        {
+          content: 'Plain memory, no brand',
+          kind: 'preference',
+          scope: KnowledgeMemoryScope.PERSONAL,
+        },
+        captureAuthority,
+      );
 
       expect(result.wroteBrandInsight).toBe(false);
       expect(result.wroteContextMemory).toBe(false);
     });
 
     it('normalizes out-of-range confidence scores to [0,1]', async () => {
-      await service.capture(userId, orgId, {
-        brandId,
-        confidence: 1.5,
-        content: 'Over-confident memory',
-        kind: 'winner',
-        scope: KnowledgeMemoryScope.BRAND,
-        summary: 'Very confident',
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          confidence: 1.5,
+          content: 'Over-confident memory',
+          kind: 'winner',
+          scope: KnowledgeMemoryScope.BRAND,
+          summary: 'Very confident',
+        },
+        captureAuthority,
+      );
 
       expect(brandMemoryService.addInsight).toHaveBeenCalledWith(
         orgId,
@@ -224,13 +314,18 @@ describe('AgentMemoryCaptureService', () => {
     });
 
     it('uses fallback confidence (0.6) when confidence is undefined', async () => {
-      await service.capture(userId, orgId, {
-        brandId,
-        content: 'No confidence given',
-        kind: 'winner',
-        scope: KnowledgeMemoryScope.BRAND,
-        summary: 'Fallback test',
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          content: 'No confidence given',
+          kind: 'winner',
+          scope: KnowledgeMemoryScope.BRAND,
+          summary: 'Fallback test',
+        },
+        captureAuthority,
+      );
 
       expect(brandMemoryService.addInsight).toHaveBeenCalledWith(
         orgId,
@@ -242,13 +337,18 @@ describe('AgentMemoryCaptureService', () => {
     it('summarizes long content to 220 chars with ellipsis for brand insight', async () => {
       const longContent = 'x'.repeat(300);
 
-      await service.capture(userId, orgId, {
-        brandId,
-        content: longContent,
-        kind: 'winner',
-        scope: KnowledgeMemoryScope.BRAND,
-        // no summary — will derive from content
-      });
+      await service.capture(
+        userId,
+        orgId,
+        {
+          brandId,
+          content: longContent,
+          kind: 'winner',
+          scope: KnowledgeMemoryScope.BRAND,
+          // no summary — will derive from content
+        },
+        captureAuthority,
+      );
 
       const call = brandMemoryService.addInsight.mock.calls[0][2];
       expect(call.insight.length).toBeLessThanOrEqual(220);

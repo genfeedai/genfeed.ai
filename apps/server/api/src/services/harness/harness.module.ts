@@ -1,4 +1,5 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { ContextEmbeddingCoreModule } from '@api/collections/contexts/context-embedding-core.module';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
@@ -18,7 +19,12 @@ import { Module } from '@nestjs/common';
     HarnessReviewFeedbackService,
     HarnessWinnerPromotionService,
   ],
-  imports: [BrandAccessModule, ConfigModule, LoggerModule],
+  imports: [
+    ContextEmbeddingCoreModule,
+    BrandAccessModule,
+    ConfigModule,
+    LoggerModule,
+  ],
   providers: [
     ContentHarnessService,
     HarnessGenerationService,

@@ -32,7 +32,9 @@ describe('AgentMemoriesService', () => {
     update: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
+  let contextEmbeddingJobDelegate: { updateMany: ReturnType<typeof vi.fn> };
   let contextEntryDelegate: {
+    groupBy: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
   let skillDelegate: {
@@ -56,7 +58,13 @@ describe('AgentMemoriesService', () => {
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
+    contextEmbeddingJobDelegate = {
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
     contextEntryDelegate = {
+      groupBy: vi
+        .fn()
+        .mockResolvedValue([{ contextBaseId: 'base', _count: { _all: 1 } }]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     skillDelegate = {
@@ -71,6 +79,9 @@ describe('AgentMemoriesService', () => {
         callback({
           agentMemory: agentMemoryDelegate,
           contextEntry: contextEntryDelegate,
+          contextEmbeddingJob: contextEmbeddingJobDelegate,
+          $queryRaw: vi.fn().mockResolvedValue([]),
+          $executeRaw: vi.fn().mockResolvedValue(1),
           skill: skillDelegate,
         }),
       ),
@@ -447,11 +458,12 @@ describe('AgentMemoriesService', () => {
       },
     });
     expect(contextEntryDelegate.updateMany).toHaveBeenCalledWith({
-      data: { isDeleted: true },
+      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
       where: {
         isDeleted: false,
         organizationId: orgId,
         OR: [
+          { sourceAgentMemoryId: 'brand-memory' },
           {
             data: {
               equals: 'brand-memory',
@@ -461,6 +473,21 @@ describe('AgentMemoriesService', () => {
         ],
       },
     });
+    expect(contextEmbeddingJobDelegate.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: orgId,
+          isDeleted: false,
+          status: { in: ['PENDING', 'RETRYABLE', 'PROCESSING'] },
+        }),
+        data: {
+          status: 'CANCELLED',
+          leaseToken: null,
+          leaseExpiresAt: null,
+          safeFailureCode: 'SOURCE_RETIRED',
+        },
+      }),
+    );
   });
 
   it('promotes a memory into a skill exactly once', async () => {
