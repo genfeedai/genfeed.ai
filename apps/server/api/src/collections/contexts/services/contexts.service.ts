@@ -321,7 +321,7 @@ export class ContextsService {
         },
       });
       await tx.contextEntry.updateMany({
-        where,
+        where: scopedWhere(organizationId, where),
         data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
       });
       await tx.contextBase.update({

@@ -5,7 +5,10 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
+import {
+  softDeleteContextEntries,
+  softDeleteKnowledgeChunks,
+} from '@api/collections/contexts/utils/knowledge-chunk.util';
 import type { MockSql } from '@api/shared/testing/prisma-mock';
 
 function buildTx(groups: Array<{ contextBaseId: string; count: number }>) {
@@ -31,22 +34,22 @@ function buildTx(groups: Array<{ contextBaseId: string; count: number }>) {
       contextEmbeddingJob: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
-    },
+    } as never,
   };
 }
 
 describe('softDeleteKnowledgeChunks', () => {
   it('requires a source or version id', async () => {
     const { tx } = buildTx([]);
-    await expect(
-      softDeleteKnowledgeChunks(tx as never, 'org-1', {}),
-    ).rejects.toThrow('source or version id');
+    await expect(softDeleteKnowledgeChunks(tx, 'org-1', {})).rejects.toThrow(
+      'source or version id',
+    );
   });
 
   it('is a no-op when nothing is linked', async () => {
     const { tx, contextEntry, executeRaw } = buildTx([]);
     await expect(
-      softDeleteKnowledgeChunks(tx as never, 'org-1', { sourceId: 's' }),
+      softDeleteKnowledgeChunks(tx, 'org-1', { sourceId: 's' }),
     ).resolves.toBe(0);
     expect(contextEntry.updateMany).not.toHaveBeenCalled();
     expect(executeRaw).not.toHaveBeenCalled();
@@ -59,7 +62,7 @@ describe('softDeleteKnowledgeChunks', () => {
     ]);
 
     await expect(
-      softDeleteKnowledgeChunks(tx as never, 'org-1', { versionId: 'v-1' }),
+      softDeleteKnowledgeChunks(tx, 'org-1', { versionId: 'v-1' }),
     ).resolves.toBe(7);
 
     expect(contextEntry.updateMany).toHaveBeenCalledWith({
@@ -83,13 +86,38 @@ describe('softDeleteKnowledgeChunks', () => {
     );
   });
 
+  it('reasserts tenant and live-row scope after supplied retirement filters', async () => {
+    const { tx, contextEntry } = buildTx([
+      { contextBaseId: 'base-a', count: 1 },
+    ]);
+    await softDeleteContextEntries(tx, 'org-1', {
+      organizationId: 'foreign-org',
+      isDeleted: true,
+      knowledgeSourceId: 's-1',
+    });
+    const expected = {
+      organizationId: 'org-1',
+      isDeleted: false,
+      knowledgeSourceId: 's-1',
+    };
+    expect(contextEntry.groupBy).toHaveBeenCalledWith({
+      by: ['contextBaseId'],
+      where: expected,
+      _count: { _all: true },
+    });
+    expect(contextEntry.updateMany).toHaveBeenCalledWith({
+      where: expected,
+      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
+    });
+  });
+
   it('soft-deletes every source chunk except the promoted version', async () => {
     const { tx, contextEntry } = buildTx([
       { contextBaseId: 'base-a', count: 1 },
     ]);
 
     await expect(
-      softDeleteKnowledgeChunks(tx as never, 'org-1', {
+      softDeleteKnowledgeChunks(tx, 'org-1', {
         exceptVersionId: 'v-2',
         sourceId: 's-1',
       }),

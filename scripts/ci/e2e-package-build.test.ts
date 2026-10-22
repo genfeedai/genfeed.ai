@@ -133,8 +133,42 @@ describe('E2E package build setup', () => {
         );
       }
     }
+    const embedding = jobBlock(workflow, 'context-embedding-acceptance');
+    expect(
+      embedding.match(/uses: \.\/\.github\/actions\/build-e2e-packages/g),
+    ).toHaveLength(1);
+    expect(embedding).toContain('install-command: "bun install"');
+    expect(embedding).toContain('persist-credentials: false');
+    const bindings = embedding.indexOf(
+      '- name: Configure dedicated disposable database bindings',
+    );
+    const setup = embedding.indexOf(
+      'uses: ./.github/actions/build-e2e-packages',
+    );
+    const databases = embedding.indexOf(
+      '- name: Create dedicated runtime and predecessor upgrade databases',
+    );
+    const acceptance = embedding.indexOf(
+      '- name: Run real migration and worker acceptance',
+    );
+    expect(embedding.indexOf('uses: actions/checkout@')).toBeLessThan(bindings);
+    expect(bindings).toBeLessThan(setup);
+    expect(setup).toBeLessThan(databases);
+    expect(databases).toBeLessThan(acceptance);
+    expect(embedding).toContain(
+      'CREATE DATABASE genfeed_context_embedding_test',
+    );
+    expect(embedding).toContain(
+      'CREATE DATABASE genfeed_context_embedding_upgrade_test',
+    );
+    expect(embedding).toContain(
+      'run: bun run scripts/api-e2e-tiers.ts context-embedding',
+    );
+    expect(embedding).not.toContain(
+      'run: bunx turbo run build --filter="./packages/*"',
+    );
     expect(
       workflow.match(/uses: \.\/\.github\/actions\/build-e2e-packages/g),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
   });
 });

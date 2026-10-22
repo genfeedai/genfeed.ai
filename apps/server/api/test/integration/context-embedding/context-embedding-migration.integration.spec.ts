@@ -187,6 +187,58 @@ describe('actual predecessor migration upgrade', () => {
       expect(
         constraints.rows.some((row) => row.conname.includes('source_snapshot')),
       ).toBe(true);
+      const deferrableTenantKeys = await client.query<{
+        constraint: string;
+        condeferrable: boolean;
+        condeferred: boolean;
+        confupdtype: string;
+      }>(
+        `SELECT conname AS "constraint", condeferrable, condeferred, confupdtype
+         FROM pg_constraint WHERE connamespace = current_schema()::regnamespace
+           AND conname = ANY($1::text[]) ORDER BY conname`,
+        [
+          [
+            'context_embedding_jobs_entry_fkey',
+            'context_embedding_jobs_memory_fkey',
+            'context_entries_embedding_manifest_fkey',
+            'context_entries_source_memory_fkey',
+            'knowledge_embedding_manifests_version_fkey',
+          ],
+        ],
+      );
+      expect(deferrableTenantKeys.rows).toEqual(
+        [
+          'context_embedding_jobs_entry_fkey',
+          'context_embedding_jobs_memory_fkey',
+          'context_entries_embedding_manifest_fkey',
+          'context_entries_source_memory_fkey',
+          'knowledge_embedding_manifests_version_fkey',
+        ].map((constraint) => ({
+          constraint,
+          condeferrable: true,
+          condeferred: false,
+          confupdtype: 'c',
+        })),
+      );
+      const nonDeferrableTenantKeys = await client.query<{
+        constraint: string;
+        table: string;
+      }>(
+        `SELECT c.relname AS "table", con.conname AS "constraint"
+         FROM pg_constraint con
+         JOIN pg_class c ON c.oid = con.conrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE con.contype = 'f' AND n.nspname = current_schema()
+           AND con.confupdtype = 'c' AND NOT con.condeferrable
+           AND array_length(con.conkey, 1) > 1
+           AND EXISTS (
+             SELECT 1 FROM unnest(con.conkey) AS k(attnum)
+             JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.attnum
+             WHERE a.attname ~* '(organization|org)id$'
+           )
+         ORDER BY 1, 2`,
+      );
+      expect(nonDeferrableTenantKeys.rows).toEqual([]);
       const directory = resolve('test-results/context-embedding');
       await mkdir(directory, { recursive: true });
       await writeFile(
@@ -195,6 +247,8 @@ describe('actual predecessor migration upgrade', () => {
           {
             ...environment,
             pgvectorVersion,
+            deferrableTenantKeys: deferrableTenantKeys.rows,
+            nonDeferrableTenantKeys: nonDeferrableTenantKeys.rows,
             predecessorCount: predecessor.length,
             predecessorInventory: predecessor,
             migrationInventory: inventory,

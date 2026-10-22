@@ -14,7 +14,11 @@ const workflow = z
   .object({
     jobs: z.record(
       z.string(),
-      z.object({ services: z.record(z.string(), z.unknown()).optional() }),
+      z.object({
+        services: z.record(z.string(), z.unknown()).optional(),
+        env: z.record(z.string(), z.unknown()).optional(),
+        steps: z.array(z.record(z.string(), z.unknown())).optional(),
+      }),
     ),
   })
   .parse(parse(source));
@@ -49,9 +53,9 @@ const serviceJobs = [
 describe('E2E resolved service configuration', () => {
   it('defines each identical service once at first use', () => {
     expect(source.match(/^ {8}image: pgvector\/pgvector:pg17$/gm)).toHaveLength(
-      1,
+      2,
     );
-    expect(source.match(/^ {8}image: redis:7$/gm)).toHaveLength(1);
+    expect(source.match(/^ {8}image: redis:7$/gm)).toHaveLength(2);
     expect(source).toMatch(/^ {6}postgres: &e2e-postgres$/m);
     expect(source).toMatch(/^ {6}redis: &e2e-redis$/m);
     expect(source.match(/^ {6}postgres: \*e2e-postgres$/gm)).toHaveLength(6);
@@ -63,6 +67,7 @@ describe('E2E resolved service configuration', () => {
     expect(Object.keys(workflow.jobs)).toEqual([
       'e2e-route-coverage',
       'e2e-api',
+      'context-embedding-acceptance',
       'e2e-api-full',
       'e2e-isolated-publish',
       'e2e-frontend',
@@ -80,7 +85,46 @@ describe('E2E resolved service configuration', () => {
       Object.entries(workflow.jobs)
         .filter(([, job]) => job.services !== undefined)
         .map(([id]) => id),
-    ).toEqual(serviceJobs);
+    ).toEqual([
+      serviceJobs[0],
+      'context-embedding-acceptance',
+      ...serviceJobs.slice(1),
+    ]);
+  });
+
+  it('isolates the embedding pair with exact disposable credentials and bootstrap database', () => {
+    const job = workflow.jobs['context-embedding-acceptance'];
+    expect(job?.env).toEqual({
+      NODE_ENV: 'test',
+      CONTEXT_EMBEDDING_REDIS_URL: 'redis://localhost:6379/0',
+      CONTEXT_EMBEDDING_ACCEPTANCE: '1',
+      CONTEXT_EMBEDDING_CANDIDATE_SHA: `\${{ github.sha }}`,
+    });
+    const preparation = job?.steps?.find(
+      (step) =>
+        step.name ===
+        'Create dedicated runtime and predecessor upgrade databases',
+    );
+    expect(preparation?.env).toEqual({
+      PGPASSWORD: 'context_embedding_fixture',
+    });
+    expect(preparation?.run).toBe(
+      "psql -h localhost -U context_embedding_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE genfeed_context_embedding_test'\n" +
+        "psql -h localhost -U context_embedding_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE genfeed_context_embedding_upgrade_test'\n",
+    );
+    expect(job?.services).toEqual({
+      postgres: {
+        ...postgres,
+        env: {
+          POSTGRES_DB: 'postgres',
+          POSTGRES_USER: 'context_embedding_test',
+          POSTGRES_PASSWORD: 'context_embedding_fixture',
+        },
+        options:
+          '--health-cmd "pg_isready -U context_embedding_test -d postgres" --health-interval 5s --health-timeout 5s --health-retries 10',
+      },
+      redis,
+    });
   });
 
   it.each(serviceJobs)(

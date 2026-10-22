@@ -112,28 +112,28 @@ CREATE UNIQUE INDEX "context_entries_id_organizationId_key" ON "context_entries"
 CREATE UNIQUE INDEX "context_entries_manifest_chunk_key" ON "context_entries"("knowledgeEmbeddingManifestId", "knowledgeChunkIndex");
 
 -- AddForeignKey
-ALTER TABLE "context_entries" ADD CONSTRAINT "context_entries_embedding_manifest_fkey" FOREIGN KEY ("knowledgeEmbeddingManifestId", "knowledgeSourceVersionId", "knowledgeSourceId", "organizationId") REFERENCES "knowledge_embedding_manifests"("id", "versionId", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "context_entries" ADD CONSTRAINT "context_entries_embedding_manifest_fkey" FOREIGN KEY ("knowledgeEmbeddingManifestId", "knowledgeSourceVersionId", "knowledgeSourceId", "organizationId") REFERENCES "knowledge_embedding_manifests"("id", "versionId", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
 
 -- AddForeignKey
-ALTER TABLE "context_entries" ADD CONSTRAINT "context_entries_source_memory_fkey" FOREIGN KEY ("sourceAgentMemoryId", "organizationId") REFERENCES "agent_memories"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "context_entries" ADD CONSTRAINT "context_entries_source_memory_fkey" FOREIGN KEY ("sourceAgentMemoryId", "organizationId") REFERENCES "agent_memories"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
 
 -- AddForeignKey
 ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_entry_fkey" FOREIGN KEY ("contextEntryId", "organizationId") REFERENCES "context_entries"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_entry_fkey" FOREIGN KEY ("contextEntryId", "organizationId") REFERENCES "context_entries"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
 
 -- AddForeignKey
 ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_memory_fkey" FOREIGN KEY ("sourceMemoryId", "organizationId") REFERENCES "agent_memories"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_memory_fkey" FOREIGN KEY ("sourceMemoryId", "organizationId") REFERENCES "agent_memories"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
 
 -- AddForeignKey
 ALTER TABLE "knowledge_embedding_manifests" ADD CONSTRAINT "knowledge_embedding_manifests_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "knowledge_embedding_manifests" ADD CONSTRAINT "knowledge_embedding_manifests_version_fkey" FOREIGN KEY ("versionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "knowledge_embedding_manifests" ADD CONSTRAINT "knowledge_embedding_manifests_version_fkey" FOREIGN KEY ("versionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "context_entries"
   ADD CONSTRAINT "context_entries_embedding_generation_check" CHECK (

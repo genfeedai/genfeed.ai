@@ -9,6 +9,7 @@ import { ContextEmbeddingQueueService } from '@api/collections/contexts/services
 import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   KnowledgeProcessingState,
   KnowledgeRetentionState,
@@ -225,15 +226,13 @@ export class KnowledgeEmbeddingCompletionService {
         versionId,
       );
       const manifest = await tx.knowledgeEmbeddingManifest.findFirst({
-        where: {
-          organizationId,
+        where: scopedWhere(organizationId, {
           sourceId,
           versionId,
           ...(manifestId
             ? { id: manifestId }
             : { generation: version.embeddingGeneration }),
-          isDeleted: false,
-        },
+        }),
       });
       if (!manifest)
         throw new BadRequestException(

@@ -48,6 +48,24 @@ describe('context embedding durable admission migration', () => {
       /FOREIGN KEY \("sourceAgentMemoryId", "organizationId"\) REFERENCES "agent_memories"\("id", "organizationId"\)/,
     );
   });
+  it('preserves deferrable cascading tenant keys for transactional organization moves', () => {
+    expect(sql).toContain(
+      'ALTER TABLE "context_entries" ADD CONSTRAINT "context_entries_embedding_manifest_fkey" FOREIGN KEY ("knowledgeEmbeddingManifestId", "knowledgeSourceVersionId", "knowledgeSourceId", "organizationId") REFERENCES "knowledge_embedding_manifests"("id", "versionId", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;',
+    );
+    expect(sql).toContain(
+      'ALTER TABLE "context_entries" ADD CONSTRAINT "context_entries_source_memory_fkey" FOREIGN KEY ("sourceAgentMemoryId", "organizationId") REFERENCES "agent_memories"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;',
+    );
+    expect(sql).toContain(
+      'ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_entry_fkey" FOREIGN KEY ("contextEntryId", "organizationId") REFERENCES "context_entries"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;',
+    );
+    expect(sql).toContain(
+      'ALTER TABLE "context_embedding_jobs" ADD CONSTRAINT "context_embedding_jobs_memory_fkey" FOREIGN KEY ("sourceMemoryId", "organizationId") REFERENCES "agent_memories"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;',
+    );
+    expect(sql).toContain(
+      'ALTER TABLE "knowledge_embedding_manifests" ADD CONSTRAINT "knowledge_embedding_manifests_version_fkey" FOREIGN KEY ("versionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY IMMEDIATE;',
+    );
+    expect(sql.match(/DEFERRABLE INITIALLY IMMEDIATE/g)).toHaveLength(5);
+  });
   it('keeps a canonical opaque actor user FK without blocking API-key deletion', () => {
     expect(sql).toMatch(
       /FOREIGN KEY \("actorUserId"\) REFERENCES "users"\("id"\) ON DELETE RESTRICT/,

@@ -74,7 +74,7 @@ export async function softDeleteContextEntries(
   });
   const removed = await prisma.contextEntry.updateMany({
     data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
-    where: scoped,
+    where: scopedWhere(organizationId, { ...where, isDeleted: false }),
   });
   for (const group of perBase) {
     await prisma.$executeRaw(Prisma.sql`
