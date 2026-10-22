@@ -45,7 +45,28 @@ import {
   Palette,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState, useSyncExternalStore } from 'react';
+
+const PHONE_QUERY = '(max-width: 639px)';
+// Width of the More setup menu (`w-56`), the amount a phone submenu overlaps it.
+const MORE_SETUP_MENU_WIDTH_PX = 224;
+
+function subscribeToPhoneViewport(onChange: () => void): () => void {
+  if (typeof window.matchMedia !== 'function') return () => undefined;
+  const query = window.matchMedia(PHONE_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+function usePhoneViewport(): boolean {
+  return useSyncExternalStore(
+    subscribeToPhoneViewport,
+    () =>
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(PHONE_QUERY).matches,
+    () => false,
+  );
+}
 
 interface SectionChip {
   icon: ReactNode;
@@ -81,6 +102,7 @@ export default function GenerationSetupSectionChips(
     trailing,
   } = props;
   const translate = useTranslations('agent.generationSetup');
+  const isPhoneViewport = usePhoneViewport();
   const [openSection, setOpenSection] = useState<GenerationSetupChipId>();
   const scopedLookOptions =
     inputControls?.mediaKind === 'video'
@@ -271,9 +293,9 @@ export default function GenerationSetupSectionChips(
               : PROMPT_BAR_SETUP_MENU_CLASS
           }
           collisionPadding={16}
-          // On a phone neither side of the More setup menu fits the submenu;
-          // keep it inside the viewport instead of detaching from the trigger.
-          sticky="always"
+          // On a phone neither side of the More setup menu has room for a
+          // submenu; overlap the parent so it opens over it, inside the viewport.
+          sideOffset={isPhoneViewport ? -MORE_SETUP_MENU_WIDTH_PX : undefined}
         >
           {chip.id === 'output' ? (
             <GenerationSetupOutputMenu
