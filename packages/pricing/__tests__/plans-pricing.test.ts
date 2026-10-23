@@ -15,6 +15,7 @@ import {
   formatPlanIncludedCredits,
   formatPlanMonthlyPrice,
   formatPlanPriceLabel,
+  flux3ImageCredits,
   formatPrice,
   formatTierLabel,
   GENERATION_MARGIN_TAPER_MULTIPLIER,
@@ -24,6 +25,7 @@ import {
   getPlanLabel,
   getRuntimeMarginMultiplier,
   getScalePlan,
+  IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   MAX_MARGIN_MULTIPLIER,
   PAYG_CREDIT_PACKS,
@@ -333,6 +335,17 @@ describe('pricing constants', () => {
     });
     // An Avatar IV digital twin ($0.0805/s) falls inside the range.
     expect(clip(0.0805)).toBe(108);
+  });
+
+  it('prices the public FLUX.3 image from the reviewed rates, not a flat 50', () => {
+    // $0.024, $0.05 and $0.3035 per image at the 3.33 margin.
+    expect(flux3ImageCredits('1k')).toBe(8);
+    expect(flux3ImageCredits('2k')).toBe(17);
+    expect(flux3ImageCredits('4k')).toBe(102);
+    expect(IMAGE_CREDIT_COSTS).toEqual({
+      image1kTo2k: { maxCredits: 17, minCredits: 8 },
+      image4k: 102,
+    });
   });
 
   it('scales an avatar clip with its length the way admission holds it', () => {
