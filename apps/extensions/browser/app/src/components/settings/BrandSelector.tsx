@@ -1,10 +1,16 @@
+import { ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
+import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+  SWITCHER_AVATAR_CLASSNAME,
+  SWITCHER_CHEVRON_CLASSNAME,
+  SWITCHER_LABEL_CLASSNAME,
+  SWITCHER_TRIGGER_CLASSNAME,
+  SWITCHER_TRIGGER_OPEN_CLASSNAME,
+} from '@ui/menus/switchers/switcher-trigger.classes';
+import { Button } from '@ui/primitives/button';
+import { ChevronsUpDown } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useBrandVoice } from '~hooks/use-brand-voice';
 import { selectWorkspaceBrand } from '~services/workspace.service';
@@ -12,42 +18,56 @@ import { useBrandStore } from '~store/use-brand-store';
 import { useWorkspaceStore } from '~store/use-workspace-store';
 
 export function BrandSelector(): ReactElement {
-  const brands = useBrandStore((s) => s.brands);
-  const activeBrandId = useBrandStore((s) => s.activeBrandId);
+  const brands = useBrandStore((state) => state.brands);
+  const activeBrandId = useBrandStore((state) => state.activeBrandId);
   useBrandVoice();
   const workspace = useWorkspaceStore();
-
-  function handleChange(value: string) {
-    void selectWorkspaceBrand(value || null).catch(() => undefined);
-  }
-
-  if (brands.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        No brands found. Create a brand in Genfeed Studio.
-      </p>
-    );
-  }
+  const selected = brands.find((brand) => brand.id === activeBrandId);
+  const label =
+    selected?.label ?? (brands.length ? 'Select brand' : 'No brands');
 
   return (
-    <Select
-      disabled={workspace.status !== 'ready'}
-      value={activeBrandId ?? ''}
-      onValueChange={handleChange}
-    >
-      <SelectTrigger
-        aria-label="Active brand"
-        className="h-8 w-full border-0 bg-transparent text-xs shadow-none"
-      >
-        <SelectValue placeholder="Select a brand..." />
-      </SelectTrigger>
-      <SelectContent>
-        {brands.map((brand) => (
-          <SelectItem key={brand.id} value={brand.id}>
-            {brand.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SwitcherDropdown
+      className="min-w-0 w-full"
+      minWidth={220}
+      items={brands.map((brand) => ({
+        id: brand.id,
+        label: brand.label,
+        imageUrl: brand.logoUrl,
+        isActive: brand.id === activeBrandId,
+      }))}
+      isDisabled={workspace.status !== 'ready' || brands.length === 0}
+      isLoading={workspace.status === 'loading'}
+      hasSearch={brands.length >= 5}
+      searchPlaceholder="Search brands…"
+      emptyMessage="No brands"
+      onSelect={(id) => {
+        void selectWorkspaceBrand(id).catch(() => undefined);
+      }}
+      renderTrigger={({ isOpen }) => (
+        <Button
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          ariaLabel={`Switch brand, ${label}`}
+          title={label}
+          className={cn(
+            SWITCHER_TRIGGER_CLASSNAME,
+            'px-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+            isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+          )}
+        >
+          <SwitcherAvatar
+            alt={label}
+            imageUrl={selected?.logoUrl}
+            letter={label.charAt(0).toUpperCase()}
+            fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
+            imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
+          />
+          <span className={SWITCHER_LABEL_CLASSNAME}>{label}</span>
+          <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} aria-hidden />
+        </Button>
+      )}
+    />
   );
 }

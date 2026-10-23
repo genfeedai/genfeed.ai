@@ -13,6 +13,7 @@
 @source "../../../../../packages/ui/src/primitives";
 @source "../../../../../packages/ui/src/styles/hover-reveal.ts";
 @source "../../../../../packages/ui/src/components/prompt-bars/components";
+@source "../../../../../packages/ui/src/components/menus";
 @source "../../../../../packages/agent/src/components/ContentLibraryPicker.tsx";
 
 /* Tailwind v4 does not consume tailwind.config.ts automatically. Register the

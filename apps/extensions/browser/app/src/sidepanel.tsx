@@ -294,9 +294,11 @@ function SidePanelContent() {
         aria-busy={workspace.status === 'refreshing'}
         className="gf-app flex h-screen min-w-0 flex-col bg-background text-foreground"
       >
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
-          <span className="text-sm font-semibold tracking-tight">Genfeed</span>
-          <div className="ml-auto min-w-0 w-40">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3">
+          <span className="shrink-0 text-sm font-semibold tracking-tight">
+            Genfeed
+          </span>
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-1">
             <OrganizationSelector />
             <BrandSelector />
           </div>
