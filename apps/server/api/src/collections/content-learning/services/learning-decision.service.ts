@@ -9,6 +9,7 @@ import {
 } from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import {
+  baselineCensorshipReason,
   type LearningBatchGenerationInput,
   type LearningCandidateInput,
   type LearningGenerationInput,
@@ -20,10 +21,16 @@ import {
   learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
+  attachLearningOpportunity,
+  closeLearningPilotAssignment,
+  openLearningPilotAssignment,
+} from '@api/collections/content-learning/services/learning-experiment-assignment.helper';
+import {
   learningHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
+import { validLearningReplayIdentityV1 } from '@api/collections/content-learning/services/learning-replay-identity.helper';
 import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -31,6 +38,7 @@ import {
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
+  type LearningArmExclusionV1,
   type LearningCellDescriptor,
   type LearningGenerationReceipt,
   type LearningScope,
@@ -68,6 +76,8 @@ export type {
 export interface LearningResolution {
   receipt: LearningGenerationReceipt;
   contribution: ContentHarnessContribution;
+  /** Arms the approved brand excluded from the pilot assignment, if any. */
+  exclusions?: LearningArmExclusionV1[];
 }
 type LearningDistribution = Record<LearningArmId, number>;
 function distribution(value: unknown): LearningDistribution | null {
@@ -195,53 +205,27 @@ export class LearningDecisionService {
       contribution: {},
     };
   }
-  private validReplayIdentity(
+  private async replay(
+    tx: Prisma.TransactionClient,
     input: LearningGenerationInput,
     decision: ContentLearningDecision,
-    account: ContentLearningAccount,
-    scope: ContentLearningScopeState,
+    account: ContentLearningAccount | null,
     destinationKey: string,
-    descriptor: LearningCellDescriptor,
-  ): boolean {
-    const context = input.context;
-    if (!context) return false;
-    if (
-      decision.isDeleted ||
-      decision.synthetic ||
-      decision.organizationId !== input.organizationId ||
-      decision.brandId !== input.brandId ||
-      decision.credentialId !== context.credentialId ||
-      decision.requestKey !== context.requestKey ||
-      decision.candidateIndex !== context.candidateIndex ||
-      decision.destinationKey !== destinationKey ||
-      account.brandId !== input.brandId ||
-      scope.brandId !== input.brandId ||
-      !decision.descriptorHash ||
-      !validLearningDescriptor(descriptor) ||
-      descriptor.format !== input.format ||
-      descriptor.objective !== (context.objective ?? 'awareness') ||
-      descriptor.configVersion !== decision.configVersion ||
-      learningHash(learningDescriptorTuple(descriptor)) !==
-        decision.descriptorHash ||
-      decision.descriptorHash !== scope.descriptorHash ||
-      !validLearningDescriptor(scope.cellDescriptor) ||
-      learningHash(learningDescriptorTuple(scope.cellDescriptor)) !==
-        decision.descriptorHash ||
-      learningScopeKey({
-        organizationId: input.organizationId,
-        brandId: input.brandId,
-        credentialId: decision.credentialId,
-        platform: descriptor.platform,
-        format: descriptor.format,
-        objective: descriptor.objective,
-        rewardProfileId: decision.descriptorHash,
-      }) !== decision.scopeKey ||
-      !LEARNING_ARMS.includes(decision.selectedArmId as LearningArmId)
-    )
-      return false;
-    return true;
+    payloadHash: string,
+  ): Promise<LearningResolution> {
+    const resolution = await this.replayDecision(
+      tx,
+      input,
+      decision,
+      account,
+      destinationKey,
+      payloadHash,
+    );
+    return decision.opportunityId
+      ? attachLearningOpportunity(tx, decision, resolution)
+      : resolution;
   }
-  private async replay(
+  private async replayDecision(
     tx: Prisma.TransactionClient,
     input: LearningGenerationInput,
     decision: ContentLearningDecision,
@@ -282,7 +266,7 @@ export class LearningDecisionService {
     const descriptor = decision.cellDescriptor;
     if (
       !validLearningDescriptor(descriptor) ||
-      !this.validReplayIdentity(
+      !validLearningReplayIdentityV1(
         input,
         decision,
         account,
@@ -886,18 +870,25 @@ export class LearningDecisionService {
       probabilities,
       0,
     );
-    const reason = ['shadow', 'paused'].includes(account.mode)
-      ? account.mode
-      : !base.harnessEnabled
-        ? 'harness_off'
-        : !base.compatible
-          ? 'incompatible_intent'
-          : (account.failureReason ??
-            (baseline.count < 20
-              ? 'insufficient_baseline'
-              : 'experiment_assignment_unavailable'));
+    const reason = baselineCensorshipReason(account, base, baseline.count);
+    const pilotScope = {
+      isSingleCandidate: inputs.length === 1 && create.length === 1,
+      account,
+      scope,
+      scopeKey,
+      baseline,
+      features,
+      decisionAt,
+      credentialId: credential.id,
+    };
     for (const index of create) {
       const context = inputs[index].context;
+      const pilot = await openLearningPilotAssignment(
+        { tx, dependencies: this.dependencies, policies: this.policies },
+        pilotScope,
+        inputs[index],
+        identities[index],
+      );
       const decision = await tx.contentLearningDecision.create({
         data: {
           organizationId: base.organizationId,
@@ -922,6 +913,7 @@ export class LearningDecisionService {
             rewardProfileId: scope.rewardProfileId,
             treatmentProbabilities: probabilities,
             controlProbabilities: probabilities,
+            ...pilot?.snapshot,
           }),
           eligibleArmIds: ['baseline-v1'],
           probabilities: toPrismaJson(probabilities),
@@ -940,6 +932,7 @@ export class LearningDecisionService {
           originalPromptHash: learningHash(base.originalPrompt),
           createdAt: decisionAt,
           censorshipReason: reason,
+          ...pilot?.decisionFields,
         },
       });
       await this.linkBaselineDecisionSources(
@@ -951,7 +944,22 @@ export class LearningDecisionService {
         base.brandId,
         baseline.id,
       );
-      results[index] = { receipt: this.receipt(decision), contribution: {} };
+      if (pilot)
+        await closeLearningPilotAssignment(
+          { tx, dependencies: this.dependencies, policies: this.policies },
+          pilot,
+          decision,
+        );
+      results[index] = pilot
+        ? await this.replay(
+            tx,
+            inputs[index],
+            decision,
+            account,
+            identities[index].destinationKey,
+            identities[index].payloadHash,
+          )
+        : { receipt: this.receipt(decision), contribution: {} };
     }
     return results as LearningResolution[];
   }

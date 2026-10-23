@@ -73,6 +73,53 @@ describe('learningGenerationApplicationReceiptV1', () => {
       true,
     );
   });
+  it('maps a control opportunity to baseline and keeps its provenance', () => {
+    const resolution = decisionReceipt('experiment_control');
+    resolution.receipt.opportunityId = 'opportunity';
+    resolution.receipt.experimentId = 'experiment';
+    const receipt = learningGenerationApplicationReceiptV1(resolution, at);
+    expect(receipt.application).toMatchObject({
+      status: 'baseline',
+      reasonCodes: ['experiment_control'],
+      privatePolicyApplied: false,
+    });
+    expect(receipt).toMatchObject({
+      opportunityId: 'opportunity',
+      experimentId: 'experiment',
+    });
+    expect(learningGenerationReceiptSchema.safeParse(receipt).success).toBe(
+      true,
+    );
+  });
+  it('appends sorted, unique exclusion reason codes after the primary reason', () => {
+    const resolution = decisionReceipt('experiment_treatment_baseline');
+    resolution.exclusions = [
+      {
+        armId: 'question-example-v1',
+        reasonCode: 'learning.missing_approved_example',
+      },
+      { armId: 'proof-steps-v1', reasonCode: 'brand_compatibility_unknown' },
+      { armId: 'proof-steps-v1', reasonCode: 'brand_compatibility_unknown' },
+    ];
+    const receipt = learningGenerationApplicationReceiptV1(resolution, at);
+    expect(receipt.application?.status).toBe('baseline');
+    expect(receipt.application?.reasonCodes).toEqual([
+      'experiment_treatment_baseline',
+      'learning_arm_excluded:proof-steps-v1:brand_compatibility_unknown',
+      'learning_arm_excluded:question-example-v1:learning.missing_approved_example',
+    ]);
+    expect(learningGenerationReceiptSchema.safeParse(receipt).success).toBe(
+      true,
+    );
+  });
+  it('leaves reason codes unchanged without exclusions', () => {
+    const resolution = decisionReceipt('shadow');
+    resolution.exclusions = [];
+    expect(
+      learningGenerationApplicationReceiptV1(resolution, at).application
+        ?.reasonCodes,
+    ).toEqual(['shadow']);
+  });
   it.each([
     [
       { mode: 'no_destination' as const, reason: 'no_destination' },

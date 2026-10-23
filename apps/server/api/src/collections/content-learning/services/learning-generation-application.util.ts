@@ -58,6 +58,19 @@ function application(
   return { status: 'baseline', reasonCodes: reason ? [reason] : [] };
 }
 
+function exclusionReasonCodes(
+  exclusions: LearningResolution['exclusions'],
+): string[] {
+  return [
+    ...new Set(
+      (exclusions ?? []).map(
+        ({ armId, reasonCode }) =>
+          `learning_arm_excluded:${armId}:${reasonCode}`,
+      ),
+    ),
+  ].sort();
+}
+
 /**
  * Maps a resolved decision to the caller-visible application receipt. No
  * learned contribution is applied in this revision, so `applied` is never
@@ -67,10 +80,15 @@ export function learningGenerationApplicationReceiptV1(
   resolution: LearningResolution,
   revalidatedAt: Date,
 ): LearningGenerationReceipt {
+  const status = application(resolution);
   const parsed = learningGenerationReceiptSchema.safeParse({
     ...resolution.receipt,
     application: {
-      ...application(resolution),
+      ...status,
+      reasonCodes: [
+        ...status.reasonCodes,
+        ...exclusionReasonCodes(resolution.exclusions),
+      ],
       ...INACTIVE,
       revalidatedAt: revalidatedAt.toISOString(),
     },
