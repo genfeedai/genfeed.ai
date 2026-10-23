@@ -2,77 +2,25 @@
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  CalendarSlotState,
-  formatPlatformLabel,
-  ModalEnum,
-  PostCategory,
-  PostRepurposeMode,
-  parsePlatform,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
-import { normalizePostingTimes } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
-  createPublishingApprovalsRoute,
 } from '@genfeedai/contracts/constants';
-import type {
-  IArticle,
-  ICalendarSlot,
-  IPostingCadence,
-  IReleaseGroup,
-} from '@genfeedai/contracts/interfaces';
+import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
-import type { Newsletter } from '@models/content/newsletter.model';
-import {
-  createPublishingContentLibraryItems,
-  filterPublishingContentLibraryItems,
-  parsePublishingContentType,
-  publishingContentTitle,
-} from '@pages/posts/library/publishing-content-library.helpers';
-import ReleaseDetailDrawer, {
-  RELEASE_RESCHEDULE_ACTION,
-  targetRescheduleAction,
-  targetRetryAction,
-} from '@pages/posts/release/release-detail-drawer';
-import { createReleaseMutationRunner } from '@pages/posts/release/release-mutation-runner';
+import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
 import CalendarRepublishDialog, {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
 } from '@pages/posts/shared/calendar-republish-dialog';
-import {
-  isReleaseDragConfirmRequired,
-  isReleaseDraggable,
-  releaseScheduledInstant,
-  releaseStatusBadge,
-  releaseTargets,
-} from '@pages/posts/shared/release-status.helpers';
-import type {
-  CalendarEventAction,
-  CalendarEventBadge,
-  CalendarEventChannel,
-  CalendarEventDrop,
-  CalendarViewKey,
-} from '@props/components/calendar.props';
-import type {
-  PendingCalendarDrop,
-  ReleaseCalendarFilterOption,
-  ReleaseCalendarFilters as ReleaseFilters,
-} from '@props/publisher/release-calendar.props';
-import type {
-  ArticleContentCalendarItem,
-  ContentCalendarItem,
-  DayAggregateContentCalendarItem,
-  NewsletterContentCalendarItem,
-  ReleaseContentCalendarItem,
-  SlotContentCalendarItem,
-} from '@props/publishing/content-calendar-page.props';
+import type { CalendarViewKey } from '@props/components/calendar.props';
+import type { ReleaseCalendarFilters as ReleaseFilters } from '@props/publisher/release-calendar.props';
+import type { ContentCalendarPageProps } from '@props/publishing/content-calendar-controller.props';
+import type { ContentCalendarItem } from '@props/publishing/content-calendar-page.props';
 import {
   useConfirmModal,
   usePostRepurposeModal,
@@ -81,9 +29,7 @@ import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
-import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
-import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
@@ -91,40 +37,28 @@ import { Button } from '@ui/primitives/button';
 import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import CadenceFormSheet from './cadence-form-sheet';
-import {
-  aggregateCalendarItemsByDay,
-  isMissingCalendarSlot,
-  isUnfilledCalendarSlot,
-} from './calendar-day-aggregate';
-import {
-  CALENDAR_SLOT_EVENT_COLOR,
-  getContentCalendarEventColor,
-} from './calendar-item-color.helper';
+import { isMissingCalendarSlot } from './calendar-day-aggregate';
 import CalendarSlotPanel from './calendar-slot-panel';
+import { buildContentCalendarItems } from './content-calendar-items';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
 } from './release-calendar-filters';
-
-function mutationErrorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'The schedule change could not be saved.';
-}
+import { useCalendarBulkGeneration } from './use-calendar-bulk-generation';
+import { useCalendarChannelOptions } from './use-calendar-channel-options';
+import { useCalendarEventPresentation } from './use-calendar-event-presentation';
+import { useCalendarReleaseActions } from './use-calendar-release-actions';
+import { useCalendarSlotActions } from './use-calendar-slot-actions';
+import { useContentCalendarData } from './use-content-calendar-data';
 
 export default function ContentCalendarPage({
   campaignId,
   embedded = false,
-}: {
-  campaignId?: string;
-  embedded?: boolean;
-} = {}): React.JSX.Element {
+}: ContentCalendarPageProps = {}): React.JSX.Element {
   const searchParams = useSearchParams();
   const globalFilterQuery = embedded ? searchParams.toString() : '';
-  const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const getNewslettersService = useAuthedService(
     useCallback((token: string) => NewslettersService.getInstance(token), []),
   );
@@ -157,41 +91,135 @@ export default function ContentCalendarPage({
 
   const { openPostRepurposeModal } = usePostRepurposeModal();
 
-  const [articles, setArticles] = useState<IArticle[]>([]);
-  const [releases, setReleases] = useState<IReleaseGroup[]>([]);
-  const [slots, setSlots] = useState<ICalendarSlot[]>([]);
-  const [cadences, setCadences] = useState<IPostingCadence[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ICalendarSlot | null>(null);
-  const [editingCadence, setEditingCadence] = useState<IPostingCadence | null>(
-    null,
-  );
-  const [isCadenceFormOpen, setIsCadenceFormOpen] = useState(false);
-  const [isSlotPending, setIsSlotPending] = useState(false);
-  const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(
-    null,
-  );
   const [filters, setFilters] = useState<ReleaseFilters>(
     EMPTY_RELEASE_CALENDAR_FILTERS,
   );
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [pendingDrop, setPendingDrop] = useState<PendingCalendarDrop | null>(
-    null,
-  );
-  const pendingDropRef = useRef<PendingCalendarDrop | null>(null);
-  pendingDropRef.current = pendingDrop;
-  const [drawerError, setDrawerError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [calendarView, setCalendarView] = useState<CalendarViewKey>('week');
-  const [isBulkPending, setIsBulkPending] = useState(false);
-  const bulkAbortRef = useRef<AbortController | null>(null);
   const [dateRange, setDateRange] = useCalendarWeekRange();
 
-  useEffect(() => {
-    return () => {
-      bulkAbortRef.current?.abort();
-    };
-  }, []);
+  const defaultCredentialId = credentials[0]?.id ?? '';
+  const {
+    articles,
+    newsletters,
+    releases,
+    setReleases,
+    slots,
+    setSlots,
+    cadences,
+    setCadences,
+    isLoading,
+  } = useContentCalendarData({
+    brandId,
+    campaignId,
+    dateRange,
+    filters,
+    getArticlesService,
+    getNewslettersService,
+    getPostingCadencesService,
+    getReleaseGroupsService,
+    notificationsService,
+  });
+  const {
+    selectedRelease,
+    setSelectedReleaseId,
+    pendingAction,
+    pendingDrop,
+    drawerError,
+    setDrawerError,
+    handleEventDrop,
+    handleCancelPendingDrop,
+    handleCardOnlyDrop,
+    handleRepublishDrop,
+    handleRescheduleRelease,
+    handleRescheduleTarget,
+    handleRetryTarget,
+    handleResumeRelease,
+    handleAddChannel,
+  } = useCalendarReleaseActions({
+    releases,
+    setReleases,
+    getReleaseGroupsService,
+    getPostsService,
+    notificationsService,
+    openPostRepurposeModal,
+    push,
+    href,
+  });
+  const {
+    editingCadence,
+    setEditingCadence,
+    isCadenceFormOpen,
+    setIsCadenceFormOpen,
+    isSlotPending,
+    generateSlotByIdentity,
+    handleDateClick,
+    handleGenerateSlot,
+    handleWriteSlot,
+    handleSkipSlot,
+    handleCancelSlot,
+    handleCloseSlot,
+    handleEditCadence,
+    handleDeleteCadence,
+    handleSubmitCadence,
+  } = useCalendarSlotActions({
+    brandId,
+    defaultCredentialId,
+    dateRange,
+    cadences,
+    setCadences,
+    setSlots,
+    selectedSlot,
+    setSelectedSlot,
+    setSelectedReleaseId,
+    getPostingCadencesService,
+    notificationsService,
+    push,
+    href,
+  });
+  const { isBulkPending, bulkAbortRef, confirmBulkGenerate } =
+    useCalendarBulkGeneration({
+      getPostingCadencesService,
+      setSlots,
+      setSelectedSlot,
+      notificationsService,
+      openConfirm,
+      translate,
+    });
+  const calendarItems = useMemo(
+    () =>
+      buildContentCalendarItems({
+        articles,
+        newsletters,
+        releases,
+        slots,
+        globalFilterQuery,
+        calendarView,
+        translate,
+      }),
+    [
+      articles,
+      newsletters,
+      globalFilterQuery,
+      calendarView,
+      releases,
+      slots,
+      translate,
+    ],
+  );
 
+  const {
+    getEventColor,
+    getEventBadge,
+    getEventActions,
+    getEventChannels,
+    isItemDraggable,
+  } = useCalendarEventPresentation({ translate, generateSlotByIdentity });
+  const { credentialOptions, platformOptions, preferredTimes } =
+    useCalendarChannelOptions({
+      credentials,
+      credentialIds: filters.credentialId,
+    });
   const { setRefresh } = usePostsLayout();
   useEffect(() => {
     if (!embedded) return;
@@ -202,330 +230,8 @@ export default function ContentCalendarPage({
     return () => setRefresh(() => () => {});
   }, [embedded, setRefresh, setDateRange]);
 
-  useEffect(() => {
-    if (!dateRange) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const loadContent = async () => {
-      setIsLoading(true);
-
-      try {
-        const [
-          articlesService,
-          releaseGroupsService,
-          cadencesService,
-          newslettersService,
-        ] = await Promise.all([
-          getArticlesService(),
-          getReleaseGroupsService(),
-          getPostingCadencesService(),
-          getNewslettersService(),
-        ]);
-
-        const window = {
-          endDate: dateRange.end.toISOString(),
-          startDate: dateRange.start.toISOString(),
-        };
-        const articleQuery = {
-          ...window,
-          ...(brandId ? { brandId } : {}),
-        };
-
-        // Empty facets are omitted rather than sent as empty arrays: the DTO
-        // treats a present-but-empty filter as "match nothing".
-        const releasesQuery: ReleaseGroupListQuery = {
-          ...window,
-          ...(brandId ? { brandId } : {}),
-          ...(campaignId ? { campaignId } : {}),
-          ...(filters.credentialId.length
-            ? { credentialId: filters.credentialId }
-            : {}),
-          ...(filters.executionState.length
-            ? { executionState: filters.executionState }
-            : {}),
-          ...(filters.platform.length ? { platform: filters.platform } : {}),
-          ...(filters.source.length ? { source: filters.source } : {}),
-          ...(filters.status.length ? { status: filters.status } : {}),
-        };
-
-        const [
-          fetchedArticles,
-          fetchedReleases,
-          fetchedSlots,
-          fetchedCadences,
-          fetchedNewsletters,
-        ] = await Promise.all([
-          campaignId
-            ? Promise.resolve([])
-            : articlesService.findAll(articleQuery),
-          releaseGroupsService.findAllPages(releasesQuery, controller.signal),
-          brandId && !campaignId
-            ? cadencesService.listSlots(
-                {
-                  brandId,
-                  endDate: window.endDate,
-                  startDate: window.startDate,
-                },
-                controller.signal,
-              )
-            : Promise.resolve([]),
-          brandId && !campaignId
-            ? cadencesService.list(brandId, controller.signal)
-            : Promise.resolve([]),
-          campaignId
-            ? Promise.resolve([])
-            : newslettersService.findAllPages(
-                brandId ? { brandId } : {},
-                controller.signal,
-              ),
-        ]);
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setNewsletters(fetchedNewsletters);
-        setArticles(fetchedArticles);
-        setReleases(fetchedReleases);
-        setSlots(fetchedSlots);
-        setCadences(fetchedCadences);
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        logger.error('Failed to load calendar content', error);
-        notificationsService.error('Failed to load calendar content');
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadContent();
-
-    return () => controller.abort();
-  }, [
-    dateRange,
-    brandId,
-    campaignId,
-    filters,
-    getArticlesService,
-    getNewslettersService,
-    getPostingCadencesService,
-    getReleaseGroupsService,
-    notificationsService,
-  ]);
-
-  const calendarItems: ContentCalendarItem[] = useMemo(() => {
-    const params = new URLSearchParams(globalFilterQuery);
-    const globalItems = filterPublishingContentLibraryItems(
-      createPublishingContentLibraryItems({
-        articles,
-        newsletters,
-        posts: [],
-        releases,
-      }),
-      {
-        type: parsePublishingContentType(params.get('type')),
-        status: (params.getAll('status').length
-          ? params.getAll('status')
-          : params.getAll('executionState')
-        ).map((value) => (value === 'public' ? 'published' : value)),
-        search: params.get('search') ?? '',
-        channel: params.get('platform') ?? 'all',
-      },
-    );
-    const visibleIds = new Set(globalItems.map((item) => item.id));
-    const newsletterItems: NewsletterContentCalendarItem[] = newsletters
-      .filter(
-        (newsletter) =>
-          visibleIds.has(newsletter.id) &&
-          (newsletter.scheduledFor || newsletter.publishedAt),
-      )
-      .map((newsletter) => ({
-        id: newsletter.id,
-        itemType: 'newsletter',
-        newsletter,
-        scheduledDate: newsletter.scheduledFor || newsletter.publishedAt,
-        status: newsletter.status,
-        title: newsletter.label,
-      }));
-    const articleItems: ArticleContentCalendarItem[] = articles
-      .filter((article) => visibleIds.has(article.id))
-      .map((article) => ({
-        article,
-        id: article.id,
-        itemType: 'article',
-        scheduledDate: article.createdAt,
-        status: article.status,
-        title: article.label,
-      }));
-
-    const releaseItems: ReleaseContentCalendarItem[] = releases
-      .filter((release) => visibleIds.has(release.id))
-      .map((release) => ({
-        id: release.id,
-        itemType: 'release',
-        release,
-        scheduledDate: releaseScheduledInstant(release),
-        status: release.status,
-        title: publishingContentTitle(release.title),
-      }));
-
-    const slotItems: SlotContentCalendarItem[] = slots
-      .filter(
-        () =>
-          !globalFilterQuery ||
-          (params.get('type') !== 'article' &&
-            params.get('type') !== 'newsletter' &&
-            !params.has('status') &&
-            !params.has('search') &&
-            !params.has('platform')),
-      )
-      .map((slot) => ({
-        id: slot.identityKey,
-        itemType: 'slot',
-        scheduledDate: slot.instant,
-        slot,
-        status: slot.state,
-        title: slot.format,
-      }));
-
-    if (calendarView !== 'month') {
-      return [
-        ...releaseItems,
-        ...articleItems,
-        ...newsletterItems,
-        ...slotItems,
-      ];
-    }
-
-    const aggregates = aggregateCalendarItemsByDay([
-      ...releaseItems.map((item) => ({
-        instant: String(item.scheduledDate ?? ''),
-        kind: 'filled' as const,
-      })),
-      ...[...articleItems, ...newsletterItems].map((item) => ({
-        instant: String(item.scheduledDate ?? ''),
-        kind: 'filled' as const,
-      })),
-      ...slotItems
-        .filter((item) => isUnfilledCalendarSlot(item.slot))
-        .map((item) => ({
-          identityKey: isMissingCalendarSlot(item.slot)
-            ? item.slot.identityKey
-            : undefined,
-          instant: item.slot.instant,
-          kind: 'missing' as const,
-        })),
-    ]);
-
-    return aggregates.map(
-      (aggregate): DayAggregateContentCalendarItem => ({
-        filledCount: aggregate.filledCount,
-        id: `day:${aggregate.dayKey}`,
-        itemType: 'day-aggregate',
-        missingCount: aggregate.missingCount,
-        missingIdentityKeys: aggregate.missingIdentityKeys,
-        scheduledDate: aggregate.instant,
-        status: 'aggregate',
-        title: translate('monthDaySummary', {
-          filled: aggregate.filledCount,
-          missing: aggregate.missingCount,
-        }),
-      }),
-    );
-  }, [
-    articles,
-    newsletters,
-    globalFilterQuery,
-    calendarView,
-    releases,
-    slots,
-    translate,
-  ]);
-
-  const selectedRelease = useMemo(
-    () => releases.find((release) => release.id === selectedReleaseId) ?? null,
-    [releases, selectedReleaseId],
-  );
-
-  const credentialOptions: ReleaseCalendarFilterOption[] = useMemo(
-    () =>
-      credentials.map((credential) => ({
-        label:
-          credential.label ||
-          credential.externalName ||
-          credential.externalHandle ||
-          (formatPlatformLabel(credential.platform) ?? credential.platform),
-        platform: credential.platform,
-        value: credential.id,
-      })),
-    [credentials],
-  );
-
-  const preferredTimes = useMemo(() => {
-    const visibleCredentials = filters.credentialId.length
-      ? credentials.filter((credential) =>
-          filters.credentialId.includes(credential.id),
-        )
-      : credentials;
-    return normalizePostingTimes(
-      visibleCredentials.flatMap((credential) => credential.postingTimes ?? []),
-    );
-  }, [credentials, filters.credentialId]);
-
   const timezone =
     selectedBrand?.agentConfig?.schedule?.timezone?.trim() || 'UTC';
-
-  const platformOptions: ReleaseCalendarFilterOption[] = useMemo(() => {
-    const seen = new Map<string, ReleaseCalendarFilterOption>();
-    for (const credential of credentials) {
-      if (!seen.has(credential.platform)) {
-        seen.set(credential.platform, {
-          label:
-            formatPlatformLabel(credential.platform) ?? credential.platform,
-          platform: credential.platform,
-          value: credential.platform,
-        });
-      }
-    }
-
-    return [...seen.values()];
-  }, [credentials]);
-
-  /**
-   * Every schedule mutation shares one path: apply the server's response, or
-   * undo whatever the UI already showed and surface the failure. `revert` is the
-   * calendar's own undo for a drag; state mutations restore the prior list.
-   * The apply-or-revert path itself is shared with the rail list's drawer via
-   * `createReleaseMutationRunner` — only `onSuccess` differs here.
-   */
-  const runMutation = useMemo(
-    () =>
-      createReleaseMutationRunner({
-        getReleaseGroupsService,
-        notificationsService,
-        onSuccess: (updated) => {
-          setReleases((current) => {
-            const exists = current.some((release) => release.id === updated.id);
-            if (exists) {
-              return current.map((release) =>
-                release.id === updated.id ? updated : release,
-              );
-            }
-            return [...current, updated];
-          });
-        },
-        setDrawerError,
-        setPendingAction,
-      }),
-    [getReleaseGroupsService, notificationsService],
-  );
 
   const missingIdentityKeys = useMemo(
     () =>
@@ -533,114 +239,6 @@ export default function ContentCalendarPage({
         .filter((slot) => isMissingCalendarSlot(slot))
         .map((slot) => slot.identityKey),
     [slots],
-  );
-
-  const isAbortError = useCallback((error: unknown): boolean => {
-    return (
-      (error instanceof Error && error.name === 'CanceledError') ||
-      (typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        error.code === 'ERR_CANCELED')
-    );
-  }, []);
-
-  const runBulkGenerate = useCallback(
-    async (identityKeys: string[]): Promise<void> => {
-      if (identityKeys.length === 0) {
-        return;
-      }
-
-      bulkAbortRef.current?.abort();
-      const abort = new AbortController();
-      bulkAbortRef.current = abort;
-      setIsBulkPending(true);
-
-      try {
-        const service = await getPostingCadencesService();
-        const result = await service.generateBulk(
-          {
-            confirmedCount: identityKeys.length,
-            identityKeys,
-          },
-          abort.signal,
-        );
-        const completedKeys = new Set(
-          result.completed.map((slot) => slot.identityKey),
-        );
-        setSlots((current) =>
-          current.filter((slot) => !completedKeys.has(slot.identityKey)),
-        );
-        setSelectedSlot((current) =>
-          current && completedKeys.has(current.identityKey) ? null : current,
-        );
-
-        if (result.isCreditsExhausted) {
-          notificationsService.error(
-            translate('bulkGenerateCreditsStop', {
-              completed: result.completedCount,
-              remaining: result.remainingCount,
-              total: identityKeys.length,
-            }),
-          );
-          return;
-        }
-
-        if (result.isCancelled) {
-          return;
-        }
-
-        if (result.remainingCount > 0) {
-          notificationsService.success(
-            translate('bulkGeneratePartial', {
-              completed: result.completedCount,
-              remaining: result.remainingCount,
-              total: identityKeys.length,
-            }),
-          );
-          return;
-        }
-
-        notificationsService.success(
-          translate('bulkGenerateSuccess', { count: result.completedCount }),
-        );
-      } catch (error) {
-        if (abort.signal.aborted || isAbortError(error)) {
-          return;
-        }
-        notificationsService.error(mutationErrorMessage(error));
-      } finally {
-        if (bulkAbortRef.current === abort) {
-          bulkAbortRef.current = null;
-        }
-        setIsBulkPending(false);
-      }
-    },
-    [getPostingCadencesService, isAbortError, notificationsService, translate],
-  );
-
-  const confirmBulkGenerate = useCallback(
-    (identityKeys: string[]): void => {
-      if (identityKeys.length === 0 || isBulkPending) {
-        return;
-      }
-
-      openConfirm({
-        confirmLabel: translate('bulkGenerateConfirm', {
-          count: identityKeys.length,
-        }),
-        label: translate('bulkGenerateConfirmTitle', {
-          count: identityKeys.length,
-        }),
-        message: translate('bulkGenerateConfirmMessage', {
-          count: identityKeys.length,
-        }),
-        onConfirm: () => {
-          void runBulkGenerate(identityKeys);
-        },
-      });
-    },
-    [isBulkPending, openConfirm, runBulkGenerate, translate],
   );
 
   const handleEventClick = useCallback(
@@ -673,7 +271,7 @@ export default function ContentCalendarPage({
       setSelectedSlot(null);
       setSelectedReleaseId(item.release.id);
     },
-    [confirmBulkGenerate, href, push],
+    [confirmBulkGenerate, href, push, setSelectedReleaseId, setDrawerError],
   );
 
   const handleDatesChange = useCallback(
@@ -682,516 +280,6 @@ export default function ContentCalendarPage({
     },
     [setDateRange],
   );
-
-  const getEventColor = useCallback((item: ContentCalendarItem) => {
-    if (item.itemType === 'day-aggregate' || item.itemType === 'newsletter') {
-      return CALENDAR_SLOT_EVENT_COLOR;
-    }
-
-    return getContentCalendarEventColor(item);
-  }, []);
-
-  const getEventBadge = useCallback(
-    (item: ContentCalendarItem): CalendarEventBadge | null => {
-      if (item.itemType === 'release') {
-        return releaseStatusBadge(item.release);
-      }
-      if (item.itemType === 'day-aggregate') {
-        return {
-          label: translate('monthDaySummary', {
-            filled: item.filledCount,
-            missing: item.missingCount,
-          }),
-          tone: 'muted',
-        };
-      }
-      if (item.itemType !== 'slot') {
-        return null;
-      }
-      return {
-        label:
-          item.slot.state === CalendarSlotState.GENERATE_FAILED
-            ? 'failed'
-            : item.slot.state === CalendarSlotState.GENERATING
-              ? 'generating'
-              : 'missing',
-        tone:
-          item.slot.state === CalendarSlotState.GENERATE_FAILED
-            ? 'danger'
-            : item.slot.state === CalendarSlotState.GENERATING
-              ? 'warning'
-              : 'muted',
-      };
-    },
-    [translate],
-  );
-
-  const generateSlotByIdentity = useCallback(
-    async (identityKey: string, brief?: string): Promise<void> => {
-      setIsSlotPending(true);
-      try {
-        const service = await getPostingCadencesService();
-        const filled = await service.generate({ brief, identityKey });
-        setSlots((current) =>
-          current.filter((slot) => slot.identityKey !== filled.identityKey),
-        );
-        setSelectedSlot((current) =>
-          current?.identityKey === filled.identityKey ? null : current,
-        );
-        notificationsService.success('Slot generated.');
-      } catch (error) {
-        notificationsService.error(mutationErrorMessage(error));
-      } finally {
-        setIsSlotPending(false);
-      }
-    },
-    [getPostingCadencesService, notificationsService],
-  );
-
-  const getEventActions = useCallback(
-    (item: ContentCalendarItem): CalendarEventAction[] => {
-      if (
-        item.itemType !== 'slot' ||
-        item.slot.state !== CalendarSlotState.MISSING
-      ) {
-        return [];
-      }
-      return [
-        {
-          id: 'generate',
-          label: translate('generate'),
-          onClick: () => {
-            void generateSlotByIdentity(item.slot.identityKey);
-          },
-        },
-      ];
-    },
-    [generateSlotByIdentity, translate],
-  );
-
-  /**
-   * One icon per distinct platform: a release with two Instagram accounts still
-   * reads as one Instagram destination on a dense week cell.
-   */
-  const getEventChannels = useCallback(
-    (item: ContentCalendarItem): CalendarEventChannel[] => {
-      if (item.itemType !== 'release') {
-        return [];
-      }
-
-      const seen = new Map<string, CalendarEventChannel>();
-      for (const target of releaseTargets(item.release)) {
-        const platformId = parsePlatform(target.platform) ?? target.platform;
-        if (!seen.has(platformId)) {
-          seen.set(platformId, {
-            id: platformId,
-            label: formatPlatformLabel(target.platform) ?? target.platform,
-          });
-        }
-      }
-
-      return [...seen.values()];
-    },
-    [],
-  );
-
-  const isItemDraggable = useCallback(
-    (item: ContentCalendarItem): boolean =>
-      item.itemType === 'release' && isReleaseDraggable(item.release),
-    [],
-  );
-
-  const handleEventDrop = useCallback(
-    (change: CalendarEventDrop<ContentCalendarItem>) => {
-      if (change.item.itemType !== 'release') {
-        change.revert();
-        return;
-      }
-
-      if (pendingDropRef.current) {
-        change.revert();
-        return;
-      }
-
-      if (!Number.isFinite(change.start.getTime())) {
-        change.revert();
-        notificationsService.error('That drop time is not a valid schedule.');
-        return;
-      }
-
-      const { release } = change.item;
-      const scheduledDate = change.start.toISOString();
-
-      if (isReleaseDragConfirmRequired(release)) {
-        setPendingDrop({
-          release,
-          revert: change.revert,
-          scheduledDate,
-        });
-        return;
-      }
-
-      const previous = releases;
-
-      // Optimistic: the event is already in its new slot, so the list has to
-      // agree before the request resolves or the drawer contradicts the grid.
-      setReleases((current) =>
-        current.map((entry) =>
-          entry.id === release.id
-            ? { ...entry, scheduledAt: scheduledDate }
-            : entry,
-        ),
-      );
-
-      void runMutation(
-        RELEASE_RESCHEDULE_ACTION,
-        (service) => service.update(release.id, { scheduledDate }),
-        () => {
-          change.revert();
-          setReleases(previous);
-        },
-      );
-    },
-    [notificationsService, releases, runMutation],
-  );
-
-  const clearPendingDrop = useCallback((shouldRevert: boolean) => {
-    setPendingDrop((current) => {
-      if (shouldRevert) {
-        current?.revert();
-      }
-      return null;
-    });
-  }, []);
-
-  const handleCancelPendingDrop = useCallback(() => {
-    clearPendingDrop(true);
-  }, [clearPendingDrop]);
-
-  const handleCardOnlyDrop = useCallback(() => {
-    if (!pendingDrop) {
-      return;
-    }
-
-    const { release, revert, scheduledDate } = pendingDrop;
-    const previous = releases;
-
-    void (async () => {
-      await runMutation(
-        CALENDAR_MOVE_ACTION,
-        (service) => service.moveCalendarPlacement(release.id, scheduledDate),
-        () => {
-          revert();
-          setReleases(previous);
-        },
-      );
-      setPendingDrop(null);
-    })();
-  }, [pendingDrop, releases, runMutation]);
-
-  const handleRepublishDrop = useCallback(() => {
-    if (!pendingDrop) {
-      return;
-    }
-
-    const { release, revert, scheduledDate } = pendingDrop;
-    const previous = releases;
-
-    void (async () => {
-      await runMutation(
-        CALENDAR_REPUBLISH_ACTION,
-        (service) => service.republishAt(release.id, scheduledDate),
-        () => {
-          revert();
-          setReleases(previous);
-        },
-      );
-      setPendingDrop(null);
-    })();
-  }, [pendingDrop, releases, runMutation]);
-
-  const handleRescheduleRelease = useCallback(
-    (scheduledDate: string) => {
-      if (!selectedReleaseId) {
-        return;
-      }
-
-      void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
-        service.update(selectedReleaseId, { scheduledDate }),
-      );
-    },
-    [runMutation, selectedReleaseId],
-  );
-
-  const handleRescheduleTarget = useCallback(
-    (targetId: string, scheduledDate: string) => {
-      if (!selectedReleaseId) {
-        return;
-      }
-
-      void runMutation(targetRescheduleAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
-      );
-    },
-    [runMutation, selectedReleaseId],
-  );
-
-  /**
-   * A manual retry is expressed as moving a failed target back to `scheduled`.
-   * The API turns that transition into a fresh publish attempt — there is no
-   * separate retry endpoint to call.
-   */
-  /**
-   * "Add channel → adapt content" (#2588): repurpose the release's first
-   * channel target into a draft target for another platform. Deterministic
-   * mode keeps the drawer open on the refreshed release; agent mode navigates
-   * to the review queue where the rewritten draft lands.
-   */
-  const handleAddChannel = useCallback(() => {
-    const sourceTarget = releaseTargets(selectedRelease)[0];
-    if (!selectedRelease || !sourceTarget) {
-      return;
-    }
-
-    openPostRepurposeModal(
-      {
-        id: sourceTarget.id,
-        label: selectedRelease.title,
-        platform: sourceTarget.platform,
-      },
-      async (platform, mode) => {
-        try {
-          const postsService = await getPostsService();
-          const draft = await postsService.repurpose(sourceTarget.id, {
-            mode,
-            platform,
-          });
-
-          if (mode === PostRepurposeMode.AGENT) {
-            notificationsService.success(
-              'Rewritten draft sent to the review queue',
-            );
-            push(
-              href(
-                createPublishingApprovalsRoute({
-                  run: draft.reviewTurboRunId,
-                  filter: draft.reviewTurboRunId ? 'ready' : undefined,
-                }),
-              ),
-            );
-            return;
-          }
-
-          notificationsService.success(
-            `Draft target added for ${formatPlatformLabel(platform) ?? platform}`,
-          );
-          const releaseGroupsService = await getReleaseGroupsService();
-          const updated = await releaseGroupsService.getOne(selectedRelease.id);
-          setReleases((current) =>
-            current.map((release) =>
-              release.id === updated.id ? updated : release,
-            ),
-          );
-        } catch (error) {
-          const message = mutationErrorMessage(error);
-          logger.error('Failed to repurpose release target', error);
-          notificationsService.error(message);
-          throw error;
-        }
-      },
-    );
-  }, [
-    selectedRelease,
-    openPostRepurposeModal,
-    getPostsService,
-    getReleaseGroupsService,
-    notificationsService,
-    push,
-    href,
-  ]);
-
-  const defaultCredentialId = credentials[0]?.id ?? '';
-
-  const handleDateClick = useCallback(
-    (start: Date) => {
-      if (!brandId || !defaultCredentialId) {
-        notificationsService.error('Connect a channel before booking a slot.');
-        return;
-      }
-
-      void (async () => {
-        try {
-          const service = await getPostingCadencesService();
-          const booked = await service.book({
-            brandId,
-            credentialId: defaultCredentialId,
-            format: PostCategory.POST,
-            instant: start.toISOString(),
-          });
-          setSlots((current) => [...current, booked]);
-          setSelectedReleaseId(null);
-          setSelectedSlot(booked);
-        } catch (error) {
-          notificationsService.error(mutationErrorMessage(error));
-        }
-      })();
-    },
-    [
-      brandId,
-      defaultCredentialId,
-      getPostingCadencesService,
-      notificationsService,
-    ],
-  );
-
-  const handleGenerateSlot = useCallback(
-    (brief?: string) => {
-      if (!selectedSlot) {
-        return;
-      }
-      void generateSlotByIdentity(selectedSlot.identityKey, brief);
-    },
-    [generateSlotByIdentity, selectedSlot],
-  );
-
-  const handleWriteSlot = useCallback(() => {
-    if (!selectedSlot) {
-      return;
-    }
-    const format = selectedSlot.format;
-    setIsSlotPending(true);
-    void (async () => {
-      try {
-        const service = await getPostingCadencesService();
-        const filled = await service.write(selectedSlot.identityKey);
-        setSlots((current) =>
-          current.filter((slot) => slot.identityKey !== filled.identityKey),
-        );
-        setSelectedSlot(null);
-        if (filled.generatedItemId) {
-          const kind = format === PostCategory.ARTICLE ? 'article' : 'post';
-          push(href(createArtifactEditorRoute(kind, filled.generatedItemId)));
-        }
-      } catch (error) {
-        notificationsService.error(mutationErrorMessage(error));
-      } finally {
-        setIsSlotPending(false);
-      }
-    })();
-  }, [
-    getPostingCadencesService,
-    href,
-    notificationsService,
-    push,
-    selectedSlot,
-  ]);
-
-  const handleSkipSlot = useCallback(() => {
-    if (!selectedSlot) {
-      return;
-    }
-    setIsSlotPending(true);
-    void (async () => {
-      try {
-        const service = await getPostingCadencesService();
-        const skipped = await service.skip(selectedSlot.identityKey);
-        setSlots((current) =>
-          current.filter((slot) => slot.identityKey !== skipped.identityKey),
-        );
-        setSelectedSlot(null);
-        notificationsService.success('Slot skipped.');
-      } catch (error) {
-        notificationsService.error(mutationErrorMessage(error));
-      } finally {
-        setIsSlotPending(false);
-      }
-    })();
-  }, [getPostingCadencesService, notificationsService, selectedSlot]);
-
-  const handleCancelSlot = useCallback(() => {
-    if (!selectedSlot) {
-      return;
-    }
-    setIsSlotPending(true);
-    void (async () => {
-      try {
-        const service = await getPostingCadencesService();
-        const cancelled = await service.cancel(selectedSlot.identityKey);
-        setSlots((current) =>
-          current.map((slot) =>
-            slot.identityKey === cancelled.identityKey ? cancelled : slot,
-          ),
-        );
-        setSelectedSlot(null);
-        notificationsService.success('Generation cancelled.');
-      } catch (error) {
-        notificationsService.error(mutationErrorMessage(error));
-      } finally {
-        setIsSlotPending(false);
-      }
-    })();
-  }, [getPostingCadencesService, notificationsService, selectedSlot]);
-
-  const handleCloseSlot = useCallback(() => {
-    setSelectedSlot(null);
-  }, []);
-
-  const handleEditCadence = useCallback(() => {
-    if (!selectedSlot?.cadenceId) {
-      return;
-    }
-    const cadence = cadences.find(
-      (entry) => entry.id === selectedSlot.cadenceId,
-    );
-    if (!cadence) {
-      notificationsService.error('That cadence could not be loaded.');
-      return;
-    }
-    setEditingCadence(cadence);
-    setSelectedSlot(null);
-    setIsCadenceFormOpen(true);
-  }, [cadences, notificationsService, selectedSlot]);
-
-  const refreshSlots = useCallback(async () => {
-    if (!dateRange || !brandId) {
-      return;
-    }
-    const service = await getPostingCadencesService();
-    const [nextSlots, nextCadences] = await Promise.all([
-      service.listSlots({
-        brandId,
-        endDate: dateRange.end.toISOString(),
-        startDate: dateRange.start.toISOString(),
-      }),
-      service.list(brandId),
-    ]);
-    setSlots(nextSlots);
-    setCadences(nextCadences);
-  }, [brandId, dateRange, getPostingCadencesService]);
-
-  const handleRetryTarget = useCallback(
-    (targetId: string) => {
-      if (!selectedReleaseId) {
-        return;
-      }
-
-      void runMutation(targetRetryAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, {
-          executionState: TargetExecutionState.SCHEDULED,
-        }),
-      );
-    },
-    [runMutation, selectedReleaseId],
-  );
-
-  const handleResumeRelease = useCallback(() => {
-    if (!selectedReleaseId) {
-      return;
-    }
-    void runMutation('release:resume', (service) =>
-      service.resume(selectedReleaseId),
-    );
-  }, [runMutation, selectedReleaseId]);
 
   // Content-sized and unwrapped: the calendar topbar scrolls horizontally
   // when narrow, so a full-width wrapping row here only stacked the controls.
@@ -1311,49 +399,8 @@ export default function ContentCalendarPage({
           setIsCadenceFormOpen(false);
           setEditingCadence(null);
         }}
-        onDelete={
-          editingCadence
-            ? () => {
-                const cadenceId = editingCadence.id;
-                setIsSlotPending(true);
-                void (async () => {
-                  try {
-                    const service = await getPostingCadencesService();
-                    await service.delete(cadenceId);
-                    setIsCadenceFormOpen(false);
-                    setEditingCadence(null);
-                    notificationsService.success('Cadence deleted.');
-                    await refreshSlots();
-                  } catch (error) {
-                    notificationsService.error(mutationErrorMessage(error));
-                  } finally {
-                    setIsSlotPending(false);
-                  }
-                })();
-              }
-            : undefined
-        }
-        onSubmit={(input) => {
-          setIsSlotPending(true);
-          void (async () => {
-            try {
-              const service = await getPostingCadencesService();
-              if (editingCadence) {
-                await service.update(editingCadence.id, input);
-              } else {
-                await service.create(input);
-              }
-              setIsCadenceFormOpen(false);
-              setEditingCadence(null);
-              notificationsService.success('Cadence saved.');
-              await refreshSlots();
-            } catch (error) {
-              notificationsService.error(mutationErrorMessage(error));
-            } finally {
-              setIsSlotPending(false);
-            }
-          })();
-        }}
+        onDelete={editingCadence ? handleDeleteCadence : undefined}
+        onSubmit={handleSubmitCadence}
       />
     </>
   );
