@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
@@ -97,6 +98,88 @@ describe('PerformanceInterceptor', () => {
   });
 
   describe('intercept', () => {
+    it.each([
+      '/v1/workflow-executions/run-not-persisted',
+      '/v1/workflow-executions/run-not-persisted?include=accounting',
+    ])(
+      'keeps the expected execution lookup miss out of ERROR logs: %s',
+      async (url) => {
+        const error = new NotFoundException('Execution');
+        mockExecutionContext.getRequest.mockReturnValue({
+          ...mockRequest,
+          url,
+        });
+        mockCallHandler.handle.mockReturnValue(throwError(() => error));
+        await expect(
+          firstValueFrom(
+            interceptor.intercept(mockExecutionContext, mockCallHandler),
+          ),
+        ).rejects.toBe(error);
+        expect(loggerService.error).not.toHaveBeenCalled();
+        expect(loggerService.debug).toHaveBeenCalledWith(
+          'Workflow execution lookup returned no result',
+          expect.objectContaining({ method: 'GET', statusCode: 404, url }),
+        );
+        expect(Sentry.setTag).toHaveBeenCalledWith('api.status_code', '404');
+        expect(Sentry.setTag).not.toHaveBeenCalledWith(
+          'api.performance_severity',
+          'ERROR',
+        );
+      },
+    );
+
+    it('retains slow-request warnings for an expected execution lookup miss', async () => {
+      const error = new NotFoundException('Execution');
+      mockExecutionContext.getRequest.mockReturnValue({
+        ...mockRequest,
+        url: '/v1/workflow-executions/run-not-persisted',
+      });
+      mockCallHandler.handle.mockReturnValue(throwError(() => error));
+      const clock = vi
+        .spyOn(Date, 'now')
+        .mockReturnValueOnce(0)
+        .mockReturnValue(6000);
+      try {
+        await expect(
+          firstValueFrom(
+            interceptor.intercept(mockExecutionContext, mockCallHandler),
+          ),
+        ).rejects.toBe(error);
+        expect(loggerService.warn).toHaveBeenCalledWith(
+          'Very slow request detected',
+          expect.objectContaining({ statusCode: 404, severity: 'HIGH' }),
+        );
+        expect(loggerService.error).not.toHaveBeenCalled();
+      } finally {
+        clock.mockRestore();
+      }
+    });
+
+    it.each([
+      ['GET', '/v1/workflow-executions/run-1', 500],
+      ['GET', '/v1/workflow-executions/run-1', 403],
+      ['POST', '/v1/workflow-executions/run-1', 404],
+      ['GET', '/v1/workflow-executions/run-1/steps', 404],
+      ['GET', '/v1/posts/post-1', 404],
+    ])('retains error logging for %s %s (%i)', async (method, url, status) => {
+      const error = Object.assign(new Error('Request failed'), { status });
+      mockExecutionContext.getRequest.mockReturnValue({
+        ...mockRequest,
+        method,
+        url,
+      });
+      mockCallHandler.handle.mockReturnValue(throwError(() => error));
+      await expect(
+        firstValueFrom(
+          interceptor.intercept(mockExecutionContext, mockCallHandler),
+        ),
+      ).rejects.toBe(error);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'Request failed',
+        expect.objectContaining({ statusCode: status }),
+      );
+    });
+
     it('should log debug for fast requests', async () => {
       mockCallHandler.handle.mockReturnValue(of('success'));
 
