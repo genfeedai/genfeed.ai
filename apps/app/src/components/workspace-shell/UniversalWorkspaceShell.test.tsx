@@ -511,6 +511,140 @@ function AnalyticsBrandRouteAdapterFixture({
   return <div>Brand analytics canvas</div>;
 }
 
+function DismissibleSelectionSurface() {
+  const [isSelected, setIsSelected] = useState(true);
+
+  return (
+    <>
+      <ContextSidebarPanel
+        onClose={() => setIsSelected(false)}
+        selection={
+          isSelected
+            ? {
+                id: 'asset-1',
+                kind: 'asset',
+                origin: 'user',
+                subtitle: 'flux-dev',
+                title: 'Image',
+              }
+            : null
+        }
+      >
+        <p>Asset detail</p>
+      </ContextSidebarPanel>
+      <div>Library grid</div>
+    </>
+  );
+}
+
+function FocusableSelectionSurface() {
+  const [selected, setSelected] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setSelected(true)}>
+        Inspect image
+      </button>
+      <ContextSidebarPanel
+        onClose={() => setSelected(false)}
+        selection={
+          selected
+            ? {
+                id: 'image-focus',
+                kind: 'asset',
+                origin: 'user',
+                title: 'Image',
+              }
+            : null
+        }
+      >
+        <button type="button">Inspector action</button>
+      </ContextSidebarPanel>
+    </>
+  );
+}
+
+function ResizableSelectionSurface() {
+  return (
+    <ContextSidebarPanel
+      onClose={() => {}}
+      selection={{
+        id: 'asset-1',
+        kind: 'asset',
+        origin: 'user',
+        subtitle: 'flux-dev',
+        title: 'Image',
+      }}
+    >
+      <p>Asset detail</p>
+    </ContextSidebarPanel>
+  );
+}
+
+function LayoutSelectionSurface() {
+  return (
+    <ContextSidebarPanel
+      onClose={() => {}}
+      selection={{
+        id: 'asset-1',
+        kind: 'asset',
+        origin: 'user',
+        title: 'Image',
+      }}
+    >
+      <p>Asset detail</p>
+    </ContextSidebarPanel>
+  );
+}
+
+function StudioAdapterSurface() {
+  useRegisterWorkspaceSurfaceAdapter({
+    contextLabel: 'Studio · Storyboard · Launch visual',
+    references: [
+      {
+        label: 'Launch visual · v2',
+        reference: {
+          brandId: 'brand-studio',
+          kind: 'ingredient',
+          organizationId: 'org-acme',
+          recordId: 'ingredient-1',
+          serializer: 'ingredient',
+        },
+      },
+    ],
+    scope: {
+      brandId: 'brand-studio',
+      organizationId: 'org-acme',
+    },
+    surfaceKey: 'studio-specialized',
+  });
+  return <div>Studio canvas</div>;
+}
+
+function DockSelectionSurface() {
+  return (
+    <ContextSidebarPanel
+      onClose={() => {}}
+      selection={{
+        id: 'asset-1',
+        kind: 'asset',
+        origin: 'user',
+        title: 'Image',
+      }}
+    >
+      <p>Asset detail</p>
+    </ContextSidebarPanel>
+  );
+}
+
+type DockProbeProps = {
+  readonly onDock: (dock: ReturnType<typeof useAgentDock>) => void;
+};
+
+function DockProbe({ onDock }: DockProbeProps) {
+  onDock(useAgentDock());
+  return null;
+}
+
 describe('UniversalWorkspaceShell', () => {
   beforeEach(() => {
     navigation.pathname = '/acme/~/agent/thread-1';
@@ -559,36 +693,11 @@ describe('UniversalWorkspaceShell', () => {
 
   it('renders the registered selection in the context sidebar until the page deselects', () => {
     navigation.pathname = '/acme/moonrise/library/assets';
-    function SelectionSurface() {
-      const [isSelected, setIsSelected] = useState(true);
-
-      return (
-        <>
-          <ContextSidebarPanel
-            onClose={() => setIsSelected(false)}
-            selection={
-              isSelected
-                ? {
-                    id: 'asset-1',
-                    kind: 'asset',
-                    origin: 'user',
-                    subtitle: 'flux-dev',
-                    title: 'Image',
-                  }
-                : null
-            }
-          >
-            <p>Asset detail</p>
-          </ContextSidebarPanel>
-          <div>Library grid</div>
-        </>
-      );
-    }
 
     const { container } = render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>
-          <SelectionSurface />
+          <DismissibleSelectionSurface />
         </UniversalWorkspaceShell>
       </ContextSidebarProvider>,
     );
@@ -631,35 +740,10 @@ describe('UniversalWorkspaceShell', () => {
 
   it('returns focus to the asset after closing its sidebar', () => {
     navigation.pathname = '/acme/moonrise/studio/playground';
-    function Surface() {
-      const [selected, setSelected] = useState(false);
-      return (
-        <>
-          <button type="button" onClick={() => setSelected(true)}>
-            Inspect image
-          </button>
-          <ContextSidebarPanel
-            onClose={() => setSelected(false)}
-            selection={
-              selected
-                ? {
-                    id: 'image-focus',
-                    kind: 'asset',
-                    origin: 'user',
-                    title: 'Image',
-                  }
-                : null
-            }
-          >
-            <button type="button">Inspector action</button>
-          </ContextSidebarPanel>
-        </>
-      );
-    }
     render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>
-          <Surface />
+          <FocusableSelectionSurface />
         </UniversalWorkspaceShell>
       </ContextSidebarProvider>,
     );
@@ -700,27 +784,10 @@ describe('UniversalWorkspaceShell', () => {
   it('sizes the context sidebar rail to the default width and exposes the resize separator', () => {
     navigation.pathname = '/acme/moonrise/workspace';
 
-    function SelectionSurface() {
-      return (
-        <ContextSidebarPanel
-          onClose={() => {}}
-          selection={{
-            id: 'asset-1',
-            kind: 'asset',
-            origin: 'user',
-            subtitle: 'flux-dev',
-            title: 'Image',
-          }}
-        >
-          <p>Asset detail</p>
-        </ContextSidebarPanel>
-      );
-    }
-
     const { container } = render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>
-          <SelectionSurface />
+          <ResizableSelectionSurface />
         </UniversalWorkspaceShell>
       </ContextSidebarProvider>,
     );
@@ -741,27 +808,11 @@ describe('UniversalWorkspaceShell', () => {
   it('attaches the open inspector to the content panel through the layout root', () => {
     navigation.pathname = '/acme/moonrise/workspace';
 
-    function SelectionSurface() {
-      return (
-        <ContextSidebarPanel
-          onClose={() => {}}
-          selection={{
-            id: 'asset-1',
-            kind: 'asset',
-            origin: 'user',
-            title: 'Image',
-          }}
-        >
-          <p>Asset detail</p>
-        </ContextSidebarPanel>
-      );
-    }
-
     const { container } = render(
       <div data-testid="layout-root" data-workspace-shell="true">
         <ContextSidebarProvider>
           <UniversalWorkspaceShell agentApiService={agentApiService}>
-            <SelectionSurface />
+            <LayoutSelectionSurface />
           </UniversalWorkspaceShell>
         </ContextSidebarProvider>
       </div>,
@@ -853,33 +904,9 @@ describe('UniversalWorkspaceShell', () => {
     navigation.searchParams = new URLSearchParams();
     agentState.threads[0].brandId = 'brand-previous';
 
-    function StudioSurface() {
-      useRegisterWorkspaceSurfaceAdapter({
-        contextLabel: 'Studio · Storyboard · Launch visual',
-        references: [
-          {
-            label: 'Launch visual · v2',
-            reference: {
-              brandId: 'brand-studio',
-              kind: 'ingredient',
-              organizationId: 'org-acme',
-              recordId: 'ingredient-1',
-              serializer: 'ingredient',
-            },
-          },
-        ],
-        scope: {
-          brandId: 'brand-studio',
-          organizationId: 'org-acme',
-        },
-        surfaceKey: 'studio-specialized',
-      });
-      return <div>Studio canvas</div>;
-    }
-
     const view = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <StudioSurface />
+        <StudioAdapterSurface />
       </UniversalWorkspaceShell>,
     );
 
@@ -901,7 +928,7 @@ describe('UniversalWorkspaceShell', () => {
     );
     view.rerender(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <StudioSurface />
+        <StudioAdapterSurface />
       </UniversalWorkspaceShell>,
     );
     expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
@@ -1454,13 +1481,13 @@ describe('UniversalWorkspaceShell', () => {
 
   describe('agent dock', () => {
     let dock: ReturnType<typeof useAgentDock> = null;
+    const recordDock = (value: ReturnType<typeof useAgentDock>) => {
+      dock = value;
+    };
 
-    function DockProbe() {
-      dock = useAgentDock();
-      return null;
-    }
-
-    function renderWithDock(children: ReactNode = <DockProbe />) {
+    function renderWithDock(
+      children: ReactNode = <DockProbe onDock={recordDock} />,
+    ) {
       return render(
         <AgentDockProvider>
           <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -1515,28 +1542,12 @@ describe('UniversalWorkspaceShell', () => {
     it('shares the panel between the agent and the selection details as tabs', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
 
-      function SelectionSurface() {
-        return (
-          <ContextSidebarPanel
-            onClose={() => {}}
-            selection={{
-              id: 'asset-1',
-              kind: 'asset',
-              origin: 'user',
-              title: 'Image',
-            }}
-          >
-            <p>Asset detail</p>
-          </ContextSidebarPanel>
-        );
-      }
-
       render(
         <ContextSidebarProvider>
           <AgentDockProvider>
             <UniversalWorkspaceShell agentApiService={agentApiService}>
-              <DockProbe />
-              <SelectionSurface />
+              <DockProbe onDock={recordDock} />
+              <DockSelectionSurface />
             </UniversalWorkspaceShell>
           </AgentDockProvider>
         </ContextSidebarProvider>,
@@ -1579,7 +1590,7 @@ describe('UniversalWorkspaceShell', () => {
         <ContextSidebarProvider>
           <AgentDockProvider>
             <UniversalWorkspaceShell agentApiService={agentApiService}>
-              <DockProbe />
+              <DockProbe onDock={recordDock} />
               <ContextSidebarPanel
                 onClose={() => {}}
                 selection={{

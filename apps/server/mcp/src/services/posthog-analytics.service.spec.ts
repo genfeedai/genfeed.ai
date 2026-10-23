@@ -5,7 +5,7 @@ import type { Server } from '@modelcontextprotocol/server';
 
 const mocks = vi.hoisted(() => ({
   instrument: vi.fn(),
-  posthog: vi.fn(function MockPostHog() {
+  posthog: vi.fn(function mockPostHog() {
     return { _shutdown: mocks.shutdown };
   }),
   shutdown: vi.fn().mockResolvedValue(undefined),
