@@ -8,6 +8,20 @@ initDeferredSentry({
   beforeSend(event) {
     return dropNonBrowserRuntimeEvent(event);
   },
+  dataCollection: {
+    cookies: false,
+    databaseQueryData: false,
+    genAI: { inputs: false, outputs: false },
+    graphQL: { document: false, variables: false },
+    httpBodies: [],
+    httpHeaders: {
+      request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    },
+    queues: false,
+    urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    userInfo: false,
+  },
   debug: false,
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   enabled: process.env.NODE_ENV !== 'development',

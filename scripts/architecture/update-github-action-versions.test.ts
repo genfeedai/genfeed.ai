@@ -190,6 +190,25 @@ describe('GitHub Action version updater', () => {
       'utf8',
     );
 
+    const command = JSON.parse(packageJson).scripts['deps:update'];
+    const rejectList = command.match(/--reject '([^']+)'/)?.[1].split(',');
+
+    expect(rejectList).toEqual([
+      'typescript',
+      'better-auth',
+      'api',
+      'jsdom',
+      '@types/vscode',
+      '@types/node',
+      'portless',
+    ]);
+    expect(command).toContain('--cooldown 3h');
+    expect(command.split(' && ').slice(1)).toEqual([
+      'bun run deps:update:remotion',
+      'bun install',
+      'bun run deps:update:actions',
+    ]);
+
     expect(packageJson).toContain('bun run deps:update:actions');
     expect(packageJson).toContain(
       'scripts/architecture/update-github-action-versions.ts',

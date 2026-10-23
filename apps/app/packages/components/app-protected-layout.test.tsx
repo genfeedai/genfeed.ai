@@ -576,6 +576,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+function RunTitle({ label }: { readonly label: string }) {
+  useRegisterBreadcrumbLeaf('run-1', label);
+  return null;
+}
+
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
@@ -1216,11 +1221,6 @@ describe('AppProtectedLayout', () => {
   );
 
   describe('storyboard run breadcrumb', () => {
-    function RunTitle({ label }: { readonly label: string }) {
-      useRegisterBreadcrumbLeaf('run-1', label);
-      return null;
-    }
-
     it('shows the run title the page publishes as the leaf', () => {
       mockPathname.value = '/org-123/brand-123/studio/storyboard/run-1';
 

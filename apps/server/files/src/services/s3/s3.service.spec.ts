@@ -11,7 +11,7 @@ const s3SendMock = vi.hoisted(() => vi.fn());
 // implementations must be regular functions (arrow functions cannot be
 // constructed with `new`).
 function commandMock() {
-  return vi.fn().mockImplementation(function CommandMock(input: unknown) {
+  return vi.fn().mockImplementation(function commandMock(input: unknown) {
     return { input };
   });
 }

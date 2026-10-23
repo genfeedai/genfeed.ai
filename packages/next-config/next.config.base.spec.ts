@@ -2,7 +2,7 @@ import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern';
 import { describe, expect, it, vi } from 'vitest';
 import { createAppNextConfig } from './next.config.base';
 
-vi.mock('@sentry/nextjs', () => ({
+vi.mock('@sentry/nextjs/config', () => ({
   withSentryConfig: (config: unknown) => config,
 }));
 

@@ -89,7 +89,7 @@ describe('YoutubeService', () => {
 
     mockYoutubeAPI = createMockYoutubeAPI();
 
-    (google.auth.OAuth2 as Mock).mockImplementation(function OAuth2Mock() {
+    vi.mocked(google.auth.OAuth2).mockImplementation(function oauth2Mock() {
       return mockOAuth2Client;
     });
     (google.youtube as Mock).mockReturnValue(mockYoutubeAPI);
@@ -152,7 +152,7 @@ describe('YoutubeService', () => {
     vi.clearAllMocks();
 
     // Re-setup mocks after clearAllMocks
-    (google.auth.OAuth2 as Mock).mockImplementation(function OAuth2Mock() {
+    vi.mocked(google.auth.OAuth2).mockImplementation(function oauth2Mock() {
       return mockOAuth2Client;
     });
     (google.youtube as Mock).mockReturnValue(mockYoutubeAPI);

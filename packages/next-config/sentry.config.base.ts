@@ -1,12 +1,16 @@
 import * as Sentry from '@sentry/nextjs';
 
-type TransactionEvent = Parameters<
-  NonNullable<
-    NonNullable<Parameters<typeof Sentry.init>[0]>['beforeSendTransaction']
-  >
+type StreamedSpan = Parameters<
+  NonNullable<NonNullable<Parameters<typeof Sentry.init>[0]>['beforeSendSpan']>
 >[0];
 
-const QUERY_STRING_SPAN_KEYS = ['http.query', 'url.query'] as const;
+// OAuth implicit-flow tokens ride the fragment, so it is dropped like the query.
+const QUERY_STRING_SPAN_KEYS = [
+  'http.fragment',
+  'http.query',
+  'url.fragment',
+  'url.query',
+] as const;
 const URL_SPAN_KEYS = ['http.url', 'url.full'] as const;
 
 function withoutQueryString(url: string): string {
@@ -36,25 +40,10 @@ function scrubSpanData(data: Record<string, unknown> | undefined): void {
  * `/oauth/[platform]` put one-time authorization codes in the query string,
  * which the SDK denylist does not recognise, so no query string leaves the app.
  */
-export function stripQueryStringsFromTransaction(
-  event: TransactionEvent,
-): TransactionEvent {
-  if (event.request) {
-    if (event.request.url) {
-      event.request.url = withoutQueryString(event.request.url);
-    }
-    delete event.request.query_string;
-  }
-
-  scrubSpanData(event.contexts?.trace?.data);
-  for (const span of event.spans ?? []) {
-    scrubSpanData(span.data);
-    if (span.description) {
-      span.description = withoutQueryString(span.description);
-    }
-  }
-
-  return event;
+export function stripQueryStringsFromSpan(span: StreamedSpan): StreamedSpan {
+  span.name = withoutQueryString(span.name);
+  scrubSpanData(span.attributes);
+  return span;
 }
 
 interface SentryInitOptions {
@@ -86,7 +75,21 @@ export function initSentry(options: SentryInitOptions = {}): void {
   } = options;
 
   Sentry.init({
-    beforeSendTransaction: stripQueryStringsFromTransaction,
+    beforeSendSpan: stripQueryStringsFromSpan,
+    dataCollection: {
+      cookies: false,
+      databaseQueryData: false,
+      genAI: { inputs: false, outputs: false },
+      graphQL: { document: false, variables: false },
+      httpBodies: [],
+      httpHeaders: {
+        request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      },
+      queues: false,
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      userInfo: false,
+    },
     debug,
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     enabled,

@@ -45,7 +45,22 @@ describe('getSentryConfig', () => {
       dsn: 'https://service@sentry.io/2',
       environment: 'production',
       release: '3.2.1',
-      sendDefaultPii: false,
+      dataCollection: {
+        cookies: false,
+        databaseQueryData: false,
+        genAI: { inputs: false, outputs: false },
+        graphQL: { document: false, variables: false },
+        httpBodies: [],
+        httpHeaders: {
+          request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+          response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        },
+        queues: false,
+        urlQueryParams: {
+          deny: ['forwarded', '-ip', 'remote-', 'via', '-user'],
+        },
+        userInfo: false,
+      },
       tracesSampleRate: PRODUCTION_TRACES_SAMPLE_RATE,
     });
   });
@@ -62,7 +77,22 @@ describe('getSentryConfig', () => {
       dsn: 'https://shared@sentry.io/1',
       environment: 'development',
       release: '1.0.0',
-      sendDefaultPii: false,
+      dataCollection: {
+        cookies: false,
+        databaseQueryData: false,
+        genAI: { inputs: false, outputs: false },
+        graphQL: { document: false, variables: false },
+        httpBodies: [],
+        httpHeaders: {
+          request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+          response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        },
+        queues: false,
+        urlQueryParams: {
+          deny: ['forwarded', '-ip', 'remote-', 'via', '-user'],
+        },
+        userInfo: false,
+      },
       tracesSampleRate: 0,
     });
   });
@@ -76,11 +106,26 @@ describe('getSentryConfig', () => {
 
     expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
       dsn: 'https://dev@sentry.io/1',
-      sendDefaultPii: false,
+      dataCollection: {
+        cookies: false,
+        databaseQueryData: false,
+        genAI: { inputs: false, outputs: false },
+        graphQL: { document: false, variables: false },
+        httpBodies: [],
+        httpHeaders: {
+          request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+          response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        },
+        queues: false,
+        urlQueryParams: {
+          deny: ['forwarded', '-ip', 'remote-', 'via', '-user'],
+        },
+        userInfo: false,
+      },
     });
   });
 
-  it('keeps sendDefaultPii false in every non-production environment', () => {
+  it('keeps restrictive collection in every non-production environment', () => {
     vi.stubEnv('SENTRY_ENABLED', 'true');
     vi.stubEnv('SENTRY_DEV', 'true');
     vi.stubEnv('SENTRY_DSN', 'https://shared@sentry.io/1');
@@ -90,7 +135,22 @@ describe('getSentryConfig', () => {
       vi.stubEnv('NODE_ENV', nodeEnv);
 
       expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
-        sendDefaultPii: false,
+        dataCollection: {
+          cookies: false,
+          databaseQueryData: false,
+          genAI: { inputs: false, outputs: false },
+          graphQL: { document: false, variables: false },
+          httpBodies: [],
+          httpHeaders: {
+            request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+            response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+          },
+          queues: false,
+          urlQueryParams: {
+            deny: ['forwarded', '-ip', 'remote-', 'via', '-user'],
+          },
+          userInfo: false,
+        },
       });
     }
   });
