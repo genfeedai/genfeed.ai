@@ -207,7 +207,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
   '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',
   '/:orgSlug/:brandSlug/automation/campaigns/:id': 'Program',
-  '/:orgSlug/:brandSlug/messages/overview': 'Overview',
   '/:orgSlug/:brandSlug/messages/outreach': 'Outreach sequences',
   '/:orgSlug/:brandSlug/messages/outreach/new': 'New outreach sequence',
   '/:orgSlug/:brandSlug/messages/outreach/:id': 'Outreach sequence',
@@ -1042,7 +1041,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/messages',
-      '/:orgSlug/:brandSlug/messages/overview',
       '/:orgSlug/:brandSlug/messages/outreach',
       '/:orgSlug/:brandSlug/messages/outreach/new',
       '/:orgSlug/:brandSlug/messages/outreach/:id',

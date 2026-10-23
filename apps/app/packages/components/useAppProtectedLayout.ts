@@ -8,7 +8,7 @@ import {
   getAppSecondaryMenuItems,
   PUBLISHING_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
-import { getMessagesMenuItemsForScope } from '@app-config/messages-menu-items.config';
+import { MESSAGES_MENU_ITEMS } from '@app-config/messages-menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
 import { PUBLISHING_MENU_ITEMS } from '@app-config/publishing-menu-items.config';
 import {
@@ -392,17 +392,6 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const messagesMenuItems = useMemo(
-    () =>
-      getMessagesMenuItemsForScope(brandSlug).map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [brandSlug, taskContextSearchParams],
-  );
-
   const analyticsMenuItems = useMemo(
     () =>
       getAnalyticsMenuItemsForScope(brandSlug)
@@ -540,7 +529,7 @@ export function useAppProtectedLayout(
     settingsMenuItems,
     studioMenuItems,
     automationMenuItems,
-    messagesMenuItems,
+    messagesMenuItems: MESSAGES_MENU_ITEMS,
     // handlers
     handleNavigate,
     // banners

@@ -212,8 +212,6 @@ export const APP_ROUTES = {
      */
     OUTREACH: '/messages/outreach',
     OUTREACH_NEW: '/messages/outreach/new',
-    /** #5502 Messages overview: waiting conversations per kind. */
-    OVERVIEW: '/messages/overview',
     /**
      * Author replies on your own posts (reply-bot surface).
      */
