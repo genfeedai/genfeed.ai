@@ -21,9 +21,9 @@ import {
   toReplyBotCredentialData,
 } from '@api/services/campaign/reply-bot-credential.util';
 import { mergeAuthorClosedLoopData } from '@api/services/reply-bot/author-closed-loop.util';
+import { collectAuthorReplyInbox } from '@api/services/reply-bot/author-reply-inbox.util';
 import type {
   AuthorReplyDraftResult,
-  AuthorReplyInboxItem,
   AuthorReplyInboxResult,
   AuthorReplySendResult,
   EnsureAuthorResponderResult,
@@ -37,26 +37,17 @@ import {
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import {
-  clampReplyMaxAgeHours,
   DEFAULT_REPLY_MAX_AGE_HOURS,
   getReplyIntentPersona,
   isReplyIntent,
-  resolveReplyIntent,
 } from '@api/services/reply-bot/reply-intent.util';
 import {
   isReplyIntentAutoSkip,
   isReplyIntentSource,
   ReplyIntentClassifierService,
 } from '@api/services/reply-bot/reply-intent-classifier.service';
-import {
-  type SocialContentData,
-  SocialMonitorService,
-} from '@api/services/reply-bot/social-monitor.service';
+import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
-import {
-  toYouTubeChannelStartUrl,
-  toYouTubeVideoUrl,
-} from '@api/services/reply-bot/youtube-reply-url.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ReplyBotActionType,
@@ -83,9 +74,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-
-const MAX_PARENT_POSTS = 12;
-const MAX_COMMENTS_PER_POST = 40;
 
 type AuthorReplyWorkflowRequest = {
   brandId: string;
@@ -376,173 +364,13 @@ export class AuthorReplyLoopService implements OnModuleInit {
     /** Default twitter; youtube uses official/poll comment fetch when configured. */
     platform?: 'twitter' | 'youtube';
   }): Promise<AuthorReplyInboxResult> {
-    const replyPlatform =
-      params.platform === 'youtube'
-        ? ReplyBotPlatform.YOUTUBE
-        : ReplyBotPlatform.TWITTER;
-    const hours =
-      params.platform === 'youtube'
-        ? clampReplyMaxAgeHours(params.hours ?? 48)
-        : clampReplyMaxAgeHours(params.hours);
-    const emptyInbox = (): AuthorReplyInboxResult => ({
-      hours,
-      items: [],
-      platform: replyPlatform,
+    return collectAuthorReplyInbox(params, {
+      constructorName: this.constructorName,
+      loadCredential: this.loadPlatformCredential.bind(this),
+      loadProcessedCommentIds: this.loadProcessedCommentIds.bind(this),
+      logger: this.logger,
+      socialMonitorService: this.socialMonitorService,
     });
-
-    const credential =
-      replyPlatform === ReplyBotPlatform.YOUTUBE
-        ? await this.loadYouTubeCredential(
-            params.organizationId,
-            params.brandId,
-          )
-        : await this.loadTwitterCredential(
-            params.organizationId,
-            params.brandId,
-          );
-
-    if (!credential) {
-      return emptyInbox();
-    }
-
-    const timelineHandle =
-      credential.username ||
-      credential.externalId ||
-      (replyPlatform === ReplyBotPlatform.YOUTUBE ? 'me' : '');
-
-    if (!timelineHandle && replyPlatform === ReplyBotPlatform.TWITTER) {
-      return emptyInbox();
-    }
-
-    // YouTube Apify handlers expect full channel/video URLs, not bare ids.
-    const timelineTarget =
-      replyPlatform === ReplyBotPlatform.YOUTUBE
-        ? toYouTubeChannelStartUrl(timelineHandle)
-        : timelineHandle || 'me';
-
-    if (replyPlatform === ReplyBotPlatform.YOUTUBE && !timelineTarget) {
-      return emptyInbox();
-    }
-
-    const cutoff = Date.now() - hours * 60 * 60 * 1000;
-    const ourUsername = (credential.username || credential.externalId || '')
-      .replace(/^@/, '')
-      .toLowerCase();
-
-    let posts: SocialContentData[] = [];
-    try {
-      posts = await this.socialMonitorService.getUserTimeline(
-        replyPlatform,
-        timelineTarget,
-        {
-          brandId: params.brandId,
-          limit: MAX_PARENT_POSTS,
-          organizationId: params.organizationId,
-          preferOfficialApi: true,
-        },
-      );
-    } catch (error: unknown) {
-      this.logger.warn(`${this.constructorName} timeline fetch failed`, {
-        error: error instanceof Error ? error.message : 'unknown',
-        platform: replyPlatform,
-      });
-      // Handled empty: return empty inbox rather than crashing the Replies UI.
-      return {
-        hours,
-        items: [],
-        platform: replyPlatform,
-        username: credential.username || credential.externalId || undefined,
-      };
-    }
-
-    const items: AuthorReplyInboxItem[] = [];
-    const processedIds = await this.loadProcessedCommentIds(
-      params.organizationId,
-    );
-
-    for (const post of posts) {
-      // Parent posts older than the window are out of scope for fresh replies.
-      if (post.createdAt && post.createdAt.getTime() < cutoff) {
-        continue;
-      }
-
-      const commentTarget =
-        replyPlatform === ReplyBotPlatform.YOUTUBE
-          ? toYouTubeVideoUrl({
-              contentUrl: post.contentUrl,
-              id: post.id,
-            })
-          : post.id;
-
-      let comments: SocialContentData[] = [];
-      try {
-        comments = await this.socialMonitorService.getContentComments(
-          replyPlatform,
-          commentTarget,
-          {
-            brandId: params.brandId,
-            limit: MAX_COMMENTS_PER_POST,
-            organizationId: params.organizationId,
-            preferOfficialApi: true,
-          },
-        );
-      } catch (error: unknown) {
-        this.logger.warn(`${this.constructorName} comment fetch failed`, {
-          error: error instanceof Error ? error.message : 'unknown',
-          platform: replyPlatform,
-          postId: post.id,
-        });
-        continue;
-      }
-
-      for (const comment of comments) {
-        if (processedIds.has(comment.id)) {
-          continue;
-        }
-        if (comment.createdAt && comment.createdAt.getTime() < cutoff) {
-          continue;
-        }
-        const author = comment.authorUsername.replace(/^@/, '').toLowerCase();
-        if (ourUsername && author === ourUsername) {
-          continue;
-        }
-
-        // The inbox lists up to MAX_PARENT_POSTS x MAX_COMMENTS_PER_POST
-        // comments per load; one provider call each would be hundreds of
-        // decisions for a listing nobody acts on yet. The gated decision runs
-        // where an auto-reply is actually sent, and on draft/send below.
-        const intent = resolveReplyIntent(comment.text);
-        const persona = getReplyIntentPersona(intent);
-
-        items.push({
-          authorDisplayName: comment.authorDisplayName,
-          authorId: comment.authorId,
-          authorUsername: comment.authorUsername,
-          commentId: comment.id,
-          commentText: comment.text,
-          commentUrl: comment.contentUrl,
-          createdAt: comment.createdAt.toISOString(),
-          intent,
-          intentLabel: persona.label,
-          parentPostId: post.id,
-          parentPostPreview: post.text?.slice(0, 160),
-          parentPostUrl: post.contentUrl,
-          shouldSkipAuto: persona.shouldSkipAuto,
-        });
-      }
-    }
-
-    items.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    return {
-      hours,
-      items: items.slice(0, 50),
-      platform: replyPlatform,
-      username: credential.username || credential.externalId || undefined,
-    };
   }
 
   async draftReply(params: {
