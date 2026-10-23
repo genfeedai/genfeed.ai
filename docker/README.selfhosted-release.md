@@ -10,6 +10,7 @@ ARM host, enable AMD64 emulation in your Docker runtime before starting.
 
 ```bash
 cp .env.example .env
+# Before starting: set OPENROUTER_API_KEY in .env using your editor.
 docker compose --env-file .env -f compose.yml pull
 docker compose --env-file .env -f compose.yml up -d
 ```
@@ -30,11 +31,36 @@ The API and WebSocket host ports bind to `127.0.0.1` only. Use Docker Engine 28 
 loopback isolation, and keep the login wall enabled before exposing the API
 through a reverse proxy. Internal Docker-network access is unchanged.
 
-Before generating, edit `.env` and set `OPENROUTER_API_KEY` to a real key from
+Before starting, edit `.env` and set `OPENROUTER_API_KEY` to a real key from
 <https://openrouter.ai/keys>; text generation and the agent need it, and the
-readiness check reports text generation as not ready without it. Use real keys
+container now exits before starting services without it. Use real keys
 only: Settings validates each provider key with the provider, so placeholders are
 rejected. Restart with the same `up -d` command after editing `.env`.
+
+Alternatively, `npx @genfeedai/create my-genfeed` asks for the key with hidden
+input and a domain, then writes a private `.env` before starting Docker. For
+non-interactive setup use `--yes` with `OPENROUTER_API_KEY` supplied securely
+through the environment; `SELFHOSTED_DOMAIN` is optional. Never put a key in
+command arguments or commit the generated file.
+
+Set `SELFHOSTED_DOMAIN=studio.example.com` for a domain you own, or leave it
+blank for localhost. The domain derives HTTPS app/API/auth URLs and trusted
+origins. Configure DNS, TLS and a reverse proxy: the domain's `/v1/*` reaches
+the API (port 3010), `/mcp` reaches MCP (3014), and other app requests reach
+port 3000. The wizard does not provision DNS, certificates or a proxy. Explicit
+public/auth URL overrides must agree; public-domain installs with localhost
+auth or trusted origins stop with a configuration error. Local host port
+overrides `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT`, `SELFHOSTED_MCP_PORT`
+are retained by the wizard. Internal container ports do not change.
+
+## Upgrade warning for 0.2.15
+
+Existing installs with an empty or placeholder `OPENROUTER_API_KEY` now stop
+booting. Configure a real key before upgrading, including seeded single-user
+installs. To use the domain setting, remove old localhost public/auth overrides
+from `.env` (or leave them blank); startup validation refuses mixed origins.
+Key validation checks configuration format only; successful provider access,
+signup and the first agent turn must still be verified on your installation.
 
 Sign-up is on by default: open the web UI and create your account. Edit `.env`
 before starting if the default ports conflict, or to turn the login wall off

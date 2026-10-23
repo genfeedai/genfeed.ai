@@ -304,6 +304,7 @@ RUN test -x "$(find /app -type f -name chrome-headless-shell -print -quit)"
 
 # Copy entrypoint
 COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh
+COPY --chown=appuser packages/create/src/setup.ts /selfhosted-setup.ts
 RUN chmod +x /entrypoint.sh
 
 VOLUME /data

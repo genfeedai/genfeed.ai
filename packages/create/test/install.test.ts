@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installRelease, openBrowser } from '../src/index';
+import { installRelease, openBrowser } from '../src/index.js';
 
 interface FakeChildOutcome {
   code?: number | null;
@@ -112,11 +112,14 @@ const unreachableFetch = createFetchStub((url) => {
 });
 
 beforeEach(() => {
+  vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-offline-fixture');
+  vi.stubEnv('SELFHOSTED_DOMAIN', '');
   childProcessMock.spawnSync.mockReturnValue({ status: 0 });
   useDefaultSpawnBehavior();
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.clearAllMocks();
   while (createdDirectories.length > 0) {
@@ -135,14 +138,14 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         unreachableFetch,
       ),
     ).resolves.toBeUndefined();
 
     await expect(
       readFile(join(projectDirectory, '.env'), 'utf8'),
-    ).resolves.toBe('GENFEED_SEED=1\n');
+    ).resolves.toContain("OPENROUTER_API_KEY='sk-or-offline-fixture'");
     expect(childProcessMock.spawn).toHaveBeenCalledWith(
       'tar',
       expect.arrayContaining(['-xzf']),
@@ -178,7 +181,7 @@ describe('installRelease', () => {
 
     await installRelease(
       projectDirectory,
-      { release: RELEASE_TAG, start: true },
+      { release: RELEASE_TAG, start: true, yes: true },
       fetchImplementation,
     );
 
@@ -202,7 +205,7 @@ describe('installRelease', () => {
 
     await installRelease(
       projectDirectory,
-      { release: RELEASE_TAG, start: true },
+      { release: RELEASE_TAG, start: true, yes: true },
       fetchImplementation,
     );
 
@@ -225,7 +228,7 @@ describe('installRelease', () => {
 
     await installRelease(
       projectDirectory,
-      { release: RELEASE_TAG, start: true },
+      { release: RELEASE_TAG, start: true, yes: true },
       fetchImplementation,
     );
 
@@ -239,7 +242,11 @@ describe('installRelease', () => {
     childProcessMock.spawnSync.mockReturnValue({ status: 1 });
 
     await expect(
-      installRelease('ignored', { release: RELEASE_TAG, start: false }),
+      installRelease('ignored', {
+        release: RELEASE_TAG,
+        start: false,
+        yes: true,
+      }),
     ).rejects.toThrow(
       'tar is required to extract the Genfeed.ai release bundle.',
     );
@@ -251,7 +258,11 @@ describe('installRelease', () => {
     }));
 
     await expect(
-      installRelease('ignored', { release: RELEASE_TAG, start: false }),
+      installRelease('ignored', {
+        release: RELEASE_TAG,
+        start: false,
+        yes: true,
+      }),
     ).rejects.toThrow('Docker Compose is required.');
   });
 
@@ -263,7 +274,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         unreachableFetch,
       ),
     ).rejects.toThrow(`Destination already exists: ${projectDirectory}`);
@@ -281,7 +292,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         fetchImplementation,
       ),
     ).rejects.toThrow('Download failed (HTTP 404)');
@@ -304,7 +315,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         stub as typeof fetch,
       ),
     ).rejects.toThrow('Release checksum mismatch');
@@ -321,7 +332,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         unreachableFetch,
       ),
     ).rejects.toThrow('failed with 2');
@@ -340,7 +351,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         unreachableFetch,
       ),
     ).rejects.toThrow('failed with SIGKILL');
@@ -358,7 +369,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         unreachableFetch,
       ),
     ).rejects.toThrow('failed with an unknown error');
@@ -376,7 +387,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: false },
+        { release: RELEASE_TAG, start: false, yes: true },
         unreachableFetch,
       ),
     ).rejects.toThrow('spawn tar ENOENT');
@@ -401,7 +412,7 @@ describe('installRelease', () => {
     await expect(
       installRelease(
         projectDirectory,
-        { release: RELEASE_TAG, start: true },
+        { release: RELEASE_TAG, start: true, yes: true },
         unreachableFetch,
       ),
     ).rejects.toThrow('failed with 1');
