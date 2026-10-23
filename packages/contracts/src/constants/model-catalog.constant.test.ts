@@ -28,6 +28,7 @@ import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import {
   AGENT_CHAT_CAPABILITY,
   getModelCatalogForDeployment,
+  POST_ENHANCEMENT_CREDITS,
   UNIFIED_MODEL_CATALOG,
 } from './model-catalog.constant';
 import { MODEL_KEYS } from './model-keys.constant';
@@ -92,6 +93,8 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       pricingType: PricingType.FLAT,
       provider: ModelProvider.OPENROUTER,
     });
+    // The composer shows this figure for AI Rewrite, so it must be the row's cost.
+    expect(row?.cost).toBe(POST_ENHANCEMENT_CREDITS);
     expect(row?.capabilities ?? []).not.toContain(AGENT_CHAT_CAPABILITY);
     expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
   });
