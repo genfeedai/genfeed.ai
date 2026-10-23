@@ -440,7 +440,7 @@ function datasetExpression(value, context) {
   );
 }
 
-test('dataset entrypoints route smoke, profile and weekly/manual scale to one bounded job', async () => {
+test('dataset entrypoints route smoke, profile and weekly scale to one bounded job', async () => {
   const shared = await readFile(DATASET_WORKFLOW, 'utf8');
   assert.match(shared, /^on:\n {2}workflow_call:/m);
   assert.doesNotMatch(shared, /workflow_dispatch:|schedule:|secrets:|: write/);
@@ -504,7 +504,7 @@ test('dataset entrypoints route smoke, profile and weekly/manual scale to one bo
     assert.ok(entry.includes(`group: dataset-${job}-\${{ github.ref }}`));
     assert.match(entry, /cancel-in-progress: false/);
     assert.match(entry, /permissions:\n {6}contents: read/);
-    assert.match(entry, scale ? /required: false/ : /required: true/);
+    if (!scale) assert.match(entry, /required: true/);
     assert.equal((entry.match(/uses:/g) ?? []).length, 1);
     assert.match(
       entry,
@@ -524,7 +524,10 @@ test('dataset entrypoints route smoke, profile and weekly/manual scale to one bo
         ),
       ]),
     );
-    assert.deepEqual(routed, { group, candidate_sha: candidate || CONTROL });
+    assert.deepEqual(routed, {
+      group,
+      candidate_sha: scale ? CONTROL : candidate || CONTROL,
+    });
     const sharedContext = { inputs: routed };
     assert.equal(
       datasetExpression(
@@ -552,7 +555,7 @@ test('dataset entrypoints route smoke, profile and weekly/manual scale to one bo
     const upload = shared.split('- name: Retain dataset evidence\n')[1];
     assert.equal(
       datasetExpression(upload.match(/^ {10}name: (.+)$/m)[1], evidenceContext),
-      `${lane}-${candidate || CONTROL}`,
+      `${lane}-${routed.candidate_sha}`,
     );
     assert.deepEqual(
       [...upload.matchAll(/^ {12}(\$\{\{ runner.temp \}\}.+)$/gm)].map(
@@ -769,23 +772,22 @@ test('shared dataset candidate check rejects mismatched HEAD and each absent or 
   assert.equal(run().status, 0);
 });
 
-test('100k scale workflow is weekly/manual and separate from deployment acceptance', async () => {
+test('100k scale workflow is weekly-only and separate from deployment acceptance', async () => {
   const workflow = await readFile(
     new URL('../../.github/workflows/dataset-scale.yml', import.meta.url),
     'utf8',
   );
-  assert.match(workflow, /schedule:\s*- cron: '17 3 \* \* 0'/);
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.doesNotMatch(workflow, /workflow_call:|workflow_run:|push:/);
+  assert.match(workflow, /schedule:\s*- cron: '0 3 \* \* 0'/);
+  assert.doesNotMatch(
+    workflow,
+    /workflow_dispatch:|workflow_call:|workflow_run:|push:/,
+  );
   const shared = await readFile(DATASET_WORKFLOW, 'utf8');
   assert.match(shared, /inputs.group == 'dataset-scale' && 40 \|\| 20/);
   assert.match(workflow, /^ {6}group: dataset-scale$/m);
   assert.match(shared, /--group "\$DATASET_GROUP"/);
   assert.match(shared, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
-  assert.match(
-    workflow,
-    /candidate_sha: \$\{\{ inputs.candidate_sha \|\| github.sha \}\}/,
-  );
+  assert.match(workflow, /candidate_sha: \$\{\{ github.sha \}\}/);
   assert.match(shared, /if-no-files-found: error/);
   const controller = await readFile(CLI_PATH, 'utf8');
   assert.match(
