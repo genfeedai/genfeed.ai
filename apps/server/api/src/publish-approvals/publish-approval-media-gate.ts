@@ -1,3 +1,8 @@
+import {
+  isInteractiveApprovalOrigin,
+  readApprovalOrigin,
+  readProvenanceOrigin,
+} from '@api/publish-approvals/publish-approval-action-origin';
 import type { ApprovalPost } from '@api/publish-approvals/publish-approval-contract.codec';
 import type { ServerLogger } from '@api/server.dependencies';
 import {
@@ -76,7 +81,6 @@ export async function assertApprovalMediaReady(params: {
   gate: IMediaReadinessGate | undefined;
   logger: ServerLogger | undefined;
   post: ApprovalPost;
-  isHumanApproval: boolean;
 }): Promise<ApprovalMediaGateOutcome> {
   const assetIds = params.post.ingredients.map((ingredient) => ingredient.id);
   if (!params.gate || assetIds.length === 0) {
@@ -107,7 +111,10 @@ export async function assertApprovalMediaReady(params: {
         platforms: [],
       })
     : null;
-  assertEnhancementApproved(assessment?.reasons ?? [], params.isHumanApproval);
+  assertEnhancementApproved(
+    assessment?.reasons ?? [],
+    isInteractiveApprovalOrigin(readApprovalOrigin()),
+  );
   return {
     assessmentReasons: assessment?.reasons ?? [],
     warnings: readWarningDiagnostics(report),
@@ -132,10 +139,13 @@ function assertEnhancementApproved(
 export async function assertApprovalEnhancementReady(params: {
   gate: IMediaReadinessGate | undefined;
   post: ApprovalPost;
-  isHumanApproval: boolean;
+  provenance: unknown;
 }): Promise<void> {
+  const isHumanApproval = isInteractiveApprovalOrigin(
+    readProvenanceOrigin(params.provenance),
+  );
   if (
-    params.isHumanApproval ||
+    isHumanApproval ||
     !isMediaPublishGate(params.gate) ||
     params.post.ingredients.length === 0
   )
@@ -145,7 +155,7 @@ export async function assertApprovalEnhancementReady(params: {
     organizationId: params.post.organizationId,
     platforms: [],
   });
-  assertEnhancementApproved(assessment.reasons, params.isHumanApproval);
+  assertEnhancementApproved(assessment.reasons, isHumanApproval);
 }
 
 /** Provenance for a newly created approval, carrying this attempt's warnings. */

@@ -1,5 +1,8 @@
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import type { JsonApiResult } from '@genfeedai/contracts/interfaces';
+import {
+  isGenerationEnhancementFailed,
+  type JsonApiResult,
+} from '@genfeedai/contracts/interfaces';
 
 const LOCAL_ASSET_PATH_PREFIX = '/local/';
 const PRIVATE_ASSET_QUERY_PARAMETER_PATTERN =
@@ -34,6 +37,21 @@ export function readMediaResponseValue(
     ? data.attributes
     : undefined;
   return attributes?.[key] ?? data?.[key] ?? response[key];
+}
+
+export function readMediaGenerationHarnessFields(
+  response: Record<string, unknown>,
+): { generationHarness: unknown; isEnhancementFailed: boolean } {
+  const generationHarness = readMediaResponseValue(
+    response,
+    'generationHarness',
+  );
+  return {
+    generationHarness,
+    isEnhancementFailed:
+      isGenerationEnhancementFailed(generationHarness) ||
+      readMediaResponseValue(response, 'isEnhancementFailed') === true,
+  };
 }
 
 export function readArticleResource(

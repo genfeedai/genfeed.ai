@@ -204,7 +204,6 @@ export class PublishApprovalsService {
     const mediaWarnings = await assertApprovalMediaReady({
       destinations,
       gate: this.mediaReadinessGate,
-      isHumanApproval: isInteractiveApprovalOrigin(readApprovalOrigin()),
       logger: this.logger,
       post,
     });
@@ -489,10 +488,8 @@ export class PublishApprovalsService {
       await this.assertClaimNotHeld(approval);
       await assertApprovalEnhancementReady({
         gate: this.mediaReadinessGate,
-        isHumanApproval: isInteractiveApprovalOrigin(
-          readProvenanceOrigin(approval.provenance),
-        ),
         post,
+        provenance: approval.provenance,
       });
       await this.assertCurrentAuthorization(approval);
       await this.assertApprovalScope(approval, post);

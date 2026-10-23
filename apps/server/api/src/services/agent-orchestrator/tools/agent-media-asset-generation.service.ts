@@ -19,6 +19,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import {
   readMediaAssetUrl,
+  readMediaGenerationHarnessFields,
   readMediaResponseString,
   readMediaResponseValue,
   readUsableCdnAssetUrl,
@@ -40,7 +41,6 @@ import {
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import { isGenerationEnhancementFailed } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
@@ -961,14 +961,7 @@ export class AgentMediaAssetGenerationService {
       data: {
         ...(result.data ?? {}),
         kind,
-        isEnhancementFailed:
-          isGenerationEnhancementFailed(
-            readMediaResponseValue(response, 'generationHarness'),
-          ) || readMediaResponseValue(response, 'isEnhancementFailed') === true,
-        generationHarness: readMediaResponseValue(
-          response,
-          'generationHarness',
-        ),
+        ...readMediaGenerationHarnessFields(response),
         ...(receipt ? { contextReceipt: receipt } : {}),
       },
     };
