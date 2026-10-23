@@ -1,3 +1,4 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { toIngredientCreateData } from '@api/collections/ingredients/utils/ingredient-create-data.util';
@@ -16,7 +17,7 @@ import {
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ActionOrigin, CredentialPlatform } from '@genfeedai/contracts';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { brandOfferingSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -769,7 +770,6 @@ describe('enhancement through the publish boundary', () => {
         assertApprovalMediaReady({
           destinations: [],
           gate,
-          isHumanApproval: false,
           logger: undefined,
           post,
         });
@@ -777,13 +777,14 @@ describe('enhancement through the publish boundary', () => {
         await expect(attempt()).rejects.toThrow('Brand enhancement failed');
         expect(receipt.enhancedPrompt).toBe(input.prompt);
         await expect(
-          assertApprovalMediaReady({
-            destinations: [],
-            gate,
-            isHumanApproval: true,
-            logger: undefined,
-            post,
-          }),
+          runWithActionOrigin({ origin: ActionOrigin.UI }, () =>
+            assertApprovalMediaReady({
+              destinations: [],
+              gate,
+              logger: undefined,
+              post,
+            }),
+          ),
         ).resolves.toMatchObject({
           assessmentReasons: [
             expect.objectContaining({ code: 'generation:enhancement_failed' }),
