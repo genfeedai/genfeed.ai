@@ -50,19 +50,33 @@ describe('GenerationHarnessSettingsCard', () => {
     fireEvent.click(group.getByRole('button', { name: 'Inherit' }));
     expect(input.onSave).toHaveBeenCalledWith('brand', null);
   });
-  it('exposes organization default and reset with accessible names', () => {
+  it('uses the same Inherit / On / Off control for the organization default', () => {
     const input = props();
     render(<GenerationHarnessSettingsCard {...input} />, {
       wrapper: EnglishMessages,
     });
-    fireEvent.click(
-      screen.getByRole('switch', { name: 'Organization prompt enhancement' }),
+    const group = within(
+      screen.getByRole('group', { name: 'Organization prompt enhancement' }),
     );
+    expect(group.getByRole('button', { name: 'On' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(group.getByRole('button', { name: 'Off' }));
     expect(input.onSave).toHaveBeenCalledWith('organization', false);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Reset organization default' }),
-    );
+    fireEvent.click(group.getByRole('button', { name: 'Inherit' }));
     expect(input.onSave).toHaveBeenCalledWith('organization', null);
+  });
+  it('renders both rows with the same control column', () => {
+    render(<GenerationHarnessSettingsCard {...props()} />, {
+      wrapper: EnglishMessages,
+    });
+    const columns = [
+      screen.getByRole('group', { name: 'Organization prompt enhancement' }),
+      screen.getByRole('group', { name: 'Brand prompt enhancement' }),
+    ].map((group) => group.parentElement?.className);
+    expect(columns[0]).toBe(columns[1]);
+    expect(columns[0]).toContain('w-44');
   });
   it('disables writes while saving and makes an error recoverable', () => {
     const input = props();
@@ -70,7 +84,7 @@ describe('GenerationHarnessSettingsCard', () => {
       <GenerationHarnessSettingsCard {...input} isSaving />,
       { wrapper: EnglishMessages },
     );
-    expect(screen.getByRole('switch')).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Off' })[0]).toBeDisabled();
     expect(screen.getByText('Saving…')).toBeInTheDocument();
     rerender(<GenerationHarnessSettingsCard {...input} error="Save failed" />);
     expect(screen.getByRole('alert')).toHaveTextContent('Save failed');

@@ -7,134 +7,101 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { GenerationHarnessService } from '@services/ai/generation-harness.service';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useRef, useState } from 'react';
 
+const SETTINGS_QUERY_KEY = 'generation-harness-settings';
+const SETTINGS_STALE_TIME_MS = 60_000;
+const SETTINGS_GC_TIME_MS = 30 * 60_000;
+
+/**
+ * Saved prompt-enhancement settings for the current organization and brand.
+ * Cached per organization + brand so reopening the Brand popover shows the
+ * last value instantly; a stale cache refetches in the background (on mount
+ * and on window focus, which picks up changes an agent made elsewhere).
+ */
 export function useGenerationHarnessSettings(isOpen: boolean) {
   const { brandId, organizationId } = useBrand();
+  const queryClient = useQueryClient();
   const getService = useAuthedService((token) =>
     GenerationHarnessService.getInstance(token),
   );
-  const [settings, setSettings] = useState<GenerationHarnessSettings | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [revision, setRevision] = useState(0);
-  const requestRef = useRef<AbortController | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const savingRef = useRef(false);
-  const loadedScopeRef = useRef<string | null>(null);
-  const loadedServiceRef = useRef<typeof getService | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revision explicitly refreshes saved settings after focus or retry.
-  useEffect(() => {
-    const controller = new AbortController();
-    requestRef.current?.abort();
-    requestRef.current = controller;
-    savingRef.current = false;
-    const scopeKey = JSON.stringify([organizationId, brandId]);
-    const keepSettings =
-      isOpen &&
-      loadedScopeRef.current === scopeKey &&
-      loadedServiceRef.current === getService;
-    if (!keepSettings) {
-      setSettings(null);
-      loadedScopeRef.current = null;
-      loadedServiceRef.current = null;
-    }
-    setIsSaving(false);
-    setError(null);
-    setIsLoading(isOpen && !!organizationId && !keepSettings);
-    if (isOpen && !organizationId)
-      setError('Choose an organization to edit prompt enhancement settings.');
-    if (!isOpen || !organizationId) return () => controller.abort();
-
-    async function load() {
-      try {
-        const service = await getService();
-        if (controller.signal.aborted) return;
-        const value = await service.getSettings(brandId, controller.signal);
-        if (!controller.signal.aborted) {
-          loadedScopeRef.current = scopeKey;
-          loadedServiceRef.current = getService;
-          setSettings(value);
-        }
-      } catch {
-        if (!controller.signal.aborted)
-          setError('Could not load prompt enhancement settings.');
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
-    }
-    void load();
-    return () => controller.abort();
-  }, [brandId, getService, isOpen, organizationId, revision]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const refresh = () => {
-      if (!savingRef.current) setRevision((value) => value + 1);
-    };
-    window.addEventListener('focus', refresh);
-    return () => window.removeEventListener('focus', refresh);
-  }, [isOpen]);
+  const queryKey = [SETTINGS_QUERY_KEY, organizationId, brandId ?? null];
+  const query = useQuery({
+    enabled: isOpen && !!organizationId,
+    gcTime: SETTINGS_GC_TIME_MS,
+    queryFn: async ({ signal }) => {
+      const service = await getService();
+      return service.getSettings(brandId, signal);
+    },
+    queryKey,
+    refetchOnWindowFocus: true,
+    staleTime: SETTINGS_STALE_TIME_MS,
+  });
+  const { data: settings = null, refetch } = query;
 
   const save = useCallback(
     async (
       scope: UpdateGenerationHarnessSettings['scope'],
       isEnabled: boolean | null,
     ) => {
-      if (
-        !organizationId ||
-        !isOpen ||
-        isLoading ||
-        savingRef.current ||
-        !settings
-      )
-        return;
-      const controller = new AbortController();
-      requestRef.current?.abort();
-      requestRef.current = controller;
+      if (!organizationId || !isOpen || savingRef.current || !settings) return;
+      const savedKey = [SETTINGS_QUERY_KEY, organizationId, brandId ?? null];
       savingRef.current = true;
       setIsSaving(true);
-      setError(null);
+      setSaveError(null);
       try {
         const service = await getService();
-        if (controller.signal.aborted) return;
-        await service.updateSettings(
-          { scope, isEnabled, ...(brandId ? { brandId } : {}) },
-          controller.signal,
-        );
-        const value = await service.getSettings(brandId, controller.signal);
-        if (!controller.signal.aborted) setSettings(value);
+        await service.updateSettings({
+          scope,
+          isEnabled,
+          ...(brandId ? { brandId } : {}),
+        });
+        const value = await service.getSettings(brandId);
+        queryClient.setQueryData(savedKey, value);
+        // The organization default shapes every brand's effective value.
+        await queryClient.invalidateQueries({
+          predicate: (cached) =>
+            cached.queryKey[0] === SETTINGS_QUERY_KEY &&
+            cached.queryKey[1] === organizationId &&
+            cached.queryKey[2] !== (brandId ?? null),
+          refetchType: 'none',
+        });
       } catch {
-        if (!controller.signal.aborted)
-          setError(
-            'Could not confirm the saved setting. Refresh to check, then try again.',
-          );
+        setSaveError(
+          'Could not confirm the saved setting. Refresh to check, then try again.',
+        );
       } finally {
-        if (!controller.signal.aborted) {
-          savingRef.current = false;
-          setIsSaving(false);
-        }
+        savingRef.current = false;
+        setIsSaving(false);
       }
     },
-    [brandId, getService, isLoading, isOpen, organizationId, settings],
+    [brandId, getService, isOpen, organizationId, queryClient, settings],
   );
 
-  useEffect(
-    () => () => {
-      requestRef.current?.abort();
-    },
-    [],
-  );
+  const refresh = useCallback(() => {
+    setSaveError(null);
+    void refetch();
+  }, [refetch]);
+
+  let error = saveError;
+  if (isOpen && !organizationId) {
+    error = 'Choose an organization to edit prompt enhancement settings.';
+  } else if (!error && query.isError && !settings) {
+    error = 'Could not load prompt enhancement settings.';
+  }
 
   return {
     brandId,
     error,
-    isLoading,
+    // Only the first load shows a spinner; a cached value renders at once.
+    isLoading: query.isLoading,
     isSaving,
-    refresh: () => setRevision((value) => value + 1),
+    refresh,
     save,
     settings,
   };
