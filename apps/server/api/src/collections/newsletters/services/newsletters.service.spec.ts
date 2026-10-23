@@ -142,7 +142,10 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
         },
         { provide: OpenRouterService, useValue: openRouterService },
         { provide: BrandsService, useValue: brandsService },
-        { provide: HarnessGenerationService, useValue: harnessGenerationService },
+        {
+          provide: HarnessGenerationService,
+          useValue: harnessGenerationService,
+        },
         {
           provide: AgentArtifactReferenceService,
           useValue: agentArtifactReferenceService,
