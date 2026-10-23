@@ -78,27 +78,33 @@ describe('IngredientsService', () => {
     );
   });
 
-  it('downloads the watermarked export as an attachment through the API', async () => {
-    const blob = new Blob(['png'], { type: 'image/png' });
-    http.post.mockResolvedValue({
-      data: blob,
-      headers: {
-        'content-disposition': 'attachment; filename="image-1-watermarked.png"',
-      },
-    });
+  it.each([
+    ['image-1', 'png', 'image/png'],
+    ['video-1', 'mp4', 'video/mp4'],
+  ])(
+    'downloads the watermarked %s as an attachment through the API',
+    async (id, extension, mimeType) => {
+      const blob = new Blob([extension], { type: mimeType });
+      http.post.mockResolvedValue({
+        data: blob,
+        headers: {
+          'content-disposition': `attachment; filename="${id}-watermarked.${extension}"`,
+        },
+      });
 
-    await service.downloadWatermarked('image-1');
+      await service.downloadWatermarked(id);
 
-    expect(http.post).toHaveBeenCalledWith(
-      'https://api.genfeed.ai/v1/ingredients/image-1/export-file',
-      { watermark: true },
-      { responseType: 'blob', timeout: 600_000 },
-    );
-    expect(saveDownloadBlob).toHaveBeenCalledWith(
-      blob,
-      'image-1-watermarked.png',
-    );
-  });
+      expect(http.post).toHaveBeenCalledWith(
+        `https://api.genfeed.ai/v1/ingredients/${id}/export-file`,
+        { watermark: true },
+        { responseType: 'blob', timeout: 600_000 },
+      );
+      expect(saveDownloadBlob).toHaveBeenCalledWith(
+        blob,
+        `${id}-watermarked.${extension}`,
+      );
+    },
+  );
 
   it('surfaces the API reason when the watermarked export is refused', async () => {
     http.post.mockRejectedValue(
@@ -107,9 +113,7 @@ describe('IngredientsService', () => {
         response: {
           data: new Blob([
             JSON.stringify({
-              errors: [
-                { detail: 'Configure a watermark in brand settings first' },
-              ],
+              errors: [{ detail: 'Invalid brand watermark settings' }],
             }),
           ]),
           status: 400,
@@ -118,7 +122,7 @@ describe('IngredientsService', () => {
     );
 
     await expect(service.downloadWatermarked('image-1')).rejects.toMatchObject({
-      message: 'Configure a watermark in brand settings first',
+      message: 'Invalid brand watermark settings',
       name: 'WatermarkExportError',
     });
     expect(saveDownloadBlob).not.toHaveBeenCalled();
