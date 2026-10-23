@@ -306,10 +306,8 @@ const UI_TEST_MESSAGES = {
       brandVoice: 'Brand voice',
       configureSection: 'Configure {section}',
       current: 'Current',
-      hideLegacyModels: 'Hide legacy models',
       legacyModels:
         '{count, plural, one {# legacy model} other {# legacy models}}',
-      showLegacyModels: 'Show legacy models',
       customize: 'Customize',
       customizeSetup: 'Customize setup',
       deletePreset: 'Delete preset {label}',

@@ -19,6 +19,7 @@ import GenerationSetupCustomizePanel from '@ui/dropdowns/generation-setup/Genera
 import GenerationSetupLookMenu from '@ui/dropdowns/generation-setup/GenerationSetupLookMenu';
 import GenerationSetupOutputMenu from '@ui/dropdowns/generation-setup/GenerationSetupOutputMenu';
 import { summarizeGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.summary';
+import { usePhoneViewport } from '@ui/dropdowns/generation-setup/usePhoneViewport';
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
@@ -45,28 +46,10 @@ import {
   Palette,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useState } from 'react';
 
-const PHONE_QUERY = '(max-width: 639px)';
 // Width of the More setup menu (`w-56`), the amount a phone submenu overlaps it.
 const MORE_SETUP_MENU_WIDTH_PX = 224;
-
-function subscribeToPhoneViewport(onChange: () => void): () => void {
-  if (typeof window.matchMedia !== 'function') return () => undefined;
-  const query = window.matchMedia(PHONE_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-
-function usePhoneViewport(): boolean {
-  return useSyncExternalStore(
-    subscribeToPhoneViewport,
-    () =>
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(PHONE_QUERY).matches,
-    () => false,
-  );
-}
 
 interface SectionChip {
   icon: ReactNode;

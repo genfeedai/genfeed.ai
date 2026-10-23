@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ModelLifecycle,
-} from '@genfeedai/contracts';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import {
   formatCreditBalanceExact,
   formatCreditCost,
@@ -12,6 +8,9 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupModelSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/model-selector.props';
+import GenerationSetupLegacyModelsMenu, {
+  LEGACY_MODELS_ROW_VALUE,
+} from '@ui/dropdowns/generation-setup/GenerationSetupLegacyModelsMenu';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import {
   AUTO_PRIORITY_LABELS,
@@ -22,7 +21,6 @@ import {
   sortModelOptions,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
-import { Button } from '@ui/primitives/button';
 import {
   Command,
   CommandEmpty,
@@ -31,17 +29,18 @@ import {
   CommandItem,
   CommandList,
 } from '@ui/primitives/command';
-import { Check, ChevronRight, Sparkles } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type KeyboardEvent, useRef, useState } from 'react';
 
 /**
  * Model list: an Auto card (one row per {@link AUTO_PRIORITY_OPTIONS}) plus the
  * catalog as single-select rows, reusing `ModelSelectorModelItem` from the
  * model-selector dropdown so the two pickers never visually diverge.
  *
- * Retired rows are never listed. Legacy rows stay out of the catalog and live
- * in a collapsed Legacy group below it, which a search opens.
+ * Retired rows are never listed. Legacy rows stay out of the catalog behind a
+ * single "N legacy models" row that opens them in a flyout to the right; a
+ * search narrows the flyout to the legacy models it matches.
  */
 export default function GenerationSetupModelSection({
   capabilities,
@@ -56,6 +55,7 @@ export default function GenerationSetupModelSection({
   const translate = useTranslations('agent.generationSetup');
   const [search, setSearch] = useState('');
   const [isLegacyOpen, setIsLegacyOpen] = useState(false);
+  const highlightedValue = useRef('');
   const query = search.trim().toLowerCase();
 
   if (!capabilities.hasModelSelection) {
@@ -75,7 +75,6 @@ export default function GenerationSetupModelSection({
   );
   const options = matchingOptions.filter((option) => !option.isDeprecated);
   const legacyOptions = matchingOptions.filter((option) => option.isDeprecated);
-  const isLegacyVisible = isLegacyOpen || query.length > 0;
   const priorities = AUTO_PRIORITY_OPTIONS.filter((priority) =>
     `auto ${AUTO_PRIORITY_LABELS[priority]}`.toLowerCase().includes(query),
   );
@@ -86,6 +85,23 @@ export default function GenerationSetupModelSection({
       typeof cost === 'number' &&
       cost > creditsAvailable
     );
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (
+      event.key !== 'ArrowRight' ||
+      highlightedValue.current !== LEGACY_MODELS_ROW_VALUE
+    )
+      return;
+    // In the search box the arrow still moves the caret until it is at the end.
+    const { target } = event;
+    if (
+      target instanceof HTMLInputElement &&
+      target.selectionStart !== target.value.length
+    )
+      return;
+    event.preventDefault();
+    setIsLegacyOpen(true);
   }
 
   function renderModelRow(option: ModelSelectorOption) {
@@ -102,7 +118,10 @@ export default function GenerationSetupModelSection({
             : undefined
         }
         onFavoriteToggle={onFavoriteToggle}
-        onToggle={(modelKey) => onSetField('modelKey', modelKey)}
+        onToggle={(modelKey) => {
+          onSetField('modelKey', modelKey);
+          setIsLegacyOpen(false);
+        }}
         option={option}
         selectionMode="single"
       />
@@ -114,13 +133,20 @@ export default function GenerationSetupModelSection({
       <Command
         label={translate('searchModels')}
         className="flex min-h-0 flex-col bg-transparent text-foreground"
+        onKeyDown={handleKeyDown}
+        onValueChange={(value) => {
+          highlightedValue.current = value;
+        }}
         shouldFilter={false}
       >
         <CommandInput
           aria-label={translate('searchModels')}
           placeholder={translate('searchModelsPlaceholder')}
           value={search}
-          onValueChange={setSearch}
+          onValueChange={(value) => {
+            setSearch(value);
+            setIsLegacyOpen(false);
+          }}
         />
         <CommandList
           className={cn(
@@ -178,30 +204,16 @@ export default function GenerationSetupModelSection({
           ) : null}
 
           {legacyOptions.length > 0 ? (
-            <CommandGroup heading="Legacy">
-              <Button
-                aria-expanded={isLegacyVisible}
-                className="flex min-h-7 w-full items-center justify-between rounded-sm px-1.5 py-0.5 text-xs text-muted-foreground"
-                aria-label={translate(
-                  isLegacyVisible ? 'hideLegacyModels' : 'showLegacyModels',
-                )}
-                onClick={() => setIsLegacyOpen((current) => !current)}
-                size={ButtonSize.SM}
-                textTransform="none"
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
+            <CommandGroup>
+              <GenerationSetupLegacyModelsMenu
+                isOpen={isLegacyOpen}
+                label={translate('legacyModels', {
+                  count: legacyOptions.length,
+                })}
+                onOpenChange={setIsLegacyOpen}
               >
-                <span>
-                  {translate('legacyModels', { count: legacyOptions.length })}
-                </span>
-                <ChevronRight
-                  className={cn(
-                    'size-3.5 shrink-0 transition-transform',
-                    isLegacyVisible && 'rotate-90',
-                  )}
-                />
-              </Button>
-              {isLegacyVisible ? legacyOptions.map(renderModelRow) : null}
+                {legacyOptions.map(renderModelRow)}
+              </GenerationSetupLegacyModelsMenu>
             </CommandGroup>
           ) : null}
 
