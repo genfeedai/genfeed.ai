@@ -6,6 +6,7 @@ import {
 import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -837,6 +838,41 @@ describe('AgentFullPage', () => {
         'Failed to load this thread. Refresh and try again.',
       );
     });
+  });
+
+  it('shows a not-found state, not the new-chat empty state, for an unknown thread', async () => {
+    const apiService = createApiService({
+      getMessagesPage: vi.fn(),
+      getThread: vi.fn().mockRejectedValue(
+        new AgentApiRequestError({
+          message: 'Failed to fetch thread: 404',
+          source: 'api',
+          status: 404,
+        }),
+      ),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage
+        apiService={apiService as never}
+        newChatHref="/test-org/~/agent/new"
+        threadId="does-not-exist"
+      />,
+    );
+
+    const notFound = await screen.findByTestId('agent-thread-not-found');
+    expect(within(notFound).getByText('Chat not found')).toBeInTheDocument();
+    expect(
+      within(notFound).getByText("This chat doesn't exist or was deleted."),
+    ).toBeInTheDocument();
+    expect(
+      within(notFound).getByRole('link', { name: 'Start a new chat' }),
+    ).toHaveAttribute('href', '/test-org/~/agent/new');
+    expect(screen.queryByText(/agent-chat-container/)).not.toBeInTheDocument();
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'Failed to load this thread. Refresh and try again.',
+    );
   });
 
   it('passes a loading state to the chat container while bootstrapping a thread', async () => {

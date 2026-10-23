@@ -18,7 +18,12 @@
   },
   "fullPage": {
     "outputs": "Outputs",
-    "placeholder": "Ask for help with content, review, or planning..."
+    "placeholder": "Ask for help with content, review, or planning...",
+    "threadNotFound": {
+      "description": "This chat doesn't exist or was deleted.",
+      "startNewChat": "Start a new chat",
+      "title": "Chat not found"
+    }
   },
   "threadRecovery": {
     "failed": "Could not update this thread. Your draft is kept. Try again when you are ready.",
