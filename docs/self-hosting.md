@@ -76,10 +76,16 @@ a model key.
    `OPENROUTER_API_KEY is not configured`. An `OPENAI_API_KEY` alone does not
    make text generation ready. Image and video generation use `REPLICATE_KEY`
    or `FAL_API_KEY` instead.
-2. **Sign up.** Open `http://localhost:3000` and create the first account.
-   Sign-up is enabled out of the box (`BETTER_AUTH_ENABLED=true` and
+
+   With the login wall on, the check needs a Bearer JWT, not the session cookie.
+   Exchange the cookie for one with `GET /v1/auth/token`, then send it as
+   `Authorization: Bearer <jwt>`. Once onboarding has created your organization
+   and brand, `workspace.hasOrganization` and `workspace.hasBrand` read `true`.
+2. **Sign up.** Open `http://localhost:3000/sign-up` and choose **Email &
+   password**. Sign-up is enabled out of the box (`BETTER_AUTH_ENABLED=true` and
    `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in `.env.example`). Email/password
-   needs no email provider. See [Community Auth Modes](#community-auth-modes)
+   needs no email provider, and **Magic Link** is hidden until you set
+   `RESEND_API_KEY`. See [Community Auth Modes](#community-auth-modes)
    to run without a login wall instead.
 3. **Finish onboarding**, then create your first task or generation.
 

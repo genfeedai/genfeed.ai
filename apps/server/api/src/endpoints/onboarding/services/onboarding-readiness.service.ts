@@ -193,7 +193,7 @@ export class OnboardingReadinessService {
       'byokKeys' | 'isByokEnabled'
     > | null = null;
 
-    if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
+    if (userId) {
       const dbUser = (await this.usersService.findOne(
         {
           id: userId,
@@ -210,7 +210,7 @@ export class OnboardingReadinessService {
       );
     }
 
-    if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
+    if (organizationId) {
       const organization = await this.organizationsService.findOne({
         id: organizationId,
       });

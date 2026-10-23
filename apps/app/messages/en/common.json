@@ -28,6 +28,23 @@
     "signUp": "Sign up",
     "waitingForBrowser": "Waiting for the browser..."
   },
+  "signUpForm": {
+    "createAccount": "Create account",
+    "email": "Email",
+    "emailPassword": "Email & password",
+    "emailPlaceholder": "you@example.com",
+    "magicLinkUnavailableDescription": "This workspace has no email provider configured, so it cannot send sign-up links. Create your account with an email and password instead.",
+    "magicLinkUnavailableTitle": "Magic link unavailable",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "password": "Password",
+    "passwordDescription": "Enter your details to create an account with a password.",
+    "passwordPlaceholder": "At least 8 characters",
+    "passwordTitle": "Sign up with email",
+    "signUpWithEmail": "Sign up with email",
+    "verifyEmailClick": "Click the link in the email to finish creating your account.",
+    "verifyEmailSentTo": "We sent a verification link to"
+  },
   "actions": {
     "cancel": "Cancel",
     "clearFilters": "Clear Filters",

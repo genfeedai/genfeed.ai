@@ -240,3 +240,68 @@ describe('OnboardingReadinessService provider readiness', () => {
     expect(readiness.textGenerationReady).toBe(false);
   });
 });
+
+describe('OnboardingReadinessService workspace readiness', () => {
+  // Better Auth issues UUID ids, not 24-character hex ObjectIds.
+  const USER_ID = '6f1c1f3e-8a43-4b0e-9c57-2f0f6a5d9b11';
+  const ORGANIZATION_ID = 'b7d2a5c4-1e3f-4a6b-8c9d-0e1f2a3b4c5d';
+  const BRAND_ID = '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
+
+  const getInstallReadiness = async ({
+    hasBrand,
+    hasOrganization,
+  }: {
+    hasBrand: boolean;
+    hasOrganization: boolean;
+  }) => {
+    vi.resetModules();
+    const { OnboardingReadinessService } = await import(
+      './onboarding-readiness.service'
+    );
+
+    const service = new OnboardingReadinessService(
+      {
+        findOne: vi.fn().mockResolvedValue(hasBrand ? { id: BRAND_ID } : null),
+      } as unknown as BrandsService,
+      {
+        findOne: vi.fn().mockResolvedValue(null),
+      } as unknown as OrganizationSettingsService,
+      {
+        findOne: vi
+          .fn()
+          .mockResolvedValue(hasOrganization ? { id: ORGANIZATION_ID } : null),
+      } as unknown as OrganizationsService,
+      { findOne: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+    );
+
+    return service.getInstallReadiness({ id: USER_ID } as never, {
+      brandId: BRAND_ID,
+      organizationId: ORGANIZATION_ID,
+      userId: USER_ID,
+    });
+  };
+
+  it('reports the brand and organization onboarding created', async () => {
+    const readiness = await getInstallReadiness({
+      hasBrand: true,
+      hasOrganization: true,
+    });
+
+    expect(readiness.workspace).toEqual({
+      brandId: BRAND_ID,
+      hasBrand: true,
+      hasOrganization: true,
+      organizationId: ORGANIZATION_ID,
+    });
+  });
+
+  it('reports neither before onboarding has created them', async () => {
+    const readiness = await getInstallReadiness({
+      hasBrand: false,
+      hasOrganization: false,
+    });
+
+    expect(readiness.workspace.hasBrand).toBe(false);
+    expect(readiness.workspace.hasOrganization).toBe(false);
+  });
+});

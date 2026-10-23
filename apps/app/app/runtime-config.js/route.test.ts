@@ -45,7 +45,22 @@ describe('self-hosted runtime config', () => {
         apiEndpoint: '/v1',
         clientSurface: 'desktop',
         betterAuthEnabled: flag === 'true',
+        isMagicLinkAvailable: true,
       });
+    },
+  );
+
+  it.each([
+    { expected: false, key: '' },
+    { expected: true, key: 're_abc123' },
+  ])(
+    'reports magic links available=$expected for RESEND_API_KEY=$key on self-hosted',
+    async ({ expected, key }) => {
+      vi.stubEnv('RESEND_API_KEY', key);
+
+      const source = await (await GET()).text();
+
+      expect(source).toContain(`"isMagicLinkAvailable":${expected}`);
     },
   );
 
