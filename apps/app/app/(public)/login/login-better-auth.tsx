@@ -47,6 +47,7 @@ import {
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
+import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
 
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
@@ -112,6 +113,7 @@ export default function LoginBetterAuth({
   const translate = useTranslations('common');
   const searchParams = useSearchParams();
   const isDesktop = useIsDesktopClient();
+  const isMagicLinkAvailable = useIsMagicLinkAvailable();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -697,17 +699,19 @@ export default function LoginBetterAuth({
                 {translate('loginForm.google')}
               </Button>
 
-              <Button
-                asChild
-                variant={ButtonVariant.SECONDARY}
-                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-                withWrapper={false}
-              >
-                <Link href={magicLinkHref}>
-                  <Sparkles className="size-4" aria-hidden="true" />
-                  <span>{translate('loginForm.magicLink')}</span>
-                </Link>
-              </Button>
+              {isMagicLinkAvailable ? (
+                <Button
+                  asChild
+                  variant={ButtonVariant.SECONDARY}
+                  className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                  withWrapper={false}
+                >
+                  <Link href={magicLinkHref}>
+                    <Sparkles className="size-4" aria-hidden="true" />
+                    <span>{translate('loginForm.magicLink')}</span>
+                  </Link>
+                </Button>
+              ) : null}
 
               <Button
                 asChild

@@ -17,8 +17,9 @@ import { BrandPublishPolicyModule } from '@api/services/brand-publish-policy/bra
 import { BrandPublishPolicyService } from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
+import { MediaAssessmentModule } from '@api/services/media-assessment/media-assessment.module';
+import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
-import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
@@ -47,6 +48,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
+    MediaAssessmentModule,
     MediaReadinessModule,
     PublishersModule,
     QuotaModule,
@@ -102,14 +104,16 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
       ) => new AgentScopeContextService(prisma, logger, access),
     },
     {
-      // The media readiness gate belongs on every publish-capable construction,
-      // not just the API module's: this provider backs the scheduled publishing
-      // workflows, which create approvals of their own.
+      // The media assessment gate (readiness plus the enhancement-failure
+      // check) belongs on every publish-capable construction, not just the API
+      // module's: this provider backs the scheduled publishing workflows, which
+      // create and claim unattended approvals of their own. Readiness alone has
+      // no `assessPublishMedia`, so the enhancement gate would silently pass.
       inject: [
         PrismaService,
         AgentArtifactReferenceService,
         LoggerService,
-        MediaReadinessService,
+        MediaAssessmentService,
         BrandPublishPolicyService,
       ],
       provide: PublishApprovalsService,
@@ -117,14 +121,14 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
         prisma: PrismaService,
         artifactReferenceService: AgentArtifactReferenceService,
         logger: LoggerService,
-        mediaReadinessService: MediaReadinessService,
+        mediaGate: MediaAssessmentService,
         brandPublishPolicy: BrandPublishPolicyService,
       ) =>
         new PublishApprovalsService(
           prisma,
           artifactReferenceService,
           logger,
-          mediaReadinessService,
+          mediaGate,
           new BrandedPublishHoldService(prisma, brandPublishPolicy),
         ),
     },

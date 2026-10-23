@@ -2,6 +2,7 @@ import { ingredientAttributes } from '@serializers/attributes/ingredients/ingred
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';
 import { rel, simpleConfig } from '@serializers/builders';
 import { serializeAgentWorkObject } from '@serializers/helpers/agent-work-object.helper';
+import { serializeEnhancementFailed } from '@serializers/helpers/generation-enhancement.helper';
 import { serializeGenerationEntry } from '@serializers/helpers/generation-entry.helper';
 import { serializeImageEdit } from '@serializers/helpers/image-edit.helper';
 import { CONTENT_ENTITY_RELS } from '@serializers/relationships';
@@ -9,6 +10,7 @@ import { CONTENT_ENTITY_RELS } from '@serializers/relationships';
 export const ingredientSerializerConfig = {
   attributes: ingredientAttributes,
   attributeDerivations: {
+    isEnhancementFailed: serializeEnhancementFailed,
     generationEntry: serializeGenerationEntry,
     agentWorkObject: serializeAgentWorkObject,
     imageEdit: serializeImageEdit,

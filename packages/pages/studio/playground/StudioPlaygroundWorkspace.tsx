@@ -73,6 +73,7 @@ import StudioPlaygroundResults from '@pages/studio/playground/components/StudioP
 import StudioPlaygroundStarterIdeas from '@pages/studio/playground/components/StudioPlaygroundStarterIdeas';
 import { useCrunGenerationQuote } from '@pages/studio/playground/hooks/useCrunGenerationQuote';
 import { useStudioGeneration } from '@pages/studio/playground/hooks/useStudioGeneration';
+import { useStudioPendingPreviews } from '@pages/studio/playground/hooks/useStudioPendingPreviews';
 import { useStudioPlaygroundAssetActions } from '@pages/studio/playground/hooks/useStudioPlaygroundAssetActions';
 import { useStudioPlaygroundDraft } from '@pages/studio/playground/hooks/useStudioPlaygroundDraft';
 import { useStudioPlaygroundGallery } from '@pages/studio/playground/hooks/useStudioPlaygroundGallery';
@@ -977,6 +978,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   }, [galleryJobs, resultSort, resultType, search]);
   const { previewRevisions, recoverPreview, recoveredJobs } =
     useStudioPlaygroundPreviewRecovery(visibleJobs);
+  useStudioPendingPreviews({
+    getIngredientsService,
+    jobs: visibleJobs,
+    recoverPreview,
+  });
   const showEmptyStarterIdeas =
     !galleryError &&
     !isLoadingGallery &&

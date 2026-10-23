@@ -101,6 +101,7 @@ export function AgentWorkspacePageShell({
           />
         }
         knowledgeSelection={knowledgeSelection}
+        newChatHref={orgHref('/agent/new')}
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
         showThreadSidebar={false}
         threadId={threadId}

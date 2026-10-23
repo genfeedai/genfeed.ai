@@ -119,8 +119,9 @@ export class IngredientsService<
   public previewGrant(
     id: string,
     signal: AbortSignal,
+    options?: { isRetry?: boolean },
   ): Promise<MediaDeliveryGrant | null> {
-    return this.previewBatch.request(id, signal);
+    return this.previewBatch.request(id, signal, options);
   }
 
   public async downloadOriginal(ingredient: IIngredient): Promise<void> {

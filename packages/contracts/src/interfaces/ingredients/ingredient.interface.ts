@@ -32,6 +32,7 @@ export interface IIngredient extends IBaseEntity {
   generationEntry?: GenerationEntry;
   imageEdit?: ImageEditingRecipe;
   generationHarness?: GenerationHarnessReceipt | null;
+  isEnhancementFailed?: boolean;
   agentWorkObject?: AgentWorkObjectMaterial;
   userId?: string | null;
   organizationId?: string | null;

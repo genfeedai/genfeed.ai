@@ -1,7 +1,7 @@
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GenerationSetupModelSection from '@ui/dropdowns/generation-setup/GenerationSetupModelSection';
 import { TooltipProvider } from '@ui/primitives/tooltip';
@@ -33,7 +33,7 @@ const MODELS = [
   buildModel('genfeed-ai/gone', 'Gone Model', ModelLifecycle.RETIRED),
 ];
 
-function renderSection() {
+function renderSection(onSetField = vi.fn()) {
   render(
     <TooltipProvider>
       <GenerationSetupModelSection
@@ -41,7 +41,7 @@ function renderSection() {
         favoriteModelKeys={[]}
         models={MODELS}
         onFavoriteToggle={vi.fn()}
-        onSetField={vi.fn()}
+        onSetField={onSetField}
         setup={{
           sources: {},
           values: { modelKey: 'replicate/current' } as never,
@@ -57,17 +57,59 @@ describe('GenerationSetupModelSection', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
-  it('keeps legacy models out of the catalog until the Legacy group is opened', async () => {
+  it('keeps legacy models behind one row with no Legacy header', async () => {
     renderSection();
 
     expect(screen.getByText('Current Model')).toBeInTheDocument();
+    expect(screen.getByText('1 legacy model')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy')).not.toBeInTheDocument();
     expect(screen.queryByText('Old Model')).not.toBeInTheDocument();
+  });
 
-    await userEvent.click(
-      screen.getByRole('button', { name: /show legacy models/i }),
-    );
+  it('opens the legacy models in a flyout when the row is clicked', async () => {
+    renderSection();
 
-    expect(screen.getByText('Old Model')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('1 legacy model'));
+
+    const flyout = await screen.findByRole('dialog', {
+      name: '1 legacy model',
+    });
+    expect(within(flyout).getByText('Old Model')).toBeInTheDocument();
+    expect(within(flyout).getByText('Legacy')).toBeInTheDocument();
+    expect(screen.getByText('Current Model')).toBeInTheDocument();
+  });
+
+  it('opens the flyout with the right arrow and picks a model with Enter', async () => {
+    const onSetField = vi.fn();
+    renderSection(onSetField);
+
+    // Only the legacy row matches, so it is the highlighted row.
+    await userEvent.type(screen.getByRole('combobox'), 'Old');
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSetField).toHaveBeenCalledWith('modelKey', 'replicate/old');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('closes the flyout with the left arrow and with Escape', async () => {
+    renderSection();
+
+    await userEvent.type(screen.getByRole('combobox'), 'Old');
+    await userEvent.keyboard('{ArrowRight}');
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('never lists a retired model, even when searched for', async () => {
@@ -78,11 +120,12 @@ describe('GenerationSetupModelSection', () => {
     expect(screen.queryByText('Gone Model')).not.toBeInTheDocument();
   });
 
-  it('opens the Legacy group for a search that matches a legacy model', async () => {
+  it('narrows the legacy row to the legacy models a search matches', async () => {
     renderSection();
 
     await userEvent.type(screen.getByRole('combobox'), 'Old');
 
-    expect(screen.getByText('Old Model')).toBeInTheDocument();
+    expect(screen.getByText('1 legacy model')).toBeInTheDocument();
+    expect(screen.queryByText('Current Model')).not.toBeInTheDocument();
   });
 });

@@ -81,28 +81,32 @@ describe('SharedService', () => {
   });
 
   describe('createMediaDocuments', () => {
-    it('retains the exact generation receipt on the ingredient', async () => {
-      const generationHarness = {
-        originalPrompt: '  original\n',
-        enhancedPrompt: 'Final provider prompt',
-        status: 'applied' as const,
-        source: 'brand' as const,
-        brandId: owner.brandId,
-        appliedPacks: [{ id: 'core-baseline', version: '1.0.0' }],
-      };
-      await service.createMediaDocuments(mockUser, {
-        origin: IngredientOrigin.GENERATED,
-        category: IngredientCategory.IMAGE,
-        generationPrompt: generationHarness.enhancedPrompt,
-        generationHarness,
-      });
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
+    it.each([true, false])(
+      'retains the exact generation receipt including enhancement failure=%s',
+      async (isEnhancementFailed) => {
+        const generationHarness = {
+          isEnhancementFailed,
+          originalPrompt: '  original\n',
+          enhancedPrompt: 'Final provider prompt',
+          status: 'applied' as const,
+          source: 'brand' as const,
+          brandId: owner.brandId,
+          appliedPacks: [{ id: 'core-baseline', version: '1.0.0' }],
+        };
+        await service.createMediaDocuments(mockUser, {
+          origin: IngredientOrigin.GENERATED,
+          category: IngredientCategory.IMAGE,
+          generationPrompt: generationHarness.enhancedPrompt,
           generationHarness,
-          generationPrompt: 'Final provider prompt',
-        }),
-      );
-    });
+        });
+        expect(ingredientsService.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            generationHarness,
+            generationPrompt: 'Final provider prompt',
+          }),
+        );
+      },
+    );
 
     it('persists a canonical metadata and ingredient pair', async () => {
       const promptId = '550e8400-e29b-41d4-a716-446655440006';

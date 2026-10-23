@@ -1,11 +1,15 @@
 import { readBetterAuthEnabledFromEnv } from '@genfeedai/auth-client/server';
 import { connection } from 'next/server';
+import { readMagicLinkAvailableFromEnv } from '@/lib/runtime-config/magic-link-availability';
 import { createRuntimeAuthConfigSource } from '@/lib/runtime-config/runtime-config-source';
 
 export async function GET(): Promise<Response> {
   await connection();
 
-  const source = createRuntimeAuthConfigSource(readBetterAuthEnabledFromEnv());
+  const source = createRuntimeAuthConfigSource(
+    readBetterAuthEnabledFromEnv(),
+    readMagicLinkAvailableFromEnv(),
+  );
 
   return new Response(source, {
     headers: {

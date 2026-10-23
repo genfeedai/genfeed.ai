@@ -4,6 +4,7 @@ import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPag
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
+import { AgentThreadNotFound } from '@genfeedai/agent/components/AgentThreadNotFound';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { MemberRole } from '@genfeedai/contracts';
@@ -20,6 +21,8 @@ interface AgentFullPageProps {
   /** Host-provided Knowledge picker rendered inside the composer. */
   knowledgeSection?: ReactNode;
   authReady?: boolean;
+  /** Where the not-found state sends the user to start a new chat. */
+  newChatHref?: string;
   threadId?: string;
   showThreadSidebar?: boolean;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
@@ -39,6 +42,7 @@ export function AgentFullPage({
   knowledgeSection,
   apiService,
   authReady = true,
+  newChatHref,
   threadId,
   showThreadSidebar = true,
   onCreateFollowUpTasks,
@@ -54,6 +58,7 @@ export function AgentFullPage({
     handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
+    isThreadNotFound,
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
@@ -95,32 +100,36 @@ export function AgentFullPage({
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <AgentChatContainer
-              archivedNotice={
-                activeThreadStatus === AgentThreadStatus.ARCHIVED
-                  ? 'This thread is archived. Unarchive it to continue the conversation.'
-                  : null
-              }
-              apiService={apiService}
-              knowledgeSelection={knowledgeSelection}
-              knowledgeSection={knowledgeSection}
-              isLoadingThread={isLoadingThread}
-              isStreaming
-              isReadOnly={activeThreadStatus === AgentThreadStatus.ARCHIVED}
-              emptyStateTitle="Start a chat"
-              emptyStateDescription="Plan content, review drafts, or decide what to do next."
-              placeholder={translate('placeholder')}
-              suggestedActions={resolvedActions}
-              showSuggestedActionsWhenNotEmpty={showRuntimeSuggestedActions}
-              onCreateFollowUpTasks={onCreateFollowUpTasks}
-              onOAuthConnect={onOAuthConnect}
-              onBrandCreate={onBrandCreate}
-              onOpenInStudio={onOpenInStudio}
-              onUnarchive={handleUnarchiveActiveThread}
-              isWideLayout
-              promptBarLayoutMode="surface-fixed"
-              workspacePlanningTaskId={workspacePlanningTaskId}
-            />
+            {isThreadNotFound ? (
+              <AgentThreadNotFound newChatHref={newChatHref} />
+            ) : (
+              <AgentChatContainer
+                archivedNotice={
+                  activeThreadStatus === AgentThreadStatus.ARCHIVED
+                    ? 'This thread is archived. Unarchive it to continue the conversation.'
+                    : null
+                }
+                apiService={apiService}
+                knowledgeSelection={knowledgeSelection}
+                knowledgeSection={knowledgeSection}
+                isLoadingThread={isLoadingThread}
+                isStreaming
+                isReadOnly={activeThreadStatus === AgentThreadStatus.ARCHIVED}
+                emptyStateTitle="Start a chat"
+                emptyStateDescription="Plan content, review drafts, or decide what to do next."
+                placeholder={translate('placeholder')}
+                suggestedActions={resolvedActions}
+                showSuggestedActionsWhenNotEmpty={showRuntimeSuggestedActions}
+                onCreateFollowUpTasks={onCreateFollowUpTasks}
+                onOAuthConnect={onOAuthConnect}
+                onBrandCreate={onBrandCreate}
+                onOpenInStudio={onOpenInStudio}
+                onUnarchive={handleUnarchiveActiveThread}
+                isWideLayout
+                promptBarLayoutMode="surface-fixed"
+                workspacePlanningTaskId={workspacePlanningTaskId}
+              />
+            )}
           </div>
         </div>
       </div>

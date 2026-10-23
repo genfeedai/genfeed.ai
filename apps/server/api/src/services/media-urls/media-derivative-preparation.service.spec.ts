@@ -9,6 +9,11 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+}));
 
 vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<typeof import('@genfeedai/config')>()),
@@ -139,6 +144,25 @@ describe('protected derivative preparation', () => {
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });
 
+  it('queues a failed preview again on request, but not within the cooldown', async () => {
+    const { service, prisma, queue } = await setup();
+    prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
+      id: testId('variant', 1),
+      state: 'FAILED',
+      updatedAt: new Date(Date.now() - 5_000),
+    });
+    await service.enqueue(data.organizationId, source.id);
+    expect(queue.add).not.toHaveBeenCalled();
+
+    prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
+      id: testId('variant', 1),
+      state: 'FAILED',
+      updatedAt: new Date(Date.now() - 120_000),
+    });
+    await service.enqueue(data.organizationId, source.id);
+    expect(queue.add).toHaveBeenCalledOnce();
+  });
+
   it('does not redownload or render an already ready variant', async () => {
     const { service, prisma, files, queue } = await setup();
     prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
@@ -219,6 +243,15 @@ describe('protected derivative preparation', () => {
           state: 'FAILED',
           storageKey: null,
         },
+      }),
+    );
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('invalid protected variant'),
+      }),
+      expect.objectContaining({
+        extra: expect.objectContaining({ ingredientId: source.id }),
+        tags: { queue: 'media-delivery' },
       }),
     );
   });

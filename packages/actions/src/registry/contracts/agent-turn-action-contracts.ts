@@ -72,7 +72,7 @@ const UI_ACTION_RESULT = closedObjectSchema(
   {
     brandId: nullableSchema(STRING_SCHEMA),
     contextVersion: INTEGER_SCHEMA,
-    creditsRemaining: NUMBER_SCHEMA,
+    creditsRemaining: nullableSchema(NUMBER_SCHEMA),
     creditsUsed: NUMBER_SCHEMA,
     message: closedObjectSchema(
       {

@@ -268,6 +268,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     };
     const prisma = {
       $transaction: vi.fn((callback) => callback(transaction)),
+      workflow: { findFirst: vi.fn().mockResolvedValue(mirror) },
     };
     const executeManualWorkflowDocument = vi.fn().mockResolvedValue({
       executionId: 'execution-1',
@@ -375,6 +376,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
         $transaction: transaction.mockImplementation((callback) =>
           callback(tx),
         ),
+        workflow: { findFirst: vi.fn().mockResolvedValue(mirror) },
       };
       const executeManualWorkflowDocument = vi.fn().mockResolvedValue({
         executionId: 'execution-1',

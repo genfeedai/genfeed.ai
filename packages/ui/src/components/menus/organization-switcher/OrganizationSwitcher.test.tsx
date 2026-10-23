@@ -2,7 +2,7 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPush = vi.fn();
 const mockGetMyOrganizations = vi.fn();
 const mockSwitchOrganization = vi.fn();
-let mockOrganizations: typeof TWO_ORGS | Array<(typeof TWO_ORGS)[number]> = [];
+let mockOrganizations: Array<
+  (typeof TWO_ORGS)[number] & { logoUrl?: string | null }
+> = [];
 let mockConfirmedOrganizationId: string | null = 'org_1';
 let mockOrganizationStatus = 'matched';
 let mockParams: { orgSlug?: string } = { orgSlug: 'acme-org' };
@@ -195,6 +197,29 @@ describe('OrganizationSwitcher', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('falls back to the initial-letter avatar when the active org logo fails to load', () => {
+    mockOrganizations = [
+      {
+        brand: null,
+        id: 'org_1',
+        isActive: true,
+        isOwner: true,
+        label: 'Acme Org',
+        logoUrl: 'https://cdn.test/logos/acme.png?Signature=expired',
+        slug: 'acme-org',
+      },
+    ] as typeof mockOrganizations;
+    renderSwitcher();
+
+    const logo = screen.getByAltText('Acme Org');
+    fireEvent.error(logo);
+
+    expect(screen.queryByAltText('Acme Org')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('organization-switcher-trigger'),
+    ).toHaveTextContent('A');
   });
 
   it('loads organizations and exposes contextual row settings action', async () => {

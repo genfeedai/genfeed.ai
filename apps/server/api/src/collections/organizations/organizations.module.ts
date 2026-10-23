@@ -41,6 +41,7 @@ import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-cr
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -71,6 +72,7 @@ import { Module } from '@nestjs/common';
     IngredientsModule,
     IntegrationsModule,
     LoggerModule,
+    MediaUrlsModule,
     MembersModule,
     ModelsModule,
     OrganizationSettingsModule,
