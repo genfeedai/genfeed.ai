@@ -16,6 +16,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { getOrganizationLimitForTier } from '@genfeedai/pricing';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import {
   SWITCHER_AVATAR_CLASSNAME,
@@ -29,7 +30,6 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronsUpDown, Settings } from 'lucide-react';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
@@ -133,20 +133,13 @@ export default function OrganizationSwitcher({
               isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
             )}
           >
-            <span className={SWITCHER_AVATAR_CLASSNAME}>
-              {activeOrg?.logoUrl ? (
-                <Image
-                  src={activeOrg.logoUrl}
-                  alt={displayLabel}
-                  width={20}
-                  height={20}
-                  className="size-full object-cover object-center"
-                  sizes="20px"
-                />
-              ) : (
-                displayLabel.charAt(0).toUpperCase()
-              )}
-            </span>
+            <SwitcherAvatar
+              alt={displayLabel}
+              fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
+              imageUrl={activeOrg?.logoUrl}
+              imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
+              letter={displayLabel.charAt(0).toUpperCase()}
+            />
             <span
               className={cn(
                 'min-w-0 truncate text-sm font-medium leading-none text-foreground',
