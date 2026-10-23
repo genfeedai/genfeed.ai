@@ -472,7 +472,9 @@ describe('SignUpForm', () => {
       render(<SignUpBetterAuth mode="password" />);
       fillAndSubmit();
 
-      expect(await screen.findByText('User already exists.')).toBeInTheDocument();
+      expect(
+        await screen.findByText('User already exists.'),
+      ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Create account' }),
       ).toBeInTheDocument();
