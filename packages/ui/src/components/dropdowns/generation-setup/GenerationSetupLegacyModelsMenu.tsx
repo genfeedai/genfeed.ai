@@ -9,11 +9,7 @@ import {
   CommandList,
 } from '@ui/primitives/command';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from '@ui/primitives/popover';
+import { Popover, PopoverAnchor, PopoverContent } from '@ui/primitives/popover';
 import { ChevronRight } from 'lucide-react';
 import { type KeyboardEvent, type ReactNode, useRef } from 'react';
 
