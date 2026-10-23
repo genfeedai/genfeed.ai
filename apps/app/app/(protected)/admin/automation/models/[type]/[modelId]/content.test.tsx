@@ -11,6 +11,14 @@ const api = vi.hoisted(() => ({
   update: vi.fn(),
   setProviderActive: vi.fn(),
 }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
 vi.mock('next/navigation', () => ({
   useParams: () => ({ type: 'video', modelId: 'logical-1' }),
 }));

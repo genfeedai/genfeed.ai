@@ -31,6 +31,7 @@ import {
 } from '@ui/primitives/table';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
   Area,
@@ -52,6 +53,7 @@ const usd = (value: number) =>
   }).format(value);
 
 export default function ModelDetailContent() {
+  const t = useTranslations('pages.adminModelDetail');
   const params = useParams<{ type: string; modelId: string }>();
   const [days, setDays] = useState(30);
   const [candidate, setCandidate] = useState('');
@@ -130,14 +132,14 @@ export default function ModelDetailContent() {
   if (isPending)
     return (
       <p className="p-6 text-muted-foreground" role="status">
-        Loading model…
+        {t('loading')}
       </p>
     );
   if (isError || !model)
     return (
       <div className="p-6 space-y-3">
-        <p role="alert">Model details could not be loaded.</p>
-        <Button onClick={() => void refetch()}>Retry</Button>
+        <p role="alert">{t('loadError')}</p>
+        <Button onClick={() => void refetch()}>{t('retry')}</Button>
       </div>
     );
   const draft = modelDraft?.id === model.id ? modelDraft : model;
@@ -148,7 +150,7 @@ export default function ModelDetailContent() {
           className="text-sm text-muted-foreground hover:text-foreground"
           href={`/admin/automation/models/${params.type}`}
         >
-          ← Models
+          {t('backToModels')}
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -157,12 +159,12 @@ export default function ModelDetailContent() {
               {model.key} · {model.category}
             </p>
           </div>
-          <Badge>{model.isActive ? 'Active' : 'Inactive'}</Badge>
+          <Badge>{model.isActive ? t('active') : t('inactive')}</Badge>
         </div>
       </header>
       <section className="space-y-4" aria-labelledby="model-settings">
         <h2 id="model-settings" className="text-lg font-semibold">
-          Model settings
+          {t('modelSettings')}
         </h2>
         <Form
           spacing="default"
@@ -177,7 +179,7 @@ export default function ModelDetailContent() {
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="model-label">Model name</Label>
+              <Label htmlFor="model-label">{t('modelName')}</Label>
               <Input
                 id="model-label"
                 name="label"
@@ -193,7 +195,7 @@ export default function ModelDetailContent() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="model-description">Description</Label>
+              <Label htmlFor="model-description">{t('description')}</Label>
               <Input
                 id="model-description"
                 name="description"
@@ -210,7 +212,7 @@ export default function ModelDetailContent() {
           </div>
           <div className="flex gap-3">
             <Button type="submit" disabled={busy}>
-              Save model
+              {t('saveModel')}
             </Button>
             <Button
               type="button"
@@ -218,26 +220,23 @@ export default function ModelDetailContent() {
               disabled={busy}
               onClick={() => update.mutate({ isModelActive: !model.isActive })}
             >
-              {model.isActive ? 'Deactivate model' : 'Activate model'}
+              {model.isActive ? t('deactivateModel') : t('activateModel')}
             </Button>
           </div>
         </Form>
       </section>
       {(update.isError || providerUpdate.isError) && (
         <p role="alert" className="text-destructive">
-          The provider settings could not be saved. Refresh and try again.
+          {t('saveError')}
         </p>
       )}
       <section className="space-y-4" aria-labelledby="model-routing">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 id="model-routing" className="text-lg font-semibold">
-              Provider connections
+              {t('providerConnections')}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Automatic routing uses the cheapest reviewed offer compatible with
-              the request.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('routingHint')}</p>
           </div>
           <Select
             value={model.pinnedProvider ?? 'automatic'}
@@ -248,17 +247,15 @@ export default function ModelDetailContent() {
             }
             disabled={busy}
           >
-            <SelectTrigger className="w-64" aria-label="Routing provider">
+            <SelectTrigger className="w-64" aria-label={t('routingProvider')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="automatic">
-                Automatic · cheapest eligible
-              </SelectItem>
+              <SelectItem value="automatic">{t('automaticRouting')}</SelectItem>
               {[...new Set(model.offers.map((offer) => offer.provider))].map(
                 (provider) => (
                   <SelectItem key={provider} value={provider}>
-                    Pin {provider}
+                    {t('pinProvider', { provider })}
                   </SelectItem>
                 ),
               )}
@@ -268,11 +265,11 @@ export default function ModelDetailContent() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Provider</TableHead>
-              <TableHead>Endpoint</TableHead>
-              <TableHead>Pricing</TableHead>
-              <TableHead>Offer</TableHead>
-              <TableHead>Provider availability</TableHead>
+              <TableHead>{t('provider')}</TableHead>
+              <TableHead>{t('endpoint')}</TableHead>
+              <TableHead>{t('pricing')}</TableHead>
+              <TableHead>{t('offer')}</TableHead>
+              <TableHead>{t('providerAvailability')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -285,7 +282,7 @@ export default function ModelDetailContent() {
                       className="block text-xs text-muted-foreground underline"
                       href={`/admin/automation/models/${params.type}/${encodeURIComponent(offer.executionModelId)}`}
                     >
-                      Registration settings
+                      {t('registrationSettings')}
                     </Link>
                   )}
                 </TableCell>
@@ -296,7 +293,7 @@ export default function ModelDetailContent() {
                   <Badge
                     variant={offer.hasReviewedPricing ? 'secondary' : 'warning'}
                   >
-                    {offer.hasReviewedPricing ? 'Reviewed' : 'Unpriced'}
+                    {offer.hasReviewedPricing ? t('reviewed') : t('unpriced')}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -310,7 +307,7 @@ export default function ModelDetailContent() {
                       })
                     }
                   >
-                    {offer.isActive ? 'Disable offer' : 'Enable offer'}
+                    {offer.isActive ? t('disableOffer') : t('enableOffer')}
                   </Button>
                 </TableCell>
                 <TableCell>
@@ -325,8 +322,8 @@ export default function ModelDetailContent() {
                     }
                   >
                     {offer.isProviderActive
-                      ? 'Disable provider globally'
-                      : 'Enable provider globally'}
+                      ? t('disableProviderGlobally')
+                      : t('enableProviderGlobally')}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -335,11 +332,8 @@ export default function ModelDetailContent() {
         </Table>
         <div className="flex flex-wrap gap-3">
           <Select value={candidate} onValueChange={setCandidate}>
-            <SelectTrigger
-              className="w-96"
-              aria-label="Connect a provider registration"
-            >
-              <SelectValue placeholder="Connect an equivalent model from a provider" />
+            <SelectTrigger className="w-96" aria-label={t('connectAria')}>
+              <SelectValue placeholder={t('connectPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {model.candidates
@@ -363,33 +357,26 @@ export default function ModelDetailContent() {
               setCandidate('');
             }}
           >
-            Connect provider
+            {t('connectProvider')}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Connect only the same underlying model and variant. Provider
-          registrations keep their reviewed input and pricing contracts.
-        </p>
+        <p className="text-xs text-muted-foreground">{t('connectHint')}</p>
       </section>
       <section className="space-y-4" aria-labelledby="model-prices">
         <h2 id="model-prices" className="text-lg font-semibold">
-          Pricing table
+          {t('pricingTable')}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Provider list prices in USD. Customer rates use the configured margin;
-          final credits are rounded once per complete request. Conditional rates
-          are compared using the actual generation settings.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('pricingTableHint')}</p>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Provider</TableHead>
-              <TableHead>Variant</TableHead>
-              <TableHead>Component</TableHead>
-              <TableHead>Provider price / unit</TableHead>
-              <TableHead>With configured margin</TableHead>
-              <TableHead>Verified</TableHead>
-              <TableHead>Source</TableHead>
+              <TableHead>{t('provider')}</TableHead>
+              <TableHead>{t('variant')}</TableHead>
+              <TableHead>{t('component')}</TableHead>
+              <TableHead>{t('providerPricePerUnit')}</TableHead>
+              <TableHead>{t('withMargin')}</TableHead>
+              <TableHead>{t('verified')}</TableHead>
+              <TableHead>{t('source')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -403,28 +390,43 @@ export default function ModelDetailContent() {
                       <TableCell>
                         {Object.entries(rate.when)
                           .map(([name, value]) => `${name}: ${value}`)
-                          .join(' · ') || 'All supported settings'}
+                          .join(' · ') || t('allSupportedSettings')}
                       </TableCell>
                       <TableCell>{rate.component}</TableCell>
                       <TableCell>
-                        {usd(rate.unitPriceUsd)} / {rate.unit}
-                        {rate.isPerOutput ? ' / output' : ''}
-                        {rate.includedUnits
-                          ? ` · includes ${rate.includedUnits}`
-                          : ''}
-                        {rate.minimumUnits
-                          ? ` · minimum ${rate.minimumUnits}`
-                          : ''}
-                        {rate.roundUnitsTo
-                          ? ` · rounds to ${rate.roundUnitsTo}`
-                          : ''}
+                        {[
+                          t(
+                            rate.isPerOutput
+                              ? 'unitPricePerOutput'
+                              : 'unitPrice',
+                            {
+                              price: usd(rate.unitPriceUsd),
+                              unit: rate.unit,
+                            },
+                          ),
+                          rate.includedUnits
+                            ? t('includes', { count: rate.includedUnits })
+                            : null,
+                          rate.minimumUnits
+                            ? t('minimum', { count: rate.minimumUnits })
+                            : null,
+                          rate.roundUnitsTo
+                            ? t('roundsTo', { count: rate.roundUnitsTo })
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </TableCell>
                       <TableCell>
-                        {usd(rate.unitPriceUsd * model.marginMultiplier)} /{' '}
-                        {rate.unit}
+                        {t('unitPrice', {
+                          price: usd(
+                            rate.unitPriceUsd * model.marginMultiplier,
+                          ),
+                          unit: rate.unit,
+                        })}
                       </TableCell>
                       <TableCell>
-                        {offer.verifiedAt?.slice(0, 10) ?? 'Unverified'}
+                        {offer.verifiedAt?.slice(0, 10) ?? t('unverified')}
                       </TableCell>
                       <TableCell>
                         {offer.sourceUrl && (
@@ -434,7 +436,7 @@ export default function ModelDetailContent() {
                             target="_blank"
                             className="underline"
                           >
-                            Provider pricing
+                            {t('providerPricingLink')}
                           </a>
                         )}
                       </TableCell>
@@ -443,10 +445,7 @@ export default function ModelDetailContent() {
                 : [
                     <TableRow key={offer.id}>
                       <TableCell>{offer.provider}</TableCell>
-                      <TableCell colSpan={6}>
-                        Reviewed price unavailable. This offer cannot
-                        participate in automatic routing.
-                      </TableCell>
+                      <TableCell colSpan={6}>{t('priceUnavailable')}</TableCell>
                     </TableRow>,
                   ],
             )}
@@ -457,24 +456,24 @@ export default function ModelDetailContent() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="model-usage" className="text-lg font-semibold">
-              Usage and provider costs
+              {t('usageTitle')}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Recorded platform-funded generations from the vendor-cost ledger,
-              grouped by UTC day.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('usageHint')}</p>
           </div>
           <Select
             value={String(days)}
             onValueChange={(value) => setDays(Number(value))}
           >
-            <SelectTrigger className="w-36 shrink-0" aria-label="Usage period">
+            <SelectTrigger
+              className="w-36 shrink-0"
+              aria-label={t('usagePeriod')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {[7, 30, 90].map((value) => (
                 <SelectItem key={value} value={String(value)}>
-                  {value} days
+                  {t('days', { count: value })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -482,11 +481,11 @@ export default function ModelDetailContent() {
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-lg border p-4">
-            <h3 className="mb-4 font-medium">Generations over time</h3>
+            <h3 className="mb-4 font-medium">{t('generationsOverTime')}</h3>
             <div
               className="h-64"
               role="img"
-              aria-label="Daily recorded generations"
+              aria-label={t('dailyGenerationsAria')}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={daily}>
@@ -507,11 +506,11 @@ export default function ModelDetailContent() {
             </div>
           </div>
           <div className="rounded-lg border p-4">
-            <h3 className="mb-4 font-medium">Usage by provider</h3>
+            <h3 className="mb-4 font-medium">{t('usageByProvider')}</h3>
             <div
               className="h-64"
               role="img"
-              aria-label="Recorded generations by provider"
+              aria-label={t('providerGenerationsAria')}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={providers}>
@@ -525,16 +524,14 @@ export default function ModelDetailContent() {
           </div>
         </div>
         {!model.usage.length && (
-          <p className="text-sm text-muted-foreground">
-            No recorded usage in this period.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('noUsage')}</p>
         )}
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Provider</TableHead>
-              <TableHead>Recorded generations</TableHead>
-              <TableHead>Vendor cost</TableHead>
+              <TableHead>{t('provider')}</TableHead>
+              <TableHead>{t('recordedGenerations')}</TableHead>
+              <TableHead>{t('vendorCost')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -549,7 +546,7 @@ export default function ModelDetailContent() {
         </Table>
       </section>
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Pricing review</h2>
+        <h2 className="text-lg font-semibold">{t('pricingReview')}</h2>
         <ModelPricingDetails modelId={model.id} />
       </section>
     </main>
