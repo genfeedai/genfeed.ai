@@ -98,7 +98,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // tenant.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-mirror.util.ts',
-      line: 37,
+      line: 38,
     },
     // #6120: assertHiddenSystemWorkflowParent reads the system-principal
     // parent workflow.
