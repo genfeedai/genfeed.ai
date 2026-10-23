@@ -307,8 +307,8 @@ COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 VOLUME /data
-# 3000 web · 3010 api · 3014 mcp (started by the entrypoint, proxies to the api)
-EXPOSE 3000 3010 3014
+# 3000 web · 3010 api · 3011 WebSocket · 3014 mcp (proxies to the api)
+EXPOSE 3000 3010 3011 3014
 USER appuser
 RUN yt-dlp --version && ffmpeg -version > /dev/null
 

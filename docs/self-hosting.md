@@ -5,8 +5,9 @@
 - Docker Engine with the Docker Compose v2 plugin (`docker compose version`), or
   Docker Desktop. Both the release bundle and `npx @genfeedai/create` need it.
 - Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`
-- Free host ports 3000 (web), 3010 (API) and 3014 (MCP); override them with
-  `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT` and `SELFHOSTED_MCP_PORT` in `.env`
+- Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP);
+  override them with `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT`,
+  `SELFHOSTED_WS_PORT` and `SELFHOSTED_MCP_PORT` in `.env`
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
   can use emulation on Apple Silicon). Compose selects this image architecture;
   ARM hosts must have AMD64 emulation enabled in their Docker runtime.
@@ -46,12 +47,22 @@ This starts:
 
 - **Web** (port 3000) — Studio UI
 - **API** (port 3010) — Core REST API
+- **WebSocket** (port 3011) — live agent chat and notifications at
+  `http://localhost:3011/socket.io/`
 - **MCP** (port 3014) — local MCP surface, served at `http://localhost:3014/mcp`
   ([Agent Surface](./agent-surface.md)). The endpoint still requires
   `Authorization: Bearer <gf_... API key>` when the web login wall is off;
   see [Local MCP authentication](#local-mcp-authentication).
 - **PostgreSQL** (internal container port 5432; not published to the host)
 - **Redis** — embedded in the Genfeed container and persisted under `/data`
+
+Keep port 3011 reachable from the browser for live agent replies and follow-up
+turns. `SELFHOSTED_WS_PORT` changes only the host port; the container still
+listens on 3011. The published image builds in
+`NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011`, so changing the host port also
+requires a proxy reachable at that browser endpoint, or a custom image built
+with a matching `NEXT_PUBLIC_WS_ENDPOINT` build argument. Setting that variable
+only in `.env` does not change the built browser bundle.
 
 On first boot the container runs Prisma migrations and seeds one local
 workspace: one user, one organization, and one brand.
@@ -111,6 +122,16 @@ To try a sample workflow and tell us how the install went, follow
 [Test Genfeed Community](./community-testing.md).
 
 ## Troubleshooting
+
+### Agent chat shows "Reconnecting"
+
+Check that the `genfeed` service publishes `3011:3011` and that the browser can
+reach `ws://localhost:3011/socket.io/`. Older release bundles omitted this
+mapping. Upgrade the bundle or add `"${SELFHOSTED_WS_PORT:-3011}:3011"` under
+`services.genfeed.ports`, then recreate the stack with the same Compose command
+used to start it. A reload can reveal completed replies even while the socket
+is unreachable; verify the connection by sending a prompt and then a correction
+in the same conversation without reloading. Both turns should be accepted live.
 
 ### `P1001: Can't reach database server at postgres:5432`
 
