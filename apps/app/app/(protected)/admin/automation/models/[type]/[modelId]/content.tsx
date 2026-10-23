@@ -454,7 +454,7 @@ export default function ModelDetailContent() {
         </Table>
       </section>
       <section className="space-y-4" aria-labelledby="model-usage">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="model-usage" className="text-lg font-semibold">
               Usage and provider costs
@@ -468,7 +468,7 @@ export default function ModelDetailContent() {
             value={String(days)}
             onValueChange={(value) => setDays(Number(value))}
           >
-            <SelectTrigger className="w-36" aria-label="Usage period">
+            <SelectTrigger className="w-36 shrink-0" aria-label="Usage period">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -490,7 +490,7 @@ export default function ModelDetailContent() {
             >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={daily}>
-                  <CartesianGrid stroke="var(--border)" vertical={false} />
+                  <CartesianGrid stroke="hsl(var(--border))" vertical={false} />
                   <XAxis
                     dataKey="date"
                     tickFormatter={(date: string) => date.slice(5)}
@@ -499,8 +499,8 @@ export default function ModelDetailContent() {
                   <Tooltip />
                   <Area
                     dataKey="generations"
-                    stroke="var(--foreground)"
-                    fill="var(--muted)"
+                    stroke="hsl(var(--foreground))"
+                    fill="hsl(var(--muted))"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -518,7 +518,7 @@ export default function ModelDetailContent() {
                   <XAxis dataKey="provider" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="generations" fill="var(--foreground)" />
+                  <Bar dataKey="generations" fill="hsl(var(--foreground))" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
