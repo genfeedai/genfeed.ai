@@ -1,8 +1,12 @@
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import type {
+  LearningArmExclusionV1,
   LearningGenerationContext,
+  LearningGenerationReceipt,
   LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type { ContentHarnessContribution } from '@genfeedai/harness';
+import type { ContentLearningAccount } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 
 export interface LearningGenerationInput {
@@ -13,6 +17,19 @@ export interface LearningGenerationInput {
   harnessEnabled: boolean;
   compatible: boolean;
   originalPrompt: string;
+  /**
+   * Arms the approved brand rules exclude from pilot assignment. Undefined means
+   * compatibility was not evaluated, so every non-baseline arm is excluded. Not
+   * part of `payloadHash`.
+   */
+  armExclusions?: LearningArmExclusionV1[];
+}
+/** A resolved decision: its receipt and the contribution it actually applies. */
+export interface LearningResolution {
+  receipt: LearningGenerationReceipt;
+  contribution: ContentHarnessContribution;
+  /** Arms the approved brand excluded from the pilot assignment, if any. */
+  exclusions?: LearningArmExclusionV1[];
 }
 export type LearningCandidateInput = LearningGenerationInput & {
   context: LearningGenerationContext;
@@ -89,4 +106,21 @@ export function learningCandidateIdentity(
     requestKey: context.requestKey,
     candidateIndex: context.candidateIndex,
   };
+}
+
+/** Why a baseline decision cannot apply learning, in precedence order. */
+export function baselineCensorshipReason(
+  account: Pick<ContentLearningAccount, 'mode' | 'failureReason'>,
+  input: Pick<LearningGenerationInput, 'harnessEnabled' | 'compatible'>,
+  baselineCount: number,
+): string {
+  if (['shadow', 'paused'].includes(account.mode)) return account.mode;
+  if (!input.harnessEnabled) return 'harness_off';
+  if (!input.compatible) return 'incompatible_intent';
+  return (
+    account.failureReason ??
+    (baselineCount < 20
+      ? 'insufficient_baseline'
+      : 'experiment_assignment_unavailable')
+  );
 }

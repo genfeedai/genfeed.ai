@@ -36,6 +36,7 @@ import type {
   BrandIdentitySnapshotV1,
   BrandLearningApplicationV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { ContentHarnessContribution } from '@genfeedai/harness';
 import {
   BadRequestException,
   ConflictException,
@@ -195,6 +196,7 @@ export class BrandedTextGenerationService {
       created,
       input,
       request.privateLearning,
+      request.learningContribution ?? {},
     );
     if (resolution.replayed) return this.inProgress(resolution.receipt);
     if (resolution.receipt.state !== 'resolved' || compiledPrompt === null)
@@ -371,9 +373,15 @@ export class BrandedTextGenerationService {
     receipt: BrandedGenerationReceiptV1,
     input: BrandedGenerationInputV1,
     privateLearning: BrandedTextGenerationRequestV1['privateLearning'],
+    contribution: ContentHarnessContribution,
   ): Promise<[Mutation, string | null]> {
     const learning = this.baselineLearning(input, privateLearning);
-    const [resolution, recipe] = await this.compile(actor, input, learning);
+    const [resolution, recipe] = await this.compile(
+      actor,
+      input,
+      learning,
+      contribution,
+    );
     const mutation = this.mutation(receipt, 'resolve');
     const result =
       resolution.status === 'resolved' && recipe
@@ -401,6 +409,7 @@ export class BrandedTextGenerationService {
     actor: BrandedGenerationActorV1,
     input: BrandedGenerationInputV1,
     learning: BrandLearningApplicationV1,
+    contribution: ContentHarnessContribution,
   ): Promise<ResolutionCapture> {
     const blocked = (
       snapshot: BrandIdentitySnapshotV1 | null,
@@ -410,7 +419,7 @@ export class BrandedTextGenerationService {
         input,
         snapshot,
         learning,
-        {},
+        contribution,
         [],
         [],
         [],
@@ -452,7 +461,7 @@ export class BrandedTextGenerationService {
         undefined,
         () => '',
         learning,
-        {},
+        contribution,
         { ...actor, userId: actor.actorId },
       );
     }
@@ -493,7 +502,7 @@ export class BrandedTextGenerationService {
       undefined,
       this.skills.buildSkillPromptSections.bind(this.skills),
       learning,
-      {},
+      contribution,
       { ...actor, userId: actor.actorId },
     );
   }

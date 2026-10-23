@@ -360,6 +360,19 @@ describe('BrandedTextGenerationService', () => {
     });
   });
 
+  describe('learning contribution', () => {
+    it('hands the compiler the tactic the learning receipt applied', async () => {
+      arrangeHappyPath(h);
+      const contribution = { styleDirectives: ['Open with a question.'] };
+      h.request.learningContribution = contribution;
+      await h.service.generate(h.request);
+
+      expect(h.harness.resolveSnapshotBriefWithRecipe.mock.calls[0][6]).toEqual(
+        contribution,
+      );
+    });
+  });
+
   describe('preconditions', () => {
     it.each([
       [
