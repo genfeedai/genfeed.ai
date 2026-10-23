@@ -2,6 +2,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   afterAll,
   afterEach,
@@ -293,6 +294,37 @@ describe('OnboardingReadinessService workspace readiness', () => {
       hasOrganization: true,
       organizationId: ORGANIZATION_ID,
     });
+  });
+
+  it('reads the brand under the workspace organization tenant', async () => {
+    vi.resetModules();
+    const { OnboardingReadinessService } = await import(
+      './onboarding-readiness.service'
+    );
+    const tenants: Array<string | undefined> = [];
+    const brandsFindOne = vi.fn().mockImplementation(async () => {
+      tenants.push(getTenantContext()?.organizationId);
+      return { id: BRAND_ID };
+    });
+
+    const service = new OnboardingReadinessService(
+      { findOne: brandsFindOne } as unknown as BrandsService,
+      {
+        findOne: vi.fn().mockResolvedValue(null),
+      } as unknown as OrganizationSettingsService,
+      {
+        findOne: vi.fn().mockResolvedValue({ id: ORGANIZATION_ID }),
+      } as unknown as OrganizationsService,
+      { findOne: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+    );
+
+    await service.getInstallReadiness({ id: USER_ID } as never, {
+      brandId: BRAND_ID,
+      organizationId: ORGANIZATION_ID,
+      userId: USER_ID,
+    });
+
+    expect(tenants).toEqual([ORGANIZATION_ID]);
   });
 
   it('reports neither before onboarding has created them', async () => {
