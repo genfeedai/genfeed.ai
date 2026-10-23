@@ -15,6 +15,12 @@ import {
   articleReviewWorkflow,
   buildArticleGenerationWorkflowDefinition,
 } from '@api/collections/articles/services/article-workflow-definitions';
+import { invalidateArticleListCaches } from '@api/collections/articles/utils/article-query-cache.util';
+import { hydrateArticleReferences } from '@api/collections/articles/utils/article-reference-hydration.util';
+import {
+  readArticleGenerationInput,
+  requiredString,
+} from '@api/collections/articles/utils/article-workflow-input.util';
 
 export {
   ARTICLE_GENERATION_TOOL_ID,
@@ -69,10 +75,6 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import {
-  CACHE_PATTERNS,
-  CACHE_TAGS,
-} from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -166,8 +168,8 @@ export class ArticlesService
     runner.registerAction(
       ARTICLE_LOAD_GENERATION_ACTION_ID,
       async ({ context, input }) => {
-        const dto = this.readArticleGenerationInput(input.dto);
-        const brandId = this.requiredString(input.brandId, 'brandId');
+        const dto = readArticleGenerationInput(input.dto);
+        const brandId = requiredString(input.brandId, 'brandId');
         const modelConfig = await this.resolveArticleCycleModelConfig(
           context.organizationId,
           dto.model,
@@ -244,7 +246,7 @@ export class ArticlesService
     runner.registerWorkflow(ARTICLE_HEADER_PROMPT_WORKFLOW_DEFINITION);
     runner.registerAction(ARTICLE_LOAD_REVIEW_ACTION_ID, ({ context, input }) =>
       this.loadArticleReviewContext(
-        this.requiredString(input.articleId, 'articleId'),
+        requiredString(input.articleId, 'articleId'),
         context.userId,
         context.organizationId,
         typeof input.focus === 'string' ? input.focus : undefined,
@@ -258,22 +260,6 @@ export class ArticlesService
     );
   }
 
-  /**
-   * Invalidate the article cache after a write.
-   * Single home for the tag block previously copy-pasted across
-   * createArticle/update/removeArticle.
-   *
-   * Busts two layers: (1) the canonical `articles:list:{orgId}` /
-   * `articles:single:{id}` keys plus the shared `articles` tag via
-   * CacheInvalidationService — without these, HTTP `@Cache` responses keyed by
-   * org/id can go stale after a write — and (2) the legacy tag set on the
-   * tag-based CacheService. See api CLAUDE.md → Cache Invalidation Pattern.
-   *
-   * @param context - the write that triggered invalidation (used in the debug log)
-   * @param options.includePublic - also bust the `public` tag (published articles)
-   * @param options.organizationId - bust this org's `articles:list:{orgId}` key
-   * @param options.articleId - bust this article's `articles:single:{id}` key
-   */
   private async invalidateArticleListCaches(
     context: string,
     options: {
@@ -282,51 +268,13 @@ export class ArticlesService
       articleId?: string;
     } = {},
   ): Promise<void> {
-    const { includePublic = false, organizationId, articleId } = options;
-
-    if (this.cacheInvalidationService) {
-      const keys: string[] = [];
-      if (organizationId) {
-        keys.push(CACHE_PATTERNS.ARTICLES_LIST(organizationId));
-      }
-      if (articleId) {
-        keys.push(CACHE_PATTERNS.ARTICLES_SINGLE(articleId));
-      }
-
-      if (keys.length > 0) {
-        await this.cacheInvalidationService.invalidate(...keys);
-      }
-      // Bust org/user-scoped @Cache responses registered under the shared
-      // articles tag at set time. Idempotent with the CacheService tag pass
-      // below — both run so each optional dependency stays self-sufficient.
-      await this.cacheInvalidationService.invalidateByTags([
-        CACHE_TAGS.ARTICLES,
-      ]);
-    }
-
-    if (!this.cacheService) {
-      return;
-    }
-
-    const collectionName = this.collectionName;
-    const tagsToInvalidate = [
-      CACHE_TAGS.ARTICLES,
-      collectionName,
-      `collection:${collectionName}`,
-      `query:${collectionName}`,
-      paginatedQueryCacheTag(collectionName),
-    ];
-
-    if (includePublic) {
-      tagsToInvalidate.push('public');
-    }
-
-    const invalidated =
-      await this.cacheService.invalidateByTags(tagsToInvalidate);
-    this.logger.debug(
-      `${this.constructorName} invalidated ${invalidated} cache keys after ${context}`,
-      { tags: tagsToInvalidate },
-    );
+    return invalidateArticleListCaches(context, options, {
+      cacheInvalidationService: this.cacheInvalidationService,
+      cacheService: this.cacheService,
+      collectionName: this.collectionName,
+      logger: this.logger,
+      source: this.constructorName,
+    });
   }
 
   @HandleErrors('create article', 'articles')
@@ -726,7 +674,7 @@ export class ArticlesService
     request: { articleId: string },
     organizationId: string,
   ): Promise<ArticleHeaderPromptState> {
-    const articleId = this.requiredString(request.articleId, 'articleId');
+    const articleId = requiredString(request.articleId, 'articleId');
     const article = await this.findOne({
       id: articleId,
       isDeleted: false,
@@ -753,7 +701,7 @@ export class ArticlesService
   private async persistArticleHeaderPrompt(
     state: ArticleHeaderPromptState,
   ): Promise<string> {
-    const prompt = this.requiredString(state.prompt, 'prompt');
+    const prompt = requiredString(state.prompt, 'prompt');
     await this.patch(state.articleId, { generationPrompt: prompt });
     return prompt;
   }
@@ -1010,63 +958,6 @@ export class ArticlesService
     );
   }
 
-  private readArticleGenerationInput(value: unknown): GenerateArticlesDto {
-    const input = this.readRecord(value);
-    const nested = this.readRecord(input.dto);
-    const source = Object.keys(nested).length > 0 ? nested : input;
-    const prompt = this.requiredString(source.prompt ?? source.topic, 'prompt');
-    const length =
-      typeof source.length === 'string' ? source.length : undefined;
-    const targetWordCount =
-      typeof source.targetWordCount === 'number'
-        ? source.targetWordCount
-        : length === 'long'
-          ? 7_000
-          : length === 'short'
-            ? 2_500
-            : length
-              ? 4_000
-              : undefined;
-    const brandId =
-      typeof source.brandId === 'string' ? source.brandId : undefined;
-    const keywords = Array.isArray(source.keywords)
-      ? source.keywords.filter(
-          (keyword): keyword is string => typeof keyword === 'string',
-        )
-      : undefined;
-    const tone = typeof source.tone === 'string' ? source.tone : undefined;
-    const normalizedSource = { ...source };
-    delete normalizedSource.brandId;
-    delete normalizedSource.count;
-    delete normalizedSource.keywords;
-    delete normalizedSource.prompt;
-    delete normalizedSource.targetWordCount;
-    delete normalizedSource.tone;
-
-    return {
-      ...normalizedSource,
-      ...(brandId === undefined ? {} : { brandId }),
-      count: typeof source.count === 'number' ? source.count : 1,
-      ...(keywords === undefined ? {} : { keywords }),
-      prompt,
-      ...(targetWordCount === undefined ? {} : { targetWordCount }),
-      ...(tone === undefined ? {} : { tone }),
-    } as GenerateArticlesDto;
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private requiredString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.trim().length === 0) {
-      throw new Error(`Missing required article action input: ${field}`);
-    }
-    return value.trim();
-  }
-
   private requireWorkflowRunner(): SystemWorkflowRunnerService {
     if (!this.moduleRef) {
       throw new Error('Workflow action runner is unavailable');
@@ -1081,73 +972,12 @@ export class ArticlesService
     return this.articlesContentService;
   }
 
-  /**
-   * Hydrate user and organization fields via application-level join.
-   * These refs live in the auth DB and cannot be populated cross-database.
-   */
   private async hydrateUserAndOrganization(
     docs: Array<Record<string, unknown>>,
   ): Promise<void> {
-    if (docs.length === 0) {
-      return;
-    }
-
-    const userIds = [
-      ...new Set(docs.map((d) => d.userId?.toString()).filter(Boolean)),
-    ] as string[];
-    const orgIds = [
-      ...new Set(docs.map((d) => d.organizationId?.toString()).filter(Boolean)),
-    ] as string[];
-
-    // Scope by id. Never load the full users/orgs tables — that is both an
-    // availability hazard (full-table findMany) and a schema-drift amplifier:
-    // production dropped `users.authProviderId` while older clients still
-    // projected every user row (Sentry API-GENFEED-AI-65 / #2185).
-    const [users, orgs] = await Promise.all([
-      this.usersService && userIds.length > 0
-        ? this.usersService
-            .findAll(
-              {
-                where: {
-                  id: { in: userIds },
-                  isDeleted: false,
-                },
-              },
-              { pagination: false },
-            )
-            .then((result) => result.docs as Array<Record<string, unknown>>)
-        : Promise.resolve([] as Array<Record<string, unknown>>),
-      this.organizationsService && orgIds.length > 0
-        ? this.organizationsService
-            .findAll(
-              {
-                where: {
-                  id: { in: orgIds },
-                  isDeleted: false,
-                },
-              },
-              { pagination: false },
-            )
-            .then((result) => result.docs as Array<Record<string, unknown>>)
-        : Promise.resolve([] as Array<Record<string, unknown>>),
-    ]);
-
-    const usersMap = new Map(
-      users.map((u: Record<string, unknown>) => [String(u.id), u]),
-    );
-    const orgsMap = new Map(
-      orgs.map((o: Record<string, unknown>) => [String(o.id), o]),
-    );
-
-    for (const doc of docs) {
-      const docUserId = doc.userId?.toString();
-      const docOrgId = doc.organizationId?.toString();
-      if (docUserId && usersMap.has(docUserId)) {
-        doc.user = usersMap.get(docUserId);
-      }
-      if (docOrgId && orgsMap.has(docOrgId)) {
-        doc.organization = orgsMap.get(docOrgId);
-      }
-    }
+    return hydrateArticleReferences(docs, {
+      usersService: this.usersService,
+      organizationsService: this.organizationsService,
+    });
   }
 }

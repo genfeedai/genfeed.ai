@@ -18,12 +18,6 @@
     "symbol": "AgentTransfersService.create"
   },
   {
-    "actual": 1153,
-    "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"
-  },
-  {
     "actual": 175,
     "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
     "metric": "method-lines",
