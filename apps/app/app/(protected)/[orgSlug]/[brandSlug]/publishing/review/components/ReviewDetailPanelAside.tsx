@@ -5,6 +5,7 @@ import {
   DefinitionTerm,
 } from '@genfeedai/ui';
 import type { ReviewDetailPanelAsideProps } from '@props/publishing/review-detail-panel-aside.props';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import ReviewAssignmentPanel from './ReviewAssignmentPanel';
@@ -45,6 +46,7 @@ export default function ReviewDetailPanelAside({
   reviewEvents,
   statusLabel,
 }: ReviewDetailPanelAsideProps) {
+  const translate = useTranslations('pages.publishing.review');
   const [feedback, setFeedback] = useState(item.reviewFeedback ?? '');
 
   return (
@@ -64,7 +66,7 @@ export default function ReviewDetailPanelAside({
         />
       </div>
 
-      <Section title="Assignee">
+      <Section title={translate('detail.assignee')}>
         <ReviewAssignmentPanel
           isActioning={isActioning}
           item={item}
@@ -73,69 +75,71 @@ export default function ReviewDetailPanelAside({
         />
       </Section>
 
-      <Section title="Details">
+      <Section title={translate('detail.title')}>
         <DefinitionList className="text-sm">
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Created</DefinitionTerm>
+            <DefinitionTerm>{translate('detail.created')}</DefinitionTerm>
             <DefinitionDetail variant="value">
               {formattedCreatedDate}
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Scheduled</DefinitionTerm>
+            <DefinitionTerm>{translate('detail.scheduled')}</DefinitionTerm>
             <DefinitionDetail variant="value">
-              {formattedScheduledDate ?? 'Not scheduled'}
+              {formattedScheduledDate ?? translate('detail.notScheduled')}
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Post draft</DefinitionTerm>
+            <DefinitionTerm>{translate('detail.postDraft')}</DefinitionTerm>
             <DefinitionDetail variant="value">
-              {item.postId ? 'Draft linked' : 'No draft linked'}
+              {item.postId
+                ? translate('detail.draftLinked')
+                : translate('detail.noDraftLinked')}
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Review state</DefinitionTerm>
+            <DefinitionTerm>{translate('detail.state')}</DefinitionTerm>
             <DefinitionDetail variant="value">{statusLabel}</DefinitionDetail>
           </div>
         </DefinitionList>
       </Section>
 
-      <Section title="Publish approval">
+      <Section title={translate('approval.title')}>
         <p className="text-xs leading-5 text-muted-foreground">
-          Approval pins version, destination, timing, and policy — chat never
-          authorizes publish on its own.
+          {translate('approval.description')}
         </p>
         <DefinitionList className="mt-3 text-sm">
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Version</DefinitionTerm>
+            <DefinitionTerm>{translate('approval.version')}</DefinitionTerm>
             <DefinitionDetail variant="value">
               {item.publishApproval?.artifactVersionPinId ??
                 item.versionPinId ??
-                'Pinned on approval'}
+                translate('approval.pinnedOnApproval')}
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Destination</DefinitionTerm>
+            <DefinitionTerm>{translate('approval.destination')}</DefinitionTerm>
             <DefinitionDetail variant="value">
               {item.publishApproval?.destinations
                 .map((destination) => destination.platform)
                 .join(', ') ??
                 item.platform ??
-                'Not selected'}
+                translate('approval.notSelected')}
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Timing</DefinitionTerm>
+            <DefinitionTerm>{translate('approval.timing')}</DefinitionTerm>
             <DefinitionDetail variant="value">
               {item.publishApproval?.scheduleIntent.kind === 'scheduled'
                 ? formattedScheduledDate
                 : item.publishApproval?.scheduleIntent.kind === 'immediate'
-                  ? 'Publish now'
-                  : (formattedScheduledDate ?? 'Requires publish confirmation')}
+                  ? translate('approval.publishNow')
+                  : (formattedScheduledDate ??
+                    translate('approval.requiresConfirmation'))}
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Policy</DefinitionTerm>
+            <DefinitionTerm>{translate('approval.policy')}</DefinitionTerm>
             <DefinitionDetail variant="value">
               {item.publishApproval
                 ? `${item.publishApproval.policy.id} v${item.publishApproval.policy.version}`
@@ -143,9 +147,10 @@ export default function ReviewDetailPanelAside({
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Status</DefinitionTerm>
+            <DefinitionTerm>{translate('approval.status')}</DefinitionTerm>
             <DefinitionDetail variant="value">
-              {item.publishApproval?.status ?? 'Awaiting typed approval'}
+              {item.publishApproval?.status ??
+                translate('approval.awaitingTypedApproval')}
             </DefinitionDetail>
           </div>
         </DefinitionList>
@@ -160,14 +165,14 @@ export default function ReviewDetailPanelAside({
 
       {(item.gateOverallScore !== undefined ||
         (item.gateReasons?.length ?? 0) > 0) && (
-        <Section title="Publish gate">
+        <Section title={translate('gate.title')}>
           <DefinitionList className="text-sm">
             <div className="flex items-start justify-between gap-4">
-              <DefinitionTerm>Overall score</DefinitionTerm>
+              <DefinitionTerm>{translate('gate.score')}</DefinitionTerm>
               <DefinitionDetail variant="value">
                 {item.gateOverallScore !== undefined
                   ? `${item.gateOverallScore}/100`
-                  : 'Not recorded'}
+                  : translate('gate.notRecorded')}
               </DefinitionDetail>
             </div>
           </DefinitionList>
@@ -194,7 +199,7 @@ export default function ReviewDetailPanelAside({
       />
 
       {item.reviewFeedback ? (
-        <Section title="Saved notes">
+        <Section title={translate('detail.savedNotes')}>
           <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/80">
             {item.reviewFeedback}
           </p>
@@ -202,7 +207,7 @@ export default function ReviewDetailPanelAside({
       ) : null}
 
       {item.status === TurboRunItemStatus.FAILED && item.error ? (
-        <Section title="Failure">
+        <Section title={translate('detail.failure')}>
           <p className="text-sm leading-6 text-destructive">{item.error}</p>
         </Section>
       ) : null}

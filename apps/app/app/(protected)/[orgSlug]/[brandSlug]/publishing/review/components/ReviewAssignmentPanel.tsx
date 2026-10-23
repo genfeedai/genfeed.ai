@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function getMemberOptionLabel(member: Member): string {
@@ -58,6 +59,7 @@ export default function ReviewAssignmentPanel({
   onAssign,
   onUnassign,
 }: ReviewAssignmentPanelProps) {
+  const translate = useTranslations('pages.publishing.review');
   const getMembersService = useAuthedService(
     useCallback((token: string) => MembersService.getInstance(token), []),
   );
@@ -108,10 +110,10 @@ export default function ReviewAssignmentPanel({
       return formatAssignee(item.assignee);
     }
     if (item.assigneeId) {
-      return 'Unavailable member';
+      return translate('assignment.unavailable');
     }
-    return 'Unassigned';
-  }, [item.assignee, item.assigneeId]);
+    return translate('assignment.unassigned');
+  }, [item.assignee, item.assigneeId, translate]);
 
   const canAssign =
     Boolean(selectedAssigneeId) &&
@@ -124,19 +126,20 @@ export default function ReviewAssignmentPanel({
       <div>
         <p className="text-sm text-foreground">{currentAssigneeLabel}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Assign a responsible teammate. This does not change the review
-          decision.
+          {translate('assignment.description')}
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={`review-assignee-${item.id}`}>Team member</Label>
+        <Label htmlFor={`review-assignee-${item.id}`}>
+          {translate('assignment.member')}
+        </Label>
         <Select
           value={selectedAssigneeId || undefined}
           onValueChange={setSelectedAssigneeId}
         >
           <SelectTrigger id={`review-assignee-${item.id}`}>
-            <SelectValue placeholder="Choose a teammate" />
+            <SelectValue placeholder={translate('assignment.placeholder')} />
           </SelectTrigger>
           <SelectContent>
             {members.map((member) => (
@@ -157,7 +160,7 @@ export default function ReviewAssignmentPanel({
           onClick={() => onAssign(item.id, selectedAssigneeId)}
           className="w-full justify-start"
         >
-          Assign
+          {translate('assignment.assign')}
         </Button>
         <Button
           size={ButtonSize.SM}
@@ -167,7 +170,7 @@ export default function ReviewAssignmentPanel({
           onClick={() => onUnassign(item.id)}
           className="w-full justify-start"
         >
-          Unassign
+          {translate('assignment.unassign')}
         </Button>
       </div>
     </div>

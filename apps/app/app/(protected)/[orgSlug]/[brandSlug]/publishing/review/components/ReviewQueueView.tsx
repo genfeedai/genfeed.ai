@@ -5,6 +5,7 @@ import {
   CardVariant,
   ComponentSize,
   PageScope,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
@@ -27,13 +28,21 @@ import ReviewStatusFilters, {
 } from './ReviewStatusFilters';
 import ReviewWorkspaceSurfaceAdapter from './ReviewWorkspaceSurfaceAdapter';
 
-export function getTurboRunOptionLabel(turboRun: ITurboRunSummary): string {
+export function getTurboRunOptionLabel(
+  turboRun: ITurboRunSummary,
+  translate: ReturnType<typeof useTranslations>,
+): string {
   const shortId = turboRun.id.slice(-6);
   const status =
     typeof turboRun.status === 'string' && turboRun.status.trim()
-      ? turboRun.status.replaceAll('_', ' ').toLowerCase()
+      ? Object.values(TurboRunStatus).some((value) => value === turboRun.status)
+        ? translate(`queue.batchStatus.${turboRun.status}`)
+        : turboRun.status.replaceAll('_', ' ').toLowerCase()
       : '';
-  return `${shortId} · ${turboRun.totalCount} items${status ? ` · ${status}` : ''}`;
+  return translate(
+    status ? 'queue.batchOptionWithStatus' : 'queue.batchOption',
+    { id: shortId, count: turboRun.totalCount, status },
+  );
 }
 
 /**
@@ -80,6 +89,7 @@ export default function ReviewQueueView({
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
   const translate = useTranslations('pages.publishing.review.approvalQueue');
+  const translateReview = useTranslations('pages.publishing.review');
   const translateInbox = useTranslations('pages.publishing.review.inbox');
   // Rows the operator tapped, as opposed to the first item the queue picks
   // for them: only a tap opens the mobile drawer, and every tap reveals it.
@@ -108,10 +118,10 @@ export default function ReviewQueueView({
   const turboRunOptions = useMemo(
     () =>
       turboRunList.map((turboRun) => ({
-        label: getTurboRunOptionLabel(turboRun),
+        label: getTurboRunOptionLabel(turboRun, translateReview),
         value: turboRun.id,
       })),
-    [turboRunList],
+    [turboRunList, translateReview],
   );
 
   useEffect(() => {
@@ -163,8 +173,8 @@ export default function ReviewQueueView({
                 onTurboRunChange(value);
               }}
               options={turboRunOptions}
-              placeholder="Select batch"
-              tooltip="Select review batch"
+              placeholder={translateReview('queue.selectBatch')}
+              tooltip={translateReview('queue.selectBatchTooltip')}
               value={activeTurboRunId ?? ''}
             />
           </>
@@ -174,7 +184,7 @@ export default function ReviewQueueView({
             className="h-8 shrink-0 gap-1.5 px-3 text-xs"
             icon={<Trash2 className="size-3.5" />}
             isDisabled={isActioning}
-            label="Discard batch"
+            label={translateReview('queue.discardBatch')}
             onClick={onDiscardTurboRun}
             size={ButtonSize.SM}
             variant={ButtonVariant.DESTRUCTIVE}
@@ -202,6 +212,7 @@ export default function ReviewQueueView({
     onFilterChange,
     setFiltersNode,
     sourceFilters,
+    translateReview,
   ]);
 
   const approvalsSection = (
@@ -242,10 +253,10 @@ export default function ReviewQueueView({
         <Card
           variant={CardVariant.DEFAULT}
           icon={TriangleAlert}
-          label="Unable to load the review queue"
+          label={translateReview('queue.loadFailed')}
           description={getJsonApiErrorMessage(
             turboRunsError,
-            'The review batches response was invalid or failed to load. Refresh the page and check the batches API.',
+            translateReview('queue.invalidResponse'),
           )}
           bodyClassName="items-center py-12 text-center"
           iconWrapperClassName="bg-destructive/10 text-destructive"
@@ -266,8 +277,8 @@ export default function ReviewQueueView({
       <Card
         variant={CardVariant.DEFAULT}
         icon={ClipboardCheck}
-        label="No review work waiting"
-        description="Generated batches appear here when drafts are ready to review."
+        label={translateReview('queue.emptyTitle')}
+        description={translateReview('queue.emptyDescription')}
         bodyClassName="items-center py-12 text-center"
         iconWrapperClassName="bg-muted text-muted-foreground"
         className="max-w-xl mx-auto"
@@ -301,8 +312,8 @@ export default function ReviewQueueView({
         <Card
           variant={CardVariant.DEFAULT}
           icon={TriangleAlert}
-          label="Unable to load the selected batch"
-          description="The batch list loaded, but the selected batch details could not be retrieved. Pick another batch or refresh."
+          label={translateReview('queue.batchLoadFailed')}
+          description={translateReview('queue.batchLoadDescription')}
           bodyClassName="items-center py-12 text-center"
           iconWrapperClassName="bg-warning/10 text-warning"
           className="max-w-xl mx-auto"
@@ -345,8 +356,8 @@ export default function ReviewQueueView({
         <Card
           variant={CardVariant.DEFAULT}
           icon={TriangleAlert}
-          label="No batch details are available"
-          description="Pick another batch or reload the queue."
+          label={translateReview('queue.noDetails')}
+          description={translateReview('queue.noDetailsDescription')}
           bodyClassName="items-center py-12 text-center"
           iconWrapperClassName="bg-warning/10 text-warning"
           className="max-w-xl mx-auto"

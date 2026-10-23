@@ -1,6 +1,8 @@
 import { MessageSquare, MousePointerClick } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function ReviewDetailPanelEmpty() {
+  const translate = useTranslations('pages.publishing.review');
   return (
     <div className="flex min-h-[240px] flex-col items-center justify-center rounded-card bg-card p-6 text-center shadow-border">
       <div className="flex items-center gap-2">
@@ -12,11 +14,10 @@ export default function ReviewDetailPanelEmpty() {
         </div>
       </div>
       <h2 className="mt-4 text-sm font-semibold text-foreground">
-        Select a row or talk to the agent
+        {translate('detail.emptyTitle')}
       </h2>
       <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
-        Click a post in the table to load its review context here. With nothing
-        selected, use Conversation to triage the queue.
+        {translate('detail.emptyDescription')}
       </p>
     </div>
   );

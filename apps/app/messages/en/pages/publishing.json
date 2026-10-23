@@ -340,7 +340,10 @@
       "workflowRun": "Workflow run"
     },
     "preview": {
-      "empty": "No preview available for this draft."
+      "empty": "No preview available for this draft.",
+      "aria": "Preview post",
+      "context": "Context",
+      "openPost": "Open post"
     },
     "approvalQueue": {
       "title": "Approval queue",
@@ -375,6 +378,180 @@
       "mcpApproved": "Approved. The MCP client runs it the next time it asks.",
       "rejected": "Rejected",
       "decisionFailed": "Could not save this decision."
+    },
+    "assignment": {
+      "unavailable": "Unavailable member",
+      "unassigned": "Unassigned",
+      "description": "Assign a responsible teammate. This does not change the review decision.",
+      "member": "Team member",
+      "assign": "Assign",
+      "unassign": "Unassign",
+      "placeholder": "Choose a teammate"
+    },
+    "decision": {
+      "approveDraft": "Approve and open draft",
+      "approveSchedule": "Approve and schedule",
+      "alreadyApproved": "This item has already been approved.",
+      "changesRequested": "Changes were requested for this item.",
+      "alreadyRejected": "This item was rejected.",
+      "notActionable": "This item is not currently actionable.",
+      "removeSelection": "Remove from bulk selection",
+      "addSelection": "Add to bulk selection",
+      "title": "Decision",
+      "description": "Approve, request changes, or reject this post.",
+      "requestChanges": "Request changes",
+      "reject": "Reject",
+      "placeholder": "Revision guidance or rejection context",
+      "notes": "Review notes",
+      "approve": "Approve"
+    },
+    "detail": {
+      "noCaption": "No caption generated for this item yet.",
+      "preview": "Preview",
+      "noMedia": "No media on this draft yet",
+      "prompt": "Prompt",
+      "assignee": "Assignee",
+      "title": "Details",
+      "savedNotes": "Saved notes",
+      "failure": "Failure",
+      "created": "Created",
+      "scheduled": "Scheduled",
+      "postDraft": "Post draft",
+      "state": "Review state",
+      "notScheduled": "Not scheduled",
+      "draftLinked": "Draft linked",
+      "noDraftLinked": "No draft linked",
+      "emptyTitle": "Select a row or talk to the agent",
+      "emptyDescription": "Click a post in the table to load its review context here. With nothing selected, use Conversation to triage the queue."
+    },
+    "approval": {
+      "title": "Publish approval",
+      "description": "Approval pins version, destination, timing, and policy — chat never authorizes publish on its own.",
+      "version": "Version",
+      "destination": "Destination",
+      "timing": "Timing",
+      "policy": "Policy",
+      "status": "Status",
+      "pinnedOnApproval": "Pinned on approval",
+      "notSelected": "Not selected",
+      "publishNow": "Publish now",
+      "requiresConfirmation": "Requires publish confirmation",
+      "awaitingTypedApproval": "Awaiting typed approval"
+    },
+    "gate": {
+      "title": "Publish gate",
+      "score": "Overall score",
+      "notRecorded": "Not recorded"
+    },
+    "titles": {
+      "draftPost": "Draft post",
+      "reviewItem": "Review item",
+      "untitledPost": "Untitled post"
+    },
+    "selection": {
+      "selected": "selected"
+    },
+    "history": {
+      "title": "Review history",
+      "unavailable": "Reviewer unavailable",
+      "decisions": {
+        "approved": "approved",
+        "rejected": "rejected",
+        "request_changes": "Changes requested",
+        "unset": "Not reviewed"
+      },
+      "avatarAlt": "{name} profile picture"
+    },
+    "table": {
+      "openContext": "Open in Context",
+      "openPost": "Open post detail",
+      "openPublished": "Open published URL",
+      "deselect": "Deselect item",
+      "select": "Select item",
+      "media": "Media",
+      "post": "Post",
+      "platform": "Platform",
+      "status": "Status",
+      "schedule": "Schedule",
+      "emptyDescription": "Try All statuses, or pick another batch.",
+      "emptyTitle": "No items match these filters"
+    },
+    "outcome": {
+      "title": "Publish outcome",
+      "status": "Post status",
+      "externalId": "External ID",
+      "published": "Published",
+      "lastAttempt": "Last attempt",
+      "retryCount": "Retry count",
+      "performance": "Performance snapshot",
+      "views": "Views",
+      "likes": "Likes",
+      "comments": "Comments",
+      "shares": "Shares",
+      "engagement": "Engagement",
+      "notLinked": "Not linked",
+      "notPublished": "Not published",
+      "noAttempts": "No attempts recorded",
+      "notSynced": "Not synced"
+    },
+    "queue": {
+      "batchOption": "{id} · {count} items",
+      "batchOptionWithStatus": "{id} · {count} items · {status}",
+      "batchStatus": {
+        "PENDING": "pending",
+        "PROCESSING": "processing",
+        "COMPLETED": "completed",
+        "PARTIAL": "partial",
+        "FAILED": "failed",
+        "CANCELLED": "cancelled"
+      },
+      "selectBatch": "Select batch",
+      "selectBatchTooltip": "Select review batch",
+      "discardBatch": "Discard batch",
+      "loadFailed": "Unable to load the review queue",
+      "emptyTitle": "No review work waiting",
+      "emptyDescription": "Generated batches appear here when drafts are ready to review.",
+      "batchLoadFailed": "Unable to load the selected batch",
+      "batchLoadDescription": "The batch list loaded, but the selected batch details could not be retrieved. Pick another batch or refresh.",
+      "noDetails": "No batch details are available",
+      "noDetailsDescription": "Pick another batch or reload the queue.",
+      "invalidResponse": "The review batches response was invalid or failed to load. Refresh the page and check the batches API."
+    },
+    "filters": {
+      "all": "All statuses",
+      "option": "{status} · {count}",
+      "status": {
+        "approved": "Approved",
+        "changes_requested": "Changes",
+        "failed": "Failed",
+        "pending": "Pending",
+        "ready": "Ready",
+        "skipped": "Skipped"
+      }
+    },
+    "context": {
+      "rewrite": "Rewrite",
+      "emptyCaption": "(empty)",
+      "selectedPlaceholder": "Ask the agent to clean up or decide on this post...",
+      "placeholder": "Ask about content review...",
+      "approvePrompt": "Approve and schedule this review item ({id}): \"{title}\".",
+      "changesPrompt": "Request changes on review item {id} (\"{title}\"). Suggest a sharper caption and what to fix.",
+      "rejectPrompt": "Reject review item {id} (\"{title}\") and explain why it should not ship.",
+      "rewritePrompt": "Rewrite the caption for this review item ({id}) while keeping the platform and intent. Current caption:\n\n{caption}"
+    },
+    "status": {
+      "approved": "Approved",
+      "changesRequested": "Changes requested",
+      "rejected": "Rejected",
+      "ready": "Ready",
+      "failed": "Failed",
+      "generating": "Generating",
+      "pending": "Pending"
+    },
+    "performance": {
+      "awaiting": "Awaiting analytics",
+      "underperforming": "Underperforming",
+      "winning": "Winning"
     }
   }
 }

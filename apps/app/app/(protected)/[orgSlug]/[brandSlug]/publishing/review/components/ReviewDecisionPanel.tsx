@@ -4,6 +4,7 @@ import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props'
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import {
   isApproved,
@@ -12,28 +13,34 @@ import {
   isRejected,
 } from './review-state';
 
-function getApproveLabel(item: ReviewPanelItem): string {
+function getApproveLabel(
+  item: ReviewPanelItem,
+  translate: ReturnType<typeof useTranslations>,
+): string {
   if (item.postId && !item.scheduledDate) {
-    return 'Approve and open draft';
+    return translate('decision.approveDraft');
   }
 
-  return 'Approve and schedule';
+  return translate('decision.approveSchedule');
 }
 
-function getResolvedDecisionLabel(item: ReviewPanelItem): string {
+function getResolvedDecisionLabel(
+  item: ReviewPanelItem,
+  translate: ReturnType<typeof useTranslations>,
+): string {
   if (isApproved(item)) {
-    return 'This item has already been approved.';
+    return translate('decision.alreadyApproved');
   }
 
   if (isChangesRequested(item)) {
-    return 'Changes were requested for this item.';
+    return translate('decision.changesRequested');
   }
 
   if (isRejected(item)) {
-    return 'This item was rejected.';
+    return translate('decision.alreadyRejected');
   }
 
-  return 'This item is not currently actionable.';
+  return translate('decision.notActionable');
 }
 
 export default function ReviewDecisionPanel({
@@ -48,20 +55,23 @@ export default function ReviewDecisionPanel({
   onToggleSelect,
   setFeedback,
 }: ReviewDecisionPanelProps) {
+  const translate = useTranslations('pages.publishing.review');
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-medium text-foreground">Decision</h3>
+        <h3 className="text-sm font-medium text-foreground">
+          {translate('decision.title')}
+        </h3>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Approve, request changes, or reject this post.
+          {translate('decision.description')}
         </p>
       </div>
 
       <Textarea
         value={feedback}
         onChange={(event) => setFeedback(event.target.value)}
-        placeholder="Revision guidance or rejection context"
-        aria-label="Review notes"
+        placeholder={translate('decision.placeholder')}
+        aria-label={translate('decision.notes')}
         className="min-h-20 w-full rounded-md"
       />
 
@@ -78,7 +88,7 @@ export default function ReviewDecisionPanel({
             className="w-full justify-start gap-2"
             icon={<Sparkles className="size-3.5" />}
           >
-            Request changes
+            {translate('decision.requestChanges')}
           </Button>
           <Button
             size={ButtonSize.SM}
@@ -89,7 +99,7 @@ export default function ReviewDecisionPanel({
             className="w-full justify-start gap-2"
             icon={<Check className="size-3.5" />}
           >
-            {getApproveLabel(item)}
+            {getApproveLabel(item, translate)}
           </Button>
           <Button
             size={ButtonSize.SM}
@@ -100,7 +110,7 @@ export default function ReviewDecisionPanel({
             className="w-full justify-start gap-2"
             icon={<X className="size-3.5" />}
           >
-            Reject
+            {translate('decision.reject')}
           </Button>
           {isReadyToReview(item) ? (
             <Button
@@ -111,14 +121,14 @@ export default function ReviewDecisionPanel({
               className="w-full justify-start"
             >
               {isSelected
-                ? 'Remove from bulk selection'
-                : 'Add to bulk selection'}
+                ? translate('decision.removeSelection')
+                : translate('decision.addSelection')}
             </Button>
           ) : null}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {getResolvedDecisionLabel(item)}
+          {getResolvedDecisionLabel(item, translate)}
         </p>
       )}
     </div>

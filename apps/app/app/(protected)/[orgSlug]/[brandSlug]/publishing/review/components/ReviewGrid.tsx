@@ -28,6 +28,7 @@ export default function ReviewGrid({
   onToggleSelect,
 }: ReviewGridProps) {
   const translate = useTranslations('common');
+  const translateReview = useTranslations('pages.publishing.review');
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -43,7 +44,7 @@ export default function ReviewGrid({
             <span className="font-semibold text-foreground">
               {selectedIds.size}
             </span>{' '}
-            selected
+            {translateReview('selection.selected')}
           </p>
           {/* ModalConfirm grammar: primary first, destructive last (right). */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -68,7 +69,7 @@ export default function ReviewGrid({
               withWrapper={false}
             >
               <Check className="size-3.5" />
-              Approve
+              {translateReview('decision.approve')}
             </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"
@@ -79,7 +80,7 @@ export default function ReviewGrid({
               withWrapper={false}
             >
               <X className="size-3.5" />
-              Reject
+              {translateReview('decision.reject')}
             </Button>
           </div>
         </Card>

@@ -4,6 +4,11 @@ import '@testing-library/jest-dom/vitest';
 
 import ReviewStatusFilters from './ReviewStatusFilters';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/dropdowns/multiselect/DropdownMultiSelect', () => ({
   default: ({
     onChange,

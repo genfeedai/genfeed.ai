@@ -6,6 +6,7 @@ import { useAgentChatStore } from '@genfeedai/agent';
 import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { createElement, useCallback, useEffect, useState } from 'react';
 
 import ReviewDetailPanel from './ReviewDetailPanel';
@@ -32,6 +33,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
   onUnassign,
   revealRequest,
 }: ReviewWorkspaceSurfaceAdapterProps) {
+  const translate = useTranslations('pages.publishing.review');
   const pathname = usePathname();
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
   const reveal = useContextSidebar()?.reveal;
@@ -82,7 +84,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     const baseActions = currentContext?.suggestedActions ?? [];
-    const title = activeItem ? getReviewItemTitle(activeItem) : null;
+    const title = activeItem ? getReviewItemTitle(activeItem, translate) : null;
     const caption =
       activeItem?.caption?.trim() || activeItem?.prompt?.trim() || '';
     const isReady = activeItem ? isReadyToReview(activeItem) : false;
@@ -95,22 +97,31 @@ export default function ReviewWorkspaceSurfaceAdapter({
                   icon: createElement(ClipboardCheck, {
                     className: 'size-5 text-emerald-400',
                   }),
-                  label: 'Approve',
-                  prompt: `Approve and schedule this review item (${activeItem.id}): "${title}".`,
+                  label: translate('decision.approve'),
+                  prompt: translate('context.approvePrompt', {
+                    id: activeItem.id,
+                    title: title ?? '',
+                  }),
                 },
                 {
                   icon: createElement(SquarePen, {
                     className: 'size-5 text-amber-300',
                   }),
-                  label: 'Request changes',
-                  prompt: `Request changes on review item ${activeItem.id} ("${title}"). Suggest a sharper caption and what to fix.`,
+                  label: translate('decision.requestChanges'),
+                  prompt: translate('context.changesPrompt', {
+                    id: activeItem.id,
+                    title: title ?? '',
+                  }),
                 },
                 {
                   icon: createElement(X, {
                     className: 'size-5 text-foreground/50',
                   }),
-                  label: 'Reject',
-                  prompt: `Reject review item ${activeItem.id} ("${title}") and explain why it should not ship.`,
+                  label: translate('decision.reject'),
+                  prompt: translate('context.rejectPrompt', {
+                    id: activeItem.id,
+                    title: title ?? '',
+                  }),
                 },
               ]
             : []),
@@ -118,8 +129,11 @@ export default function ReviewWorkspaceSurfaceAdapter({
             icon: createElement(Sparkles, {
               className: 'size-5 text-foreground/50',
             }),
-            label: 'Rewrite',
-            prompt: `Rewrite the caption for this review item (${activeItem.id}) while keeping the platform and intent. Current caption:\n\n${caption || '(empty)'}`,
+            label: translate('context.rewrite'),
+            prompt: translate('context.rewritePrompt', {
+              id: activeItem.id,
+              caption: caption || translate('context.emptyCaption'),
+            }),
           },
         ]
       : baseActions;
@@ -134,8 +148,8 @@ export default function ReviewWorkspaceSurfaceAdapter({
       draftTitle: title || undefined,
       draftType: activeItem ? 'review-item' : currentContext?.draftType,
       placeholder: activeItem
-        ? 'Ask the agent to clean up or decide on this post...'
-        : (currentContext?.placeholder ?? 'Ask about content review...'),
+        ? translate('context.selectedPlaceholder')
+        : (currentContext?.placeholder ?? translate('context.placeholder')),
       postContent: caption || undefined,
       route: pathname,
       suggestedActions: selectionActions.slice(0, 4),
@@ -159,13 +173,13 @@ export default function ReviewWorkspaceSurfaceAdapter({
       } = latest;
       setPageContext({
         ...rest,
-        placeholder: 'Ask about content review...',
+        placeholder: translate('context.placeholder'),
         route: pathname,
         suggestedActions:
           baseActions.length > 0 ? baseActions : rest.suggestedActions,
       });
     };
-  }, [activeItem, pathname, setPageContext]);
+  }, [activeItem, pathname, setPageContext, translate]);
 
   return (
     <ContextSidebarPanel
@@ -176,7 +190,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
               id: activeItem.id,
               kind: 'post',
               origin: activeItemOrigin,
-              title: getReviewItemTitle(activeItem),
+              title: getReviewItemTitle(activeItem, translate),
             }
           : null
       }

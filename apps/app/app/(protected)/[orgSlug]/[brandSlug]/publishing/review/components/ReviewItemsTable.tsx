@@ -40,6 +40,7 @@ export default function ReviewItemsTable({
   onToggleSelect,
 }: ReviewItemsTableProps) {
   const translate = useTranslations('common.turboRewrite');
+  const translateReview = useTranslations('pages.publishing.review');
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -56,7 +57,7 @@ export default function ReviewItemsTable({
             new CustomEvent('workspace:force-open-review-context'),
           );
         },
-        tooltip: 'Open in Context',
+        tooltip: translateReview('table.openContext'),
         tooltipPosition: 'left',
       },
       {
@@ -68,7 +69,7 @@ export default function ReviewItemsTable({
           }
           router.push(href(getPublishingPostHref(item.postId)));
         },
-        tooltip: 'Open post detail',
+        tooltip: translateReview('table.openPost'),
         tooltipPosition: 'left',
       },
       {
@@ -80,11 +81,11 @@ export default function ReviewItemsTable({
           }
           window.open(item.postUrl, '_blank', 'noopener,noreferrer');
         },
-        tooltip: 'Open published URL',
+        tooltip: translateReview('table.openPublished'),
         tooltipPosition: 'left',
       },
     ],
-    [href, onSelectItem, router],
+    [href, onSelectItem, router, translateReview],
   );
 
   const columns = useMemo<TableColumn<ITurboRunItem>[]>(
@@ -101,7 +102,11 @@ export default function ReviewItemsTable({
           const isSelected = selectedIds.has(item.id);
           return (
             <Checkbox
-              aria-label={isSelected ? 'Deselect item' : 'Select item'}
+              aria-label={
+                isSelected
+                  ? translateReview('table.deselect')
+                  : translateReview('table.select')
+              }
               className="size-4 border border-border bg-background shadow-sm data-[state=checked]:border-primary data-[state=checked]:bg-primary"
               isChecked={isSelected}
               isDisabled={Boolean(rewritingIds?.has(item.id))}
@@ -115,7 +120,7 @@ export default function ReviewItemsTable({
       },
       {
         className: 'w-14',
-        header: 'Media',
+        header: translateReview('table.media'),
         key: 'media',
         render: (item) =>
           item.mediaUrl ? (
@@ -142,10 +147,10 @@ export default function ReviewItemsTable({
           ),
       },
       {
-        header: 'Post',
+        header: translateReview('table.post'),
         key: 'caption',
         render: (item) => {
-          const title = getReviewItemTitle(item);
+          const title = getReviewItemTitle(item, translateReview);
           const isRewriting = Boolean(rewritingIds?.has(item.id));
           const titleContent = isRewriting ? (
             <span role="status">{translate('progress')}</span>
@@ -175,10 +180,10 @@ export default function ReviewItemsTable({
                 <span className="line-clamp-1 text-xs text-muted-foreground">
                   {[
                     item.format ? String(item.format) : null,
-                    item.postId ? 'Draft linked' : null,
+                    item.postId ? translateReview('detail.draftLinked') : null,
                   ]
                     .filter(Boolean)
-                    .join(' · ') || 'Post draft'}
+                    .join(' · ') || translateReview('detail.postDraft')}
                 </span>
               </ReviewPostHoverPreview>
             </span>
@@ -187,7 +192,7 @@ export default function ReviewItemsTable({
       },
       {
         className: 'w-28',
-        header: 'Platform',
+        header: translateReview('table.platform'),
         key: 'platform',
         render: (item) =>
           item.platform ? (
@@ -198,18 +203,21 @@ export default function ReviewItemsTable({
       },
       {
         className: 'w-36',
-        header: 'Status',
+        header: translateReview('table.status'),
         key: 'status',
         render: (item) => {
           const performanceSignal = getReviewPerformanceSignal(item);
-          const performanceLabel = getReviewPerformanceLabel(performanceSignal);
+          const performanceLabel = getReviewPerformanceLabel(
+            performanceSignal,
+            translateReview,
+          );
           return (
             <span className="flex flex-wrap items-center gap-1.5">
               <Badge
                 size={ComponentSize.SM}
                 status={getReviewItemBadgeStatus(item)}
               >
-                {formatReviewItemStatus(item)}
+                {formatReviewItemStatus(item, translateReview)}
               </Badge>
               {performanceLabel ? (
                 <span
@@ -231,7 +239,7 @@ export default function ReviewItemsTable({
       },
       {
         className: 'w-32',
-        header: 'Schedule',
+        header: translateReview('table.schedule'),
         key: 'scheduledDate',
         render: (item) => (
           <span className="text-xs tabular-nums text-muted-foreground">
@@ -254,6 +262,7 @@ export default function ReviewItemsTable({
       selectedIds,
       rewritingIds,
       translate,
+      translateReview,
     ],
   );
 
@@ -261,8 +270,8 @@ export default function ReviewItemsTable({
     <AppTable<ITurboRunItem>
       actions={rowActions}
       columns={columns}
-      emptyDescription="Try All statuses, or pick another batch."
-      emptyLabel="No items match these filters"
+      emptyDescription={translateReview('table.emptyDescription')}
+      emptyLabel={translateReview('table.emptyTitle')}
       getItemId={(item) => item.id}
       getRowClassName={(item) =>
         cn(

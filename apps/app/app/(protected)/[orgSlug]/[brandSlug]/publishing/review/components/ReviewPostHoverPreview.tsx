@@ -27,9 +27,9 @@ export default function ReviewPostHoverPreview({
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { href } = useOrgUrl();
-  const translate = useTranslations('pages.publishing.review.preview');
+  const translate = useTranslations('pages.publishing.review');
 
-  const targetPreview = buildReviewItemTargetPreview(item);
+  const targetPreview = buildReviewItemTargetPreview(item, translate);
   const postDetailHref = item.postId
     ? href(getPublishingPostHref(item.postId))
     : null;
@@ -69,7 +69,7 @@ export default function ReviewPostHoverPreview({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          ariaLabel="Preview post"
+          ariaLabel={translate('preview.aria')}
           className={cn(
             'inline-flex h-auto min-w-0 max-w-full justify-start p-0 text-left font-normal',
             className,
@@ -108,7 +108,9 @@ export default function ReviewPostHoverPreview({
             className="max-h-[28rem] overflow-y-auto"
           />
         ) : (
-          <p className="text-xs text-muted-foreground">{translate('empty')}</p>
+          <p className="text-xs text-muted-foreground">
+            {translate('preview.empty')}
+          </p>
         )}
         <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
           <Button
@@ -128,7 +130,7 @@ export default function ReviewPostHoverPreview({
             withWrapper={false}
           >
             <PanelRightOpen className="size-3.5" />
-            Context
+            {translate('preview.context')}
           </Button>
           {postDetailHref ? (
             <Button
@@ -145,7 +147,7 @@ export default function ReviewPostHoverPreview({
                 }}
               >
                 <ArrowUpRight className="size-3.5" />
-                Open post
+                {translate('preview.openPost')}
               </NextLink>
             </Button>
           ) : null}

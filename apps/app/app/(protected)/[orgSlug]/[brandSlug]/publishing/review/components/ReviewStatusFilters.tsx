@@ -1,17 +1,9 @@
 import type { ReviewStatusFiltersProps } from '@props/publishing/review-status-filters.props';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type { ReviewStatusFilter } from './review-grid.helpers';
 import { REVIEW_STATUS_FILTER_VALUES } from './review-grid.helpers';
-
-const STATUS_LABELS: Record<ReviewStatusFilter, string> = {
-  approved: 'Approved',
-  changes_requested: 'Changes',
-  failed: 'Failed',
-  pending: 'Pending',
-  ready: 'Ready',
-  skipped: 'Skipped',
-};
 
 /** Same shell chrome as the batch picker / publish list sort control. */
 export const PUBLISH_HEADER_DROPDOWN_CLASS =
@@ -26,14 +18,18 @@ export default function ReviewStatusFilters({
   filterCounts,
   onFilterChange,
 }: ReviewStatusFiltersProps) {
+  const translate = useTranslations('pages.publishing.review');
   const options = useMemo(
     () =>
       REVIEW_STATUS_FILTER_VALUES.map((filter) => ({
         // Short base label — MultiSelect truncates the trigger; count stays useful.
-        label: `${STATUS_LABELS[filter]} · ${filterCounts[filter]}`,
+        label: translate('filters.option', {
+          status: translate(`filters.status.${filter}`),
+          count: filterCounts[filter],
+        }),
         value: filter,
       })),
-    [filterCounts],
+    [filterCounts, translate],
   );
 
   return (
@@ -44,7 +40,7 @@ export default function ReviewStatusFilters({
         onFilterChange(values as ReviewStatusFilter[]);
       }}
       options={options}
-      placeholder="All statuses"
+      placeholder={translate('filters.all')}
       values={[...activeFilters]}
     />
   );

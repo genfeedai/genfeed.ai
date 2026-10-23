@@ -8,6 +8,7 @@ import type { ReviewDetailPanelProps } from '@props/publishing/review-detail-pan
 import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { ImageIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
@@ -19,9 +20,12 @@ import {
 } from './review-item.helpers';
 import { isReadyToReview } from './review-state';
 
-function buildStatusLabel(item: ReviewPanelItem): string {
+function buildStatusLabel(
+  item: ReviewPanelItem,
+  translate: ReturnType<typeof useTranslations>,
+): string {
   // Single source of truth with the table badge label.
-  return formatReviewItemStatus(item);
+  return formatReviewItemStatus(item, translate);
 }
 
 export default function ReviewDetailPanel({
@@ -35,6 +39,7 @@ export default function ReviewDetailPanel({
   onToggleSelect,
   onUnassign,
 }: ReviewDetailPanelProps) {
+  const translate = useTranslations('pages.publishing.review');
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
   if (!item) {
@@ -54,15 +59,15 @@ export default function ReviewDetailPanel({
     DATE_FORMATS.DISPLAY_DATETIME,
   );
   const isReady = isReadyToReview(item);
-  const statusLabel = buildStatusLabel(item);
+  const statusLabel = buildStatusLabel(item, translate);
   const reviewEvents = (item.reviewEvents ?? []).toSorted((left, right) =>
     right.reviewedAt.localeCompare(left.reviewedAt),
   );
   const caption =
     item.caption?.trim() ||
     item.prompt?.trim() ||
-    'No caption generated for this item yet.';
-  const targetPreview = buildReviewItemTargetPreview(item);
+    translate('detail.noCaption');
+  const targetPreview = buildReviewItemTargetPreview(item, translate);
 
   return (
     // Flat inspector surface — no outer card wrapping nested cards.
@@ -72,7 +77,7 @@ export default function ReviewDetailPanel({
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-3 border-b border-border px-4 py-4">
           <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Preview
+            {translate('detail.preview')}
           </p>
           {targetPreview ? <TargetPreview {...targetPreview} /> : null}
           {item.status === TurboRunItemStatus.FAILED && item.error ? (
@@ -82,14 +87,14 @@ export default function ReviewDetailPanel({
           {!item.mediaUrl ? (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <ImageIcon className="size-3.5 shrink-0" />
-              No media on this draft yet
+              {translate('detail.noMedia')}
             </p>
           ) : null}
 
           {item.prompt?.trim() && item.prompt.trim() !== caption ? (
             <div className="pt-2">
               <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Prompt
+                {translate('detail.prompt')}
               </p>
               <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                 {item.prompt}

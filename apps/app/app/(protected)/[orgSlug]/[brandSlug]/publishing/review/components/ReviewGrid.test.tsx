@@ -24,9 +24,10 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (id: string) => `catalog:${id}`,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 const mockItems = [
   {
@@ -162,9 +163,7 @@ describe('ReviewGrid', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Deselect item/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'catalog:turboRewrite.action' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Rewrite selected' }));
 
     expect(onSelectItem).toHaveBeenCalledWith('item-1');
     expect(onToggleSelect).toHaveBeenCalledWith('item-1');
@@ -184,7 +183,7 @@ describe('ReviewGrid', () => {
         {...baseHandlers}
       />,
     );
-    expect(screen.getByRole('status')).toHaveTextContent('catalog:progress');
+    expect(screen.getByRole('status')).toHaveTextContent('Rewriting…');
     expect(screen.getByRole('button', { name: /^Approve$/i })).toBeDisabled();
     expect(
       screen.getByRole('checkbox', { name: /Deselect item/i }),
@@ -237,9 +236,9 @@ describe('ReviewGrid', () => {
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'catalog:turboRewrite.action' }),
+      screen.getByRole('button', { name: 'Rewrite selected' }),
     ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'catalog:cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop rewrite' }));
     expect(onCancel).toHaveBeenCalledOnce();
   });
 

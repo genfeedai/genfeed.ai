@@ -1,8 +1,8 @@
-import { ReviewDecision } from '@genfeedai/contracts';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import type { ReviewHistoryPanelProps } from '@props/publishing/review-history-panel.props';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { useTranslations } from 'next-intl';
 
 function getReviewerInitials(displayName: string): string {
   const initials = displayName
@@ -19,13 +19,16 @@ export default function ReviewHistoryPanel({
   browserTimezone,
   reviewEvents,
 }: ReviewHistoryPanelProps) {
+  const translate = useTranslations('pages.publishing.review');
   if (reviewEvents.length === 0) {
     return null;
   }
 
   return (
     <div className="space-y-3 border-b border-border px-4 py-4 last:border-b-0">
-      <h3 className="text-sm font-medium text-foreground">Review history</h3>
+      <h3 className="text-sm font-medium text-foreground">
+        {translate('history.title')}
+      </h3>
       <div className="space-y-4">
         {reviewEvents.map((event) => (
           <div
@@ -34,11 +37,7 @@ export default function ReviewHistoryPanel({
           >
             <div className="flex items-start justify-between gap-4">
               <p className="text-sm font-medium capitalize text-foreground">
-                {event.decision === ReviewDecision.REQUEST_CHANGES
-                  ? 'Changes requested'
-                  : event.decision === ReviewDecision.UNSET
-                    ? 'Not reviewed'
-                    : event.decision}
+                {translate(`history.decisions.${event.decision}`)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDateInTimezone(
@@ -57,7 +56,9 @@ export default function ReviewHistoryPanel({
               <Avatar className="size-7 bg-background-secondary">
                 {event.reviewer?.avatar ? (
                   <AvatarImage
-                    alt={`${event.reviewer.displayName} profile picture`}
+                    alt={translate('history.avatarAlt', {
+                      name: event.reviewer.displayName,
+                    })}
                     className="object-cover"
                     src={event.reviewer.avatar}
                   />
@@ -81,7 +82,7 @@ export default function ReviewHistoryPanel({
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Reviewer unavailable
+                  {translate('history.unavailable')}
                 </p>
               )}
             </div>

@@ -10,6 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const setPageContext = vi.fn();
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: Object.assign(
     (selector: (state: { setPageContext: typeof setPageContext }) => unknown) =>

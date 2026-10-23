@@ -2,22 +2,26 @@ import { ComponentSize } from '@genfeedai/contracts';
 import type { ReviewDetailPanelHeaderProps } from '@props/publishing/review-detail-panel-header.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { useTranslations } from 'next-intl';
 import { getReviewItemBadgeStatus } from './review-item.helpers';
 
 export default function ReviewDetailPanelHeader({
   item,
   statusLabel,
 }: ReviewDetailPanelHeaderProps) {
+  const translate = useTranslations('pages.publishing.review');
   const title =
     item.caption?.trim() ||
     item.prompt?.trim() ||
-    (item.postId ? 'Draft post' : 'Review item');
+    (item.postId
+      ? translate('titles.draftPost')
+      : translate('titles.reviewItem'));
 
   return (
     <div className="flex flex-col gap-3 px-4 pt-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
         <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Approval queue
+          {translate('approvalQueue.title')}
         </p>
         <h2 className="mt-1 line-clamp-2 text-base font-semibold text-foreground">
           {title}

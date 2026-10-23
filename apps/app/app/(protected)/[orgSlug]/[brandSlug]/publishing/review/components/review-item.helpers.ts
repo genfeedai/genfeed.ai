@@ -15,6 +15,7 @@ import type {
   ITurboRunItem,
 } from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
+import type { useTranslations } from 'next-intl';
 
 import {
   isApproved,
@@ -23,26 +24,29 @@ import {
   isRejected,
 } from './review-state';
 
-export function formatReviewItemStatus(item: ITurboRunItem): string {
+export function formatReviewItemStatus(
+  item: ITurboRunItem,
+  translate: ReturnType<typeof useTranslations>,
+): string {
   if (isApproved(item)) {
-    return 'Approved';
+    return translate('status.approved');
   }
   if (isChangesRequested(item)) {
-    return 'Changes requested';
+    return translate('status.changesRequested');
   }
   // isRejected covers reviewDecision=rejected and SKIPPED (backend maps reject).
   if (isRejected(item)) {
-    return 'Rejected';
+    return translate('status.rejected');
   }
   switch (item.status) {
     case TurboRunItemStatus.COMPLETED:
-      return 'Ready';
+      return translate('status.ready');
     case TurboRunItemStatus.FAILED:
-      return 'Failed';
+      return translate('status.failed');
     case TurboRunItemStatus.PROCESSING:
-      return 'Generating';
+      return translate('status.generating');
     case TurboRunItemStatus.PENDING:
-      return 'Pending';
+      return translate('status.pending');
     default:
       return String(item.status).replaceAll('_', ' ').toLowerCase();
   }
@@ -72,11 +76,16 @@ export function getReviewItemBadgeStatus(
   return undefined;
 }
 
-export function getReviewItemTitle(item: ITurboRunItem): string {
+export function getReviewItemTitle(
+  item: ITurboRunItem,
+  translate: ReturnType<typeof useTranslations>,
+): string {
   return (
     item.caption?.trim() ||
     item.prompt?.trim() ||
-    (item.postId ? 'Draft post' : 'Untitled post')
+    (item.postId
+      ? translate('titles.draftPost')
+      : translate('titles.untitledPost'))
   );
 }
 
@@ -125,13 +134,14 @@ function buildReviewItemMedia(item: ITurboRunItem): IReleaseMediaReference[] {
  */
 export function buildReviewItemTargetPreview(
   item: ITurboRunItem,
+  translate: ReturnType<typeof useTranslations>,
 ): TargetPreviewProps | null {
   const platform = parsePlatform(item.platform);
   if (!platform) {
     return null;
   }
 
-  const title = getReviewItemTitle(item);
+  const title = getReviewItemTitle(item, translate);
   const caption = item.caption?.trim() || item.prompt?.trim() || title;
 
   return {

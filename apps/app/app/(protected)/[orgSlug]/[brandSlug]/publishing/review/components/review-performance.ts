@@ -1,4 +1,5 @@
 import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
+import type { useTranslations } from 'next-intl';
 
 export type ReviewPerformanceSignal =
   | 'winning'
@@ -36,14 +37,15 @@ export function getReviewPerformanceSignal(
 
 export function getReviewPerformanceLabel(
   signal: ReviewPerformanceSignal,
+  translate: ReturnType<typeof useTranslations>,
 ): string | null {
   switch (signal) {
     case 'awaiting_analytics':
-      return 'Awaiting analytics';
+      return translate('performance.awaiting');
     case 'underperforming':
-      return 'Underperforming';
+      return translate('performance.underperforming');
     case 'winning':
-      return 'Winning';
+      return translate('performance.winning');
     default:
       return null;
   }

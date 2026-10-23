@@ -344,9 +344,15 @@ vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   ),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) =>
+      namespace.startsWith('pages.publishing.review')
+        ? translateFromCatalog(namespace)
+        : (key: string) => key,
+  };
+});
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
@@ -662,8 +668,10 @@ describe('ReviewQueueContent', () => {
     render(<ReviewQueueContent />);
 
     const framing = screen.getByTestId('approval-queue-framing');
-    expect(framing).toHaveTextContent('title');
-    expect(framing).toHaveTextContent('description');
+    expect(framing).toHaveTextContent('Approval queue');
+    expect(framing).toHaveTextContent(
+      'Drafts from generated batches that are waiting for a human decision.',
+    );
     expect(within(framing).queryByRole('link')).not.toBeInTheDocument();
   });
 
@@ -1085,7 +1093,9 @@ describe('ReviewQueueContent', () => {
 
       render(<ReviewQueueContent />);
 
-      expect(screen.getByText('emptyFilteredTitle')).toBeInTheDocument();
+      expect(
+        screen.getByText('Nothing from these sources'),
+      ).toBeInTheDocument();
       expect(screen.queryByText('Review Grid')).not.toBeInTheDocument();
     });
 
@@ -1107,7 +1117,9 @@ describe('ReviewQueueContent', () => {
 
       render(<ReviewQueueContent />);
 
-      expect(screen.getByText('loadFailed')).toBeInTheDocument();
+      expect(
+        screen.getByText('Unable to load workflow and MCP approvals'),
+      ).toBeInTheDocument();
       expect(
         screen.queryByText('No review work waiting'),
       ).not.toBeInTheDocument();

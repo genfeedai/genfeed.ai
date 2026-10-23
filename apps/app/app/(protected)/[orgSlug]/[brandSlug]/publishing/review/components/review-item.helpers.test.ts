@@ -1,4 +1,6 @@
+import publishing from '@app-i18n/page-scopes/publishing';
 import { ContentFormat, TurboRunItemStatus } from '@genfeedai/contracts';
+import { createTranslator, type useMessages } from 'next-intl';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -19,51 +21,76 @@ const baseItem = {
   status: TurboRunItemStatus.COMPLETED,
 };
 
+const messages: ReturnType<typeof useMessages> = publishing;
+const translate = createTranslator({
+  locale: 'en',
+  messages,
+  namespace: 'publishing.review',
+});
+
 describe('review-item.helpers', () => {
   it('formats review statuses for the queue table', () => {
-    expect(formatReviewItemStatus(baseItem)).toBe('Ready');
+    expect(formatReviewItemStatus(baseItem, translate)).toBe('Ready');
     expect(
-      formatReviewItemStatus({
-        ...baseItem,
-        reviewDecision: 'approved',
-      }),
+      formatReviewItemStatus(
+        {
+          ...baseItem,
+          reviewDecision: 'approved',
+        },
+        translate,
+      ),
     ).toBe('Approved');
     expect(
-      formatReviewItemStatus({
-        ...baseItem,
-        status: TurboRunItemStatus.FAILED,
-      }),
+      formatReviewItemStatus(
+        {
+          ...baseItem,
+          status: TurboRunItemStatus.FAILED,
+        },
+        translate,
+      ),
     ).toBe('Failed');
     expect(
-      formatReviewItemStatus({
-        ...baseItem,
-        status: TurboRunItemStatus.SKIPPED,
-      }),
+      formatReviewItemStatus(
+        {
+          ...baseItem,
+          status: TurboRunItemStatus.SKIPPED,
+        },
+        translate,
+      ),
     ).toBe('Rejected');
     expect(
-      formatReviewItemStatus({
-        ...baseItem,
-        reviewDecision: 'rejected',
-      }),
+      formatReviewItemStatus(
+        {
+          ...baseItem,
+          reviewDecision: 'rejected',
+        },
+        translate,
+      ),
     ).toBe('Rejected');
   });
 
   it('prefers caption, then prompt, then draft fallback for the title', () => {
-    expect(getReviewItemTitle(baseItem)).toBe('Ship it');
+    expect(getReviewItemTitle(baseItem, translate)).toBe('Ship it');
     expect(
-      getReviewItemTitle({
-        ...baseItem,
-        caption: '',
-        prompt: 'Prompt text',
-      }),
+      getReviewItemTitle(
+        {
+          ...baseItem,
+          caption: '',
+          prompt: 'Prompt text',
+        },
+        translate,
+      ),
     ).toBe('Prompt text');
     expect(
-      getReviewItemTitle({
-        ...baseItem,
-        caption: '',
-        postId: 'post-1',
-        prompt: '',
-      }),
+      getReviewItemTitle(
+        {
+          ...baseItem,
+          caption: '',
+          postId: 'post-1',
+          prompt: '',
+        },
+        translate,
+      ),
     ).toBe('Draft post');
   });
 
@@ -78,10 +105,13 @@ describe('review-item.helpers', () => {
   });
 
   it('builds a target preview from the stored platform and media', () => {
-    const preview = buildReviewItemTargetPreview({
-      ...baseItem,
-      mediaUrl: 'https://cdn.example.com/media.jpg',
-    });
+    const preview = buildReviewItemTargetPreview(
+      {
+        ...baseItem,
+        mediaUrl: 'https://cdn.example.com/media.jpg',
+      },
+      translate,
+    );
 
     expect(preview?.target.platform).toBe('twitter');
     expect(preview?.credential.platform).toBe('twitter');
@@ -100,11 +130,14 @@ describe('review-item.helpers', () => {
 
   it('maps video-like formats onto preview media kinds', () => {
     const withFormat = (format: ContentFormat) =>
-      buildReviewItemTargetPreview({
-        ...baseItem,
-        format,
-        mediaUrl: 'https://cdn.example.com/media.mp4',
-      });
+      buildReviewItemTargetPreview(
+        {
+          ...baseItem,
+          format,
+          mediaUrl: 'https://cdn.example.com/media.mp4',
+        },
+        translate,
+      );
 
     expect(withFormat(ContentFormat.REEL)?.release.media[0]?.kind).toBe(
       'short_video',
@@ -121,11 +154,14 @@ describe('review-item.helpers', () => {
   });
 
   it('falls back to the prompt caption when there is no caption', () => {
-    const preview = buildReviewItemTargetPreview({
-      ...baseItem,
-      caption: '',
-      prompt: 'Prompt text',
-    });
+    const preview = buildReviewItemTargetPreview(
+      {
+        ...baseItem,
+        caption: '',
+        prompt: 'Prompt text',
+      },
+      translate,
+    );
 
     expect(preview?.release.baseContent).toBe('Prompt text');
     expect(preview?.release.media).toEqual([]);
@@ -133,16 +169,22 @@ describe('review-item.helpers', () => {
 
   it('returns null when the platform cannot be resolved', () => {
     expect(
-      buildReviewItemTargetPreview({
-        ...baseItem,
-        platform: undefined,
-      }),
+      buildReviewItemTargetPreview(
+        {
+          ...baseItem,
+          platform: undefined,
+        },
+        translate,
+      ),
     ).toBeNull();
     expect(
-      buildReviewItemTargetPreview({
-        ...baseItem,
-        platform: 'not-a-real-platform',
-      }),
+      buildReviewItemTargetPreview(
+        {
+          ...baseItem,
+          platform: 'not-a-real-platform',
+        },
+        translate,
+      ),
     ).toBeNull();
   });
 
