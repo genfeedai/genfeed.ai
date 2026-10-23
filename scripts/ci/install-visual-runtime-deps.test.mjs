@@ -11,6 +11,7 @@ import {
   ProcessSupervisor,
   parseManifest,
   prefetchArchives,
+  prepareAcquisition,
   prepareStage,
   systemOperations,
   verifyArchive,
@@ -22,6 +23,7 @@ const archive = (
   uri = 'mirror+file:/etc/apt/apt-mirrors.txt/pool/ffmpeg.deb',
 ) => `'${uri}' ${name} 7 SHA256:${digest}`;
 const stage = {
+  sandboxUid: 42,
   base: '/tmp/fixture',
   cache: '/tmp/fixture/archives',
   partial: '/tmp/fixture/archives/partial',
@@ -313,12 +315,22 @@ test('failed sandbox preparation cleans its own new directory', async () => {
 
 test('production argv retains APT trust, native mirrors, one try and fresh no-download cache', async () => {
   const calls = [];
-  const ops = systemOperations({
-    checked: async (...args) => {
-      calls.push(args);
-      return '';
+  const ops = systemOperations(
+    {
+      checked: async (...args) => {
+        calls.push(args);
+        return '';
+      },
     },
-  });
+    {
+      acquisitionFiles: {
+        mkdtemp: async () => '/tmp/fixture/apt-lists-unique',
+        chmod: async () => {},
+        mkdir: async () => {},
+        chown: async () => {},
+      },
+    },
+  );
   const entry = parseManifest(archive())[0];
   await ops.update();
   await ops.manifest(stage, ['ffmpeg']);
@@ -333,6 +345,8 @@ test('production argv retains APT trust, native mirrors, one try and fresh no-do
     [
       '-o',
       'Acquire::Retries=0',
+      '-o',
+      'Dir::State::lists=/tmp/fixture/apt-lists-unique/',
       'download-file',
       entry.uri,
       path.join(stage.partial, entry.name),
@@ -340,6 +354,10 @@ test('production argv retains APT trust, native mirrors, one try and fresh no-do
     ],
   ]);
   assert.ok(calls[3][1].includes('--no-download'));
+  for (const index of [0, 1, 3])
+    assert.ok(
+      !calls[index][1].some((arg) => arg.startsWith('Dir::State::lists=')),
+    );
   assert.ok(calls[3][1].includes(`Dir::Cache::archives=${stage.cache}/`));
   assert.ok(
     !calls
@@ -519,4 +537,242 @@ for (const signal of ['SIGTERM', 'SIGINT'])
     assert.equal(result.code, 1);
     assert.match(result.stderr, /cancelled/);
     assert.match(result.stdout, /closed=0/);
+  });
+
+test('native mirror acquisition namespaces remain independent in an exclusive-file fixture model', async () => {
+  const files = await import('node:fs/promises');
+  const base = await mkdtemp(path.join(os.tmpdir(), 'visual-mirror-model-'));
+  const release = path.join(base, 'release');
+  const partial = path.join(base, 'partial');
+  await files.mkdir(partial);
+  const supervisor = new ProcessSupervisor();
+  let attempted = 0;
+  const observed = [];
+  const checked = async (command, args) => {
+    assert.equal(command, '/usr/lib/apt/apt-helper');
+    const listsArg = args.find((arg) => arg.startsWith('Dir::State::lists='));
+    const lists =
+      listsArg?.slice('Dir::State::lists='.length) ??
+      path.join(base, 'shared-lists');
+    await files.mkdir(path.join(lists, 'auxfiles'), { recursive: true });
+    const offset = args.indexOf('download-file');
+    observed.push({ lists, uri: args[offset + 1], hash: args[offset + 3] });
+    const script = `
+      const fs = require('node:fs/promises');
+      const path = require('node:path');
+      const [lists, target, release] = process.argv.slice(1);
+      const aux = path.join(lists, 'auxfiles', '_etc_apt_apt-mirrors.txt');
+      let handle;
+      (async () => {
+        try {
+          handle = await fs.open(aux, 'wx');
+          console.log('attempted');
+          while (true) {
+            try { await fs.stat(release); break; } catch {}
+            await new Promise(resolve => setTimeout(resolve, 5));
+          }
+          await fs.writeFile(target, 'fixture');
+          await handle.close();
+          await fs.unlink(aux);
+        } catch (error) {
+          console.log('attempted');
+          console.error(error.code);
+          process.exitCode = 1;
+        }
+      })();
+    `;
+    const resultPromise = supervisor.run(process.execPath, [
+      '-e',
+      script,
+      lists,
+      args[offset + 2],
+      release,
+    ]);
+    const record = [...supervisor.children].at(-1);
+    let counted = false;
+    record.child.stdout.on('data', (data) => {
+      if (!counted && data.toString().includes('attempted')) {
+        counted = true;
+        attempted++;
+        if (attempted === 2) void writeFile(release, 'go');
+      }
+    });
+    const result = await resultPromise;
+    if (result.code !== 0)
+      throw new Error(`fixture acquisition failed: ${result.stderr}`);
+    return result.stdout;
+  };
+  const ownership = [];
+  const ops = systemOperations(
+    { checked },
+    {
+      acquisitionFiles: {
+        ...files,
+        chown: async (...args) => ownership.push(args),
+      },
+    },
+  );
+  const entry = parseManifest(archive())[0];
+  try {
+    const results = await Promise.allSettled(
+      [0, 1].map((id) =>
+        ops.download(
+          { base, partial, sandboxUid: 42 },
+          { ...entry, name: `package_${id}.deb` },
+        ),
+      ),
+    );
+    assert.deepEqual(
+      results.map(({ status }) => status),
+      ['fulfilled', 'fulfilled'],
+    );
+    assert.equal(new Set(observed.map(({ lists }) => lists)).size, 2);
+    assert.ok(
+      observed.every(
+        ({ lists, uri, hash }) =>
+          lists.startsWith(base) &&
+          lists.endsWith('/') &&
+          uri === entry.uri &&
+          hash === `SHA256:${entry.digest}`,
+      ),
+    );
+    assert.equal(ownership.length, 2);
+    assert.ok(ownership.every(([, uid, gid]) => uid === 42 && gid === 0));
+    for (const { lists } of observed)
+      assert.equal((await files.stat(lists)).mode & 0o777, 0o755);
+  } finally {
+    supervisor.stop(new Error('fixture cleanup'));
+    await supervisor.close();
+    await rm(base, { recursive: true, force: true });
+  }
+});
+
+test('each auxiliary allocation explicitly preserves sandbox ownership and traversable modes', async () => {
+  const events = [];
+  const lists = await prepareAcquisition(
+    { base: '/tmp/owned', sandboxUid: 42 },
+    {
+      mkdtemp: async (prefix) => {
+        events.push(['mkdtemp', prefix]);
+        return '/tmp/owned/apt-lists-fresh';
+      },
+      chmod: async (...args) => events.push(['chmod', ...args]),
+      mkdir: async (...args) => events.push(['mkdir', ...args]),
+      chown: async (...args) => events.push(['chown', ...args]),
+    },
+  );
+  assert.equal(lists, '/tmp/owned/apt-lists-fresh');
+  assert.deepEqual(events, [
+    ['mkdtemp', '/tmp/owned/apt-lists-'],
+    ['chmod', lists, 0o755],
+    ['mkdir', path.join(lists, 'auxfiles'), { mode: 0o755 }],
+    ['chmod', path.join(lists, 'auxfiles'), 0o755],
+    ['chown', path.join(lists, 'auxfiles'), 42, 0],
+  ]);
+  await assert.rejects(
+    prepareAcquisition(
+      { base: '/tmp/owned' },
+      {
+        mkdtemp: async () =>
+          assert.fail('unverified identity must not allocate'),
+      },
+    ),
+    /verified APT sandbox/,
+  );
+});
+
+for (const outcome of [
+  'success',
+  'failure',
+  'cancellation',
+  'preparation-error',
+])
+  test(`auxiliary directories survive children and clean only after ${outcome}`, async () => {
+    const files = await import('node:fs/promises');
+    const base = await mkdtemp(path.join(os.tmpdir(), 'visual-aux-lifetime-'));
+    const partial = path.join(base, 'partial');
+    await files.mkdir(partial);
+    const controller = new AbortController();
+    const supervisor = new ProcessSupervisor(controller.signal);
+    const { ops, events } = fixture({
+      manifest: Array.from({ length: 6 }, (_, id) =>
+        archive(`package_${id}.deb`),
+      ).join('\n'),
+    });
+    let peak = 0;
+    let cleaned = false;
+    const downloads = systemOperations(
+      {
+        checked: async (_command, args) => {
+          const lists = args
+            .find((arg) => arg.startsWith('Dir::State::lists='))
+            .slice('Dir::State::lists='.length);
+          const offset = args.indexOf('download-file');
+          const script = `
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const [lists, outcome, target] = process.argv.slice(1);
+          fs.writeFileSync(path.join(lists, 'auxfiles', 'mirror'), 'native fixture state');
+          console.log('ready');
+          if (outcome === 'success') setTimeout(() => { fs.writeFileSync(target, 'fixture'); }, 20);
+          else if (outcome === 'failure' && target.endsWith('package_0.deb')) setTimeout(() => process.exit(9), 100);
+          else setInterval(() => {}, 1000);
+        `;
+          const work = supervisor.checked(process.execPath, [
+            '-e',
+            script,
+            lists,
+            outcome,
+            args[offset + 2],
+          ]);
+          peak = Math.max(peak, supervisor.children.size);
+          const record = [...supervisor.children].at(-1);
+          if (outcome === 'cancellation')
+            record.child.stdout.once('data', () =>
+              controller.abort(new Error('fixture cancellation')),
+            );
+          return work;
+        },
+      },
+      {
+        acquisitionFiles: {
+          ...files,
+          chown: async () => {},
+          chmod: async (...args) => {
+            if (outcome === 'preparation-error')
+              throw new Error('auxiliary permission failure');
+            return files.chmod(...args);
+          },
+        },
+      },
+    );
+    ops.prepare = async () => ({ base, partial, sandboxUid: 42 });
+    ops.download = downloads.download;
+    ops.cleanup = async () => {
+      assert.equal(supervisor.children.size, 0);
+      assert.ok(
+        (await files.readdir(base)).some((name) =>
+          name.startsWith('apt-lists-'),
+        ),
+      );
+      await rm(base, { recursive: true, force: true });
+      cleaned = true;
+    };
+    try {
+      const work = installDependencies(ops, {
+        signal: controller.signal,
+        supervisor,
+      });
+      if (outcome === 'success') await work;
+      else await assert.rejects(work);
+      assert.ok(cleaned);
+      assert.ok(peak <= 4);
+      if (outcome === 'success') assert.equal(peak, 4);
+      else assert.ok(!events.some(([event]) => event === 'install'));
+      await assert.rejects(files.stat(base), { code: 'ENOENT' });
+    } finally {
+      supervisor.stop(new Error('fixture cleanup'));
+      await supervisor.close();
+      await rm(base, { recursive: true, force: true });
+    }
   });

@@ -197,14 +197,29 @@ export async function prepareStage(
     await files.chmod(cache, 0o755);
     await files.mkdir(partial, { mode: 0o700 });
     await files.chown(partial, uid, 0);
-    return { base, cache, partial };
+    return { base, cache, partial, sandboxUid: uid };
   } catch (error) {
     await files.rm(base, { recursive: true, force: true });
     throw error;
   }
 }
 
-export function systemOperations(supervisor) {
+export async function prepareAcquisition(
+  stage,
+  files = { mkdtemp, chmod, mkdir, chown },
+) {
+  if (!Number.isSafeInteger(stage.sandboxUid) || stage.sandboxUid <= 0)
+    throw new Error('Missing verified APT sandbox identity');
+  const lists = await files.mkdtemp(path.join(stage.base, 'apt-lists-'));
+  await files.chmod(lists, 0o755);
+  const auxiliary = path.join(lists, 'auxfiles');
+  await files.mkdir(auxiliary, { mode: 0o755 });
+  await files.chmod(auxiliary, 0o755);
+  await files.chown(auxiliary, stage.sandboxUid, 0);
+  return lists;
+}
+
+export function systemOperations(supervisor, { acquisitionFiles } = {}) {
   return {
     probe: async (command, args) => {
       try {
@@ -241,15 +256,19 @@ export function systemOperations(supervisor) {
         'install',
         ...packages,
       ]),
-    download: (stage, entry) =>
-      supervisor.checked('/usr/lib/apt/apt-helper', [
+    download: async (stage, entry) => {
+      const lists = await prepareAcquisition(stage, acquisitionFiles);
+      return supervisor.checked('/usr/lib/apt/apt-helper', [
         '-o',
         'Acquire::Retries=0',
+        '-o',
+        `Dir::State::lists=${lists}/`,
         'download-file',
         entry.uri,
         path.join(stage.partial, entry.name),
         `SHA256:${entry.digest}`,
-      ]),
+      ]);
+    },
     promote: async (stage, entries) => {
       // Freeze the sandbox-writable directory only after every downloader closes.
       await chown(stage.partial, 0, 0);
