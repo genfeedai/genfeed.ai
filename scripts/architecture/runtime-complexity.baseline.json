@@ -84,12 +84,6 @@
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
   },
   {
-    "actual": 1099,
-    "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"
-  },
-  {
     "actual": 151,
     "file": "apps/server/api/src/collections/videos/controllers/transformations/edits/videos-edits.controller.ts",
     "metric": "method-lines",

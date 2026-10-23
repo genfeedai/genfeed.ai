@@ -18,6 +18,15 @@ import type {
   SocialInboxScope,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import {
+  buildActionProvenance,
+  buildConversationUpdate,
+  readOutboundState,
+  requireOutboundString,
+  type SocialInboxOutboundWorkflowState,
+  toOutboundScope,
+  toSocialActionInput,
+} from '@api/collections/social-inbox/services/social-inbox-action-state.util';
+import {
   buildSocialInboxOutboundWorkflowDefinition,
   SOCIAL_INBOX_OUTBOUND_ACTION_IDS,
 } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
@@ -46,27 +55,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
-type JsonRecord = Record<string, unknown>;
-
-export type SocialInboxOutboundWorkflowState = {
-  action: OutboundAction;
-  body: string;
-  conversationId: string;
-  error?: string;
-  errorKind?: 'bad-gateway' | 'bad-request' | 'conflict' | 'provider';
-  externalMessageId?: string;
-  externalParentMessageId?: string;
-  externalUrl?: string;
-  idempotencyKey?: string;
-  messageType: OutboundMessageType;
-  organizationId: string;
-  outboundMessageId?: string;
-  recipientId?: string;
-  reservationClaimed?: boolean;
-  userId?: string;
-  workflowRunId?: string;
-  [key: string]: unknown;
-};
+export type { SocialInboxOutboundWorkflowState } from '@api/collections/social-inbox/services/social-inbox-action-state.util';
 
 @Injectable()
 export class SocialInboxActionService implements OnModuleInit {
@@ -126,7 +115,7 @@ export class SocialInboxActionService implements OnModuleInit {
     try {
       message = await this.prisma.socialMessage.create({
         data: {
-          actionProvenance: this.buildActionProvenance({
+          actionProvenance: buildActionProvenance({
             action: 'draft',
             conversation,
             input,
@@ -302,30 +291,7 @@ export class SocialInboxActionService implements OnModuleInit {
       conversationId,
     );
 
-    const data: Prisma.SocialConversationUpdateInput = {};
-    // Resolve/archive reads through this view; later replies stay unread.
-    let isReadThrough = false;
-
-    if (patch.status !== undefined) {
-      data.status = patch.status;
-      data.needsReview = patch.status === 'needs_review';
-      isReadThrough =
-        patch.status === 'resolved' || patch.status === 'archived';
-    }
-
-    if (patch.tags !== undefined) {
-      data.tags = [
-        ...new Set(patch.tags.map((tag) => tag.trim()).filter(Boolean)),
-      ].slice(0, 20);
-    }
-
-    if (patch.assignedOwnerId !== undefined) {
-      data.assignedOwnerId = patch.assignedOwnerId ?? null;
-    }
-
-    if (Object.keys(data).length === 0) {
-      throw new BadRequestException('No conversation fields to update');
-    }
+    const { data, isReadThrough } = buildConversationUpdate(patch);
 
     const updated = await this.prisma.socialConversation.update({
       data,
@@ -398,7 +364,7 @@ export class SocialInboxActionService implements OnModuleInit {
       }
       throw new Error(result.error);
     }
-    const messageId = this.requiredString(
+    const messageId = requireOutboundString(
       result.outboundMessageId,
       'outboundMessageId',
     );
@@ -417,11 +383,11 @@ export class SocialInboxActionService implements OnModuleInit {
   private async reserveOutboundActionNode(
     action: SystemWorkflowActionRequest,
   ): Promise<SocialInboxOutboundWorkflowState> {
-    const state = this.readOutboundState(action.input);
+    const state = readOutboundState(action.input);
     if (state.outcome) return state;
     try {
       const conversation = await this.queryService.getConversation(
-        this.toScope(state),
+        toOutboundScope(state),
         state.conversationId,
       );
       const availability = readAvailability(conversation);
@@ -444,8 +410,8 @@ export class SocialInboxActionService implements OnModuleInit {
         workflowState.action,
         workflowState.messageType,
         conversation,
-        this.toScope(workflowState),
-        this.toSocialActionInput(workflowState),
+        toOutboundScope(workflowState),
+        toSocialActionInput(workflowState),
         workflowState.body,
       );
       return {
@@ -470,7 +436,7 @@ export class SocialInboxActionService implements OnModuleInit {
   private async executeOutboundProviderAction(
     action: SystemWorkflowActionRequest,
   ): Promise<SocialInboxOutboundWorkflowState> {
-    const state = this.readOutboundState(action.input);
+    const state = readOutboundState(action.input);
     if (state.outcome || state.error || state.reservationClaimed === false) {
       return state;
     }
@@ -507,11 +473,11 @@ export class SocialInboxActionService implements OnModuleInit {
   private async finalizeOutboundActionNode(
     action: SystemWorkflowActionRequest,
   ): Promise<SocialInboxOutboundWorkflowState> {
-    const state = this.readOutboundState(action.input);
+    const state = readOutboundState(action.input);
     if (state.outcome) return state;
     if (!state.outboundMessageId) return state;
     const conversation = await this.queryService.getConversation(
-      this.toScope(state),
+      toOutboundScope(state),
       state.conversationId,
     );
     if (state.error) {
@@ -519,8 +485,8 @@ export class SocialInboxActionService implements OnModuleInit {
         state.outboundMessageId,
         state.action,
         conversation,
-        this.toScope(state),
-        this.toSocialActionInput(state),
+        toOutboundScope(state),
+        toSocialActionInput(state),
         state.error,
       );
       return state;
@@ -534,64 +500,6 @@ export class SocialInboxActionService implements OnModuleInit {
       );
     }
     return state;
-  }
-
-  private readOutboundState(
-    input: Record<string, unknown>,
-  ): SocialInboxOutboundWorkflowState {
-    const state = this.readRecord(input.state);
-    const value =
-      Object.keys(state).length > 0 ? state : this.readRecord(input.request);
-    if (value.outcome) {
-      return value as SocialInboxOutboundWorkflowState;
-    }
-    const messageType = value.messageType === 'dm' ? 'dm' : 'reply';
-    return {
-      ...value,
-      action: messageType === 'dm' ? 'send_dm' : 'post_reply',
-      body: this.requiredString(value.body, 'body'),
-      conversationId: this.requiredString(
-        value.conversationId,
-        'conversationId',
-      ),
-      messageType,
-      organizationId: this.requiredString(
-        value.organizationId,
-        'organizationId',
-      ),
-    } as SocialInboxOutboundWorkflowState;
-  }
-
-  private toScope(state: SocialInboxOutboundWorkflowState): SocialInboxScope {
-    return {
-      organizationId: state.organizationId,
-      userId: state.userId,
-    };
-  }
-
-  private toSocialActionInput(
-    state: SocialInboxOutboundWorkflowState,
-  ): SocialActionInput {
-    return {
-      idempotencyKey: state.idempotencyKey,
-      messageType: state.messageType,
-      recipientId: state.recipientId,
-      text: state.body,
-      workflowRunId: state.workflowRunId,
-    };
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private requiredString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error(`Social inbox outbound action requires ${field}`);
-    }
-    return value;
   }
 
   private async executeProviderReplyAction(
@@ -761,11 +669,11 @@ export class SocialInboxActionService implements OnModuleInit {
     const now = new Date();
     const finalized = await this.prisma.socialMessage.updateMany({
       data: {
-        actionProvenance: this.buildActionProvenance({
+        actionProvenance: buildActionProvenance({
           action: state.action,
           conversation,
-          input: this.toSocialActionInput(state),
-          scope: this.toScope(state),
+          input: toSocialActionInput(state),
+          scope: toOutboundScope(state),
           status: 'sent',
         }) as Prisma.InputJsonValue,
         externalMessageId: state.externalMessageId,
@@ -801,7 +709,7 @@ export class SocialInboxActionService implements OnModuleInit {
       where: scopedWhere(state.organizationId, { id: conversation.id }),
     });
 
-    return this.requiredString(state.outboundMessageId, 'outboundMessageId');
+    return requireOutboundString(state.outboundMessageId, 'outboundMessageId');
   }
 
   private async findIdempotentDraft(
@@ -869,7 +777,7 @@ export class SocialInboxActionService implements OnModuleInit {
     try {
       const created = await this.prisma.socialMessage.create({
         data: {
-          actionProvenance: this.buildActionProvenance({
+          actionProvenance: buildActionProvenance({
             action,
             conversation,
             input,
@@ -962,7 +870,7 @@ export class SocialInboxActionService implements OnModuleInit {
 
     const claimed = await this.prisma.socialMessage.updateMany({
       data: {
-        actionProvenance: this.buildActionProvenance({
+        actionProvenance: buildActionProvenance({
           action,
           conversation,
           input,
@@ -1027,7 +935,7 @@ export class SocialInboxActionService implements OnModuleInit {
 
     await this.prisma.socialMessage.updateMany({
       data: {
-        actionProvenance: this.buildActionProvenance({
+        actionProvenance: buildActionProvenance({
           action,
           conversation,
           input,
@@ -1065,35 +973,5 @@ export class SocialInboxActionService implements OnModuleInit {
     );
 
     return draft;
-  }
-
-  private buildActionProvenance({
-    action,
-    conversation,
-    input,
-    scope,
-    status,
-  }: {
-    action: string;
-    conversation: SocialConversationDocument;
-    input: SocialActionInput;
-    scope: SocialInboxScope;
-    status: string;
-  }): JsonRecord {
-    const actorType = input.workflowRunId
-      ? 'workflow'
-      : scope.userId
-        ? 'user'
-        : 'system';
-
-    return {
-      action,
-      actedAt: new Date().toISOString(),
-      actorType,
-      platform: conversation.platform,
-      status,
-      userId: scope.userId,
-      workflowRunId: input.workflowRunId,
-    };
   }
 }
