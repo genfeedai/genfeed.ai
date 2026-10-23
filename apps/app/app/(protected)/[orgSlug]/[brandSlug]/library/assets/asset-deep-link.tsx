@@ -12,6 +12,26 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { readRelationshipId } from '@/features/library-remix/library-remix-reference';
 
+// A link opened straight from another page races auth, brand and organization
+// settling: the first lookup can fail for a reason that clears a moment later.
+// Retry quietly and keep the neutral "opening" state instead of flashing the
+// unavailable error before the real answer arrives.
+const LOOKUP_RETRY_DELAYS_MS = [400, 1200];
+
+function waitForRetry(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, delayMs);
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
+
 export default function AssetDeepLink() {
   const translate = useTranslations('pages.library.assetDeepLink');
   const assetId = useSearchParams().get('asset');
@@ -36,23 +56,30 @@ export default function AssetDeepLink() {
       if (!isReady) return;
       const key = `${organizationId}:${brandId}:${assetId}`;
       if (openedKey.current === key) return;
-      if (
-        (isBrandScoped && !brandId) ||
-        !organizationId ||
-        !/^[A-Za-z0-9_-]{1,200}$/.test(assetId)
-      ) {
+      if (!/^[A-Za-z0-9_-]{1,200}$/.test(assetId)) {
         setState('error');
         return;
       }
+      // Scope still settling: wait for it rather than reporting the asset gone.
+      if ((isBrandScoped && !brandId) || !organizationId) return;
       setState('loading');
       try {
-        const service = await getService();
-        controller.signal.throwIfAborted();
-        const ingredient = await service.findOne(
-          assetId,
-          {},
-          controller.signal,
-        );
+        let ingredient: Awaited<
+          ReturnType<IngredientsService['findOne']>
+        > | null = null;
+        for (let attempt = 0; ingredient === null; attempt += 1) {
+          try {
+            const service = await getService();
+            controller.signal.throwIfAborted();
+            ingredient = await service.findOne(assetId, {}, controller.signal);
+          } catch (error) {
+            const retryDelay = LOOKUP_RETRY_DELAYS_MS[attempt];
+            if (controller.signal.aborted || retryDelay === undefined) {
+              throw error;
+            }
+            await waitForRetry(retryDelay, controller.signal);
+          }
+        }
         if (controller.signal.aborted) return;
         const ingredientBrandId =
           ingredient.brandId ?? readRelationshipId(ingredient.brand);
