@@ -21,17 +21,64 @@ describe('agent-final-content.util', () => {
     );
   });
 
-  it('uses the same pending state for an accurate proposal and preserves unrelated answers', () => {
-    expect(
-      normalizeFinalAssistantContent(
-        'Review this post proposal.',
-        [],
-        [pendingPost],
-      ).content,
-    ).toContain('Approve its Create post card');
-    expect(
-      normalizeFinalAssistantContent('Your post was created.', [], []).content,
-    ).toBe('Your post was created.');
+  it.each([
+    'Review this post proposal.',
+    'I created a post proposal for your review. Approve the card to create it.',
+    "I've created a post draft proposal for review.",
+    'The post has not been created. Review the proposal below.',
+    'No post was created. Review the proposal below.',
+    'No post draft created. Review the proposal below.',
+    'The answer is 42.\n\nReview this post proposal.',
+    "I haven't created a post. Review its proposal.",
+  ])('preserves accurate pending-proposal content: %s', (content) => {
+    expect(normalizeFinalAssistantContent(content, [], [pendingPost])).toEqual({
+      content,
+      isFallback: false,
+    });
+  });
+
+  it.each([
+    [
+      'The answer is 42.\n\nYour post was created. Review the card below.',
+      'The answer is 42.\n\nPost proposal ready for review. Review the card below.',
+    ],
+    [
+      "I've created a post draft, and the answer to your question is 42.",
+      'Post proposal ready for review, and the answer to your question is 42.',
+    ],
+    [
+      'Post draft created and waiting in review.\n\nUse a 4:5 aspect ratio.',
+      'Post proposal ready for review and waiting in review.\n\nUse a 4:5 aspect ratio.',
+    ],
+    [
+      'I created a brand. Your post was created.',
+      'I created a brand. Post proposal ready for review.',
+    ],
+  ])(
+    'corrects only the creation claim in a mixed answer: %s',
+    (content, expected) => {
+      expect(
+        normalizeFinalAssistantContent(content, [], [pendingPost]),
+      ).toEqual({
+        content: expected,
+        isFallback: false,
+      });
+    },
+  );
+
+  it('provides proposal instructions when pending-post content is empty', () => {
+    expect(normalizeFinalAssistantContent('  ', [], [pendingPost])).toEqual({
+      content:
+        'Post proposal ready for review. Approve its Create post card to create the post.',
+      isFallback: false,
+    });
+  });
+
+  it('preserves creation claims when no post approval is pending', () => {
+    const content = 'Your post was created. The answer is 42.';
+    expect(normalizeFinalAssistantContent(content, [], []).content).toBe(
+      content,
+    );
   });
 
   it('preserves confirmed creation and unrelated pending approvals', () => {
