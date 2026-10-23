@@ -630,3 +630,19 @@ it('deduplicates failed stored/socket observations while retaining run recipe an
     ])[0].status,
   ).toBe(IngredientStatus.FAILED);
 });
+
+it('offers generated voice/music only in audio selection and never uses audio as an image thumbnail', () => {
+  for (const type of ['voice', 'music'] as const) {
+    const job = buildJob({
+      type,
+      ingredientId: `${type}-ingredient`,
+      url: `https://cdn.example/${type}.mp3`,
+    });
+    expect(studioJobToContentMention(job)).toBeNull();
+    expect(studioJobToContentMention(job, 'audioReference')).toMatchObject({
+      id: `${type}-ingredient`,
+      contentType: type,
+      thumbnailUrl: undefined,
+    });
+  }
+});

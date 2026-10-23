@@ -195,11 +195,12 @@ export function replaceStudioContentReference<
 /** Gallery row the reference picker can show. Posts stay a separate source. */
 export function studioJobToContentMention(
   job: StudioPlaygroundJob,
+  role: StudioPlaygroundReferenceRole = 'reference',
 ): AgentContentMentionItem | null {
+  const isAudio = job.type === 'music' || job.type === 'voice';
   if (
     !STUDIO_REFERENCE_READY_STATUSES.has(job.status) ||
-    job.type === 'music' ||
-    job.type === 'voice'
+    (isAudio && role !== 'audioReference')
   ) {
     return null;
   }
@@ -219,9 +220,13 @@ export function studioJobToContentMention(
       job.ingredient?.promptText ||
       job.prompt ||
       'Generated reference',
-    contentType: isStudioVideoReferenceJob(job) ? 'video' : 'image',
+    contentType: isAudio
+      ? job.type
+      : isStudioVideoReferenceJob(job)
+        ? 'video'
+        : 'image',
     id: String(id),
-    thumbnailUrl: previewUrl,
+    thumbnailUrl: isAudio ? undefined : previewUrl,
   };
 }
 
