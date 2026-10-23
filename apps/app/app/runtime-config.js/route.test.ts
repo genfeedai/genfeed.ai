@@ -16,6 +16,7 @@ describe('self-hosted runtime config', () => {
     'reads runtime env %s while ignoring the existing runtime global',
     async (flag) => {
       vi.stubEnv('BETTER_AUTH_ENABLED', flag);
+      vi.stubEnv('RESEND_API_KEY', 're_test_key');
       vi.stubEnv(
         'NEXT_PUBLIC_BETTER_AUTH_ENABLED',
         flag === 'true' ? 'false' : 'true',
@@ -45,7 +46,22 @@ describe('self-hosted runtime config', () => {
         apiEndpoint: '/v1',
         clientSurface: 'desktop',
         betterAuthEnabled: flag === 'true',
+        isMagicLinkAvailable: true,
       });
+    },
+  );
+
+  it.each([
+    { expected: false, key: '' },
+    { expected: true, key: 're_abc123' },
+  ])(
+    'reports magic links available=$expected for RESEND_API_KEY=$key on self-hosted',
+    async ({ expected, key }) => {
+      vi.stubEnv('RESEND_API_KEY', key);
+
+      const source = await (await GET()).text();
+
+      expect(source).toContain(`"isMagicLinkAvailable":${expected}`);
     },
   );
 

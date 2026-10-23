@@ -105,6 +105,31 @@ describe('authorized media preview refresh', () => {
     unmount();
   });
 
+  it('asks for the failed preview to be prepared again and keeps reading until it lands', async () => {
+    const failed = ingredient({ ...ready, state: 'FAILED' });
+    state.previewGrant
+      .mockResolvedValueOnce({ ...pending, state: 'FAILED' })
+      .mockResolvedValue(ready);
+    const { result, unmount } = renderHook(
+      ({ revision }) => useAuthorizedMediaPreview(failed, revision),
+      { initialProps: { revision: 1 } },
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(state.previewGrant).toHaveBeenCalledWith(
+      'image-a',
+      expect.any(AbortSignal),
+      { isRetry: true },
+    );
+    expect(result.current?.state).toBe('FAILED');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(result.current).toEqual(ready);
+    unmount();
+  });
+
   it('hides deleted assets and aborts their pending explicit retry', async () => {
     state.previewGrant.mockImplementation(
       () => new Promise<MediaDeliveryGrant>(() => {}),

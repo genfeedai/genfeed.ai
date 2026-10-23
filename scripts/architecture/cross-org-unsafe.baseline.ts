@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 295,
+      line: 306,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
@@ -98,7 +98,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // tenant.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-mirror.util.ts',
-      line: 37,
+      line: 38,
     },
     // #6120: assertHiddenSystemWorkflowParent reads the system-principal
     // parent workflow.

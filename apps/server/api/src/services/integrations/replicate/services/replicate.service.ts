@@ -1,4 +1,5 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { buildReplicateStructuredPrompt } from '@api/services/integrations/llm/replicate-structured-prompt.util';
 import { runStructuredCompletion } from '@api/services/integrations/llm/structured-output.util';
 import type {
@@ -194,6 +195,9 @@ export class ReplicateService {
   private getClientForRequest(apiKeyOverride?: string): Replicate {
     if (apiKeyOverride) {
       return new Replicate({ auth: apiKeyOverride });
+    }
+    if (!this.configService.get('REPLICATE_KEY')?.trim()) {
+      throw new MissingProviderKeyException('Replicate', 'REPLICATE_KEY');
     }
     return this.client;
   }

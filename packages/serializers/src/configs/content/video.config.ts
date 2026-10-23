@@ -6,12 +6,16 @@ import {
   videoGenerationRequestAttributes,
 } from '@serializers/attributes/ingredients/video.attributes';
 import { simpleConfig } from '@serializers/builders';
+import { serializeEnhancementFailed } from '@serializers/helpers/generation-enhancement.helper';
 import { serializeGenerationEntry } from '@serializers/helpers/generation-entry.helper';
 import { EVALUATION_REL } from '@serializers/relationships';
 
 export const videoSerializerConfig = {
   attributes: videoAttributes,
-  attributeDerivations: { generationEntry: serializeGenerationEntry },
+  attributeDerivations: {
+    isEnhancementFailed: serializeEnhancementFailed,
+    generationEntry: serializeGenerationEntry,
+  },
   evaluation: EVALUATION_REL,
   metadata: { type: 'metadata' },
   publications: { type: 'publication' },

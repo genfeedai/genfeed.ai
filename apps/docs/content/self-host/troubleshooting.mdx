@@ -145,9 +145,9 @@ needs your own ComfyUI or GPU host will not run unless you point
 - **No sign-up form, and no login page at all.** If you set
   `BETTER_AUTH_ENABLED=false`, there is no login wall: you are already the seeded
   local user. Nothing to fix.
-- **The login page has no email and password form.** It offers Google and Magic
-  Link. Magic Link needs `RESEND_API_KEY`; Google needs OAuth credentials.
-  Otherwise create the account through the API and sign in at `/login/password`.
+- **There is no Magic Link option.** Magic Link needs `RESEND_API_KEY`, so it is
+  hidden until you set one. Sign up with **Email & password** at `/sign-up`
+  instead. Google needs OAuth credentials.
   See [Create the first user](/self-host/installation#create-the-first-user).
 - **The login wall does not appear after you enabled it.** Set
   `BETTER_AUTH_ENABLED=true` (and, if you set it, `NEXT_PUBLIC_BETTER_AUTH_ENABLED`

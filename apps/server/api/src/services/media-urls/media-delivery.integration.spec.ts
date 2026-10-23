@@ -132,6 +132,15 @@ const leafAuth = {
 })
 class MediaFixtureCacheModule {}
 
+const logger = { error: vi.fn(), warn: vi.fn() };
+
+@Global()
+@Module({
+  providers: [{ provide: LoggerService, useValue: logger }],
+  exports: [LoggerService],
+})
+class MediaFixtureLoggerModule {}
+
 @Controller('fixture')
 class MediaFixtureController {
   @Get() media() {
@@ -143,7 +152,12 @@ describe('media issuer production module HTTP boundary', () => {
   let app: INestApplication;
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      imports: [PrismaModule, MediaFixtureCacheModule, MediaUrlsModule],
+      imports: [
+        PrismaModule,
+        MediaFixtureCacheModule,
+        MediaUrlsModule,
+        MediaFixtureLoggerModule,
+      ],
       controllers: [MediaFixtureController],
       providers: [
         CombinedAuthGuard,
@@ -151,7 +165,7 @@ describe('media issuer production module HTTP boundary', () => {
         { provide: ApiKeyAuthGuard, useValue: leafAuth },
         { provide: BetterAuthGuard, useValue: leafAuth },
         { provide: RequestContextMiddleware, useValue: { hydrate: vi.fn() } },
-        { provide: LoggerService, useValue: { warn: vi.fn(), error: vi.fn() } },
+        { provide: LoggerService, useValue: logger },
       ],
     })
       .overrideProvider(PrismaService)

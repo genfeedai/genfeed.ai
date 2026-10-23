@@ -148,6 +148,13 @@ export interface StudioGenerationReferences {
 
 const CONFIRMED_MODEL_UNAVAILABLE_ERROR = 'STUDIO_CONFIRMED_MODEL_UNAVAILABLE';
 
+/** Cancel is a single API call; past this it reports instead of hanging. */
+const CANCEL_TIMEOUT_MS = 30_000;
+const CANCEL_TIMEOUT_MESSAGE =
+  'Cancelling took too long. Check your connection and try again.';
+const CANCEL_UNCONFIRMED_MESSAGE =
+  'The provider has not confirmed the cancellation yet. The generation and its credits stay held until it settles.';
+
 function toErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
@@ -167,7 +174,7 @@ export function useStudioGeneration({
   const activeBrandRef = useRef(brandId);
   activeBrandRef.current = brandId;
   const consumedCrunQuoteRef = useRef<string | null>(null);
-  const cancellingIds = useRef(new Set<string>());
+  const cancellingJobs = useRef(new Map<string, Promise<void>>());
   const failedHydrationIdsRef = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioPlaygroundJob[]>([]);
   const [jobsBrandId, setJobsBrandId] = useState(brandId);
@@ -482,32 +489,60 @@ export function useStudioGeneration({
   }, [brandId, subscribeToPendingJob]);
 
   const cancelJob = useCallback(
-    async (job: StudioPlaygroundJob) => {
-      if (!job.ingredientId || cancellingIds.current.has(job.id)) return;
-      cancellingIds.current.add(job.id);
-      try {
-        const service = await getIngredientsService();
-        const ingredient = await service.cancelGeneration(job.ingredientId);
-        if (activeBrandRef.current !== brandId) return;
-        patchJob(job.id, {
-          ingredient,
-          status: ingredient.status,
-          phase:
-            ingredient.generationError === 'Cancelled by user'
-              ? 'cancelled'
-              : undefined,
-          error: ingredient.generationError ?? undefined,
-          url: resolveStudioAssetUrl(ingredient),
-        });
-        notifyGenerated();
-      } catch (error) {
-        if (activeBrandRef.current === brandId)
-          notificationsService.error(
-            toErrorMessage(error, 'Could not cancel generation'),
-          );
-      } finally {
-        cancellingIds.current.delete(job.id);
+    (job: StudioPlaygroundJob): Promise<void> => {
+      // A second click joins the request already in flight instead of
+      // vanishing, so Cancel always ends in a visible result.
+      const inFlight = cancellingJobs.current.get(job.id);
+      if (inFlight) return inFlight;
+      if (!job.ingredientId) {
+        notificationsService.error(
+          'This generation has no server record yet, so it cannot be cancelled. Refresh the page and try again.',
+        );
+        return Promise.resolve();
       }
+      const ingredientId = job.ingredientId;
+      const request = (async () => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          const ingredient = await Promise.race([
+            getIngredientsService().then((service) =>
+              service.cancelGeneration(ingredientId),
+            ),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new Error(CANCEL_TIMEOUT_MESSAGE)),
+                CANCEL_TIMEOUT_MS,
+              );
+            }),
+          ]);
+          if (activeBrandRef.current !== brandId) return;
+          patchJob(job.id, {
+            ingredient,
+            status: ingredient.status,
+            phase:
+              ingredient.generationError === 'Cancelled by user'
+                ? 'cancelled'
+                : undefined,
+            error: ingredient.generationError ?? undefined,
+            url: resolveStudioAssetUrl(ingredient),
+          });
+          // The API answers 200 with the ingredient untouched when the
+          // provider has not confirmed the cancel; its credits stay held.
+          if (isStudioPlaygroundJobPending(ingredient.status))
+            notificationsService.warning(CANCEL_UNCONFIRMED_MESSAGE);
+          notifyGenerated();
+        } catch (error) {
+          if (activeBrandRef.current === brandId)
+            notificationsService.error(
+              toErrorMessage(error, 'Could not cancel generation'),
+            );
+        } finally {
+          if (timer) clearTimeout(timer);
+          cancellingJobs.current.delete(job.id);
+        }
+      })();
+      cancellingJobs.current.set(job.id, request);
+      return request;
     },
     [
       brandId,

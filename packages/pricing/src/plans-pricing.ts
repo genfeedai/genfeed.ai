@@ -397,6 +397,32 @@ export const AVATAR_CREDIT_COSTS = {
   avatar4s: avatarClipCreditRange(4),
 } as const;
 
+/** Output sizes the public price quotes for a FLUX.3 image. */
+type PublicImageResolution = '1k' | '2k' | '4k';
+
+/**
+ * Credits for one FLUX.3 image at `resolution`, from the reviewed Replicate
+ * per-output rate at the default margin. Admission prices a Studio image from
+ * the same rate, so the public figure cannot drift from the hold.
+ */
+export function flux3ImageCredits(resolution: PublicImageResolution): number {
+  const rate = REVIEWED_RATE_SHEET_ENTRIES.find(
+    (entry) =>
+      entry.endpoint === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+  )?.rates.find((candidate) => candidate.when.resolution === resolution);
+  if (!rate) throw new Error(`No reviewed FLUX.3 image rate for ${resolution}`);
+  return applyMargin(rate.unitPriceUsd, DEFAULT_GENERATION_MARGIN_MULTIPLIER);
+}
+
+/** Public FLUX.3 image prices: 1K to 2K as a range, 4K on its own. */
+export const IMAGE_CREDIT_COSTS = {
+  image1kTo2k: {
+    maxCredits: flux3ImageCredits('2k'),
+    minCredits: flux3ImageCredits('1k'),
+  },
+  image4k: flux3ImageCredits('4k'),
+} as const;
+
 /**
  * Website pricing plans - displayed on public pricing page
  * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud

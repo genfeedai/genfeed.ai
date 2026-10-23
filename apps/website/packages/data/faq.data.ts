@@ -1,4 +1,8 @@
-import { FREE_API_RATE_LIMIT, PLAN_COPY } from '@genfeedai/pricing';
+import {
+  FREE_API_RATE_LIMIT,
+  IMAGE_CREDIT_COSTS,
+  PLAN_COPY,
+} from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { ReactNode } from 'react';
 
@@ -78,8 +82,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'Is there a free option?',
       },
       {
-        answer:
-          'An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Every job shows its price before you run it, and you can top up any amount from $10.',
+        answer: `A FLUX.3 image is ${IMAGE_CREDIT_COSTS.image1kTo2k.minCredits} to ${IMAGE_CREDIT_COSTS.image1kTo2k.maxCredits} credits at 1K to 2K, an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Other models are priced per model. Every job shows its price before you run it, and you can top up any amount from $10.`,
         question: 'What does output cost?',
       },
       {

@@ -98,9 +98,13 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 const mockNotificationsError = vi.fn();
+const mockNotificationsWarning = vi.fn();
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ error: mockNotificationsError }),
+    getInstance: () => ({
+      error: mockNotificationsError,
+      warning: mockNotificationsWarning,
+    }),
   },
 }));
 
@@ -156,6 +160,7 @@ function captureHandler(): { current?: MediaHandler } {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockCancelGeneration.mockReset();
   mockBeforeServiceLookup.mockReset();
   window.sessionStorage.clear();
   mockSubscribe.mockReturnValue(mockUnsubscribe);
@@ -1047,6 +1052,104 @@ describe('Studio generation lifecycle recovery', () => {
     first.unmount();
     const restored = renderStudioGeneration();
     expect(restored.result.current.jobs[0]?.phase).toBe('cancelled');
+  });
+
+  it('tells the user when the provider has not confirmed the cancel', async () => {
+    mockCancelGeneration.mockResolvedValue({
+      id: 'img-1',
+      status: IngredientStatus.PROCESSING,
+    });
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('Portrait');
+    });
+    await act(async () => {
+      await result.current.cancelJob(result.current.jobs[0]);
+    });
+    expect(mockNotificationsWarning).toHaveBeenCalledWith(
+      expect.stringContaining('has not confirmed the cancellation'),
+    );
+    expect(result.current.jobs[0]?.status).toBe(IngredientStatus.PROCESSING);
+  });
+
+  it('explains why a job without a server record cannot be cancelled', async () => {
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('Portrait');
+    });
+    await act(async () => {
+      await result.current.cancelJob({
+        ...result.current.jobs[0],
+        ingredientId: undefined,
+      });
+    });
+    expect(mockCancelGeneration).not.toHaveBeenCalled();
+    expect(mockNotificationsError).toHaveBeenCalledWith(
+      expect.stringContaining('cannot be cancelled'),
+    );
+  });
+
+  it('joins a second Cancel click to the request already in flight', async () => {
+    let resolveCancel: (value: unknown) => void = () => undefined;
+    mockCancelGeneration.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCancel = resolve;
+      }),
+    );
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('Portrait');
+    });
+    const job = result.current.jobs[0];
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    await act(async () => {
+      first = result.current.cancelJob(job);
+      second = result.current.cancelJob(job);
+      await Promise.resolve();
+    });
+    expect(mockCancelGeneration).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveCancel({
+        id: 'img-1',
+        status: IngredientStatus.FAILED,
+        generationError: 'Cancelled by user',
+      });
+      await Promise.all([first, second]);
+    });
+    expect(result.current.jobs[0]?.phase).toBe('cancelled');
+  });
+
+  it('reports a cancel that never answers instead of hanging', async () => {
+    vi.useFakeTimers();
+    try {
+      mockCancelGeneration.mockReturnValue(new Promise(() => undefined));
+      const { result } = renderStudioGeneration();
+      await act(async () => {
+        await result.current.submit('Portrait');
+      });
+      let pending: Promise<void> = Promise.resolve();
+      await act(async () => {
+        pending = result.current.cancelJob(result.current.jobs[0]);
+        await vi.advanceTimersByTimeAsync(30_000);
+        await pending;
+      });
+      expect(mockNotificationsError).toHaveBeenCalledWith(
+        expect.stringContaining('took too long'),
+      );
+      // The slot is free again: a retry sends a new request.
+      mockCancelGeneration.mockResolvedValue({
+        id: 'img-1',
+        status: IngredientStatus.FAILED,
+        generationError: 'Cancelled by user',
+      });
+      await act(async () => {
+        await result.current.cancelJob(result.current.jobs[0]);
+      });
+      expect(mockCancelGeneration).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not relabel an already failed job as cancelled', async () => {
