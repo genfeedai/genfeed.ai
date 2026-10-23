@@ -146,6 +146,11 @@ jobs:
           test "$(jq -r '.image' "${bundle_dir}/release.json")" = \
             "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
           cp "${bundle_dir}/.env.example" "${bundle_dir}/.env"
+          # Releases from 0.2.15 refuse to start without a well-formed
+          # OpenRouter key; earlier ones ignore it. A synthetic offline fixture
+          # satisfies the check and nothing here calls a provider.
+          sed -i 's/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=sk-or-offline-fixture/' "${bundle_dir}/.env"
+          grep -qx 'OPENROUTER_API_KEY=sk-or-offline-fixture' "${bundle_dir}/.env"
 
           {
             echo "COMPOSE_FILE=${bundle_dir}/compose.yml"

@@ -135,6 +135,11 @@ jobs:
           # publish, while still pinning compose to THIS locally built image.
           cp docker/.env.example docker/.env
           sed -i 's/^GENFEED_IMAGE_TAG=.*/GENFEED_IMAGE_TAG=selfhosted-verify/' docker/.env
+          # The container refuses to start without a well-formed OpenRouter
+          # key. A synthetic offline fixture satisfies that check; nothing here
+          # calls a provider.
+          sed -i 's/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=sk-or-offline-fixture/' docker/.env
+          grep -qx 'OPENROUTER_API_KEY=sk-or-offline-fixture' docker/.env
 
       - name: Boot self-hosted stack + Postgres
         run: |
