@@ -9,7 +9,7 @@
 # pinned explicitly to the `packageManager` Bun version in package.json; the CI
 # policy contract keeps them aligned. Every service runs as the image's
 # unprivileged `bun` user; only package installs run as root.
-FROM oven/bun:1.4.3 AS base
+FROM oven/bun:1.4.4 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates python3 make g++ && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app && chown bun:bun /app

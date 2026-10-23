@@ -37,6 +37,7 @@ import { LiveSessionCreditsService } from '@api/collections/videos/services/live
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
+import { KieVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/kie-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoExtensionExecutionService } from '@api/collections/videos/services/video-extension-execution.service';
@@ -67,6 +68,7 @@ import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import { KieModule } from '@api/services/integrations/kie/kie.module';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MediaGenerationReceiptsModule } from '@api/services/media-generation-receipts/media-generation-receipts.module';
@@ -79,6 +81,7 @@ import { WebhookClientModule } from '@api/services/webhook-client/webhook-client
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
+import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -104,6 +107,8 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    PollUntilModule,
+    KieModule,
     BrandAccessModule,
     WorkflowsCoreModule,
     PersonasCoreModule,
@@ -150,6 +155,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
   ],
   providers: [
+    KieVideoGenerationProviderAdapter,
     VideoExtensionExecutionService,
     CrunVideoGenerationService,
     CrunVideoInputService,

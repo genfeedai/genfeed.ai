@@ -51,6 +51,7 @@ import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dt
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
+import { KieVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/kie-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -71,6 +72,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import { KieService } from '@api/services/integrations/kie/kie.service';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -79,6 +81,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
@@ -436,6 +439,7 @@ describe('VideosController', () => {
               .mockResolvedValue('replicate-generation-id-123'),
           },
         },
+        { provide: PollUntilService, useValue: { poll: vi.fn() } },
         {
           provide: ReplicatePollQueueService,
           useValue: { schedule: vi.fn().mockResolvedValue('poll-job-1') },
@@ -526,6 +530,8 @@ describe('VideosController', () => {
           useFactory: (higgsFieldService: HiggsFieldService) =>
             new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService),
         },
+        { provide: KieService, useValue: { generateVideo: vi.fn() } },
+        KieVideoGenerationProviderAdapter,
         KlingAiVideoGenerationProviderAdapter,
         ReplicateVideoGenerationProviderAdapter,
         VideoGenerationCompletionService,
@@ -1953,6 +1959,7 @@ beforeAll(async () => {
         provide: ReplicateService,
         useValue: { generateTextToVideo: vi.fn() },
       },
+      { provide: PollUntilService, useValue: { poll: vi.fn() } },
       {
         provide: ReplicatePollQueueService,
         useValue: { schedule: vi.fn().mockResolvedValue('poll-job-1') },

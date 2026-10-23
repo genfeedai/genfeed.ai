@@ -6,7 +6,21 @@ import { ConflictException } from '@nestjs/common';
 export function generationQuoteIdentityHash(
   snapshot: ModelBillableQuoteSnapshot,
 ): string {
-  const { quotedAt: _quotedAt, ...identity } = snapshot;
+  const { quotedAt: _quotedAt, routedDispatch, ...base } = snapshot;
+  const identity = {
+    ...base,
+    ...(routedDispatch
+      ? {
+          routedDispatch: {
+            offerId: routedDispatch.offerId,
+            executionModelKey: routedDispatch.executionModelKey,
+            endpoint: routedDispatch.endpoint,
+            provider: routedDispatch.provider,
+            schemaFamily: routedDispatch.schemaFamily,
+          },
+        }
+      : {}),
+  };
   return quoteSnapshotHash(identity);
 }
 

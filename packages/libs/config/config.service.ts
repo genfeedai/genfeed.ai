@@ -74,6 +74,7 @@ interface ApiEnvConfig extends IEnvConfig {
   PGSSLROOTCERT?: string;
   PRISMA_POSTGRES_CA_FILE?: string;
   REPLICATE_API_TOKEN?: string;
+  KIE_API_KEY?: string;
   npm_package_description?: string;
   npm_package_version?: string;
 }
@@ -142,6 +143,7 @@ const apiSpecificSchema = {
   PGSSLROOTCERT: Joi.string().optional().allow(''),
   PRISMA_POSTGRES_CA_FILE: Joi.string().optional().allow(''),
   REPLICATE_API_TOKEN: Joi.string().optional().allow(''),
+  KIE_API_KEY: Joi.string().optional().allow(''),
   SOLANA_KEY: Joi.string().optional().allow(''),
   SOLANA_URL: Joi.string().optional().allow(''),
 };

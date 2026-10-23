@@ -35,6 +35,7 @@ export interface ModelsListProps {
   category?: string;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
   onPricingDetails?: (model: IModel) => void;
+  getModelHref?: (model: IModel) => string;
   renderExpandedRow?: (model: IModel) => ReactNode | undefined;
   renderToolbar?: (models: IModel[]) => ReactNode;
   /** Admin only: row actions placed before edit and delete, e.g. "Fix pricing". */

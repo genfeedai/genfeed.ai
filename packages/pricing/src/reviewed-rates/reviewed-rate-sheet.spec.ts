@@ -1,6 +1,7 @@
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   FLUX_3_PROVIDER_COSTS,
+  MODEL_PROVIDER_ASSOCIATIONS,
   UNIFIED_MODEL_CATALOG,
 } from '@genfeedai/contracts/constants';
 import type { ModelBillablePricingProfile } from '@genfeedai/contracts/interfaces';
@@ -46,6 +47,14 @@ function profileFor(
 }
 
 describe('reviewed rate sheet', () => {
+  it('covers every provider offer association with reviewed provider pricing', () => {
+    for (const offer of MODEL_PROVIDER_ASSOCIATIONS)
+      expect(
+        findReviewedRateSheetEntry(offer.provider, offer.endpoint),
+        offer.executionModelKey,
+      ).toBeDefined();
+  });
+
   it('has one valid public-price entry per provider endpoint', () => {
     const seen = new Set<string>();
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES) {

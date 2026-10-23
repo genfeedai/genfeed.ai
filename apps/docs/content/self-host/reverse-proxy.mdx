@@ -1,6 +1,6 @@
 ---
 title: Reverse Proxy and HTTPS
-description: 'Put self-hosted Genfeed behind your own domain and HTTPS: public URL settings, proxy routing for ports 3000, 3010, and 3014, and a pre-exposure checklist.'
+description: 'Put self-hosted Genfeed behind your own domain and HTTPS: public URL settings, proxy routing for ports 3000, 3010, 3011, and 3014, and a pre-exposure checklist.'
 ---
 
 # Reverse Proxy and HTTPS
@@ -12,14 +12,15 @@ addresses are.
 
 ## Plan the addresses
 
-The instance exposes three services. Give each its own hostname, or its own
+The instance exposes four services. Give each its own hostname, or its own
 path-routed address if your proxy supports that:
 
-| Service | Container port | Example public address |
-| --- | --- | --- |
-| Web UI | `3000` | `https://genfeed.example.com` |
-| REST API | `3010` | `https://api.genfeed.example.com` |
-| MCP server | `3014` | `https://mcp.genfeed.example.com` |
+| Service                   | Container port | Example public address            |
+| ------------------------- | -------------- | --------------------------------- |
+| Web UI                    | `3000`         | `https://genfeed.example.com`     |
+| REST API                  | `3010`         | `https://api.genfeed.example.com` |
+| WebSocket / notifications | `3011`         | `https://ws.genfeed.example.com`  |
+| MCP server                | `3014`         | `https://mcp.genfeed.example.com` |
 
 Only expose the ports you need. PostgreSQL and Redis are not published, and they
 should stay that way.
@@ -48,6 +49,14 @@ GENFEEDAI_MCP_PUBLIC_URL=https://mcp.genfeed.example.com/mcp
 NEXT_PUBLIC_API_ENDPOINT=https://api.genfeed.example.com/v1
 ```
 
+The WebSocket endpoint is built into the browser bundle. Build a custom image
+with `--build-arg NEXT_PUBLIC_WS_ENDPOINT=https://ws.genfeed.example.com` when
+using the socket hostname above. A runtime `.env` change does not replace the
+published image's `http://localhost:3011` endpoint. The proxy must forward
+`/socket.io/` with WebSocket upgrade support, and only that path: the socket
+port also serves notification routes, so it is published on `127.0.0.1` only
+and the proxy must not forward anything else.
+
 If you enable the login wall, also set the origins Better Auth should use:
 
 ```env
@@ -65,7 +74,8 @@ public API address.
 ## Example: Caddy
 
 [Caddy](https://caddyserver.com/) obtains and renews HTTPS certificates
-automatically. A minimal `Caddyfile` for the three services:
+automatically. A minimal `Caddyfile` for the four services (the WebSocket host only passes
+`/socket.io/*` through):
 
 ```caddyfile
 genfeed.example.com {
@@ -74,6 +84,15 @@ genfeed.example.com {
 
 api.genfeed.example.com {
   reverse_proxy localhost:3010
+}
+
+ws.genfeed.example.com {
+  handle /socket.io/* {
+    reverse_proxy localhost:3011
+  }
+  handle {
+    respond 404
+  }
 }
 
 mcp.genfeed.example.com {

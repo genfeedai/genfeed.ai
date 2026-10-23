@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "@sentry/nextjs": "10.73.0",
+    "@sentry/nextjs": "11.8.0",
     "@types/node": "24.13.3",
     "next": "*",
     "tailwindcss": "*",
@@ -27,7 +27,7 @@
   "name": "@genfeedai/next-config",
   "type": "module",
   "peerDependencies": {
-    "@sentry/nextjs": "10.73.0",
+    "@sentry/nextjs": "11.8.0",
     "next": "*"
   },
   "private": true,

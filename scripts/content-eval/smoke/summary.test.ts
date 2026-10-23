@@ -76,7 +76,7 @@ describe('summariseSmoke', () => {
     }
   });
 
-  it('reports spend against the cap and flags the known gaps', () => {
+  it('reports spend against the cap and the brand-context path per type', () => {
     const { markdown, verdict } = summariseSmoke(
       [
         {
@@ -90,7 +90,7 @@ describe('summariseSmoke', () => {
     );
     expect(verdict.spentCredits).toBe(2.5);
     expect(markdown).toContain('Spend 2.50 of 100.00 credits');
-    expect(markdown).toMatch(/\| newsletter \| brand-voice-summary \|/);
+    expect(markdown).toMatch(/\| newsletter \| harness \|/);
     expect(markdown).toMatch(/\| music \| harness \|/);
   });
 });

@@ -10,7 +10,10 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { assertApprovedGenerationQuote } from '@api/helpers/utils/credits/approved-generation-quote.util';
+import {
+  assertApprovedGenerationQuote,
+  generationQuoteIdentityHash,
+} from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
   commitDeferredCredits,
   type DeferredCreditsRequest,
@@ -21,7 +24,6 @@ import {
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -77,12 +79,12 @@ export class ImageGenerationCreditsService {
     const byok = await this.resolveActiveByokKey(
       organizationId,
       model,
-      resolvedModelDoc.provider,
+      modelQuote.provider,
     );
     return {
       unitCredits: requiredCredits,
       billingMode: byok ? ('byok' as const) : ('credits' as const),
-      provider: byok?.provider ?? resolvedModelDoc.provider,
+      provider: byok?.provider ?? modelQuote.provider,
       pricingHash: this.quoteHash(modelQuote),
     };
   }
@@ -141,7 +143,7 @@ export class ImageGenerationCreditsService {
     const byok = await this.resolveActiveByokKey(
       organization,
       model,
-      resolvedModelDoc?.provider,
+      modelQuote.provider,
     );
     assertApprovedGenerationQuote(
       reqWithCredits.creditsConfig?.approvedGenerationQuote,
@@ -257,8 +259,7 @@ export class ImageGenerationCreditsService {
   }
 
   private quoteHash(snapshot: ModelBillableQuoteSnapshot): string {
-    const { quotedAt: _quotedAt, ...identity } = snapshot;
-    return quoteSnapshotHash(identity);
+    return generationQuoteIdentityHash(snapshot);
   }
 
   private async resolveRequiredCredits(

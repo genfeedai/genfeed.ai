@@ -12,6 +12,7 @@ import type { IModel } from '@genfeedai/contracts/interfaces';
 export class Model extends BaseEntity implements IModel {
   declare public label: string;
   declare public key: string;
+  declare public aliases?: string[];
   declare public category: ModelCategory;
   declare public provider: ModelProvider;
   declare public cost: number;

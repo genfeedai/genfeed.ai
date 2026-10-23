@@ -62,6 +62,8 @@ export type ImageGenerationSavedMetadata =
   ImageGenerationSaveDocumentsResult['metadataData'];
 
 export interface ImageGenerationContext {
+  routedDispatch?: import('@genfeedai/contracts/interfaces').RoutedModelDispatch;
+  routedInput?: Record<string, unknown>;
   editing?: ImageEditingContext;
   generationHarness?: GenerationHarnessReceipt;
   providerInput?: Record<string, unknown>;
@@ -111,6 +113,8 @@ export interface ImageGenerationCompletionPlan {
 }
 
 export interface ImageGenerationProviderRequest {
+  isRoutedOffer?: boolean;
+  routedInput?: Record<string, unknown>;
   ingredientId?: string;
   crunProviderRequest?: import('@api/services/integrations/crun/crun-task.schema').CrunProviderRequest;
   providerInput?: Record<string, unknown>;

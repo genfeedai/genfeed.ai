@@ -11,10 +11,10 @@ is two containers. Boundary spec version: v1.4.0.
 
 ## What runs
 
-| Container | What it runs |
-| --- | --- |
-| `genfeed` | The web app, REST API, workers, files service, notifications service, and MCP server, plus an embedded Redis |
-| `postgres` | PostgreSQL (the `pgvector/pgvector` image) |
+| Container  | What it runs                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------ |
+| `genfeed`  | The web app, REST API, workers, files service, notifications service, and MCP server, plus an embedded Redis |
+| `postgres` | PostgreSQL (the `pgvector/pgvector` image)                                                                   |
 
 On start, the `genfeed` container:
 
@@ -24,16 +24,16 @@ On start, the `genfeed` container:
 4. starts the API, workers, files, notifications, and MCP services; and
 5. starts the web app.
 
-| Service | Port in the container | Published to the host |
-| --- | --- | --- |
-| Web app | `3000` | Yes (`SELFHOSTED_APP_PORT`) |
-| REST API | `3010` | Yes (`SELFHOSTED_API_PORT`) |
-| MCP server | `3014` | Yes (`SELFHOSTED_MCP_PORT`) |
-| Notifications | `3011` | No |
-| Files | `3012` | No |
-| Workers | `3013` | No |
-| PostgreSQL | `5432` | No |
-| Redis | `6379` | No |
+| Service                   | Port in the container | Published to the host       |
+| ------------------------- | --------------------- | --------------------------- |
+| Web app                   | `3000`                | Yes (`SELFHOSTED_APP_PORT`) |
+| REST API                  | `3010`                | Yes (`SELFHOSTED_API_PORT`) |
+| WebSocket / notifications | `3011`                | Yes, localhost only (`SELFHOSTED_WS_PORT`) |
+| MCP server                | `3014`                | Yes (`SELFHOSTED_MCP_PORT`) |
+| Files                     | `3012`                | No                          |
+| Workers                   | `3013`                | No                          |
+| PostgreSQL                | `5432`                | No                          |
+| Redis                     | `6379`                | No                          |
 
 PostgreSQL and Redis are never published on a host port by this stack.
 
@@ -54,9 +54,9 @@ Back up PostgreSQL and the `/data` volume together. See
 
 ## Who you are signed in as
 
-| Configuration | Behavior |
-| --- | --- |
-| Default (`BETTER_AUTH_ENABLED=true`) | Users sign up and sign in against your own instance. Local database records stay authoritative. |
+| Configuration                               | Behavior                                                                                                                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default (`BETTER_AUTH_ENABLED=true`)        | Users sign up and sign in against your own instance. Local database records stay authoritative.                                                                   |
 | No login wall (`BETTER_AUTH_ENABLED=false`) | The first boot seeds one local user, organization, and brand. The web UI opens without a login wall, and requests without a token resolve to that local identity. |
 
 MCP is authenticated either way. See [MCP server](/api-reference/mcp).

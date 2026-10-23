@@ -11,11 +11,11 @@ the table says so rather than guessing.
 
 ## Hardware
 
-| Resource | Supported floor | Recommended |
-| --- | --- | --- |
-| Free disk | About 10 GB | 15 GB, plus room for generated media and backups |
-| CPU | Not yet published | Not yet published |
-| RAM | Not yet published | Not yet published |
+| Resource         | Supported floor     | Recommended                                                    |
+| ---------------- | ------------------- | -------------------------------------------------------------- |
+| Free disk        | About 10 GB         | 15 GB, plus room for generated media and backups               |
+| CPU              | Not yet published   | Not yet published                                              |
+| RAM              | Not yet published   | Not yet published                                              |
 | CPU architecture | `linux/amd64` image | `linux/amd64` (Docker Desktop can emulate it on Apple Silicon) |
 
 Disk covers the application image, PostgreSQL, and the media you generate, so
@@ -36,34 +36,34 @@ smaller hardware, [tell us how it went](https://github.com/genfeedai/genfeed.ai/
 
 ## Software
 
-| Item | Requirement |
-| --- | --- |
-| Container runtime | Docker Engine 24+ with the Compose v2 plugin, or Docker Desktop |
-| Node.js | Not needed for the release bundle. `>=24 <25` for `npx @genfeedai/create` |
-| Genfeed Cloud account | Not required |
+| Item                  | Requirement                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| Container runtime     | Docker Engine 24+ with the Compose v2 plugin, or Docker Desktop           |
+| Node.js               | Not needed for the release bundle. `>=24 <25` for `npx @genfeedai/create` |
+| Genfeed Cloud account | Not required                                                              |
 
 ## Required services
 
 Everything below is included in the default Compose file. You do not install any
 of it yourself.
 
-| Service | Provided by | Notes |
-| --- | --- | --- |
+| Service                     | Provided by                            | Notes                                                                                                          |
+| --------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | PostgreSQL 16 with pgvector | The `pgvector/pgvector:pg16` container | Reachable only inside the Compose network. Point `DATABASE_URL` at your own PostgreSQL to use an external one. |
-| Redis | Embedded in the Genfeed container | Used for queues and caching. Its data lives in `/data`. |
-| File storage | Local disk at `/data/files` | Generated media. Change it with `GENFEED_STORAGE_PATH`. |
-| Model providers | Your own keys | An [OpenRouter key](/self-host/provider-api-keys) is required for text generation. |
+| Redis                       | Embedded in the Genfeed container      | Used for queues and caching. Its data lives in `/data`.                                                        |
+| File storage                | Local disk at `/data/files`            | Generated media. Change it with `GENFEED_STORAGE_PATH`.                                                        |
+| Model providers             | Your own keys                          | An [OpenRouter key](/self-host/provider-api-keys) is required for text generation.                             |
 
 ## Default ports
 
-| Port | Service | Published to the host? | Needed when |
-| --- | --- | --- | --- |
-| `3000` | Web UI | Yes (`SELFHOSTED_APP_PORT`) | Always |
-| `3010` | REST API | Yes (`SELFHOSTED_API_PORT`) | Always; the browser calls it directly |
-| `3014` | MCP server | Yes (`SELFHOSTED_MCP_PORT`) | You connect an AI agent |
-| `3012` | Files service | No | Inside the container only |
-| `3011` | Notifications | No | Inside the container only |
-| `3013` | Workers | No | Inside the container only |
+| Port   | Service                   | Published to the host?      | Needed when                           |
+| ------ | ------------------------- | --------------------------- | ------------------------------------- |
+| `3000` | Web UI                    | Yes (`SELFHOSTED_APP_PORT`) | Always                                |
+| `3010` | REST API                  | Yes (`SELFHOSTED_API_PORT`) | Always; the browser calls it directly |
+| `3011` | WebSocket / notifications | Yes, localhost only (`SELFHOSTED_WS_PORT`) | Live agent chat and notifications     |
+| `3014` | MCP server                | Yes (`SELFHOSTED_MCP_PORT`) | You connect an AI agent               |
+| `3012` | Files service             | No                          | Inside the container only             |
+| `3013` | Workers                   | No                          | Inside the container only             |
 
 Only the host side of a published port changes; the container always uses the
 numbers above. See [Configuration](/self-host/configuration#image-and-ports).
@@ -72,10 +72,10 @@ numbers above. See [Configuration](/self-host/configuration#image-and-ports).
 
 Two Docker named volumes hold your data:
 
-| Volume | Mounted at | Holds |
-| --- | --- | --- |
-| `postgres_data` | `/var/lib/postgresql/data` (postgres) | The database |
-| `genfeed_data` | `/data` (genfeed) | Generated files, the embedded Redis, and the generated secrets (`/data/.encryption-key`, `/data/.better-auth-secret`) |
+| Volume          | Mounted at                            | Holds                                                                                                                 |
+| --------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `postgres_data` | `/var/lib/postgresql/data` (postgres) | The database                                                                                                          |
+| `genfeed_data`  | `/data` (genfeed)                     | Generated files, the embedded Redis, and the generated secrets (`/data/.encryption-key`, `/data/.better-auth-secret`) |
 
 Back both up. `docker compose down -v` deletes them, including the secrets that
 decrypt your stored credentials. See
@@ -89,8 +89,9 @@ decrypt your stored credentials. See
 - The APIs of the providers you use, for example `openrouter.ai` for text.
   Prompts and media go to those providers under their own terms.
 
-**Inbound.** The browser must reach both the web UI (`3000`) and the API
-(`3010`) at the addresses set in the public URL variables. On a server, put both
+**Inbound.** The browser must reach the web UI (`3000`), the API (`3010`), and
+the WebSocket endpoint (`3011`). The WebSocket port binds to localhost only,
+so on a server proxy `/socket.io/` to it. Put these services
 behind a reverse proxy with HTTPS: see
 [Reverse proxy and HTTPS](/self-host/reverse-proxy). Do not expose port `3010`
 directly if you rely on the login wall; see

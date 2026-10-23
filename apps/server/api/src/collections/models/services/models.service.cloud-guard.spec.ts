@@ -40,6 +40,7 @@ function makeRow(overrides: Partial<GuardedRow> & { id: string }): GuardedRow {
     isDefault: false,
     isDeleted: false,
     isDiscovered: false,
+    isProviderVariant: false,
     key: overrides.id,
     label: overrides.id,
     lifecycle: ModelLifecycle.AVAILABLE,

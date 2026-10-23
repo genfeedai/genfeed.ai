@@ -188,13 +188,13 @@
   },
   "dependencies": {
     "@genfeedai/ui": "workspace:*",
-    "@sentry/node": "10.73.0",
+    "@sentry/node": "11.8.0",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/actions": "workspace:*"
   },
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.2",
     "@types/node": "24.13.3",
     "@types/vscode": "1.125.0",
     "@vscode/vsce": "4.0.0",

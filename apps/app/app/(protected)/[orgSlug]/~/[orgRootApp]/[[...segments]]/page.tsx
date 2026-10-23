@@ -38,7 +38,6 @@ import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-not
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
 import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
-import MessagesOverview from '../../../[brandSlug]/messages/overview/messages-overview';
 import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
 import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
@@ -325,10 +324,6 @@ export default async function OrgRootAppPage({
 
   if (orgRootApp === 'messages') {
     const [section, detail] = segments ?? [];
-
-    if (section === 'overview' && !detail) {
-      return <MessagesOverview scope={PageScope.ORGANIZATION} />;
-    }
 
     if (section === 'outreach' && detail === 'new') {
       return <OutreachSequenceNewRoute />;

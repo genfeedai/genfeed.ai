@@ -176,19 +176,17 @@ test.describe('Automation & Messages surfaces', () => {
       );
     });
 
-    test('messages nav is Overview and Inbox, without Outreach (#5502)', async ({
+    test('messages has no module nav rows, Outreach included', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(`${ORG_BRAND}${APP_ROUTES.MESSAGES.ROOT}`, {
         waitUntil: 'domcontentloaded',
       });
 
-      // Outreach left the Messages menu; its route still opens directly.
+      // The inbox is the whole surface; Outreach routes still open directly.
       await expect(
-        authenticatedPage
-          .locator(`a[href$="${APP_ROUTES.MESSAGES.OVERVIEW}"]`)
-          .first(),
-      ).toBeVisible();
+        authenticatedPage.locator('a[href$="/messages/overview"]'),
+      ).toHaveCount(0);
       await expect(
         authenticatedPage.getByRole('link', { name: 'Outreach sequences' }),
       ).toHaveCount(0);

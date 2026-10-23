@@ -86,3 +86,14 @@ jobs:
             --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
             -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
             config --format json | jq -e '.services.genfeed.platform == "linux/amd64"'
+
+      - name: Verify bundled WebSocket port defaults and override
+        run: |
+          set -euo pipefail
+          for host_port in '' 3111; do
+            SELFHOSTED_WS_PORT="${host_port}" docker compose \
+              --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
+              -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
+              config --format json | jq -e --arg port "${host_port:-3011}" \
+                'any(.services.genfeed.ports[]; .target == 3011 and .published == $port and .protocol == "tcp" and .host_ip == "127.0.0.1")'
+          done

@@ -294,6 +294,7 @@ export interface CrunProviderQuoteSnapshot {
 }
 
 export interface ModelBillableQuoteSnapshot {
+  routedDispatch?: import('./model-provider-offer.interface').RoutedModelDispatch;
   modelKey: string;
   provider: string;
   rateVersion: string | null;

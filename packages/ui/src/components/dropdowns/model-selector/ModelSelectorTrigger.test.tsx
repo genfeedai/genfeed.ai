@@ -24,7 +24,7 @@ function createModel(
 }
 
 describe('ModelSelectorTrigger', () => {
-  it('shows provider icon and selected label for a single selected model', () => {
+  it('shows model brand and selected label for a single selected model', () => {
     render(
       <ModelSelectorTrigger
         selectedModels={[
@@ -39,7 +39,7 @@ describe('ModelSelectorTrigger', () => {
 
     const button = screen.getByRole('button');
     expect(
-      within(button).getByRole('img', { name: 'Replicate' }),
+      within(button).getByRole('img', { name: 'Google' }),
     ).toBeInTheDocument();
     expect(
       within(button).getByRole('img', { name: 'Image' }),
@@ -79,7 +79,7 @@ describe('ModelSelectorTrigger', () => {
     );
 
     expect(screen.getByTitle('17 credits')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Replicate' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Google' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Image' })).toBeInTheDocument();
   });
 

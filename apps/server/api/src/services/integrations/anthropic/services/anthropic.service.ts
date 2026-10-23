@@ -314,7 +314,6 @@ export class AnthropicService {
         max_tokens: maxTokens,
         messages,
         model,
-        temperature: params.temperature,
       };
 
       if (system) {
@@ -381,7 +380,6 @@ export class AnthropicService {
         max_tokens: maxTokens,
         messages,
         model,
-        temperature: params.temperature,
       };
 
       if (system) {
@@ -448,7 +446,6 @@ export class AnthropicService {
         max_tokens: maxTokens,
         messages,
         model,
-        temperature: params.temperature,
       };
 
       if (system) {

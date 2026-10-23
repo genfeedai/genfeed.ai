@@ -26,15 +26,28 @@ Contributors working on Genfeed from source use a different template; see
 
 ## Image and ports
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `GENFEED_IMAGE_TAG` | `latest` in the source template; the exact release in a bundle | Application image tag. Release bundles pin it for you. |
-| `SELFHOSTED_APP_PORT` | `3000` | Host port for the web UI |
-| `SELFHOSTED_API_PORT` | `3010` | Host port for the REST API |
-| `SELFHOSTED_MCP_PORT` | `3014` | Host port for the MCP server |
+| Variable              | Default                                                        | Purpose                                                |
+| --------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| `GENFEED_IMAGE_TAG`   | `latest` in the source template; the exact release in a bundle | Application image tag. Release bundles pin it for you. |
+| `SELFHOSTED_APP_PORT` | `3000`                                                         | Host port for the web UI                               |
+| `SELFHOSTED_API_PORT` | `3010`                                                         | Host port for the REST API                             |
+| `SELFHOSTED_WS_PORT`  | `3011`                                                         | Host port for live agent chat and notifications (localhost only) |
+| `SELFHOSTED_MCP_PORT` | `3014`                                                         | Host port for the MCP server                           |
 
 Only the host side of each mapping changes. Inside the container the web app,
-API, and MCP server always listen on `3000`, `3010`, and `3014`.
+API, WebSocket service, and MCP server always listen on `3000`, `3010`, `3011`,
+and `3014`.
+
+The WebSocket host port binds to `127.0.0.1` only: that process also serves
+notification routes that must not be reachable from other machines. Expose it
+through a reverse proxy that forwards only `/socket.io/`; see
+[Reverse proxy and HTTPS](/self-host/reverse-proxy#example-caddy).
+
+The published image builds in `NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011`.
+If you override `SELFHOSTED_WS_PORT`, provide a proxy reachable at that browser
+endpoint or build a custom image with a matching `NEXT_PUBLIC_WS_ENDPOINT`
+build argument. Changing `NEXT_PUBLIC_WS_ENDPOINT` only in `.env` does not
+update the browser bundle.
 
 ## Model provider keys
 
@@ -45,14 +58,14 @@ it. All provider keys are blank in `.env.example`; set a real key and recreate t
 stack. Empty or placeholder values count as not configured; Settings validates
 each key with the provider before saving it.
 
-| Variable | Provider |
-| --- | --- |
-| `OPENROUTER_API_KEY` | OpenRouter (required for chat, agents, drafts, and other text generation) |
-| `OPENAI_API_KEY` | OpenAI (optional; `openai/*` models only) |
-| `ANTHROPIC_API_KEY` | Anthropic (optional; `anthropic/*` models only) |
-| `REPLICATE_KEY` | Replicate |
-| `FAL_API_KEY` | fal |
-| `ELEVENLABS_API_KEY` | ElevenLabs |
+| Variable               | Provider                                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENROUTER_API_KEY`   | OpenRouter (required for chat, agents, drafts, and other text generation)                                                          |
+| `OPENAI_API_KEY`       | OpenAI (optional; `openai/*` models only)                                                                                          |
+| `ANTHROPIC_API_KEY`    | Anthropic (optional; `anthropic/*` models only)                                                                                    |
+| `REPLICATE_KEY`        | Replicate                                                                                                                          |
+| `FAL_API_KEY`          | fal                                                                                                                                |
+| `ELEVENLABS_API_KEY`   | ElevenLabs                                                                                                                         |
 | `DARKROOM_COMFYUI_URL` | Optional endpoint of a ComfyUI instance you run yourself, used by supported API flows. The Community image does not start ComfyUI. |
 
 ## Login wall
@@ -61,13 +74,13 @@ By default, local sign-up and sign-in are on, so the first visitor creates an
 account. To run a single-user workspace with no login wall instead, set
 `BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `BETTER_AUTH_ENABLED` | `true` | Turns sign-up and sign-in on. Set `false` for no login wall. Read when the container starts. |
-| `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Follows `BETTER_AUTH_ENABLED` | Browser-side switch. Set it to match `BETTER_AUTH_ENABLED`. |
-| `BETTER_AUTH_URL` | The public API URL (`http://localhost:3010` by default) | Where Better Auth runs |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in |
-| `BETTER_AUTH_SECRET` | Generated | Leave empty to let the container generate one and keep it at `/data/.better-auth-secret` |
+| Variable                          | Default                                                 | Purpose                                                                                      |
+| --------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `BETTER_AUTH_ENABLED`             | `true`                                                  | Turns sign-up and sign-in on. Set `false` for no login wall. Read when the container starts. |
+| `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Follows `BETTER_AUTH_ENABLED`                           | Browser-side switch. Set it to match `BETTER_AUTH_ENABLED`.                                  |
+| `BETTER_AUTH_URL`                 | The public API URL (`http://localhost:3010` by default) | Where Better Auth runs                                                                       |
+| `BETTER_AUTH_TRUSTED_ORIGINS`     | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in                                                                   |
+| `BETTER_AUTH_SECRET`              | Generated                                               | Leave empty to let the container generate one and keep it at `/data/.better-auth-secret`     |
 
 The email and password accounts live in the local database and need no mail
 provider, but the login page itself offers only Google and Magic Link. See
@@ -75,18 +88,18 @@ provider, but the login page itself offers only Google and Magic Link. See
 to create the first account. Add email or Google sign-in for the features that
 need them:
 
-| Variable | Needed for |
-| --- | --- |
-| `RESEND_API_KEY` | Magic links, password resets, email verification, and invites |
-| `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO_EMAIL` | The sender and reply-to addresses for that email |
+| Variable                                               | Needed for                                                                              |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`                                       | Magic links, password resets, email verification, and invites                           |
+| `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO_EMAIL`           | The sender and reply-to addresses for that email                                        |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google sign-in and the Google connectors, which share one Google Cloud OAuth web client |
 
 The login wall protects the REST API on port `3010` as well as the web UI.
 
-| `BETTER_AUTH_ENABLED` | Requests to the API |
-| --- | --- |
-| `true` | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role. |
-| `false` (default) | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
+| `BETTER_AUTH_ENABLED` | Requests to the API                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `true`                | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role.              |
+| `false` (default)     | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
 
 `X-Forwarded-For` is not trusted unless `TRUST_PROXY` names your proxy, so a
 remote client cannot pass as a local one by sending a header.
@@ -102,32 +115,32 @@ The container assumes everything is reached on `localhost`. If users reach your
 instance on another hostname, override these in `.env`. See
 [Reverse proxy and HTTPS](/self-host/reverse-proxy).
 
-| Variable | Default |
-| --- | --- |
-| `GENFEEDAI_PUBLIC_URL` | `http://localhost:3000` |
-| `GENFEEDAI_APP_URL` | `http://localhost:3000` |
-| `GENFEEDAI_API_PUBLIC_URL` | Same as `GENFEEDAI_API_URL` (`http://localhost:3010`) |
-| `GENFEEDAI_MCP_PUBLIC_URL` | `http://localhost:3014/mcp` |
-| `GENFEEDAI_CDN_URL` | `http://localhost:3012` (the files service origin, which must be reachable from the browser) |
-| `TRUST_PROXY` | Unset (`X-Forwarded-For` is ignored) |
+| Variable                   | Default                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `GENFEEDAI_PUBLIC_URL`     | `http://localhost:3000`                                                                      |
+| `GENFEEDAI_APP_URL`        | `http://localhost:3000`                                                                      |
+| `GENFEEDAI_API_PUBLIC_URL` | Same as `GENFEEDAI_API_URL` (`http://localhost:3010`)                                        |
+| `GENFEEDAI_MCP_PUBLIC_URL` | `http://localhost:3014/mcp`                                                                  |
+| `GENFEEDAI_CDN_URL`        | `http://localhost:3012` (the files service origin, which must be reachable from the browser) |
+| `TRUST_PROXY`              | Unset (`X-Forwarded-For` is ignored)                                                         |
 
 ## Database and storage
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `genfeed`, `genfeed_local`, `genfeed` | Credentials of the bundled PostgreSQL. Change the password before you expose the instance beyond your machine. |
-| `DATABASE_URL` | Built from the values above | Use your own connection string to point at an external PostgreSQL |
-| `GENFEED_STORAGE_PATH` | `/data/files` | Where generated files are stored inside the container |
-| `TOKEN_ENCRYPTION_KEY` | Generated | Encrypts stored credentials. If you leave it empty, the container creates one and keeps it in `/data/.encryption-key`. Back it up with your data: stored credentials cannot be decrypted without it. |
+| Variable                                            | Default                               | Purpose                                                                                                                                                                                              |
+| --------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `genfeed`, `genfeed_local`, `genfeed` | Credentials of the bundled PostgreSQL. Change the password before you expose the instance beyond your machine.                                                                                       |
+| `DATABASE_URL`                                      | Built from the values above           | Use your own connection string to point at an external PostgreSQL                                                                                                                                    |
+| `GENFEED_STORAGE_PATH`                              | `/data/files`                         | Where generated files are stored inside the container                                                                                                                                                |
+| `TOKEN_ENCRYPTION_KEY`                              | Generated                             | Encrypts stored credentials. If you leave it empty, the container creates one and keeps it in `/data/.encryption-key`. Back it up with your data: stored credentials cannot be decrypted without it. |
 
 Persistent data lives in two Docker volumes: PostgreSQL data, and `/data` for
 generated files, the embedded Redis, and the generated secrets.
 
 ## Optional integrations
 
-| Variable | Purpose |
-| --- | --- |
-| `LOGO_DEV_PUBLISHABLE_KEY` | Company-logo fallback (see below) |
+| Variable                                                                | Purpose                                                                        |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `LOGO_DEV_PUBLISHABLE_KEY`                                              | Company-logo fallback (see below)                                              |
 | `RESTREAM_CLIENT_ID`, `RESTREAM_CLIENT_SECRET`, `RESTREAM_REDIRECT_URI` | Restream OAuth for livestream chat ingest. Connecting fails closed when unset. |
 
 Publishing channels, messaging apps, and other integrations have their own

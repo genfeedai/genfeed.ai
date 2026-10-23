@@ -1,5 +1,9 @@
 import { FontFamilySeedService } from '@api/seeds/font-family-seed.service';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
+import {
+  seedProviderOfferAssociations,
+  seedProviderOfferRegistrations,
+} from '@api/seeds/model-provider-offers.seed';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import {
   type ReferenceDataDomainName,
@@ -35,6 +39,7 @@ export class ReferenceDataSyncService {
     domains.push(
       await this.runDomain('models', async () => {
         const result = await this.models.reconcileCatalog();
+        result.written += await seedProviderOfferRegistrations(this.prisma);
         return {
           failed: [],
           unchanged: result.unchanged,
@@ -52,7 +57,11 @@ export class ReferenceDataSyncService {
             warn: (message) => this.logger.warn(message, this.context),
           },
         );
-        return { failed: [], unchanged: 0, written };
+        return {
+          failed: [],
+          unchanged: 0,
+          written: written + (await seedProviderOfferAssociations(this.prisma)),
+        };
       }),
     );
 

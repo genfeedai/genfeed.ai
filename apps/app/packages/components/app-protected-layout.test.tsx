@@ -576,6 +576,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+function RunTitle({ label }: { readonly label: string }) {
+  useRegisterBreadcrumbLeaf('run-1', label);
+  return null;
+}
+
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
@@ -1216,11 +1221,6 @@ describe('AppProtectedLayout', () => {
   );
 
   describe('storyboard run breadcrumb', () => {
-    function RunTitle({ label }: { readonly label: string }) {
-      useRegisterBreadcrumbLeaf('run-1', label);
-      return null;
-    }
-
     it('shows the run title the page publishes as the leaf', () => {
       mockPathname.value = '/org-123/brand-123/studio/storyboard/run-1';
 
@@ -1403,8 +1403,7 @@ describe('AppProtectedLayout', () => {
         sectionLabel: undefined,
       }),
     );
-    // #5502: Overview and Inbox stay listed above the thread list, the same
-    // rows the sub-pages show, instead of hiding behind a menu.
+    // Messages has no menu rows: the search bar and thread list are the nav.
     const lastSidebarProps = appSidebarSpy.mock.lastCall?.[0];
     expect(lastSidebarProps).toEqual(
       expect.objectContaining({
@@ -1413,10 +1412,8 @@ describe('AppProtectedLayout', () => {
       }),
     );
     expect(
-      lastSidebarProps?.items
-        .filter((item: MenuItemConfig) => item.isPrimary)
-        .map((item: MenuItemConfig) => item.label),
-    ).toEqual(['Overview', 'Inbox']);
+      lastSidebarProps?.items.filter((item: MenuItemConfig) => item.isPrimary),
+    ).toEqual([]);
     expect(
       screen.getByRole('button', { name: 'New Task' }),
     ).toBeInTheDocument();

@@ -69,7 +69,7 @@ type ModelSelectorSection = {
 
 const ModelSelectorPopover = memo(function ModelSelectorPopover({
   models,
-  values,
+  values: storedValues,
   onChange,
   selectionMode = 'multi',
   autoLabel,
@@ -92,6 +92,18 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   contextValue,
   onContextChange,
 }: ModelSelectorPopoverProps) {
+  const values = useMemo(
+    () => [
+      ...new Set(
+        storedValues.map(
+          (value) =>
+            models.find((model) => model.aliases?.includes(value))?.key ??
+            value,
+        ),
+      ),
+    ],
+    [models, storedValues],
+  );
   const isSingleSelect = selectionMode === 'single';
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');

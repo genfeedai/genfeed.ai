@@ -18,6 +18,20 @@ export function initializeErrorTracking(entrypoint: string): void {
       ?.version ?? '0.0.0';
 
   Sentry.init({
+    dataCollection: {
+      cookies: false,
+      databaseQueryData: false,
+      genAI: { inputs: false, outputs: false },
+      graphQL: { document: false, variables: false },
+      httpBodies: [],
+      httpHeaders: {
+        request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      },
+      queues: false,
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      userInfo: false,
+    },
     dsn: SENTRY_DSN,
     environment: process.env.NODE_ENV,
     release: `ide-extension@${extensionVersion}`,

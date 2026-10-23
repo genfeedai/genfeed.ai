@@ -591,6 +591,9 @@ jobs:
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      # The deleted-brand-handle migration test builds its own schema, so the
+      # bare service database is enough; without this it self-skips.
+      BRAND_DELETE_SAFETY_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       CRUN_TEST_REDIS_URL: redis://localhost:6379
       REDIS_URL: redis://localhost:6379
     needs: plan
@@ -734,6 +737,11 @@ jobs:
       # an actual schema instead of self-skipping.
       BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
       CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
+      # Brand delete safety (#5295) needs a migrated database; the post link
+      # import list spec (#7823) only accepts this exact disposable database
+      # name and builds temp tables. Without these the suites self-skip.
+      BRAND_DELETE_SAFETY_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/brand_delete_safety_test
+      POST_LINK_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/genfeed_7823_disposable
       REDIS_URL: redis://localhost:6379
     needs: plan
     if: needs.plan.outputs.api_tests == 'true'
@@ -754,7 +762,7 @@ jobs:
       # second database with `CREATE DATABASE ... TEMPLATE` (a file-level copy).
       # Every shard provisions both: `vitest list --shard` ignores the shard, so
       # which shard gets a *.postgres.spec.ts file is not knowable ahead of time.
-      - name: Provision billing-account-scope and credit-balance test databases
+      - name: Provision billing-account-scope, credit-balance, brand-delete and post-link test databases
         working-directory: packages/prisma
         env:
           PGPASSWORD: genfeed_local
@@ -762,6 +770,8 @@ jobs:
           psql -h localhost -U genfeed -d test -c "CREATE DATABASE billing_scope_test;"
           DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bun x prisma migrate deploy
           psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE brand_delete_safety_test TEMPLATE billing_scope_test;"
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE genfeed_7823_disposable;"
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Run API tests

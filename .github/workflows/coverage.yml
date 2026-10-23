@@ -268,6 +268,8 @@ jobs:
       CRUN_TEST_REDIS_URL: redis://localhost:6379
       BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
       CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
+      BRAND_DELETE_SAFETY_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/brand_delete_safety_test
+      POST_LINK_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/genfeed_7823_disposable
       REDIS_URL: redis://localhost:6379
     strategy:
       fail-fast: false

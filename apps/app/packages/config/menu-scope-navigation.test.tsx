@@ -1,5 +1,4 @@
 import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
-import { getMessagesMenuItemsForScope } from '@app-config/messages-menu-items.config';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { renderHook } from '@testing-library/react';
 import { useMenuShared } from '@ui/menus/shared/useMenuShared';
@@ -43,10 +42,7 @@ describe('shared menu destinations preserve the route scope', () => {
     route.selectedBrand.slug = 'stale-brand';
   });
 
-  const brandItems = [
-    ...getAnalyticsMenuItemsForScope('genfeedai'),
-    ...getMessagesMenuItemsForScope('genfeedai'),
-  ];
+  const brandItems = getAnalyticsMenuItemsForScope('genfeedai');
 
   it.each(brandItems)(
     'keeps the URL brand and highlights $label ($href)',
@@ -59,10 +55,7 @@ describe('shared menu destinations preserve the route scope', () => {
     },
   );
 
-  const orgItems = [
-    ...getAnalyticsMenuItemsForScope('~'),
-    ...getMessagesMenuItemsForScope('~'),
-  ];
+  const orgItems = getAnalyticsMenuItemsForScope('~');
 
   it.each(orgItems)(
     'stays brandless and highlights $label ($href) on org routes',

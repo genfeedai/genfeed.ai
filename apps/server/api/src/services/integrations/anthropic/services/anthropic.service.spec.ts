@@ -343,7 +343,7 @@ describe('AnthropicService', () => {
       );
     });
 
-    it('should pass temperature when provided', async () => {
+    it('omits unsupported temperature while preserving the current API request', async () => {
       mockCreate.mockResolvedValue(mockAnthropicResponse);
 
       await service.chatCompletion({
@@ -352,8 +352,13 @@ describe('AnthropicService', () => {
       });
 
       expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ temperature: 0.7 }),
+        expect.objectContaining({
+          max_tokens: 4096,
+          messages: [{ content: 'Hello', role: 'user' }],
+          model: 'claude-sonnet-5',
+        }),
       );
+      expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('temperature');
     });
 
     it('should handle assistant messages with tool_calls', async () => {
@@ -550,14 +555,22 @@ describe('AnthropicService', () => {
       const onToken = vi.fn();
 
       const result = await service.streamChatCompletionAggregated(
-        { ...defaultParams, model: 'anthropic/claude-opus-5' },
+        makeRichParams({ model: 'anthropic/claude-opus-5' }),
         undefined,
         onToken,
       );
 
       expect(mockStream).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'claude-opus-5' }),
+        expect.objectContaining({
+          max_tokens: 1024,
+          messages: expect.any(Array),
+          model: 'claude-opus-5',
+          system: 'System prompt',
+          tools: [expect.objectContaining({ name: 'lookup' })],
+        }),
       );
+      expect(mockStream.mock.calls[0]?.[0]).not.toHaveProperty('temperature');
+      expect(mockStream.mock.calls[0]?.[0].messages).toHaveLength(3);
       expect(onToken).toHaveBeenCalledWith('Plan');
       expect(result.model).toBe('anthropic/claude-opus-5');
     });
@@ -616,6 +629,17 @@ describe('AnthropicService', () => {
       }
 
       expect(chunks).toEqual(['Hello', ' world']);
+      expect(mockStream).toHaveBeenCalledWith(
+        expect.objectContaining({
+          max_tokens: 1024,
+          messages: expect.any(Array),
+          model: 'claude-sonnet-5',
+          system: 'System prompt',
+          tools: [expect.objectContaining({ name: 'lookup' })],
+        }),
+      );
+      expect(mockStream.mock.calls[0]?.[0]).not.toHaveProperty('temperature');
+      expect(mockStream.mock.calls[0]?.[0].messages).toHaveLength(3);
     });
 
     it('should throw and log error when stream creation fails', async () => {

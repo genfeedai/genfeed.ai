@@ -11,6 +11,7 @@ import type {
 import type { IBaseEntity } from '../index';
 
 export interface IModel extends IBaseEntity {
+  aliases?: string[];
   label: string;
   key: string;
   category: ModelCategory;

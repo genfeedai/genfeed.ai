@@ -109,7 +109,7 @@ describe('ModelSelectorModelItem', () => {
     const row = screen.getByRole('option');
 
     expect(
-      within(row).getByRole('img', { name: 'Replicate' }),
+      within(row).getByRole('img', { name: 'Google' }),
     ).toBeInTheDocument();
     expect(within(row).getByRole('img', { name: 'Video' })).toBeInTheDocument();
     expect(within(row).getByRole('img', { name: 'Audio' })).toBeInTheDocument();

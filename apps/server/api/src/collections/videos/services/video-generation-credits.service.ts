@@ -129,7 +129,7 @@ export class VideoGenerationCreditsService {
     const byok = await this.resolveActiveByokKey(
       organization,
       model,
-      resolvedModelDoc?.provider,
+      modelQuote.provider,
     );
     assertApprovedGenerationQuote(
       reqWithCredits.creditsConfig?.approvedGenerationQuote,

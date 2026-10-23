@@ -13,6 +13,11 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import {
+  allocateBatchDocuments,
+  failUnproducedBatchOutput,
+  requireExternalId,
+} from '@api/collections/images/services/image-generation-batch.util';
+import {
   completeImageGeneration,
   type RealizedImageDimensions,
 } from '@api/collections/images/services/image-generation-completion.util';
@@ -29,6 +34,10 @@ import {
 } from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImageGenerationReceiptsService } from '@api/collections/images/services/image-generation-receipts.service';
+import {
+  applyRoutedDispatch,
+  installRoutedFallback,
+} from '@api/collections/images/services/image-generation-routed-dispatch.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { prepareImageGenerationProvider } from '@api/collections/images/services/prepare-image-generation-provider.util';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
@@ -63,6 +72,11 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
+type OutputDocument = Pick<
+  ImageGenerationSaveDocumentsResult,
+  'ingredientData' | 'metadataData'
+>;
+
 /**
  * Coordinates provider-neutral output persistence and completion behavior.
  * Provider request construction and response normalization live in the typed
@@ -76,17 +90,12 @@ export class ImageGenerationProviderDispatchService {
   >();
   private readonly batchDocuments = new WeakMap<
     ImageGenerationContext,
-    Array<
-      Pick<
-        ImageGenerationSaveDocumentsResult,
-        'ingredientData' | 'metadataData'
-      >
-    >
+    OutputDocument[]
   >();
 
   private readonly activeDocument = new WeakMap<
     ImageGenerationContext,
-    Pick<ImageGenerationSaveDocumentsResult, 'ingredientData' | 'metadataData'>
+    OutputDocument
   >();
 
   private readonly submissionStarted = new WeakMap<
@@ -143,31 +152,39 @@ export class ImageGenerationProviderDispatchService {
   async dispatch(
     context: ImageGenerationContext,
   ): Promise<ImageGenerationCompletionPlan | null> {
+    const quote = (context.request as unknown as DeferredCreditsRequest)
+      .creditsConfig?.modelQuote;
+    const routed = quote?.routedDispatch;
+    if (quote && routed) {
+      await applyRoutedDispatch(this.metadataService, context, quote, routed);
+    }
     const byokApiKeyOverride = (
       context.request as unknown as DeferredCreditsRequest | undefined
     )?.creditsConfig?.byokApiKeyOverride;
-    const provider = await prepareImageGenerationProvider(
-      context,
-      {
-        providerRegistry: this.providerRegistry,
-        metadataService: this.metadataService,
-        getBatchDocuments: (current) => this.batchDocuments.get(current),
-        getActiveDocument: (current) => this.activeDocument.get(current),
-        beginSubmission: (current, ids) => this.beginSubmission(current, ids),
-        patchExternalId: (metadataId, result, current, ingredientId) =>
-          this.patchExternalId(metadataId, result, current, ingredientId),
-      },
-      byokApiKeyOverride,
-    );
+    const provider = await this.prepareProvider(context, byokApiKeyOverride);
 
     if (!provider || provider.completionKind === 'none') {
       return null;
     }
 
-    const externalProvider = this.providerRegistry.providerFor(
-      context.model,
-      context.modelProvider,
-    );
+    if (quote && routed?.fallback && !byokApiKeyOverride) {
+      installRoutedFallback(
+        {
+          metadataService: this.metadataService,
+          getActiveDocument: (current) => this.activeDocument.get(current),
+          prepareProvider: (current) => this.prepareProvider(current),
+        },
+        context,
+        provider,
+        quote,
+        routed,
+        routed.fallback,
+      );
+    }
+
+    const externalProvider =
+      context.routedDispatch?.provider ??
+      this.providerRegistry.providerFor(context.model, context.modelProvider);
     if (externalProvider) {
       await this.metadataService.patch(
         context.metadataData.id,
@@ -237,6 +254,25 @@ export class ImageGenerationProviderDispatchService {
       kind: provider.completionKind,
       ...(provider.completionKind === 'poll-multiple' ? { pollIds } : {}),
     };
+  }
+
+  private prepareProvider(
+    context: ImageGenerationContext,
+    apiKeyOverride?: string,
+  ) {
+    return prepareImageGenerationProvider(
+      context,
+      {
+        providerRegistry: this.providerRegistry,
+        metadataService: this.metadataService,
+        getBatchDocuments: (current) => this.batchDocuments.get(current),
+        getActiveDocument: (current) => this.activeDocument.get(current),
+        beginSubmission: (current, ids) => this.beginSubmission(current, ids),
+        patchExternalId: (metadataId, result, current, ingredientId) =>
+          this.patchExternalId(metadataId, result, current, ingredientId),
+      },
+      apiKeyOverride,
+    );
   }
 
   async createPlaceholderActivity(
@@ -390,7 +426,7 @@ export class ImageGenerationProviderDispatchService {
       if (!provider.tracksSubmissionStarted)
         this.beginSubmission(context, [context.ingredientData.id]);
       const result = await provider.generate();
-      const externalId = this.externalId(result);
+      const externalId = requireExternalId(result);
       await this.patchExternalId(
         context.metadataData.id,
         result,
@@ -414,12 +450,7 @@ export class ImageGenerationProviderDispatchService {
     provider: PreparedImageGenerationProvider,
     pollIds: string[],
   ): Promise<string> {
-    const documents: Array<
-      Pick<
-        ImageGenerationSaveDocumentsResult,
-        'ingredientData' | 'metadataData'
-      >
-    > = [
+    const documents: OutputDocument[] = [
       {
         ingredientData: context.ingredientData,
         metadataData: context.metadataData,
@@ -430,23 +461,13 @@ export class ImageGenerationProviderDispatchService {
       const preallocated = context.editing
         ? this.batchDocuments.get(context)
         : undefined;
-      const additionalDocuments: ImageGenerationSaveDocumentsResult[] = [];
-      if (preallocated) {
-        for (const output of preallocated.slice(1)) {
-          additionalDocuments.push(output);
-          documents.push(output);
-        }
-      }
-      for (
-        let index = preallocated ? context.outputs : 1;
-        index < context.outputs;
-        index += 1
-      ) {
-        const output = await this.createAdditionalDocuments(context);
-        additionalDocuments.push(output);
-        documents.push(output);
-        await this.admitOutput(context, output.ingredientData.id);
-      }
+      const additionalDocuments = await allocateBatchDocuments(
+        context,
+        preallocated,
+        (current) => this.createAdditionalDocuments(current),
+        (current, id) => this.admitOutput(current, id),
+        (output) => documents.push(output),
+      );
       this.batchDocuments.set(context, documents);
       if (!provider.tracksSubmissionStarted)
         this.beginSubmission(
@@ -454,7 +475,7 @@ export class ImageGenerationProviderDispatchService {
           documents.map(({ ingredientData }) => ingredientData.id),
         );
       const result = await provider.generate();
-      const generationId = this.externalId(result);
+      const generationId = requireExternalId(result);
       for (const { ingredientData } of documents)
         this.markAccepted(context, ingredientData.id);
       await Promise.all(
@@ -536,21 +557,9 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
     ingredientId: string,
   ): Promise<void> {
-    const claimed = await this.imagesService.patchAll(
-      {
-        id: ingredientId,
-        organizationId: context.user.organizationId,
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      {
-        status: IngredientStatus.FAILED,
-        generationError:
-          'Provider completed without producing this requested output',
-        isGenerationFailureConfirmed: true,
-      },
-    );
-    if (claimed.modifiedCount === 1)
+    if (
+      await failUnproducedBatchOutput(this.imagesService, context, ingredientId)
+    )
       await this.releaseOutputCredits(context, ingredientId);
   }
 
@@ -564,7 +573,7 @@ export class ImageGenerationProviderDispatchService {
       if (!provider.tracksSubmissionStarted)
         this.beginSubmission(context, [context.ingredientData.id]);
       const primaryResult = await provider.generate();
-      primaryId = this.externalId(primaryResult);
+      primaryId = requireExternalId(primaryResult);
       await this.patchExternalId(
         context.metadataData.id,
         primaryResult,
@@ -735,7 +744,7 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
     ingredientId: string,
   ): Promise<void> {
-    const externalId = this.externalId(result);
+    const externalId = requireExternalId(result);
     this.markAccepted(context, ingredientId);
     this.receipts.accepted(context, ingredientId, externalId);
     try {
@@ -744,10 +753,12 @@ export class ImageGenerationProviderDispatchService {
         new MetadataEntity({
           externalId,
           externalProvider:
+            context.routedDispatch?.provider ??
             this.providerRegistry.providerFor(
               context.model,
               context.modelProvider,
-            ) ?? undefined,
+            ) ??
+            undefined,
           ...(result.kind === 'external-id' && result.promptId
             ? { promptId: result.promptId }
             : {}),
@@ -861,13 +872,6 @@ export class ImageGenerationProviderDispatchService {
       },
       { height: uploadMeta.height, width: uploadMeta.width },
     );
-  }
-
-  private externalId(result: ImageGenerationProviderResult): string {
-    if (result.kind !== 'external-id' || !result.externalId) {
-      throw new Error('Image provider returned no external ID');
-    }
-    return result.externalId;
   }
 
   private async handleProviderFailure(

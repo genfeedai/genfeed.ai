@@ -37,7 +37,8 @@ export class FalImageGenerationProviderAdapter
       prompt: request.prompt,
     };
     const input =
-      request.modelSchemaFamily && request.modelInputSchema
+      request.routedInput ??
+      (request.modelSchemaFamily && request.modelInputSchema
         ? adaptFalImageRequest(
             request.modelSchemaFamily as FalSchemaFamily,
             request.modelInputSchema as FalJsonSchema,
@@ -49,7 +50,7 @@ export class FalImageGenerationProviderAdapter
               width: request.width,
             },
           )
-        : legacyInput;
+        : legacyInput);
 
     return {
       tracksSubmissionStarted: true,
@@ -66,6 +67,7 @@ export class FalImageGenerationProviderAdapter
           request.onProviderSubmissionStarted,
         );
         return {
+          ...(request.isRoutedOffer ? { outputUrls: [result.url] } : {}),
           externalId: result.url,
           kind: 'external-id',
           promptId: request.promptId,

@@ -1,6 +1,7 @@
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
+import { KieVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/kie-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
@@ -31,9 +32,13 @@ describe('VideoGenerationProviderDispatchService', () => {
   const service = new VideoGenerationProviderDispatchService(
     new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
     new FalVideoGenerationProviderAdapter(falService as never),
-    new ReplicateVideoGenerationProviderAdapter(replicateService as never),
+    new ReplicateVideoGenerationProviderAdapter(
+      replicateService as never,
+      { poll: vi.fn() } as never,
+    ),
     new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService as never),
     new HeyGenVideoGenerationProviderAdapter(heyGenService as never),
+    new KieVideoGenerationProviderAdapter({ generateVideo: vi.fn() } as never),
   );
 
   const buildParams = (

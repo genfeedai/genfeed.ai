@@ -2,6 +2,7 @@ import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { AgentFailureReason, ErrorCode } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -29,6 +30,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     };
     const adapter = new ReplicateVideoGenerationProviderAdapter(
       replicateService as unknown as ReplicateService,
+      { poll: vi.fn() } as unknown as PollUntilService,
     );
 
     const onProviderSubmissionStarted = vi.fn();
@@ -59,6 +61,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     };
     const adapter = new ReplicateVideoGenerationProviderAdapter(
       replicateService as unknown as ReplicateService,
+      { poll: vi.fn() } as unknown as PollUntilService,
     );
 
     await expect(
@@ -87,6 +90,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     };
     const adapter = new ReplicateVideoGenerationProviderAdapter(
       replicateService as unknown as ReplicateService,
+      { poll: vi.fn() } as unknown as PollUntilService,
     );
     const promptParams = {
       first_frame_image: 'https://cdn.example.com/first-frame.jpg',
@@ -116,6 +120,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     };
     const adapter = new ReplicateVideoGenerationProviderAdapter(
       replicateService as unknown as ReplicateService,
+      { poll: vi.fn() } as unknown as PollUntilService,
     );
     const promptParams = {
       first_frame_image: 'https://cdn.example.com/first-frame.jpg',
@@ -145,6 +150,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     };
     const adapter = new ReplicateVideoGenerationProviderAdapter(
       replicateService as unknown as ReplicateService,
+      { poll: vi.fn() } as unknown as PollUntilService,
     );
 
     await expect(

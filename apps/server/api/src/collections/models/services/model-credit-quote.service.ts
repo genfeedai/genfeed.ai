@@ -26,34 +26,47 @@ export class ModelCreditQuoteService {
     input: ModelCreditQuoteInput = {},
     nativeOutput?: SeedanceNativeOutputQuoteEvidence,
   ): Promise<ModelBillableQuoteSnapshot> {
-    const profile = await this.modelsService.findBillablePricingProfile(
+    const resolved = await this.modelsService.findBillablePricingProfile(
       modelKey,
       input.organizationId,
+      input,
     );
-    if (!profile)
+    if (!resolved)
       throw this.unavailable(modelKey, 'Exact model tariff is unavailable');
+    const {
+      routedDispatch: routed,
+      preparedProviderInput,
+      ...profile
+    } = resolved;
     if (profile.provider === 'crun')
       throw this.unavailable(
         modelKey,
         'Crun requires an effective-input account quote',
       );
+    const quoteInput = routed
+      ? {
+          ...input,
+          provider: routed.provider,
+          providerInput: preparedProviderInput,
+        }
+      : input;
     const quote = quoteModelBillablePricing(
       profile,
       normalizeModelProviderQuoteRequest(
         profile,
         modelKey,
-        input,
+        quoteInput,
         nativeOutput,
       ),
       getRuntimeMarginMultiplier(),
       new Date().toISOString(),
-      input.providerInput
-        ? { kind: 'dispatch', input: input.providerInput }
+      quoteInput.providerInput
+        ? { kind: 'dispatch', input: quoteInput.providerInput }
         : undefined,
     );
     if (quote.status === 'unresolved')
       throw this.unavailable(modelKey, quote.reason);
-    return quote.snapshot;
+    return { ...quote.snapshot, ...(routed ? { routedDispatch: routed } : {}) };
   }
 
   private unavailable(

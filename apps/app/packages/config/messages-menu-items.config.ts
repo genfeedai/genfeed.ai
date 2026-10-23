@@ -1,62 +1,8 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Gauge, Mail } from 'lucide-react';
 
 /**
- * Messages module nav (#5502): Overview and a conversation-first Inbox.
- *
- * - Overview: waiting conversations per kind, each opening a filtered Inbox
- * - Inbox: DMs, Replies and Comments in one stream, filtered by type
- *
- * Outreach sequences, the author-reply bot and Reply drip left this menu;
- * their routes stay until their destination is decided. Both items exist at
- * brand and organization scope, so neither sets hrefScope.
- *
- * Icons: one unique lucide glyph per row.
+ * Messages has no module nav: `/messages` is the inbox, and the sidebar is the
+ * conversation search and list rendered by the inbox panel. Outreach sequences,
+ * the author-reply bot and Reply drip keep their routes but no menu rows.
  */
-export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [
-  {
-    group: '',
-    href: APP_ROUTES.MESSAGES.OVERVIEW,
-    isExactMatch: true,
-    isPrimary: true,
-    label: 'Overview',
-    matchPaths: [APP_ROUTES.MESSAGES.OVERVIEW],
-    outline: Gauge,
-    solid: Gauge,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.MESSAGES.ROOT,
-    isExactMatch: true,
-    isPrimary: true,
-    label: 'Inbox',
-    matchPaths: [APP_ROUTES.MESSAGES.ROOT],
-    outline: Mail,
-    solid: Mail,
-  },
-];
-
-/** True when the operator is on org messages (`/:org/~/messages…`), not brand. */
-export function isOrgMessagesRouteScope(
-  brandSlug: string | null | undefined,
-): boolean {
-  const normalized = brandSlug?.trim() ?? '';
-  return normalized === '' || normalized === '~';
-}
-
-/** Menu items that exist for the current org vs brand messages scope. */
-export function getMessagesMenuItemsForScope(
-  brandSlug: string | null | undefined,
-): MenuItemConfig[] {
-  if (!isOrgMessagesRouteScope(brandSlug)) {
-    return MESSAGES_MENU_ITEMS;
-  }
-
-  return MESSAGES_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand').map(
-    (item) => ({
-      ...item,
-      group: undefined,
-    }),
-  );
-}
+export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [];

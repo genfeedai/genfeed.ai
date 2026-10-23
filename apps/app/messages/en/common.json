@@ -2004,30 +2004,6 @@
       "chooseBrandToConnect": "Choose a brand in the conversation filters before connecting an account.",
       "noMessages": "No messages in this thread yet."
     },
-    "overview": {
-      "actionsTitle": "Open the inbox",
-      "cards": {
-        "inbox": {
-          "cta": "Open inbox",
-          "label": "Inbox"
-        },
-        "kind": {
-          "cta": "Open {kind}",
-          "description": "{count, plural, =0 {Nothing open.} one {# open conversation.} other {# open conversations.}}"
-        }
-      },
-      "description": "What is waiting for a reply, by conversation type.",
-      "error": "Message counts could not be loaded.",
-      "kinds": {
-        "comments": "Comments",
-        "dms": "DMs",
-        "replies": "Replies"
-      },
-      "kpi": {
-        "unread": "Unread"
-      },
-      "title": "Overview"
-    },
     "pagination": {
       "conversationCount": "{count, plural, one {# conversation} other {# conversations}}",
       "conversationPage": "Page {page} of {pages}",

@@ -121,9 +121,9 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   {
     enumRefs: { GenerationType: ['NEWSLETTER'] },
     id: 'newsletter',
-    marker: 'buildBrandVoiceSummary',
-    note: 'GAP: draft prompt carries the brand voice summary only. The harness (private pack, anti-examples, evaluation criteria) is never composed, and a provider failure silently falls back to a template. Promote to `harness` when generateDraftAction calls resolveBrief.',
-    path: 'brand-voice-summary',
+    marker: 'resolveBrief',
+    note: 'Drafts compose the harness brief in loadDraftGenerationContext and fail with a retryable 503 when it or the provider is unavailable; there is no template fallback.',
+    path: 'harness',
     smoke: 'text',
     source: `${API}/collections/newsletters/services/newsletters.service.ts`,
   },

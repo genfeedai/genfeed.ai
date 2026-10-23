@@ -35,6 +35,7 @@ describe('MediaGenerationCostService', () => {
       logger as unknown as LoggerService,
       {
         crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
+        ingredient: { findFirst: vi.fn().mockResolvedValue(null) },
       } as unknown as PrismaService,
     );
   });
