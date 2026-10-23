@@ -198,7 +198,7 @@ describe('OAuth CIMD clients', () => {
     ).rejects.toMatchObject({ response: { error: 'invalid_request' } });
   });
 
-  it('accepts Claude\'s real metadata document and drops grant types it does not support', async () => {
+  it('accepts the real Claude metadata document and drops unsupported grant types', async () => {
     const claudeId = 'https://claude.ai/oauth/mcp-oauth-client-metadata';
     const claudeDocument = {
       client_id: claudeId,
