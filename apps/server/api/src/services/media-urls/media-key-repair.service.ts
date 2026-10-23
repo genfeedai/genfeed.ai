@@ -1,8 +1,8 @@
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MEDIA_RECOVERY_BATCH_SIZE } from '@api/services/media-urls/media-recovery.constants';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';

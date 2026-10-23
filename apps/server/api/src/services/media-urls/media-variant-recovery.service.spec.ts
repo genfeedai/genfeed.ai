@@ -6,9 +6,9 @@ import {
   MEDIA_VARIANT_STALE_PENDING_MS,
 } from '@api/services/media-urls/media-recovery.constants';
 import { MediaVariantRecoveryService } from '@api/services/media-urls/media-variant-recovery.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 

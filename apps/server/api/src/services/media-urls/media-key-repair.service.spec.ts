@@ -1,9 +1,9 @@
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaKeyRepairService } from '@api/services/media-urls/media-key-repair.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 

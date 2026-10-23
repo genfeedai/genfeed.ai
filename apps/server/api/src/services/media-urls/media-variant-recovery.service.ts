@@ -6,9 +6,9 @@ import {
   MEDIA_VARIANT_RETRY_BASE_MS,
   MEDIA_VARIANT_STALE_PENDING_MS,
 } from '@api/services/media-urls/media-recovery.constants';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { MediaDeliveryPurpose } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
