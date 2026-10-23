@@ -4,7 +4,7 @@ import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { Timeframe } from '@genfeedai/contracts';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import { ErrorBoundary } from '@ui/error';
+import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
@@ -40,6 +40,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       }
     >
       <ErrorBoundary
+        presentation="inline"
         title={translate('errorTitle')}
         description={translate('brand.errorDescription')}
       >

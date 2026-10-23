@@ -1,13 +1,14 @@
 'use client';
 
 import type { LayoutProps } from '@props/layout/layout.props';
-import { ErrorBoundary } from '@ui/error';
+import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { DesktopGate } from '@/features/workflows/components/DesktopGate';
 
 export default function WorkflowDetailLayout({ children }: LayoutProps) {
   return (
     <DesktopGate>
       <ErrorBoundary
+        presentation="inline"
         title="Automation Editor Error"
         description="Something went wrong in the automation editor. Please try again."
       >

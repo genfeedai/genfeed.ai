@@ -9,7 +9,7 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
-import { ErrorBoundary } from '@ui/error';
+import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
@@ -40,6 +40,7 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
           <BrandProvider>
             <ThemePreferenceSync />
             <ErrorBoundary
+              presentation="inline"
               title={translate('title')}
               description={translate('description')}
             >

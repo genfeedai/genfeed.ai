@@ -1,4 +1,3 @@
-import type { ComponentType, ReactNode } from 'react';
 import type { Severity } from '../..';
 
 export interface IServiceSerializer<T> {
@@ -127,29 +126,10 @@ export interface IErrorInfo {
   componentStack?: string;
 }
 
-export interface IErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: ReactNode | ((error: Error, errorInfo: IErrorInfo) => ReactNode);
-  onError?: (error: Error, errorInfo: IErrorInfo) => void;
-  resetKeys?: string[];
-  resetOnPropsChange?: boolean;
-  isolate?: boolean;
-  level?: 'page' | 'section' | 'component';
-}
-
 export interface IErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   retryCount: number;
-}
-
-export interface IEnhancedErrorBoundaryProps extends IErrorBoundaryProps {
-  maxRetries?: number;
-  retryDelay?: number;
-  onRetry?: () => void;
-  showErrorDetails?: boolean;
-  logErrors?: boolean;
-  errorComponent?: ComponentType<IErrorComponentProps>;
 }
 
 export interface IErrorComponentProps {

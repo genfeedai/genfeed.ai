@@ -37,7 +37,7 @@ import { logger } from '@services/core/logger.service';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
-import { ErrorBoundary } from '@ui/error/ErrorBoundary';
+import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import IngredientSidebarPanel from '@ui/ingredients/inspector/IngredientSidebarPanel';
 import AppLayout from '@ui/layouts/app/AppLayout';
@@ -608,6 +608,7 @@ function AppLayoutWithDynamicMenu({
   // contained the same way on every route, not only where the shell booted.
   const guardedMainLayout = (
     <ErrorBoundary
+      presentation="inline"
       onError={(error) => {
         captureWorkspaceShellError('render', 'render_failed');
         logger.error('Protected shell render failed', {

@@ -66,7 +66,7 @@ vi.mock('@providers/theme-sync/theme-preference-sync', () => ({
   default: () => <div data-testid="theme-preference-sync" />,
 }));
 
-vi.mock('@ui/error', () => ({
+vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   ErrorBoundary: ({
     children,
     title,

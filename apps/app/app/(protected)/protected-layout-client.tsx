@@ -6,7 +6,7 @@ import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organizatio
 import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
-import { ErrorBoundary } from '@ui/error';
+import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useTranslations } from 'next-intl';
@@ -58,7 +58,7 @@ export default function ProtectedLayoutClient({
         {/* Outside the shell's error boundaries, which would swallow notFound(). */}
         <PlatformModuleRouteGate>
           <AppProtectedLayout initialBootstrap={initialBootstrap}>
-            <ErrorBoundary>{children}</ErrorBoundary>
+            <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
           </AppProtectedLayout>
         </PlatformModuleRouteGate>
       </RoutedOrganizationBoundary>

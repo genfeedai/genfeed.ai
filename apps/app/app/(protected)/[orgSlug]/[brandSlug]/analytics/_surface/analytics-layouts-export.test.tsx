@@ -13,7 +13,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   }),
 }));
 
-vi.mock('@ui/error', () => ({
+vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: ReactNode }) => children,
 }));
 

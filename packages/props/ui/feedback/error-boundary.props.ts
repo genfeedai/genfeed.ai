@@ -7,9 +7,8 @@ export interface ErrorBoundaryFailure {
   resetErrorBoundary: () => void;
 }
 
-export interface ErrorBoundaryProps {
+interface ErrorBoundaryCommonProps {
   children: ReactNode;
-  fallback?: ReactNode | ((failure: ErrorBoundaryFailure) => ReactNode);
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   reportError?: (
     error: Error,
@@ -21,3 +20,18 @@ export interface ErrorBoundaryProps {
   title?: string;
   description?: string;
 }
+
+interface InlineErrorBoundaryProps extends ErrorBoundaryCommonProps {
+  presentation: 'inline';
+  fallback?: ReactNode | ((failure: ErrorBoundaryFailure) => ReactNode);
+}
+
+interface PageErrorBoundaryProps extends ErrorBoundaryCommonProps {
+  presentation?: 'page';
+  fallback?: ReactNode | ((error: Error, errorInfo: ErrorInfo) => ReactNode);
+}
+
+/** Defaults: page retries three times; inline has no retry limit. */
+export type ErrorBoundaryProps =
+  | InlineErrorBoundaryProps
+  | PageErrorBoundaryProps;
