@@ -45,10 +45,11 @@ describe('CI concurrency', () => {
     expect(workflow).toContain(
       'group: server-image-pr-${{ github.event.pull_request.number }}',
     );
-    expect(workflow).toContain(
+    const title = readWorkflow('pr-title.yml');
+    expect(title).toContain(
       'group: PR Title-${{ github.event.pull_request.number }}',
     );
-    expect(workflow).toContain('cancel-in-progress: false');
+    expect(title).toContain('cancel-in-progress: false');
     for (const name of ['_ci-validation.yml', '_ci-frontend.yml']) {
       expect(readWorkflow(name)).not.toMatch(/^concurrency:/m);
     }

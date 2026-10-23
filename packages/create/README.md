@@ -11,7 +11,10 @@ npx @genfeedai/create my-genfeed
 The installer resolves the latest GitHub release, downloads its public
 self-hosted bundle, verifies the SHA-256 checksum and release manifest, then
 starts the exact GHCR image associated with that release. The app is available
-at `http://localhost:3000`.
+at `http://localhost:3000` by default. The wizard asks for an OpenRouter key
+(hidden input) and a domain you own (blank for localhost). It writes the final
+`.env` with owner-only permissions and generated encryption/session secrets
+before starting Docker.
 
 Install a specific release reproducibly:
 
@@ -31,13 +34,21 @@ installation guide.
 
 ## First sign-up and first generation
 
-Sign-up is enabled by default: open `http://localhost:3000` and create your
-account. To generate text, set a real `OPENROUTER_API_KEY` in the generated
-`.env` (create one at [openrouter.ai/keys](https://openrouter.ai/keys)) and
-re-run `docker compose --env-file .env -f compose.yml up -d`. Without it the
-readiness check reports text generation as not ready. Use real keys only:
-Settings validates each provider key before saving it, so placeholders are
-rejected.
+Sign-up is enabled by default. Supply a real key from
+[openrouter.ai/keys](https://openrouter.ai/keys) during setup: missing or
+placeholder keys stop installation/startup. Format checks do not prove provider
+access or available provider credit.
+
+For automation, pass `--yes` and securely provide `OPENROUTER_API_KEY` in the
+environment. `SELFHOSTED_DOMAIN` and the three `SELFHOSTED_*_PORT` variables
+override the defaults; no secret CLI argument is supported. Non-terminal input
+requires `--yes` and a key, rather than silently copying an unusable template.
+
+A domain such as `studio.example.com` derives HTTPS app/API/auth URLs and trusted
+origins. You must configure DNS, TLS and reverse-proxy routing separately; the
+release bundle README describes it. Existing installs upgrading to 0.2.15 must
+configure a key before restarting and remove conflicting localhost auth URLs
+when setting a domain.
 
 ## License
 

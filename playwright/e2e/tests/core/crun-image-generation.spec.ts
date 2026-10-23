@@ -329,17 +329,20 @@ async function installFixture(
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
 
-// The setup summary is spread over the chips: Model carries the model name and
-// Output the ratio, duration and count. A narrow bar drops the chip text, so
-// read the summary from the title, which the chip always keeps.
+// The setup summary is spread over the chips: Model carries the model name,
+// Aspect ratio the ratio and Output the count. A narrow bar drops the chip
+// text, so read the summary from the title, which the chip always keeps.
 async function expectGenerationSetup(
   page: Page,
-  summary: { model: string; output: string },
+  summary: { aspectRatio: string; model: string; output: string },
 ) {
   const chips = page.getByTestId('generation-setup-section-chips');
   await expect(
     chips.getByRole('button', { name: 'Configure Model', exact: true }),
   ).toHaveAttribute('title', `Model: ${summary.model}`);
+  await expect(
+    chips.getByRole('button', { name: 'Configure Aspect ratio', exact: true }),
+  ).toHaveAttribute('title', `Aspect ratio: ${summary.aspectRatio}`);
   await expect(
     chips.getByRole('button', { name: 'Configure Output', exact: true }),
   ).toHaveAttribute('title', `Output: ${summary.output}`);
@@ -369,6 +372,14 @@ async function selectMenuValue(
   await page.getByRole('menuitem', { name: new RegExp(`^${field}`) }).hover();
   await page
     .getByRole('group', { name: field, exact: true })
+    .getByRole('menuitem', { name: new RegExp(`^${value}(\\s|$)`) })
+    .click();
+}
+// Aspect ratio has a chip of its own: its list opens straight from the chip.
+async function selectChipValue(page: Page, chip: string, value: string) {
+  await openConfiguration(page, chip);
+  await page
+    .getByRole('group', { name: chip, exact: true })
     .getByRole('menuitem', { name: new RegExp(`^${value}(\\s|$)`) })
     .click();
 }
@@ -436,8 +447,8 @@ for (const key of [nanoKey, seedreamKey]) {
     await expectGenerationSetup(
       page,
       key === nanoKey
-        ? { model: 'Nano Banana Pro', output: '1:1 · x1' }
-        : { model: 'Seedream 4.5', output: '16:9 · x1' },
+        ? { aspectRatio: '1:1', model: 'Nano Banana Pro', output: 'x1' }
+        : { aspectRatio: '16:9', model: 'Seedream 4.5', output: 'x1' },
     );
     await openConfiguration(page, 'Model');
     await page
@@ -452,11 +463,10 @@ for (const key of [nanoKey, seedreamKey]) {
       .click();
     await closeOpenPanel(page);
     await selectMenuValue(page, 'Look', 'Resolution', '4K');
-    await selectMenuValue(page, 'Output', 'Aspect ratio', '21:9');
+    await selectChipValue(page, 'Aspect ratio', '21:9');
     // Auto stays a choice; without a reference the model's own `auto` value is
     // not offered, so Auto hands the ratio back to the agent instead.
-    await openConfiguration(page, 'Output');
-    await page.getByRole('menuitem', { name: /^Aspect ratio/ }).hover();
+    await openConfiguration(page, 'Aspect ratio');
     await expect(
       page
         .getByRole('group', { name: 'Aspect ratio', exact: true })

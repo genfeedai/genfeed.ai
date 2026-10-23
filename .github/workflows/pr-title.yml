@@ -1,0 +1,47 @@
+name: PR Title
+run-name: "PR Title · #${{ github.event.pull_request.number }}"
+
+# Metadata-only: runs on pull_request_target with no checkout and a read-only
+# token, so it never executes fork source. It is its own workflow so the
+# required "PR Title" check is never produced by a skipped job: a skipped job
+# reports success, and GitHub prints an expression job name raw. See ci.yml.
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  conventional-title:
+    name: PR Title
+    permissions:
+      pull-requests: read
+    concurrency:
+      group: PR Title-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Validate Conventional Commits title
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Keep in sync with CONTRIBUTING.md → Pull-request contract and cliff.toml.
+          types: |
+            feat
+            fix
+            docs
+            refactor
+            test
+            chore
+            build
+            ci
+            perf
+          requireScope: false
+          # Lowercase imperative summary. `type(scope)!: summary` marks a breaking change
+          # and is accepted by the action's default header pattern.
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" must start lowercase and read as an imperative
+            (e.g. "feat(studio): add batch generate"). See CONTRIBUTING.md → Pull-request contract.

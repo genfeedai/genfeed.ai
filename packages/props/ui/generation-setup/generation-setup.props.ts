@@ -80,7 +80,6 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupSummaryInput {
-  capabilities: StudioPlaygroundCapabilities;
   formatDuration: (seconds: number) => string;
   inputControls?: CrunInputControls;
   lookOptions: GenerationSetupLookOptions;
@@ -89,16 +88,18 @@ export interface GenerationSetupSummaryInput {
 }
 
 export interface GenerationSetupSummary {
+  /** The chosen clip length, formatted; empty when the setup has none. */
+  durationLabel: string;
   hasLookFields: boolean;
-  hasOutputFields: boolean;
   modelLabel: string;
-  outputLabel: string;
   selectedModel?: IModel;
 }
 
 /** Chips in the toolbar; each opens only its own section. */
 export type GenerationSetupChipId =
+  | 'aspectRatio'
   | 'brand'
+  | 'duration'
   | 'look'
   | 'model'
   | 'output'
@@ -106,14 +107,14 @@ export type GenerationSetupChipId =
 
 /**
  * Advanced mode lays the setup out as toolbar chips: Model first, then
- * `afterModel` (the surface's own pickers), then Output, Look, Brand and
- * Presets, then `trailing`.
+ * `afterModel` (the surface's own pickers), then Aspect ratio, Duration and
+ * Output, Look, Brand and Presets, then `trailing`.
  */
 export interface GenerationSetupSectionChipsProps
   extends Omit<GenerationSetupCustomizePanelProps, 'initialSection'> {
   /** Releases a pinned preset; shown in the Presets panel. */
   onClearPreset: () => void;
-  /** Rendered between the Model chip and the Output chip. */
+  /** Rendered between the Model chip and the Aspect ratio chip. */
   afterModel?: ReactNode;
   inputControls?: CrunInputControls;
   lookOptions: GenerationSetupLookOptions;
@@ -217,6 +218,19 @@ export interface GenerationSetupLookMenuProps {
   setup: GenerationSetup;
 }
 
+/** The part of the Output setup a chip's menu shows; `rest` is the Output chip. */
+export type GenerationSetupOutputSection = 'aspectRatio' | 'duration' | 'rest';
+
+export interface GenerationSetupOutputFieldsInput {
+  capabilities: StudioPlaygroundCapabilities;
+  /** Surface-owned model controls; their presence counts as an extra field. */
+  controls?: ReactNode;
+  inputControls?: CrunInputControls;
+  models?: readonly IModel[];
+  referenceCount?: number;
+  setup: GenerationSetup;
+}
+
 export interface GenerationSetupOutputMenuProps {
   capabilities: StudioPlaygroundCapabilities;
   /** Surface-owned model controls rendered after the shared output fields. */
@@ -227,6 +241,7 @@ export interface GenerationSetupOutputMenuProps {
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
   referenceCount?: number;
+  section: GenerationSetupOutputSection;
   setup: GenerationSetup;
 }
 

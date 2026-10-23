@@ -6,8 +6,10 @@ import type {
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioPlaygroundCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import type { GenerationSetupOutputSection } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import GenerationSetupOutputMenu from '@ui/dropdowns/generation-setup/GenerationSetupOutputMenu';
+import { resolveGenerationSetupOutputFields } from '@ui/dropdowns/generation-setup/generation-setup.output-fields';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +63,7 @@ function buildSetup(
 function renderMenu(
   overrides: {
     capabilities?: Partial<StudioPlaygroundCapabilities>;
+    section?: GenerationSetupOutputSection;
     setup?: GenerationSetup;
   } = {},
 ) {
@@ -74,18 +77,13 @@ function renderMenu(
           capabilities={{ ...MUSIC_CAPABILITIES, ...overrides.capabilities }}
           onResetField={onResetField}
           onSetField={onSetField}
+          section={overrides.section ?? 'rest'}
           setup={overrides.setup ?? buildSetup()}
         />
       </DropdownMenuContent>
     </DropdownMenu>,
   );
   return { onResetField, onSetField };
-}
-
-function openSubmenu(name: RegExp): void {
-  fireEvent.keyDown(screen.getByRole('menuitem', { name }), {
-    key: 'ArrowRight',
-  });
 }
 
 function optionLabels(group: string): string[] {
@@ -127,9 +125,9 @@ describe('GenerationSetupOutputMenu — music controls', () => {
 
   it("offers only the selected model's own duration grid (Eleven Music: 10-90s)", () => {
     renderMenu({
+      section: 'duration',
       setup: buildSetup({ modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC }),
     });
-    openSubmenu(/Duration/);
 
     expect(optionLabels('Duration')).toEqual([
       '10s',
@@ -144,19 +142,29 @@ describe('GenerationSetupOutputMenu — music controls', () => {
 
   it("narrows to MusicGen's own 5-30s grid instead of the cross-provider superset", () => {
     renderMenu({
+      section: 'duration',
       setup: buildSetup({ modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN }),
     });
-    openSubmenu(/Duration/);
 
     expect(optionLabels('Duration')).toEqual(['5s', '10s', '15s', '30s']);
   });
 
-  it('hides Duration entirely for a model with no duration parameter (Lyria 3 Pro)', () => {
-    renderMenu({ setup: buildSetup({ modelKey: MODEL_KEYS.FAL_LYRIA3_PRO }) });
+  it('hides the Duration chip for a model with no duration parameter (Lyria 3 Pro)', () => {
+    const fields = resolveGenerationSetupOutputFields({
+      capabilities: MUSIC_CAPABILITIES,
+      setup: buildSetup({ modelKey: MODEL_KEYS.FAL_LYRIA3_PRO }),
+    });
 
-    expect(
-      screen.queryByRole('menuitem', { name: /Duration/ }),
-    ).not.toBeInTheDocument();
+    expect(fields.showDuration).toBe(false);
+  });
+
+  it('shows no Duration chip for an image setup', () => {
+    const fields = resolveGenerationSetupOutputFields({
+      capabilities: { ...MUSIC_CAPABILITIES, hasDuration: false },
+      setup: buildSetup({ type: 'image' }),
+    });
+
+    expect(fields.showDuration).toBe(false);
   });
 
   it('does not rewrite the duration on render', () => {
@@ -185,9 +193,9 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
   it('offers Auto first, with a shape for each ratio', () => {
     renderMenu({
       capabilities: imageCapabilities,
+      section: 'aspectRatio',
       setup: buildSetup({ type: 'image' }),
     });
-    openSubmenu(/Aspect ratio/);
 
     const labels = optionLabels('Aspect ratio');
     expect(labels[0]).toBe('Auto');
@@ -202,9 +210,9 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
   it('hands Auto back to the agent when the model has no auto value', () => {
     const { onResetField, onSetField } = renderMenu({
       capabilities: imageCapabilities,
+      section: 'aspectRatio',
       setup: buildSetup({ type: 'image' }, { aspectRatio: 'user' }),
     });
-    openSubmenu(/Aspect ratio/);
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Auto' }));
     expect(onResetField).toHaveBeenCalledWith('aspectRatio');
@@ -214,9 +222,9 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
   it('sets a concrete ratio', () => {
     const { onSetField } = renderMenu({
       capabilities: imageCapabilities,
+      section: 'aspectRatio',
       setup: buildSetup({ type: 'image' }),
     });
-    openSubmenu(/Aspect ratio/);
 
     fireEvent.click(screen.getByRole('menuitem', { name: '16:9' }));
     expect(onSetField).toHaveBeenCalledWith('aspectRatio', '16:9');

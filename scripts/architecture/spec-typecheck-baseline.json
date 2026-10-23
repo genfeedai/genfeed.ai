@@ -4729,22 +4729,6 @@
       "workspace": "contracts"
     },
     {
-      "code": 2835,
-      "count": 1,
-      "file": "packages/create/test/install.test.ts",
-      "fingerprint": "57ea70ef93cad8847782",
-      "message": "Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../src/index.js'?",
-      "workspace": "create"
-    },
-    {
-      "code": 2835,
-      "count": 1,
-      "file": "packages/create/test/release-errors.test.ts",
-      "fingerprint": "a8aa623ae696567b928e",
-      "message": "Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../src/index.js'?",
-      "workspace": "create"
-    },
-    {
       "code": 2540,
       "count": 6,
       "file": "apps/server/discord/src/config/config.service.spec.ts",

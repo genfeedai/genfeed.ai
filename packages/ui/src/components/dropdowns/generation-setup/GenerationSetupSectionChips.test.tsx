@@ -62,6 +62,9 @@ describe('GenerationSetupSectionChips', () => {
       name: 'Configure Output',
     });
     expect(outputChip).toHaveTextContent('x2');
+    expect(
+      screen.getByRole('button', { name: 'Configure Aspect ratio' }),
+    ).toHaveTextContent('1:1');
     expect(screen.queryByRole('button', { name: 'Configure Look' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Configure Presets' }));
@@ -74,8 +77,46 @@ describe('GenerationSetupSectionChips', () => {
     fireEvent.keyDown(outputChip, { key: 'Enter' });
     expect(screen.queryByRole('dialog', { name: 'Presets' })).toBeNull();
     expect(
-      screen.getByRole('menuitem', { name: /Aspect ratio/ }),
+      screen.getByRole('menuitem', { name: /Outputs/ }),
     ).toBeInTheDocument();
+  });
+
+  it('opens the aspect ratio options straight from their own chip', () => {
+    const onSetField = vi.fn();
+    render(<GenerationSetupSectionChips {...props} onSetField={onSetField} />);
+
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Configure Aspect ratio' }),
+      { key: 'Enter' },
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: '16:9' }));
+
+    expect(onSetField).toHaveBeenCalledWith('aspectRatio', '16:9');
+  });
+
+  it('shows a Duration chip only for a setup that has a duration', () => {
+    const { rerender } = render(<GenerationSetupSectionChips {...props} />);
+    expect(
+      screen.queryByRole('button', { name: 'Configure Duration' }),
+    ).toBeNull();
+
+    rerender(
+      <GenerationSetupSectionChips
+        {...props}
+        capabilities={{ ...props.capabilities, hasDuration: true }}
+        setup={{
+          ...props.setup,
+          values: { ...props.setup.values, duration: 5, type: 'video' },
+        }}
+      />,
+    );
+    const durationChip = screen.getByRole('button', {
+      name: 'Configure Duration',
+    });
+    expect(durationChip).toHaveTextContent('5s');
+
+    fireEvent.keyDown(durationChip, { key: 'Enter' });
+    expect(screen.getByRole('menuitem', { name: '5s' })).toBeInTheDocument();
   });
 
   it('ends the row with the trailing slot, after the last chip', () => {
