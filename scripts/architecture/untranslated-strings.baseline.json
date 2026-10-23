@@ -452,7 +452,7 @@
     "packages/ui/src/components/content/referral/Referral.tsx": 4,
     "packages/ui/src/components/display/badge-quota/BadgeQuota.tsx": 1,
     "packages/ui/src/components/display/badge/Badge.tsx": 16,
-    "packages/ui/src/components/display/error-boundary/ErrorBoundary.tsx": 3,
+    "packages/ui/src/components/display/error-boundary/ErrorBoundary.tsx": 2,
     "packages/ui/src/components/display/platform-badge/PlatformBadge.tsx": 22,
     "packages/ui/src/components/display/skeleton/skeleton.tsx": 1,
     "packages/ui/src/components/display/table/Table.tsx": 2,
