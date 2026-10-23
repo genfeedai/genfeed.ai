@@ -83,6 +83,7 @@ describe('PostAccountGenerationService', () => {
   const learning = {
     bindArtifact: vi.fn(),
     resolve: vi.fn(),
+    revalidate: vi.fn(),
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const postsService = {
@@ -187,6 +188,7 @@ describe('PostAccountGenerationService', () => {
     billing.releaseRun.mockResolvedValue(undefined);
     learning.resolve.mockImplementation(
       async (_dto: unknown, posts: Doc[]) => ({
+        contributions: posts.map(() => ({})),
         decisionIds: posts.map(() => undefined),
         input: null,
         organizationId,
@@ -194,6 +196,7 @@ describe('PostAccountGenerationService', () => {
       }),
     );
     learning.bindArtifact.mockResolvedValue(undefined);
+    learning.revalidate.mockResolvedValue(undefined);
     lineage.recordPostRemixLineage.mockResolvedValue(undefined);
     websocket.emit.mockResolvedValue(undefined);
     postsService.create.mockImplementation(
@@ -572,6 +575,41 @@ describe('PostAccountGenerationService', () => {
         expect(request.input.parentRequestId).toBeUndefined();
       }
       expect(seam.generateThread).not.toHaveBeenCalled();
+    });
+
+    it('revalidates the learning session before every dispatch after the first', async () => {
+      seam.generate.mockImplementation(seamAnswers(async () => 'ok'));
+
+      await run();
+
+      expect(learning.revalidate).toHaveBeenCalledTimes(2);
+    });
+
+    it('hands each dispatch the contribution its own receipt applied', async () => {
+      seam.generate.mockImplementation(seamAnswers(async () => 'ok'));
+      const contribution = { styleDirectives: ['Open with a question.'] };
+      learning.resolve.mockImplementation(
+        async (_dto: unknown, posts: Doc[]) => ({
+          contributions: posts.map((_post, index) =>
+            index === 1 ? contribution : {},
+          ),
+          decisionIds: posts.map(() => undefined),
+          input: null,
+          organizationId,
+          receipts: posts.map(() => ({ mode: 'unavailable' })),
+        }),
+      );
+
+      await run();
+
+      const requests = seam.generate.mock.calls.map(
+        ([request]) => request as BrandedTextGenerationRequestV1,
+      );
+      expect(requests.map((request) => request.learningContribution)).toEqual([
+        {},
+        contribution,
+        {},
+      ]);
     });
 
     it('carries the provisional draft revision into every dispatch', async () => {

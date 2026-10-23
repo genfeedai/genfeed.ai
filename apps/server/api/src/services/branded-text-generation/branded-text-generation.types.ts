@@ -5,6 +5,7 @@ import type {
   BrandedGenerationReceiptV1,
   BrandLearningApplicationV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { ContentHarnessContribution } from '@genfeedai/harness';
 
 export interface BrandedTextGenerationRequestV1 {
   initiatingActor: BrandAccessActor;
@@ -12,6 +13,12 @@ export interface BrandedTextGenerationRequestV1 {
   input: BrandedGenerationInputV1;
   /** Private learning receipt the caller already resolved for this request. */
   privateLearning: BrandLearningApplicationV1['privateAccount'];
+  /**
+   * The tactic the `privateLearning` receipt applied. It must be the exact
+   * fixed contribution of the receipt's applied arm; otherwise the compiler
+   * suppresses the learning layer. Absent means nothing is applied.
+   */
+  learningContribution?: ContentHarnessContribution;
   resolveApiKey: TextDispatchKeyResolver;
   /** Channel-limit gate applied to the provider output before anything is saved. */
   acceptText: (text: string) => boolean;

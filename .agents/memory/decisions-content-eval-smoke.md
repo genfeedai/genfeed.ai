@@ -13,10 +13,10 @@ Docs: [content evals](../../docs/content-evals.md).
   `GenerationType`, `ContentType` and `IngredientCategory` member to the file
   that puts org + brand context in its prompt. It is part of
   `test:executable-contracts`, so a new generation type needs a row.
-- Known gaps (rows marked `GAP:`): newsletter drafts use a brand voice summary
-  only (no harness packs, anti-examples or criteria) and fall back to a template
-  silently; music has no brand or org context. Script and avatar-video scripts
-  come from agent chat, which is `unaudited`.
+- Known gaps (rows marked `GAP:`): agent-chat scripts (brand context assembly,
+  no harness brief) and avatar-video speech (caller text sent verbatim), tracked
+  in #7868. Newsletter drafts compose the harness brief and fail with a
+  retryable 503 instead of serving a template.
 - `.github/workflows/content-eval-smoke.yml`: deterministic lane is free; the
   live lane spends `CONTENT_EVAL_MAX_CREDITS` (hard cap, fail closed). Nightly
   live is opt-in (`CONTENT_EVAL_NIGHTLY=true`) and text-only. It is not a

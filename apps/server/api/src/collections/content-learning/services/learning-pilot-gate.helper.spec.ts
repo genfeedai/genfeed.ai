@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { learningCanonicalHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
+  appliedLearningPilotV1,
+  hasCurrentLearningPilotEnrollmentV1,
   learningPilotPolicyLineageValid,
   readCurrentLearningPilotV1,
 } from '@api/collections/content-learning/services/learning-pilot-gate.helper';
+import { learningContribution } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -280,5 +283,143 @@ describe('adaptive pilot policy lineage', () => {
         synthetic: true,
       }),
     ).toBe(false);
+  });
+});
+
+describe('hasCurrentLearningPilotEnrollmentV1', () => {
+  const at = new Date('2026-10-08T12:00:00Z');
+  const scope = {
+    organizationId: 'org',
+    brandId: 'brand',
+    credentialId: 'cred',
+  };
+  function client(row: { id: string } | null) {
+    const findFirst = vi.fn().mockResolvedValue(row);
+    return {
+      findFirst,
+      client: {
+        contentLearningEnrollment: { findFirst },
+      } as unknown as Pick<
+        Prisma.TransactionClient,
+        'contentLearningEnrollment'
+      >,
+    };
+  }
+  it('looks for an included, unwithdrawn enrollment covering the instant', async () => {
+    const { client: c, findFirst } = client({ id: 'enrollment' });
+    await expect(
+      hasCurrentLearningPilotEnrollmentV1(c, scope, at),
+    ).resolves.toBe(true);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId: 'cred',
+        included: true,
+        withdrawnAt: null,
+        startAt: { lte: at },
+        endAt: { gt: at },
+      },
+      select: { id: true },
+    });
+  });
+  it('is false without a current enrollment', async () => {
+    await expect(
+      hasCurrentLearningPilotEnrollmentV1(client(null).client, scope, at),
+    ).resolves.toBe(false);
+  });
+});
+
+describe('appliedLearningPilotV1', () => {
+  const receipt = { mode: 'live', configVersion: 'c', synthetic: false };
+  function applied(overrides: { spec?: Record<string, unknown> } = {}) {
+    const candidate = {
+      id: 'policy',
+      evidenceManifestHash: 'manifest',
+      synthetic: false,
+    };
+    const decision = {
+      brandId: 'brand',
+      credentialId: 'cred',
+      scopeKey: 'scope',
+      epoch: 1,
+      descriptorHash: 'reward',
+      configVersion: 'config',
+      selectedArmId: 'question-example-v1',
+    };
+    const experiment = {
+      candidatePolicyId: 'policy',
+      spec: {
+        kind: 'private_pilot',
+        synthetic: false,
+        cellKey: 'scope',
+        rewardProfileId: 'reward',
+        format: 'text',
+        objective: 'awareness',
+        configVersion: 'config',
+        featureVersion: 'numeric-nine-v1',
+        treatmentProbability: 0.1,
+        candidateId: 'policy',
+        candidateHash: 'manifest',
+        approvedArmIds: ['baseline-v1', 'question-example-v1'],
+        ...overrides.spec,
+      },
+    };
+    const findFirst = vi.fn().mockResolvedValue(null);
+    return {
+      findFirst,
+      run: (armExclusions?: Array<{ armId: string; reasonCode: string }>) =>
+        appliedLearningPilotV1(
+          {
+            contentLearningPolicyVersion: { findFirst },
+          } as unknown as Prisma.TransactionClient,
+          {
+            input: { organizationId: 'org', armExclusions },
+            decision,
+            experiment,
+            policy: candidate,
+            descriptor: {
+              format: 'text',
+              objective: 'awareness',
+              featureSchema: 'numeric-nine-v1',
+            },
+            receipt,
+          } as unknown as Parameters<typeof appliedLearningPilotV1>[1],
+        ),
+    };
+  }
+  it('contributes the drawn arm only when the spec holds and the brand allows it', async () => {
+    const result = await applied().run([]);
+    expect(result.contribution).toEqual(
+      learningContribution('question-example-v1'),
+    );
+    expect(result.exclusions).toEqual([]);
+    expect(result.receipt).toBe(receipt);
+  });
+  it('suppresses a drawn arm the brand excludes and keeps the reasons', async () => {
+    const exclusions = [
+      { armId: 'question-example-v1', reasonCode: 'learning.test' },
+    ];
+    const result = await applied().run(exclusions);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe('learning_incompatible');
+    expect(result.exclusions).toEqual(exclusions);
+  });
+  it('suppresses when brand compatibility was never established', async () => {
+    const result = await applied().run(undefined);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe('brand_compatibility_unknown');
+    expect(result.exclusions).toBeUndefined();
+  });
+  it.each([
+    ['a different treatment probability', { treatmentProbability: 0.5 }],
+    ['an arm outside the approved set', { approvedArmIds: ['baseline-v1'] }],
+    ['a changed candidate hash', { candidateHash: 'other' }],
+    ['a different cell', { cellKey: 'other' }],
+  ])('suppresses with %s in the frozen spec', async (_name, spec) => {
+    const result = await applied({ spec }).run([]);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe('experiment_assignment_unavailable');
   });
 });

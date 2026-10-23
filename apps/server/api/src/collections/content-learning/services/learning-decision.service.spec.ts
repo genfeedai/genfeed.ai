@@ -12,6 +12,12 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: (value: string) => value.replace(/^enc:/, ''),
+    encrypt: (value: string) => `enc:${value}`,
+  },
+}));
 describe('honest read-only preview', () => {
   it('returns empty contribution while assignment is unavailable', async () => {
     const accounts = {
@@ -194,11 +200,16 @@ describe('lightweight scoped preview isolation', () => {
   });
 });
 
+import { createHash } from 'node:crypto';
+import { learningPilotDrawV1 } from '@api/collections/content-learning/services/learning-experiment-assignment.helper';
 import {
+  learningCanonicalHash,
   learningHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import {
+  initializeLearningPolicy,
+  learningContribution,
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
@@ -314,9 +325,17 @@ function decisionFixture(count = 20) {
     },
     contentLearningBaseline: { findFirst: vi.fn().mockResolvedValue(baseline) },
     contentLearningCheckpoint: { findFirst: vi.fn() },
-    contentLearningOpportunity: { findFirst: vi.fn() },
+    contentLearningOpportunity: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      updateMany: vi.fn(),
+    },
     contentLearningEnrollment: { findFirst: vi.fn() },
-    contentLearningExperiment: { findFirst: vi.fn() },
+    contentLearningExperiment: {
+      findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    contentLearningPolicyVersion: { findFirst: vi.fn() },
     contentLearningDependency: { findMany: vi.fn() },
   };
   tx.$transaction.mockImplementation((fn) => fn(tx));
@@ -564,6 +583,352 @@ describe('baseline-only generation and immutable retry', () => {
     expect(legacy.contribution).toEqual({});
   });
 });
+const pilotSeed = 'cd'.repeat(32);
+function pilotFixture(options: {
+  exclusions?: Array<{ armId: string; reasonCode: string }>;
+  group: 'treatment' | 'control';
+  /** Picks a request whose treatment draw lands on the learned arm. */
+  isLearnedArm?: boolean;
+}) {
+  const f = decisionFixture();
+  const destinationKey = learningHash(['credential', 'text', 'awareness']);
+  const draw = (kind: string, key: string) =>
+    learningPilotDrawV1(pilotSeed, [
+      kind,
+      'experiment',
+      'org',
+      key,
+      destinationKey,
+      0,
+    ]);
+  const requestKey =
+    Array.from({ length: 2000 }, (_, i) => `request-${i}`).find(
+      (key) =>
+        (draw('group', key) < 0.1 ? 'treatment' : 'control') ===
+          options.group &&
+        (!options.isLearnedArm || draw('arm', key) >= 0.5),
+    ) ?? 'missing';
+  const now = Date.now();
+  // Keys are alphabetical so the legacy and canonical spec hashes agree.
+  const spec = {
+    approvedArmIds: ['baseline-v1', 'question-example-v1'],
+    candidateHash: 'manifest',
+    candidateId: 'policy',
+    cellKey: f.scopeKey,
+    configVersion: f.descriptor.configVersion,
+    featureVersion: f.descriptor.featureSchema,
+    format: 'text',
+    kind: 'private_pilot',
+    objective: 'awareness',
+    rewardProfileId: f.descriptorHash,
+    seedCommitment: createHash('sha256').update(pilotSeed).digest('hex'),
+    synthetic: false,
+    treatmentProbability: 0.1,
+  };
+  const experiment = {
+    id: 'experiment',
+    organizationId: 'org',
+    brandId: 'brand',
+    credentialId: 'credential',
+    spec,
+    specHash: learningCanonicalHash(spec),
+    candidatePolicyId: 'policy',
+    encryptedSeed: `enc:${pilotSeed}`,
+    startAt: new Date(now - 3_600_000),
+    endAt: new Date(now + 30 * 86_400_000),
+    sealedAt: new Date(now - 3_600_000),
+    status: 'sealed',
+    synthetic: false,
+    isDeleted: false,
+  };
+  const enrollment = {
+    id: 'enrollment',
+    experimentId: 'experiment',
+    consentNoticeVersion: 'notice-1',
+    ownerOperationId: 'operation',
+    consentAt: new Date(now - 3_600_000),
+    startAt: new Date(now - 3_600_000),
+    endAt: new Date(now + 30 * 86_400_000),
+  };
+  const state = initializeLearningPolicy();
+  state['question-example-v1'].b[0] = 20;
+  const policy = {
+    id: 'policy',
+    version: 1,
+    organizationId: 'org',
+    brandId: 'brand',
+    credentialId: 'credential',
+    scopeKey: f.scopeKey,
+    epoch: 1,
+    descriptorHash: f.descriptorHash,
+    algorithm: 'ridge-epsilon-v1',
+    configVersion: f.descriptor.configVersion,
+    featureSchema: f.descriptor.featureSchema,
+    synthetic: false,
+    evidenceManifestHash: 'manifest',
+    armState: state,
+  };
+  f.tx.contentLearningExperiment.findMany.mockResolvedValue([experiment]);
+  f.tx.contentLearningEnrollment.findFirst.mockResolvedValue(enrollment);
+  f.tx.contentLearningPolicyVersion.findFirst.mockResolvedValue(policy);
+  f.policies.current.mockResolvedValue(policy);
+  let opportunity: Record<string, unknown> | null = null;
+  f.tx.contentLearningOpportunity.create.mockImplementation(({ data }) => {
+    opportunity = {
+      id: 'opportunity',
+      decisionId: null,
+      isDeleted: false,
+      ...data,
+    };
+    return opportunity;
+  });
+  f.tx.contentLearningOpportunity.updateMany.mockImplementation(({ data }) => {
+    Object.assign(opportunity ?? {}, data);
+    return { count: 1 };
+  });
+  f.tx.contentLearningOpportunity.findFirst.mockImplementation(
+    () => opportunity,
+  );
+  f.tx.contentLearningExperiment.findFirst.mockResolvedValue(experiment);
+  const input = {
+    ...f.input,
+    armExclusions: options.exclusions,
+    context: { ...f.input.context, requestKey, generationId: 'post' },
+  };
+  // Assign (not spread) so the fixture's live `recorded` getter survives.
+  return Object.assign(f, { input, experiment, requestKey, destinationKey });
+}
+describe('pilot opportunity assignment (application stays inert)', () => {
+  it('creates no opportunity and never reads pilots without an eligible request', async () => {
+    const f = pilotFixture({ group: 'control', exclusions: [] });
+    f.account.mode = 'paused';
+    await f.service.resolveForGeneration(f.input);
+    expect(f.tx.contentLearningExperiment.findMany).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningOpportunity.create).not.toHaveBeenCalled();
+    const batch = pilotFixture({ group: 'control', exclusions: [] });
+    await batch.service.resolveBatchForGeneration({
+      ...batch.input,
+      candidates: [{ candidateIndex: 0 }, { candidateIndex: 1 }],
+      context: { ...batch.input.context, credentialId: 'credential' },
+    });
+    expect(batch.tx.contentLearningOpportunity.create).not.toHaveBeenCalled();
+  });
+  it('creates no opportunity when no pilot rows exist', async () => {
+    const f = decisionFixture();
+    await f.service.resolveForGeneration(f.input);
+    expect(f.tx.contentLearningExperiment.findMany).toHaveBeenCalledTimes(1);
+    expect(f.tx.contentLearningOpportunity.create).not.toHaveBeenCalled();
+    expect(f.recorded?.opportunityId).toBeNull();
+    expect(f.dependencies.link).toHaveBeenCalledTimes(5);
+  });
+  it('records a control opportunity with its provenance and receipt', async () => {
+    const f = pilotFixture({ group: 'control', exclusions: [] });
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(f.tx.contentLearningExperiment.findMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        organizationId: 'org',
+        isDeleted: false,
+        status: 'sealed',
+        kind: 'private_pilot',
+      }),
+      take: 2,
+    });
+    expect(f.tx.contentLearningOpportunity.create).toHaveBeenCalledTimes(1);
+    expect(f.recorded).toMatchObject({
+      opportunityId: 'opportunity',
+      selectedArmId: 'baseline-v1',
+      assignment: 'control',
+      assignmentProbability: 0.9,
+      accountPolicyId: 'policy',
+      censorshipReason: 'experiment_control',
+      eligibleArmIds: ['baseline-v1', 'question-example-v1'],
+    });
+    expect(f.tx.contentLearningOpportunity.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'opportunity', decisionId: null }),
+      data: { decisionId: 'decision' },
+    });
+    expect(f.dependencies.link).toHaveBeenCalledTimes(9);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt).toMatchObject({
+      opportunityId: 'opportunity',
+      experimentId: 'experiment',
+      armId: 'baseline-v1',
+      assignment: 'control',
+      reason: 'experiment_control',
+      policyVersionId: 'policy',
+    });
+    expect(
+      result.receipt.treatmentProbabilities?.['question-example-v1'],
+    ).toBeCloseTo(0.05 / 2 + 0.95, 9);
+    expect(result.receipt.controlProbabilities).toEqual({
+      'baseline-v1': 1,
+      'question-example-v1': 0,
+      'proof-steps-v1': 0,
+    });
+    expect(result.exclusions).toEqual([]);
+  });
+  it('replays without redrawing or creating rows', async () => {
+    const f = pilotFixture({ group: 'control', exclusions: [] });
+    const original = await f.service.resolveForGeneration(f.input);
+    f.tx.contentLearningOpportunity.create.mockClear();
+    f.tx.contentLearningDecision.create.mockClear();
+    f.tx.contentLearningExperiment.findMany.mockClear();
+    f.policies.current.mockClear();
+    const retry = await f.service.resolveForGeneration(f.input);
+    expect(retry.receipt).toEqual(original.receipt);
+    expect(f.tx.contentLearningOpportunity.create).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningDecision.create).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningExperiment.findMany).not.toHaveBeenCalled();
+    expect(f.policies.current).not.toHaveBeenCalled();
+  });
+  it('keeps unevaluated brand compatibility on the baseline arm and reports the exclusions', async () => {
+    const f = pilotFixture({ group: 'treatment', exclusions: undefined });
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(f.recorded).toMatchObject({
+      eligibleArmIds: ['baseline-v1'],
+      selectedArmId: 'baseline-v1',
+      assignment: 'pilot',
+      assignmentProbability: 0.1,
+      censorshipReason: 'experiment_treatment_baseline',
+    });
+    expect(result.exclusions).toEqual([
+      { armId: 'proof-steps-v1', reasonCode: 'brand_compatibility_unknown' },
+      {
+        armId: 'question-example-v1',
+        reasonCode: 'brand_compatibility_unknown',
+      },
+    ]);
+    expect(result.contribution).toEqual({});
+  });
+  it('applies the drawn arm only for a fully attributed treatment', async () => {
+    const f = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(f.recorded).toMatchObject({
+      selectedArmId: 'question-example-v1',
+      assignment: 'pilot',
+      assignmentProbability: 0.1,
+      censorshipReason: null,
+      accountPolicyId: 'policy',
+    });
+    expect(result.contribution).toEqual(
+      learningContribution('question-example-v1'),
+    );
+    expect(result.exclusions).toEqual([]);
+    expect(result.receipt).toMatchObject({
+      armId: 'question-example-v1',
+      opportunityId: 'opportunity',
+      experimentId: 'experiment',
+      policyVersionId: 'policy',
+    });
+    expect(result.receipt.reason).toBeUndefined();
+    const retry = await f.service.resolveForGeneration(f.input);
+    expect(retry.receipt).toEqual(result.receipt);
+    expect(retry.contribution).toEqual(result.contribution);
+    expect(f.tx.contentLearningOpportunity.create).toHaveBeenCalledTimes(1);
+  });
+  it('never applies a control opportunity', async () => {
+    const f = pilotFixture({ group: 'control', exclusions: [] });
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe('experiment_control');
+  });
+  it('suppresses the drawn arm while brand compatibility is unknown or excludes it', async () => {
+    const unknown = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    await unknown.service.resolveForGeneration(unknown.input);
+    const { armExclusions: _omitted, ...withoutExclusions } = unknown.input;
+    const replayed =
+      await unknown.service.resolveForGeneration(withoutExclusions);
+    expect(replayed.contribution).toEqual({});
+    expect(replayed.receipt.reason).toBe('brand_compatibility_unknown');
+    const excluded = await unknown.service.resolveForGeneration({
+      ...unknown.input,
+      armExclusions: [
+        { armId: 'question-example-v1', reasonCode: 'learning.test' },
+      ],
+    });
+    expect(excluded.contribution).toEqual({});
+    expect(excluded.receipt.reason).toBe('learning_incompatible');
+    expect(excluded.exclusions).toEqual([
+      { armId: 'question-example-v1', reasonCode: 'learning.test' },
+    ]);
+  });
+  it.each([
+    ['paused', 'paused'],
+    ['shadow', 'shadow'],
+    ['epoch', 'account_changed'],
+    ['scope', 'scope_changed'],
+    ['dependency', 'experiment_assignment_unavailable'],
+    ['policy', 'invalid_source'],
+    ['spec', 'experiment_assignment_unavailable'],
+    ['window', 'experiment_assignment_unavailable'],
+  ])('fences an applied treatment after %s', async (change, reason) => {
+    const f = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    const applied = await f.service.resolveForGeneration(f.input);
+    expect(applied.contribution).not.toEqual({});
+    if (change === 'paused' || change === 'shadow') f.account.mode = change;
+    if (change === 'epoch') f.account.epoch++;
+    if (change === 'scope') f.scope.revision++;
+    if (change === 'dependency')
+      f.dependencies.valid.mockImplementation(
+        async (kind: string) => kind !== 'enrollment',
+      );
+    if (change === 'policy') f.policies.current.mockResolvedValue(null);
+    if (change === 'spec')
+      f.experiment.spec = { ...f.experiment.spec, format: 'x' };
+    if (change === 'window') f.experiment.endAt = new Date(Date.now() - 1000);
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe(reason);
+  });
+  it('accepts a successor of the candidate policy but not an unrelated one', async () => {
+    const f = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    await f.service.resolveForGeneration(f.input);
+    const candidate = await f.tx.contentLearningPolicyVersion.findFirst();
+    const successor = {
+      ...candidate,
+      id: 'successor',
+      version: 2,
+      organizationId: 'org',
+      brandId: 'brand',
+      credentialId: 'credential',
+      scopeKey: f.scopeKey,
+      epoch: 1,
+      descriptorHash: f.descriptorHash,
+    };
+    if (!f.recorded) throw new Error('missing decision');
+    f.recorded.accountPolicyId = 'successor';
+    f.scope.activePolicyId = 'successor';
+    f.policies.current.mockResolvedValue(successor);
+    f.tx.contentLearningPolicyVersion.findFirst.mockImplementation(
+      async ({ where }) => (where.id === 'policy' ? candidate : null),
+    );
+    const accepted = await f.service.resolveForGeneration(f.input);
+    expect(accepted.contribution).toEqual(
+      learningContribution('question-example-v1'),
+    );
+    f.policies.current.mockResolvedValue({ ...successor, version: 1 });
+    const lower = await f.service.resolveForGeneration(f.input);
+    expect(lower.contribution).toEqual({});
+    expect(lower.receipt.reason).toBe('experiment_assignment_unavailable');
+  });
+});
+
 describe('structurally proven insufficient baseline observation retry', () => {
   it('retains honest zero-sample receipt without relaxing learned-source validity', async () => {
     const f = decisionFixture(0);

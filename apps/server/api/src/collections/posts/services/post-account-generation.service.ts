@@ -30,7 +30,10 @@ import {
   accountGenerationErrorCode,
   accountGenerationFailure,
 } from '@api/collections/posts/services/post-account-generation-reason.util';
-import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
+import {
+  PostAccountLearningService,
+  type PostAccountLearningSession,
+} from '@api/collections/posts/services/post-account-learning.service';
 import { extractPostGenerationLabel } from '@api/collections/posts/services/post-generation-text.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -61,6 +64,7 @@ import { ACCOUNT_GENERATION_POST_SOURCE } from '@genfeedai/contracts/constants';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { ContentHarnessContribution } from '@genfeedai/harness';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -81,6 +85,8 @@ interface DispatchUnit {
   candidateIndex: number;
   format: 'text' | 'thread';
   learning: LearningGenerationReceipt;
+  /** The tactic `learning` applied; empty unless the receipt says applied. */
+  learningContribution: ContentHarnessContribution;
   /** Texts the run already wrote, so this dispatch does not repeat them. */
   previousTexts: string[];
   posts: PostDocument[];
@@ -293,6 +299,7 @@ export class PostAccountGenerationService {
       candidateIndex: 0,
       format: isThread ? 'thread' : 'text',
       learning: unavailableLearningReceiptV1('retry_not_resampled', new Date()),
+      learningContribution: {},
       posts: [root, ...children],
       previousTexts: siblings.map((post) => post.description),
       requestKey,
@@ -338,11 +345,15 @@ export class PostAccountGenerationService {
         createdPosts,
         run.identity,
       );
-      const units = this.plan(dto, run, createdPosts, session.receipts);
+      const units = this.plan(dto, run, createdPosts, session);
       let completedCount = 0;
       let firstCompletedPostId: string | undefined;
-      for (const unit of units) {
+      for (const [unitIndex, planned] of units.entries()) {
         await this.queue.renew(run.scope.organizationId, run.runId);
+        const unit =
+          unitIndex === 0
+            ? planned
+            : await this.revalidated(session, planned, unitIndex);
         const result = await this.dispatch(run, {
           ...unit,
           previousTexts: [...written],
@@ -538,8 +549,9 @@ export class PostAccountGenerationService {
     dto: GenerateAccountPostDto,
     run: AccountGenerationRun,
     createdPosts: PostDocument[],
-    receipts: LearningGenerationReceipt[],
+    session: Pick<PostAccountLearningSession, 'receipts' | 'contributions'>,
   ): DispatchUnit[] {
+    const { receipts, contributions } = session;
     if (dto.format === 'thread')
       return [
         {
@@ -547,6 +559,7 @@ export class PostAccountGenerationService {
           candidateIndex: 0,
           format: 'thread',
           learning: receipts[0],
+          learningContribution: contributions[0],
           posts: createdPosts,
           previousTexts: [],
           requestKey: run.runId,
@@ -560,10 +573,28 @@ export class PostAccountGenerationService {
       candidateIndex: post.order ?? index,
       format: 'text' as const,
       learning: receipts[index],
+      learningContribution: contributions[index],
       posts: [post],
       previousTexts: [],
       requestKey: run.runId,
     }));
+  }
+
+  /**
+   * Re-checks a unit's decision just before its dispatch, so a pause, reset,
+   * rollback or newly incompatible brand fences work that was already queued.
+   */
+  private async revalidated(
+    session: PostAccountLearningSession,
+    unit: DispatchUnit,
+    index: number,
+  ): Promise<DispatchUnit> {
+    await this.learning.revalidate(session);
+    return {
+      ...unit,
+      learning: session.receipts[index],
+      learningContribution: session.contributions[index],
+    };
   }
 
   /** One branded dispatch. Never throws: its outcome is written to its own placeholders. */
@@ -683,6 +714,7 @@ export class PostAccountGenerationService {
       },
       persistText: (text) => this.persistText(unit, text),
       privateLearning: unit.learning,
+      learningContribution: unit.learningContribution,
       resolveApiKey: async () => run.funding.apiKey,
     };
   }

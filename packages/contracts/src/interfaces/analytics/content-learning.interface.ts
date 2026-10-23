@@ -63,6 +63,11 @@ export interface LearningGenerationContext {
   workflowExecutionId?: string;
   generationId?: string;
 }
+/** An approved-brand-incompatible learning arm, with the reason it is excluded. */
+export interface LearningArmExclusionV1 {
+  armId: string;
+  reasonCode: string;
+}
 export interface LearningGenerationApplicationV1 {
   status: 'applied' | 'baseline' | 'shadow' | 'suppressed' | 'unavailable';
   reasonCodes: string[];

@@ -12,6 +12,7 @@ import {
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentArtifactReferenceService, scopedWhere } from '@api/index';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -28,6 +29,7 @@ import {
   Injectable,
   type OnModuleInit,
   Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -77,6 +79,9 @@ const NEWSLETTER_LOAD_TOPICS_ACTION_ID = 'newsletter.load-topic-context';
 const NEWSLETTER_PERSIST_DRAFT_ACTION_ID = 'newsletter.persist-draft';
 const NEWSLETTER_DRAFT_WORKFLOW_ID = 'newsletter.draft-generation';
 const NEWSLETTER_TOPICS_WORKFLOW_ID = 'newsletter.topic-generation';
+const DRAFT_UNAVAILABLE_PREFIX = 'Newsletter draft unavailable:';
+const DRAFT_BRAND_CONTEXT_UNAVAILABLE = `${DRAFT_UNAVAILABLE_PREFIX} brand context could not be loaded, so nothing was generated or saved. Try again.`;
+const DRAFT_PROVIDER_UNAVAILABLE = `${DRAFT_UNAVAILABLE_PREFIX} the text provider returned no draft, so nothing was saved. Try again.`;
 
 function newsletterTopicsWorkflow(): SystemWorkflowGraphDefinition {
   return {
@@ -187,6 +192,7 @@ export class NewslettersService
     private readonly openRouterService: OpenRouterService,
     private readonly brandsService: BrandsService,
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
+    private readonly harnessGenerationService: HarnessGenerationService,
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {
     super(prisma, 'newsletter', logger);
@@ -578,19 +584,32 @@ export class NewslettersService
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
     const request = this.projectDraftDto(dto);
-    const { result } = await this.requireWorkflowRunner().runWorkflow<{
-      newsletterId: string;
-    }>({
-      actionType: NEWSLETTER_DRAFT_ACTION_ID,
-      canonicalId: NEWSLETTER_DRAFT_WORKFLOW_ID,
-      inputValues: { brandId: ctx.brandId, dto: request },
-      metadata: { brandId: ctx.brandId, origin: 'api' },
-      organizationId: ctx.organizationId,
-      source: 'NewslettersService.generateDraft',
-      trigger: WorkflowExecutionTrigger.API,
-      userId: ctx.userId,
-    });
-    return this.findOneScoped(result.newsletterId, ctx);
+    try {
+      const { result } = await this.requireWorkflowRunner().runWorkflow<{
+        newsletterId: string;
+      }>({
+        actionType: NEWSLETTER_DRAFT_ACTION_ID,
+        canonicalId: NEWSLETTER_DRAFT_WORKFLOW_ID,
+        inputValues: { brandId: ctx.brandId, dto: request },
+        metadata: { brandId: ctx.brandId, origin: 'api' },
+        organizationId: ctx.organizationId,
+        source: 'NewslettersService.generateDraft',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: ctx.userId,
+      });
+      return await this.findOneScoped(result.newsletterId, ctx);
+    } catch (error: unknown) {
+      // The workflow runner flattens action failures into a plain Error, so
+      // a draft that could not be written against brand context is restored
+      // to a retryable 503 here instead of a generic 500.
+      if (
+        error instanceof Error &&
+        error.message.includes(DRAFT_UNAVAILABLE_PREFIX)
+      ) {
+        throw new ServiceUnavailableException(error.message);
+      }
+      throw error;
+    }
   }
 
   private async loadDraftGenerationContext(
@@ -610,20 +629,58 @@ export class NewslettersService
       this.projectNewsletterContext(newsletter),
     );
 
+    const harnessBrief = await this.resolveDraftHarnessBrief(
+      request,
+      ctx,
+      Boolean(brand),
+    );
     const prompt = this.buildDraftPrompt(
       request,
-      buildBrandVoiceSummary(brand),
+      harnessBrief,
       contextNewsletters,
     );
     return { contextNewsletters, ctx, dto: request, prompt };
   }
 
+  /**
+   * The composed harness brief (org directive, brand voice, guardrails,
+   * criteria, examples), shared with the other copy kinds. A draft is never
+   * written without it: an unresolved brief fails the draft instead of
+   * letting a generic one through.
+   */
+  private async resolveDraftHarnessBrief(
+    dto: GenerateNewsletterDraftDto,
+    ctx: TenantContext,
+    hasBrand: boolean,
+  ): Promise<string> {
+    const brief = hasBrand
+      ? await this.harnessGenerationService.resolveBrief({
+          brandId: ctx.brandId,
+          contentType: 'newsletter',
+          includeContentMemory: true,
+          organizationId: ctx.organizationId,
+          topic: dto.topic,
+          userId: ctx.userId,
+        })
+      : null;
+    const harnessBrief = this.harnessGenerationService
+      .formatBrief(brief)
+      .trim();
+    if (!harnessBrief) {
+      this.logger.warn(
+        `${this.constructor.name} harness brief unavailable for newsletter draft`,
+        { brandId: ctx.brandId, organizationId: ctx.organizationId },
+      );
+      throw new Error(DRAFT_BRAND_CONTEXT_UNAVAILABLE);
+    }
+    return harnessBrief;
+  }
+
   private async generateDraftAction(
     state: NewsletterDraftContext,
   ): Promise<NewsletterGeneratedDraft> {
-    const { dto, prompt } = state;
-    const sourceRefs = dto.sourceRefs ?? [];
-    let generatedContent = '';
+    const { prompt } = state;
+    let generatedContent: string | undefined;
     try {
       const completion = await this.openRouterService.chatCompletion({
         max_tokens: TEXT_GENERATION_LIMITS.newsletterDraft,
@@ -638,15 +695,14 @@ export class NewslettersService
         model: LLM_DEFAULTS.fastText,
         temperature: 0.55,
       });
-      generatedContent =
-        completion.choices?.[0]?.message?.content?.trim() ??
-        this.buildFallbackDraft(dto.topic, dto.angle, sourceRefs);
-    } catch {
-      generatedContent = this.buildFallbackDraft(
-        dto.topic,
-        dto.angle,
-        sourceRefs,
-      );
+      generatedContent = completion.choices?.[0]?.message?.content?.trim();
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructor.name} newsletter draft failed`, {
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+    }
+    if (!generatedContent) {
+      throw new Error(DRAFT_PROVIDER_UNAVAILABLE);
     }
 
     return { ...state, generatedContent };
@@ -841,15 +897,15 @@ export class NewslettersService
 
   private buildDraftPrompt(
     dto: GenerateNewsletterDraftDto,
-    brandVoice: ReturnType<typeof buildBrandVoiceSummary>,
+    harnessBrief: string,
     contextNewsletters: NewsletterContextSnapshot[],
   ): string {
     const sourceRefs = dto.sourceRefs ?? [];
     return [
+      harnessBrief,
       `Topic: ${dto.topic}`,
       dto.angle ? `Angle: ${dto.angle}` : '',
       dto.instructions ? `Instructions: ${dto.instructions}` : '',
-      brandVoice ? `Brand voice: ${JSON.stringify(brandVoice)}` : '',
       contextNewsletters.length
         ? `Recent newsletter context:\n${contextNewsletters
             .map(
@@ -919,18 +975,6 @@ export class NewslettersService
     const json = match?.[0] ?? value;
     const parsed = JSON.parse(json) as unknown;
     return Array.isArray(parsed) ? (parsed as T[]) : [];
-  }
-
-  private buildFallbackDraft(
-    topic: string,
-    angle?: string,
-    sourceRefs?: GenerateNewsletterDraftDto['sourceRefs'],
-  ): string {
-    const sources =
-      sourceRefs
-        ?.map((item) => `- ${item.label}${item.url ? ` (${item.url})` : ''}`)
-        .join('\n') ?? '- No sources provided';
-    return `# ${topic}\n\n${angle ? `${angle}\n\n` : ''}## Intro\nA concise update for this issue.\n\n## What changed\nSummarize the most important movement here.\n\n## Why it matters\nExplain the implication for the audience.\n\n## What to do next\nGive one practical next step.\n\n## Sources\n${sources}\n\n## CTA\nReply with the topic you want us to cover next.`;
   }
 
   private resolveDraftTitle(topic: string, draftContent: string): string {
