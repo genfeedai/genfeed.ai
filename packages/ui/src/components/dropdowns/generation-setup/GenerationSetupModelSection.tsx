@@ -31,7 +31,7 @@ import {
 } from '@ui/primitives/command';
 import { Check, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type KeyboardEvent, useRef, useState } from 'react';
+import { type KeyboardEvent, useState } from 'react';
 
 /**
  * Model list: an Auto card (one row per {@link AUTO_PRIORITY_OPTIONS}) plus the
@@ -55,7 +55,7 @@ export default function GenerationSetupModelSection({
   const translate = useTranslations('agent.generationSetup');
   const [search, setSearch] = useState('');
   const [isLegacyOpen, setIsLegacyOpen] = useState(false);
-  const highlightedValue = useRef('');
+  const [highlightedValue, setHighlightedValue] = useState('');
   const query = search.trim().toLowerCase();
 
   if (!capabilities.hasModelSelection) {
@@ -90,7 +90,7 @@ export default function GenerationSetupModelSection({
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     if (
       event.key !== 'ArrowRight' ||
-      highlightedValue.current !== LEGACY_MODELS_ROW_VALUE
+      highlightedValue !== LEGACY_MODELS_ROW_VALUE
     )
       return;
     // In the search box the arrow still moves the caret until it is at the end.
@@ -134,10 +134,11 @@ export default function GenerationSetupModelSection({
         label={translate('searchModels')}
         className="flex min-h-0 flex-col bg-transparent text-foreground"
         onKeyDown={handleKeyDown}
-        onValueChange={(value) => {
-          highlightedValue.current = value;
-        }}
+        // Controlled so cmdk reports the highlighted row, including the one it
+        // picks on its own when the list changes.
+        onValueChange={setHighlightedValue}
         shouldFilter={false}
+        value={highlightedValue}
       >
         <CommandInput
           aria-label={translate('searchModels')}
