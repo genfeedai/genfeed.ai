@@ -1389,3 +1389,142 @@ describe('post owner transaction lease and telemetry', () => {
     );
   });
 });
+
+describe('enhancement failure publish boundary', () => {
+  const reason = {
+    assetId: 'asset-1',
+    code: 'generation:enhancement_failed',
+    source: 'generation' as const,
+    message:
+      'Brand enhancement failed; review and approve in the app before publishing.',
+  };
+  function setup(origin: ActionOrigin, isEnhancementFailed = true) {
+    const post = makePost({
+      ingredients: [{ id: 'asset-1' }],
+      publishApprovalId: 'approval-1',
+    });
+    let approval = makeApproval({
+      provenance: { origin },
+      scopeDigest: scopeDigest(),
+    });
+    const publishApproval = {
+      create: vi
+        .fn()
+        .mockImplementation(({ data }) => ({ ...makeApproval(), ...data })),
+      findFirst: vi.fn().mockResolvedValue(approval),
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        approval = { ...approval, ...data };
+        return { count: 1 };
+      }),
+    };
+    const prisma = {
+      post: {
+        findFirst: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      publishApproval,
+      member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
+      organization: {
+        findFirst: vi.fn().mockResolvedValue({ userId: 'user-1' }),
+      },
+      credential: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'credential-1' }),
+      },
+    };
+    const gate = {
+      evaluatePublishReadiness: vi.fn().mockResolvedValue({
+        checkedAt: NOW.toISOString(),
+        diagnostics: [],
+        isBlocked: false,
+      }),
+      assessPublishMedia: vi.fn().mockResolvedValue({
+        isBlocking: isEnhancementFailed,
+        isPerceptionPending: false,
+        reasons: isEnhancementFailed ? [reason] : [],
+        warnings: [],
+      }),
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {
+        createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+        assertVersionPinCurrent: vi.fn(),
+      } as unknown as AgentArtifactReferenceService,
+      undefined,
+      gate,
+    );
+    return { service, prisma, gate };
+  }
+  const claim = {
+    approvalId: 'approval-1',
+    operationId: 'operation-1',
+    organizationId: 'org-1',
+    postId: 'post-1',
+    versionPinId: 'pin-1',
+  };
+
+  it.each([
+    ActionOrigin.WORKFLOW,
+    ActionOrigin.MCP,
+    ActionOrigin.AGENT,
+    ActionOrigin.API,
+    ActionOrigin.UNKNOWN,
+  ])(
+    'refuses unattended approval creation and queued dispatch from %s',
+    async (origin) => {
+      const { service, prisma, gate } = setup(origin);
+      await expect(
+        runWithActionOrigin({ origin }, () =>
+          service.createForCurrentPost({
+            actorUserId: 'user-1',
+            mode: 'scheduled',
+            organizationId: 'org-1',
+            postId: 'post-1',
+          }),
+        ),
+      ).rejects.toThrow('Brand enhancement failed');
+      expect(prisma.publishApproval.create).not.toHaveBeenCalled();
+      // An old queued approval is checked again, regardless of the worker's current origin.
+      await expect(
+        runWithActionOrigin({ origin: ActionOrigin.UI }, () =>
+          service.claimForExecution(claim),
+        ),
+      ).rejects.toThrow('Brand enhancement failed');
+      expect(prisma.publishApproval.updateMany).not.toHaveBeenCalled();
+      expect(gate.assessPublishMedia).toHaveBeenCalledWith({
+        assetIds: ['asset-1'],
+        organizationId: 'org-1',
+        platforms: [],
+      });
+    },
+  );
+
+  it('lets a human approve and dispatch flagged media, retaining the review reason', async () => {
+    const { service, prisma } = setup(ActionOrigin.UI);
+    prisma.publishApproval.findFirst.mockResolvedValueOnce(null);
+    const approval = await runWithActionOrigin(
+      { origin: ActionOrigin.UI },
+      () =>
+        service.createForCurrentPost({
+          actorUserId: 'user-1',
+          mode: 'scheduled',
+          organizationId: 'org-1',
+          postId: 'post-1',
+          transaction: prisma as never,
+        }),
+    );
+    expect(approval.provenance.mediaAssessmentReasons).toEqual([reason]);
+    await expect(service.claimForExecution(claim)).resolves.toMatchObject({
+      isAlreadyPublished: false,
+    });
+  });
+
+  it('leaves successful enhancement publishable through the scheduled workflow claim', async () => {
+    const { service } = setup(ActionOrigin.WORKFLOW, false);
+    await expect(service.claimForExecution(claim)).resolves.toMatchObject({
+      isAlreadyPublished: false,
+    });
+  });
+});

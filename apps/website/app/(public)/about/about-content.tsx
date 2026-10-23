@@ -1,5 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { PLAN_COPY } from '@genfeedai/pricing';
+import { IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
@@ -119,7 +119,8 @@ const DIFFERENTIATORS = [
     body: (
       <>
         At the {PLAN_COPY.payg.name} rate one credit is one cent, and
-        subscriptions buy credits cheaper. An image costs 50 credits and an
+        subscriptions buy credits cheaper. A FLUX.3 image costs{' '}
+        {IMAGE_CREDIT_COSTS.image1kTo2k.minCredits} credits at 1K and an
         8-second reel costs 600 credits, and you see the price before you
         generate.
       </>

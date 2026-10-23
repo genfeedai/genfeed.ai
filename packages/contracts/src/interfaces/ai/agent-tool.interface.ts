@@ -1,8 +1,9 @@
+import type { GenerationEnhancementStatus } from '../content/generation-harness.interface';
 import type { AgentUiAction } from './agent-ui-action.interface';
 
 export interface AgentToolResult {
   success: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> & GenerationEnhancementStatus;
   error?: string;
   creditsUsed: number;
   /**

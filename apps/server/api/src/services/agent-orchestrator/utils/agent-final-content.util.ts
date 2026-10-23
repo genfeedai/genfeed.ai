@@ -6,13 +6,23 @@ import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
  * including Turbo run result card cleanup and voice-clone fallbacks.
  */
 export function normalizeFinalAssistantContent(
-  content: string,
+  assistantContent: string,
   toolCalls: ToolCallSummary[],
   uiActions: AgentUiAction[],
 ): { content: string; isFallback: boolean } {
   const hasTurboRunResultCard = uiActions.some(
     (action) => action.type === 'turbo_run_result_card',
   );
+
+  const hasPendingPostProposal = uiActions.some(
+    (action) =>
+      action.type === 'mutation_approval_card' &&
+      action.title?.trim().toLowerCase() === 'create post' &&
+      action.data?.status === 'pending',
+  );
+  const content = hasPendingPostProposal
+    ? normalizePendingPostContent(assistantContent)
+    : assistantContent;
 
   if (content.trim().length > 0) {
     if (hasTurboRunResultCard) {
@@ -55,4 +65,21 @@ export function normalizeFinalAssistantContent(
   }
 
   return { content: 'I prepared the next step below.', isFallback: true };
+}
+
+function normalizePendingPostContent(content: string): string {
+  if (!content.trim()) {
+    return 'Post proposal ready for review. Approve its Create post card to create the post.';
+  }
+
+  return content
+    .replace(
+      /\b(?:I(?:['’]ve| have)?|We(?:['’]ve| have)?)\s+created\s+(?:(?:a|the|your)\s+)?(?:post(?:\s+draft)?|draft(?:\s+post)?)(?!\s+(?:post|draft|proposal)\b)\b/gi,
+      'Post proposal ready for review',
+    )
+    .replace(
+      /\b(?:(no)\s+)?(?:(?:the|your|a)\s+)?(?:post(?:\s+draft)?|draft(?:\s+post)?)\s+(?:(?:was|is)\s+|has\s+been\s+)?created\b/gi,
+      (claim: string, negation: string | undefined) =>
+        negation ? claim : 'Post proposal ready for review',
+    );
 }

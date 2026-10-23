@@ -87,7 +87,7 @@ export type ConnectGenfeedStep =
   | 'verification';
 
 /** The public signup method the user selected. */
-export type SignupMethod = 'google' | 'magic_link';
+export type SignupMethod = 'google' | 'magic_link' | 'password';
 
 /** The checkout branch created from the onboarding handoff. */
 export type CheckoutKind = 'credits' | 'managed_credits' | 'plan';

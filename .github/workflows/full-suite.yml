@@ -1,7 +1,7 @@
 # Full Suite — the complete validation pipeline, and the caller for release
 # verification.
 #
-# On demand only: Actions → "Full Suite (CI + Release Gates + E2E)" → Run
+# On demand only: Actions → "Full Suite" → Run
 # workflow → pick the branch. release.yml also calls it (workflow_call) for the
 # exact release SHA when no green exact-SHA run exists to reuse.
 #
@@ -22,8 +22,8 @@
 # this file only orders the public release-prep gates. Community self-hosted image
 # verification lives in build-verify-selfhosted.yml and runs independently.
 
-name: Full Suite (CI + Release Gates + E2E)
-run-name: Master SHA · ${{ github.sha }}
+name: Full Suite
+run-name: Full Suite · ${{ github.ref_name }}
 
 on:
   workflow_dispatch:

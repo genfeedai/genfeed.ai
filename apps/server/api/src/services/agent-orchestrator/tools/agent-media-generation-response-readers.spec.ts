@@ -1,5 +1,6 @@
 import {
   isAwsS3PublicHost,
+  readMediaGenerationHarnessFields,
   readUsableCdnAssetUrl,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { describe, expect, it } from 'vitest';
@@ -44,5 +45,28 @@ describe('readUsableCdnAssetUrl', () => {
         ingredientsEndpoint,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('readMediaGenerationHarnessFields', () => {
+  it('flags a skipped harness as enhancement failed', () => {
+    const generationHarness = { isEnhancementFailed: true, status: 'skipped' };
+
+    expect(
+      readMediaGenerationHarnessFields({ data: { generationHarness } }),
+    ).toEqual({ generationHarness, isEnhancementFailed: true });
+  });
+
+  it('honors an explicit top-level enhancement failure flag', () => {
+    expect(
+      readMediaGenerationHarnessFields({ isEnhancementFailed: true }),
+    ).toEqual({ generationHarness: undefined, isEnhancementFailed: true });
+  });
+
+  it('is not failed when neither signal is present', () => {
+    expect(readMediaGenerationHarnessFields({})).toEqual({
+      generationHarness: undefined,
+      isEnhancementFailed: false,
+    });
   });
 });

@@ -2,10 +2,9 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { constants, readFileSync, realpathSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import {
   access,
-  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -16,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { consola } from 'consola';
+import { configureEnvironment } from './wizard.js';
 
 const REPOSITORY = 'genfeedai/genfeed.ai';
 const RELEASE_API_URL = `https://api.github.com/repos/${REPOSITORY}/releases/latest`;
@@ -24,7 +24,6 @@ const RELEASE_ARCHIVE_NAME = 'genfeed-selfhosted.tar.gz';
 const RELEASE_CHECKSUM_NAME = `${RELEASE_ARCHIVE_NAME}.sha256`;
 const RELEASE_MANIFEST_NAME = 'release.json';
 const EXPECTED_IMAGE_REPOSITORY = 'ghcr.io/genfeedai/genfeed.ai';
-const APP_URL = 'http://localhost:3000';
 // Keep in sync with "engines.node" (>=24 <25) in package.json.
 const MIN_NODE_MAJOR = 24;
 const MAX_NODE_MAJOR_EXCLUSIVE = 25;
@@ -32,6 +31,7 @@ const MAX_NODE_MAJOR_EXCLUSIVE = 25;
 interface CliOptions {
   release?: string;
   start: boolean;
+  yes?: boolean;
 }
 
 interface ReleaseManifest {
@@ -273,13 +273,14 @@ function assertInstallPrerequisites(): void {
 
 async function waitForApp(
   fetchImplementation: FetchImplementation,
+  appUrl: string,
   timeoutMs = 180_000,
 ): Promise<boolean> {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
     try {
-      const response = await fetchImplementation(APP_URL, {
+      const response = await fetchImplementation(appUrl, {
         redirect: 'manual',
         signal: AbortSignal.timeout(2_000),
       });
@@ -373,11 +374,14 @@ export async function installRelease(
       await readFile(join(projectDirectory, RELEASE_MANIFEST_NAME), 'utf8'),
       releaseTag,
     );
-    await copyFile(
-      join(projectDirectory, '.env.example'),
-      join(projectDirectory, '.env'),
-      constants.COPYFILE_EXCL,
+    const setup = await configureEnvironment(
+      await readFile(join(projectDirectory, '.env.example'), 'utf8'),
+      options.yes,
     );
+    await writeFile(join(projectDirectory, '.env'), setup.content, {
+      flag: 'wx',
+      mode: 0o600,
+    });
 
     await runCommand(
       'docker',
@@ -412,11 +416,13 @@ export async function installRelease(
     );
 
     consola.start('Waiting for Genfeed.ai to become ready…');
-    if (await waitForApp(fetchImplementation)) {
-      consola.success(`Genfeed.ai is running at ${APP_URL}`);
-      openBrowser(APP_URL);
+    if (await waitForApp(fetchImplementation, setup.appUrl)) {
+      consola.success(`Genfeed.ai is running at ${setup.appUrl}`);
+      openBrowser(setup.appUrl);
     } else {
-      consola.warn(`The containers started, but ${APP_URL} is not ready yet.`);
+      consola.warn(
+        `The containers started, but ${setup.appUrl} is not ready yet.`,
+      );
     }
   } catch (error) {
     if (createdProjectDirectory && !startAttempted) {
@@ -448,6 +454,10 @@ async function main(): Promise<void> {
     .version(readPackageVersion())
     .argument('<project-name>', 'Directory for the self-hosted installation')
     .option('--release <tag>', 'Install an exact release (for example, v0.5.0)')
+    .option(
+      '--yes',
+      'Use OPENROUTER_API_KEY and optional SELFHOSTED_DOMAIN without prompts',
+    )
     .option(
       '--no-start',
       'Prepare and verify the installation without starting it',

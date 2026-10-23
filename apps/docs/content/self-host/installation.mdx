@@ -115,11 +115,11 @@ installations on your own machine or behind your network's access controls.
 
    `BETTER_AUTH_SECRET` can stay empty: the container generates one and keeps it
    in `/data/.better-auth-secret`.
-2. Create your account. The login page offers **Google** and **Magic Link**
-   only. Both need setup: Magic Link needs `RESEND_API_KEY` to send the email,
-   and Google needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
-   With neither configured, create an email and password account through the
-   API instead:
+2. Create your account. Open `http://localhost:3000/sign-up` and choose
+   **Email & password**. It needs no email provider and no Google client.
+   **Magic Link** appears only once `RESEND_API_KEY` is set, and **Google**
+   needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`. You can also
+   create the account through the API, then sign in at `/login/password`:
 
    ```bash
    curl -X POST http://localhost:3010/v1/auth/sign-up/email \

@@ -23,6 +23,29 @@ function mockFetch(response: Response) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('native MCP image delivery', () => {
+  it.each(['image', 'video'])(
+    'warns MCP clients about failed %s enhancement even when prompt details are withheld',
+    async (kind) => {
+      const result = await toNativeMcpMediaResult(
+        {
+          id: 'asset-1',
+          kind,
+          status: 'PROCESSING',
+          isEnhancementFailed: true,
+          generationHarness: null,
+        },
+        [],
+      );
+      expect(result.structuredContent.data.isEnhancementFailed).toBe(true);
+      expect(JSON.stringify(result.content)).toContain(
+        'Brand enhancement failed',
+      );
+      expect(JSON.stringify(result.content)).toContain(
+        'Automatic publishing is blocked',
+      );
+    },
+  );
+
   it('keeps media IDs and harness receipts out of display text and resource names', async () => {
     const data = {
       id: 'video-private',

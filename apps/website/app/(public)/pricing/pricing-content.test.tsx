@@ -5,6 +5,7 @@ import {
   formatPrice,
   getPlanByTier,
   getScalePlan,
+  IMAGE_CREDIT_COSTS,
 } from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen, within } from '@testing-library/react';
@@ -151,5 +152,18 @@ describe('PricingContent', () => {
     // Photo animation to Avatar V: 52–160 credits, not the old 400.
     expect(row).toHaveTextContent('52–160 credits≈ $0.52–$1.60');
     expect(row).not.toHaveTextContent('400 credits');
+  });
+
+  it('prices images from the reviewed FLUX.3 rates, not a flat 50 credits', () => {
+    render(<PricingContent />);
+    const range = screen.getByText('Image (1K–2K)').parentElement;
+    const fourK = screen.getByText('Image (4K)').parentElement;
+
+    expect(range).toHaveTextContent(
+      `${IMAGE_CREDIT_COSTS.image1kTo2k.minCredits}–${IMAGE_CREDIT_COSTS.image1kTo2k.maxCredits} credits`,
+    );
+    expect(range).toHaveTextContent('8–17 credits≈ $0.08–$0.17');
+    expect(fourK).toHaveTextContent('102 credits');
+    expect(screen.queryByText(/^50 credits/)).not.toBeInTheDocument();
   });
 });

@@ -438,6 +438,16 @@ const PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING = {
   promptPerMillion: 0.75,
 } as const;
 
+/**
+ * Credits one post enhancement (AI Rewrite) is quoted and charged: the flat
+ * `cost` of the Gemini 3.8 Flash row, which `POST /posts/:postId/enhancements`
+ * admits against. The composer prompt bar shows this figure, so the label
+ * cannot drift from the hold.
+ */
+export const POST_ENHANCEMENT_CREDITS = calculateAgentRoundCredits(
+  PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING,
+);
+
 /** Grok 4.3 list price on OpenRouter, read 2026-10-15. */
 const PRODUCT_TEXT_GROK_4_3_PRICING = {
   completionPerMillion: 2.5,
@@ -458,7 +468,7 @@ function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
   return [
     {
       category: ModelCategory.TEXT,
-      cost: calculateAgentRoundCredits(pricing),
+      cost: POST_ENHANCEMENT_CREDITS,
       costTier: CostTier.MEDIUM,
       description:
         'Gemini 3.8 Flash — seed fallback for drafts and prompt enhancement when no Admin default text model is set. Not offered in the agent chat picker.',

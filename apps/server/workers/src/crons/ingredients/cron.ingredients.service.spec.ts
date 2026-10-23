@@ -10,8 +10,14 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import { ConfigService } from '@workers/config/config.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
 
 describe('CronIngredientsService', () => {
   let service: CronIngredientsService;
@@ -180,6 +186,38 @@ describe('CronIngredientsService', () => {
         expect.stringContaining('Found 2 stuck processing ingredients'),
         expect.any(Object),
       );
+    });
+
+    it('reports timed-out generations to Sentry', async () => {
+      ingredientsService.findAll.mockResolvedValue(
+        mockStuckIngredients as unknown as AggregatePaginateResult<IngredientEntity>,
+      );
+      ingredientsService.patchAll.mockResolvedValue({
+        modifiedCount: 2,
+      } as unknown as { modifiedCount: number });
+
+      await service.checkStuckProcessingIngredients();
+
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Studio generations timed out while processing',
+        expect.objectContaining({
+          extra: {
+            count: 2,
+            ingredientIds: ['ingredient-id-1', 'ingredient-id-2'],
+          },
+          level: 'error',
+        }),
+      );
+    });
+
+    it('does not report to Sentry when nothing timed out', async () => {
+      ingredientsService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<IngredientEntity>);
+
+      await service.checkStuckProcessingIngredients();
+
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
     });
 
     it('should skip if already running', async () => {
