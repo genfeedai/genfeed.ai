@@ -136,7 +136,7 @@ export default function OrganizationSwitcher({
             <SwitcherAvatar
               alt={displayLabel}
               fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
-              imageUrl={activeOrg?.logoUrl}
+              imageUrl={activeOrg?.logoUrl ?? undefined}
               imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
               letter={displayLabel.charAt(0).toUpperCase()}
             />
