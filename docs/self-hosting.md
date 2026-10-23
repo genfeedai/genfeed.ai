@@ -105,6 +105,11 @@ This still runs the published GHCR image; it does not build the checked-out
 source. Unlike a release bundle, the source template defaults to the mutable
 `latest` tag unless `GENFEED_IMAGE_TAG` is set explicitly.
 
+## Test it and send a report
+
+To try a sample workflow and tell us how the install went, follow
+[Test Genfeed Community](./community-testing.md).
+
 ## Troubleshooting
 
 ### `P1001: Can't reach database server at postgres:5432`

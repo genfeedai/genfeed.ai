@@ -1,0 +1,63 @@
+name: Test report
+description: Tell us how an install and the sample workflow went, including when nothing broke
+labels: ["needs:triage", "tester-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [Test Genfeed Community](https://github.com/genfeedai/genfeed.ai/blob/master/docs/community-testing.md) first. Reports are public: do not include keys, tokens, email addresses or personal data. A reproducible bug also needs its own bug report; link it below.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag or image digest (`docker compose images`).
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, CPU architecture, Docker runtime and version.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install result
+      options:
+        - Passed with no changes to the guide
+        - Passed after a workaround (describe below)
+        - Failed
+    validations:
+      required: true
+  - type: input
+    id: minutes
+    attributes:
+      label: Minutes from `docker compose up -d` to the first page load
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Sample brief result
+      options:
+        - Finished all four steps
+        - Finished some steps (say which below)
+        - Did not start
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened
+      description: Where you stopped, what surprised you, what was unclear. For a failure, the exact command and error text.
+    validations:
+      required: true
+  - type: input
+    id: cost
+    attributes:
+      label: Provider cost of the image step
+      description: What your provider charged, or "not run".
+  - type: input
+    id: bug
+    attributes:
+      label: Related bug report
+      description: Link, if you filed one.
