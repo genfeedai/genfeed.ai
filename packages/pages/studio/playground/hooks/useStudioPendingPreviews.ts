@@ -42,7 +42,10 @@ export function useStudioPendingPreviews({
   jobs,
   recoverPreview,
 }: UseStudioPendingPreviewsParams): void {
-  const pendingJobs = useMemo(() => jobs.filter(isStudioPreviewPending), [jobs]);
+  const pendingJobs = useMemo(
+    () => jobs.filter(isStudioPreviewPending),
+    [jobs],
+  );
   const pendingKey = pendingJobs.map((job) => job.id).join('\u0001');
   const pendingJobsRef = useRef(pendingJobs);
   pendingJobsRef.current = pendingJobs;
@@ -74,7 +77,10 @@ export function useStudioPendingPreviews({
           if (grant.state === 'READY' && grant.url) {
             settledIds.add(job.id);
             recoverPreview(job, grant.url);
-          } else if (grant.state === 'FAILED' || grant.state === 'UNSUPPORTED') {
+          } else if (
+            grant.state === 'FAILED' ||
+            grant.state === 'UNSUPPORTED'
+          ) {
             // Terminal: the card keeps its fallback and the Inspector offers Retry.
             settledIds.add(job.id);
           }

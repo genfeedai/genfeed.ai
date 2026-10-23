@@ -57,7 +57,10 @@ describe('isStudioPreviewPending', () => {
       }),
     ).toBe(false);
     expect(
-      isStudioPreviewPending({ ...pendingJob, status: IngredientStatus.FAILED }),
+      isStudioPreviewPending({
+        ...pendingJob,
+        status: IngredientStatus.FAILED,
+      }),
     ).toBe(false);
   });
 });
