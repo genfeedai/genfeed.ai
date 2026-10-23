@@ -4,6 +4,8 @@ import {
 } from '@api/collections/credits/services/generation-billing.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { assertProviderOfferAvailable } from '@api/collections/models/utils/assert-provider-offer-available.util';
+import { mapProviderOfferInput } from '@api/collections/models/utils/provider-offer-input.util';
 import type {
   CreateVideoPlaceholderActivityParams,
   DispatchVideoGenerationParams,
@@ -48,6 +50,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -384,6 +387,7 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
   ): DispatchVideoGenerationParams {
     return {
+      abortSignal: context.abortSignal,
       preparedFalDispatch: context.preparedFalDispatch,
       apiKeyOverride: this.resolveByokApiKeyOverride(context),
       duration: context.createVideoDto.duration,
@@ -406,6 +410,88 @@ export class VideoGenerationExecutionService {
     output?: number,
     ingredientIds: readonly string[] = [context.ingredientData.id.toString()],
   ): Promise<StartedVideoGeneration> {
+    const quote = (
+      context.request as unknown as DeferredCreditsRequest | undefined
+    )?.creditsConfig?.modelQuote;
+    const routed = quote?.routedDispatch;
+    if (routed && quote) {
+      const nativeInput = context.promptParams;
+      const targets = [
+        routed,
+        ...(routed.fallback && !this.resolveByokApiKeyOverride(context)
+          ? [routed.fallback]
+          : []),
+      ];
+      for (const [index, target] of targets.entries()) {
+        const registration = await assertProviderOfferAvailable(
+          this.metadataService.prisma,
+          target.offerId,
+          target.provider,
+          context.user.organizationId,
+        );
+        const version =
+          'rateVersion' in target ? target.rateVersion : quote.rateVersion;
+        if (
+          registration.reviewedProviderContractVersion !== version ||
+          registration.endpoint !== target.endpoint
+        )
+          throw new HttpException(
+            'Provider contract changed. Request a fresh quote.',
+            HttpStatus.CONFLICT,
+          );
+        const input =
+          target.executionModelKey === context.model
+            ? nativeInput
+            : mapProviderOfferInput(registration.providerInputSchema, {
+                ...quote.quantities,
+                providerInput: nativeInput,
+              });
+        if (!input)
+          throw new HttpException(
+            'Provider input is incompatible with this quote.',
+            HttpStatus.CONFLICT,
+          );
+        try {
+          const result = await this.providerDispatchService.dispatch({
+            ...this.dispatchParams(context),
+            isRoutedOffer: true,
+            model: target.executionModelKey,
+            modelEndpoint: target.endpoint,
+            modelProvider: target.provider,
+            modelInputSchema: isRecord(registration.providerInputSchema)
+              ? registration.providerInputSchema
+              : undefined,
+            modelSchemaFamily: target.schemaFamily ?? undefined,
+            promptParams: input,
+            preparedFalDispatch:
+              target.provider === 'fal'
+                ? { endpoint: target.endpoint, input }
+                : undefined,
+            onProviderSubmissionStarted: () =>
+              this.beginSubmission(context, ingredientIds),
+          });
+          if (!result.externalId) throw this.generationStartError(output);
+          context.modelProvider = result.provider;
+          return { ...result, externalId: result.externalId };
+        } catch (error: unknown) {
+          if (
+            context.abortSignal?.aborted ||
+            index === targets.length - 1 ||
+            (error instanceof HttpException && error.getStatus() < 500)
+          )
+            throw error;
+          this.loggerService.warn(
+            'Retrying generation on the next reviewed provider offer',
+            {
+              ingredientId: context.ingredientData.id,
+              failedProvider: target.provider,
+              nextProvider: targets[index + 1]?.provider,
+            },
+          );
+        }
+      }
+      throw this.generationStartError(output);
+    }
     const externalProvider = this.providerDispatchService.providerFor(
       context.model,
       context.modelProvider,

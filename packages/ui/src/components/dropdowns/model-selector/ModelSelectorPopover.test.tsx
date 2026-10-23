@@ -397,6 +397,29 @@ describe('ModelSelectorPopover', () => {
     expect(onChange).toHaveBeenCalledWith('models', ['google/nano-banana-pro']);
   });
 
+  it('keeps a stored provider selection on its one logical model entry', () => {
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/veo-3.1',
+            aliases: ['fal-ai/veo3.1'],
+            label: 'Veo 3.1',
+          }),
+        ]}
+        values={['fal-ai/veo3.1']}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Veo 3.1/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Replicate' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows a provider mark on every row instead of a provider rail', async () => {
     const user = userEvent.setup();
 

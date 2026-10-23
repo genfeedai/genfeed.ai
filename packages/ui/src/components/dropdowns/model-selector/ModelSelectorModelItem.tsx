@@ -89,7 +89,11 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
             isLocked && 'cursor-not-allowed opacity-50',
           )}
         >
-          <ModelAvatar model={model} testId="model-row-provider-icon" />
+          <ModelAvatar
+            isProviderVisible={false}
+            model={model}
+            testId="model-row-provider-icon"
+          />
 
           <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
             {isSingleSelect ? (

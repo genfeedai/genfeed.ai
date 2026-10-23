@@ -18,9 +18,12 @@ export type ModelWithPricingContracts = PrismaModel &
       Prisma.ModelGetPayload<{
         include: {
           providerContracts: typeof PRICING_ATTENTION_SELECT.providerContracts;
+          providerOffers: {
+            select: { executionModel: { select: { key: true } } };
+          };
         };
       }>,
-      'providerContracts'
+      'providerContracts' | 'providerOffers'
     >
   >;
 
@@ -103,6 +106,10 @@ export function projectRegistryModelDocument(
   // margin-current values on read.
   const withProviderConfig = {
     ...model,
+    aliases:
+      document.providerOffers
+        ?.map((offer) => offer.executionModel.key)
+        .filter((key) => key !== document.key) ?? [],
     providerConfig: getModelProviderConfig(document),
     inputControls: projectReviewedCrunModelInputControls(document),
     hasReviewedPricing: hasReviewedModelPricing(document),

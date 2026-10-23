@@ -46,8 +46,19 @@ describe('VideoGenerationExecutionService', () => {
       rememberAcceptedOutput: vi.fn().mockResolvedValue(undefined),
       settleOutput: vi.fn().mockResolvedValue('no-hold'),
     };
-    const loggerService = { debug: vi.fn(), error: vi.fn(), log: vi.fn() };
-    const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
+    const loggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+    const metadataService = {
+      patch: vi.fn().mockResolvedValue(undefined),
+      prisma: {
+        modelProviderOffer: { findFirst: vi.fn() },
+        providerRoutingSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+      },
+    };
     const providerDispatchService = {
       dispatch: vi.fn(),
       providerFor: vi.fn().mockReturnValue('replicate'),
@@ -97,6 +108,87 @@ describe('VideoGenerationExecutionService', () => {
       service,
     };
   }
+
+  it('retries once with the frozen fallback and completes the same admitted output', async () => {
+    const state = createHarness();
+    const priced = quoteModelBillablePricing(
+      billableProfile({ key: 'replicate/model' }),
+      {
+        modelKey: 'replicate/model',
+        provider: 'replicate',
+        outputs: 1,
+        requests: 1,
+      },
+      1,
+      '2026-10-23T00:00:00.000Z',
+    );
+    if (priced.status !== 'priced') throw new Error(priced.reason);
+    const modelQuote = {
+      ...priced.snapshot,
+      routedDispatch: {
+        offerId: 'primary',
+        executionModelKey: 'replicate/model',
+        provider: 'replicate',
+        endpoint: 'replicate/model',
+        schemaFamily: null,
+        fallback: {
+          offerId: 'fallback',
+          executionModelKey: 'fal/model',
+          provider: 'fal',
+          endpoint: 'fal/model',
+          schemaFamily: null,
+          rateVersion: 'fallback-v1',
+          providerCostUsd: 0.2,
+        },
+      },
+    };
+    state.metadataService.prisma.modelProviderOffer.findFirst.mockImplementation(
+      async ({ where }) => ({
+        model: { pinnedProvider: null },
+        executionModel: {
+          provider: where.id === 'primary' ? 'replicate' : 'fal',
+          reviewedProviderContractVersion:
+            where.id === 'primary' ? null : 'fallback-v1',
+          endpoint: where.id === 'primary' ? 'replicate/model' : 'fal/model',
+          providerInputSchema: {
+            type: 'object',
+            properties: { prompt: { type: 'string' } },
+            required: ['prompt'],
+          },
+        },
+      }),
+    );
+    state.providerDispatchService.dispatch
+      .mockRejectedValueOnce(new Error('provider timeout'))
+      .mockResolvedValueOnce({
+        completion: 'remote-output',
+        externalId: 'https://cdn.example.com/result.mp4',
+        provider: 'fal',
+      });
+    const context = buildContext({
+      request: {
+        creditsConfig: {
+          modelQuote,
+          amount: modelQuote.credits,
+          settlement: 'completion',
+          reservationId: 'hold-1',
+        },
+      } as unknown as VideoGenerationContext['request'],
+    });
+    await state.service.execute(context);
+    expect(state.providerDispatchService.dispatch).toHaveBeenCalledTimes(2);
+    expect(
+      state.providerDispatchService.dispatch.mock.calls[1][0],
+    ).toMatchObject({ modelProvider: 'fal', modelEndpoint: 'fal/model' });
+    expect(state.generationBilling.bindOutput).toHaveBeenCalledTimes(1);
+    expect(
+      state.webhooksService.processMediaForIngredient,
+    ).toHaveBeenCalledTimes(1);
+    expect(context.request.creditsConfig?.modelQuote?.credits).toBe(
+      modelQuote.credits,
+    );
+    expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
 
   it.each([
     'pre-dispatch',

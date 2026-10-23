@@ -231,6 +231,9 @@ describe('ModelsService', () => {
     expect(modelDelegate.findFirst).toHaveBeenCalledWith({
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
       where: { isDeleted: false, key: 'google/imagen-4' },
     });
@@ -381,6 +384,9 @@ describe('ModelsService', () => {
     expect(modelDelegate.findMany).toHaveBeenCalledWith({
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
       orderBy: [{ createdAt: 'desc' }],
       skip: 0,
@@ -408,6 +414,9 @@ describe('ModelsService', () => {
     expect(modelDelegate.findMany).toHaveBeenCalledWith({
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
       orderBy: [{ isHighlighted: 'desc' }, { label: 'asc' }],
       skip: 0,
@@ -433,6 +442,9 @@ describe('ModelsService', () => {
     expect(modelDelegate.findMany).toHaveBeenCalledWith({
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
       orderBy: [{ isDefault: 'desc' }, { label: 'asc' }],
       skip: 0,
@@ -507,6 +519,7 @@ describe('ModelsService', () => {
         isActive: true,
         isDeleted: false,
         isLegacy: false,
+        isProviderVariant: false,
         isPublic: true,
         organizationId: null,
       },
@@ -1040,6 +1053,9 @@ describe('ModelsService', () => {
         expect(modelDelegate.findFirst).toHaveBeenCalledWith(
           expect.objectContaining({
             include: {
+              providerOffers: {
+                select: { executionModel: { select: { key: true } } },
+              },
               providerContracts: expect.objectContaining({
                 select: expect.objectContaining({
                   pricing: true,

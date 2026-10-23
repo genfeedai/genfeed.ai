@@ -20,6 +20,7 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationProviderDispatchService', () => {
@@ -60,6 +61,10 @@ describe('ImageGenerationProviderDispatchService', () => {
     log: vi.fn(),
   } as unknown as LoggerService;
   const metadataService = {
+    prisma: {
+      modelProviderOffer: { findFirst: vi.fn() },
+      providerRoutingSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+    },
     patch: vi.fn(),
   };
   const replicateService = {
@@ -268,6 +273,104 @@ describe('ImageGenerationProviderDispatchService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  it.each(['provider-failure', 'invalid-input'] as const)(
+    'routes image fallback once while retaining one admission: %s',
+    async (failure) => {
+      const quote = quoteModelBillablePricing(
+        billableProfile(),
+        {
+          modelKey: 'test/model',
+          provider: 'replicate',
+          outputs: 1,
+          requests: 1,
+        },
+        1,
+        '2026-10-23T00:00:00.000Z',
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      const routed = {
+        offerId: 'primary',
+        executionModelKey: 'test/model',
+        endpoint: 'test/model',
+        provider: 'replicate',
+        schemaFamily: null,
+        fallback: {
+          offerId: 'backup',
+          executionModelKey: 'fal/test',
+          endpoint: 'fal/test',
+          provider: 'fal',
+          schemaFamily: null,
+          rateVersion: quote.snapshot.rateVersion,
+          providerCostUsd: 0.02,
+        },
+      };
+      metadataService.prisma.modelProviderOffer.findFirst.mockImplementation(
+        async ({ where }) => {
+          const target = where.id === 'primary' ? routed : routed.fallback;
+          return {
+            model: { pinnedProvider: null },
+            executionModel: {
+              provider: target.provider,
+              endpoint: target.endpoint,
+              reviewedProviderContractVersion: quote.snapshot.rateVersion,
+              providerInputSchema: {
+                type: 'object',
+                properties: { prompt: { type: 'string' } },
+                required: ['prompt'],
+                additionalProperties: false,
+              },
+            },
+          };
+        },
+      );
+      const error =
+        failure === 'invalid-input'
+          ? new BadRequestException('invalid input')
+          : new Error('provider failed');
+      const primary = vi.fn().mockRejectedValue(error);
+      const backup = vi
+        .fn()
+        .mockResolvedValue({ kind: 'external-id', externalId: 'backup-job' });
+      const prepare = vi
+        .spyOn(providerRegistry, 'prepare')
+        .mockImplementation(async (request) => ({
+          completionKind: 'poll-single',
+          outputStrategy: 'single',
+          generate: request.modelProvider === 'replicate' ? primary : backup,
+        }));
+      const context = buildContext({
+        model: 'test/model',
+        request: {
+          creditsConfig: {
+            modelQuote: { ...quote.snapshot, routedDispatch: routed },
+            amount: quote.snapshot.credits,
+            reservationId: 'hold-1',
+            settlement: 'completion',
+          },
+        } as never,
+      });
+      try {
+        const plan = await service.dispatch(context);
+        if (failure === 'invalid-input')
+          await expect(plan?.generationPromise).rejects.toThrow(
+            'invalid input',
+          );
+        else {
+          await plan?.generationPromise;
+          expect(context.model).toBe('test/model');
+          expect(context.modelProvider).toBe('fal');
+        }
+        expect(primary).toHaveBeenCalledTimes(1);
+        expect(backup).toHaveBeenCalledTimes(
+          failure === 'invalid-input' ? 0 : 1,
+        );
+        expect(generationBilling.bindOutput).toHaveBeenCalledTimes(1);
+      } finally {
+        prepare.mockRestore();
+      }
+    },
+  );
 
   it('routes KlingAI with the existing request and metadata normalization', async () => {
     klingAIService.queueGenerateImage.mockImplementation(async () => {

@@ -1,5 +1,9 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import {
+  generationQuoteGroupMetadataSchema,
+  generationQuoteGroupReceiptSchema,
+} from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
@@ -65,7 +69,73 @@ export class MediaGenerationCostService {
         return;
       }
 
-      const model = await this.modelsService.findOne({
+      const ingredient = await this.prisma.ingredient.findFirst({
+        where: {
+          id: context.ingredientId,
+          organizationId: context.organizationId,
+          isDeleted: false,
+        },
+        select: {
+          generationBilling: true,
+          metadata: { select: { externalProvider: true } },
+        },
+      });
+      const receipt = generationQuoteGroupReceiptSchema.safeParse(
+        ingredient?.generationBilling,
+      );
+      if (receipt.success) {
+        const hold = await this.prisma.creditReservation.findFirst({
+          where: {
+            id: receipt.data.reservationId,
+            organizationId: context.organizationId,
+            isDeleted: false,
+          },
+          select: { metadata: true },
+        });
+        const metadata = generationQuoteGroupMetadataSchema.safeParse(
+          hold?.metadata,
+        );
+        if (metadata.success && metadata.data.modelQuote.routedDispatch) {
+          const quote = metadata.data.modelQuote;
+          const route = metadata.data.modelQuote.routedDispatch;
+          const actualProvider = ingredient?.metadata?.externalProvider;
+          const cost =
+            actualProvider === route.provider
+              ? quote.providerCostUsd
+              : route.fallback && actualProvider === route.fallback.provider
+                ? route.fallback.providerCostUsd
+                : null;
+          if (cost === null || cost === undefined || !actualProvider)
+            throw new Error(
+              'Routed generation has no matching frozen provider-cost evidence',
+            );
+          await this.ledgerService.record({
+            brandId: context.brandId ?? null,
+            category: context.category,
+            ingredientId: context.ingredientId,
+            isByok: false,
+            model: context.modelKey,
+            organizationId: context.organizationId,
+            pricingType: 'flat',
+            provider: actualProvider,
+            units: 1,
+            vendorCostMicros: Math.round(
+              (cost * 1000000) / (quote.quantities.outputs ?? 1),
+            ),
+            costEvidence: 'calculated',
+            pricingSnapshot: {
+              offerId:
+                actualProvider === route.provider
+                  ? route.offerId
+                  : (route.fallback?.offerId ?? null),
+              customerQuotedCredits: quote.credits,
+              quotedProviderCostUsd: cost,
+            },
+          });
+          return;
+        }
+      }
+      let model = await this.modelsService.findOne({
         key: baseModelKey(context.modelKey),
       });
       if (!model) {
@@ -76,6 +146,32 @@ export class MediaGenerationCostService {
         return;
       }
 
+      if (
+        ingredient?.metadata?.externalProvider &&
+        ingredient.metadata.externalProvider !== model.provider
+      ) {
+        const offer = await this.prisma.modelProviderOffer.findFirst({
+          where: {
+            modelId: model.id,
+            executionModel: {
+              provider: ingredient.metadata.externalProvider,
+              isDeleted: false,
+              OR: [
+                { organizationId: context.organizationId },
+                { organizationId: null },
+              ],
+            },
+          },
+          select: { executionModel: { select: { key: true } } },
+        });
+        if (!offer) throw new Error('Actual provider has no model association');
+        const registration = await this.modelsService.findOne({
+          key: offer.executionModel.key,
+        });
+        if (!registration)
+          throw new Error('Provider registration is unavailable');
+        model = registration;
+      }
       const byokProvider = resolveModelByokProvider(
         context.modelKey,
         model.provider,
@@ -119,7 +215,7 @@ export class MediaGenerationCostService {
         category: context.category,
         ingredientId: context.ingredientId,
         isByok,
-        model: model.key ?? context.modelKey,
+        model: context.modelKey,
         organizationId: context.organizationId,
         pricingType: model.pricingType ?? null,
         provider: byokProvider ?? model.provider ?? 'unknown',

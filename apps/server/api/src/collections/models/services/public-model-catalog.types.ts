@@ -3,6 +3,7 @@ import type { CrunInputControls } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
 export const PUBLIC_MODEL_CATALOG_SELECT = {
+  providerOffers: { select: { executionModel: { select: { key: true } } } },
   aspectRatios: true,
   capabilities: true,
   category: true,
@@ -101,7 +102,7 @@ export type PublicModelCatalogDocument = Pick<
   | 'recommendedFor'
   | 'speedTier'
   | 'supportsFeatures'
-> & { cost: number; inputControls?: CrunInputControls };
+> & { aliases: string[]; cost: number; inputControls?: CrunInputControls };
 
 export type PublicModelCatalogFilters = {
   category?: ModelCategory;

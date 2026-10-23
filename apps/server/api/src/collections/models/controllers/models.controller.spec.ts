@@ -272,6 +272,7 @@ describe('ModelsController', () => {
         orderBy: { createdAt: -1, key: 1, label: 1 },
         where: {
           isDeleted: false,
+          isProviderVariant: false,
         },
       });
     });
@@ -297,6 +298,7 @@ describe('ModelsController', () => {
           ],
         },
         isDeleted: false,
+        isProviderVariant: false,
       });
     });
 

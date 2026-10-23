@@ -144,6 +144,7 @@ export class ModelRegistrationService {
         category: { in: [...categories] },
         isActive: true,
         isDeleted: false,
+        isProviderVariant: false,
         lifecycle: { not: ModelLifecycle.RETIRED },
         ...(unpriceableIds.length > 0 ? { id: { notIn: unpriceableIds } } : {}),
       },

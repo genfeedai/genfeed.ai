@@ -16,11 +16,16 @@ import {
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { withoutUnpriceableModels } from '@api/collections/models/utils/model-pricing-attention.util';
 import {
+  findModelProviderOfferQuote,
+  type RoutedPricingProfile,
+} from '@api/collections/models/utils/model-provider-offer-quote.util';
+import {
   getModelProviderConfig,
   projectRegistryModelDocument,
 } from '@api/collections/models/utils/model-reviewed-pricing.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import type { ModelCreditQuoteInput } from '@api/helpers/utils/credits/model-credit-quote.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -32,7 +37,6 @@ import {
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
-  ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
@@ -272,6 +276,10 @@ export class ModelsService extends BaseService<
     const priced = withLiveModelCreditPricing(row);
 
     return {
+      aliases:
+        row.providerOffers
+          ?.map((offer) => offer.executionModel.key)
+          .filter((key) => key !== row.key) ?? [],
       aspectRatios: priced.aspectRatios,
       capabilities: priced.capabilities,
       category: priced.category,
@@ -313,6 +321,7 @@ export class ModelsService extends BaseService<
       isDeleted: false,
       isLegacy: false,
       isPublic: true,
+      isProviderVariant: false,
       organizationId: null,
       ...(filters.provider ? { provider: filters.provider } : {}),
     });
@@ -382,10 +391,20 @@ export class ModelsService extends BaseService<
   }
 
   /** Exact internal lookup for billing; no version stripping or display samples. */
-  findBillablePricingProfile(
+  async findBillablePricingProfile(
     key: string,
     organizationId?: string,
-  ): Promise<ModelBillablePricingProfile | null> {
+    input?: ModelCreditQuoteInput,
+  ): Promise<RoutedPricingProfile | null> {
+    if (input) {
+      const routed = await findModelProviderOfferQuote(
+        this.prisma,
+        key,
+        organizationId,
+        input,
+      );
+      if (routed) return routed;
+    }
     return findModelBillablePricingProfile(this.prisma, key, organizationId);
   }
 
@@ -396,6 +415,9 @@ export class ModelsService extends BaseService<
     const model = await this.prisma.model.findFirst({
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
       where: this.normalizeWhereForModel(
         this.withRegistryVisibility(params),
@@ -413,6 +435,9 @@ export class ModelsService extends BaseService<
     const models = await this.prisma.model.findMany({
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
       where: this.normalizeWhereForModel(
         withPlatformTenantArm(params),
@@ -508,6 +533,9 @@ export class ModelsService extends BaseService<
       this.prisma.model.findMany({
         include: {
           providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+          providerOffers: {
+            select: { executionModel: { select: { key: true } } },
+          },
         },
         orderBy,
         skip: isPaginated ? (page - 1) * limit : undefined,
@@ -974,6 +1002,7 @@ export class ModelsService extends BaseService<
       withPlatformTenantArm({
         isActive: true,
         isDeleted: false,
+        isProviderVariant: false,
         ...(filter ?? {}),
       }),
     );
@@ -982,6 +1011,9 @@ export class ModelsService extends BaseService<
       where: dbWhere as Prisma.ModelWhereInput,
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
     });
 
@@ -994,6 +1026,7 @@ export class ModelsService extends BaseService<
     const where: Record<string, unknown> = {
       ...(params.category ? { category: params.category } : {}),
       ...(params.enabledModelIds ? { id: { in: params.enabledModelIds } } : {}),
+      isProviderVariant: false,
       isActive: params.isActive ?? true,
       isDeleted: false,
     };
@@ -1005,6 +1038,9 @@ export class ModelsService extends BaseService<
       where: where as Prisma.ModelWhereInput,
       include: {
         providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        providerOffers: {
+          select: { executionModel: { select: { key: true } } },
+        },
       },
     });
 

@@ -16,6 +16,8 @@ export interface PreparedFalVideoDispatch {
 }
 
 export interface DispatchVideoGenerationParams {
+  isRoutedOffer?: boolean;
+  abortSignal?: AbortSignal;
   preparedFalDispatch?: PreparedFalVideoDispatch;
   onProviderSubmissionStarted?: () => void;
   duration?: number;
@@ -40,6 +42,7 @@ export interface DispatchVideoGenerationParams {
 }
 
 export type VideoGenerationProvider =
+  | 'kie'
   | 'fal'
   | 'heygen'
   | 'higgsfield'

@@ -35,6 +35,8 @@ import { isGenerationCancelledError } from '@api/collections/ingredients/errors/
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { assertProviderOfferAvailable } from '@api/collections/models/utils/assert-provider-offer-available.util';
+import { mapProviderOfferInput } from '@api/collections/models/utils/provider-offer-input.util';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -58,10 +60,11 @@ import {
   MetadataExtension,
 } from '@genfeedai/contracts';
 import type { GenerationWebhookOutput } from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, Injectable } from '@nestjs/common';
 
 /**
  * Coordinates provider-neutral output persistence and completion behavior.
@@ -143,31 +146,115 @@ export class ImageGenerationProviderDispatchService {
   async dispatch(
     context: ImageGenerationContext,
   ): Promise<ImageGenerationCompletionPlan | null> {
+    const quote = (context.request as unknown as DeferredCreditsRequest)
+      .creditsConfig?.modelQuote;
+    const routed = quote?.routedDispatch;
+    if (routed) {
+      const registration = await assertProviderOfferAvailable(
+        this.metadataService.prisma,
+        routed.offerId,
+        routed.provider,
+        context.user.organizationId,
+      );
+      if (
+        registration.reviewedProviderContractVersion !== quote.rateVersion ||
+        registration.endpoint !== routed.endpoint
+      )
+        throw new ConflictException(
+          'Provider contract changed. Request a fresh quote.',
+        );
+      context.routedDispatch = routed;
+      context.modelEndpoint = routed.endpoint;
+      context.modelProvider = routed.provider;
+      context.modelInputSchema = isRecord(registration.providerInputSchema)
+        ? registration.providerInputSchema
+        : undefined;
+      context.modelSchemaFamily = routed.schemaFamily ?? undefined;
+      if (routed.executionModelKey !== context.model) {
+        const input = mapProviderOfferInput(registration.providerInputSchema, {
+          ...quote.quantities,
+          providerInput: context.compiledDispatch ?? context.providerInput,
+        });
+        if (!input)
+          throw new ConflictException(
+            'Provider input is incompatible with this quote.',
+          );
+        context.routedInput = input;
+      }
+    }
     const byokApiKeyOverride = (
       context.request as unknown as DeferredCreditsRequest | undefined
     )?.creditsConfig?.byokApiKeyOverride;
-    const provider = await prepareImageGenerationProvider(
-      context,
-      {
-        providerRegistry: this.providerRegistry,
-        metadataService: this.metadataService,
-        getBatchDocuments: (current) => this.batchDocuments.get(current),
-        getActiveDocument: (current) => this.activeDocument.get(current),
-        beginSubmission: (current, ids) => this.beginSubmission(current, ids),
-        patchExternalId: (metadataId, result, current, ingredientId) =>
-          this.patchExternalId(metadataId, result, current, ingredientId),
-      },
-      byokApiKeyOverride,
-    );
+    const provider = await this.prepareProvider(context, byokApiKeyOverride);
 
     if (!provider || provider.completionKind === 'none') {
       return null;
     }
 
-    const externalProvider = this.providerRegistry.providerFor(
-      context.model,
-      context.modelProvider,
-    );
+    if (routed?.fallback && !byokApiKeyOverride && quote) {
+      const initialGenerate = provider.generate.bind(provider);
+      const originalInput = context.compiledDispatch ?? context.providerInput;
+      const fallback = routed.fallback;
+      provider.generate = async () => {
+        context.modelProvider = routed.provider;
+        context.routedDispatch = routed;
+        const initialTarget = this.activeDocument.get(context) ?? context;
+        await this.metadataService.patch(
+          initialTarget.metadataData.id,
+          new MetadataEntity({ externalProvider: routed.provider }),
+        );
+        try {
+          return await initialGenerate();
+        } catch (error: unknown) {
+          if (
+            context.abortSignal?.aborted ||
+            isGenerationCancelledError(error) ||
+            (error instanceof HttpException && error.getStatus() < 500)
+          )
+            throw error;
+          const registration = await assertProviderOfferAvailable(
+            this.metadataService.prisma,
+            fallback.offerId,
+            fallback.provider,
+            context.user.organizationId,
+          );
+          if (
+            registration.reviewedProviderContractVersion !==
+              fallback.rateVersion ||
+            registration.endpoint !== fallback.endpoint
+          )
+            throw new ConflictException('Fallback provider contract changed.');
+          const input =
+            fallback.executionModelKey === context.model
+              ? originalInput
+              : mapProviderOfferInput(registration.providerInputSchema, {
+                  ...quote.quantities,
+                  providerInput: originalInput,
+                });
+          if (!input) throw error;
+          context.routedDispatch = fallback;
+          context.routedInput = input;
+          context.modelProvider = fallback.provider;
+          context.modelEndpoint = fallback.endpoint;
+          context.modelInputSchema = isRecord(registration.providerInputSchema)
+            ? registration.providerInputSchema
+            : undefined;
+          context.modelSchemaFamily = fallback.schemaFamily ?? undefined;
+          const target = this.activeDocument.get(context) ?? context;
+          await this.metadataService.patch(
+            target.metadataData.id,
+            new MetadataEntity({ externalProvider: fallback.provider }),
+          );
+          const alternate = await this.prepareProvider(context);
+          if (!alternate || alternate.completionKind === 'none') throw error;
+          return alternate.generate();
+        }
+      };
+    }
+
+    const externalProvider =
+      context.routedDispatch?.provider ??
+      this.providerRegistry.providerFor(context.model, context.modelProvider);
     if (externalProvider) {
       await this.metadataService.patch(
         context.metadataData.id,
@@ -237,6 +324,25 @@ export class ImageGenerationProviderDispatchService {
       kind: provider.completionKind,
       ...(provider.completionKind === 'poll-multiple' ? { pollIds } : {}),
     };
+  }
+
+  private prepareProvider(
+    context: ImageGenerationContext,
+    apiKeyOverride?: string,
+  ) {
+    return prepareImageGenerationProvider(
+      context,
+      {
+        providerRegistry: this.providerRegistry,
+        metadataService: this.metadataService,
+        getBatchDocuments: (current) => this.batchDocuments.get(current),
+        getActiveDocument: (current) => this.activeDocument.get(current),
+        beginSubmission: (current, ids) => this.beginSubmission(current, ids),
+        patchExternalId: (metadataId, result, current, ingredientId) =>
+          this.patchExternalId(metadataId, result, current, ingredientId),
+      },
+      apiKeyOverride,
+    );
   }
 
   async createPlaceholderActivity(
@@ -744,10 +850,12 @@ export class ImageGenerationProviderDispatchService {
         new MetadataEntity({
           externalId,
           externalProvider:
+            context.routedDispatch?.provider ??
             this.providerRegistry.providerFor(
               context.model,
               context.modelProvider,
-            ) ?? undefined,
+            ) ??
+            undefined,
           ...(result.kind === 'external-id' && result.promptId
             ? { promptId: result.promptId }
             : {}),

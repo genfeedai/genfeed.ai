@@ -232,6 +232,7 @@ export class ReplicateService {
     apiKeyOverride?: string,
     workflowContinuationId?: string,
     onProviderSubmissionStarted?: () => void,
+    isCompletionWebhookEnabled = true,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -247,9 +248,10 @@ export class ReplicateService {
       // deliveries are signed with that account's secret. The platform
       // callback can only authenticate platform-account deliveries, so BYOK
       // callers complete by polling with the same key instead.
-      const webhookUrl = apiKeyOverride
-        ? undefined
-        : this.resolveCompletionWebhookUrl(workflowContinuationId);
+      const webhookUrl =
+        apiKeyOverride || !isCompletionWebhookEnabled
+          ? undefined
+          : this.resolveCompletionWebhookUrl(workflowContinuationId);
 
       onProviderSubmissionStarted?.();
       const res = await client.predictions.create({
@@ -432,14 +434,24 @@ export class ReplicateService {
     input: Record<string, unknown>,
     apiKeyOverride?: string,
     onProviderSubmissionStarted?: () => void,
+    isCompletionWebhookEnabled = true,
   ): Promise<string> {
-    return this.runModel(
-      version,
-      input,
-      apiKeyOverride,
-      undefined,
-      onProviderSubmissionStarted,
-    );
+    return isCompletionWebhookEnabled
+      ? this.runModel(
+          version,
+          input,
+          apiKeyOverride,
+          undefined,
+          onProviderSubmissionStarted,
+        )
+      : this.runModel(
+          version,
+          input,
+          apiKeyOverride,
+          undefined,
+          onProviderSubmissionStarted,
+          false,
+        );
   }
 
   public generateTextToImage(
@@ -447,7 +459,17 @@ export class ReplicateService {
     input: Record<string, unknown>,
     apiKeyOverride?: string,
     onProviderSubmissionStarted?: () => void,
+    isCompletionWebhookEnabled = true,
   ): Promise<string> {
+    if (!isCompletionWebhookEnabled)
+      return this.runModel(
+        version,
+        input,
+        apiKeyOverride,
+        undefined,
+        onProviderSubmissionStarted,
+        false,
+      );
     return onProviderSubmissionStarted
       ? this.runModel(
           version,
