@@ -106,7 +106,7 @@ export type ContentHarnessReceipts = (
 
 /**
  * Lifecycle of a configured external pack specifier. Only `loaded` counts as
- * activated; every other state means the runtime fell back to built-in packs.
+ * activated; any other state makes the API refuse to start.
  */
 export type ContentHarnessPackActivationState =
   | 'invalid'

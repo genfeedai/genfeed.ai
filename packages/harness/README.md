@@ -4,16 +4,19 @@ OSS contracts and registry helpers for brand-aware content generation.
 
 This package is intentionally split into:
 
-- contracts and composition helpers
+- contracts and composition helpers (`ContentHarnessPack`,
+  `ContentHarnessRegistry`, `composeContentHarnessBrief`)
 - built-in packs (`CORE_CONTENT_HARNESS_PACK`, `X_PLATFORM_HARNESS_PACK`,
-  `BRAND_FIDELITY_HARNESS_PACK`)
-- external private packs loaded by package name at runtime
+  `BRAND_FIDELITY_HARNESS_PACK`, `VIRAL_PSYCHOLOGY_HARNESS_PACK`)
+- external private packs, which the API loads at startup (see below)
 
-## Install
+For how a brief is composed end to end, profiles, review feedback and winner
+promotion, read [docs/content-harness.md](../../docs/content-harness.md).
 
-```bash
-npm i @genfeedai/harness
-```
+## Use
+
+This is a private workspace package. Depend on it from another workspace package
+with `"@genfeedai/harness": "workspace:*"`; it is not published to npm.
 
 ## Usage
 
@@ -42,6 +45,18 @@ const brief = await composeContentHarnessBrief(registry, {
   },
 });
 ```
+
+## External packs
+
+The package does not load external packs itself. `ContentHarnessService` in the
+API (`apps/server/api/src/services/harness/harness.service.ts`) registers the four
+built-in packs, then loads each package named in the `CONTENT_HARNESS_PACKAGES`
+environment variable (comma-separated). A module must export a `ContentHarnessPack`
+as `default` or as `CONTENT_HARNESS_PACK`; a pack needs a string `id` and `version`.
+
+Each specifier ends in one state: `loaded`, `unresolvable`, `invalid` or
+`load_failed`. Any state other than `loaded` fails API startup; there is no
+fallback to built-in packs. With the variable unset, only built-in packs load.
 
 ## Related Packages
 
