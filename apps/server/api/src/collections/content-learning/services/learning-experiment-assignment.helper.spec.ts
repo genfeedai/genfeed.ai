@@ -1,5 +1,8 @@
 import { createHash, createHmac } from 'node:crypto';
-import type { learningCandidateIdentity } from '@api/collections/content-learning/services/learning-decision-batch.helper';
+import type {
+  LearningResolution,
+  learningCandidateIdentity,
+} from '@api/collections/content-learning/services/learning-decision-batch.helper';
 import {
   attachLearningOpportunity,
   closeLearningPilotAssignment,
@@ -12,6 +15,7 @@ import {
 } from '@api/collections/content-learning/services/learning-experiment-assignment.helper';
 import { learningCanonicalHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { readCurrentLearningPilotV1 } from '@api/collections/content-learning/services/learning-pilot-gate.helper';
+import { ContentLearningMode } from '@genfeedai/contracts';
 import { initializeLearningPolicy } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
@@ -552,9 +556,9 @@ describe('attachLearningOpportunity', () => {
       armExclusions: [{ armId: questionArm, reasonCode: 'learning.test' }],
     },
   } as unknown as Parameters<typeof attachLearningOpportunity>[1];
-  const resolution = {
+  const resolution: LearningResolution = {
     receipt: {
-      mode: 'live' as const,
+      mode: ContentLearningMode.LIVE,
       configVersion: 'rl-reward-v1-experimental',
       synthetic: false,
       reason: 'experiment_control',
@@ -589,6 +593,16 @@ describe('attachLearningOpportunity', () => {
     expect(result.exclusions).toEqual([
       { armId: questionArm, reasonCode: 'learning.test' },
     ]);
+  });
+  it('suppresses a decision with no opportunity link without querying', async () => {
+    const f = fixture();
+    const result = await attachLearningOpportunity(
+      f.deps.tx,
+      { ...decision, opportunityId: null },
+      resolution,
+    );
+    expect(f.tx.contentLearningOpportunity.findFirst).not.toHaveBeenCalled();
+    expect(result.receipt.reason).toBe('experiment_assignment_unavailable');
   });
   it('suppresses a decision whose opportunity row is missing', async () => {
     const f = fixture();

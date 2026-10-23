@@ -209,6 +209,7 @@ import {
 } from '@api/collections/content-learning/services/learning-operation.service';
 import {
   initializeLearningPolicy,
+  learningContribution,
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
@@ -654,6 +655,16 @@ function pilotFixture(options: {
   const policy = {
     id: 'policy',
     version: 1,
+    organizationId: 'org',
+    brandId: 'brand',
+    credentialId: 'credential',
+    scopeKey: f.scopeKey,
+    epoch: 1,
+    descriptorHash: f.descriptorHash,
+    algorithm: 'ridge-epsilon-v1',
+    configVersion: f.descriptor.configVersion,
+    featureSchema: f.descriptor.featureSchema,
+    synthetic: false,
     evidenceManifestHash: 'manifest',
     armState: state,
   };
@@ -789,7 +800,7 @@ describe('pilot opportunity assignment (application stays inert)', () => {
     ]);
     expect(result.contribution).toEqual({});
   });
-  it('still suppresses a treatment that selected a learned arm', async () => {
+  it('applies the drawn arm only for a fully attributed treatment', async () => {
     const f = pilotFixture({
       group: 'treatment',
       exclusions: [],
@@ -803,16 +814,118 @@ describe('pilot opportunity assignment (application stays inert)', () => {
       censorshipReason: null,
       accountPolicyId: 'policy',
     });
+    expect(result.contribution).toEqual(
+      learningContribution('question-example-v1'),
+    );
+    expect(result.exclusions).toEqual([]);
     expect(result.receipt).toMatchObject({
       armId: 'question-example-v1',
       opportunityId: 'opportunity',
       experimentId: 'experiment',
-      reason: 'experiment_assignment_unavailable',
+      policyVersionId: 'policy',
     });
-    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBeUndefined();
     const retry = await f.service.resolveForGeneration(f.input);
     expect(retry.receipt).toEqual(result.receipt);
-    expect(retry.contribution).toEqual({});
+    expect(retry.contribution).toEqual(result.contribution);
+    expect(f.tx.contentLearningOpportunity.create).toHaveBeenCalledTimes(1);
+  });
+  it('never applies a control opportunity', async () => {
+    const f = pilotFixture({ group: 'control', exclusions: [] });
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe('experiment_control');
+  });
+  it('suppresses the drawn arm while brand compatibility is unknown or excludes it', async () => {
+    const unknown = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    await unknown.service.resolveForGeneration(unknown.input);
+    const { armExclusions: _omitted, ...withoutExclusions } = unknown.input;
+    const replayed =
+      await unknown.service.resolveForGeneration(withoutExclusions);
+    expect(replayed.contribution).toEqual({});
+    expect(replayed.receipt.reason).toBe('brand_compatibility_unknown');
+    const excluded = await unknown.service.resolveForGeneration({
+      ...unknown.input,
+      armExclusions: [
+        { armId: 'question-example-v1', reasonCode: 'learning.test' },
+      ],
+    });
+    expect(excluded.contribution).toEqual({});
+    expect(excluded.receipt.reason).toBe('learning_incompatible');
+    expect(excluded.exclusions).toEqual([
+      { armId: 'question-example-v1', reasonCode: 'learning.test' },
+    ]);
+  });
+  it.each([
+    ['paused', 'paused'],
+    ['shadow', 'shadow'],
+    ['epoch', 'account_changed'],
+    ['scope', 'scope_changed'],
+    ['dependency', 'experiment_assignment_unavailable'],
+    ['policy', 'invalid_source'],
+    ['spec', 'experiment_assignment_unavailable'],
+    ['window', 'experiment_assignment_unavailable'],
+  ])('fences an applied treatment after %s', async (change, reason) => {
+    const f = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    const applied = await f.service.resolveForGeneration(f.input);
+    expect(applied.contribution).not.toEqual({});
+    if (change === 'paused' || change === 'shadow') f.account.mode = change;
+    if (change === 'epoch') f.account.epoch++;
+    if (change === 'scope') f.scope.revision++;
+    if (change === 'dependency')
+      f.dependencies.valid.mockImplementation(
+        async (kind: string) => kind !== 'enrollment',
+      );
+    if (change === 'policy') f.policies.current.mockResolvedValue(null);
+    if (change === 'spec')
+      f.experiment.spec = { ...f.experiment.spec, format: 'x' };
+    if (change === 'window') f.experiment.endAt = new Date(Date.now() - 1000);
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(result.contribution).toEqual({});
+    expect(result.receipt.reason).toBe(reason);
+  });
+  it('accepts a successor of the candidate policy but not an unrelated one', async () => {
+    const f = pilotFixture({
+      group: 'treatment',
+      exclusions: [],
+      isLearnedArm: true,
+    });
+    await f.service.resolveForGeneration(f.input);
+    const candidate = await f.tx.contentLearningPolicyVersion.findFirst();
+    const successor = {
+      ...candidate,
+      id: 'successor',
+      version: 2,
+      organizationId: 'org',
+      brandId: 'brand',
+      credentialId: 'credential',
+      scopeKey: f.scopeKey,
+      epoch: 1,
+      descriptorHash: f.descriptorHash,
+    };
+    if (!f.recorded) throw new Error('missing decision');
+    f.recorded.accountPolicyId = 'successor';
+    f.scope.activePolicyId = 'successor';
+    f.policies.current.mockResolvedValue(successor);
+    f.tx.contentLearningPolicyVersion.findFirst.mockImplementation(
+      async ({ where }) => (where.id === 'policy' ? candidate : null),
+    );
+    const accepted = await f.service.resolveForGeneration(f.input);
+    expect(accepted.contribution).toEqual(
+      learningContribution('question-example-v1'),
+    );
+    f.policies.current.mockResolvedValue({ ...successor, version: 1 });
+    const lower = await f.service.resolveForGeneration(f.input);
+    expect(lower.contribution).toEqual({});
+    expect(lower.receipt.reason).toBe('experiment_assignment_unavailable');
   });
 });
 

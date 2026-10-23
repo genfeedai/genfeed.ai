@@ -2,8 +2,10 @@ import { learningHash } from '@api/collections/content-learning/services/learnin
 import type {
   LearningArmExclusionV1,
   LearningGenerationContext,
+  LearningGenerationReceipt,
   LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type { ContentHarnessContribution } from '@genfeedai/harness';
 import type { ContentLearningAccount } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 
@@ -21,6 +23,13 @@ export interface LearningGenerationInput {
    * part of `payloadHash`.
    */
   armExclusions?: LearningArmExclusionV1[];
+}
+/** A resolved decision: its receipt and the contribution it actually applies. */
+export interface LearningResolution {
+  receipt: LearningGenerationReceipt;
+  contribution: ContentHarnessContribution;
+  /** Arms the approved brand excluded from the pilot assignment, if any. */
+  exclusions?: LearningArmExclusionV1[];
 }
 export type LearningCandidateInput = LearningGenerationInput & {
   context: LearningGenerationContext;

@@ -5,6 +5,7 @@ import {
 } from '@api/collections/content-learning/services/learning-generation-application.util';
 import { ContentLearningArm, ContentLearningMode } from '@genfeedai/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
+import { learningContribution } from '@genfeedai/harness';
 import { describe, expect, it } from 'vitest';
 
 const at = new Date('2026-10-03T12:00:00.000Z');
@@ -35,6 +36,58 @@ function decisionReceipt(
       reason,
     },
     contribution: {},
+  };
+}
+
+function appliedResolution(): LearningResolution {
+  const treatment = {
+    'baseline-v1': 0.2,
+    'question-example-v1': 0.7,
+    'proof-steps-v1': 0.1,
+  };
+  return {
+    receipt: {
+      decisionId: 'decision',
+      credentialId: 'credential',
+      mode: ContentLearningMode.LIVE,
+      accountRevision: 1,
+      scopeRevision: 1,
+      epoch: 1,
+      armId: ContentLearningArm.QUESTION_EXAMPLE,
+      probabilities: treatment,
+      treatmentProbabilities: treatment,
+      controlProbabilities: baselineVector,
+      executionProbabilities: {
+        'baseline-v1': 0.92,
+        'question-example-v1': 0.07,
+        'proof-steps-v1': 0.01,
+      },
+      selectedProbability: 0.7,
+      assignment: 'pilot',
+      assignmentProbability: 0.1,
+      executionProbability: 0.07,
+      cellDescriptor: {
+        platform: 'twitter',
+        format: 'text',
+        objective: 'awareness',
+        exposureSource: 'impressions',
+        metricWeights: [['likes', 1]],
+        retention: false,
+        windowId: '48h-v1',
+        configVersion: 'rl-reward-v1-experimental',
+        featureSchema: 'numeric-nine-v1',
+        armCatalogVersion: 'learning-arms-v1',
+      },
+      descriptorHash: 'a'.repeat(64),
+      baselineId: 'baseline',
+      opportunityId: 'opportunity',
+      experimentId: 'experiment',
+      policyVersionId: 'policy',
+      configVersion: 'rl-reward-v1-experimental',
+      synthetic: false,
+    },
+    contribution: learningContribution(ContentLearningArm.QUESTION_EXAMPLE),
+    exclusions: [],
   };
 }
 describe('learningGenerationApplicationReceiptV1', () => {
@@ -161,6 +214,104 @@ describe('learningGenerationApplicationReceiptV1', () => {
     });
     expect(receipt.application?.appliedArmId).toBeUndefined();
   });
+  it('reports an exact, fully attributed live pilot treatment as applied', () => {
+    const receipt = learningGenerationApplicationReceiptV1(
+      appliedResolution(),
+      at,
+    );
+    expect(receipt.application).toEqual({
+      status: 'applied',
+      reasonCodes: [],
+      appliedArmId: ContentLearningArm.QUESTION_EXAMPLE,
+      privatePolicyApplied: true,
+      sharedReleaseApplied: false,
+      revalidatedAt: at.toISOString(),
+    });
+    expect(learningGenerationReceiptSchema.safeParse(receipt).success).toBe(
+      true,
+    );
+  });
+  it.each([
+    [
+      'a different arm tactic',
+      (r: LearningResolution) => {
+        r.contribution = learningContribution(ContentLearningArm.PROOF_STEPS);
+      },
+    ],
+    [
+      'no opportunity',
+      (r: LearningResolution) => {
+        delete r.receipt.opportunityId;
+      },
+    ],
+    [
+      'no policy version',
+      (r: LearningResolution) => {
+        delete r.receipt.policyVersionId;
+      },
+    ],
+    [
+      'unknown compatibility',
+      (r: LearningResolution) => {
+        delete r.exclusions;
+      },
+    ],
+    [
+      'an excluded arm',
+      (r: LearningResolution) => {
+        r.exclusions = [
+          {
+            armId: ContentLearningArm.QUESTION_EXAMPLE,
+            reasonCode: 'learning.test',
+          },
+        ];
+      },
+    ],
+    [
+      'shadow mode',
+      (r: LearningResolution) => {
+        r.receipt.mode = ContentLearningMode.SHADOW;
+      },
+    ],
+    [
+      'a control assignment',
+      (r: LearningResolution) => {
+        r.receipt.assignment = 'control';
+      },
+    ],
+  ])('suppresses a contribution with %s', (_name, mutate) => {
+    const resolution = appliedResolution();
+    mutate(resolution);
+    const receipt = learningGenerationApplicationReceiptV1(resolution, at);
+    expect(receipt.application).toMatchObject({
+      status: 'suppressed',
+      reasonCodes: expect.arrayContaining([
+        'learning_contribution_unrecognized',
+      ]),
+      privatePolicyApplied: false,
+    });
+    expect(receipt.application?.appliedArmId).toBeUndefined();
+  });
+  it('never applies the baseline arm even with a contribution', () => {
+    const resolution = appliedResolution();
+    resolution.receipt.armId = ContentLearningArm.BASELINE;
+    resolution.receipt.selectedProbability = 0.2;
+    const receipt = learningGenerationApplicationReceiptV1(resolution, at);
+    expect(receipt.application?.status).not.toBe('applied');
+  });
+  it.each(['learning_incompatible', 'brand_compatibility_unknown'])(
+    'maps decision reason %s to suppressed',
+    (reason) => {
+      const receipt = learningGenerationApplicationReceiptV1(
+        decisionReceipt(reason),
+        at,
+      );
+      expect(receipt.application).toMatchObject({
+        status: 'suppressed',
+        reasonCodes: [reason],
+      });
+    },
+  );
   it('fails closed to an unavailable receipt when the receipt is invalid', () => {
     const resolution = decisionReceipt('experiment_assignment_unavailable');
     resolution.receipt.selectedProbability = 0.5;

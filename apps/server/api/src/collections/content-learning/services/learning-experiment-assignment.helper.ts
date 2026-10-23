@@ -1,7 +1,7 @@
 import { createHash, createHmac } from 'node:crypto';
-import type { LearningResolution } from '@api/collections/content-learning/services/learning-decision.service';
 import type {
   LearningCandidateInput,
+  LearningResolution,
   learningCandidateIdentity,
 } from '@api/collections/content-learning/services/learning-decision-batch.helper';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
@@ -406,13 +406,15 @@ export async function attachLearningOpportunity(
   decision: ContentLearningDecision,
   resolution: LearningResolution,
 ): Promise<LearningResolution> {
-  const opportunity = await tx.contentLearningOpportunity.findFirst({
-    where: scopedWhere(decision.organizationId, {
-      id: decision.opportunityId,
-      credentialId: decision.credentialId,
-      decisionId: decision.id,
-    }),
-  });
+  const opportunity = decision.opportunityId
+    ? await tx.contentLearningOpportunity.findFirst({
+        where: scopedWhere(decision.organizationId, {
+          id: decision.opportunityId,
+          credentialId: decision.credentialId,
+          decisionId: decision.id,
+        }),
+      })
+    : null;
   if (!opportunity)
     return {
       receipt: {
@@ -428,6 +430,8 @@ export async function attachLearningOpportunity(
       opportunityId: opportunity.id,
       experimentId: opportunity.experimentId,
     },
-    exclusions: learningPilotSnapshotExclusionsV1(decision.contextSnapshot),
+    exclusions:
+      resolution.exclusions ??
+      learningPilotSnapshotExclusionsV1(decision.contextSnapshot),
   };
 }

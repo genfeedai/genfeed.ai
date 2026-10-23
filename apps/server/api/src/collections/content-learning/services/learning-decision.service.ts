@@ -13,6 +13,7 @@ import {
   type LearningBatchGenerationInput,
   type LearningCandidateInput,
   type LearningGenerationInput,
+  type LearningResolution,
   learningBatchCandidateInputs,
   learningCandidateIdentity,
 } from '@api/collections/content-learning/services/learning-decision-batch.helper';
@@ -26,9 +27,11 @@ import {
   openLearningPilotAssignment,
 } from '@api/collections/content-learning/services/learning-experiment-assignment.helper';
 import {
+  learningCanonicalHash,
   learningHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
+import { appliedLearningPilotV1 } from '@api/collections/content-learning/services/learning-pilot-gate.helper';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
 import { validLearningReplayIdentityV1 } from '@api/collections/content-learning/services/learning-replay-identity.helper';
 import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
@@ -38,13 +41,11 @@ import {
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
-  type LearningArmExclusionV1,
   type LearningCellDescriptor,
   type LearningGenerationReceipt,
   type LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
-  type ContentHarnessContribution,
   LEARNING_ARMS,
   type LearningArmId,
   learningDescriptorTuple,
@@ -57,8 +58,6 @@ import {
   type ContentLearningAccount,
   type ContentLearningBaseline,
   type ContentLearningDecision,
-  type ContentLearningExperiment,
-  type ContentLearningPolicyVersion,
   type ContentLearningScopeState,
   type Prisma,
   toPrismaJson,
@@ -72,13 +71,9 @@ import {
 export type {
   LearningBatchGenerationInput,
   LearningGenerationInput,
+  LearningResolution,
 } from '@api/collections/content-learning/services/learning-decision-batch.helper';
-export interface LearningResolution {
-  receipt: LearningGenerationReceipt;
-  contribution: ContentHarnessContribution;
-  /** Arms the approved brand excluded from the pilot assignment, if any. */
-  exclusions?: LearningArmExclusionV1[];
-}
+
 type LearningDistribution = Record<LearningArmId, number>;
 function distribution(value: unknown): LearningDistribution | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -100,6 +95,20 @@ function distribution(value: unknown): LearningDistribution | null {
   ) <= 1e-12
     ? result
     : null;
+}
+/** The all-baseline conditional and marginal distributions of an unlearned decision. */
+function baselineOnlyDistributions() {
+  const probabilities = Object.fromEntries(
+    LEARNING_ARMS.map((arm) => [arm, Number(arm === 'baseline-v1')]),
+  ) as LearningDistribution;
+  return {
+    probabilities,
+    executionProbabilities: learningExecutionProbabilities(
+      probabilities,
+      probabilities,
+      0,
+    ),
+  };
 }
 @Injectable()
 export class LearningDecisionService {
@@ -370,35 +379,6 @@ export class LearningDecisionService {
       descriptor,
     );
   }
-  private validTreatmentSpec(
-    experiment: ContentLearningExperiment,
-    policy: ContentLearningPolicyVersion,
-    decision: ContentLearningDecision,
-    descriptor: LearningCellDescriptor,
-  ): boolean {
-    const spec = experiment.spec;
-    if (
-      !spec ||
-      typeof spec !== 'object' ||
-      Array.isArray(spec) ||
-      spec.kind !== 'private_pilot' ||
-      spec.synthetic !== false ||
-      spec.cellKey !== decision.scopeKey ||
-      spec.rewardProfileId !== decision.descriptorHash ||
-      spec.format !== descriptor.format ||
-      spec.objective !== descriptor.objective ||
-      spec.configVersion !== decision.configVersion ||
-      spec.featureVersion !== descriptor.featureSchema ||
-      spec.treatmentProbability !== 0.1 ||
-      experiment.candidatePolicyId !== policy.id ||
-      spec.candidateId !== policy.id ||
-      spec.candidateHash !== policy.evidenceManifestHash ||
-      !Array.isArray(spec.approvedArmIds) ||
-      !spec.approvedArmIds.includes(decision.selectedArmId)
-    )
-      return false;
-    return true;
-  }
   private async replayTreatment(
     tx: Prisma.TransactionClient,
     input: LearningGenerationInput,
@@ -506,14 +486,12 @@ export class LearningDecisionService {
         opportunity.assignedAt.getTime(),
       ) ||
       opportunity.specHash !== experiment.specHash ||
-      learningHash(experiment.spec) !== experiment.specHash ||
+      learningCanonicalHash(experiment.spec) !== experiment.specHash ||
       opportunity.group !== 'treatment' ||
       opportunity.groupProbability !== 0.1 ||
       decision.assignment !== 'pilot' ||
       decision.assignmentProbability !== 0.1
     )
-      return suppressed('experiment_assignment_unavailable');
-    if (!this.validTreatmentSpec(experiment, policy, decision, descriptor))
       return suppressed('experiment_assignment_unavailable');
     const p = qT as LearningDistribution,
       c = qC as LearningDistribution;
@@ -539,9 +517,14 @@ export class LearningDecisionService {
     ] as const)
       if (!(await this.dependencies.valid(kind, id, tx, input.organizationId)))
         return suppressed('experiment_assignment_unavailable');
-    // Existing assignment has no authoritative control/source projection writer.
-    // Until that lineage can be proved, selected history remains immutable and inert.
-    return suppressed('experiment_assignment_unavailable');
+    return appliedLearningPilotV1(tx, {
+      input,
+      decision,
+      experiment,
+      policy,
+      descriptor,
+      receipt,
+    });
   }
   private async selectBaseline(
     tx: Prisma.TransactionClient,
@@ -802,6 +785,31 @@ export class LearningDecisionService {
       platform,
     });
   }
+  /** Account-size and baseline-exposure features the decision's arms are scored on. */
+  private async contextFeatures(
+    tx: Prisma.TransactionClient,
+    base: LearningCandidateInput,
+    credentialId: string,
+    baseline: ContentLearningBaseline,
+    decisionAt: Date,
+  ) {
+    const followers = await tx.accountAnalyticsSnapshot.findFirst({
+      where: {
+        organizationId: base.organizationId,
+        brandId: base.brandId,
+        credentialId,
+        date: { lte: decisionAt },
+        isDeleted: false,
+      },
+      orderBy: { date: 'desc' },
+    });
+    return learningFeatures({
+      followers: followers?.followers ?? followers?.subscribers,
+      baselineMedianExposure:
+        baseline.count >= 20 ? baseline.medianExposure : null,
+      decisionAt,
+    });
+  }
   private async createBaselineDecisions(
     tx: Prisma.TransactionClient,
     batch: {
@@ -846,30 +854,15 @@ export class LearningDecisionService {
         account.epoch,
       ),
       scopeKey = learningScopeKey(scope);
-    const followers = await tx.accountAnalyticsSnapshot.findFirst({
-      where: {
-        organizationId: base.organizationId,
-        brandId: base.brandId,
-        credentialId: credential.id,
-        date: { lte: decisionAt },
-        isDeleted: false,
-      },
-      orderBy: { date: 'desc' },
-    });
-    const features = learningFeatures({
-      followers: followers?.followers ?? followers?.subscribers,
-      baselineMedianExposure:
-        baseline.count >= 20 ? baseline.medianExposure : null,
+    const features = await this.contextFeatures(
+      tx,
+      base,
+      credential.id,
+      baseline,
       decisionAt,
-    });
-    const probabilities = Object.fromEntries(
-      LEARNING_ARMS.map((arm) => [arm, Number(arm === 'baseline-v1')]),
-    ) as LearningDistribution;
-    const executionProbabilities = learningExecutionProbabilities(
-      probabilities,
-      probabilities,
-      0,
     );
+    const { probabilities, executionProbabilities } =
+      baselineOnlyDistributions();
     const reason = baselineCensorshipReason(account, base, baseline.count);
     const pilotScope = {
       isSingleCandidate: inputs.length === 1 && create.length === 1,
