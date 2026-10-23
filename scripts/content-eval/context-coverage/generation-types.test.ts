@@ -119,12 +119,24 @@ describe('generation type registry', () => {
     }
   });
 
-  it('explains every exempt and unaudited row', () => {
+  it('explains every exempt row', () => {
     for (const entry of GENERATION_TYPES.filter(
-      (row) => row.path === 'exempt' || row.path === 'unaudited',
+      (row) => row.path === 'exempt',
     )) {
       expect(entry.note, `${entry.id} needs a reason`).toBeTruthy();
-      expect(entry.smoke === null || entry.path === 'unaudited').toBe(true);
+      expect(entry.smoke, `${entry.id} is exempt so nothing smokes it`).toBe(
+        null,
+      );
+    }
+  });
+
+  it('traces the agent-chat script and avatar-video paths to a marker', () => {
+    for (const id of ['script', 'avatar-video']) {
+      const entry = GENERATION_TYPES.find((row) => row.id === id);
+      expect(entry, `${id} is missing from the registry`).toBeDefined();
+      expect(entry?.path).not.toBe('exempt');
+      expect(entry?.source, `${id} needs a traced source`).toBeTruthy();
+      expect(entry?.marker, `${id} needs a marker`).toBeTruthy();
     }
   });
 
