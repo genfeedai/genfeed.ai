@@ -17,8 +17,6 @@ export const BRAND_CONTEXT_PATHS = [
   'brand-voice-summary',
   /** No brand or org context reaches the prompt. */
   'none',
-  /** Generated somewhere this registry has not traced (agent chat). */
-  'unaudited',
   /** Not a generator: upload, edit, transform or an enum value with no producer. */
   'exempt',
 ] as const;
@@ -114,9 +112,11 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   {
     enumRefs: { ContentType: ['SCRIPT'] },
     id: 'script',
-    note: 'No dedicated generator: scripts are written through agent chat, whose prompt assembly is not traced here. Promote once the agent path is audited.',
-    path: 'unaudited',
+    marker: 'buildSystemPrompt',
+    note: 'GAP: no dedicated generator. The agent-chat model writes the script work object under a system prompt from AgentContextAssemblyService, which carries brand identity, guidance, memory and recent posts but never composes the harness brief (org directive, guardrails, criteria, anti-examples). Tracked in #7868. Promote to `harness` when the chat script path calls resolveBrief.',
+    path: 'brand-voice-summary',
     smoke: 'text',
+    source: `${API}/services/agent-context-assembly/agent-context-assembly.service.ts`,
   },
   {
     enumRefs: { GenerationType: ['NEWSLETTER'] },
@@ -165,9 +165,11 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   {
     enumRefs: { IngredientCategory: ['AVATAR'] },
     id: 'avatar-video',
-    note: 'AvatarVideoService only routes to a provider. The spoken script is authored upstream (workflow template or agent chat), which this registry does not trace yet.',
-    path: 'unaudited',
+    marker: 'inputText: params.text',
+    note: 'GAP: the render sends the caller text to the provider verbatim, and brand context only picks the avatar and voice identity. The spoken script comes from agent chat, the aiAvatarVideo workflow node, turbo ideas or the facecam task, none of which compose the harness brief. Tracked in #7868. Promote to `harness` once the script is authored from a composed brief.',
+    path: 'none',
     smoke: null,
+    source: `${API}/collections/videos/services/avatar-video-generation.service.ts`,
   },
   {
     enumRefs: { GenerationType: ['CLIP'] },
