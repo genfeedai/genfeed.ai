@@ -46,6 +46,7 @@ import type {
   IMediaReadinessRequest,
   IPlatformFeatureSettings,
 } from '@genfeedai/contracts/interfaces';
+import { isGenerationEnhancementFailed } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
@@ -79,7 +80,7 @@ export function toPolicyMediaAssessment(
  * Per-post media assessment (#4881): every media gate folded into one
  * tighten-only verdict for the publish policy and the publish card.
  *
- * - readiness `error` diagnostics (always on) block;
+ * - readiness `error` diagnostics and persisted enhancement failures (always on) block;
  * - a moderation verdict blocks only when it was classified in `live`
  *   (a shadow verdict is never flagged by construction);
  * - vision flags block only while the vision gate mode is `live`;
@@ -87,8 +88,8 @@ export function toPolicyMediaAssessment(
  *   clean and never as blocking.
  *
  * Reads persisted results only — no classifier or model runs on the publish
- * path. With every source off it returns exactly "no reasons", which leaves
- * the publish policy's decision untouched.
+ * path. With classifier gates off, only readiness errors and enhancement
+ * failures can add reasons.
  */
 @Injectable()
 export class MediaAssessmentService implements IMediaPublishGate {
@@ -148,9 +149,10 @@ export class MediaAssessmentService implements IMediaPublishGate {
 
     // Classifier gates only apply to media; a text or source ingredient is
     // never perceived and must not read as "checks pending".
-    const mediaAssetIds = await this.filterMediaAssets(
+    const mediaAssetIds = await this.collectGenerationFailuresAndMediaAssets(
       request.organizationId,
       assetIds,
+      reasons,
     );
     const unchecked = new Set<string>();
     const perceptions = new Map<string, IMediaPerception>();
@@ -372,14 +374,26 @@ export class MediaAssessmentService implements IMediaPublishGate {
     }
   }
 
-  private async filterMediaAssets(
+  private async collectGenerationFailuresAndMediaAssets(
     organizationId: string,
     assetIds: readonly string[],
+    reasons: MediaAssessmentReason[],
   ): Promise<string[]> {
     const rows = await this.prisma.ingredient.findMany({
-      select: { category: true, id: true },
+      select: { category: true, generationHarness: true, id: true },
       where: scopedWhere(organizationId, { id: { in: [...assetIds] } }),
     });
+    for (const row of rows) {
+      if (isGenerationEnhancementFailed(row.generationHarness)) {
+        reasons.push({
+          assetId: row.id,
+          code: 'generation:enhancement_failed',
+          message:
+            'Brand enhancement failed for this asset; automatic publishing is blocked. Regenerate it or approve publishing in the app after reviewing it.',
+          source: 'generation',
+        });
+      }
+    }
     return rows
       .filter((row) => resolveMediaKind(row.category) !== null)
       .map((row) => row.id);

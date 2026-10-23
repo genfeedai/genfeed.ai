@@ -6,6 +6,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PRISMA_MODEL_METADATA, PrismaClient } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { tenantModelsFromMetadata } from '@libs/prisma/discover-tenant-models';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { createTenantGuardExtension } from '@libs/prisma/tenant-guard.extension';
@@ -148,6 +149,7 @@ describe.skipIf(!databaseUrl)(
         guarded as unknown as PrismaService,
         config,
         urls,
+        { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
       );
     });
     beforeEach(() => vi.clearAllMocks());

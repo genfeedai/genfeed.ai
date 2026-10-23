@@ -27,6 +27,7 @@ import {
   PublishApprovalNotFoundException,
 } from '@api/publish-approvals/publish-approval-lookup';
 import {
+  assertApprovalEnhancementReady,
   assertApprovalMediaReady,
   withMediaWarningProvenance,
   withMediaWarnings,
@@ -485,6 +486,11 @@ export class PublishApprovalsService {
         throw error;
       }
       await this.assertClaimNotHeld(approval);
+      await assertApprovalEnhancementReady({
+        gate: this.mediaReadinessGate,
+        post,
+        provenance: approval.provenance,
+      });
       await this.assertCurrentAuthorization(approval);
       await this.assertApprovalScope(approval, post);
       try {

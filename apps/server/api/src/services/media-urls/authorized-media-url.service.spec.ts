@@ -6,7 +6,14 @@ import { isCloudDeployment } from '@genfeedai/config';
 import type { MediaDeliverySource } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
 
 vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<typeof import('@genfeedai/config')>()),
@@ -63,12 +70,14 @@ async function setup(tier = 'free') {
         `https://media.example/${encodeURIComponent(key)}?signed=1`,
     ),
   };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const module = await Test.createTestingModule({
     providers: [
       AuthorizedMediaUrlService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
       { provide: MediaUrlService, useValue: urls },
+      { provide: LoggerService, useValue: logger },
     ],
   }).compile();
   return {
@@ -76,6 +85,7 @@ async function setup(tier = 'free') {
     prisma,
     urls,
     config,
+    logger,
   };
 }
 
@@ -380,6 +390,112 @@ describe('AuthorizedMediaUrlService', () => {
     await expect(
       service.issuePublicDerivative(scope, ingredientId, 'public-share'),
     ).rejects.toThrow('permission');
+  });
+
+  describe('per-item safety', () => {
+    const brokenSource = {
+      ...source,
+      id: testId('ingredient', 2),
+      s3Key: null,
+    };
+    const readyVariant = {
+      ingredientId,
+      sourceIdentity: mediaSourceIdentity(source),
+      state: 'READY',
+      storageKey: 'exports/watermarked/preview.png',
+    };
+
+    beforeEach(() => {
+      vi.mocked(Sentry.captureException).mockClear();
+      vi.mocked(Sentry.captureMessage).mockClear();
+    });
+
+    it('degrades a free item whose signer throws without failing the batch', async () => {
+      const { service, prisma, urls, logger } = await setup();
+      prisma.ingredient.findMany.mockResolvedValue([source, brokenSource]);
+      prisma.mediaDeliveryVariant.findMany.mockResolvedValue([readyVariant]);
+      urls.buildUrl.mockImplementationOnce(() => {
+        throw new Error('signer exploded');
+      });
+      const result = await service.projectIngredients(scope, [
+        ingredientId,
+        brokenSource.id,
+      ]);
+      expect(result.map((entry) => entry.grant.state)).toEqual([
+        'FAILED',
+        'PENDING',
+      ]);
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          tags: expect.objectContaining({
+            organizationId,
+            reason: 'preview',
+          }),
+        }),
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('keeps paid items with invalid keys per-item FAILED and out of Sentry', async () => {
+      const { service, prisma, logger } = await setup('scale');
+      prisma.ingredient.findMany.mockResolvedValue([brokenSource, source]);
+      const result = await service.projectIngredients(scope, [
+        brokenSource.id,
+        ingredientId,
+      ]);
+      expect(result.map((entry) => entry.grant.state)).toEqual([
+        'FAILED',
+        'READY',
+      ]);
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledOnce();
+    });
+
+    it('degrades public derivatives and brand assets per item', async () => {
+      const { service, prisma, urls } = await setup('scale');
+      urls.buildUrl.mockImplementation(() => {
+        throw new Error('signer exploded');
+      });
+      prisma.asset.findMany.mockResolvedValue([
+        { id: 'asset-1', cloudObjectKey: 'assets/images/a.png' },
+        { id: 'asset-2', cloudObjectKey: 'assets/images/b.png' },
+      ] as never);
+      expect(
+        await service.projectAssets(scope, ['asset-1', 'asset-2']),
+      ).toEqual([
+        { assetId: 'asset-1', url: null },
+        { assetId: 'asset-2', url: null },
+      ]);
+      expect(Sentry.captureException).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports an enabled issuer without signing once, as a message, not per item', async () => {
+      const { service, prisma, config, logger } = await setup();
+      Object.defineProperty(config, 'isAuthorizedMediaDeliveryEnabled', {
+        configurable: true,
+        get: () => {
+          throw new Error(
+            'Authorized media delivery requires configured CDN signing',
+          );
+        },
+      });
+      prisma.ingredient.findMany.mockResolvedValue([source]);
+      prisma.mediaDeliveryVariant.findMany.mockResolvedValue([readyVariant]);
+      service.onModuleInit();
+      const first = await service.projectIngredients(scope, [ingredientId]);
+      await service.projectIngredients(scope, [ingredientId]);
+      expect(first[0].grant.state).toBe('FAILED');
+      expect(Sentry.captureMessage).toHaveBeenCalledOnce();
+      expect(logger.error).toHaveBeenCalledOnce();
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
+
+    it('stays silent at startup when the issuer is correctly configured', async () => {
+      const { service } = await setup();
+      service.onModuleInit();
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    });
   });
 
   describe('granted character media (#6037)', () => {

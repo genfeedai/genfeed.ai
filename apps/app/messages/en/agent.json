@@ -18,7 +18,12 @@
   },
   "fullPage": {
     "outputs": "Outputs",
-    "placeholder": "Ask for help with content, review, or planning..."
+    "placeholder": "Ask for help with content, review, or planning...",
+    "threadNotFound": {
+      "description": "This chat doesn't exist or was deleted.",
+      "startNewChat": "Start a new chat",
+      "title": "Chat not found"
+    }
   },
   "threadRecovery": {
     "failed": "Could not update this thread. Your draft is kept. Try again when you are ready.",
@@ -238,7 +243,6 @@
     "identityDone": "Done",
     "generationType": "Generation type",
     "generationTypeTrigger": "Generation type: {type}",
-    "hideLegacyModels": "Hide legacy models",
     "instrumental": "Instrumental",
     "legacyModels": "{count, plural, one {# legacy model} other {# legacy models}}",
     "loadingPresets": "Loading presets\u2026",
@@ -278,7 +282,6 @@
     "searchPresets": "Search presets",
     "searchPresetsPlaceholder": "Search presets\u2026",
     "searchSetupFields": "Search setup fields",
-    "showLegacyModels": "Show legacy models",
     "style": "Style",
     "stylePlaceholder": "e.g. synthwave, upbeat, 80s retro",
     "systemPresets": "System",

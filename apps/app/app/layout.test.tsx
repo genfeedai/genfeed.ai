@@ -199,6 +199,7 @@ describe('app root layout', () => {
         apiEndpoint: '/v1',
         betterAuthEnabled: true,
         clientSurface: 'web',
+        isMagicLinkAvailable: true,
       });
     },
   );

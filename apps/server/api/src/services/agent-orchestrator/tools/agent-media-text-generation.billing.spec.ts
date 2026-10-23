@@ -107,6 +107,66 @@ function createService(options: { hasCredits?: boolean } = {}) {
 }
 
 describe('AgentMediaTextGenerationService billing and brand scope', () => {
+  it.each(['post', 'thread'])(
+    'keeps every generated variant in the %s preview action',
+    async (type) => {
+      const { service, brandedContentActions } = createService();
+      const posts = ['First draft', 'Second draft', 'Third draft'];
+      brandedContentActions.generateSocial.mockResolvedValueOnce({
+        hasNewDispatch: true,
+        kind: 'completed',
+        result: {
+          maxCharacters: 280,
+          platform: 'twitter',
+          posts,
+          postId: 'post-1',
+          receiptId: 'receipt-1',
+          receiptState: 'ready',
+        },
+      });
+      const result = await service.generateContent(
+        {
+          brandId: 'brand-1',
+          platform: 'twitter',
+          topic: 'Launch',
+          type,
+          variationsCount: 3,
+        },
+        headless,
+      );
+      expect(result.nextActions).toEqual([
+        expect.objectContaining({
+          contentFormat: type === 'thread' ? 'thread' : 'social_post',
+          textContent: posts[0],
+          tweets: posts,
+        }),
+      ]);
+      expect(brandedContentActions.generateSocial).toHaveBeenCalledOnce();
+      expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
+        expect.objectContaining({ variants: 3, isThread: type === 'thread' }),
+      );
+    },
+  );
+
+  it('keeps a single social draft in the same preview payload', async () => {
+    const { service } = createService();
+    const result = await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        type: 'post',
+      },
+      headless,
+    );
+    expect(result.nextActions).toEqual([
+      expect.objectContaining({
+        textContent: 'LinkedIn post',
+        tweets: ['LinkedIn post'],
+      }),
+    ]);
+  });
+
   it('charges social generation once and marks it billing-delegated', async () => {
     const { credits, service } = createService();
 

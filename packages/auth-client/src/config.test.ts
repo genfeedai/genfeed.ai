@@ -5,6 +5,7 @@ import {
   getApiEndpoint,
   getApiOrigin,
   isBetterAuthEnabled,
+  isMagicLinkAvailable,
 } from './config';
 
 describe('auth-client config', () => {
@@ -128,6 +129,17 @@ describe('auth-client config', () => {
       };
 
       expect(getApiEndpoint()).toBe('http://runtime.local:3010/v1');
+    });
+  });
+
+  describe('isMagicLinkAvailable', () => {
+    it('defaults to available when the server did not report otherwise', () => {
+      expect(isMagicLinkAvailable()).toBe(true);
+    });
+
+    it('reports unavailable when the runtime config says no email provider', () => {
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = { isMagicLinkAvailable: false };
+      expect(isMagicLinkAvailable()).toBe(false);
     });
   });
 });

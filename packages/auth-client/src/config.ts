@@ -12,6 +12,7 @@ const DEFAULT_API_ENDPOINT = 'https://api.genfeed.ai/v1';
 interface GenfeedRuntimeConfig {
   apiEndpoint?: string;
   betterAuthEnabled?: boolean;
+  isMagicLinkAvailable?: boolean;
   clientSurface?: 'desktop' | 'web';
 }
 
@@ -84,6 +85,15 @@ export function isBetterAuthEnabled(): boolean {
   }
 
   return readBetterAuthEnabledFromEnv();
+}
+
+/**
+ * Whether the deployment can deliver a magic link. A self-hosted install with
+ * no email provider cannot, so the sign-up and sign-in screens must not offer
+ * it. Defaults to available when the server did not report otherwise.
+ */
+export function isMagicLinkAvailable(): boolean {
+  return getRuntimeConfig().isMagicLinkAvailable !== false;
 }
 
 /** Reads the environment directly, without the browser runtime override. */

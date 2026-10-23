@@ -19,6 +19,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import {
   readMediaAssetUrl,
+  readMediaGenerationHarnessFields,
   readMediaResponseString,
   readMediaResponseValue,
   readUsableCdnAssetUrl,
@@ -960,10 +961,7 @@ export class AgentMediaAssetGenerationService {
       data: {
         ...(result.data ?? {}),
         kind,
-        generationHarness: readMediaResponseValue(
-          response,
-          'generationHarness',
-        ),
+        ...readMediaGenerationHarnessFields(response),
         ...(receipt ? { contextReceipt: receipt } : {}),
       },
     };

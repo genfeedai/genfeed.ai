@@ -3,8 +3,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationHarnessSettingsCardProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
+import GenerationToggleRow from '@ui/dropdowns/generation-setup/GenerationToggleRow';
+import GenerationTriStateControl from '@ui/dropdowns/generation-setup/GenerationTriStateControl';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 
 export default function GenerationHarnessSettingsCard({
@@ -20,11 +21,6 @@ export default function GenerationHarnessSettingsCard({
 }: GenerationHarnessSettingsCardProps) {
   const translate = useTranslations('ui.generationHarness');
   const isDisabled = isLoading || isSaving || !settings;
-  const brandOptions = [
-    { label: translate('inherit'), value: null },
-    { label: translate('on'), value: true },
-    { label: translate('off'), value: false },
-  ] as const;
   return (
     <div
       className={cn('flex flex-col gap-4 p-4', className)}
@@ -42,57 +38,29 @@ export default function GenerationHarnessSettingsCard({
       ) : null}
       {settings ? (
         <>
-          <Switch
-            aria-label={translate('organizationLabel')}
-            label={translate('organizationDefault')}
-            isChecked={settings.organizationEnabled ?? true}
-            isDisabled={isDisabled}
-            onCheckedChange={(value) => {
-              void onSave('organization', value);
-            }}
-          />
-          {settings.organizationEnabled !== null ? (
-            <Button
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
+          <GenerationToggleRow label={translate('organizationDefault')}>
+            <GenerationTriStateControl
+              ariaLabel={translate('organizationLabel')}
               isDisabled={isDisabled}
-              onClick={() => {
-                void onSave('organization', null);
+              onChange={(value) => {
+                void onSave('organization', value);
               }}
-              withWrapper={false}
-            >
-              {translate('resetOrganization')}
-            </Button>
-          ) : null}
+              resolvedValue={settings.organizationEnabled ?? true}
+              value={settings.organizationEnabled}
+            />
+          </GenerationToggleRow>
           {brandId ? (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium">{translate('brand')}</p>
-              <div
-                className="flex shrink-0 gap-1"
-                role="group"
-                aria-label={translate('brandLabel')}
-              >
-                {brandOptions.map((option) => (
-                  <Button
-                    key={option.label}
-                    aria-pressed={settings.brandEnabled === option.value}
-                    size={ButtonSize.SM}
-                    variant={
-                      settings.brandEnabled === option.value
-                        ? ButtonVariant.SECONDARY
-                        : ButtonVariant.GHOST
-                    }
-                    isDisabled={isDisabled}
-                    onClick={() => {
-                      void onSave('brand', option.value);
-                    }}
-                    withWrapper={false}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <GenerationToggleRow label={translate('brand')}>
+              <GenerationTriStateControl
+                ariaLabel={translate('brandLabel')}
+                isDisabled={isDisabled}
+                onChange={(value) => {
+                  void onSave('brand', value);
+                }}
+                resolvedValue={settings.isEnabled}
+                value={settings.brandEnabled}
+              />
+            </GenerationToggleRow>
           ) : null}
           {isSaving ? (
             <p className="text-xs text-muted-foreground" role="status">

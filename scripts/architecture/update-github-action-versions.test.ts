@@ -201,6 +201,8 @@ describe('GitHub Action version updater', () => {
       '@types/vscode',
       '@types/node',
       'portless',
+      // Existing desktop data needs PGlite 0.5.10; upgrades require a migration plan.
+      '@electric-sql/pglite',
     ]);
     expect(command).toContain('--cooldown 3h');
     expect(command.split(' && ').slice(1)).toEqual([

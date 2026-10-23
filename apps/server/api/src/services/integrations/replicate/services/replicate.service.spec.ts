@@ -1,3 +1,4 @@
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
@@ -79,6 +80,43 @@ function createHarness(
 }
 
 describe('ReplicateService', () => {
+  it.each([undefined, '', '   '])(
+    'rejects an unconfigured image provider before submission: %j',
+    async (key) => {
+      const { service } = createHarness({ REPLICATE_KEY: key });
+      predictionsCreate.mockRejectedValue(
+        new Error('Authentication token is missing'),
+      );
+      const onSubmissionStarted = vi.fn();
+      await expect(
+        service.generateTextToImage(
+          'black-forest-labs/flux-schnell',
+          { prompt: 'A synthetic test image' },
+          undefined,
+          onSubmissionStarted,
+        ),
+      ).rejects.toBeInstanceOf(MissingProviderKeyException);
+      expect(onSubmissionStarted).not.toHaveBeenCalled();
+      expect(predictionsCreate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('allows an organization key without a configured platform image key', async () => {
+    const { service } = createHarness({ REPLICATE_KEY: undefined });
+    const onSubmissionStarted = vi.fn();
+    await expect(
+      service.generateTextToImage(
+        'black-forest-labs/flux-schnell',
+        { prompt: 'A synthetic test image' },
+        'organization-key',
+        onSubmissionStarted,
+      ),
+    ).resolves.toBe('pred-1');
+    expect(onSubmissionStarted).toHaveBeenCalledOnce();
+    expect(predictionsCreate).toHaveBeenCalledOnce();
+    expect(constructed.at(-1)).toEqual({ auth: 'organization-key' });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     constructed.length = 0;

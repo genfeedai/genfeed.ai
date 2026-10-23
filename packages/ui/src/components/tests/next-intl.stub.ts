@@ -306,10 +306,8 @@ const UI_TEST_MESSAGES = {
       brandVoice: 'Brand voice',
       configureSection: 'Configure {section}',
       current: 'Current',
-      hideLegacyModels: 'Hide legacy models',
       legacyModels:
         '{count, plural, one {# legacy model} other {# legacy models}}',
-      showLegacyModels: 'Show legacy models',
       customize: 'Customize',
       customizeSetup: 'Customize setup',
       deletePreset: 'Delete preset {label}',
@@ -689,7 +687,8 @@ const UI_TEST_MESSAGES = {
       instructionAria: 'Ask AI to write or rewrite',
       placeholder: 'Ask AI to rewrite, e.g. “open with the result”',
       toneAria: 'Tone',
-      creditPerRun: '1 credit per run',
+      creditPerRun:
+        '{count, plural, one {# credit per run} other {# credits per run}}',
       rewrite: 'Rewrite',
     },
     postDetailInspector: {
@@ -833,6 +832,8 @@ const UI_TEST_MESSAGES = {
           'Your brand kit is not approved yet. This was generated from the draft kit and is not checked for compliance.',
         raw: 'The prompt was sent exactly as typed. No brand was applied.',
       },
+      currentlyOff: 'Currently off',
+      currentlyOn: 'Currently on',
       description:
         'Improve image and video prompts automatically. These preferences apply in Studio and all connected agents.',
       enhancementFailedHint:
@@ -847,7 +848,6 @@ const UI_TEST_MESSAGES = {
       promptEnhanced: 'Prompt enhanced',
       refresh: 'Refresh settings',
       requestOverride: 'This generation’s override',
-      resetOrganization: 'Reset organization default',
       settings: 'Prompt enhancement settings',
       sourcePreference: '{source} preference',
       submittedPrompt: 'Submitted prompt',

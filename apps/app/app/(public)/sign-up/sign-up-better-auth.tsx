@@ -1,6 +1,6 @@
 'use client';
 
-import { signIn } from '@genfeedai/auth-client';
+import { signIn, signUp } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
@@ -10,9 +10,10 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { Sparkles } from 'lucide-react';
+import { KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
@@ -34,7 +35,9 @@ import {
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
+import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
 
+const MIN_PASSWORD_LENGTH = 8;
 const SIGN_UP_MAGIC_LINK_METADATA = { intent: 'signup' } as const;
 
 function getSignUpModeHref(
@@ -67,9 +70,13 @@ function getSignupFunnelIntentProperties(
 export default function SignUpBetterAuth({
   mode = 'chooser',
 }: SignUpBetterAuthProps) {
+  const translate = useTranslations('common');
   const searchParams = useSearchParams();
+  const isMagicLinkAvailable = useIsMagicLinkAvailable();
 
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
@@ -87,6 +94,7 @@ export default function SignUpBetterAuth({
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getSignUpModeHref('/sign-up', searchParams);
   const magicLinkHref = getSignUpModeHref('/sign-up/magic-link', searchParams);
+  const passwordHref = getSignUpModeHref('/sign-up/password', searchParams);
   const loginHref = getLoginHref(callbackURL);
 
   useEffect(() => {
@@ -134,6 +142,50 @@ export default function SignUpBetterAuth({
     }
   }
 
+  async function handlePasswordSignUp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage(null);
+    setSocialErrorMessage(null);
+    setIsSubmitting(true);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    setEmail(normalizedEmail);
+
+    try {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+        ...getSignupFunnelIntentProperties(searchParams),
+        method: 'password',
+      });
+      const result = await signUp.email({
+        callbackURL: authCallbackURL,
+        email: normalizedEmail,
+        name: name.trim(),
+        password,
+      });
+      if (result?.error) {
+        setErrorMessage(
+          result.error.message ?? 'Failed to create account. Please try again.',
+        );
+        return;
+      }
+
+      // No session token means the deployment requires email verification
+      // first; the verification email carries the user on from there.
+      if (!result?.data?.token) {
+        setIsEmailSent(true);
+        return;
+      }
+
+      // Better Auth may not navigate once the account is created. Always land
+      // on the requested post-signup destination.
+      window.location.assign(authCallbackURL);
+    } catch {
+      setErrorMessage('Failed to create account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleSocialSignUp(provider: 'google') {
     setSocialErrorMessage(null);
     setErrorMessage(null);
@@ -158,6 +210,132 @@ export default function SignUpBetterAuth({
     } finally {
       setIsSocialSubmitting(false);
     }
+  }
+
+  if (mode === 'password' && isEmailSent) {
+    return (
+      <AuthFormLayout
+        description={
+          <>
+            {translate('signUpForm.verifyEmailSentTo')} <strong>{email}</strong>
+            . {translate('signUpForm.verifyEmailClick')}
+          </>
+        }
+        logoSize="compact"
+        title={translate('loginForm.checkEmail')}
+      >
+        <AuthCheckEmail backHref={chooserHref} />
+      </AuthFormLayout>
+    );
+  }
+
+  if (mode === 'password') {
+    return (
+      <AuthFormLayout
+        description={translate('signUpForm.passwordDescription')}
+        logoSize="compact"
+        title={translate('signUpForm.passwordTitle')}
+      >
+        <div className="w-full space-y-6">
+          <Form onSubmit={handlePasswordSignUp}>
+            <Field label={translate('signUpForm.name')} isRequired>
+              <Input
+                type="text"
+                name="name"
+                autoComplete="name"
+                placeholder={translate('signUpForm.namePlaceholder')}
+                value={name}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setName(e.target.value)
+                }
+                autoFocus
+                isRequired
+                isDisabled={isSubmitting}
+                hasError={!!errorMessage}
+              />
+            </Field>
+
+            <Field label={translate('signUpForm.email')} isRequired>
+              <Input
+                type="email"
+                name="email"
+                autoComplete="email"
+                placeholder={translate('signUpForm.emailPlaceholder')}
+                value={email}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setEmail(e.target.value)
+                }
+                isRequired
+                isDisabled={isSubmitting}
+                hasError={!!errorMessage}
+              />
+            </Field>
+
+            <Field label={translate('signUpForm.password')} isRequired>
+              <Input
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                placeholder={translate('signUpForm.passwordPlaceholder')}
+                minLength={MIN_PASSWORD_LENGTH}
+                value={password}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setPassword(e.target.value)
+                }
+                isRequired
+                isDisabled={isSubmitting}
+                hasError={!!errorMessage}
+              />
+            </Field>
+
+            {errorMessage ? (
+              <p className="text-sm text-destructive">{errorMessage}</p>
+            ) : null}
+
+            <AuthFormActions backHref={chooserHref}>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                isLoading={isSubmitting}
+                isDisabled={
+                  !name.trim() ||
+                  !email.trim() ||
+                  password.length < MIN_PASSWORD_LENGTH ||
+                  isSubmitting
+                }
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                {translate('signUpForm.createAccount')}
+              </Button>
+            </AuthFormActions>
+          </Form>
+        </div>
+      </AuthFormLayout>
+    );
+  }
+
+  if (mode === 'magic-link' && !isMagicLinkAvailable) {
+    return (
+      <AuthFormLayout
+        description={translate('signUpForm.magicLinkUnavailableDescription')}
+        logoSize="compact"
+        title={translate('signUpForm.magicLinkUnavailableTitle')}
+      >
+        <div className="w-full space-y-3">
+          <Button
+            asChild
+            variant={ButtonVariant.DEFAULT}
+            className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+            withWrapper={false}
+          >
+            <Link href={passwordHref}>
+              {translate('signUpForm.signUpWithEmail')}
+            </Link>
+          </Button>
+        </div>
+      </AuthFormLayout>
+    );
   }
 
   if (mode === 'magic-link' && isEmailSent) {
@@ -244,15 +422,29 @@ export default function SignUpBetterAuth({
             Google
           </Button>
 
+          {isMagicLinkAvailable ? (
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              <Link href={magicLinkHref}>
+                <Sparkles className="size-4" aria-hidden="true" />
+                <span>Magic Link</span>
+              </Link>
+            </Button>
+          ) : null}
+
           <Button
             asChild
             variant={ButtonVariant.SECONDARY}
             className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
-            <Link href={magicLinkHref}>
-              <Sparkles className="size-4" aria-hidden="true" />
-              <span>Magic Link</span>
+            <Link href={passwordHref}>
+              <KeyRound className="size-4" aria-hidden="true" />
+              <span>{translate('signUpForm.emailPassword')}</span>
             </Link>
           </Button>
         </div>

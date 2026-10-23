@@ -10,6 +10,7 @@ import {
   formatPrice,
   getPlanByTier,
   getPlanLabel,
+  IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   PLAN_COPY,
   VIDEO_CREDIT_COSTS,
@@ -69,8 +70,12 @@ interface OutputCostRow {
 }
 
 const OUTPUT_COSTS: OutputCostRow[] = [
-  { credits: INTERNAL_CREDIT_COSTS.image, label: 'Image (1K/2K)' },
-  { credits: INTERNAL_CREDIT_COSTS.image4k, label: 'Image (4K)' },
+  {
+    credits: IMAGE_CREDIT_COSTS.image1kTo2k.minCredits,
+    label: 'Image (1K–2K)',
+    maxCredits: IMAGE_CREDIT_COSTS.image1kTo2k.maxCredits,
+  },
+  { credits: IMAGE_CREDIT_COSTS.image4k, label: 'Image (4K)' },
   { credits: VIDEO_CREDIT_COSTS.video8s, label: 'Short video (8s)' },
   {
     credits: AVATAR_CREDIT_COSTS.avatar4s.minCredits,
@@ -280,6 +285,10 @@ export default function PricingContent() {
               </div>
             ))}
           </div>
+          <p className="mt-3 text-xs text-surface/55">
+            Image prices are for FLUX.3. Other models are priced per model, and
+            Studio shows the exact credits before you run.
+          </p>
 
           <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
             Top up from $10.

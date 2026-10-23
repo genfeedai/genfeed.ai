@@ -19,6 +19,7 @@ import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
 import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
 import DeploymentVersionWatcher from '@/components/version/DeploymentVersionWatcher';
+import { readMagicLinkAvailableFromEnv } from '@/lib/runtime-config/magic-link-availability';
 import AppIntlProvider from '../i18n/AppIntlProvider';
 
 const { name, description } = metadataHelper;
@@ -47,7 +48,10 @@ function createRuntimeConfigScript(): string {
     apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT,
     ...(process.env.GENFEED_RUNTIME_CONFIG_ENDPOINT === '1'
       ? {}
-      : { betterAuthEnabled: isBetterAuthEnabled() }),
+      : {
+          betterAuthEnabled: isBetterAuthEnabled(),
+          isMagicLinkAvailable: readMagicLinkAvailableFromEnv(),
+        }),
   };
 
   return `globalThis.__GENFEED_RUNTIME_CONFIG__=Object.assign(${JSON.stringify(

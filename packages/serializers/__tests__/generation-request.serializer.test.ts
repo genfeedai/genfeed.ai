@@ -25,6 +25,9 @@ describe('generation request serializers', () => {
     };
 
     expect(serialized.data.attributes).toMatchObject(REQUEST);
+    expect(JSON.stringify(serialized.data.attributes)).not.toContain(
+      '"isEnhancementFailed"',
+    );
   });
 
   it.each([
@@ -161,4 +164,29 @@ describe('canonical Crun video consume', () => {
     ])
       expect(document.data.attributes).not.toHaveProperty(name);
   });
+});
+
+describe('enhancement failure response projection', () => {
+  it.each([
+    ['image', ImageSerializer],
+    ['queued image', ImageGenerationSerializer],
+    ['video', VideoSerializer],
+    ['queued video', VideoGenerationSerializer],
+  ] as const)(
+    'exposes the persisted failure flag for %s',
+    (_kind, serializer) => {
+      for (const isEnhancementFailed of [true, false]) {
+        const document = serializer.serialize({
+          id: 'asset-1',
+          generationHarness: {
+            status: isEnhancementFailed ? 'skipped' : 'applied',
+            isEnhancementFailed,
+          },
+        }) as { data: { attributes: Record<string, unknown> } };
+        expect(document.data.attributes.isEnhancementFailed).toBe(
+          isEnhancementFailed,
+        );
+      }
+    },
+  );
 });
