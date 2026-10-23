@@ -65,6 +65,8 @@ describe('initSentry', () => {
           'url.full':
             'https://app.genfeed.ai/oauth/x?oauth_verifier=secret#fragment',
           'url.query': '?code=secret',
+          'http.fragment': '#access_token=secret',
+          'url.fragment': 'access_token=secret',
           'http.request.method': 'GET',
           'custom.allowed': 42,
         },

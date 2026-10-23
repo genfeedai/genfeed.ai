@@ -4,7 +4,13 @@ type StreamedSpan = Parameters<
   NonNullable<NonNullable<Parameters<typeof Sentry.init>[0]>['beforeSendSpan']>
 >[0];
 
-const QUERY_STRING_SPAN_KEYS = ['http.query', 'url.query'] as const;
+// OAuth implicit-flow tokens ride the fragment, so it is dropped like the query.
+const QUERY_STRING_SPAN_KEYS = [
+  'http.fragment',
+  'http.query',
+  'url.fragment',
+  'url.query',
+] as const;
 const URL_SPAN_KEYS = ['http.url', 'url.full'] as const;
 
 function withoutQueryString(url: string): string {
