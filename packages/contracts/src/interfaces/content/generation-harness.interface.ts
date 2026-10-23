@@ -67,3 +67,18 @@ export interface GenerationHarnessReceipt {
   /** Exact Knowledge source versions folded into the enhanced prompt. */
   knowledgeReceipts?: KnowledgeReceipt[];
 }
+
+/** Safe projection from persisted receipt JSON, including historical receipts. */
+export function isGenerationEnhancementFailed(receipt: unknown): boolean {
+  return (
+    typeof receipt === 'object' &&
+    receipt !== null &&
+    'isEnhancementFailed' in receipt &&
+    receipt.isEnhancementFailed === true
+  );
+}
+
+/** Generation results retain this signal even when prompt details are withheld. */
+export interface GenerationEnhancementStatus {
+  isEnhancementFailed?: boolean;
+}

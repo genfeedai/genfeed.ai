@@ -1,5 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import { toIngredientCreateData } from '@api/collections/ingredients/utils/ingredient-create-data.util';
+import { assertApprovalMediaReady } from '@api/publish-approvals/publish-approval-media-gate';
 import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
@@ -8,11 +10,14 @@ import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
+import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { brandOfferingSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -699,4 +704,107 @@ describe('MediaPromptEnhancementService', () => {
       },
     );
   });
+});
+
+describe('enhancement through the publish boundary', () => {
+  it.each([true, false])(
+    'persists enhancement failure=%s and enforces it at unattended publishing',
+    async (isEnhancementFailed) => {
+      const { service, promptEnhancement } = setup();
+      if (isEnhancementFailed)
+        promptEnhancement.enhance.mockRejectedValue(
+          new Error('Enhancement unavailable'),
+        );
+      const receipt = await service.enhance(input);
+      const persisted = toIngredientCreateData({ generationHarness: receipt });
+      const findMany = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 'asset-1', category: 'IMAGE', ...persisted },
+        ]);
+      const gate = new MediaAssessmentService(
+        {
+          ingredient: { findMany },
+          mediaPerception: { findMany: vi.fn().mockResolvedValue([]) },
+          mediaModeration: { findMany: vi.fn().mockResolvedValue([]) },
+          mediaTextDecision: { findMany: vi.fn().mockResolvedValue([]) },
+        } as never,
+        {
+          evaluatePublishReadiness: vi.fn().mockResolvedValue({
+            checkedAt: new Date().toISOString(),
+            diagnostics: [],
+            isBlocked: false,
+          }),
+        } as never,
+        {} as never,
+        {} as never,
+        {
+          getFeatureSettingsState: vi.fn().mockResolvedValue({
+            isResolved: true,
+            settings: {
+              ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+              moderationMode: 'off',
+              mediaGateVisionMode: 'off',
+              mediaTextGateDecisionMode: 'off',
+            },
+          }),
+        } as never,
+      );
+      const post = {
+        agentContextVersion: 1,
+        brandId: input.brandId,
+        credentialId: 'credential-1',
+        id: 'post-1',
+        ingredients: [{ id: 'asset-1' }],
+        isDeleted: false,
+        organizationId: input.organizationId,
+        platform: CredentialPlatform.TWITTER,
+        publishApprovalId: null,
+        scheduledDate: null,
+        status: 'draft',
+        targetExecutionState: 'draft',
+        timezone: 'UTC',
+      };
+      const attempt = () =>
+        assertApprovalMediaReady({
+          destinations: [],
+          gate,
+          isHumanApproval: false,
+          logger: undefined,
+          post,
+        });
+      if (isEnhancementFailed) {
+        await expect(attempt()).rejects.toThrow('Brand enhancement failed');
+        expect(receipt.enhancedPrompt).toBe(input.prompt);
+        await expect(
+          assertApprovalMediaReady({
+            destinations: [],
+            gate,
+            isHumanApproval: true,
+            logger: undefined,
+            post,
+          }),
+        ).resolves.toMatchObject({
+          assessmentReasons: [
+            expect.objectContaining({ code: 'generation:enhancement_failed' }),
+          ],
+        });
+      } else {
+        await expect(attempt()).resolves.toEqual({
+          assessmentReasons: [],
+          warnings: [],
+        });
+        expect(receipt.status).toBe('applied');
+      }
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: { in: ['asset-1'] },
+            organizationId: input.organizationId,
+            isDeleted: false,
+          },
+        }),
+      );
+    },
+  );
 });

@@ -1,3 +1,5 @@
+import type { GenerationEnhancementStatus } from '../content/generation-harness.interface';
+
 export const MEDIA_ARTIFACT_KINDS = ['image', 'video', 'audio'] as const;
 
 export type MediaArtifactKind = (typeof MEDIA_ARTIFACT_KINDS)[number];
@@ -61,6 +63,6 @@ export interface McpMediaToolResult {
   structuredContent: {
     artifact?: MediaArtifactResult;
     creditsDebited?: number;
-    data: Record<string, unknown>;
+    data: Record<string, unknown> & GenerationEnhancementStatus;
   };
 }

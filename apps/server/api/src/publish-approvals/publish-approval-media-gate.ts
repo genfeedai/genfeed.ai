@@ -15,7 +15,7 @@ import {
   type IPublishApprovalDestination,
   isMediaPublishGate,
 } from '@genfeedai/contracts/interfaces';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 
 /**
  * The deterministic media gate in front of a publish approval (#4878).
@@ -49,8 +49,8 @@ export class PublishApprovalMediaNotReadyException extends HttpException {
 
 /**
  * What the media gate hands back to an approval: readiness warnings plus the
- * classifier reasons (#4881) a reviewer should see. An approval is already a
- * human review, so assessment reasons inform it rather than block it.
+ * assessment reasons a reviewer should see. A human approval may proceed
+ * after failed enhancement; an unattended approval must be refused.
  */
 export type ApprovalMediaGateOutcome = {
   assessmentReasons: MediaAssessmentReason[];
@@ -76,6 +76,7 @@ export async function assertApprovalMediaReady(params: {
   gate: IMediaReadinessGate | undefined;
   logger: ServerLogger | undefined;
   post: ApprovalPost;
+  isHumanApproval: boolean;
 }): Promise<ApprovalMediaGateOutcome> {
   const assetIds = params.post.ingredients.map((ingredient) => ingredient.id);
   if (!params.gate || assetIds.length === 0) {
@@ -106,10 +107,45 @@ export async function assertApprovalMediaReady(params: {
         platforms: [],
       })
     : null;
+  assertEnhancementApproved(assessment?.reasons ?? [], params.isHumanApproval);
   return {
     assessmentReasons: assessment?.reasons ?? [],
     warnings: readWarningDiagnostics(report),
   };
+}
+
+function assertEnhancementApproved(
+  reasons: readonly MediaAssessmentReason[],
+  isHumanApproval: boolean,
+): void {
+  const failures = reasons.filter(
+    (reason) => reason.code === 'generation:enhancement_failed',
+  );
+  if (!isHumanApproval && failures.length > 0) {
+    throw new BadRequestException(
+      failures.map((reason) => reason.message).join('; '),
+    );
+  }
+}
+
+/** Re-read persisted generation evidence at dispatch, including older queued approvals. */
+export async function assertApprovalEnhancementReady(params: {
+  gate: IMediaReadinessGate | undefined;
+  post: ApprovalPost;
+  isHumanApproval: boolean;
+}): Promise<void> {
+  if (
+    params.isHumanApproval ||
+    !isMediaPublishGate(params.gate) ||
+    params.post.ingredients.length === 0
+  )
+    return;
+  const assessment = await params.gate.assessPublishMedia({
+    assetIds: params.post.ingredients.map((ingredient) => ingredient.id),
+    organizationId: params.post.organizationId,
+    platforms: [],
+  });
+  assertEnhancementApproved(assessment.reasons, params.isHumanApproval);
 }
 
 /** Provenance for a newly created approval, carrying this attempt's warnings. */

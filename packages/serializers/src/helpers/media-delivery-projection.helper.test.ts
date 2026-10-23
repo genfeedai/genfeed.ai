@@ -32,6 +32,7 @@ describe('media delivery response projection', () => {
       s3Key: 'ingredients/images/original.png',
       generationHarness: {
         providerUrl: 'https://provider.example/original.png',
+        isEnhancementFailed: true,
       },
       metadata: {
         id: metadataId,
@@ -45,6 +46,8 @@ describe('media delivery response projection', () => {
       projectMediaResponse(response, [preview], false),
     );
     expect(projected).toContain('protected-preview');
+    expect(projected).toContain('"isEnhancementFailed":true');
+    expect(projected).toContain('"generationHarness":null');
     expect(projected).not.toContain('original.png');
     expect(JSON.stringify(response)).toBe(snapshot);
   });

@@ -231,6 +231,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'image:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Derived from the persisted generationHarness receipt, not a separate column.
+    'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
     'blacklist',
@@ -278,6 +280,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'ingredient:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Derived from the persisted generationHarness receipt, not a separate column.
+    'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
     'blacklists',
@@ -444,6 +448,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'voice:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Derived from the persisted generationHarness receipt, not a separate column.
+    'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
     'accent',
@@ -645,6 +651,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'avatar:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Derived from the persisted generationHarness receipt, not a separate column.
+    'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
     'age',
@@ -703,6 +711,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'video:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Derived from the persisted generationHarness receipt, not a separate column.
+    'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
     'bitrate',

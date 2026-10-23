@@ -1,10 +1,18 @@
 import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
-import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
+import {
+  MediaAssessmentService,
+  toPolicyMediaAssessment,
+} from '@api/services/media-assessment/media-assessment.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  AgentAutonomyMode,
+  AgentPublishDecision,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
 import { DEFAULT_MODERATION_THRESHOLDS } from '@genfeedai/contracts/api-types/contracts';
+import { evaluateAgentPublishPolicy } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
@@ -68,6 +76,7 @@ function moderationRow(ingredientId: string, hate: number, mode = 'shadow') {
 }
 
 function makeHarness(options: {
+  generationHarness?: unknown;
   categories?: Record<string, string>;
   textDecisions?: Record<string, unknown>[];
   config?: Record<string, unknown>;
@@ -114,6 +123,7 @@ function makeHarness(options: {
           async ({ where }: { where: { id: { in: string[] } } }) =>
             where.id.in.map((id) => ({
               category: categories[id] ?? 'IMAGE',
+              generationHarness: options.generationHarness ?? null,
               id,
             })),
         ),
@@ -143,6 +153,61 @@ const REQUEST = {
 };
 
 describe('MediaAssessmentService', () => {
+  it.each(['IMAGE', 'VIDEO'])(
+    'refuses auto-publish after %s enhancement failed, even with classifier gates off',
+    async (category) => {
+      const { service } = makeHarness({
+        categories: { 'asset-1': category },
+        generationHarness: { status: 'skipped', isEnhancementFailed: true },
+        featureSettings: {
+          moderationMode: 'off',
+          mediaGateVisionMode: 'off',
+          mediaTextGateDecisionMode: 'off',
+        },
+      });
+      const assessment = await service.assessPublishMedia(REQUEST);
+      expect(assessment.reasons).toContainEqual(
+        expect.objectContaining({
+          assetId: 'asset-1',
+          code: 'generation:enhancement_failed',
+          source: 'generation',
+          message: expect.stringContaining('Brand enhancement failed'),
+        }),
+      );
+      const policy = evaluateAgentPublishPolicy({
+        autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+        brandAllowsAutoPublish: true,
+        channelAllowsAutoPublish: true,
+        mediaAssessment: toPolicyMediaAssessment(assessment),
+      });
+      expect(policy.decision).toBe(AgentPublishDecision.DENIED);
+      expect(policy.reason).toContain('Brand enhancement failed');
+    },
+  );
+
+  it.each([
+    null,
+    { status: 'applied' },
+    { status: 'skipped' },
+    { isEnhancementFailed: false },
+  ])(
+    'leaves successful, opted-out and historical generations publishable: %j',
+    async (generationHarness) => {
+      const { service } = makeHarness({
+        generationHarness,
+        featureSettings: { moderationMode: 'off' },
+      });
+      const assessment = await service.assessPublishMedia(REQUEST);
+      expect(
+        evaluateAgentPublishPolicy({
+          autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+          brandAllowsAutoPublish: true,
+          channelAllowsAutoPublish: true,
+          mediaAssessment: toPolicyMediaAssessment(assessment),
+        }).decision,
+      ).toBe(AgentPublishDecision.PERMITTED);
+    },
+  );
   it('fails closed while the media gate switches are unresolved (#5468)', async () => {
     // Settings unreadable since boot: the stand-in switches have every gate off or in
     // shadow, which must never let an unchecked asset publish autonomously.

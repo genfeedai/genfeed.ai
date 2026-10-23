@@ -1,4 +1,5 @@
 import type { McpImageContentPart } from '@genfeedai/contracts/interfaces';
+import { isGenerationEnhancementFailed } from '@genfeedai/contracts/interfaces';
 import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -36,8 +37,16 @@ function readableMediaResult(
     ? `${title}\nStatus: ${readableLabel(artifact.status.toLowerCase())}${artifact.url ? `\n[Open ${artifact.kind}](${artifact.url})` : ''}`
     : formatToolData(payload);
   const receipt = harnessReceiptText(payload);
+  const warning =
+    payload.isEnhancementFailed === true ||
+    isGenerationEnhancementFailed(payload.generationHarness)
+      ? 'Brand enhancement failed. Automatic publishing is blocked; review and approve in the app or regenerate the asset.'
+      : undefined;
   result.content = [
-    { type: 'text', text: receipt ? `${message}\n\n${receipt}` : message },
+    {
+      type: 'text',
+      text: [message, receipt, warning].filter(Boolean).join('\n\n'),
+    },
     ...result.content.flatMap((part) =>
       part.type === 'text'
         ? []

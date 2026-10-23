@@ -4,6 +4,7 @@
  *
  * Sources, in order of cost:
  * - `readiness`   deterministic platform media spec (#4878) — always on
+ * - `generation`  persisted brand enhancement failure (#7887) — always on
  * - `moderation`  the classifier verdict (#4880) — flags only in `live`
  * - `vision`      typed vision-evaluation flags (#4881) — flags only in `live`
  * - `transcript` / `description`  text decisions on perception output (#4882)
@@ -19,6 +20,7 @@ import { z } from 'zod';
 
 export const mediaAssessmentSourceValues = [
   'description',
+  'generation',
   'moderation',
   'perception',
   'readiness',
