@@ -32,7 +32,10 @@ describe('VideoGenerationProviderDispatchService', () => {
   const service = new VideoGenerationProviderDispatchService(
     new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
     new FalVideoGenerationProviderAdapter(falService as never),
-    new ReplicateVideoGenerationProviderAdapter(replicateService as never),
+    new ReplicateVideoGenerationProviderAdapter(
+      replicateService as never,
+      { poll: vi.fn() } as never,
+    ),
     new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService as never),
     new HeyGenVideoGenerationProviderAdapter(heyGenService as never),
     new KieVideoGenerationProviderAdapter({ generateVideo: vi.fn() } as never),

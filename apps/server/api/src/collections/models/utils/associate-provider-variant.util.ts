@@ -8,7 +8,7 @@ export async function associateProviderVariant(
 ): Promise<void> {
   if (model.id === source.id || source.isProviderVariant) return;
   await tx.model.update({
-    where: { id: source.id },
+    where: { id: source.id, organizationId: null, isDeleted: false },
     data: {
       isProviderVariant: true,
       ...(source.isDefault ? { isDefault: false } : {}),
@@ -16,7 +16,7 @@ export async function associateProviderVariant(
   });
   if (source.isDefault && !model.isDefault)
     await tx.model.update({
-      where: { id: model.id },
+      where: { id: model.id, organizationId: null, isDeleted: false },
       data: { isDefault: true },
     });
   // tenant-scope-ignore: reference-data/admin association maps existing grants to the same logical model once; subsequent operator opt-outs are preserved.

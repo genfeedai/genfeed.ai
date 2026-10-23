@@ -41,6 +41,7 @@ export async function seedProviderOfferRegistrations(
     });
     written++;
   }
+  // tenant-scope-ignore: `key` is globally unique; the presence check must also see soft-deleted rows or the create below would violate it.
   if (!(await prisma.model.findUnique({ where: { key: 'kie/kling-3.0' } }))) {
     await prisma.model.create({
       data: {

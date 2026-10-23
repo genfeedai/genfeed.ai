@@ -184,9 +184,13 @@ describe('VideoGenerationExecutionService', () => {
     expect(
       state.webhooksService.processMediaForIngredient,
     ).toHaveBeenCalledTimes(1);
-    expect(context.request.creditsConfig?.modelQuote?.credits).toBe(
-      modelQuote.credits,
-    );
+    expect(
+      (
+        context.request as unknown as {
+          creditsConfig?: { modelQuote?: { credits?: number } };
+        }
+      ).creditsConfig?.modelQuote?.credits,
+    ).toBe(modelQuote.credits);
     expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
   });
 

@@ -76,7 +76,7 @@ describe('admin model provider associations', () => {
     await f.service.update('logical', { executionModelId: 'source' });
     expect(f.prisma.modelProviderOffer.upsert).toHaveBeenCalledTimes(2);
     expect(f.prisma.model.update).toHaveBeenCalledWith({
-      where: { id: 'source' },
+      where: { id: 'source', organizationId: null, isDeleted: false },
       data: { isProviderVariant: true },
     });
   });

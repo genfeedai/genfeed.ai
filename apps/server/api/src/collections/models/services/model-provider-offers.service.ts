@@ -133,7 +133,7 @@ export class ModelProviderOffersService {
           patch.isModelActive !== undefined
         )
           await tx.model.update({
-            where: { id },
+            where: { id, organizationId: null, isDeleted: false },
             data: {
               label: patch.label,
               description: patch.description,
@@ -239,7 +239,7 @@ export class ModelProviderOffersService {
               throw new BadRequestException('Pin an active connected provider');
           }
           await tx.model.update({
-            where: { id },
+            where: { id, organizationId: null, isDeleted: false },
             data: { pinnedProvider: patch.pinnedProvider },
           });
         }

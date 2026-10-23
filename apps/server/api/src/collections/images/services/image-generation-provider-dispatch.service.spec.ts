@@ -335,9 +335,14 @@ describe('ImageGenerationProviderDispatchService', () => {
       const prepare = vi
         .spyOn(providerRegistry, 'prepare')
         .mockImplementation(async (request) => ({
+          additionalActivityFailure: 'fail',
+          additionalFailureLabel: 'additional output',
+          additionalPlaceholderFailureLabel: 'additional placeholder',
           completionKind: 'poll-single',
-          outputStrategy: 'single',
+          failureLabel: 'image generation',
           generate: request.modelProvider === 'replicate' ? primary : backup,
+          outputStrategy: 'single',
+          trackAdditionalOutputsInResponse: false,
         }));
       const context = buildContext({
         model: 'test/model',
