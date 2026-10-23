@@ -1,6 +1,7 @@
-import { createHash } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 import { readFile, realpath, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import vm from 'node:vm';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
 const args = process.argv.slice(2);
@@ -46,7 +47,7 @@ async function localFile(reference) {
     throw new Error('Missing script or symlink escape.');
   return target;
 }
-async function probe(entry) {
+async function probe(entry, contentScript = false) {
   const result = {
     entry,
     scripts: [],
@@ -65,10 +66,17 @@ async function probe(entry) {
   const rejected = (reason) => result.rejections.push(safe(reason));
   process.on('unhandledRejection', rejected);
   try {
-    const htmlPath = await localFile(entry);
-    const html = await readFile(htmlPath, 'utf8');
+    const html = contentScript
+      ? '<!doctype html><html><head></head><body><main>Offline content fixture</main></body></html>'
+      : await readFile(await localFile(entry), 'utf8');
     result.htmlSha256 = hash(html);
-    const scripts = [...JSDOM.fragment(html).querySelectorAll('script')];
+    const fragment = JSDOM.fragment(html);
+    if (contentScript) {
+      const script = fragment.ownerDocument.createElement('script');
+      script.setAttribute('src', entry);
+      fragment.appendChild(script);
+    }
+    const scripts = [...fragment.querySelectorAll('script')];
     if (!scripts.length) throw new Error('No generated entry scripts.');
     const entries = [];
     for (const script of scripts) {
@@ -95,7 +103,9 @@ async function probe(entry) {
       result.consoleErrors.push(values.map(safe).join(' ')),
     );
     dom = new JSDOM(html, {
-      url: `https://compiled-extension.invalid/${entry}`,
+      url: contentScript
+        ? 'https://compiled-content.invalid/'
+        : `https://compiled-extension.invalid/${entry}`,
       runScripts: 'outside-only',
       pretendToBeVisual: true,
       virtualConsole: console,
@@ -169,6 +179,12 @@ async function probe(entry) {
     runtime.getURL = (name) => `chrome-extension://compiled-probe/${name}`;
     runtime.getManifest = () => ({ version: '0.0.0' });
     runtime.sendMessage = async (message, callback) => {
+      if (contentScript && message?.type === 'PLATFORM_DETECTED') {
+        result.contentReady = true;
+        const answer = { success: true };
+        callback?.(answer);
+        return answer;
+      }
       result.unexpectedMessages.push(String(message?.event ?? 'unknown'));
       const answer = {
         success: false,
@@ -278,6 +294,7 @@ async function probe(entry) {
       }
     }
     const settled = () => {
+      if (contentScript) return result.contentReady === true;
       const root = w.document.getElementById('__plasmo');
       const buttons = [...(root?.querySelectorAll('button') ?? [])];
       return (
@@ -349,7 +366,223 @@ async function probe(entry) {
     process.removeListener('unhandledRejection', rejected);
   }
 }
+
+async function probeBackground() {
+  const manifest = JSON.parse(
+    await readFile(await localFile('manifest.json'), 'utf8'),
+  );
+  const entry = manifest.background?.service_worker;
+  const result = {
+    entry: entry ?? 'background',
+    kind: 'service-worker',
+    errors: [],
+    rejections: [],
+    consoleErrors: [],
+    unexpectedNetwork: [],
+    registrations: [],
+    chromeCalls: [],
+    constructors: null,
+    pass: false,
+  };
+  evidence.entries.push(result);
+  const timers = new Set();
+  const rejected = (reason) => result.rejections.push(safe(reason));
+  process.on('unhandledRejection', rejected);
+  try {
+    if (typeof entry !== 'string') throw new Error('Missing service worker.');
+    const file = await localFile(entry);
+    const bytes = await readFile(file);
+    result.sha256 = hash(bytes);
+    const event = (name) => ({
+      addListener() {
+        result.registrations.push(name);
+      },
+      removeListener() {},
+      hasListener: () => false,
+    });
+    const mutation = (name) => async () => {
+      result.chromeCalls.push(name);
+      return {};
+    };
+    const storage = () => ({
+      async get(keys, callback) {
+        const value =
+          keys && typeof keys === 'object' && !Array.isArray(keys)
+            ? { ...keys }
+            : {};
+        callback?.(value);
+        return value;
+      },
+      async set(_value, callback) {
+        callback?.();
+      },
+      async remove(_keys, callback) {
+        callback?.();
+      },
+    });
+    const chrome = {
+      runtime: {
+        id: 'compiled-probe',
+        getURL: (name) => `chrome-extension://compiled-probe/${name}`,
+        getManifest: () => ({ version: manifest.version }),
+        onInstalled: event('runtime.onInstalled'),
+        onMessage: event('runtime.onMessage'),
+        sendMessage: mutation('runtime.sendMessage'),
+      },
+      storage: {
+        local: storage(),
+        session: storage(),
+        sync: storage(),
+        onChanged: event('storage.onChanged'),
+      },
+      tabs: {
+        onUpdated: event('tabs.onUpdated'),
+        onRemoved: event('tabs.onRemoved'),
+        query: async () => [],
+        create: mutation('tabs.create'),
+        sendMessage: mutation('tabs.sendMessage'),
+      },
+      cookies: { getAll: async () => [] },
+      sidePanel: {
+        setPanelBehavior: mutation('sidePanel.setPanelBehavior'),
+        open: mutation('sidePanel.open'),
+      },
+      contextMenus: {
+        onClicked: event('contextMenus.onClicked'),
+        removeAll: mutation('contextMenus.removeAll'),
+        create: mutation('contextMenus.create'),
+      },
+    };
+    const blocked = (kind) => {
+      result.unexpectedNetwork.push({ kind });
+      throw new Error(`Synthetic worker blocked ${kind}.`);
+    };
+    const worker = {
+      chrome,
+      console: Object.fromEntries(
+        ['debug', 'info', 'warn', 'log', 'error'].map((level) => [
+          level,
+          (...values) => {
+            if (level === 'error')
+              result.consoleErrors.push(values.map(safe).join(' '));
+          },
+        ]),
+      ),
+      URL,
+      URLSearchParams,
+      Request,
+      Response,
+      Headers,
+      AbortController,
+      AbortSignal,
+      TextEncoder,
+      TextDecoder,
+      Blob,
+      File,
+      FormData,
+      ReadableStream,
+      WritableStream,
+      TransformStream,
+      crypto: webcrypto,
+      performance,
+      atob,
+      btoa,
+      navigator: {
+        userAgent: 'Synthetic Chromium service worker',
+        language: 'en-US',
+      },
+      location: new URL(`chrome-extension://compiled-probe/${entry}`),
+      WorkerGlobalScope: class WorkerGlobalScope {},
+      ServiceWorkerGlobalScope: class ServiceWorkerGlobalScope {},
+      setTimeout(callback, delay, ...args) {
+        const id = setTimeout(callback, delay, ...args);
+        id.unref();
+        timers.add(id);
+        return id;
+      },
+      clearTimeout,
+      setInterval(callback, delay, ...args) {
+        const id = setInterval(callback, delay, ...args);
+        id.unref();
+        timers.add(id);
+        return id;
+      },
+      clearInterval,
+      queueMicrotask,
+      fetch: async () => blocked('fetch'),
+      importScripts: () => blocked('importScripts'),
+      WebSocket: class {
+        constructor() {
+          blocked('WebSocket');
+        }
+      },
+    };
+    worker.self = worker;
+    const context = vm.createContext(worker);
+    vm.runInContext(bytes.toString('utf8'), context, {
+      filename: entry,
+      timeout: 5000,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    result.domGlobalsAbsent = vm.runInContext(
+      "typeof window === 'undefined' && typeof document === 'undefined' && typeof process === 'undefined'",
+      context,
+    );
+    for (const name of Object.keys(worker).filter((key) =>
+      key.startsWith('parcelRequire'),
+    )) {
+      for (const module of Object.values(worker[name]?.cache ?? {})) {
+        const exported = module?.exports;
+        const constructors = exported?.z ?? exported;
+        if (
+          !['string', 'object', 'number', 'enum'].every(
+            (key) => typeof constructors?.[key] === 'function',
+          )
+        )
+          continue;
+        result.constructors = {
+          validString: constructors.string().safeParse('startup').success,
+          invalidNumber: !constructors.string().safeParse(123).success,
+        };
+        break;
+      }
+      if (result.constructors) break;
+    }
+    result.pass =
+      result.domGlobalsAbsent &&
+      result.constructors?.validString &&
+      result.constructors?.invalidNumber &&
+      [
+        'runtime.onInstalled',
+        'runtime.onMessage',
+        'contextMenus.onClicked',
+        'tabs.onUpdated',
+      ].every((name) => result.registrations.includes(name)) &&
+      result.chromeCalls.includes('sidePanel.setPanelBehavior') &&
+      !result.rejections.length &&
+      !result.consoleErrors.length &&
+      !result.unexpectedNetwork.length;
+  } catch (error) {
+    result.errors.push({ kind: 'worker-startup', message: safe(error) });
+  } finally {
+    for (const timer of timers) {
+      clearTimeout(timer);
+      clearInterval(timer);
+    }
+    process.removeListener('unhandledRejection', rejected);
+  }
+}
+
+await probeBackground();
 for (const entry of ['popup.html', 'sidepanel.html']) await probe(entry);
+const manifest = JSON.parse(
+  await readFile(await localFile('manifest.json'), 'utf8'),
+);
+const contentEntries = new Set(
+  (manifest.content_scripts ?? []).flatMap((script) => script.js ?? []),
+);
+if (!contentEntries.size) throw new Error('Missing content script.');
+for (const entry of contentEntries) await probe(entry, true);
 evidence.pass = evidence.entries.every((entry) => entry.pass);
 await writeFile(options['--output'], `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(
