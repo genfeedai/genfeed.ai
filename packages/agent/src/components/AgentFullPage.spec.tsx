@@ -3,10 +3,10 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
-import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
