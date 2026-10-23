@@ -16,6 +16,7 @@ describe('self-hosted runtime config', () => {
     'reads runtime env %s while ignoring the existing runtime global',
     async (flag) => {
       vi.stubEnv('BETTER_AUTH_ENABLED', flag);
+      vi.stubEnv('RESEND_API_KEY', 're_test_key');
       vi.stubEnv(
         'NEXT_PUBLIC_BETTER_AUTH_ENABLED',
         flag === 'true' ? 'false' : 'true',
