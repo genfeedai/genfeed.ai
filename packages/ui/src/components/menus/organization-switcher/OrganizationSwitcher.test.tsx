@@ -10,7 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPush = vi.fn();
 const mockGetMyOrganizations = vi.fn();
 const mockSwitchOrganization = vi.fn();
-let mockOrganizations: typeof TWO_ORGS | Array<(typeof TWO_ORGS)[number]> = [];
+let mockOrganizations: Array<
+  (typeof TWO_ORGS)[number] & { logoUrl?: string | null }
+> = [];
 let mockConfirmedOrganizationId: string | null = 'org_1';
 let mockOrganizationStatus = 'matched';
 let mockParams: { orgSlug?: string } = { orgSlug: 'acme-org' };
