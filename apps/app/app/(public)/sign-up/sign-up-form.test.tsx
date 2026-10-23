@@ -9,15 +9,19 @@ import SignUpForm from './sign-up-form';
 
 const authClientMocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
+  isMagicLinkAvailable: vi.fn(),
   magicLink: vi.fn(),
+  signUpEmail: vi.fn(),
   social: vi.fn(),
 }));
 
 vi.mock('@genfeedai/auth-client', () => ({
+  isMagicLinkAvailable: authClientMocks.isMagicLinkAvailable,
   signIn: {
     magicLink: authClientMocks.magicLink,
     social: authClientMocks.social,
   },
+  signUp: { email: authClientMocks.signUpEmail },
 }));
 
 vi.mock('@/lib/analytics', () => ({
@@ -26,6 +30,11 @@ vi.mock('@/lib/analytics', () => ({
   },
   captureAnalyticsEvent: authClientMocks.captureAnalyticsEvent,
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -95,6 +104,12 @@ describe('SignUpForm', () => {
     authClientMocks.magicLink.mockResolvedValue({});
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
+    authClientMocks.isMagicLinkAvailable.mockReset();
+    authClientMocks.isMagicLinkAvailable.mockReturnValue(true);
+    authClientMocks.signUpEmail.mockReset();
+    authClientMocks.signUpEmail.mockResolvedValue({
+      data: { token: 'session-token' },
+    });
     authClientMocks.captureAnalyticsEvent.mockReset();
     localStorageMock.clear();
 
@@ -125,10 +140,38 @@ describe('SignUpForm', () => {
       'href',
       '/sign-up/magic-link',
     );
+    expect(
+      screen.getByRole('link', { name: 'Email & password' }),
+    ).toHaveAttribute('href', '/sign-up/password');
     expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Continue with GitHub' }),
     ).toBeNull();
+  });
+
+  it('hides Magic Link when the deployment has no email provider', () => {
+    authClientMocks.isMagicLinkAvailable.mockReturnValue(false);
+
+    render(<SignUpForm />);
+
+    expect(screen.queryByRole('link', { name: 'Magic Link' })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Email & password' }),
+    ).toBeInTheDocument();
+  });
+
+  it('says the magic link cannot be sent and points at email sign-up', () => {
+    authClientMocks.isMagicLinkAvailable.mockReturnValue(false);
+
+    render(<SignUpBetterAuth mode="magic-link" />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Magic link unavailable' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Send link' })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Sign up with email' }),
+    ).toHaveAttribute('href', '/sign-up/password');
   });
 
   it('preserves sign-up handoff params when linking to the magic-link screen', () => {
@@ -362,5 +405,97 @@ describe('SignUpForm', () => {
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain)).toBe(
       'acme.co',
     );
+  });
+  describe('email and password sign-up', () => {
+    const fillAndSubmit = () => {
+      fireEvent.change(screen.getByRole('textbox', { name: /^Name/ }), {
+        target: { value: ' Ada Lovelace ' },
+      });
+      fireEvent.change(getEmailInput(), {
+        target: { value: ' Ada@Example.com ' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Password/), {
+        target: { value: 'correct-horse-battery' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    };
+
+    it('creates the account with the post-signup callback and no email delivery', async () => {
+      const assign = vi.fn();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: { ...window.location, assign },
+      });
+
+      render(<SignUpBetterAuth mode="password" />);
+      fillAndSubmit();
+
+      await waitFor(() => {
+        expect(authClientMocks.signUpEmail).toHaveBeenCalledWith({
+          callbackURL: absoluteCallback('/onboarding/post-signup'),
+          email: 'ada@example.com',
+          name: 'Ada Lovelace',
+          password: 'correct-horse-battery',
+        });
+      });
+      expect(authClientMocks.magicLink).not.toHaveBeenCalled();
+      expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+        'signup_started',
+        {
+          hasCloudHandoff: false,
+          hasCreditsIntent: false,
+          hasPlanIntent: false,
+          method: 'password',
+        },
+      );
+      await waitFor(() => {
+        expect(assign).toHaveBeenCalledWith(
+          absoluteCallback('/onboarding/post-signup'),
+        );
+      });
+    });
+
+    it('asks the user to verify their email when no session was issued', async () => {
+      authClientMocks.signUpEmail.mockResolvedValue({ data: { token: null } });
+
+      render(<SignUpBetterAuth mode="password" />);
+      fillAndSubmit();
+
+      expect(await screen.findByText('Check your email')).toBeInTheDocument();
+    });
+
+    it('shows the server error and stays on the form', async () => {
+      authClientMocks.signUpEmail.mockResolvedValue({
+        error: { message: 'User already exists.' },
+      });
+
+      render(<SignUpBetterAuth mode="password" />);
+      fillAndSubmit();
+
+      expect(
+        await screen.findByText('User already exists.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Create account' }),
+      ).toBeInTheDocument();
+    });
+
+    it('keeps submit disabled until the password is long enough', () => {
+      render(<SignUpBetterAuth mode="password" />);
+
+      fireEvent.change(screen.getByRole('textbox', { name: /^Name/ }), {
+        target: { value: 'Ada' },
+      });
+      fireEvent.change(getEmailInput(), {
+        target: { value: 'ada@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Password/), {
+        target: { value: 'short' },
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'Create account' }),
+      ).toBeDisabled();
+    });
   });
 });

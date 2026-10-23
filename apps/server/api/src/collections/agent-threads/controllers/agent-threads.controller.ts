@@ -229,12 +229,14 @@ export class AgentThreadsController {
       }).organizationId;
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
+        isDeleted: false,
         organizationId: organizationId,
       });
+      if (!thread) throw new NotFoundException('Thread', threadId);
       return serializeSingle(
         req,
         AgentThreadSerializer,
-        thread ? withAgentThreadExternalRuntime(thread) : thread,
+        withAgentThreadExternalRuntime(thread),
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getThread');

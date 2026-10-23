@@ -182,7 +182,16 @@ export class PerformanceInterceptor implements NestInterceptor {
     };
     const databaseMetrics = getRequestDatabaseMetrics();
     const errorDetails = error ? this.readError(error) : undefined;
-    const severity = this.readPerformanceSeverity(isSlow, isVerySlow, error);
+    const isExpectedExecutionLookupMiss =
+      error !== undefined &&
+      method === 'GET' &&
+      statusCode === 404 &&
+      /^(?:\/v1)?\/workflow-executions\/[^/]+\/?$/.test(url.split('?')[0]);
+    const severity = this.readPerformanceSeverity(
+      isSlow,
+      isVerySlow,
+      isExpectedExecutionLookupMiss ? undefined : error,
+    );
 
     recordApiPerformanceTelemetry(
       {
@@ -193,6 +202,14 @@ export class PerformanceInterceptor implements NestInterceptor {
       },
       this.configService,
     );
+
+    if (isExpectedExecutionLookupMiss) {
+      this.logger.debug('Workflow execution lookup returned no result', {
+        ...metrics,
+        severity,
+      });
+      if (!isSlow) return;
+    }
 
     if (
       !shouldLogCompletion &&
@@ -263,7 +280,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     }
 
     // Log error requests separately for easier monitoring
-    if (error) {
+    if (error && !isExpectedExecutionLookupMiss) {
       this.logger.error('Request failed', {
         ...metrics,
         ...(databaseMetrics && { database: databaseMetrics }),

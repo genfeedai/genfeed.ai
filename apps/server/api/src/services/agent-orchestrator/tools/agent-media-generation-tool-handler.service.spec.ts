@@ -2126,3 +2126,30 @@ describe('dedicated image editing', () => {
     });
   });
 });
+
+describe('generation enhancement failure tool signal', () => {
+  it.each(['image', 'video'] as const)(
+    'exposes failed enhancement in the %s result without failing generation',
+    async (kind) => {
+      const { gateway, handler } = createHandler();
+      const method = kind === 'image' ? 'generateImage' : 'generateVideo';
+      gateway[method].mockResolvedValue({
+        data: {
+          id: 'asset-queued',
+          attributes: {
+            status: 'processing',
+            generationHarness: { status: 'skipped', isEnhancementFailed: true },
+          },
+        },
+      });
+      const result = await handler.generate(
+        { type: kind, prompt: 'A coast' },
+        context,
+      );
+      expect(result).toMatchObject({
+        success: true,
+        data: { isEnhancementFailed: true },
+      });
+    },
+  );
+});

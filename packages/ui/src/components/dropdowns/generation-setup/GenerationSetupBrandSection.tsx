@@ -2,8 +2,9 @@
 
 import type { GenerationSetupBrandSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationHarnessSettingsSection from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsSection';
-import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
-import { Switch } from '@ui/primitives/switch';
+import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
+import GenerationToggleRow from '@ui/dropdowns/generation-setup/GenerationToggleRow';
+import GenerationTriStateControl from '@ui/dropdowns/generation-setup/GenerationTriStateControl';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -26,27 +27,36 @@ export default function GenerationSetupBrandSection({
   showEnhancementSettings = false,
 }: GenerationSetupBrandSectionProps) {
   const translate = useTranslations('agent.generationSetup');
+  const source = setup.sources.brandingMode ?? 'agent';
 
   return (
     <div className="flex flex-col gap-3">
       {capabilities.hasBrandEnrichment ? (
-        <GenerationSetupFieldRow
-          fieldKey="brandingMode"
+        <GenerationToggleRow
           label={translate('brandVoice')}
-          onReset={onResetField}
-          reason={reasons.brandingMode}
-          source={setup.sources.brandingMode ?? 'agent'}
-        >
-          <div className="flex w-full justify-end">
-            <Switch
-              aria-label={translate('brandVoice')}
-              isChecked={setup.values.brandingMode === 'brand'}
-              onCheckedChange={(checked) =>
-                onSetField('brandingMode', checked ? 'brand' : 'off')
-              }
+          leading={
+            <GenerationSetupFieldIcon
+              fieldKey="brandingMode"
+              reason={reasons.brandingMode}
+              source={source}
             />
-          </div>
-        </GenerationSetupFieldRow>
+          }
+        >
+          <GenerationTriStateControl
+            ariaLabel={translate('brandVoice')}
+            onChange={(value) => {
+              if (value === null) {
+                onResetField('brandingMode');
+                return;
+              }
+              onSetField('brandingMode', value ? 'brand' : 'off');
+            }}
+            resolvedValue={setup.values.brandingMode === 'brand'}
+            value={
+              source === 'agent' ? null : setup.values.brandingMode === 'brand'
+            }
+          />
+        </GenerationToggleRow>
       ) : null}
       {showEnhancementSettings ? (
         <section className="flex flex-col gap-3">

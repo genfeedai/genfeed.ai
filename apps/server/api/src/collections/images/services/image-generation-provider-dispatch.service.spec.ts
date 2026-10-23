@@ -10,6 +10,7 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import {
@@ -1407,6 +1408,70 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
     expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
   });
+
+  it('ends an unconfigured image placeholder and releases its quote instead of retaining progress', async () => {
+    const quote = quoteModelBillablePricing(
+      billableProfile(),
+      {
+        modelKey: 'test/model',
+        provider: 'replicate',
+        outputs: 1,
+        requests: 1,
+      },
+      1,
+      '2026-09-30T00:00:00.000Z',
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    const error = new MissingProviderKeyException('Replicate', 'REPLICATE_KEY');
+    replicateService.generateTextToImage.mockRejectedValueOnce(error);
+    const context = buildContext({
+      model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+    });
+    Object.assign(context.request, {
+      creditsConfig: {
+        modelQuote: quote.snapshot,
+        amount: quote.snapshot.credits,
+        reservationId: 'hold-1',
+        settlement: 'completion',
+      },
+    });
+    const plan = await service.dispatch(context);
+    await expect(plan?.generationPromise).rejects.toBe(error);
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      expect.objectContaining({
+        generationError: 'Missing provider key: REPLICATE_KEY',
+        status: IngredientStatus.FAILED,
+        isGenerationFailureConfirmed: true,
+      }),
+    );
+    expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+      'ingredient-1',
+      'organization-1',
+    );
+    expect(
+      failedGenerationService.notifyFailedImageGeneration,
+    ).toHaveBeenCalledWith(
+      'ingredient-1',
+      '/images/ingredient-1',
+      context.user,
+      expect.any(String),
+      'Missing provider key: REPLICATE_KEY',
+    );
+    expect(
+      generationEventWebhookService.emitGenerationFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'Missing provider key: REPLICATE_KEY',
+      }),
+    );
+  });
+
   it('records confirmed failure and releases group funding after a Replicate create credit rejection', async () => {
     const quote = quoteModelBillablePricing(
       billableProfile(),

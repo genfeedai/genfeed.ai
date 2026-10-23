@@ -127,6 +127,7 @@ describe('AgentWorkspacePageShell', () => {
       expect.objectContaining({
         apiService: { kind: 'service' },
         authReady: true,
+        newChatHref: '/test-org/~/agent/new',
         onOAuthConnect: handleOAuthConnectMock,
         showThreadSidebar: false,
         threadId: 'thread-123',

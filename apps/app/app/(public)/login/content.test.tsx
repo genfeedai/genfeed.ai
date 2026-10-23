@@ -42,6 +42,7 @@ let desktopSessionChangeCallback: ((session: object | null) => void) | null =
 
 vi.mock('@genfeedai/auth-client', () => ({
   getSession: authClientMocks.getSession,
+  isMagicLinkAvailable: () => true,
   signIn: {
     email: authClientMocks.email,
     magicLink: authClientMocks.magicLink,

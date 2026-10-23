@@ -126,6 +126,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/reset-password',
     '/sign-up',
     '/sign-up/magic-link',
+    '/sign-up/password',
   ] as const),
   ...classifyPublicRoutes('app', 'onboarding', [
     '/onboarding',

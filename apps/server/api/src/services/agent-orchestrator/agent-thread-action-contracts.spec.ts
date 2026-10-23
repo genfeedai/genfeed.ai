@@ -1,3 +1,4 @@
+import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import {
   type ActionContractJsonSchema,
@@ -75,6 +76,48 @@ describe('agent thread action contracts', () => {
       };
       expect(() => contract.validateOutput(result, PROVENANCE)).not.toThrow();
     });
+
+    it('accepts the serialized unmetered balance when generation is declined', async () => {
+      const credits = new OssCreditsUtilsService();
+      const result: AgentChatResult = {
+        creditsRemaining:
+          await credits.getOrganizationCreditsBalance('org-self-hosted'),
+        creditsUsed: 0,
+        message: {
+          content: 'Generation declined. No credits were charged.',
+          metadata: {},
+          role: 'assistant',
+        },
+        threadId: 'thread-1',
+        toolCalls: [],
+      };
+      const wireResult: unknown = JSON.parse(JSON.stringify(result));
+      expect(wireResult).toMatchObject({
+        creditsRemaining: null,
+        creditsUsed: 0,
+      });
+      expect(() =>
+        contract.validateOutput(wireResult, PROVENANCE),
+      ).not.toThrow();
+    });
+
+    it.each(['100', {}, false])(
+      'rejects invalid balance %j',
+      (creditsRemaining) => {
+        expect(() =>
+          contract.validateOutput(
+            {
+              creditsRemaining,
+              creditsUsed: 0,
+              message: { content: 'Declined', metadata: {}, role: 'assistant' },
+              threadId: 'thread-1',
+              toolCalls: [],
+            },
+            PROVENANCE,
+          ),
+        ).toThrow('Action contract output validation failed');
+      },
+    );
 
     it('still rejects unknown request fields', () => {
       expect(() =>

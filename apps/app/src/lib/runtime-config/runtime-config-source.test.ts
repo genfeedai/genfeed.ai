@@ -4,7 +4,7 @@ import { createRuntimeAuthConfigSource } from './runtime-config-source';
 describe('createRuntimeAuthConfigSource', () => {
   it.each([true, false])('serializes the auth flag %s', (isEnabled) => {
     expect(createRuntimeAuthConfigSource(isEnabled)).toBe(
-      `globalThis.__GENFEED_RUNTIME_CONFIG__={...globalThis.__GENFEED_RUNTIME_CONFIG__,...{"betterAuthEnabled":${isEnabled}}};`,
+      `globalThis.__GENFEED_RUNTIME_CONFIG__={...globalThis.__GENFEED_RUNTIME_CONFIG__,...{"betterAuthEnabled":${isEnabled},"isMagicLinkAvailable":true}};`,
     );
   });
 
@@ -25,6 +25,20 @@ describe('createRuntimeAuthConfigSource', () => {
       apiEndpoint: '/v1',
       betterAuthEnabled: true,
       clientSurface: 'desktop',
+      isMagicLinkAvailable: true,
+    });
+  });
+
+  it('serializes that magic links cannot be delivered', () => {
+    const runtimeGlobal = { __GENFEED_RUNTIME_CONFIG__: {} };
+
+    new Function('globalThis', createRuntimeAuthConfigSource(true, false))(
+      runtimeGlobal,
+    );
+
+    expect(runtimeGlobal.__GENFEED_RUNTIME_CONFIG__).toEqual({
+      betterAuthEnabled: true,
+      isMagicLinkAvailable: false,
     });
   });
 });

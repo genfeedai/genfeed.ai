@@ -199,11 +199,11 @@ describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
     // Canonical Following pages exist for both brand and organization scopes.
     expect(runCheckProductRouteInventory()).toMatchObject({
-      appPublicRouteCount: 24,
+      appPublicRouteCount: 25,
       issues: [],
       protectedPageCount: 241,
       protectedRouteCount: 260,
-      publicRouteCount: 113,
+      publicRouteCount: 114,
       websitePublicRouteCount: 89,
     });
   });

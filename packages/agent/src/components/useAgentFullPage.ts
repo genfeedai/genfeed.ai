@@ -1,3 +1,4 @@
+import { isThreadGoneError } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import { useAgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupStatus';
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
@@ -110,6 +111,7 @@ export function useAgentFullPage({
   // message fetches never fire against /threads/undefined/*.
   const threadId = isRenderableThreadId(rawThreadId) ? rawThreadId : undefined;
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+  const [isThreadNotFound, setIsThreadNotFound] = useState(false);
   const [mobileOutputsOpen, setMobileOutputsOpen] = useState(false);
   const [mobileSetupOpen, setMobileSetupOpen] = useState(false);
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
@@ -272,6 +274,7 @@ export function useAgentFullPage({
         cacheConversation(activeThreadRef.current);
       }
       setIsLoadingThread(false);
+      setIsThreadNotFound(false);
       setActiveThreadStatus(null);
       setWorkspacePlanningTaskId(null);
       setActiveThread(null);
@@ -323,6 +326,7 @@ export function useAgentFullPage({
     // thread and leave the composer writable through the revalidation window.
     if (previousThreadId !== threadId) {
       setActiveThreadStatus(null);
+      setIsThreadNotFound(false);
       setWorkspacePlanningTaskId(null);
     }
 
@@ -361,6 +365,12 @@ export function useAgentFullPage({
       hasReportedLoadFailure = true;
       setIsLoadingThread(false);
       setWorkspacePlanningTaskId(null);
+      // The API has no such thread: say so instead of leaving the empty state
+      // of a new chat, or a generic "refresh and try again" that never helps.
+      if (isThreadGoneError(error)) {
+        setIsThreadNotFound(true);
+        return;
+      }
       setError(
         isAuthError(error) ? AUTH_REQUIRED_MESSAGE : LOAD_THREAD_ERROR_MESSAGE,
       );
@@ -651,6 +661,7 @@ export function useAgentFullPage({
     handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
+    isThreadNotFound,
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,

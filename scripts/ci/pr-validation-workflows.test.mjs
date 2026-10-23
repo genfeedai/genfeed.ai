@@ -134,14 +134,18 @@ test('keeps privileged PR triggers limited to metadata and trusted master code',
     )
     .sort();
 
-  assert.deepEqual(targetWorkflows, ['ci.yml', 'cla-status-recovery.yml']);
+  assert.deepEqual(targetWorkflows, [
+    'cla-status-recovery.yml',
+    'pr-title.yml',
+  ]);
   const title = jobBlock(
-    readWorkflow('ci.yml'),
+    readWorkflow('pr-title.yml'),
     'conventional-title',
-    'ci.yml',
+    'pr-title.yml',
   );
   assert.deepEqual(
-    parseYaml(readWorkflow('ci.yml')).jobs['conventional-title'].permissions,
+    parseYaml(readWorkflow('pr-title.yml')).jobs['conventional-title']
+      .permissions,
     { 'pull-requests': 'read' },
   );
   assert.doesNotMatch(title, /uses: actions\/checkout@/);
@@ -415,7 +419,7 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
   );
 });
 
-test('caps the recursively reachable CI runnable inventory at twenty jobs', () => {
+test('caps the recursively reachable CI runnable inventory at nineteen jobs', () => {
   const graph = new Map([
     ['ci.yml', new Set(['_ci-validation.yml', '_ci-frontend.yml'])],
     ['_ci-validation.yml', new Set()],
@@ -440,7 +444,7 @@ test('caps the recursively reachable CI runnable inventory at twenty jobs', () =
     }
     return runners;
   }
-  assert.equal(count('ci.yml'), 20);
+  assert.equal(count('ci.yml'), 19);
   assert.equal(seen.size, 4);
 });
 
@@ -480,7 +484,10 @@ test('the full suite runs on demand and at release, never on push, and never can
 
 test('master SHA verdict fails closed for incomplete required verification', () => {
   const workflow = readWorkflow('full-suite.yml');
-  assert.match(workflow, /^run-name: Master SHA · \$\{\{ github\.sha \}\}$/m);
+  assert.match(
+    workflow,
+    /^run-name: Full Suite · \$\{\{ github\.ref_name \}\}$/m,
+  );
   const verdict = jobBlock(workflow, 'master-sha-verdict', 'full-suite.yml');
   assert.match(verdict, /^ {4}name: Master SHA Verdict$/m);
   assert.match(verdict, /^ {4}if: always\(\)$/m);
@@ -2046,6 +2053,7 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
     'cancel-in-progress': true,
   });
   assert.deepEqual(root.on.pull_request, {
+    branches: ['master'],
     types: ['opened', 'synchronize', 'reopened', 'ready_for_review'],
   });
   const detector = ci.jobs['link-check-detect'];
@@ -2164,140 +2172,56 @@ function evaluateCandidate(expression, context) {
   });
 }
 
-test('combined entrypoint evaluates actual routing and required names across all event domains', () => {
+test('combined entrypoint keeps required names static and decides applicability by trigger', () => {
   const root = parseYaml(readWorkflow('ci.yml'));
+  const title = parseYaml(readWorkflow('pr-title.yml'));
   assert.deepEqual(Object.keys(root.on), [
     'pull_request',
-    'pull_request_target',
     'merge_group',
     'workflow_call',
   ]);
   assert.deepEqual(root.on.pull_request, {
+    branches: ['master'],
     types: ['opened', 'synchronize', 'reopened', 'ready_for_review'],
   });
-  assert.deepEqual(root.on.pull_request_target, {
+  assert.deepEqual(root.on.merge_group, { types: ['checks_requested'] });
+  assert.equal(root.on.workflow_call.inputs.called_workflow, undefined);
+  assert.deepEqual(Object.keys(title.on), ['pull_request_target']);
+  assert.deepEqual(title.on.pull_request_target, {
     types: ['opened', 'edited', 'synchronize', 'reopened'],
   });
-  assert.deepEqual(root.on.merge_group, { types: ['checks_requested'] });
-  assert.deepEqual(root.on.workflow_call.inputs.called_workflow, {
-    type: 'boolean',
-    required: false,
-    default: true,
-  });
-  const actions = [
-    'opened',
-    'synchronize',
-    'reopened',
-    'ready_for_review',
-    'edited',
-    'closed',
-    'converted_to_draft',
-    'labeled',
-  ];
+  // GitHub cannot evaluate an expression for a skipped job and prints it raw,
+  // and a skipped job reports success. Required leaves therefore carry a plain
+  // name and no job-level routing: the triggers above decide when they exist.
+  for (const [workflow, id, name] of [
+    [title, 'conventional-title', 'PR Title'],
+    [root, 'server-image', 'Build Server Image'],
+    [root, 'tests-gate', 'Tests Gate'],
+  ]) {
+    assert.equal(workflow.jobs[id].name, name);
+  }
+  for (const workflow of [title, root])
+    for (const job of Object.values(workflow.jobs))
+      if (job.name !== undefined)
+        assert.doesNotMatch(job.name, /\$\{\{/, 'job names must be static');
+  assert.equal(title.jobs['conventional-title'].if, undefined);
+  for (const id of ['core', 'frontend'])
+    assert.equal(root.jobs[id].if, undefined);
+  assert.equal(root.jobs['tests-gate'].if, 'always()');
   for (const event of [
     'pull_request',
-    'pull_request_target',
     'merge_group',
     'push',
     'workflow_dispatch',
     'release',
-  ]) {
-    for (const action of actions) {
-      for (const base of ['master', 'other']) {
-        for (const draft of [false, true]) {
-          for (const fork of [false, true]) {
-            for (const called of [undefined, false, true]) {
-              for (const heavy of [undefined, false, true]) {
-                const context = {
-                  github: {
-                    event_name: event,
-                    base_ref: base,
-                    event: {
-                      action,
-                      pull_request: { draft, head: { repo: { fork } } },
-                    },
-                  },
-                  inputs: { called_workflow: called, run_heavy_tests: heavy },
-                };
-                const selectedSource =
-                  event !== 'pull_request_target' &&
-                  (called === true ||
-                    event === 'merge_group' ||
-                    (event === 'pull_request' &&
-                      base === 'master' &&
-                      [
-                        'opened',
-                        'synchronize',
-                        'reopened',
-                        'ready_for_review',
-                      ].includes(action)));
-                const selectedTitle =
-                  event === 'pull_request_target' &&
-                  ['opened', 'edited', 'synchronize', 'reopened'].includes(
-                    action,
-                  );
-                const selectedImage =
-                  event === 'pull_request' &&
-                  [
-                    'opened',
-                    'synchronize',
-                    'reopened',
-                    'ready_for_review',
-                  ].includes(action);
-                const selectedGate =
-                  selectedSource &&
-                  ['pull_request', 'merge_group', 'push'].includes(event);
-                for (const id of ['core', 'frontend'])
-                  assert.equal(
-                    evaluateCandidate(root.jobs[id].if, context),
-                    selectedSource,
-                    JSON.stringify({
-                      id,
-                      event,
-                      action,
-                      base,
-                      draft,
-                      fork,
-                      called,
-                      heavy,
-                    }),
-                  );
-                for (const [id, selected, requiredName, offName] of [
-                  [
-                    'conventional-title',
-                    selectedTitle,
-                    'PR Title',
-                    'Not selected - PR title',
-                  ],
-                  [
-                    'server-image',
-                    selectedImage,
-                    'Build Server Image',
-                    'Not selected - server image',
-                  ],
-                  [
-                    'tests-gate',
-                    selectedGate,
-                    'Tests Gate',
-                    'Not selected - source gate',
-                  ],
-                ]) {
-                  assert.equal(
-                    evaluateCandidate(root.jobs[id].if, context),
-                    selected,
-                  );
-                  assert.equal(
-                    evaluateCandidate(root.jobs[id].name, context),
-                    selected ? requiredName : offName,
-                  );
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  ])
+    for (const action of ['opened', 'ready_for_review', 'labeled'])
+      assert.equal(
+        evaluateCandidate(root.jobs['server-image'].if, {
+          github: { event_name: event, event: { action } },
+        }),
+        event === 'pull_request' && action !== 'labeled',
+      );
 });
 
 test('combined workflow isolates metadata and image from source secrets and checkout', () => {
@@ -2347,7 +2271,8 @@ test('combined workflow isolates metadata and image from source secrets and chec
       run_heavy_tests: '${{ inputs.run_heavy_tests == true }}',
     });
   }
-  const title = root.jobs['conventional-title'];
+  const titleWorkflow = parseYaml(readWorkflow('pr-title.yml'));
+  const title = titleWorkflow.jobs['conventional-title'];
   assert.deepEqual(title.permissions, { 'pull-requests': 'read' });
   assert.equal(title.steps.length, 1);
   assert.equal(
@@ -2362,7 +2287,7 @@ test('combined workflow isolates metadata and image from source secrets and chec
     'feat\nfix\ndocs\nrefactor\ntest\nchore\nbuild\nci\nperf\n',
   );
   for (const id of ['conventional-title', 'server-image', 'tests-gate']) {
-    const job = root.jobs[id];
+    const job = id === 'conventional-title' ? title : root.jobs[id];
     assert.equal(job.secrets, undefined);
     assert.equal(job.env, undefined);
     assert.equal(job['continue-on-error'], undefined);
@@ -2444,6 +2369,7 @@ test('frontend admission witness runs only the cheap false scope on inapplicable
 
 test('domain sequences preserve independent workload replacement and never cancel on metadata or ready image events', () => {
   const root = parseYaml(readWorkflow('ci.yml'));
+  const title = parseYaml(readWorkflow('pr-title.yml'));
   const events = [
     ['pull_request', 'opened', false, 'master'],
     ['pull_request', 'synchronize', false, 'master'],
@@ -2459,6 +2385,24 @@ test('domain sequences preserve independent workload replacement and never cance
     ['release', '', true, 'master'],
   ];
   const domains = ['conventional-title', 'server-image', 'core', 'frontend'];
+  // Applicability is decided by `on:` triggers, not job-level `if:`, so a
+  // required leaf never exists as a skipped job.
+  function isSelected(id, [event, action, called, base], values) {
+    if (id === 'conventional-title')
+      return (
+        !called &&
+        event === 'pull_request_target' &&
+        title.on.pull_request_target.types.includes(action)
+      );
+    if (id === 'server-image')
+      return evaluateCandidate(root.jobs[id].if, values);
+    return (
+      called ||
+      (event === 'pull_request' &&
+        base === 'master' &&
+        root.on.pull_request.types.includes(action))
+    );
+  }
   function context([event, action, called, base], pr = 42) {
     return {
       github: {
@@ -2489,8 +2433,9 @@ test('domain sequences preserve independent workload replacement and never cance
           for (const [index, event] of [first, second, third].entries()) {
             const values = context(event, sibling && index === 1 ? 43 : 42);
             for (const id of domains) {
-              const job = root.jobs[id];
-              if (!evaluateCandidate(job.if, values)) continue;
+              const job =
+                id === 'conventional-title' ? title.jobs[id] : root.jobs[id];
+              if (!isSelected(id, event, values)) continue;
               const key = group(job.concurrency.group, values);
               const cancel =
                 typeof job.concurrency['cancel-in-progress'] === 'boolean'

@@ -1,26 +1,23 @@
 'use client';
 
-import { resolveMusicSettings } from '@genfeedai/contracts/constants';
-import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
 import type { GenerationSetupOutputMenuProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupAspectRatioIcon from '@ui/dropdowns/generation-setup/GenerationSetupAspectRatioIcon';
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
 import GenerationSetupMenuField from '@ui/dropdowns/generation-setup/GenerationSetupMenuField';
 import GenerationSetupSubmenuList from '@ui/dropdowns/generation-setup/GenerationSetupSubmenuList';
+import { GENERATION_SETUP_OUTPUTS_OPTIONS } from '@ui/dropdowns/generation-setup/generation-setup.constants';
 import {
-  GENERATION_SETUP_ASPECT_RATIO_OPTIONS,
-  GENERATION_SETUP_DURATION_OPTIONS_SECONDS,
-  GENERATION_SETUP_OUTPUTS_OPTIONS,
-} from '@ui/dropdowns/generation-setup/generation-setup.constants';
+  GENERATION_SETUP_AUTO_ASPECT_RATIO,
+  resolveGenerationSetupOutputFields,
+} from '@ui/dropdowns/generation-setup/generation-setup.output-fields';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
-import { Clock3, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 
-const AUTO_ASPECT_RATIO = 'auto';
 const EDITING_KEYS = new Set([
   'ArrowLeft',
   'ArrowRight',
@@ -37,9 +34,11 @@ function keepTypingInField(event: KeyboardEvent<HTMLDivElement>): void {
 }
 
 /**
- * Output as one menu: aspect ratio, duration and outputs open as nested lists.
- * Fields that are not a pick from a list (music style, instrumental, lyrics,
- * model controls) sit below them in the same menu.
+ * One part of the Output setup, as the body of its chip's menu. Aspect ratio
+ * and Duration each get their own chip and open as a plain list. What is left
+ * (outputs, plus music style, instrumental, lyrics and model controls that are
+ * not a pick from a list) shares the Output chip's menu: outputs opens as a
+ * nested list, the other fields sit below it.
  */
 export default function GenerationSetupOutputMenu({
   capabilities,
@@ -49,126 +48,84 @@ export default function GenerationSetupOutputMenu({
   onResetField,
   onSetField,
   referenceCount = 0,
+  section,
   setup,
 }: GenerationSetupOutputMenuProps) {
   const translate = useTranslations('agent.generationSetup');
-  const isMusic = setup.values.type === 'music';
-  const musicDurationState = isMusic
-    ? resolveMusicSettings(setup.values.modelKey)
-    : null;
-  // A video model offers the clip lengths its provider runs at the chosen
-  // resolution; the shared list only covers a model that declares none.
-  const selectedModel = models.find(
-    (model) => model.key === setup.values.modelKey,
-  );
-  const modelDurations =
-    !isMusic && selectedModel
-      ? resolveModelDurationOptions(selectedModel, setup.values.resolution)
-      : [];
-  const durationOptions = musicDurationState
-    ? musicDurationState.durations
-    : modelDurations.length > 0
-      ? modelDurations
-      : GENERATION_SETUP_DURATION_OPTIONS_SECONDS;
-  const hasDurationEditing = musicDurationState
-    ? musicDurationState.hasDurationEditing
-    : true;
-  const showDuration =
-    inputControls?.mediaKind !== 'video' &&
-    capabilities.hasDuration &&
-    hasDurationEditing;
-  const showAspectRatio =
-    capabilities.hasAspectRatio && inputControls?.mediaKind !== 'video';
-  const hasInstrumental = musicDurationState
-    ? musicDurationState.hasInstrumentalToggle &&
-      capabilities.hasInstrumentalToggle
-    : capabilities.hasInstrumentalToggle;
-  const hasLyrics = musicDurationState
-    ? musicDurationState.hasLyrics && capabilities.hasLyrics
-    : capabilities.hasLyrics;
-  const hasExtraFields =
-    capabilities.hasStyle || hasInstrumental || hasLyrics || Boolean(controls);
+  const fields = resolveGenerationSetupOutputFields({
+    capabilities,
+    controls,
+    inputControls,
+    models,
+    referenceCount,
+    setup,
+  });
 
-  const modelRatios = inputControls?.fields.aspect_ratio?.enum?.filter(
-    (value): value is string =>
-      typeof value === 'string' &&
-      (value !== AUTO_ASPECT_RATIO ||
-        referenceCount > 0 ||
-        !inputControls.isAutoAspectReferenceRequired),
-  );
-  const ratios = modelRatios ?? GENERATION_SETUP_ASPECT_RATIO_OPTIONS;
-  const isRatioOwnedByAgent =
-    (setup.sources.aspectRatio ?? 'agent') === 'agent';
-  const currentRatio = setup.values.aspectRatio;
-  const isAutoRatio = currentRatio === AUTO_ASPECT_RATIO;
-  // Models without an `auto` value hand the choice back to the agent instead.
-  const hasAutoValue = ratios.includes(AUTO_ASPECT_RATIO);
-  const ratioValues = ratios.filter((ratio) => ratio !== AUTO_ASPECT_RATIO);
-  const ratioOptions = [
-    {
-      icon: <GenerationSetupAspectRatioIcon ratio={AUTO_ASPECT_RATIO} />,
-      label: translate('auto'),
-      value: AUTO_ASPECT_RATIO,
-    },
-    ...ratioValues.map((ratio) => ({
-      icon: <GenerationSetupAspectRatioIcon ratio={ratio} />,
-      label: ratio,
-      value: ratio,
-    })),
-  ];
-  const selectedRatioValue =
-    isAutoRatio || (isRatioOwnedByAgent && !hasAutoValue)
-      ? AUTO_ASPECT_RATIO
-      : currentRatio;
+  if (section === 'aspectRatio') {
+    const currentRatio = setup.values.aspectRatio;
+    const isRatioOwnedByAgent =
+      (setup.sources.aspectRatio ?? 'agent') === 'agent';
+    const selectedRatioValue =
+      currentRatio === GENERATION_SETUP_AUTO_ASPECT_RATIO ||
+      (isRatioOwnedByAgent && !fields.hasAutoRatio)
+        ? GENERATION_SETUP_AUTO_ASPECT_RATIO
+        : currentRatio;
+
+    return (
+      <GenerationSetupSubmenuList
+        label={translate('aspectRatio')}
+        onValueChange={(value) => {
+          if (
+            value === GENERATION_SETUP_AUTO_ASPECT_RATIO &&
+            !fields.hasAutoRatio
+          )
+            onResetField('aspectRatio');
+          else onSetField('aspectRatio', value);
+        }}
+        options={[
+          {
+            icon: (
+              <GenerationSetupAspectRatioIcon
+                ratio={GENERATION_SETUP_AUTO_ASPECT_RATIO}
+              />
+            ),
+            label: translate('auto'),
+            value: GENERATION_SETUP_AUTO_ASPECT_RATIO,
+          },
+          ...fields.ratios.map((ratio) => ({
+            icon: <GenerationSetupAspectRatioIcon ratio={ratio} />,
+            label: ratio,
+            value: ratio,
+          })),
+        ]}
+        value={selectedRatioValue}
+      />
+    );
+  }
+
+  if (section === 'duration') {
+    return (
+      <GenerationSetupSubmenuList
+        label={translate('duration')}
+        onReset={
+          (setup.sources.duration ?? 'agent') === 'agent'
+            ? undefined
+            : () => onResetField('duration')
+        }
+        onValueChange={(value) => onSetField('duration', Number(value))}
+        options={fields.durationOptions.map((seconds) => ({
+          label: translate('durationSeconds', { seconds }),
+          value: String(seconds),
+        }))}
+        value={String(setup.values.duration ?? '')}
+      />
+    );
+  }
+
+  const { hasExtraFields, hasInstrumental, hasLyrics } = fields;
 
   return (
     <>
-      {showAspectRatio ? (
-        <GenerationSetupMenuField
-          icon={<GenerationSetupAspectRatioIcon ratio={currentRatio} />}
-          label={translate('aspectRatio')}
-          value={isAutoRatio ? translate('auto') : currentRatio}
-        >
-          <GenerationSetupSubmenuList
-            label={translate('aspectRatio')}
-            onValueChange={(value) => {
-              if (value === AUTO_ASPECT_RATIO && !hasAutoValue)
-                onResetField('aspectRatio');
-              else onSetField('aspectRatio', value);
-            }}
-            options={ratioOptions}
-            value={selectedRatioValue}
-          />
-        </GenerationSetupMenuField>
-      ) : null}
-
-      {showDuration ? (
-        <GenerationSetupMenuField
-          icon={<Clock3 aria-hidden="true" className="size-3.5 shrink-0" />}
-          label={translate('duration')}
-          value={
-            setup.values.duration
-              ? translate('durationSeconds', { seconds: setup.values.duration })
-              : ''
-          }
-        >
-          <GenerationSetupSubmenuList
-            label={translate('duration')}
-            onReset={
-              (setup.sources.duration ?? 'agent') === 'agent'
-                ? undefined
-                : () => onResetField('duration')
-            }
-            onValueChange={(value) => onSetField('duration', Number(value))}
-            options={durationOptions.map((seconds) => ({
-              label: translate('durationSeconds', { seconds }),
-              value: String(seconds),
-            }))}
-            value={String(setup.values.duration ?? '')}
-          />
-        </GenerationSetupMenuField>
-      ) : null}
-
       {capabilities.hasOutputs ? (
         <GenerationSetupMenuField
           icon={<Copy aria-hidden="true" className="size-3.5 shrink-0" />}

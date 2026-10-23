@@ -754,7 +754,7 @@ export class AgentMediaTextGenerationService {
           platform,
           textContent: posts[0],
           title: `${formatPlatformLabel(platform)} ${isThread ? 'thread' : 'post'}`,
-          tweets: isThread ? posts : undefined,
+          tweets: posts,
           type: 'content_preview_card',
         },
       ],

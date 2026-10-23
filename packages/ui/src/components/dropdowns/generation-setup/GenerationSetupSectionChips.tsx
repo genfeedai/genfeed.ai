@@ -18,7 +18,9 @@ import GenerationSetupAspectRatioIcon from '@ui/dropdowns/generation-setup/Gener
 import GenerationSetupCustomizePanel from '@ui/dropdowns/generation-setup/GenerationSetupCustomizePanel';
 import GenerationSetupLookMenu from '@ui/dropdowns/generation-setup/GenerationSetupLookMenu';
 import GenerationSetupOutputMenu from '@ui/dropdowns/generation-setup/GenerationSetupOutputMenu';
+import { resolveGenerationSetupOutputFields } from '@ui/dropdowns/generation-setup/generation-setup.output-fields';
 import { summarizeGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.summary';
+import { usePhoneViewport } from '@ui/dropdowns/generation-setup/usePhoneViewport';
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
@@ -38,6 +40,7 @@ import {
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import {
   Bookmark,
+  Clock3,
   Copy,
   Cpu,
   Ellipsis,
@@ -45,28 +48,10 @@ import {
   Palette,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useState } from 'react';
 
-const PHONE_QUERY = '(max-width: 639px)';
 // Width of the More setup menu (`w-56`), the amount a phone submenu overlaps it.
 const MORE_SETUP_MENU_WIDTH_PX = 224;
-
-function subscribeToPhoneViewport(onChange: () => void): () => void {
-  if (typeof window.matchMedia !== 'function') return () => undefined;
-  const query = window.matchMedia(PHONE_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-
-function usePhoneViewport(): boolean {
-  return useSyncExternalStore(
-    subscribeToPhoneViewport,
-    () =>
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(PHONE_QUERY).matches,
-    () => false,
-  );
-}
 
 interface SectionChip {
   icon: ReactNode;
@@ -109,7 +94,6 @@ export default function GenerationSetupSectionChips(
       ? { ...lookOptions, resolution: [] }
       : lookOptions;
   const summary = summarizeGenerationSetup({
-    capabilities,
     formatDuration: (seconds) => translate('durationSeconds', { seconds }),
     inputControls,
     lookOptions,
@@ -133,16 +117,51 @@ export default function GenerationSetupSectionChips(
       label: translate('model'),
       value: summary.modelLabel,
     });
-  if (summary.hasOutputFields && summary.outputLabel)
+  const outputFields = resolveGenerationSetupOutputFields({
+    capabilities,
+    controls: outputControls,
+    inputControls,
+    models,
+    referenceCount,
+    setup,
+  });
+  if (outputFields.showAspectRatio)
     chips.push({
-      icon: capabilities.hasAspectRatio ? (
-        <GenerationSetupAspectRatioIcon ratio={setup.values.aspectRatio} />
-      ) : (
-        <Copy aria-hidden="true" className={SHELL_ICON_CLASS} />
-      ),
+      icon: <GenerationSetupAspectRatioIcon ratio={setup.values.aspectRatio} />,
+      id: 'aspectRatio',
+      label: translate('aspectRatio'),
+      value:
+        setup.values.aspectRatio === 'auto'
+          ? translate('auto')
+          : setup.values.aspectRatio,
+    });
+  if (outputFields.showDuration)
+    chips.push({
+      icon: <Clock3 aria-hidden="true" className={SHELL_ICON_CLASS} />,
+      id: 'duration',
+      label: translate('duration'),
+      value: summary.durationLabel || translate('duration'),
+    });
+  // Fields without a chip of their own stay summarised on the Output chip: a
+  // Crun video model's controls own its ratio and length, so the menu holds
+  // only those controls and the chip is where the values stay visible.
+  const outputSummary = [
+    capabilities.hasAspectRatio &&
+      !outputFields.showAspectRatio &&
+      setup.values.aspectRatio,
+    capabilities.hasDuration &&
+      !outputFields.showDuration &&
+      summary.durationLabel,
+    capabilities.hasOutputs && `x${setup.values.outputs}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  if (outputSummary || outputFields.hasExtraFields)
+    chips.push({
+      icon: <Copy aria-hidden="true" className={SHELL_ICON_CLASS} />,
       id: 'output',
       label: translate('output'),
-      value: summary.outputLabel,
+      value: outputSummary || translate('output'),
     });
   if (summary.hasLookFields)
     chips.push({
@@ -197,8 +216,43 @@ export default function GenerationSetupSectionChips(
     );
   }
 
+  // Chips whose menu is a plain list or form rather than a Customize panel.
+  function isMenuChip(id: GenerationSetupChipId): boolean {
+    return (
+      id === 'aspectRatio' ||
+      id === 'duration' ||
+      id === 'look' ||
+      id === 'output'
+    );
+  }
+
+  function renderMenuBody(id: GenerationSetupChipId): ReactNode {
+    if (id === 'look')
+      return (
+        <GenerationSetupLookMenu
+          lookOptions={scopedLookOptions}
+          onResetField={props.onResetField}
+          onSetField={props.onSetField}
+          setup={setup}
+        />
+      );
+    return (
+      <GenerationSetupOutputMenu
+        capabilities={capabilities}
+        controls={outputControls}
+        inputControls={inputControls}
+        models={models}
+        onResetField={props.onResetField}
+        onSetField={props.onSetField}
+        referenceCount={referenceCount}
+        section={id === 'aspectRatio' || id === 'duration' ? id : 'rest'}
+        setup={setup}
+      />
+    );
+  }
+
   function renderChip(chip: SectionChip): ReactNode {
-    if (chip.id === 'output' || chip.id === 'look') {
+    if (isMenuChip(chip.id)) {
       return (
         <DropdownMenu
           key={chip.id}
@@ -212,32 +266,18 @@ export default function GenerationSetupSectionChips(
           <DropdownMenuContent
             align="start"
             aria-label={chip.label}
-            className="w-[min(16rem,calc(100vw-2rem))] py-1"
+            className={
+              chip.id === 'aspectRatio' || chip.id === 'duration'
+                ? 'w-52 max-w-[calc(100vw-2rem)] p-0'
+                : 'w-[min(16rem,calc(100vw-2rem))] py-1'
+            }
             collisionPadding={16}
             side="top"
             sideOffset={8}
             // Keep the menu on screen when the chip sits near the right edge.
             sticky="always"
           >
-            {chip.id === 'output' ? (
-              <GenerationSetupOutputMenu
-                capabilities={capabilities}
-                controls={outputControls}
-                inputControls={inputControls}
-                models={models}
-                onResetField={props.onResetField}
-                onSetField={props.onSetField}
-                referenceCount={referenceCount}
-                setup={setup}
-              />
-            ) : (
-              <GenerationSetupLookMenu
-                lookOptions={scopedLookOptions}
-                onResetField={props.onResetField}
-                onSetField={props.onSetField}
-                setup={setup}
-              />
-            )}
+            {renderMenuBody(chip.id)}
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -288,33 +328,19 @@ export default function GenerationSetupSectionChips(
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent
           className={
-            chip.id === 'output' || chip.id === 'look'
-              ? 'w-[min(16rem,calc(100vw-2rem))] py-1'
-              : PROMPT_BAR_SETUP_MENU_CLASS
+            chip.id === 'aspectRatio' || chip.id === 'duration'
+              ? 'p-0'
+              : chip.id === 'output' || chip.id === 'look'
+                ? 'w-[min(16rem,calc(100vw-2rem))] py-1'
+                : PROMPT_BAR_SETUP_MENU_CLASS
           }
           collisionPadding={16}
           // On a phone neither side of the More setup menu has room for a
           // submenu; overlap the parent so it opens over it, inside the viewport.
           sideOffset={isPhoneViewport ? -MORE_SETUP_MENU_WIDTH_PX : undefined}
         >
-          {chip.id === 'output' ? (
-            <GenerationSetupOutputMenu
-              capabilities={capabilities}
-              controls={outputControls}
-              inputControls={inputControls}
-              models={models}
-              onResetField={props.onResetField}
-              onSetField={props.onSetField}
-              referenceCount={referenceCount}
-              setup={setup}
-            />
-          ) : chip.id === 'look' ? (
-            <GenerationSetupLookMenu
-              lookOptions={scopedLookOptions}
-              onResetField={props.onResetField}
-              onSetField={props.onSetField}
-              setup={setup}
-            />
+          {isMenuChip(chip.id) ? (
+            renderMenuBody(chip.id)
           ) : (
             <TooltipProvider delayDuration={200}>
               <GenerationSetupCustomizePanel

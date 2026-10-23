@@ -45,6 +45,30 @@ describe('OAuthConnectCard', () => {
 });
 
 describe('ContentPreviewCard', () => {
+  it.each([1, 3])('renders all %i independent social drafts', (count) => {
+    const drafts = [
+      'First independent draft',
+      'Second independent draft',
+      'Third independent draft',
+    ].slice(0, count);
+    render(
+      <ContentPreviewCard
+        action={{
+          contentFormat: 'social_post',
+          id: 'social-variants',
+          platform: 'twitter',
+          textContent: drafts[0],
+          title: 'X posts',
+          tweets: drafts,
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+    for (const draft of drafts) {
+      expect(screen.getByText(draft)).toBeInTheDocument();
+    }
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });

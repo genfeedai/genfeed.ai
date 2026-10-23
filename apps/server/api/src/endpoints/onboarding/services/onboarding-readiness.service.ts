@@ -18,6 +18,7 @@ import type {
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
 } from '@genfeedai/contracts/interfaces';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 const PLACEHOLDER_KEY_PATTERN =
@@ -193,7 +194,7 @@ export class OnboardingReadinessService {
       'byokKeys' | 'isByokEnabled'
     > | null = null;
 
-    if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
+    if (userId) {
       const dbUser = (await this.usersService.findOne(
         {
           id: userId,
@@ -210,7 +211,7 @@ export class OnboardingReadinessService {
       );
     }
 
-    if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
+    if (organizationId) {
       const organization = await this.organizationsService.findOne({
         id: organizationId,
       });
@@ -218,14 +219,20 @@ export class OnboardingReadinessService {
       hasOrganization = !!organization;
 
       if (organization) {
-        const [brand, settings] = await Promise.all([
-          this.brandsService.findOne({
-            organizationId: organization.id,
-          }),
-          this.organizationSettingsService.findOne({
-            organizationId: organization.id,
-          }),
-        ]);
+        // The workspace organization comes from the caller's own memberships,
+        // so a superadmin acting on another tenant still reads their own.
+        const [brand, settings] = await runWithTenantContext(
+          { organizationId: organization.id },
+          () =>
+            Promise.all([
+              this.brandsService.findOne({
+                organizationId: organization.id,
+              }),
+              this.organizationSettingsService.findOne({
+                organizationId: organization.id,
+              }),
+            ]),
+        );
 
         hasBrand = !!brand;
         organizationSettings = settings as unknown as Pick<

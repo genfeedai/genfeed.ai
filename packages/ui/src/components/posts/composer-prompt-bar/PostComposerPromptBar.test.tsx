@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { POST_ENHANCEMENT_CREDITS } from '@genfeedai/contracts/constants';
 import {
   fireEvent,
   render,
@@ -116,6 +117,15 @@ describe('PostComposerPromptBar', () => {
     expect(
       screen.queryByRole('button', { name: 'Turn into a thread' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the credits an enhancement is admitted for, not a hard-coded 1', () => {
+    renderBar();
+
+    // The enhancements route holds the Gemini 3.8 Flash row's flat cost: 3.
+    expect(POST_ENHANCEMENT_CREDITS).toBe(3);
+    expect(screen.getByText('3 credits per run')).toBeInTheDocument();
+    expect(screen.queryByText('1 credit per run')).not.toBeInTheDocument();
   });
 
   it('offers thread presets only when allowed', () => {

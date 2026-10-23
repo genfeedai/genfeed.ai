@@ -10,6 +10,8 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useEffect, useRef, useState } from 'react';
 
+const RETRY_FAILED_POLL_ATTEMPTS = 10;
+
 /** Readiness and expiry refresh share bounded, batched authenticated requests. */
 export function useAuthorizedMediaPreview(
   ingredient: IIngredient | null,
@@ -59,10 +61,13 @@ export function useAuthorizedMediaPreview(
       return () => controller.abort();
     const id = ingredient.id;
     const schedule = (grant: MediaDeliveryGrant | null) => {
+      if (controller.signal.aborted || !grant || grant.state === 'UNSUPPORTED')
+        return;
+      // A retry reads before the worker picks the render up, so the grant it
+      // gets back is still the old FAILED one: keep reading for a while.
       if (
-        controller.signal.aborted ||
-        !grant ||
-        ['FAILED', 'UNSUPPORTED'].includes(grant.state)
+        grant.state === 'FAILED' &&
+        (retryRevision === 0 || attempts > RETRY_FAILED_POLL_ATTEMPTS)
       )
         return;
       const delay =
@@ -82,7 +87,9 @@ export function useAuthorizedMediaPreview(
                 initial.purpose,
                 controller.signal,
               )
-            : await (await getService()).previewGrant(id, controller.signal);
+            : await (await getService()).previewGrant(id, controller.signal, {
+                isRetry: retryRevision > 0,
+              });
         if (controller.signal.aborted) return;
         if (grant && grant.id === id && grant.purpose === initial.purpose) {
           setFresh({ sourceIdentity, grant });

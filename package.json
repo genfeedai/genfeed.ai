@@ -119,7 +119,7 @@
     "clean": "bunx turbo clean && rm -rf node_modules",
     "clean:generated-source": "bun run scripts/check-generated-source-artifacts.ts --fix",
     "dead-code": "bunx knip --reporter compact",
-    "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject 'typescript,better-auth,api,jsdom,@types/vscode,@types/node,portless' && bun run deps:update:remotion && bun install && bun run deps:update:actions",
+    "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject 'typescript,better-auth,api,jsdom,@types/vscode,@types/node,portless,@electric-sql/pglite' && bun run deps:update:remotion && bun install && bun run deps:update:actions",
     "deps:update:remotion": "bun run scripts/architecture/sync-remotion-version.ts",
     "deps:update:actions": "bun run scripts/architecture/update-github-action-versions.ts",
     "dev:setup": "bun run scripts/dev/setup-portless.ts",

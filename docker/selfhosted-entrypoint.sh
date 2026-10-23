@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+SETUP_ENV=$(node /selfhosted-setup.ts)
+eval "$SETUP_ENV"
+
 # Defaults (all overridable via environment variables)
 # The DB URL is assembled from parts: compose-file local defaults, not
 # credentials — the split form also keeps secret scanners from flagging
