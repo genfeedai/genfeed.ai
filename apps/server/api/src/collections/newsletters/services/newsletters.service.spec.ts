@@ -13,9 +13,11 @@ import type { CreateNewsletterDto } from '@api/collections/newsletters/dto/creat
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentArtifactReferenceService } from '@api/index';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 type MockDelegate = {
@@ -80,6 +82,12 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     registerWorkflow: ReturnType<typeof vi.fn>;
     runWorkflow: ReturnType<typeof vi.fn>;
   };
+  let harnessGenerationService: {
+    formatBrief: ReturnType<typeof vi.fn>;
+    resolveBrief: ReturnType<typeof vi.fn>;
+  };
+  let openRouterService: { chatCompletion: ReturnType<typeof vi.fn> };
+  let brandsService: { findOne: ReturnType<typeof vi.fn> };
 
   const existingNewsletter = {
     approvedAt: null,
@@ -112,6 +120,12 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
       registerWorkflow: vi.fn(),
       runWorkflow: vi.fn(),
     };
+    harnessGenerationService = {
+      formatBrief: vi.fn().mockReturnValue('HARNESS BRIEF: org directive'),
+      resolveBrief: vi.fn().mockResolvedValue({ appliedPacks: [] }),
+    };
+    openRouterService = { chatCompletion: vi.fn() };
+    brandsService = { findOne: vi.fn().mockResolvedValue({ id: ctx.brandId }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -119,10 +133,16 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
         { provide: PrismaService, useValue: { newsletter: delegate } },
         {
           provide: LoggerService,
-          useValue: { debug: vi.fn(), error: vi.fn(), log: vi.fn() },
+          useValue: {
+            debug: vi.fn(),
+            error: vi.fn(),
+            log: vi.fn(),
+            warn: vi.fn(),
+          },
         },
-        { provide: OpenRouterService, useValue: { chatCompletion: vi.fn() } },
-        { provide: BrandsService, useValue: { findOne: vi.fn() } },
+        { provide: OpenRouterService, useValue: openRouterService },
+        { provide: BrandsService, useValue: brandsService },
+        { provide: HarnessGenerationService, useValue: harnessGenerationService },
         {
           provide: AgentArtifactReferenceService,
           useValue: agentArtifactReferenceService,
@@ -303,6 +323,119 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
         isDeleted: false,
         organizationId: ctx.organizationId,
       },
+    });
+  });
+
+  describe('draft generation brand context', () => {
+    type ActionHandler = (request: {
+      context: { organizationId: string; userId: string };
+      input: Record<string, unknown>;
+    }) => Promise<Record<string, unknown>>;
+
+    function actionHandler(actionId: string): ActionHandler {
+      service.onModuleInit();
+      const call = workflowRunner.registerAction.mock.calls.find(
+        ([id]) => id === actionId,
+      );
+      if (!call) throw new Error(`${actionId} was not registered`);
+      return call[1] as ActionHandler;
+    }
+
+    const loadRequest = {
+      context: { organizationId: ctx.organizationId, userId: ctx.userId },
+      input: { brandId: ctx.brandId, dto: { topic: 'Cast iron care' } },
+    };
+
+    it('composes the harness brief into the draft prompt', async () => {
+      const state = await actionHandler('newsletter.load-draft-context')(
+        loadRequest,
+      );
+
+      expect(harnessGenerationService.resolveBrief).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: ctx.brandId,
+          contentType: 'newsletter',
+          organizationId: ctx.organizationId,
+          topic: 'Cast iron care',
+        }),
+      );
+      expect(String(state.prompt)).toContain('HARNESS BRIEF: org directive');
+      expect(String(state.prompt)).toContain('Topic: Cast iron care');
+    });
+
+    it('fails the draft when the harness brief is unavailable', async () => {
+      harnessGenerationService.resolveBrief.mockResolvedValue(null);
+      harnessGenerationService.formatBrief.mockReturnValue('');
+
+      await expect(
+        actionHandler('newsletter.load-draft-context')(loadRequest),
+      ).rejects.toThrow('Newsletter draft unavailable');
+    });
+
+    it('fails the draft when the brand cannot be loaded', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+      harnessGenerationService.formatBrief.mockReturnValue('');
+
+      await expect(
+        actionHandler('newsletter.load-draft-context')(loadRequest),
+      ).rejects.toThrow('Newsletter draft unavailable');
+      expect(harnessGenerationService.resolveBrief).not.toHaveBeenCalled();
+    });
+
+    it('never serves a template when the provider fails or returns nothing', async () => {
+      const generate = actionHandler('newsletter.generate-draft');
+      const state = {
+        contextNewsletters: [],
+        ctx,
+        dto: { topic: 'Cast iron care' },
+        prompt: 'prompt',
+      };
+
+      openRouterService.chatCompletion.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+      await expect(
+        generate({ context: loadRequest.context, input: { state } }),
+      ).rejects.toThrow('Newsletter draft unavailable');
+
+      openRouterService.chatCompletion.mockResolvedValueOnce({
+        choices: [{ message: { content: '   ' } }],
+      });
+      await expect(
+        generate({ context: loadRequest.context, input: { state } }),
+      ).rejects.toThrow('Newsletter draft unavailable');
+    });
+
+    it('returns the provider draft unchanged when it succeeds', async () => {
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: '# Real draft' } }],
+      });
+
+      const result = await actionHandler('newsletter.generate-draft')({
+        context: loadRequest.context,
+        input: {
+          state: {
+            contextNewsletters: [],
+            ctx,
+            dto: { topic: 'Cast iron care' },
+            prompt: 'prompt',
+          },
+        },
+      });
+
+      expect(result.generatedContent).toBe('# Real draft');
+    });
+
+    it('surfaces an unavailable draft as a retryable 503', async () => {
+      workflowRunner.runWorkflow.mockRejectedValue(
+        new Error(
+          'Newsletter draft unavailable: brand context could not be loaded.',
+        ),
+      );
+
+      await expect(
+        service.generateDraft({ topic: 'Cast iron care' }, ctx),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
     });
   });
 });
