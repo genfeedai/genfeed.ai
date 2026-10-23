@@ -1,10 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type {
-  GenerationHarnessSettings,
-  UpdateGenerationHarnessSettings,
-} from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
+import type { UpdateGenerationHarnessSettings } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { GenerationHarnessService } from '@services/ai/generation-harness.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

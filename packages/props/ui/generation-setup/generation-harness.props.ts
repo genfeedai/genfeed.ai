@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
 import type {
   GenerationBrandMode,
   GenerationHarnessReceipt,
   GenerationHarnessSettings,
   UpdateGenerationHarnessSettings,
 } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
+import type { ReactNode } from 'react';
 
 export interface GenerationHarnessSettingsCardProps {
   showTitle?: boolean;

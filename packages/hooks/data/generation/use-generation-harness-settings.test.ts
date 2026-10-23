@@ -53,9 +53,7 @@ describe('useGenerationHarnessSettings', () => {
     const first = renderHook(() => useGenerationHarnessSettings(true), {
       wrapper,
     });
-    await waitFor(() =>
-      expect(first.result.current.settings).toEqual(enabled),
-    );
+    await waitFor(() => expect(first.result.current.settings).toEqual(enabled));
     expect(first.result.current.isLoading).toBe(false);
     first.unmount();
 
