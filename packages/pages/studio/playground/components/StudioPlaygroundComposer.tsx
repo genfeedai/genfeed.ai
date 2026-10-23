@@ -5,6 +5,8 @@ import {
   FLUX_3_ASPECT_RATIOS,
   FLUX_3_RESOLUTIONS,
   getImageEditMaxSources,
+  getModelMaxAudioReferences,
+  hasAudioReferences,
   hasEndFrame,
   hasVideoReferences,
   IMAGE_EDIT_SIZES,
@@ -348,6 +350,19 @@ export default function StudioPlaygroundComposer({
     inputControls?.mediaKind !== 'video' &&
     requiresFirstFrame(settings.modelKey) &&
     !attachedAssets.some((asset) => asset.role === 'startFrame');
+  const audioReferences = attachedAssets.filter(
+    (asset) => asset.role === 'audioReference',
+  );
+  const isAudioReferenceInvalid =
+    audioReferences.length > 0 &&
+    (type !== 'video' ||
+      !hasAudioReferences(settings.modelKey) ||
+      audioReferences.length > getModelMaxAudioReferences(settings.modelKey) ||
+      !attachedAssets.some((asset) =>
+        ['reference', 'startFrame', 'endFrame', 'videoReference'].includes(
+          asset.role ?? '',
+        ),
+      ));
   const isReferenceCombinationInvalid =
     type === 'video' &&
     settings.modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
@@ -543,6 +558,7 @@ export default function StudioPlaygroundComposer({
     isPromptEmpty ||
     isIdentityMissing ||
     isFirstFrameMissing ||
+    isAudioReferenceInvalid ||
     isReferenceCombinationInvalid ||
     isKling4KReferenceInvalid ||
     isAwaitingModels ||
@@ -948,6 +964,19 @@ export default function StudioPlaygroundComposer({
     }
   }
 
+  if (
+    type === 'video' &&
+    !isAutoMode &&
+    hasAudioReferences(settings.modelKey)
+  ) {
+    addReferenceSource(
+      'audioReference',
+      translate('audioReference'),
+      'audio/*',
+      audioReferences.length >= getModelMaxAudioReferences(settings.modelKey),
+    );
+  }
+
   // Model-specific controls live in the setup popover's Output section.
   const outputControls =
     inputControls?.mediaKind === 'image' ||
@@ -1285,18 +1314,21 @@ export default function StudioPlaygroundComposer({
         </div>
       ) : null}
 
-      {isFirstFrameMissing ||
+      {isAudioReferenceInvalid ||
+      isFirstFrameMissing ||
       isReferenceCombinationInvalid ||
       isKling4KReferenceInvalid ? (
         <p
           aria-live="polite"
           className="mt-1 text-xs font-medium text-destructive"
         >
-          {isFirstFrameMissing
-            ? translate('startFrameRequired')
-            : isReferenceCombinationInvalid
-              ? translate('seedanceReferenceConflict')
-              : translate('kling4KReferenceConflict')}
+          {isAudioReferenceInvalid
+            ? translate('audioReferenceUnsupported')
+            : isFirstFrameMissing
+              ? translate('startFrameRequired')
+              : isReferenceCombinationInvalid
+                ? translate('seedanceReferenceConflict')
+                : translate('kling4KReferenceConflict')}
         </p>
       ) : null}
       <PromptBarToolbar

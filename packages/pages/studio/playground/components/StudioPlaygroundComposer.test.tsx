@@ -1857,6 +1857,50 @@ describe('StudioPlaygroundComposer', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('offers audio-reference Library/upload actions only for reviewed models', async () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Synthetic video"
+        settings={{ ...settings, modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 }}
+        type="video"
+      />,
+    );
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
+    const audio = await screen.findByRole('menuitem', {
+      name: 'Audio reference',
+    });
+    expect(audio).toBeInTheDocument();
+  });
+  it.each(['video', 'image'] as const)(
+    'blocks retained audio on an unsupported %s composer',
+    (type) => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Synthetic video"
+          settings={{
+            ...settings,
+            modelKey: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+          }}
+          type={type}
+          attachedAssets={[
+            {
+              id: 'voice',
+              kind: 'audio',
+              role: 'audioReference',
+              source: 'library',
+            },
+          ]}
+        />,
+      );
+      expect(
+        screen.getByText(/Choose an audio-reference model/),
+      ).toBeInTheDocument();
+      promptEditorProps.onSubmit?.();
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    },
+  );
   it('offers frame and video-reference slots from one add menu', async () => {
     render(
       <StudioPlaygroundComposer

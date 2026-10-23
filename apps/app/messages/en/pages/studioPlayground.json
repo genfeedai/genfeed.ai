@@ -230,7 +230,6 @@
   "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
   "referencePreviewMissing": "This asset has no usable preview yet.",
   "referenceUnsupported": "The selected model cannot use that asset as a reference.",
-  "audioReferenceUnsupported": "This audio cannot be added as a reference for the selected model.",
   "useAsReference": "Use as reference",
   "useAsReferenceAria": "Use this {type} as a reference: {prompt}",
   "resizeFailed": "Failed to resize video",
@@ -329,5 +328,7 @@
     "moreLike": "More like",
     "moreLikeAria": "More like {name}",
     "savedLooks": "Saved looks"
-  }
+  },
+  "audioReference": "Audio reference",
+  "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video."
 }
