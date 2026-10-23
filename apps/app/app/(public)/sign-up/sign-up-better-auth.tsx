@@ -222,7 +222,7 @@ export default function SignUpBetterAuth({
           </>
         }
         logoSize="compact"
-        title="Check your email"
+        title={translate('loginForm.checkEmail')}
       >
         <AuthCheckEmail backHref={chooserHref} />
       </AuthFormLayout>
