@@ -125,11 +125,8 @@ relevance 0.65 or higher. That is where promoted winners come back in. See below
 
 A deployment can add packs beyond the built-in four by naming npm packages in
 `CONTENT_HARNESS_PACKAGES`, a comma-separated list. The config schema validates
-the list, and the hosted deployment pipeline can also supply a prebuilt bundle.
-How a bundle is built and checked is covered in
-[external-agent-content-journey.md](external-agent-content-journey.md#private-harness);
-it is not repeated here. Pack contents belong to the operator who supplies them
-and never appear in this repository.
+the list. Pack contents belong to the operator who supplies them and never
+appear in this repository.
 
 At API startup, for each specifier:
 
