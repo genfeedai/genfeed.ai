@@ -26,21 +26,35 @@ import type {
 import { hasCleanExportAccess } from '@genfeedai/pricing';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   ForbiddenException,
   Injectable,
+  type OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
 @Injectable()
-export class AuthorizedMediaUrlService {
+export class AuthorizedMediaUrlService implements OnModuleInit {
+  private hasReportedMisconfiguration = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly urls: MediaUrlService,
+    private readonly logger: LoggerService,
   ) {}
+
+  /**
+   * An enabled issuer without CDN signing turns every preview into a silent
+   * "unavailable". Surface that once at boot instead; never block startup.
+   */
+  onModuleInit(): void {
+    this.reportMisconfiguration('startup');
+  }
 
   public get isEnabled(): boolean {
     return isCloudDeployment() && this.config.isAuthorizedMediaDeliveryEnabled;
@@ -92,15 +106,11 @@ export class AuthorizedMediaUrlService {
     return visible.map((source) => {
       let grant: MediaDeliveryGrant;
       if (hasCleanAccess) {
-        try {
-          grant = this.grant(
-            source.id,
-            requireStoredMediaKey(source),
-            'preview',
-          );
-        } catch {
-          grant = this.unavailable(source.id, 'preview', 'FAILED');
-        }
+        grant = this.safeGrant(
+          source,
+          () => requireStoredMediaKey(source),
+          'preview',
+        );
       } else if (!protectedPreviewCategory(source)) {
         grant = this.unavailable(source.id, 'preview', 'UNSUPPORTED');
       } else {
@@ -109,11 +119,12 @@ export class AuthorizedMediaUrlService {
             entry.ingredientId === source.id &&
             entry.sourceIdentity === mediaSourceIdentity(source),
         );
+        const storageKey = variant?.storageKey;
         grant =
           variant?.state === 'READY' &&
-          variant.storageKey?.startsWith('exports/watermarked/') &&
-          variant.storageKey !== source.s3Key
-            ? this.grant(source.id, variant.storageKey, 'preview')
+          storageKey?.startsWith('exports/watermarked/') &&
+          storageKey !== source.s3Key
+            ? this.safeGrant(source, () => storageKey, 'preview')
             : this.unavailable(
                 source.id,
                 'preview',
@@ -414,7 +425,11 @@ export class AuthorizedMediaUrlService {
           variant.storageKey?.startsWith(
             `public/media/${source.organizationId}/${purpose}/${identity}.`,
           )
-            ? this.grant(source.id, variant.storageKey, purpose)
+            ? this.safeGrant(
+                source,
+                () => variant.storageKey as string,
+                purpose,
+              )
             : this.unavailable(
                 source.id,
                 purpose,
@@ -487,7 +502,7 @@ export class AuthorizedMediaUrlService {
       }
       visible.set(asset.id, {
         assetId: asset.id,
-        url: this.grant(asset.id, key, 'preview').url,
+        url: this.safeAssetUrl(asset.id, scope.organizationId, key),
       });
     }
     return [...visible.values()];
@@ -640,6 +655,92 @@ export class AuthorizedMediaUrlService {
       state: 'READY',
       url,
     };
+  }
+
+  /**
+   * Grants for list projections must be per-item safe: one malformed key or a
+   * signing failure never fails the batch. The item degrades to FAILED, which
+   * the client renders as an unavailable preview, and the cause is reported.
+   */
+  private safeGrant(
+    source: Pick<MediaDeliverySource, 'id' | 'organizationId'>,
+    resolveKey: () => string,
+    purpose: MediaDeliveryGrant['purpose'],
+  ): MediaDeliveryGrant {
+    try {
+      return this.grant(source.id, resolveKey(), purpose);
+    } catch (error) {
+      this.reportGrantFailure(error, source.id, source.organizationId, purpose);
+      return this.unavailable(source.id, purpose, 'FAILED');
+    }
+  }
+
+  private safeAssetUrl(
+    assetId: string,
+    organizationId: string,
+    key: string,
+  ): string | null {
+    try {
+      return this.grant(assetId, key, 'preview').url;
+    } catch (error) {
+      this.reportGrantFailure(error, assetId, organizationId, 'asset-preview');
+      return null;
+    }
+  }
+
+  private reportGrantFailure(
+    error: unknown,
+    id: string,
+    organizationId: string | null,
+    reason: string,
+  ): void {
+    // A stored key we refuse to sign is a data defect (the repair job's
+    // input), not an outage: log it, but keep Sentry for real failures.
+    if (error instanceof ForbiddenException) {
+      this.logger.warn('Media grant skipped: invalid stored key', {
+        id,
+        organizationId,
+        reason,
+      });
+      return;
+    }
+    if (this.reportMisconfiguration(reason)) return;
+    Sentry.captureException(error, {
+      tags: {
+        component: 'authorized-media-url',
+        organizationId: organizationId ?? 'unknown',
+        reason,
+      },
+      extra: { id },
+    });
+  }
+
+  /** Reports the issuer-without-signing misconfiguration once per process. */
+  private reportMisconfiguration(reason: string): boolean {
+    if (!isCloudDeployment()) return false;
+    let isMisconfigured: boolean;
+    try {
+      isMisconfigured =
+        this.config.isAuthorizedMediaDeliveryEnabled &&
+        !this.config.isCdnSigningEnabled;
+    } catch {
+      // The config getters throw exactly when the issuer is enabled without
+      // usable signing, which is the condition being reported.
+      isMisconfigured = true;
+    }
+    if (!isMisconfigured) return false;
+    if (!this.hasReportedMisconfiguration) {
+      this.hasReportedMisconfiguration = true;
+      this.logger.error(
+        'Authorized media delivery is enabled but CDN signing is unusable',
+        { reason },
+      );
+      Sentry.captureMessage(
+        'Authorized media delivery is enabled but CDN signing is unusable',
+        { level: 'error', tags: { component: 'authorized-media-url', reason } },
+      );
+    }
+    return true;
   }
 
   private unavailable(
