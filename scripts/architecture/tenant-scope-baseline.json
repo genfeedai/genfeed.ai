@@ -273,46 +273,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "ca404e6cbb8e2edc1881",
-      "method": "update",
-      "model": "Invitation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "14e53afc16c288519a9b",
-      "method": "update",
-      "model": "Invitation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "3c9110a5e243561316cc",
-      "method": "updateMany",
-      "model": "Invitation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "7740613c0212f97ad8b4",
-      "method": "update",
-      "model": "Member",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "8829c0e63be3295b619f",
-      "method": "update",
-      "model": "Member",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
       "fingerprint": "8bcc81d5d6eb90707cb6",

@@ -248,6 +248,95 @@ function buildService(prisma = buildPrisma()) {
   };
 }
 
+function matchesRow(row: object, where: object): boolean {
+  return Object.entries(where).every(
+    ([key, expected]) => Reflect.get(row, key) === expected,
+  );
+}
+
+function buildAcceptanceFixture() {
+  const fixture = buildService();
+  const invitation = makeInvitation();
+  const otherInvitation = makeInvitation({
+    email: 'other@example.com',
+    id: 'inv_other',
+    organizationId: 'org_other',
+    tokenHash: hashToken('token-other'),
+  });
+  const member = makeMember();
+  const otherMember = makeMember({
+    id: 'member_other',
+    organizationId: 'org_other',
+  });
+  const invitations = [invitation, otherInvitation];
+  const members = [member, otherMember];
+  const { prisma } = fixture;
+
+  prisma.invitation.findUnique.mockImplementation(
+    async ({
+      where,
+    }: Parameters<PrismaService['invitation']['findUnique']>[0]) => {
+      const row = invitations.find((candidate) => matchesRow(candidate, where));
+      return row ? { ...row } : null;
+    },
+  );
+  prisma.invitation.findFirst.mockImplementation(
+    async ({
+      where,
+    }: NonNullable<Parameters<PrismaService['invitation']['findFirst']>[0]>) =>
+      invitations.find((candidate) => matchesRow(candidate, where ?? {})) ??
+      null,
+  );
+  prisma.invitation.updateMany.mockImplementation(
+    async ({
+      data,
+      where,
+    }: Parameters<PrismaService['invitation']['updateMany']>[0]) => {
+      const rows = invitations.filter((candidate) =>
+        matchesRow(candidate, where ?? {}),
+      );
+      for (const row of rows) Object.assign(row, data);
+      return { count: rows.length };
+    },
+  );
+  prisma.invitation.update.mockImplementation(
+    async ({
+      data,
+      where,
+    }: Parameters<PrismaService['invitation']['update']>[0]) => {
+      const row = invitations.find((candidate) => matchesRow(candidate, where));
+      if (!row) throw new Error('Record not found');
+      Object.assign(row, data);
+      return { ...row };
+    },
+  );
+  prisma.user.findFirst.mockResolvedValue(makeUser());
+  prisma.user.update.mockResolvedValue(makeUser({ isInvited: false }));
+  prisma.member.findFirst.mockImplementation(
+    async ({
+      where,
+    }: NonNullable<Parameters<PrismaService['member']['findFirst']>[0]>) => {
+      const row = members.find((candidate) =>
+        matchesRow(candidate, where ?? {}),
+      );
+      return row ? { ...row } : null;
+    },
+  );
+  prisma.member.update.mockImplementation(
+    async ({
+      data,
+      where,
+    }: Parameters<PrismaService['member']['update']>[0]) => {
+      const row = members.find((candidate) => matchesRow(candidate, where));
+      if (!row) throw new Error('Record not found');
+      Object.assign(row, data);
+      return { ...row };
+    },
+  );
+
+  return { ...fixture, invitation, member, otherInvitation, otherMember };
+}
+
 describe('InvitationService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -618,6 +707,116 @@ describe('InvitationService', () => {
   });
 
   describe('acceptInvitation', () => {
+    it('reads invitations only from their owning organization', async () => {
+      const { otherInvitation, service } = buildAcceptanceFixture();
+
+      await expect(
+        service.getInvitation('inv_123', orgId),
+      ).resolves.toMatchObject({
+        id: 'inv_123',
+        organizationId: orgId,
+      });
+      await expect(
+        service.getInvitation(otherInvitation.id, orgId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('accepts only the token organization invitation and membership', async () => {
+      const fixture = buildAcceptanceFixture();
+      const otherInvitationBefore = { ...fixture.otherInvitation };
+      const otherMemberBefore = { ...fixture.otherMember };
+
+      await expect(
+        fixture.service.acceptInvitation('token-123'),
+      ).resolves.toMatchObject({
+        memberId,
+        organizationId: orgId,
+        userId,
+      });
+
+      expect(fixture.invitation.acceptedByUserId).toBe(userId);
+      expect(fixture.invitation.acceptedAt).toEqual(now);
+      expect(fixture.member.isActive).toBe(true);
+      expect(fixture.otherInvitation).toEqual(otherInvitationBefore);
+      expect(fixture.otherMember).toEqual(otherMemberBefore);
+    });
+
+    it('refuses to consume an invitation that changed organization after token discovery', async () => {
+      const fixture = buildAcceptanceFixture();
+      const invitationSnapshot = { ...fixture.invitation };
+      fixture.invitation.organizationId =
+        fixture.otherInvitation.organizationId;
+      fixture.prisma.invitation.findUnique.mockResolvedValueOnce(
+        invitationSnapshot,
+      );
+
+      await expect(
+        fixture.service.acceptInvitation('token-123'),
+      ).rejects.toBeInstanceOf(GoneException);
+
+      expect(fixture.invitation.acceptedAt).toBeNull();
+      expect(fixture.prisma.user.update).not.toHaveBeenCalled();
+      expect(fixture.prisma.member.update).not.toHaveBeenCalled();
+      expect(
+        fixture.accessBootstrapCacheService.invalidateForUser,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        label: 'organization changes',
+        change: { organizationId: 'org_other' },
+      },
+      { label: 'row is deleted', change: { isDeleted: true } },
+    ])(
+      'refuses the final invitation write when its $label',
+      async ({ change }) => {
+        const fixture = buildAcceptanceFixture();
+        fixture.prisma.warmupAccount.findFirst.mockImplementationOnce(
+          async () => {
+            Object.assign(fixture.invitation, change);
+            return null;
+          },
+        );
+
+        await expect(
+          fixture.service.acceptInvitation('token-123'),
+        ).rejects.toThrow('Record not found');
+
+        expect(fixture.invitation.acceptedByUserId).toBeNull();
+        expect(fixture.otherInvitation.acceptedByUserId).toBeNull();
+        expect(
+          fixture.accessBootstrapCacheService.invalidateForUser,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      {
+        label: 'organization changes',
+        change: { organizationId: 'org_other' },
+      },
+      { label: 'row is deleted', change: { isDeleted: true } },
+    ])('refuses member reactivation when its $label', async ({ change }) => {
+      const fixture = buildAcceptanceFixture();
+      const memberSnapshot = { ...fixture.member };
+      fixture.prisma.member.findFirst.mockImplementationOnce(async () => {
+        Object.assign(fixture.member, change);
+        return memberSnapshot;
+      });
+
+      await expect(
+        fixture.service.acceptInvitation('token-123'),
+      ).rejects.toThrow('Record not found');
+
+      expect(fixture.member.isActive).toBe(false);
+      expect(fixture.otherMember.isActive).toBe(false);
+      expect(fixture.prisma.invitation.update).not.toHaveBeenCalled();
+      expect(
+        fixture.accessBootstrapCacheService.invalidateForUser,
+      ).not.toHaveBeenCalled();
+    });
+
     it('accepts an invitation for an existing invited user and activates their member row', async () => {
       const { accessBootstrapCacheService, prisma, service } = buildService();
       const invitation = makeInvitation({ tokenHash: hashToken('token-123') });
@@ -677,7 +876,7 @@ describe('InvitationService', () => {
           roleId,
           roleKey,
         },
-        where: { id: memberId },
+        where: { id: memberId, isDeleted: false, organizationId: orgId },
       });
       expect(prisma.setting.create).not.toHaveBeenCalled();
       expect(

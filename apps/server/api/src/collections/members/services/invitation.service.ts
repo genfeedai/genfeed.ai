@@ -429,12 +429,11 @@ export class InvitationService {
 
       const consumeResult = await tx.invitation.updateMany({
         data: { acceptedAt: new Date(), status: 'accepted' },
-        where: {
+        where: scopedWhere(invitation.organizationId, {
           acceptedAt: null,
           id: invitation.id,
-          isDeleted: false,
           revokedAt: null,
-        },
+        }),
       });
 
       if (consumeResult.count !== 1) {
@@ -457,7 +456,7 @@ export class InvitationService {
 
       const acceptedInvitation = await tx.invitation.update({
         data: { acceptedByUserId: user.id },
-        where: { id: invitation.id },
+        where: scopedWhere(invitation.organizationId, { id: invitation.id }),
       });
 
       return {
@@ -649,7 +648,7 @@ export class InvitationService {
           roleId: invitation.roleId,
           roleKey: invitation.roleKey,
         },
-        where: { id: existing.id },
+        where: scopedWhere(invitation.organizationId, { id: existing.id }),
       });
     }
 
