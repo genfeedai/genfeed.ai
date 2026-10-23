@@ -2,7 +2,6 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
-import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   afterAll,
   afterEach,
@@ -301,6 +300,8 @@ describe('OnboardingReadinessService workspace readiness', () => {
     const { OnboardingReadinessService } = await import(
       './onboarding-readiness.service'
     );
+    // Same module instance as the service: resetModules gave it a fresh store.
+    const { getTenantContext } = await import('@libs/prisma/tenant-context');
     const tenants: Array<string | undefined> = [];
     const brandsFindOne = vi.fn().mockImplementation(async () => {
       tenants.push(getTenantContext()?.organizationId);
