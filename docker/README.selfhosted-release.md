@@ -16,8 +16,9 @@ docker compose --env-file .env -f compose.yml up -d
 
 The web UI is available at `http://localhost:3000`, the API at
 `http://localhost:3010`, WebSocket at `http://localhost:3011/socket.io/`, and MCP
-at `http://localhost:3014`. Keep port 3011 reachable for live agent chat and
-follow-up turns.
+at `http://localhost:3014`. Keep port 3011 reachable from the browser on the
+same machine for live agent chat and follow-up turns; it binds to `127.0.0.1`
+only because the socket process also serves other notification routes.
 
 `SELFHOSTED_WS_PORT` overrides the socket's host port only (default `3011`).
 The browser endpoint is built into the image as `http://localhost:3011`; a
@@ -25,7 +26,7 @@ different host port requires a proxy at that endpoint or a custom image built
 with a matching `NEXT_PUBLIC_WS_ENDPOINT` build argument. A runtime `.env`
 change alone does not update the browser endpoint.
 
-The API host port binds to `127.0.0.1` only. Use Docker Engine 28 or newer for
+The API and WebSocket host ports bind to `127.0.0.1` only. Use Docker Engine 28 or newer for
 loopback isolation, and keep the login wall enabled before exposing the API
 through a reverse proxy. Internal Docker-network access is unchanged.
 

@@ -53,7 +53,9 @@ The WebSocket endpoint is built into the browser bundle. Build a custom image
 with `--build-arg NEXT_PUBLIC_WS_ENDPOINT=https://ws.genfeed.example.com` when
 using the socket hostname above. A runtime `.env` change does not replace the
 published image's `http://localhost:3011` endpoint. The proxy must forward
-`/socket.io/` with WebSocket upgrade support.
+`/socket.io/` with WebSocket upgrade support, and only that path: the socket
+port also serves notification routes, so it is published on `127.0.0.1` only
+and the proxy must not forward anything else.
 
 If you enable the login wall, also set the origins Better Auth should use:
 
@@ -72,7 +74,8 @@ public API address.
 ## Example: Caddy
 
 [Caddy](https://caddyserver.com/) obtains and renews HTTPS certificates
-automatically. A minimal `Caddyfile` for the four services:
+automatically. A minimal `Caddyfile` for the four services (the WebSocket host only passes
+`/socket.io/*` through):
 
 ```caddyfile
 genfeed.example.com {
@@ -84,7 +87,12 @@ api.genfeed.example.com {
 }
 
 ws.genfeed.example.com {
-  reverse_proxy localhost:3011
+  handle /socket.io/* {
+    reverse_proxy localhost:3011
+  }
+  handle {
+    respond 404
+  }
 }
 
 mcp.genfeed.example.com {

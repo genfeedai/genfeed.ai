@@ -32,7 +32,7 @@ services:
       # 3014 regardless of these vars (see docker/selfhosted-entrypoint.sh).
       - "${SELFHOSTED_APP_PORT:-3000}:3000"  # Web UI
       - "127.0.0.1:${SELFHOSTED_API_PORT:-3010}:3010"  # API (host-local)
-      - "${SELFHOSTED_WS_PORT:-3011}:3011"  # WebSocket
+      - "127.0.0.1:${SELFHOSTED_WS_PORT:-3011}:3011"  # WebSocket (host-local)
       - "${SELFHOSTED_MCP_PORT:-3014}:3014"  # MCP
     volumes:
       - genfeed_data:/data

@@ -182,9 +182,9 @@ describe('API host publishing', () => {
 });
 
 describe('self-hosted WebSocket publishing', () => {
-  it('publishes the browser socket port with a host-only override', () => {
+  it('publishes the browser socket port on loopback with a host-only override', () => {
     expect(readText('docker/docker-compose.selfhosted.yml')).toMatch(
-      /^\s+- "\$\{SELFHOSTED_WS_PORT:-3011\}:3011"(?:[ \t]+#.*)?$/m,
+      /^\s+- "127\.0\.0\.1:\$\{SELFHOSTED_WS_PORT:-3011\}:3011"(?:[ \t]+#.*)?$/m,
     );
   });
 

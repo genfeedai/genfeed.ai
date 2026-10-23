@@ -60,7 +60,7 @@ of it yourself.
 | ------ | ------------------------- | --------------------------- | ------------------------------------- |
 | `3000` | Web UI                    | Yes (`SELFHOSTED_APP_PORT`) | Always                                |
 | `3010` | REST API                  | Yes (`SELFHOSTED_API_PORT`) | Always; the browser calls it directly |
-| `3011` | WebSocket / notifications | Yes (`SELFHOSTED_WS_PORT`)  | Live agent chat and notifications     |
+| `3011` | WebSocket / notifications | Yes, localhost only (`SELFHOSTED_WS_PORT`) | Live agent chat and notifications     |
 | `3014` | MCP server                | Yes (`SELFHOSTED_MCP_PORT`) | You connect an AI agent               |
 | `3012` | Files service             | No                          | Inside the container only             |
 | `3013` | Workers                   | No                          | Inside the container only             |
@@ -90,7 +90,8 @@ decrypt your stored credentials. See
   Prompts and media go to those providers under their own terms.
 
 **Inbound.** The browser must reach the web UI (`3000`), the API (`3010`), and
-the WebSocket endpoint (`3011`). On a server, put these services
+the WebSocket endpoint (`3011`). The WebSocket port binds to localhost only,
+so on a server proxy `/socket.io/` to it. Put these services
 behind a reverse proxy with HTTPS: see
 [Reverse proxy and HTTPS](/self-host/reverse-proxy). Do not expose port `3010`
 directly if you rely on the login wall; see

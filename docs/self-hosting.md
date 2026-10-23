@@ -57,7 +57,9 @@ This starts:
 - **Redis** — embedded in the Genfeed container and persisted under `/data`
 
 Keep port 3011 reachable from the browser for live agent replies and follow-up
-turns. `SELFHOSTED_WS_PORT` changes only the host port; the container still
+turns. The socket port binds to localhost (`127.0.0.1`) only, so it is not
+reachable from other machines unless you proxy `/socket.io/` to it.
+`SELFHOSTED_WS_PORT` changes only the host port; the container still
 listens on 3011. The published image builds in
 `NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011`, so changing the host port also
 requires a proxy reachable at that browser endpoint, or a custom image built
@@ -125,9 +127,9 @@ To try a sample workflow and tell us how the install went, follow
 
 ### Agent chat shows "Reconnecting"
 
-Check that the `genfeed` service publishes `3011:3011` and that the browser can
+Check that the `genfeed` service publishes `127.0.0.1:3011:3011` and that the browser can
 reach `ws://localhost:3011/socket.io/`. Older release bundles omitted this
-mapping. Upgrade the bundle or add `"${SELFHOSTED_WS_PORT:-3011}:3011"` under
+mapping. Upgrade the bundle or add `"127.0.0.1:${SELFHOSTED_WS_PORT:-3011}:3011"` under
 `services.genfeed.ports`, then recreate the stack with the same Compose command
 used to start it. A reload can reveal completed replies even while the socket
 is unreachable; verify the connection by sending a prompt and then a correction

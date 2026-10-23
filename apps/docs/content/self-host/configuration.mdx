@@ -31,12 +31,17 @@ Contributors working on Genfeed from source use a different template; see
 | `GENFEED_IMAGE_TAG`   | `latest` in the source template; the exact release in a bundle | Application image tag. Release bundles pin it for you. |
 | `SELFHOSTED_APP_PORT` | `3000`                                                         | Host port for the web UI                               |
 | `SELFHOSTED_API_PORT` | `3010`                                                         | Host port for the REST API                             |
-| `SELFHOSTED_WS_PORT`  | `3011`                                                         | Host port for live agent chat and notifications        |
+| `SELFHOSTED_WS_PORT`  | `3011`                                                         | Host port for live agent chat and notifications (localhost only) |
 | `SELFHOSTED_MCP_PORT` | `3014`                                                         | Host port for the MCP server                           |
 
 Only the host side of each mapping changes. Inside the container the web app,
 API, WebSocket service, and MCP server always listen on `3000`, `3010`, `3011`,
 and `3014`.
+
+The WebSocket host port binds to `127.0.0.1` only: that process also serves
+notification routes that must not be reachable from other machines. Expose it
+through a reverse proxy that forwards only `/socket.io/`; see
+[Reverse proxy and HTTPS](/self-host/reverse-proxy#example-caddy).
 
 The published image builds in `NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011`.
 If you override `SELFHOSTED_WS_PORT`, provide a proxy reachable at that browser
