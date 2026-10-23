@@ -538,7 +538,9 @@ export default function ModelDetailContent() {
             {providers.map((provider) => (
               <TableRow key={provider.provider}>
                 <TableCell>{provider.provider}</TableCell>
-                <TableCell>{provider.generations.toLocaleString()}</TableCell>
+                <TableCell>
+                  {provider.generations.toLocaleString('en-US')}
+                </TableCell>
                 <TableCell>{usd(provider.vendorCostUsd)}</TableCell>
               </TableRow>
             ))}
