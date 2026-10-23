@@ -159,14 +159,26 @@ export default function GenerationSetupSectionChips(
       label: translate('duration'),
       value: summary.durationLabel || translate('duration'),
     });
-  if (capabilities.hasOutputs || outputFields.hasExtraFields)
+  // Fields without a chip of their own stay summarised on the Output chip: a
+  // Crun video model's controls own its ratio and length, so the menu holds
+  // only those controls and the chip is where the values stay visible.
+  const outputSummary = [
+    capabilities.hasAspectRatio &&
+      !outputFields.showAspectRatio &&
+      setup.values.aspectRatio,
+    capabilities.hasDuration &&
+      !outputFields.showDuration &&
+      summary.durationLabel,
+    capabilities.hasOutputs && `x${setup.values.outputs}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  if (outputSummary || outputFields.hasExtraFields)
     chips.push({
       icon: <Copy aria-hidden="true" className={SHELL_ICON_CLASS} />,
       id: 'output',
       label: translate('output'),
-      value: capabilities.hasOutputs
-        ? `x${setup.values.outputs}`
-        : translate('output'),
+      value: outputSummary || translate('output'),
     });
   if (summary.hasLookFields)
     chips.push({
