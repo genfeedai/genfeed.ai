@@ -164,33 +164,11 @@ export class CronIngredientsService {
         },
       );
 
-      // A generation that outlives the timeout is a provider or dispatch
-      // fault, not a user error: report it so it is seen, not only logged.
-      // Its credit hold is not released here; the hold recovery sweep owns
-      // that decision because the provider may still have produced output.
-      if (result.modifiedCount > 0) {
-        Sentry.captureMessage('Studio generations timed out while processing', {
-          extra: {
-            count: result.modifiedCount,
-            ingredientIds: stuckIngredients.docs
-              .slice(0, 10)
-              .map((ingredient: { id: unknown }) => String(ingredient.id)),
-          },
-          level: 'error',
-          tags: { cron: 'ingredient-processing-timeout' },
-        });
-      }
-
-      // Log individual ingredient IDs for debugging
-      if (result.modifiedCount > 0 && stuckIngredients.docs) {
-        this.logger.debug(
-          `Marked ingredients as FAILED: ${stuckIngredients.docs
-            .slice(0, 10)
-            .map((ing: { id: unknown }) => String(ing.id))
-            .join(', ')}${stuckCount > 10 ? '...' : ''}`,
-          context,
-        );
-      }
+      this.reportTimedOutIngredients(
+        stuckIngredients.docs,
+        result.modifiedCount,
+        context,
+      );
 
       // Update corresponding activity records from _PROCESSING to _FAILED
       let activitiesUpdated = 0;
@@ -265,6 +243,37 @@ export class CronIngredientsService {
         CronIngredientsService.LOCK_KEY_STUCK_INGREDIENTS,
       );
     }
+  }
+
+  /**
+   * A generation that outlives the timeout is a provider or dispatch fault,
+   * not a user error: report it so it is seen, not only logged. Its credit
+   * hold is not released here; the hold recovery sweep owns that decision
+   * because the provider may still have produced output.
+   */
+  private reportTimedOutIngredients(
+    docs: { id: unknown }[],
+    modifiedCount: number,
+    context: string,
+  ): void {
+    if (modifiedCount === 0) {
+      return;
+    }
+
+    const ingredientIds = docs
+      .slice(0, 10)
+      .map((ingredient) => String(ingredient.id));
+
+    Sentry.captureMessage('Studio generations timed out while processing', {
+      extra: { count: modifiedCount, ingredientIds },
+      level: 'error',
+      tags: { cron: 'ingredient-processing-timeout' },
+    });
+
+    this.logger.debug(
+      `Marked ingredients as FAILED: ${ingredientIds.join(', ')}${docs.length > 10 ? '...' : ''}`,
+      context,
+    );
   }
 
   /**
