@@ -384,6 +384,17 @@ describe('AgentThreadsController', () => {
       await controller.getThread({} as never, 'test-id', mockUser);
       expect(service.findOne).toHaveBeenCalled();
     });
+
+    it('answers 404 for an unknown or deleted thread instead of an empty document', async () => {
+      service.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.getThread({} as never, 'does-not-exist', mockUser),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(service.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'does-not-exist', isDeleted: false }),
+      );
+    });
   });
 
   describe('getMessages', () => {

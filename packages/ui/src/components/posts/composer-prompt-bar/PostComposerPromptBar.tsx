@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { POST_ENHANCEMENT_CREDITS } from '@genfeedai/contracts/constants';
 import type { PostQuickActionKey } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
@@ -391,7 +392,7 @@ export default function PostComposerPromptBar({
           trailing={
             <>
               <span className="text-2xs text-muted-foreground">
-                {translate('creditPerRun')}
+                {translate('creditPerRun', { count: POST_ENHANCEMENT_CREDITS })}
               </span>
               <PromptBarSendButton
                 ariaLabel={translate('rewrite')}

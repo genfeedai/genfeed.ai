@@ -689,7 +689,8 @@ const UI_TEST_MESSAGES = {
       instructionAria: 'Ask AI to write or rewrite',
       placeholder: 'Ask AI to rewrite, e.g. “open with the result”',
       toneAria: 'Tone',
-      creditPerRun: '1 credit per run',
+      creditPerRun:
+        '{count, plural, one {# credit per run} other {# credits per run}}',
       rewrite: 'Rewrite',
     },
     postDetailInspector: {

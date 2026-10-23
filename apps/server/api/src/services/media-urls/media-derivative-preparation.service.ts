@@ -20,7 +20,10 @@ import { MEDIA_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { Queue } from 'bullmq';
+
+const FAILED_RETRY_COOLDOWN_MS = 60_000;
 
 /** Producer plus durable variant state. Rendering is owned by the worker. */
 @Injectable()
@@ -155,6 +158,14 @@ export class MediaDerivativePreparationService {
       },
     });
     if (!isSupported || variant.state === 'READY') return;
+    // A failed render is rendered again on request, but not on every request:
+    // a source that cannot be rendered would otherwise queue three attempts
+    // each time its tile is viewed.
+    if (
+      variant.state === 'FAILED' &&
+      Date.now() - variant.updatedAt.getTime() < FAILED_RETRY_COOLDOWN_MS
+    )
+      return;
     await this.addPrepareJob(variant.id, {
       ingredientId,
       organizationId,
@@ -294,6 +305,17 @@ export class MediaDerivativePreparationService {
           isDeleted: false,
           organizationId: data.organizationId,
         },
+      });
+      // A failed render leaves the asset without a preview and nothing else
+      // records why: BullMQ drops the job (`removeOnFail`). Report it, or a
+      // broken renderer shows up only as every tile reading "Preview unavailable".
+      Sentry.captureException(error, {
+        extra: {
+          ingredientId: data.ingredientId,
+          organizationId: data.organizationId,
+          purpose: data.purpose,
+        },
+        tags: { queue: 'media-delivery' },
       });
       throw error;
     }
