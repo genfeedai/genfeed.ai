@@ -14,6 +14,20 @@ export function normalizeFinalAssistantContent(
     (action) => action.type === 'turbo_run_result_card',
   );
 
+  const hasPendingPostProposal = uiActions.some(
+    (action) =>
+      action.type === 'mutation_approval_card' &&
+      action.title?.trim().toLowerCase() === 'create post' &&
+      action.data?.status === 'pending',
+  );
+  if (hasPendingPostProposal) {
+    return {
+      content:
+        'Post proposal ready for review. Approve its Create post card to create the post.',
+      isFallback: false,
+    };
+  }
+
   if (content.trim().length > 0) {
     if (hasTurboRunResultCard) {
       const normalizedTurboContent = content
