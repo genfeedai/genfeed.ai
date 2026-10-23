@@ -4,6 +4,8 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
   FLUX_3_EDIT_CONTRACT_VERSION,
   getImageEditMaxSources,
+  getModelMaxAudioReferences,
+  hasAudioReferences,
   IMAGE_EDIT_CONTRACT_VERSION,
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
@@ -139,6 +141,7 @@ export interface StudioGenerationOptions {
 }
 
 export interface StudioGenerationReferences {
+  audioReferenceIds?: string[];
   editSourceIds?: string[];
   editMaskId?: string;
   endFrameId?: string;
@@ -828,6 +831,23 @@ export function useStudioGeneration({
         currentModels,
         config.capabilities.hasModelSelection,
       );
+      if (
+        references.audioReferenceIds?.length &&
+        (type !== 'video' ||
+          !hasAudioReferences(modelKey) ||
+          references.audioReferenceIds.length >
+            getModelMaxAudioReferences(modelKey) ||
+          !(
+            references.imageReferenceIds?.length ||
+            references.videoReferenceIds?.length ||
+            references.endFrameId
+          ))
+      ) {
+        notificationsService.error(
+          'Audio references require a supported video model and an image or video reference.',
+        );
+        return false;
+      }
       const initialCrunQuote = modelKey.startsWith('crun/')
         ? options?.getCurrentCrunQuote?.()
         : null;
@@ -1087,6 +1107,7 @@ export function useStudioGeneration({
             const videoPromptData = {
               ...promptData,
               endFrame: references.endFrameId,
+              audioReferences: references.audioReferenceIds,
               videoReferences: references.videoReferenceIds,
             };
             const payload = buildVideoPayload(

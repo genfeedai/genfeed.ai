@@ -23,7 +23,9 @@ import {
 } from '@genfeedai/contracts';
 import {
   getImageEditMaxSources,
+  getModelMaxAudioReferences,
   getModelMaxVideoReferences,
+  hasAudioReferences,
   hasEndFrame,
   hasInterpolation,
   hasVideoReferences,
@@ -72,6 +74,7 @@ import StudioPlaygroundInspector from '@pages/studio/playground/components/Studi
 import StudioPlaygroundResults from '@pages/studio/playground/components/StudioPlaygroundResults';
 import StudioPlaygroundStarterIdeas from '@pages/studio/playground/components/StudioPlaygroundStarterIdeas';
 import { useCrunGenerationQuote } from '@pages/studio/playground/hooks/useCrunGenerationQuote';
+import { useStudioAudioLibrary } from '@pages/studio/playground/hooks/useStudioAudioLibrary';
 import { useStudioGeneration } from '@pages/studio/playground/hooks/useStudioGeneration';
 import { useStudioPendingPreviews } from '@pages/studio/playground/hooks/useStudioPendingPreviews';
 import { useStudioPlaygroundAssetActions } from '@pages/studio/playground/hooks/useStudioPlaygroundAssetActions';
@@ -141,6 +144,12 @@ import {
   type StudioAgentPromptSeed,
 } from '@pages/studio/playground/utils/studio-prompt-author';
 import { resolveStudioReferencePreviewUrl } from '@pages/studio/playground/utils/studio-reference-preview';
+import {
+  filterStudioReferenceLibrary,
+  getStudioReferenceKind,
+  resolveStudioUploadReferenceRole,
+  studioAudioReferenceIds,
+} from '@pages/studio/playground/utils/studio-reference-selection';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -238,8 +247,10 @@ function toContentReference(
   asset: IIngredient,
   role: StudioPlaygroundReferenceRole,
 ): StudioContentReference | null {
-  const thumbnailUrl = resolveStudioAssetUrl(asset);
-  if (!thumbnailUrl) {
+  const isAudio = getStudioReferenceKind(String(asset.category)) === 'audio';
+  if ((role === 'audioReference') !== isAudio) return null;
+  const thumbnailUrl = isAudio ? undefined : resolveStudioAssetUrl(asset);
+  if (isAudio ? !asset.s3Key : !thumbnailUrl) {
     return null;
   }
 
@@ -257,17 +268,18 @@ function toContentReference(
 
 /** A composer upload restored from the draft: already a Library asset. */
 function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
+  const kind = getStudioReferenceKind(String(asset.category));
   const url = resolveStudioAssetUrl(asset);
-  if (!url) {
+  if (!url && !(kind === 'audio' && asset.s3Key)) {
     return null;
   }
 
   return {
     id: asset.id,
     ingredientId: asset.id,
-    kind: asset.category === IngredientCategory.VIDEO ? 'video' : 'image',
+    kind,
     name: studioIngredientAccessibleLabel(asset),
-    previewUrl: url,
+    previewUrl: url ?? '',
     status: UploadStatus.COMPLETED,
     url,
   };
@@ -470,7 +482,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     isUploading,
     removeAttachment,
   } = useAttachments({
-    acceptedTypes: STUDIO_REFERENCE_TYPES,
+    acceptedTypes:
+      type === 'video' && hasAudioReferences(settings.modelKey)
+        ? [...STUDIO_REFERENCE_TYPES, 'audio/*']
+        : STUDIO_REFERENCE_TYPES,
     initialAttachments: restoredAttachments,
     maxFiles: 8,
     onUpload: uploadReference,
@@ -950,25 +965,26 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     brandId,
     onRefresh: refreshRecovery,
   });
+  const audioLibrary = useStudioAudioLibrary(
+    isContentLibraryOpen &&
+      contentLibraryRole === 'audioReference' &&
+      type === 'video' &&
+      hasAudioReferences(settings.modelKey),
+  );
   const contentLibraryItems = useMemo(() => {
-    const requiresVideo = contentLibraryRole === 'videoReference';
     const generated = galleryJobs.flatMap((job) => {
-      const item = studioJobToContentMention(job);
+      const item = studioJobToContentMention(job, contentLibraryRole);
       return item ? [item] : [];
     });
     const seen = new Set(generated.map((item) => item.id));
 
-    return [
-      ...generated,
-      ...mentions.filter((item) => !seen.has(item.id)),
-    ].filter((item) => {
-      if (!item.thumbnailUrl) {
-        return false;
-      }
-      const isVideo = item.contentType.toLowerCase().includes('video');
-      return requiresVideo ? isVideo : !isVideo;
-    });
-  }, [contentLibraryRole, galleryJobs, mentions]);
+    const libraryItems =
+      contentLibraryRole === 'audioReference' ? audioLibrary.items : mentions;
+    return filterStudioReferenceLibrary(
+      [...generated, ...libraryItems.filter((item) => !seen.has(item.id))],
+      contentLibraryRole,
+    );
+  }, [audioLibrary.items, contentLibraryRole, galleryJobs, mentions]);
   const visibleJobs = useMemo(() => {
     const filtered = filterStudioPlaygroundJobs(galleryJobs, {
       search,
@@ -1070,15 +1086,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         const explicitRole = attachment
           ? getAttachmentRole(attachment)
           : undefined;
-        const role: StudioPlaygroundReferenceRole =
-          explicitRole ??
-          (type === 'video'
-            ? completed.kind === 'video'
-              ? 'videoReference'
-              : 'startFrame'
-            : type === 'image-edit'
-              ? 'editSource'
-              : 'reference');
+        const role = resolveStudioUploadReferenceRole(
+          completed.kind,
+          type,
+          explicitRole,
+        );
         return { id: completed.ingredientId, role };
       }),
       ...contentReferences.map((reference) => ({
@@ -1088,6 +1100,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ];
 
     return {
+      audioReferenceIds: studioAudioReferenceIds(entries),
       editSourceIds: entries
         .filter((entry) => entry.role === 'editSource')
         .toSorted(
@@ -1289,7 +1302,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ],
   );
   const crunVideoRequest = useMemo(() => {
-    if (type !== 'video' || resolvedReferences.videoReferenceIds.length)
+    if (
+      type !== 'video' ||
+      resolvedReferences.videoReferenceIds.length ||
+      resolvedReferences.audioReferenceIds.length
+    )
       return null;
     return buildStudioCrunVideoQuoteRequest({
       model: crunModel,
@@ -1313,6 +1330,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     crunPreparedIntent,
     resolvedReferences.endFrameId,
     resolvedReferences.videoReferenceIds,
+    resolvedReferences.audioReferenceIds,
     brandId,
     enhancedPromptId,
     prompt,
@@ -1466,7 +1484,31 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const attachContentReference = useCallback(
     (item: ContentMentionItem, role: StudioPlaygroundReferenceRole) => {
       clearCrunRestore();
-      if (!item.thumbnailUrl) {
+      const kind = getStudioReferenceKind(item.contentType);
+      if (role === 'audioReference') {
+        const count =
+          contentReferences.filter(
+            (reference) =>
+              reference.role === role && reference.item.id !== item.id,
+          ).length +
+          attachments.filter(
+            (attachment) =>
+              resolveStudioUploadReferenceRole(
+                attachment.kind,
+                type,
+                getAttachmentRole(attachment),
+              ) === role,
+          ).length;
+        if (
+          kind !== 'audio' ||
+          type !== 'video' ||
+          !hasAudioReferences(settings.modelKey) ||
+          count >= getModelMaxAudioReferences(settings.modelKey)
+        ) {
+          notificationsService.warning(translate('audioReferenceUnsupported'));
+          return;
+        }
+      } else if (kind === 'audio' || !item.thumbnailUrl) {
         return;
       }
       if (role === 'editSource') {
@@ -1583,6 +1625,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       settings.resolution,
       updateSettings,
       removeAttachment,
+      type,
+      translate,
     ],
   );
 
@@ -1638,8 +1682,21 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const handleAddFiles = useCallback<
     StudioPlaygroundComposerProps['onAddFiles']
   >(
-    (files: File[], role: StudioPlaygroundReferenceRole = 'reference') => {
+    (files: File[], selectedRole?: StudioPlaygroundReferenceRole) => {
+      const role =
+        selectedRole ??
+        (files.length > 0 &&
+        files.every((file) => file.type.startsWith('audio/'))
+          ? 'audioReference'
+          : 'reference');
       clearCrunRestore();
+      if (
+        role === 'audioReference' &&
+        (type !== 'video' || !hasAudioReferences(settings.modelKey))
+      ) {
+        notificationsService.warning(translate('audioReferenceUnsupported'));
+        return;
+      }
       const videoControls = models.find(
         (model) => model.key === settings.modelKey && model.provider === 'crun',
       )?.inputControls;
@@ -1683,7 +1740,30 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           }
         }
       }
-      let acceptedFiles = files;
+      let acceptedFiles = files.filter((file) =>
+        role === 'audioReference'
+          ? file.type.startsWith('audio/')
+          : !file.type.startsWith('audio/'),
+      );
+      if (role === 'audioReference') {
+        const count =
+          contentReferences.filter((reference) => reference.role === role)
+            .length +
+          attachments.filter(
+            (attachment) =>
+              resolveStudioUploadReferenceRole(
+                attachment.kind,
+                type,
+                getAttachmentRole(attachment),
+              ) === role,
+          ).length;
+        acceptedFiles = acceptedFiles.slice(
+          0,
+          Math.max(0, getModelMaxAudioReferences(settings.modelKey) - count),
+        );
+        if (acceptedFiles.length < files.length)
+          notificationsService.warning(translate('audioReferenceUnsupported'));
+      }
       if (role === 'editSource') {
         const count =
           contentReferences.filter(
@@ -1727,7 +1807,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           0,
           maxVideoReferences - selectedVideoReferences,
         );
-        acceptedFiles = files.slice(0, remaining);
+        acceptedFiles = acceptedFiles.slice(0, remaining);
         if (acceptedFiles.length < files.length) {
           notificationsService.warning(
             `The selected model accepts at most ${maxVideoReferences} video references.`,
@@ -1765,6 +1845,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       settings.modelKey,
       settings.resolution,
       updateSettings,
+      type,
+      translate,
     ],
   );
 
@@ -1877,14 +1959,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
 
   const resolveAttachmentRole = useCallback(
     (attachment: AttachmentItem): StudioPlaygroundReferenceRole =>
-      getAttachmentRole(attachment) ??
-      (type === 'video'
-        ? attachment.kind === 'video'
-          ? 'videoReference'
-          : 'startFrame'
-        : type === 'image-edit'
-          ? 'editSource'
-          : 'reference'),
+      resolveStudioUploadReferenceRole(
+        attachment.kind,
+        type,
+        getAttachmentRole(attachment),
+      ),
     [getAttachmentRole, type],
   );
 
@@ -1905,9 +1984,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           id: reference.item.id,
           ingredientId: reference.item.id,
           isPrimary: reference.item.id === settings.editPrimaryId,
-          kind: reference.item.contentType.toLowerCase().includes('video')
-            ? ('video' as const)
-            : ('image' as const),
+          kind: getStudioReferenceKind(reference.item.contentType),
           name: reference.item.contentTitle,
           previewUrl: reference.item.thumbnailUrl,
           role: reference.role,
@@ -2917,9 +2994,18 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       </ContextSidebarPanel>
 
       <ContentLibraryPicker
+        description={
+          contentLibraryRole === 'audioReference'
+            ? audioLibrary.hasError
+              ? 'Audio references could not be loaded. Close and reopen the Library to retry.'
+              : 'Choose recorded audio, a generated voice, or music to condition the video alongside an image or video reference.'
+            : undefined
+        }
         isLoading={
           contentLibraryItems.length === 0 &&
-          (isContentLibraryLoading || isLoadingGallery)
+          (contentLibraryRole === 'audioReference'
+            ? audioLibrary.isLoading
+            : isContentLibraryLoading || isLoadingGallery)
         }
         isOpen={isContentLibraryOpen}
         items={contentLibraryItems}
