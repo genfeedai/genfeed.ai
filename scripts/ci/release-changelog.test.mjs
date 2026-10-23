@@ -45,8 +45,12 @@ const recoveryEvidenceScript = readRepoFile(
 const recoveryNpmGuardPath = fileURLToPath(
   new URL('./recovery-npm-plan-guard.mjs', import.meta.url),
 );
-const prTitleWorkflow = readRepoFile('.github/workflows/ci.yml');
-const prTitleJob = jobBlock(prTitleWorkflow, 'conventional-title', 'ci.yml');
+const prTitleWorkflow = readRepoFile('.github/workflows/pr-title.yml');
+const prTitleJob = jobBlock(
+  prTitleWorkflow,
+  'conventional-title',
+  'pr-title.yml',
+);
 const cliffConfig = readRepoFile('cliff.toml');
 const pullRequestTemplate = readRepoFile('.github/pull_request_template.md');
 const rootPackage = JSON.parse(readRepoFile('package.json'));
@@ -857,14 +861,12 @@ test('PR titles are checked without executing fork code and stay in sync with th
     /^ {2}pull_request_target:\n {4}types: \[opened, edited, synchronize, reopened\]$/m,
   );
   assert.match(prTitleWorkflow, /^permissions: \{\}$/m);
-  assert.match(
+  assert.doesNotMatch(
     prTitleJob,
-    /^ {4}if: github\.event_name == 'pull_request_target' && contains\(fromJSON\('\["opened","edited","synchronize","reopened"\]'\), github\.event\.action\)$/m,
+    /^ {4}if:/m,
+    'the required leaf must never be a skipped job; triggers decide when it runs',
   );
-  assert.match(
-    prTitleJob,
-    /^ {4}name:.*'PR Title'.*'Not selected - PR title'/m,
-  );
+  assert.match(prTitleJob, /^ {4}name: PR Title$/m);
   assert.doesNotMatch(
     prTitleJob,
     /actions\/checkout|uses: \.\//,

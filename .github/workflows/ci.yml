@@ -1,20 +1,20 @@
 name: CI
+run-name: "${{ github.event_name == 'pull_request' && format('CI · PR #{0} · {1}', github.event.pull_request.number, github.event.pull_request.title) || format('CI · {0}', github.ref_name) }}"
 
 # Domains share entrypoints but retain independent cancellation and secrets.
-# Required names belong only to applicable leaves.
+# Required names belong only to applicable leaves. Job names are static: GitHub
+# cannot evaluate an expression for a skipped job and prints it raw. A skipped
+# job also reports success, so "Tests Gate" must never be skippable; triggers
+# below decide when it exists, not a job-level `if:`. The PR title check lives
+# in pr-title.yml for the same reason.
 on:
   pull_request:
+    branches: [master]
     types: [opened, synchronize, reopened, ready_for_review]
-  pull_request_target:
-    types: [opened, edited, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_call:
     inputs:
-      called_workflow:
-        type: boolean
-        required: false
-        default: true
       run_heavy_tests:
         type: boolean
         required: false
@@ -30,43 +30,8 @@ on:
 permissions: {}
 
 jobs:
-  conventional-title:
-    name: ${{ (github.event_name == 'pull_request_target' && contains(fromJSON('["opened","edited","synchronize","reopened"]'), github.event.action)) && 'PR Title' || 'Not selected - PR title' }}
-    if: github.event_name == 'pull_request_target' && contains(fromJSON('["opened","edited","synchronize","reopened"]'), github.event.action)
-    permissions:
-      pull-requests: read
-    concurrency:
-      group: PR Title-${{ github.event.pull_request.number }}
-      cancel-in-progress: false
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - name: Validate Conventional Commits title
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          # Keep in sync with CONTRIBUTING.md → Pull-request contract and cliff.toml.
-          types: |
-            feat
-            fix
-            docs
-            refactor
-            test
-            chore
-            build
-            ci
-            perf
-          requireScope: false
-          # Lowercase imperative summary. `type(scope)!: summary` marks a breaking change
-          # and is accepted by the action's default header pattern.
-          subjectPattern: ^(?![A-Z]).+$
-          subjectPatternError: |
-            The subject "{subject}" must start lowercase and read as an imperative
-            (e.g. "feat(studio): add batch generate"). See CONTRIBUTING.md → Pull-request contract.
-
   server-image:
-    name: ${{ github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) && 'Build Server Image' || 'Not selected - server image' }}
+    name: Build Server Image
     if: ${{ !cancelled() && (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action)) }}
     permissions:
       contents: read
@@ -123,7 +88,6 @@ jobs:
 
   core:
     name: Core Validation
-    if: github.event_name != 'pull_request_target' && (inputs.called_workflow == true || github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.base_ref == 'master' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action)))
     permissions:
       contents: read
       pull-requests: read
@@ -140,7 +104,6 @@ jobs:
 
   frontend:
     name: Frontend Validation
-    if: github.event_name != 'pull_request_target' && (inputs.called_workflow == true || github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.base_ref == 'master' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action)))
     permissions:
       contents: read
       pull-requests: write
@@ -154,9 +117,9 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
   tests-gate:
-    name: ${{ (github.event_name != 'pull_request_target' && (inputs.called_workflow == true || github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.base_ref == 'master' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action)))) && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') && 'Tests Gate' || 'Not selected - source gate' }}
+    name: Tests Gate
     needs: core
-    if: ${{ always() && ((github.event_name != 'pull_request_target' && (inputs.called_workflow == true || github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.base_ref == 'master' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action)))) && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push')) }}
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
