@@ -16,13 +16,26 @@ export type OAuthClientRecord = {
 };
 
 const CLIENT_METADATA_MAX_BYTES = 64 * 1024;
+const SUPPORTED_CLIENT_GRANT_TYPES: ReadonlySet<string> = new Set([
+  'authorization_code',
+  'refresh_token',
+]);
 const clientMetadataSchema = z.object({
   client_id: z.string().max(2048),
   client_name: z.string().min(1).max(200),
   redirect_uris: z.array(z.string().max(2048)).min(1).max(20),
+  // A client document may list grant types this server does not implement
+  // (Claude also advertises the jwt-bearer grant). Keep the supported ones
+  // rather than rejecting the whole document; authorization_code is required.
   grant_types: z
-    .array(z.enum(['authorization_code', 'refresh_token']))
-    .default(['authorization_code']),
+    .array(z.string())
+    .default(['authorization_code'])
+    .transform((grantTypes) =>
+      grantTypes.filter((grantType) =>
+        SUPPORTED_CLIENT_GRANT_TYPES.has(grantType),
+      ),
+    )
+    .refine((grantTypes) => grantTypes.includes('authorization_code')),
   response_types: z.array(z.literal('code')).default(['code']),
   token_endpoint_auth_method: z.literal('none').default('none'),
 });
