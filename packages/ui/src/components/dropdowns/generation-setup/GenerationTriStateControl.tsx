@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
+import { useId } from 'react';
 
 /**
  * Inherit / On / Off, the one control every Brand-popover row uses. While
@@ -22,6 +23,7 @@ export default function GenerationTriStateControl({
   value,
 }: GenerationTriStateControlProps) {
   const translate = useTranslations('ui.generationHarness');
+  const resolvedDescriptionId = useId();
   const options: ReadonlyArray<{
     label: string;
     value: GenerationTriStateValue;
@@ -33,10 +35,16 @@ export default function GenerationTriStateControl({
 
   return (
     <div
+      aria-describedby={value === null ? resolvedDescriptionId : undefined}
       aria-label={ariaLabel}
       className="grid w-full grid-cols-3 gap-1"
       role="group"
     >
+      {value === null ? (
+        <span className="sr-only" id={resolvedDescriptionId}>
+          {translate(resolvedValue ? 'currentlyOn' : 'currentlyOff')}
+        </span>
+      ) : null}
       {options.map((option) => {
         const isSelected = value === option.value;
         const isResolved =

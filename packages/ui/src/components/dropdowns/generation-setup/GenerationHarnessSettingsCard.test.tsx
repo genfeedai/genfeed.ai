@@ -67,6 +67,17 @@ describe('GenerationHarnessSettingsCard', () => {
     fireEvent.click(group.getByRole('button', { name: 'Inherit' }));
     expect(input.onSave).toHaveBeenCalledWith('organization', null);
   });
+  it('describes the resolved value for assistive technology while inheriting', () => {
+    render(<GenerationHarnessSettingsCard {...props()} />, {
+      wrapper: EnglishMessages,
+    });
+    expect(
+      screen.getByRole('group', { name: 'Brand prompt enhancement' }),
+    ).toHaveAccessibleDescription('Currently on');
+    expect(
+      screen.getByRole('group', { name: 'Organization prompt enhancement' }),
+    ).not.toHaveAccessibleDescription();
+  });
   it('renders both rows with the same control column', () => {
     render(<GenerationHarnessSettingsCard {...props()} />, {
       wrapper: EnglishMessages,

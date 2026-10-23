@@ -833,6 +833,8 @@ const UI_TEST_MESSAGES = {
           'Your brand kit is not approved yet. This was generated from the draft kit and is not checked for compliance.',
         raw: 'The prompt was sent exactly as typed. No brand was applied.',
       },
+      currentlyOff: 'Currently off',
+      currentlyOn: 'Currently on',
       description:
         'Improve image and video prompts automatically. These preferences apply in Studio and all connected agents.',
       enhancementFailedHint:

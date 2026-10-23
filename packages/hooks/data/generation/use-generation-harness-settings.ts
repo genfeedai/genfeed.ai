@@ -53,6 +53,8 @@ export function useGenerationHarnessSettings(isOpen: boolean) {
       setSaveError(null);
       try {
         const service = await getService();
+        // A refetch that started before the PATCH must not overwrite the save.
+        await queryClient.cancelQueries({ queryKey: savedKey });
         await service.updateSettings({
           scope,
           isEnabled,
