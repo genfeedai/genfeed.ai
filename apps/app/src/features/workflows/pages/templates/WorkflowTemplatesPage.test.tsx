@@ -13,10 +13,8 @@ import type {
   FeaturedWorkflow,
   WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
-import WorkflowTemplatesPage, {
-  cadenceLabel,
-  categoryLabel,
-} from './WorkflowTemplatesPage';
+import WorkflowTemplatesPage from './WorkflowTemplatesPage';
+import { cadenceLabel, categoryLabel } from './workflow-template-catalog';
 
 type Translator = (
   key: string,
