@@ -1,3 +1,14 @@
+import {
+  buildOptimizationSystemPrompt,
+  computeConfidence,
+  deriveAbTestSuggestions,
+  deriveInsights,
+  derivePipelineConfigs,
+  normalizeToken,
+  pickTopValue,
+  toIsoDate,
+  tokenizeHook,
+} from '@api/services/content-optimization/content-optimization-analysis.util';
 import { runStructuredCompletion } from '@api/services/integrations/llm/structured-output.util';
 import {
   PROMPT_OPTIMIZATION_SCHEMA_NAME,
@@ -141,42 +152,6 @@ export interface RequeueWinnerResult {
   addedPlatforms?: string[];
 }
 
-// Common English tokens with no signal value as trend keywords.
-const HOOK_STOP_WORDS = new Set([
-  'about',
-  'after',
-  'again',
-  'and',
-  'are',
-  'but',
-  'for',
-  'from',
-  'has',
-  'have',
-  'how',
-  'into',
-  'its',
-  'new',
-  'not',
-  'our',
-  'out',
-  'that',
-  'the',
-  'their',
-  'them',
-  'they',
-  'this',
-  'was',
-  'were',
-  'what',
-  'when',
-  'why',
-  'will',
-  'with',
-  'you',
-  'your',
-]);
-
 const MAX_WINNER_KEYWORDS = 8;
 
 @Injectable()
@@ -242,10 +217,10 @@ export class ContentOptimizationService implements OnModuleInit {
   ): Promise<PerformanceAnalysis> {
     const normalizedOptions = {
       ...(options.endDate
-        ? { endDate: this.toIsoDate(options.endDate, 'endDate') }
+        ? { endDate: toIsoDate(options.endDate, 'endDate') }
         : {}),
       ...(options.startDate
-        ? { startDate: this.toIsoDate(options.startDate, 'startDate') }
+        ? { startDate: toIsoDate(options.startDate, 'startDate') }
         : {}),
       ...(options.topN === undefined ? {} : { topN: options.topN }),
     };
@@ -339,14 +314,14 @@ export class ContentOptimizationService implements OnModuleInit {
     }
 
     const suggestions: OptimizationSuggestion[] = [];
-    const topTime = this.pickTopValue(topTimeCounts);
-    const topFormat = this.pickTopValue(topFormatCounts);
-    const topHook = this.pickTopValue(hookCounts);
+    const topTime = pickTopValue(topTimeCounts);
+    const topFormat = pickTopValue(topFormatCounts);
+    const topHook = pickTopValue(hookCounts);
 
     if (topTime) {
       suggestions.push({
         category: 'timing',
-        confidence: this.computeConfidence(topTime.count, memory.length),
+        confidence: computeConfidence(topTime.count, memory.length),
         dataPoints: topTime.count,
         id: this.buildSuggestionId('timing', topTime.value),
         payload: { preferredTime: topTime.value },
@@ -357,7 +332,7 @@ export class ContentOptimizationService implements OnModuleInit {
     if (topFormat) {
       suggestions.push({
         category: 'format',
-        confidence: this.computeConfidence(topFormat.count, memory.length),
+        confidence: computeConfidence(topFormat.count, memory.length),
         dataPoints: topFormat.count,
         id: this.buildSuggestionId('format', topFormat.value),
         payload: { preferredFormat: topFormat.value },
@@ -368,7 +343,7 @@ export class ContentOptimizationService implements OnModuleInit {
     if (topHook) {
       suggestions.push({
         category: 'hook',
-        confidence: this.computeConfidence(topHook.count, memory.length),
+        confidence: computeConfidence(topHook.count, memory.length),
         dataPoints: topHook.count,
         id: this.buildSuggestionId('hook', topHook.value),
         payload: { hook: topHook.value },
@@ -593,7 +568,7 @@ export class ContentOptimizationService implements OnModuleInit {
     const summary = this.readSummary(action.input.summary);
     const optimizationCycle = this.readCycle(action.input.cycle);
     return {
-      insights: this.deriveInsights(summary, optimizationCycle),
+      insights: deriveInsights(summary, optimizationCycle),
       optimizationCycle,
       summary,
     };
@@ -652,7 +627,7 @@ export class ContentOptimizationService implements OnModuleInit {
       performance.worstPerformers,
       'worstPerformers',
     );
-    const systemPrompt = this.buildOptimizationSystemPrompt(
+    const systemPrompt = buildOptimizationSystemPrompt(
       topPerformers,
       worstPerformers,
       this.requiredString(performance.performanceContext, 'performanceContext'),
@@ -728,13 +703,10 @@ export class ContentOptimizationService implements OnModuleInit {
       action.input.validatedAbTests,
     );
     return {
-      abTestSuggestions: this.deriveAbTestSuggestions(
-        summary,
-        optimizationCycle,
-      ),
+      abTestSuggestions: deriveAbTestSuggestions(summary, optimizationCycle),
       contentTypes,
       general,
-      pipelineConfigs: this.derivePipelineConfigs(summary),
+      pipelineConfigs: derivePipelineConfigs(summary),
       postingSchedule,
       validatedAbTests,
     };
@@ -899,17 +871,15 @@ export class ContentOptimizationService implements OnModuleInit {
     platforms: string[];
     categories: string[];
   } {
-    const platform = this.normalizeToken(winner.platform);
-    const format = this.normalizeToken(winner.format);
+    const platform = normalizeToken(winner.platform);
+    const format = normalizeToken(winner.format);
 
     const keywords = [
       ...new Set(
         [
-          ...this.tokenizeHook(winner.hook),
+          ...tokenizeHook(winner.hook),
           ...(format ? [format] : []),
-          ...(winner.keywords ?? []).map((keyword) =>
-            this.normalizeToken(keyword),
-          ),
+          ...(winner.keywords ?? []).map((keyword) => normalizeToken(keyword)),
         ].filter((token): token is string => token.length > 0),
       ),
     ].slice(0, MAX_WINNER_KEYWORDS);
@@ -930,206 +900,7 @@ export class ContentOptimizationService implements OnModuleInit {
     };
   }
 
-  private tokenizeHook(hook: string | undefined): string[] {
-    if (!hook) {
-      return [];
-    }
-
-    return hook
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter(
-        (token) =>
-          token.length >= 3 &&
-          !HOOK_STOP_WORDS.has(token) &&
-          !/^\d+$/.test(token),
-      );
-  }
-
-  private normalizeToken(value: string | undefined): string {
-    return typeof value === 'string' ? value.trim().toLowerCase() : '';
-  }
-
-  private toIsoDate(value: Date | string, field: string): string {
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      throw new Error(`Content optimization requires a valid ${field}`);
-    }
-    return date.toISOString();
-  }
-
   // ─── Private Helpers ─────────────────────────────────────────────
-
-  private deriveInsights(
-    summary: WeeklySummary,
-    cycle: OptimizationCycleResult,
-  ): string[] {
-    const insights: string[] = [];
-
-    // Trend
-    const { direction, percentageChange } = summary.weekOverWeekTrend;
-    if (direction === 'up') {
-      insights.push(
-        `Engagement is trending UP ${percentageChange.toFixed(1)}% week-over-week.`,
-      );
-    } else if (direction === 'down') {
-      insights.push(
-        `Engagement is trending DOWN ${Math.abs(percentageChange).toFixed(1)}% week-over-week — action needed.`,
-      );
-    }
-
-    // Best platform
-    if (summary.avgEngagementByPlatform.length > 0) {
-      const best = summary.avgEngagementByPlatform[0];
-      insights.push(
-        `${best.platform} is your best-performing platform (${best.avgEngagementRate.toFixed(2)}% avg engagement).`,
-      );
-    }
-
-    // Top hooks
-    if (summary.topHooks.length > 0) {
-      insights.push(
-        `Your top-performing hooks start with: "${summary.topHooks[0]}..."`,
-      );
-    }
-
-    // Cycle stats
-    if (cycle.cycleStats.totalContent > 0) {
-      insights.push(
-        `Analyzed ${cycle.cycleStats.totalContent} pieces of content with avg engagement ${cycle.cycleStats.avgEngagementRate.toFixed(2)}%.`,
-      );
-    }
-
-    return insights;
-  }
-
-  private buildOptimizationSystemPrompt(
-    topPerformers: PerformanceContentItem[],
-    worstPerformers: PerformanceContentItem[],
-    performanceContext: string,
-  ): string {
-    const topExamples = topPerformers
-      .slice(0, 3)
-      .map(
-        (item) =>
-          `- "${this.formatPerformerLabel(item)}" (engagement: ${item.engagementRate.toFixed(2)}%)`,
-      )
-      .join('\n');
-
-    const antiPatterns = worstPerformers.slice(0, 3).map((item) => {
-      const label = this.formatPerformerLabel(item);
-      return `- Avoid repeating underperforming angle "${label}" (${item.engagementRate.toFixed(2)}% engagement).`;
-    });
-
-    const antiPatternSection =
-      antiPatterns.length > 0
-        ? `\n## Historical Anti-Patterns\n${antiPatterns.join('\n')}\n`
-        : '\n';
-
-    return `You are a content optimization AI. Analyze content performance data and improve prompts.
-
-Performance context: ${performanceContext}
-
-Top performing content:
-${topExamples || 'No data yet.'}
-${antiPatternSection}
-Your job: take the user's content prompt and optimize it based on what has worked historically.
-Use the performance context to explain and improve the prompt.`;
-  }
-
-  private formatPerformerLabel(item: PerformanceContentItem): string {
-    const rawLabel = item.title || item.description || item.postId;
-    return SecurityUtil.sanitizePromptInput(rawLabel, 140);
-  }
-
-  private derivePipelineConfigs(
-    summary: WeeklySummary,
-  ): Array<{ suggestion: string; reason: string }> {
-    const configs: Array<{ suggestion: string; reason: string }> = [];
-
-    const bestContentType = summary.avgEngagementByContentType[0];
-    if (bestContentType) {
-      if (
-        bestContentType.category === 'video' ||
-        bestContentType.category === 'reel'
-      ) {
-        configs.push({
-          reason: `${bestContentType.category} content averages ${bestContentType.avgEngagementRate.toFixed(2)}% engagement`,
-          suggestion:
-            'Prioritize T2I → I2V pipeline steps for video-first content',
-        });
-      } else if (bestContentType.category === 'image') {
-        configs.push({
-          reason: `Image content averages ${bestContentType.avgEngagementRate.toFixed(2)}% engagement`,
-          suggestion:
-            'Focus on high-quality T2I generation; skip I2V for most posts',
-        });
-      }
-    }
-
-    if (summary.weekOverWeekTrend.direction === 'down') {
-      configs.push({
-        reason: `Engagement is declining ${Math.abs(summary.weekOverWeekTrend.percentageChange).toFixed(0)}%`,
-        suggestion:
-          'Experiment with different generation models to refresh content style',
-      });
-    }
-
-    return configs;
-  }
-
-  private deriveAbTestSuggestions(
-    summary: WeeklySummary,
-    cycle: OptimizationCycleResult,
-  ): Array<{
-    variable: string;
-    variantA: string;
-    variantB: string;
-    hypothesis: string;
-  }> {
-    const suggestions: Array<{
-      variable: string;
-      variantA: string;
-      variantB: string;
-      hypothesis: string;
-    }> = [];
-
-    // Time-based A/B test
-    if (summary.bestPostingTimes.length >= 2) {
-      const [best, second] = summary.bestPostingTimes;
-      suggestions.push({
-        hypothesis: `Posting at ${best.hour}:00 may outperform ${second.hour}:00 by ${(((best.avgEngagementRate - second.avgEngagementRate) / second.avgEngagementRate) * 100).toFixed(0)}%`,
-        variable: 'posting_time',
-        variantA: `${best.hour}:00`,
-        variantB: `${second.hour}:00`,
-      });
-    }
-
-    // Hook-based A/B test
-    if (cycle.nextBatchSuggestions.length >= 2) {
-      const [a, b] = cycle.nextBatchSuggestions;
-      suggestions.push({
-        hypothesis:
-          'Testing different hook styles to find optimal engagement pattern',
-        variable: 'hook_style',
-        variantA: a.suggestedHook,
-        variantB: b.suggestedHook,
-      });
-    }
-
-    // Content type A/B test
-    if (summary.avgEngagementByContentType.length >= 2) {
-      const [best, second] = summary.avgEngagementByContentType;
-      suggestions.push({
-        hypothesis: `${best.category} may consistently outperform ${second.category}`,
-        variable: 'content_type',
-        variantA: best.category,
-        variantB: second.category,
-      });
-    }
-
-    return suggestions;
-  }
 
   private async applySuggestionPayload(
     organizationId: string,
@@ -1207,37 +978,6 @@ Use the performance context to explain and improve the prompt.`;
     return typeof value === 'string' && value.trim().length > 0
       ? value.trim()
       : null;
-  }
-
-  private computeConfidence(count: number, totalDays: number): number {
-    if (count <= 0 || totalDays <= 0) {
-      return 0;
-    }
-
-    return Math.min(0.98, Math.max(0.4, count / totalDays));
-  }
-
-  private pickTopValue(
-    source: Map<string, number>,
-  ): { value: string; count: number } | null {
-    let bestValue: string | null = null;
-    let bestCount = 0;
-
-    for (const [value, count] of source.entries()) {
-      if (count > bestCount) {
-        bestValue = value;
-        bestCount = count;
-      }
-    }
-
-    if (!bestValue) {
-      return null;
-    }
-
-    return {
-      count: bestCount,
-      value: bestValue,
-    };
   }
 
   private buildSuggestionId(
