@@ -5009,14 +5009,6 @@
       "workspace": "files"
     },
     {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/files/src/services/youtube/youtube.service.spec.ts",
-      "fingerprint": "fc8b00e988e6ccfe4d69",
-      "message": "Conversion of type 'typeof OAuth2Client' to type 'Mock' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'typeof OAuth2Client' is missing the following properties from type 'MockInstance<Procedure>': getMockName, mockName, mock, mockClear, and 16 more.",
-      "workspace": "files"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/files/src/services/ytdlp/ytdlp.service.spec.ts",
