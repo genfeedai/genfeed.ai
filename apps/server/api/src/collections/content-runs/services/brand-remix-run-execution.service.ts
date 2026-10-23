@@ -5,6 +5,17 @@ import {
   buildBrandRemixGenerateWorkflowDefinitions,
 } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import {
+  type BrandRemixGenerateRuntime,
+  type BrandRemixVariantCredit,
+  matchOrphanVariant,
+  readDispatchSuccesses,
+  readRecord,
+  readVariantCredits,
+  requiredNumber,
+  requiredString,
+  runtimeOf,
+} from '@api/collections/content-runs/services/brand-remix-run-execution.helpers';
+import {
   assertCurrentRemixQuoteAccepted,
   remixErrorMessage,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
@@ -54,11 +65,6 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
-type BrandRemixGenerateRuntime = {
-  request: Request;
-  seenCopy: Set<string>;
-  user: User;
-};
 type BrandRemixVariantItem = {
   avatarByokBypass: boolean;
   brandId: string;
@@ -67,11 +73,6 @@ type BrandRemixVariantItem = {
   recipeRevision: number;
   runId: string;
   variant: BrandRemixExecution['variants'][number];
-};
-type BrandRemixVariantCredit = {
-  amount: number;
-  isByokBypass: boolean;
-  variantId: string;
 };
 type BrandRemixGenerateState = {
   avatarByokBypass: boolean;
@@ -174,43 +175,6 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
     return value as BrandRemixGenerateState;
   }
 
-  private runtimeOf(
-    request: SystemWorkflowActionRequest,
-  ): BrandRemixGenerateRuntime {
-    const runtime = request.runtimeContext as
-      | BrandRemixGenerateRuntime
-      | undefined;
-    if (!runtime?.request || !runtime.user) {
-      throw new ConflictException(
-        'Brand remix generation requires the originating request context.',
-      );
-    }
-    return runtime;
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-      throw new ConflictException('Brand remix workflow requires an object.');
-    }
-    return value as Record<string, unknown>;
-  }
-
-  private requiredString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.trim().length === 0) {
-      throw new ConflictException(`Brand remix workflow requires ${field}.`);
-    }
-    return value.trim();
-  }
-
-  private requiredNumber(value: unknown, field: string): number {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw new ConflictException(
-        `Brand remix workflow requires numeric ${field}.`,
-      );
-    }
-    return value;
-  }
-
   private toItems(
     state: BrandRemixGenerateState,
     variants: BrandRemixExecution['variants'],
@@ -245,19 +209,19 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   private async claimAction(
     request: SystemWorkflowActionRequest,
   ): Promise<BrandRemixGenerateState> {
-    const payload = this.readRecord(request.input.request);
-    const organizationId = this.requiredString(
+    const payload = readRecord(request.input.request);
+    const organizationId = requiredString(
       payload.organizationId,
       'organizationId',
     );
-    const runId = this.requiredString(payload.runId, 'runId');
-    const { request: httpRequest } = this.runtimeOf(request);
+    const runId = requiredString(payload.runId, 'runId');
+    const { request: httpRequest } = runtimeOf(request);
     const prepared = await this.prepareStart(
       organizationId,
       runId,
       httpRequest,
       {
-        expectedRevision: this.requiredNumber(
+        expectedRevision: requiredNumber(
           payload.expectedRevision,
           'expectedRevision',
         ),
@@ -319,8 +283,8 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   private resolveVariantCreditsAction(
     request: SystemWorkflowActionRequest,
   ): Promise<BrandRemixVariantCredit> {
-    const item = this.readRecord(request.input.item) as BrandRemixVariantItem;
-    const { request: httpRequest } = this.runtimeOf(request);
+    const item = readRecord(request.input.item) as BrandRemixVariantItem;
+    const { request: httpRequest } = runtimeOf(request);
     return this.dispatch.resolveVariantCredits({
       avatarByokBypass: item.avatarByokBypass,
       config: item.config,
@@ -334,7 +298,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   ): Promise<BrandRemixGenerateState> {
     const state = this.unwrapState(request.input.state);
     if (state.view || !state.hasWork) return this.withItems(state, []);
-    const credits = this.readVariantCredits(request.input.batch);
+    const credits = readVariantCredits(request.input.batch);
     if (
       credits.some((entry) => entry.isByokBypass) &&
       credits.some((entry) => !entry.isByokBypass)
@@ -397,8 +361,8 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   private async dispatchVariantAction(
     request: SystemWorkflowActionRequest,
   ): Promise<{ success: boolean; variantId: string }> {
-    const item = this.readRecord(request.input.item) as BrandRemixVariantItem;
-    const runtime = this.runtimeOf(request);
+    const item = readRecord(request.input.item) as BrandRemixVariantItem;
+    const runtime = runtimeOf(request);
     const generationUser = { ...runtime.user, brandId: item.brandId };
     if (item.config.draft.output.kind === 'copy') {
       const generated = await this.dispatch.generateOneCopyVariant({
@@ -441,7 +405,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       ...state,
       config: reconciled.config,
       run: reconciled.run,
-      successfulVariantIds: this.readDispatchSuccesses(request.input.batch),
+      successfulVariantIds: readDispatchSuccesses(request.input.batch),
     };
   }
 
@@ -450,7 +414,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   ): Promise<BrandRemixRunView> {
     const state = this.unwrapState(request.input.state);
     if (state.view) return state.view;
-    const { user } = this.runtimeOf(request);
+    const { user } = runtimeOf(request);
     const credits = state.config.execution?.generationCredits;
     const successfulIds = new Set(state.successfulVariantIds ?? []);
     // Avatar variants are charged by their own render holds, not the run.
@@ -525,62 +489,6 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       config: this.persistence.parseConfig(updated.config, params.runId),
       run: updated,
     };
-  }
-
-  private readDispatchSuccesses(value: unknown): string[] {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-      return [];
-    }
-    const results = (value as { results?: unknown }).results;
-    if (!Array.isArray(results)) return [];
-    return results.flatMap((entry) => {
-      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-        return [];
-      }
-      const result = (entry as { result?: unknown }).result;
-      if (
-        result === null ||
-        typeof result !== 'object' ||
-        Array.isArray(result)
-      ) {
-        return [];
-      }
-      const record = result as Record<string, unknown>;
-      if (record.success !== true || typeof record.variantId !== 'string') {
-        return [];
-      }
-      return [record.variantId];
-    });
-  }
-
-  private readVariantCredits(value: unknown): BrandRemixVariantCredit[] {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-      return [];
-    }
-    const results = (value as { results?: unknown }).results;
-    if (!Array.isArray(results)) return [];
-    return results.flatMap((entry) => {
-      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-        return [];
-      }
-      const result = (entry as { result?: unknown }).result;
-      if (
-        result === null ||
-        typeof result !== 'object' ||
-        Array.isArray(result)
-      ) {
-        return [];
-      }
-      const record = result as Record<string, unknown>;
-      if (typeof record.variantId !== 'string') return [];
-      return [
-        {
-          amount: typeof record.amount === 'number' ? record.amount : 0,
-          isByokBypass: record.isByokBypass === true,
-          variantId: record.variantId,
-        },
-      ];
-    });
   }
 
   private async prepareStart(
@@ -976,7 +884,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       orphans.map((orphan) => orphan.id.toString()),
     );
     for (const orphan of orphans) {
-      const variant = this.matchOrphanVariant(
+      const variant = matchOrphanVariant(
         orphan,
         execution.variants,
         resumableVariantIds,
@@ -1007,31 +915,6 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       });
     }
     return config;
-  }
-
-  private matchOrphanVariant(
-    orphan: { groupIndex: number | null; id: string },
-    variants: BrandRemixExecution['variants'],
-    resumableVariantIds: Set<string>,
-    adoptedVariantIds: Set<string>,
-  ): BrandRemixExecution['variants'][number] | undefined {
-    const indexedVariant =
-      orphan.groupIndex == null ? undefined : variants[orphan.groupIndex];
-    if (
-      indexedVariant &&
-      resumableVariantIds.has(indexedVariant.id) &&
-      indexedVariant.assetIds.length === 0 &&
-      !adoptedVariantIds.has(indexedVariant.id)
-    ) {
-      return indexedVariant;
-    }
-    if (orphan.groupIndex != null) return undefined;
-    return variants.find(
-      (candidate) =>
-        resumableVariantIds.has(candidate.id) &&
-        candidate.assetIds.length === 0 &&
-        !adoptedVariantIds.has(candidate.id),
-    );
   }
 
   private async recoverStalledReservations(params: {

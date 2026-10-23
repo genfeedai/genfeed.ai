@@ -60,12 +60,6 @@
     "symbol": "LearningRunService.execute"
   },
   {
-    "actual": 1101,
-    "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts"
-  },
-  {
     "actual": 154,
     "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
     "metric": "method-lines",
