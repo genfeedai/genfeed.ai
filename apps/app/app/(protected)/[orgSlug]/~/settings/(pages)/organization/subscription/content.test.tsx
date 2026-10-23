@@ -1,4 +1,6 @@
 import Route from '@app/(protected)/[orgSlug]/~/settings/(organization)/subscription/page';
+import { Subscription } from '@genfeedai/client/models/billing/subscription.model';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import type { NotificationsService } from '@services/core/notifications.service';
@@ -108,6 +110,21 @@ const subscriptionLocalContext: IDesktopRuntimeContext = {
   localProvider: { provider: 'ollama', networkAccess: 'local' },
 };
 
+function setSubscription(subscription: UseSubscriptionReturn['subscription']) {
+  useSubscriptionMock.mockReturnValue({
+    changeSubscriptionPlan: vi.fn(),
+    creditsBreakdown: null,
+    error: null,
+    isLoading: false,
+    isSubscriptionActive: subscription?.status === SubscriptionStatus.ACTIVE,
+    openBillingPortal: vi.fn(),
+    previewPlanChange: vi.fn(),
+    refreshCreditsBreakdown: vi.fn(),
+    refreshSubscription: vi.fn(),
+    subscription,
+  } satisfies UseSubscriptionReturn);
+}
+
 describe('SettingsSubscriptionPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -182,6 +199,151 @@ describe('SettingsSubscriptionPage', () => {
     expect(screen.queryByText('pro')).not.toBeInTheDocument();
   });
 
+  describe('current plan status', () => {
+    it.each([undefined, ''])(
+      'shows a Free provisioning placeholder as Active without Stripe id %s',
+      (stripeSubscriptionId) => {
+        setSubscription(
+          new Subscription({
+            status: SubscriptionStatus.INCOMPLETE,
+            stripeSubscriptionId,
+          }),
+        );
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(screen.getByText('Free')).toBeVisible();
+        expect(screen.getByText('Active')).toHaveClass('text-success');
+        expect(screen.queryByText('Incomplete')).not.toBeInTheDocument();
+      },
+    );
+
+    it.each([SubscriptionTier.FREE, null, undefined, ''])(
+      'shows the Free plan as Active when tier %s has no subscription row',
+      (subscriptionTier) => {
+        useBrandMock.mockReturnValue({
+          isReady: true,
+          organizationId: 'org-123',
+          settings: { subscriptionTier },
+        });
+        setSubscription(null);
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(screen.getByText('Free')).toBeVisible();
+        expect(screen.getByText('Active')).toHaveClass('text-success');
+        expect(
+          screen.queryByText(
+            'No active subscription. Subscribe to unlock all features.',
+          ),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it.each([SubscriptionTier.FREE, SubscriptionTier.SCALE])(
+      'preserves a genuine incomplete Stripe subscription on tier %s',
+      (subscriptionTier) => {
+        useBrandMock.mockReturnValue({
+          isReady: true,
+          organizationId: 'org-123',
+          settings: { subscriptionTier },
+        });
+        setSubscription(
+          new Subscription({
+            currentPeriodEnd: '2026-11-01T00:00:00.000Z',
+            status: SubscriptionStatus.INCOMPLETE,
+            stripeSubscriptionId: 'sub_incomplete_fixture',
+          }),
+        );
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(screen.getByText('Incomplete')).toHaveClass('text-warning');
+        expect(screen.queryByText('Active')).not.toBeInTheDocument();
+        expect(screen.getByText(/Current period ends/)).toBeVisible();
+      },
+    );
+
+    it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
+      'does not promote a paid %s placeholder to Active',
+      (subscriptionTier) => {
+        useBrandMock.mockReturnValue({
+          isReady: true,
+          organizationId: 'org-123',
+          settings: { subscriptionTier },
+        });
+        setSubscription(
+          new Subscription({ status: SubscriptionStatus.INCOMPLETE }),
+        );
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(screen.getByText('Incomplete')).toBeVisible();
+        expect(screen.queryByText('Active')).not.toBeInTheDocument();
+      },
+    );
+
+    it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
+      'keeps the existing no-subscription state for paid tier %s',
+      (subscriptionTier) => {
+        useBrandMock.mockReturnValue({
+          isReady: true,
+          organizationId: 'org-123',
+          settings: { subscriptionTier },
+        });
+        setSubscription(null);
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(
+          screen.getByText(
+            'No active subscription. Subscribe to unlock all features.',
+          ),
+        ).toBeVisible();
+        expect(screen.queryByText('Active')).not.toBeInTheDocument();
+      },
+    );
+
+    it('updates the Free display when a real Stripe subscription arrives', () => {
+      const placeholder = new Subscription({
+        status: SubscriptionStatus.INCOMPLETE,
+      });
+      setSubscription(placeholder);
+      const { rerender } = render(<SettingsSubscriptionPage />);
+
+      expect(screen.getByText('Active')).toBeVisible();
+      expect(placeholder.status).toBe(SubscriptionStatus.INCOMPLETE);
+
+      setSubscription(
+        new Subscription({
+          status: SubscriptionStatus.INCOMPLETE,
+          stripeSubscriptionId: 'sub_incomplete_fixture',
+        }),
+      );
+      rerender(<SettingsSubscriptionPage />);
+
+      expect(screen.getByText('Incomplete')).toHaveClass('text-warning');
+      expect(screen.queryByText('Active')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      [SubscriptionStatus.CANCELLED, 'Cancelled'],
+      [SubscriptionStatus.PAST_DUE, 'Past Due'],
+      [SubscriptionStatus.TRIALING, 'Trialing'],
+      [SubscriptionStatus.PAUSED, 'Paused'],
+    ] satisfies [SubscriptionStatus, string][])(
+      'preserves the recorded %s lifecycle',
+      (status, label) => {
+        setSubscription(new Subscription({ status }));
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(screen.getByText(label)).toBeVisible();
+        expect(screen.queryByText('Active')).not.toBeInTheDocument();
+      },
+    );
+  });
+
   it('renders section chrome immediately while the subscription query loads', () => {
     useSubscriptionMock.mockReturnValue({
       changeSubscriptionPlan: vi.fn(),
@@ -206,6 +368,7 @@ describe('SettingsSubscriptionPage', () => {
 
     // Stat tiles show a placeholder rather than blocking the whole page.
     expect(screen.getByText('Organizations')).toBeInTheDocument();
+    expect(screen.queryByText('Active')).not.toBeInTheDocument();
     expect(
       screen.queryByText(
         'No active subscription. Subscribe to unlock all features.',
@@ -224,6 +387,7 @@ describe('SettingsSubscriptionPage', () => {
 
     expect(screen.getByText('Current Plan')).toBeInTheDocument();
     expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Active')).not.toBeInTheDocument();
   });
 
   it('renders the full billing account snapshot, including the wallet and funded organizations', () => {

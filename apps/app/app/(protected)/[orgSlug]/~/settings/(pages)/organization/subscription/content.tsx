@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  formatEnumLabel,
+  SubscriptionStatus,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
 import { useBillingAccount } from '@hooks/data/billing/use-billing-account/use-billing-account';
@@ -98,6 +103,16 @@ function SettingsSubscriptionContent() {
   const { account: billingAccount } = useBillingAccount();
 
   const isPlanLoading = !isReady || isLoading;
+  // Provisioning creates an INCOMPLETE row before Stripe checkout. Free is
+  // usable without checkout; an actual Stripe subscription keeps its status.
+  const isFreePlanActive =
+    (settings?.subscriptionTier || SubscriptionTier.FREE) ===
+      SubscriptionTier.FREE &&
+    !subscription?.stripeSubscriptionId &&
+    (!subscription || subscription.status === SubscriptionStatus.INCOMPLETE);
+  const displayedStatus = isFreePlanActive
+    ? SubscriptionStatus.ACTIVE
+    : subscription?.status;
   const planEntitlement = getPlanEntitlementForTier(settings?.subscriptionTier);
   const limits = [
     {
@@ -134,17 +149,23 @@ function SettingsSubscriptionContent() {
       >
         {isPlanLoading ? (
           <SkeletonCard showImage={false} />
-        ) : subscription ? (
+        ) : displayedStatus ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex items-center gap-3">
               <Text as="p" size="xl" weight="bold">
                 {formatSubscriptionTierLabel(settings?.subscriptionTier)}
               </Text>
-              <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
-                {formatEnumLabel(subscription.status)}
+              <Badge
+                variant={
+                  isFreePlanActive || isSubscriptionActive
+                    ? 'success'
+                    : 'warning'
+                }
+              >
+                {formatEnumLabel(displayedStatus)}
               </Badge>
             </div>
-            {subscription.currentPeriodEnd && (
+            {subscription?.currentPeriodEnd && (
               <Text as="p" size="sm" color="muted">
                 Current period ends{' '}
                 <span className="font-medium text-foreground">

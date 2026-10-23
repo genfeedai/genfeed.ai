@@ -42,6 +42,7 @@ describe('IngredientExportService', () => {
     get: vi.fn(),
   };
   const mediaUrls = { buildUrlFromAbsolute: vi.fn() };
+  const mediaIssuer = { hasCleanAccess: vi.fn() };
   let service: IngredientExportService;
 
   beforeEach(async () => {
@@ -50,6 +51,7 @@ describe('IngredientExportService', () => {
     config.isAuthorizedMediaDeliveryEnabled = false;
     config.get.mockReturnValue('https://media.example');
     mediaUrls.buildUrlFromAbsolute.mockImplementation((url: string) => url);
+    mediaIssuer.hasCleanAccess.mockResolvedValue(false);
     prisma.ingredient.findFirst.mockResolvedValue(ingredient);
     prisma.brand.findFirst.mockResolvedValue(brand);
     files.watermarkExport.mockResolvedValue({
@@ -61,7 +63,7 @@ describe('IngredientExportService', () => {
         IngredientExportService,
         {
           provide: AuthorizedMediaUrlService,
-          useValue: { hasCleanAccess: vi.fn().mockResolvedValue(false) },
+          useValue: mediaIssuer,
         },
         { provide: PrismaService, useValue: prisma },
         {
@@ -243,11 +245,57 @@ describe('IngredientExportService', () => {
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });
 
-  it('rejects missing watermark configuration', async () => {
-    prisma.brand.findFirst.mockResolvedValue({ ...brand, watermarkText: ' ' });
-    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
-      BadRequestException,
-    );
-    expect(files.watermarkExport).not.toHaveBeenCalled();
-  });
+  it.each(['IMAGE', 'VIDEO', 'IMAGE_EDIT', 'VIDEO_EDIT'])(
+    'exports a default-brand %s with the platform watermark',
+    async (category) => {
+      config.isAuthorizedMediaDeliveryEnabled = true;
+      prisma.ingredient.findFirst.mockResolvedValue({
+        ...ingredient,
+        category,
+      });
+      prisma.brand.findFirst.mockResolvedValue({
+        ...brand,
+        watermarkText: null,
+      });
+      await service.export('image-1', 'org-1', true);
+      expect(files.watermarkExport).toHaveBeenCalledWith({
+        category: category.startsWith('IMAGE') ? 'images' : 'videos',
+        storageKey: ingredient.s3Key,
+        layers: [
+          { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
+        ],
+      });
+    },
+  );
+
+  it.each([true, false])(
+    'keeps unconfigured exports watermarked when clean access is %s',
+    async (hasCleanAccess) => {
+      config.isAuthorizedMediaDeliveryEnabled = true;
+      mediaIssuer.hasCleanAccess.mockResolvedValue(hasCleanAccess);
+      prisma.brand.findFirst.mockResolvedValue({
+        ...brand,
+        watermarkText: ' ',
+      });
+      await service.export('image-1', 'org-1', true);
+      expect(files.watermarkExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          layers: [
+            { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
+          ],
+        }),
+      );
+    },
+  );
+
+  it.each([Number.NaN, 0, 1.1])(
+    'rejects invalid brand opacity %s',
+    async (watermarkOpacity) => {
+      prisma.brand.findFirst.mockResolvedValue({ ...brand, watermarkOpacity });
+      await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(files.watermarkExport).not.toHaveBeenCalled();
+    },
+  );
 });

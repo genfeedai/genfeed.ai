@@ -96,30 +96,34 @@ export class IngredientExportService {
           'The watermark logo must be uploaded first',
         );
     }
-    if (!text && !logoStorageKey)
-      throw new BadRequestException(
-        'Configure a watermark in brand settings first',
-      );
     if (
       !POSITIONS.includes(brand.watermarkPosition) ||
+      !Number.isFinite(brand.watermarkOpacity) ||
       brand.watermarkOpacity < 0.05 ||
       brand.watermarkOpacity > 1
     )
       throw new BadRequestException('Invalid brand watermark settings');
-    const layer: IWatermarkLayer = {
-      text: text || undefined,
-      logoStorageKey,
-      opacity: brand.watermarkOpacity,
-      position: brand.watermarkPosition as WatermarkPosition,
-    };
+    const layers: IWatermarkLayer[] =
+      text || logoStorageKey
+        ? [
+            {
+              text: text || undefined,
+              logoStorageKey,
+              opacity: brand.watermarkOpacity,
+              position: brand.watermarkPosition as WatermarkPosition,
+            },
+          ]
+        : [];
+    if (
+      layers.length === 0 ||
+      (this.config.isAuthorizedMediaDeliveryEnabled &&
+        !(await this.mediaIssuer.hasCleanAccess(organizationId)))
+    )
+      layers.push(...PLATFORM_PREVIEW_LAYERS.map((entry) => ({ ...entry })));
     const result = await this.files.watermarkExport({
       storageKey: ingredient.s3Key,
       category,
-      layers:
-        this.config.isAuthorizedMediaDeliveryEnabled &&
-        !(await this.mediaIssuer.hasCleanAccess(organizationId))
-          ? [layer, ...PLATFORM_PREVIEW_LAYERS.map((entry) => ({ ...entry }))]
-          : [layer],
+      layers,
     });
     let url: string | undefined;
     if (isSelfHostedDeployment() && result.url.startsWith('/local/')) {
