@@ -1,5 +1,6 @@
 const DEFAULT_LIMIT = 500;
 const DEFAULT_SAMPLE = 10;
+const FLAGS = ['--apply', '--limit', '--organization', '--sample'];
 
 export type RepairOptions = {
   isApply: boolean;
@@ -19,7 +20,10 @@ export function parseArgs(argv: readonly string[]): RepairOptions {
     return index === -1 ? undefined : argv[index + 1];
   };
   const organizationId = read('--organization');
-  if (argv.includes('--organization') && !organizationId?.trim()) {
+  if (
+    argv.includes('--organization') &&
+    (!organizationId?.trim() || FLAGS.includes(organizationId))
+  ) {
     throw new Error('--organization needs an organization id');
   }
   return {

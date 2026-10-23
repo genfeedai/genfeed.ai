@@ -87,7 +87,11 @@ describe('MediaKeyRepairService', () => {
       where: {
         id: imageId,
         isDeleted: false,
-        OR: [{ s3Key: null }, { s3Key: '' }, { s3Key: { startsWith: 'http' } }],
+        OR: [
+          { s3Key: null },
+          { s3Key: '' },
+          { s3Key: { mode: 'insensitive', startsWith: 'http' } },
+        ],
         organizationId: orgId,
       },
     });

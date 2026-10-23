@@ -20,6 +20,13 @@ const FINAL_STATUSES = [
   IngredientStatus.VALIDATED,
 ];
 
+/** Mirrors `isBrokenKey`: absent, empty, or an http(s) URL in any letter case. */
+const BROKEN_S3_KEY_FILTER = [
+  { s3Key: null },
+  { s3Key: '' },
+  { s3Key: { mode: 'insensitive', startsWith: 'http' } },
+] as const;
+
 export type MediaKeyRepairCandidate = {
   category: string;
   id: string;
@@ -116,7 +123,7 @@ export class MediaKeyRepairService {
         category: { in: REPAIRABLE_CATEGORIES },
         id: afterId ? { gt: afterId } : undefined,
         isDeleted: false,
-        OR: [{ s3Key: null }, { s3Key: '' }, { s3Key: { startsWith: 'http' } }],
+        OR: [...BROKEN_S3_KEY_FILTER],
         organizationId: { not: null },
         status: { in: FINAL_STATUSES },
       },
@@ -159,7 +166,7 @@ export class MediaKeyRepairService {
       where: {
         id: candidate.id,
         isDeleted: false,
-        OR: [{ s3Key: null }, { s3Key: '' }, { s3Key: { startsWith: 'http' } }],
+        OR: [...BROKEN_S3_KEY_FILTER],
         organizationId: candidate.organizationId,
       },
     });

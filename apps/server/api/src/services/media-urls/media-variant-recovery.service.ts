@@ -169,7 +169,10 @@ export class MediaVariantRecoveryService {
             },
           },
           {
-            failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE },
+            OR: [
+              { failureCode: null },
+              { failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE } },
+            ],
             state: 'FAILED',
             updatedAt: {
               lt: new Date(now.getTime() - MEDIA_VARIANT_RETRY_BASE_MS),

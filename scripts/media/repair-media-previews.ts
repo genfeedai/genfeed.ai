@@ -33,8 +33,7 @@ async function countBrokenKeys(options: RepairOptions) {
     OR: [
       { s3Key: null },
       { s3Key: '' },
-      { s3Key: { startsWith: 'http://' } },
-      { s3Key: { startsWith: 'https://' } },
+      { s3Key: { mode: 'insensitive', startsWith: 'http' } },
     ],
   };
   const [total, rows] = await Promise.all([

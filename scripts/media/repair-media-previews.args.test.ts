@@ -22,6 +22,12 @@ describe('repair-media-previews parseArgs', () => {
     expect(() => parseArgs(['--apply', '--organization'])).toThrow(
       '--organization needs an organization id',
     );
+    expect(() => parseArgs(['--organization', '--apply'])).toThrow(
+      '--organization needs an organization id',
+    );
+    expect(parseArgs(['--organization', '-org-1']).organizationId).toBe(
+      '-org-1',
+    );
     expect(() => parseArgs(['--organization', ' '])).toThrow(
       '--organization needs an organization id',
     );
