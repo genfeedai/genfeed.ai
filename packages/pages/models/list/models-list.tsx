@@ -14,8 +14,9 @@ import ModelDetailPanel from '@ui/models/ModelDetailPanel';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import AdminModelsToolbar from './components/AdminModelsToolbar';
 
 import ModelsCatalogOverview from './components/ModelsCatalogOverview';
@@ -27,6 +28,7 @@ export default function ModelsList({
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
   onPricingDetails,
+  getModelHref,
   renderExpandedRow,
   renderToolbar,
   rowActions,
@@ -35,6 +37,7 @@ export default function ModelsList({
   onRefresh,
 }: ModelsListProps) {
   const translate = useTranslations('pages.models');
+  const router = useRouter();
   const {
     isAdminScope,
     catalogOverviewCards,
@@ -68,6 +71,14 @@ export default function ModelsList({
     isModelPinned,
   });
 
+  const openModel = useCallback(
+    (model: IModel) => {
+      if (getModelHref) router.push(getModelHref(model));
+      else handleViewDetails(model);
+    },
+    [getModelHref, router, handleViewDetails],
+  );
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   async function handleRefresh() {
     if (isRefreshing) return;
@@ -84,8 +95,11 @@ export default function ModelsList({
   // when the page supplies it (the pencil opens the editor), else it opens the
   // editor directly.
   const isPricingInline = isAdminScope && Boolean(onPricingDetails);
-  const handleRowClick =
-    isPricingInline && onPricingDetails ? onPricingDetails : handleViewDetails;
+  const handleRowClick = getModelHref
+    ? openModel
+    : isPricingInline && onPricingDetails
+      ? onPricingDetails
+      : handleViewDetails;
   const rowSidebar = useMemo<TableRowSidebar<IModel>>(
     () => ({
       getId: (model) => model.id,
@@ -103,7 +117,9 @@ export default function ModelsList({
             ...(rowActions ?? []),
             {
               icon: <Pencil />,
-              onClick: handleViewDetails,
+              ...(getModelHref
+                ? { href: getModelHref }
+                : { onClick: handleViewDetails }),
               tooltip: translate('editModel'),
             },
             {
@@ -166,6 +182,7 @@ export default function ModelsList({
       isAdminScope,
       rowActions,
       translate,
+      getModelHref,
       handleViewDetails,
       openConfirm,
       handleDelete,

@@ -192,6 +192,28 @@ export const modelBillableQuoteSnapshotSchema = z.object({
   providerCostUsd: z.number().finite().nonnegative().nullable(),
   credits: z.number().int().nonnegative(),
   allocationBasis: z.enum(['request', 'output']),
+  routedDispatch: z
+    .object({
+      offerId: z.string().min(1),
+      executionModelKey: z.string().min(1),
+      endpoint: z.string().min(1),
+      provider: z.string().min(1),
+      schemaFamily: z.string().nullable(),
+      fallback: z
+        .object({
+          offerId: z.string().min(1),
+          executionModelKey: z.string().min(1),
+          endpoint: z.string().min(1),
+          provider: z.string().min(1),
+          schemaFamily: z.string().nullable(),
+          rateVersion: z.string().nullable(),
+          providerCostUsd: z.number().finite().nonnegative(),
+        })
+        .strict()
+        .optional(),
+    })
+    .strict()
+    .optional(),
   allocatedCredits: z.array(z.number().int().nonnegative()),
   pricingProfile: profile,
   providerQuote: crunProviderQuoteSnapshotSchema.optional(),

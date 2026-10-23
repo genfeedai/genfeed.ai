@@ -28,6 +28,7 @@ describe('ModelCreditQuoteService', () => {
     expect(modelsService.findBillablePricingProfile).toHaveBeenCalledWith(
       'owner/model:version',
       'org-1',
+      { organizationId: 'org-1' },
     );
   });
 

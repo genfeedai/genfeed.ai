@@ -5,6 +5,7 @@ import {
 import { ELEVENLABS_SCHEMA_FIXTURES } from '@api/seeds/fixtures/elevenlabs-rate-schemas';
 import { FAL_REALTIME_SCHEMA_FIXTURES } from '@api/seeds/fixtures/fal-realtime-rate-schemas';
 import { HEYGEN_SCHEMA_FIXTURES } from '@api/seeds/fixtures/heygen-rate-schemas';
+import { KIE_KLING_INPUT_SCHEMA } from '@api/seeds/model-provider-offers.seed';
 import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
 import ideogramOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/ideogram-4-5.schema.json';
@@ -37,6 +38,28 @@ export interface RateSeedOptions {
 
 /** Input schemas the pre-sheet seeds shipped, for rows that have none yet. */
 const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
+  'kling-3.0/video': {
+    schemaFamily: 'kie-kling-3.0',
+    openapi: {
+      openapi: '3.0.0',
+      components: {
+        schemas: {
+          Input: KIE_KLING_INPUT_SCHEMA,
+          Output: {
+            type: 'object',
+            properties: {
+              resultUrls: {
+                type: 'array',
+                items: { type: 'string', format: 'uri' },
+              },
+            },
+            required: ['resultUrls'],
+          },
+        },
+      },
+    },
+  },
+
   'black-forest-labs/flux-3-image': {
     openapi: flux3Openapi,
     schemaFamily: 'flux-3-image-v1',
@@ -332,6 +355,7 @@ export async function seedReviewedProviderRates(
   let written = 0;
   for (const entry of entries)
     if (
+      entry.provider === 'kie' ||
       entry.provider === ModelProvider.REPLICATE ||
       entry.provider === ModelProvider.FAL ||
       entry.provider === ModelProvider.HEYGEN ||

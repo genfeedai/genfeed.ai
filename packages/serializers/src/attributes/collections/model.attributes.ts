@@ -5,6 +5,7 @@ export const modelAttributes = createEntityAttributes([
   'description',
   'category',
   'key',
+  'aliases',
   'endpoint',
   'provider',
   'cost',

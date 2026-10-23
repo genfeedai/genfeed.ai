@@ -4302,6 +4302,10 @@ enum ModelLifecycle {
 }
 
 model Model {
+  isProviderVariant Boolean @default(false)
+  pinnedProvider String?
+  providerOffers ModelProviderOffer[] @relation("logical_model_offers")
+  executionOffers ModelProviderOffer[] @relation("execution_model_offers")
   id             String        @id @default(cuid())
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
@@ -9800,4 +9804,29 @@ model KnowledgeEmbeddingManifest {
   @@unique([id, versionId, sourceId, organizationId], map: "knowledge_embedding_manifests_identity_key")
   @@index([organizationId, finalizedAt, failedAt, isDeleted], map: "knowledge_embedding_manifests_completion_idx")
   @@map("knowledge_embedding_manifests")
+}
+
+/// Logical model to reviewed provider execution registration. The registration
+/// owns endpoint, schema and versioned reviewed rates; an offer owns routing.
+model ModelProviderOffer {
+  id String @id @default(cuid())
+  modelId String
+  model Model @relation("logical_model_offers", fields: [modelId], references: [id], onDelete: Cascade)
+  executionModelId String
+  executionModel Model @relation("execution_model_offers", fields: [executionModelId], references: [id], onDelete: Restrict)
+  isActive Boolean @default(true)
+  priority Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([modelId, executionModelId])
+  @@index([executionModelId])
+  @@map("model_provider_offers")
+}
+
+/// Platform operator control, never overwritten by reference-data sync.
+model ProviderRoutingSetting {
+  provider String @id
+  isActive Boolean @default(true)
+  updatedAt DateTime @updatedAt
+  @@map("provider_routing_settings")
 }

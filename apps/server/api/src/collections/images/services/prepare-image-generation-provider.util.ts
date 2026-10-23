@@ -38,13 +38,15 @@ export async function prepareImageGenerationProvider(
   apiKeyOverride?: string,
 ): Promise<PreparedImageGenerationProvider | null> {
   return dependencies.providerRegistry.prepare({
+    isRoutedOffer: Boolean(context.routedDispatch),
+    routedInput: context.routedInput,
     abortSignal: context.abortSignal,
     apiKeyOverride: apiKeyOverride,
     brandPromptBranding: context.brandPromptBranding,
     compiledDispatch: context.compiledDispatch,
     createImageDto: context.createImageDto,
     height: context.height,
-    model: context.model,
+    model: context.routedDispatch?.executionModelKey ?? context.model,
     modelEndpoint: context.modelEndpoint,
     modelInputSchema: context.modelInputSchema,
     modelProvider: context.modelProvider,

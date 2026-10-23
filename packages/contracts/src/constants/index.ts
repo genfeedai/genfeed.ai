@@ -49,6 +49,7 @@ export * from './model-capabilities.constant';
 export * from './model-catalog.constant';
 export * from './model-helpers.constant';
 export * from './model-keys.constant';
+export * from './model-provider-offers.constant';
 export * from './native-apps.constant';
 export * from './native-host.constant';
 export * from './oauth.constant';

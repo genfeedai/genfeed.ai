@@ -65,6 +65,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
       >
         {!isAutoSelected && selectedModels.length === 1 ? (
           <ModelAvatar
+            isProviderVisible={false}
             model={selectedModels[0]}
             testId="model-trigger-provider-icon"
           />
@@ -146,7 +147,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         textTransform="none"
         {...buttonProps}
       >
-        <ModelAvatar model={model} testId="model-trigger-provider-icon" />
+        <ModelAvatar
+          isProviderVisible={false}
+          model={model}
+          testId="model-trigger-provider-icon"
+        />
         <span className={labelClassName}>{model.label}</span>
         <span title={costTitle}>
           <ModelSelectorCostBadge costTier={model.costTier} />

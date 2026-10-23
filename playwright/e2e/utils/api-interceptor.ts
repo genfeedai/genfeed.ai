@@ -14,6 +14,7 @@ import {
   NATIVE_SECONDARY_APP_IDS,
 } from '@genfeedai/contracts/constants';
 import type {
+  AdminModelDetail,
   AdminModelPricingReport,
   AdsResearchResponse,
   AdWatchlistPlatformReadiness,
@@ -2295,6 +2296,29 @@ export function buildUnhandledApiMockBody(url: string): unknown {
       source: `${parsedUrl.origin}${pathname}`,
     };
     return wrapInJsonApi(report, 'model-pricing-report', 'model-pricing');
+  }
+
+  // AdminModelDetailController serializes one resource. The generic empty
+  // collection deserializes to [] and the detail page reads model.offers.
+  const modelDetailMatch = pathname.match(
+    /\/admin\/model-details\/([^/]+)\/?$/,
+  );
+  if (modelDetailMatch) {
+    const id = decodeURIComponent(modelDetailMatch[1] ?? '');
+    const detail: Omit<AdminModelDetail, 'id'> = {
+      candidates: [],
+      category: 'image',
+      description: null,
+      isActive: true,
+      key: 'mock-model',
+      label: 'Mock Model',
+      marginMultiplier: 1,
+      offers: [],
+      periodDays: 30,
+      pinnedProvider: null,
+      usage: [],
+    };
+    return wrapInJsonApi(detail, 'model-detail', id);
   }
 
   // SocialSourcesController.getFeed returns its result raw, not JSON:API.

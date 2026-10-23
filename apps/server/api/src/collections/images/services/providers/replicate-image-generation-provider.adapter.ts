@@ -152,9 +152,11 @@ export class ReplicateImageGenerationProviderAdapter
   ): Promise<PreparedImageGenerationProvider> {
     const isBatchSupported =
       MODEL_OUTPUT_CAPABILITIES[request.model]?.isBatchSupported ?? false;
-    const preparedInput = isFlux3ImageModel(request.model)
-      ? request.providerInput
-      : (request.compiledDispatch ?? request.providerInput);
+    const preparedInput =
+      request.routedInput ??
+      (isFlux3ImageModel(request.model)
+        ? request.providerInput
+        : (request.compiledDispatch ?? request.providerInput));
     if (!preparedInput)
       throw new Error('Image provider input was not prepared');
     const input = { ...preparedInput };
@@ -181,12 +183,24 @@ export class ReplicateImageGenerationProviderAdapter
       completionKind: 'poll-multiple',
       failureLabel: 'ReplicateService generateImage',
       generate: async () => {
-        const generationId = await this.replicateService.generateTextToImage(
-          resolveFlux3ReplicateEndpoint(request.modelEndpoint ?? request.model),
-          input,
-          request.apiKeyOverride,
-          request.onProviderSubmissionStarted,
-        );
+        const generationId = request.isRoutedOffer
+          ? await this.replicateService.generateTextToImage(
+              resolveFlux3ReplicateEndpoint(
+                request.modelEndpoint ?? request.model,
+              ),
+              input,
+              request.apiKeyOverride,
+              request.onProviderSubmissionStarted,
+              false,
+            )
+          : await this.replicateService.generateTextToImage(
+              resolveFlux3ReplicateEndpoint(
+                request.modelEndpoint ?? request.model,
+              ),
+              input,
+              request.apiKeyOverride,
+              request.onProviderSubmissionStarted,
+            );
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
         }
@@ -198,6 +212,7 @@ export class ReplicateImageGenerationProviderAdapter
         // output URLs for immediate finalize/upload. BYOK predictions never
         // register the platform webhook, so they always poll with the org key.
         const shouldPollForOutput =
+          Boolean(request.isRoutedOffer) ||
           Boolean(request.apiKeyOverride) ||
           shouldPollReplicatePrediction(
             isCloudDeployment(),

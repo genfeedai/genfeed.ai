@@ -130,22 +130,38 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/shared/controllers/base-crud/base-crud-scope.util.ts',
       line: 34,
     },
+    // Superadmin model detail and routing admin: every read and write targets
+    // platform catalog rows (organizationId null) or the global provider
+    // routing setting, so there is no tenant to scope to. The controller is
+    // behind IpWhitelistGuard and SuperAdminGuard.
+    {
+      file: 'apps/server/api/src/collections/models/services/model-provider-offers.service.ts',
+      line: 20,
+    },
+    {
+      file: 'apps/server/api/src/collections/models/services/model-provider-offers.service.ts',
+      line: 123,
+    },
+    {
+      file: 'apps/server/api/src/collections/models/services/model-provider-offers.service.ts',
+      line: 251,
+    },
     // #6120: superadmin model lifecycle transition on the platform registry.
     // #6593: pricing projection extraction moves the existing three hatches;
     // authorization and cross-tenant behavior are unchanged.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 609,
+      line: 591,
     },
     // #6120: superadmin registry approve.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 795,
+      line: 777,
     },
     // #6120: superadmin registry reject.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 893,
+      line: 875,
     },
     // #6120: skill rows addressed by an already-authorized id or owner;
     // personal and system skills have no organization and grants cross

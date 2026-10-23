@@ -3,7 +3,6 @@ import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import {
   crunModelCatalogPatch,
-  projectReviewedCrunModelInputControls,
   validateProviderApprovalAndResolveCrunContract,
 } from '@api/collections/models/services/crun-model-contract.util';
 import {
@@ -11,16 +10,21 @@ import {
   PUBLIC_MODEL_CATALOG_SELECT,
   type PublicModelCatalogDocument,
   type PublicModelCatalogFilters,
-  type PublicModelCatalogRow,
 } from '@api/collections/models/services/public-model-catalog.types';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { withoutUnpriceableModels } from '@api/collections/models/utils/model-pricing-attention.util';
 import {
+  findModelProviderOfferQuote,
+  type RoutedPricingProfile,
+} from '@api/collections/models/utils/model-provider-offer-quote.util';
+import {
   getModelProviderConfig,
   projectRegistryModelDocument,
 } from '@api/collections/models/utils/model-reviewed-pricing.util';
+import { toPublicModelCatalogDocument } from '@api/collections/models/utils/public-model-catalog-document.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import type { ModelCreditQuoteInput } from '@api/helpers/utils/credits/model-credit-quote.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -32,9 +36,7 @@ import {
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
-  ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
-import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -88,6 +90,11 @@ type RegistryReviewPatch = Omit<Partial<UpdateModelDto>, 'providerCostUsd'> & {
   isBatchSupported?: boolean;
   hasResolutionOptions?: boolean;
 };
+
+const MODEL_REGISTRY_INCLUDE = {
+  providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+  providerOffers: { select: { executionModel: { select: { key: true } } } },
+} satisfies Prisma.ModelInclude;
 
 const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
   ModelLifecycle.LEGACY,
@@ -266,36 +273,6 @@ export class ModelsService extends BaseService<
     return [{ createdAt: 'desc' }];
   }
 
-  private toPublicModelCatalogDocument(
-    row: PublicModelCatalogRow,
-  ): PublicModelCatalogDocument {
-    const priced = withLiveModelCreditPricing(row);
-
-    return {
-      aspectRatios: priced.aspectRatios,
-      capabilities: priced.capabilities,
-      category: priced.category,
-      cost: priced.cost,
-      costTier: priced.costTier,
-      defaultAspectRatio: priced.defaultAspectRatio,
-      defaultDuration: priced.defaultDuration,
-      description: priced.description,
-      durations: priced.durations,
-      id: priced.id,
-      inputControls: projectReviewedCrunModelInputControls(row),
-      isDefault: priced.isDefault,
-      isHighlighted: priced.isHighlighted,
-      key: priced.key,
-      label: priced.label,
-      maxOutputs: priced.maxOutputs,
-      provider: priced.provider,
-      qualityTier: priced.qualityTier,
-      recommendedFor: priced.recommendedFor,
-      speedTier: priced.speedTier,
-      supportsFeatures: priced.supportsFeatures,
-    };
-  }
-
   /**
    * Public catalog projection: only the public contract plus the private
    * pricing inputs needed for live credits, so a new internal registry column
@@ -313,6 +290,7 @@ export class ModelsService extends BaseService<
       isDeleted: false,
       isLegacy: false,
       isPublic: true,
+      isProviderVariant: false,
       organizationId: null,
       ...(filters.provider ? { provider: filters.provider } : {}),
     });
@@ -335,7 +313,7 @@ export class ModelsService extends BaseService<
     const totalPages = Math.ceil(totalDocs / limit);
 
     return {
-      docs: rows.map((row) => this.toPublicModelCatalogDocument(row)),
+      docs: rows.map(toPublicModelCatalogDocument),
       hasNextPage: page * limit < totalDocs,
       hasPrevPage: page > 1,
       limit,
@@ -382,10 +360,20 @@ export class ModelsService extends BaseService<
   }
 
   /** Exact internal lookup for billing; no version stripping or display samples. */
-  findBillablePricingProfile(
+  async findBillablePricingProfile(
     key: string,
     organizationId?: string,
-  ): Promise<ModelBillablePricingProfile | null> {
+    input?: ModelCreditQuoteInput,
+  ): Promise<RoutedPricingProfile | null> {
+    if (input) {
+      const routed = await findModelProviderOfferQuote(
+        this.prisma,
+        key,
+        organizationId,
+        input,
+      );
+      if (routed) return routed;
+    }
     return findModelBillablePricingProfile(this.prisma, key, organizationId);
   }
 
@@ -394,9 +382,7 @@ export class ModelsService extends BaseService<
   ): Promise<ModelDocument | null> {
     // tenant-scope-ignore: withRegistryVisibility always sets isDeleted and restricts a supplied organizationId to org-or-global rows; the registry is intentionally global-plus-org
     const model = await this.prisma.model.findFirst({
-      include: {
-        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
-      },
+      include: MODEL_REGISTRY_INCLUDE,
       where: this.normalizeWhereForModel(
         this.withRegistryVisibility(params),
       ) as Prisma.ModelWhereInput,
@@ -411,9 +397,7 @@ export class ModelsService extends BaseService<
     void populate;
     // tenant-scope-ignore: registry reads are platform plus the active tenant: withPlatformTenantArm adds the tenant arm, and isDeleted is part of the caller where
     const models = await this.prisma.model.findMany({
-      include: {
-        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
-      },
+      include: MODEL_REGISTRY_INCLUDE,
       where: this.normalizeWhereForModel(
         withPlatformTenantArm(params),
       ) as Prisma.ModelWhereInput,
@@ -506,9 +490,7 @@ export class ModelsService extends BaseService<
     const [docs, totalDocs] = await Promise.all([
       // tenant-scope-ignore: withRegistryVisibility always sets isDeleted and restricts a supplied organizationId to org-or-global rows; the registry is intentionally global-plus-org, so scopedWhere would hide the platform catalog
       this.prisma.model.findMany({
-        include: {
-          providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
-        },
+        include: MODEL_REGISTRY_INCLUDE,
         orderBy,
         skip: isPaginated ? (page - 1) * limit : undefined,
         take: isPaginated ? limit : undefined,
@@ -974,15 +956,14 @@ export class ModelsService extends BaseService<
       withPlatformTenantArm({
         isActive: true,
         isDeleted: false,
+        isProviderVariant: false,
         ...(filter ?? {}),
       }),
     );
     // tenant-scope-ignore: registry reads are platform plus the active tenant: withPlatformTenantArm adds the tenant arm, and isDeleted is set in the where above
     const models = await this.prisma.model.findMany({
       where: dbWhere as Prisma.ModelWhereInput,
-      include: {
-        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
-      },
+      include: MODEL_REGISTRY_INCLUDE,
     });
 
     return models.map((model) => projectRegistryModelDocument(model));
@@ -994,6 +975,7 @@ export class ModelsService extends BaseService<
     const where: Record<string, unknown> = {
       ...(params.category ? { category: params.category } : {}),
       ...(params.enabledModelIds ? { id: { in: params.enabledModelIds } } : {}),
+      isProviderVariant: false,
       isActive: params.isActive ?? true,
       isDeleted: false,
     };
@@ -1003,9 +985,7 @@ export class ModelsService extends BaseService<
     // tenant-scope-ignore: registry reads are platform plus the active tenant: platformOrTenantScope adds the tenant arm, and isDeleted is set in the where above
     const models = await this.prisma.model.findMany({
       where: where as Prisma.ModelWhereInput,
-      include: {
-        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
-      },
+      include: MODEL_REGISTRY_INCLUDE,
     });
 
     return models.map((model) => projectRegistryModelDocument(model));

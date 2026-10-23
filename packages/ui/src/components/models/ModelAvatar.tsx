@@ -1,3 +1,7 @@
+import {
+  extractBrandFromKey,
+  getBrandConfig,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import {
@@ -11,10 +15,25 @@ export default function ModelAvatar({
   model,
   className,
   testId,
+  isProviderVisible = true,
 }: ModelAvatarProps) {
-  const ProviderIcon = getModelBrandIcon(model.provider);
+  const brand = getBrandConfig(extractBrandFromKey(model.key ?? 'model'));
+  const isInfrastructureBrand = ['Fal', 'Replicate', 'GenFeed', 'Kie'].includes(
+    brand.label,
+  );
+  const ProviderIcon = getModelBrandIcon(
+    isProviderVisible
+      ? model.provider
+      : isInfrastructureBrand
+        ? undefined
+        : brand.iconKey,
+  );
   const CategoryIcon = getModelCategoryIcon(model.category, model);
-  const providerLabel = getModelProviderLabel(model.provider);
+  const providerLabel = isProviderVisible
+    ? getModelProviderLabel(model.provider)
+    : isInfrastructureBrand
+      ? 'Model'
+      : brand.label;
   const categoryLabel = getModelCategoryLabel(model.category, model);
 
   return (

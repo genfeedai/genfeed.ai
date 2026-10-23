@@ -8,6 +8,42 @@ import type { ReviewedRateSheetEntry } from './reviewed-rate-sheet.types';
  */
 export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
+    provider: 'kie',
+    endpoint: 'kling-3.0/video',
+    sourceUrl: 'https://kie.ai/kling-3-0',
+    verifiedAt: '2026-10-23',
+    rates: [
+      {
+        component: 'video',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: { mode: 'std', sound: false },
+        isPerOutput: true,
+      },
+      {
+        component: 'video',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: { mode: 'std', sound: true },
+        isPerOutput: true,
+      },
+      {
+        component: 'video',
+        unit: 'second',
+        unitPriceUsd: 0.09,
+        when: { mode: 'pro', sound: false },
+        isPerOutput: true,
+      },
+      {
+        component: 'video',
+        unit: 'second',
+        unitPriceUsd: 0.135,
+        when: { mode: 'pro', sound: true },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
     endpoint: 'black-forest-labs/flux-1.1-pro',
     provider: 'replicate',
     rates: [

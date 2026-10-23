@@ -327,6 +327,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'metadata:Metadata': ['modelLabel'],
   // ModelsService derives approved Crun contract controls through its reviewed projection.
   'model:Model': [
+    // Computed: keys of the provider-offer execution models behind this model.
+    'aliases',
     // Computed: whether the model has reviewed, approved provider pricing.
     'hasReviewedPricing',
     // Computed: clip lengths per resolution, read from the reviewed provider rates.

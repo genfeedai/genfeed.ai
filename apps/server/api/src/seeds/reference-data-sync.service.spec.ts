@@ -1,3 +1,8 @@
+vi.mock('@api/seeds/model-provider-offers.seed', () => ({
+  seedProviderOfferRegistrations: vi.fn().mockResolvedValue(0),
+  seedProviderOfferAssociations: vi.fn().mockResolvedValue(0),
+}));
+
 import { FontFamilySeedService } from '@api/seeds/font-family-seed.service';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';

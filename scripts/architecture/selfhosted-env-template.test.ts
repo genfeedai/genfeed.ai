@@ -180,3 +180,20 @@ describe('API host publishing', () => {
     },
   );
 });
+
+describe('self-hosted WebSocket publishing', () => {
+  it('publishes the browser socket port on loopback with a host-only override', () => {
+    expect(readText('docker/docker-compose.selfhosted.yml')).toMatch(
+      /^\s+- "127\.0\.0\.1:\$\{SELFHOSTED_WS_PORT:-3011\}:3011"(?:[ \t]+#.*)?$/m,
+    );
+  });
+
+  it('keeps the image socket endpoint and exposed port aligned', () => {
+    const dockerfile = readText('docker/Dockerfile.selfhosted');
+
+    expect(dockerfile).toMatch(
+      /^ARG NEXT_PUBLIC_WS_ENDPOINT=http:\/\/localhost:3011$/m,
+    );
+    expect(dockerfile).toMatch(/^EXPOSE [^\n]*\b3011\b/m);
+  });
+});

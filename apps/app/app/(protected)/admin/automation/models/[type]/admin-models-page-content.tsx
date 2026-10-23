@@ -8,11 +8,9 @@ import type { TableAction } from '@props/ui/display/table.props';
 import { useQueryClient } from '@tanstack/react-query';
 import { Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
-import ModelPricingDetails, {
-  ModelPricingToolbar,
-} from './model-pricing-details';
+import { ModelPricingToolbar } from './model-pricing-details';
 import {
   ADMIN_MODEL_PRICING_QUERY_KEY,
   useAdminModelPricingReport,
@@ -23,7 +21,6 @@ export default function AdminModelsPageContent({
   type,
 }: AdminModelsPageContentProps) {
   const t = useTranslations('pages.adminModelPricing');
-  const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { data: report } = useAdminModelPricingReport();
   const { fixModel, isFixing } = useFixModelPricing();
@@ -57,17 +54,12 @@ export default function AdminModelsPageContent({
   return (
     <ModelsList
       beforeList={<ModelPricingAttentionPanel />}
+      getModelHref={(model) =>
+        `/admin/automation/models/${type}/${encodeURIComponent(model.id)}`
+      }
       category={type}
       scope={PageScope.SUPERADMIN}
       onRefresh={refreshPricing}
-      onPricingDetails={(model) =>
-        setExpandedModelId((id) => (id === model.id ? null : model.id))
-      }
-      renderExpandedRow={(model) =>
-        expandedModelId === model.id ? (
-          <ModelPricingDetails modelId={model.id} />
-        ) : undefined
-      }
       rowActions={rowActions}
       isModelPinned={isModelPinned}
       renderToolbar={(models) => <ModelPricingToolbar models={models} />}
