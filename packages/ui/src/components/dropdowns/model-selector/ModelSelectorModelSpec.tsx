@@ -17,7 +17,7 @@ function titleCase(value: string): string {
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+      <span className="w-16 shrink-0 text-2xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         {label}
       </span>
       <span className="min-w-0 flex-1 text-xs font-normal text-foreground/80 tabular-nums">
@@ -58,7 +58,7 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
           <span className="truncate text-xs font-semibold text-foreground">
             {model.label}
           </span>
-          <span className="truncate text-[10px] font-normal text-foreground/50">
+          <span className="truncate text-2xs font-normal text-foreground/50">
             {brandLabel}
           </span>
         </div>
@@ -103,7 +103,7 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
             return (
               <span
                 key={capability.id}
-                className="flex items-center gap-1 rounded-full border border-border bg-background-tertiary px-1.5 py-0.5 text-[10px] font-medium text-foreground/70"
+                className="flex items-center gap-1 rounded-full border border-border bg-background-tertiary px-1.5 py-0.5 text-2xs font-medium text-foreground/70"
               >
                 <CapabilityIcon className="size-3" aria-hidden />
                 {capability.label}
@@ -117,7 +117,7 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
         <p
           className={cn(
             'rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-1',
-            'text-[10px] font-medium text-destructive',
+            'text-2xs font-medium text-destructive',
           )}
         >
           {lockReason}

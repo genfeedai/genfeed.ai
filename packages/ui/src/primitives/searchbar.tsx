@@ -20,7 +20,7 @@ const SIZE_CLASSES: Record<ComponentSize, string> = {
   [ComponentSize.LG]: 'h-12 text-base',
   [ComponentSize.MD]: 'h-10 text-sm',
   [ComponentSize.SM]: 'h-8 text-sm',
-  [ComponentSize.XS]: 'h-6 text-xs',
+  [ComponentSize.XS]: 'h-control-sm text-xs',
   [ComponentSize.XL]: 'h-14 text-lg',
 };
 

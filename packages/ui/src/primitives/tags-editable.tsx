@@ -113,7 +113,7 @@ export default function TagsEditable({
             withWrapper={false}
             variant={ButtonVariant.UNSTYLED}
             onClick={() => setDraft({ sourceValue: value, tags: value })}
-            className="h-6 px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
+            className="h-control-sm px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
             ariaLabel="Edit tags"
           >
             <Pencil className="size-3" />

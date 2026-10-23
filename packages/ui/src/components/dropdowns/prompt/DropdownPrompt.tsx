@@ -133,7 +133,7 @@ export default function DropdownPrompt({
                   <Button
                     withWrapper={false}
                     variant={ButtonVariant.UNSTYLED}
-                    className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+                    className="h-control-sm px-2 text-xs hover:bg-accent hover:text-accent-foreground"
                     title="Regenerate with same settings"
                     ariaLabel="Regenerate"
                     tooltip="Regenerate with same settings"
@@ -152,7 +152,7 @@ export default function DropdownPrompt({
                   withWrapper={false}
                   variant={ButtonVariant.UNSTYLED}
                   onClick={handleCopyPrompt}
-                  className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+                  className="h-control-sm px-2 text-xs hover:bg-accent hover:text-accent-foreground"
                   title="Copy prompt"
                   ariaLabel="Copy prompt"
                   tooltip="Copy prompt"

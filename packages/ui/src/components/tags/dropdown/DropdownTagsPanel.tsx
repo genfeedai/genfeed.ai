@@ -192,7 +192,7 @@ export default function DropdownTagsPanel({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           onClick={onClose}
-          className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+          className="h-control-sm px-2 text-xs hover:bg-accent hover:text-accent-foreground"
           aria-label="Apply selected tags"
         >
           Apply tags
