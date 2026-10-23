@@ -3,7 +3,7 @@
     "next": "16.4.2",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "posthog-js": "1.438.12",
+    "posthog-js": "1.438.19",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "swagger-ui-react": "5.34.0"

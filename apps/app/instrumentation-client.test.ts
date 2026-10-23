@@ -30,7 +30,25 @@ describe('app Sentry instrumentation', () => {
     await import('./instrumentation-client');
 
     expect(mocks.init).toHaveBeenCalledWith(
-      expect.objectContaining({ tracesSampleRate: 0 }),
+      expect.objectContaining({
+        dataCollection: {
+          cookies: false,
+          databaseQueryData: false,
+          genAI: { inputs: false, outputs: false },
+          graphQL: { document: false, variables: false },
+          httpBodies: [],
+          httpHeaders: {
+            request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+            response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+          },
+          queues: false,
+          urlQueryParams: {
+            deny: ['forwarded', '-ip', 'remote-', 'via', '-user'],
+          },
+          userInfo: false,
+        },
+        tracesSampleRate: 0,
+      }),
     );
     expect(mocks.initAnalytics).toHaveBeenCalledTimes(1);
   });

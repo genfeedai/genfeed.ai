@@ -64,6 +64,22 @@ describe('error-tracking.service', () => {
     initializeErrorTracking('popup');
 
     expect(sentryMocks.init).toHaveBeenCalledWith({
+      dataCollection: {
+        cookies: false,
+        databaseQueryData: false,
+        genAI: { inputs: false, outputs: false },
+        graphQL: { document: false, variables: false },
+        httpBodies: [],
+        httpHeaders: {
+          request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+          response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        },
+        queues: false,
+        urlQueryParams: {
+          deny: ['forwarded', '-ip', 'remote-', 'via', '-user'],
+        },
+        userInfo: false,
+      },
       dsn: 'https://public@example.ingest.sentry.io/1',
       environment: 'production',
       release: '1.2.3',

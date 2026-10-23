@@ -41,7 +41,20 @@ export function getSentryConfig(
     release: process.env.npm_package_version || '1.0.0',
     // Never attach request bodies or IP/user defaults — prompt text must not
     // ride Sentry events in any environment, including staging and local opt-in.
-    sendDefaultPii: false,
+    dataCollection: {
+      cookies: false,
+      databaseQueryData: false,
+      genAI: { inputs: false, outputs: false },
+      graphQL: { document: false, variables: false },
+      httpBodies: [],
+      httpHeaders: {
+        request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      },
+      queues: false,
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      userInfo: false,
+    },
     // Production samples request traces for route latency; every other
     // environment stays at zero so dev and CI never emit spans.
     tracesSampleRate:
