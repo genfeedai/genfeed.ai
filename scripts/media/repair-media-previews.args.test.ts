@@ -18,6 +18,15 @@ describe('repair-media-previews parseArgs', () => {
     });
   });
 
+  it('rejects --organization without a value instead of going unscoped', () => {
+    expect(() => parseArgs(['--apply', '--organization'])).toThrow(
+      '--organization needs an organization id',
+    );
+    expect(() => parseArgs(['--organization', ' '])).toThrow(
+      '--organization needs an organization id',
+    );
+  });
+
   it('falls back to defaults for missing or invalid numbers', () => {
     const options = parseArgs(['--limit', 'abc', '--sample', '-2']);
     expect(options.limit).toBe(500);

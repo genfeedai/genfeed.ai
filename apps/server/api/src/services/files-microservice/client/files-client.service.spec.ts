@@ -960,15 +960,17 @@ describe('FilesClientService', () => {
 
   describe('storedObjectExists', () => {
     it('asks the files service about one full storage key', async () => {
-      const { post, service } = createHarness();
+      const { post, service } = createHarness(BASE, true, 'service-key');
       post.mockReturnValue(of({ data: { exists: true } }));
 
       await expect(
         service.storedObjectExists('ingredients/images/a'),
       ).resolves.toBe(true);
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/exists`, {
-        storageKey: 'ingredients/images/a',
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/exists`,
+        { storageKey: 'ingredients/images/a' },
+        { headers: { 'x-api-key': 'service-key' } },
+      );
     });
 
     it('treats anything but an explicit true as missing', async () => {

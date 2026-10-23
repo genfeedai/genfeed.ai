@@ -143,7 +143,7 @@ describe('MediaVariantRecoveryService', () => {
     expect(preparation.addPrepareJob).not.toHaveBeenCalled();
   });
 
-  it('retries FAILED variants only after their doubling backoff elapsed', async () => {
+  it('retries the FAILED variants the backoff query returns', async () => {
     const { service, prisma, preparation } = await setup();
     const due = variant({
       attemptCount: 1,
@@ -153,17 +153,9 @@ describe('MediaVariantRecoveryService', () => {
         now.getTime() - MediaVariantRecoveryService.retryDelayMs(1) - 1,
       ),
     });
-    const early = variant({
-      attemptCount: 2,
-      id: testId('variant', 3),
-      state: 'FAILED',
-      updatedAt: new Date(
-        now.getTime() - MediaVariantRecoveryService.retryDelayMs(1),
-      ),
-    });
     prisma.mediaDeliveryVariant.findMany
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([due, early]);
+      .mockResolvedValueOnce([due]);
     prisma.mediaDeliveryVariant.updateMany
       .mockResolvedValueOnce({ count: 0 })
       .mockResolvedValue({ count: 1 });
@@ -185,14 +177,31 @@ describe('MediaVariantRecoveryService', () => {
       2,
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: [
-            { failureCode: null },
-            { failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE } },
+          AND: [
+            {
+              OR: [
+                { failureCode: null },
+                {
+                  failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE },
+                },
+              ],
+            },
+            {
+              OR: Array.from(
+                { length: MEDIA_VARIANT_MAX_RECOVERY_ATTEMPTS },
+                (_, attemptCount) => ({
+                  attemptCount,
+                  updatedAt: {
+                    lte: new Date(
+                      now.getTime() -
+                        MediaVariantRecoveryService.retryDelayMs(attemptCount),
+                    ),
+                  },
+                }),
+              ),
+            },
           ],
           state: 'FAILED',
-          updatedAt: {
-            lt: new Date(now.getTime() - MEDIA_VARIANT_RETRY_BASE_MS),
-          },
         }),
       }),
     );
@@ -208,10 +217,25 @@ describe('MediaVariantRecoveryService', () => {
         failureCode: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE,
         state: 'FAILED',
       },
-      where: expect.objectContaining({
+      where: {
         attemptCount: { gte: MEDIA_VARIANT_MAX_RECOVERY_ATTEMPTS },
-        state: 'PENDING',
-      }),
+        isDeleted: false,
+        OR: [
+          {
+            state: 'PENDING',
+            updatedAt: {
+              lt: new Date(now.getTime() - MEDIA_VARIANT_STALE_PENDING_MS),
+            },
+          },
+          {
+            failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE },
+            state: 'FAILED',
+            updatedAt: {
+              lt: new Date(now.getTime() - MEDIA_VARIANT_RETRY_BASE_MS),
+            },
+          },
+        ],
+      },
     });
     expect(Sentry.captureMessage).toHaveBeenCalledTimes(1);
     expect(Sentry.captureMessage).toHaveBeenCalledWith(

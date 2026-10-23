@@ -618,9 +618,15 @@ export class FilesClientService {
   /** Whether one full storage key names an object, without reading it. */
   async storedObjectExists(storageKey: string): Promise<boolean> {
     const response = await firstValueFrom(
-      this.httpService.post(`${this.filesServiceUrl}/v1/files/exists`, {
-        storageKey,
-      }),
+      this.httpService.post(
+        `${this.filesServiceUrl}/v1/files/exists`,
+        { storageKey },
+        {
+          headers: {
+            'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+          },
+        },
+      ),
     );
     return response.data?.exists === true;
   }

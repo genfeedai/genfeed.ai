@@ -112,33 +112,45 @@ export class MediaVariantRecoveryService {
   }
 
   private async findRetryableFailed(now: Date): Promise<RecoverableVariant[]> {
+    // The per-attempt backoff is part of the query: filtering after `take`
+    // would let not-yet-due rows with long delays starve the due ones.
+    const dueByAttempt = Array.from(
+      { length: MEDIA_VARIANT_MAX_RECOVERY_ATTEMPTS },
+      (_, attemptCount) => ({
+        attemptCount,
+        updatedAt: {
+          lte: new Date(
+            now.getTime() -
+              MediaVariantRecoveryService.retryDelayMs(attemptCount),
+          ),
+        },
+      }),
+    );
     // tenant-scope-ignore: platform recovery sweep across organizations
-    const rows = await this.prisma.mediaDeliveryVariant.findMany({
+    return this.prisma.mediaDeliveryVariant.findMany({
       orderBy: { updatedAt: 'asc' },
       take: MEDIA_RECOVERY_BATCH_SIZE,
       where: {
-        attemptCount: { lt: MEDIA_VARIANT_MAX_RECOVERY_ATTEMPTS },
-        OR: [
-          { failureCode: null },
-          { failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE } },
+        AND: [
+          {
+            OR: [
+              { failureCode: null },
+              { failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE } },
+            ],
+          },
+          { OR: dueByAttempt },
         ],
         isDeleted: false,
         purpose: { in: [...RECOVERABLE_PURPOSES] },
         state: 'FAILED',
-        updatedAt: {
-          lt: new Date(now.getTime() - MEDIA_VARIANT_RETRY_BASE_MS),
-        },
       },
     });
-    return rows.filter(
-      (row) =>
-        row.updatedAt.getTime() <=
-        now.getTime() -
-          MediaVariantRecoveryService.retryDelayMs(row.attemptCount),
-    );
   }
 
-  /** Stale PENDING variants out of attempts become terminally FAILED. */
+  /**
+   * Variants out of attempts become terminally FAILED: a stale PENDING one
+   * whose last job vanished, or a FAILED one whose last retry just failed.
+   */
   private async markExhausted(now: Date): Promise<number> {
     // tenant-scope-ignore: platform recovery sweep across organizations
     const result = await this.prisma.mediaDeliveryVariant.updateMany({
@@ -149,10 +161,21 @@ export class MediaVariantRecoveryService {
       where: {
         attemptCount: { gte: MEDIA_VARIANT_MAX_RECOVERY_ATTEMPTS },
         isDeleted: false,
-        state: 'PENDING',
-        updatedAt: {
-          lt: new Date(now.getTime() - MEDIA_VARIANT_STALE_PENDING_MS),
-        },
+        OR: [
+          {
+            state: 'PENDING',
+            updatedAt: {
+              lt: new Date(now.getTime() - MEDIA_VARIANT_STALE_PENDING_MS),
+            },
+          },
+          {
+            failureCode: { not: MEDIA_RECOVERY_EXHAUSTED_FAILURE_CODE },
+            state: 'FAILED',
+            updatedAt: {
+              lt: new Date(now.getTime() - MEDIA_VARIANT_RETRY_BASE_MS),
+            },
+          },
+        ],
       },
     });
     return result.count;

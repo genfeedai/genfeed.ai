@@ -85,7 +85,14 @@ async function rearmVariants(options: RepairOptions): Promise<number> {
     return 0;
   }
   const result = await prisma.mediaDeliveryVariant.updateMany({
-    data: { attemptCount: 0, failureCode: null, state: 'PENDING' },
+    // `updatedAt` is set explicitly: Prisma would otherwise refresh it and the
+    // recovery cron would wait for the stale-PENDING window before it acts.
+    data: {
+      attemptCount: 0,
+      failureCode: null,
+      state: 'PENDING',
+      updatedAt: new Date(Date.now() - STALE_PENDING_MS),
+    },
     where: { ...variantWhere(options), id: { in: rows.map((row) => row.id) } },
   });
   return result.count;

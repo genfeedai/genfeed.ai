@@ -18,10 +18,14 @@ export function parseArgs(argv: readonly string[]): RepairOptions {
     const index = argv.indexOf(flag);
     return index === -1 ? undefined : argv[index + 1];
   };
+  const organizationId = read('--organization');
+  if (argv.includes('--organization') && !organizationId?.trim()) {
+    throw new Error('--organization needs an organization id');
+  }
   return {
     isApply: argv.includes('--apply'),
     limit: positiveInteger(read('--limit'), DEFAULT_LIMIT),
-    organizationId: read('--organization') ?? null,
+    organizationId: organizationId ?? null,
     sample: positiveInteger(read('--sample'), DEFAULT_SAMPLE),
   };
 }

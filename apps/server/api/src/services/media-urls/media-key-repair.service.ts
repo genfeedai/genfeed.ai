@@ -116,7 +116,7 @@ export class MediaKeyRepairService {
         category: { in: REPAIRABLE_CATEGORIES },
         id: afterId ? { gt: afterId } : undefined,
         isDeleted: false,
-        OR: [{ s3Key: null }, { s3Key: { startsWith: 'http' } }],
+        OR: [{ s3Key: null }, { s3Key: '' }, { s3Key: { startsWith: 'http' } }],
         organizationId: { not: null },
         status: { in: FINAL_STATUSES },
       },
@@ -159,7 +159,7 @@ export class MediaKeyRepairService {
       where: {
         id: candidate.id,
         isDeleted: false,
-        OR: [{ s3Key: null }, { s3Key: { startsWith: 'http' } }],
+        OR: [{ s3Key: null }, { s3Key: '' }, { s3Key: { startsWith: 'http' } }],
         organizationId: candidate.organizationId,
       },
     });
