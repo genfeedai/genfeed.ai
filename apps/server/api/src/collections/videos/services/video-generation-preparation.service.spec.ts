@@ -5,6 +5,7 @@ import {
   measuredSeedanceVideoReference,
   type SeedanceVideoReferenceEvidence,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
+import { resolveStoredVideoReference } from '@api/collections/videos/services/video-generation-reference.util';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -112,27 +113,19 @@ describe('canonical video execution references', () => {
     const getPresignedDownloadUrlForObjectKey = vi
       .fn()
       .mockResolvedValue('https://storage.test/source?Signature=fresh');
-    const unused = {} as never;
-    const service = new VideoGenerationPreparationService(
-      unused,
-      unused,
-      { isAuthorizedMediaDeliveryEnabled: true } as never,
-      { getPresignedDownloadUrlForObjectKey } as never,
-      { findOne } as never,
-      unused,
-      unused,
-      unused,
-      personasServiceStub(),
-      unused,
-      unused,
-      unused,
-      unused,
-      unused,
-      unused,
-    );
-    await expect(
-      service['resolveVideoReference']('video-1', 'org-1', 'first-frame'),
-    ).resolves.toEqual({
+    const resolveReference = () =>
+      resolveStoredVideoReference(
+        { findOne },
+        {
+          getPresignedDownloadUrlForObjectKey,
+          getPresignedDownloadUrl: vi.fn(),
+        },
+        { isAuthorizedMediaDeliveryEnabled: true },
+        'video-1',
+        'org-1',
+        'first-frame',
+      );
+    await expect(resolveReference()).resolves.toEqual({
       duration: 7,
       url: 'https://storage.test/source?Signature=fresh',
     });
@@ -152,9 +145,7 @@ describe('canonical video execution references', () => {
       s3Key: null,
       metadata: { duration: 7 },
     });
-    await expect(
-      service['resolveVideoReference']('video-1', 'org-1', 'first-frame'),
-    ).rejects.toThrow('stored media key');
+    await expect(resolveReference()).rejects.toThrow('stored media key');
     expect(getPresignedDownloadUrlForObjectKey).toHaveBeenCalledTimes(1);
   });
 });

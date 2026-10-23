@@ -60,6 +60,8 @@ export const videoGenerationRequestAttributes = [
   'promptId',
   'parentId',
   'references',
+  'audioReferences',
+  'videoReferences',
   'endFrame',
   'outputs',
   'crunControls',

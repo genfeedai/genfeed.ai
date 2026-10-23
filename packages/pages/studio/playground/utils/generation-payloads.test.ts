@@ -101,6 +101,19 @@ describe('buildBaseGenerationPayload', () => {
 });
 
 describe('buildVideoPayload', () => {
+  it('preserves ordered audio and video references alongside images', () => {
+    const data = makePromptData({
+      references: ['person'],
+      videoReferences: ['driver'],
+      audioReferences: ['voice-2', 'voice-1'],
+    });
+    const base = buildBaseGenerationPayload(data, 'minimax/h3', 'brand');
+    expect(buildVideoPayload(base, data)).toMatchObject({
+      references: ['person'],
+      videoReferences: ['driver'],
+      audioReferences: ['voice-2', 'voice-1'],
+    });
+  });
   it('extends the base payload with video fields and defaults', () => {
     const base = buildBaseGenerationPayload(
       makePromptData(),

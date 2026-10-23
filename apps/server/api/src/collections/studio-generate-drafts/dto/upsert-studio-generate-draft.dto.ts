@@ -35,6 +35,7 @@ export const STUDIO_PLAYGROUND_REFERENCE_ROLES = [
   'startFrame',
   'endFrame',
   'videoReference',
+  'audioReference',
 ] as const satisfies readonly StudioPlaygroundReferenceRole[];
 
 export const STUDIO_GENERATE_DRAFT_MAX_PROMPT_LENGTH = 20_000;

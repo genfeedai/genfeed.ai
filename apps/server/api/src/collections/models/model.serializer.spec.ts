@@ -19,6 +19,22 @@ function serializedAttributes(
 }
 
 describe('ModelSerializer', () => {
+  it('projects verified audio-reference capability instead of trusting stored flags', () => {
+    expect(
+      serializedAttributes(
+        ModelSerializer.serialize({ id: 'h3', key: 'minimax/h3' }),
+      ),
+    ).toMatchObject({ hasAudioReferences: true, maxAudioReferences: 3 });
+    expect(
+      serializedAttributes(
+        ModelSerializer.serialize({
+          id: 'other',
+          key: 'other/model',
+          hasAudioReferences: true,
+        }),
+      ),
+    ).toMatchObject({ hasAudioReferences: false, maxAudioReferences: 0 });
+  });
   it('serializes model with cost, isActive and isDefault attributes', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({

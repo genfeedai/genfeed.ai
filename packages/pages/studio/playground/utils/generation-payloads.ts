@@ -103,6 +103,7 @@ export function buildVideoPayload(
     sounds: promptData.sounds || [],
     speech: promptData.speech?.trim() || undefined,
     videoReferences: promptData.videoReferences,
+    audioReferences: promptData.audioReferences,
   };
 }
 

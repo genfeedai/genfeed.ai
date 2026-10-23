@@ -241,6 +241,17 @@ export class CreateVideoDto extends CreateIngredientDto {
   })
   readonly videoReferences?: string[];
 
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsEntityId({ each: true })
+  @ApiProperty({
+    description: 'Stored audio ingredient IDs for reviewed video models',
+    required: false,
+    type: [String],
+  })
+  readonly audioReferences?: string[];
+
   @IsString()
   @IsOptional()
   @ApiProperty({

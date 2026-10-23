@@ -367,6 +367,7 @@ export class VideoGenerationExecutionService {
             ? [context.createVideoDto.endFrame]
             : []),
           ...(context.createVideoDto.videoReferences ?? []),
+          ...(context.createVideoDto.audioReferences ?? []),
         ]),
       ],
       status: IngredientStatus.PROCESSING,

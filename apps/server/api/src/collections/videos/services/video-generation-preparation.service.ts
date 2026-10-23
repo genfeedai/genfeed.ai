@@ -11,7 +11,10 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import {
-  assertReplicateVideoReference,
+  assertAudioReferencesSupported,
+  assertMinimaxH3ReferenceDurations,
+} from '@api/collections/videos/services/minimax-h3-reference.util';
+import {
   assertSeedanceReferenceBinding,
   assertSeedanceReferenceVideoDuration,
   bindSeedanceVideoReferences,
@@ -38,6 +41,11 @@ import {
   resolveInlinePromptText,
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
+import {
+  resolveCompiledAudioReferences,
+  resolveStoredAudioReferences,
+  resolveStoredVideoReference,
+} from '@api/collections/videos/services/video-generation-reference.util';
 import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -80,6 +88,7 @@ import { buildVideoGenerationBriefExemptionSource } from '@genfeedai/contracts/a
 import {
   getModelMaxVideoReferences,
   hasVideoReferences,
+  MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import { resolveGenerationDimensions } from '@genfeedai/pricing';
@@ -193,6 +202,11 @@ export class VideoGenerationPreparationService {
       registeredModel?.provider === ModelProvider.FAL
         ? seedanceVideoReferenceLimit(registeredModel.endpoint ?? '')
         : null;
+    assertAudioReferencesSupported(
+      model,
+      createVideoDto.audioReferences ?? [],
+      registeredModel?.provider,
+    );
     const videoReferenceIds = createVideoDto.videoReferences ?? [];
     if (
       videoReferenceIds.length > 0 &&
@@ -219,6 +233,12 @@ export class VideoGenerationPreparationService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    const audioReferenceUrls = await resolveStoredAudioReferences(
+      this.ingredientsService,
+      this.filesClientService,
+      user.organizationId,
+      createVideoDto.audioReferences ?? [],
+    );
     const rawInputSchema = registeredModel?.providerInputSchema;
     const modelInputSchema =
       rawInputSchema &&
@@ -228,6 +248,7 @@ export class VideoGenerationPreparationService {
         : undefined;
 
     return {
+      audioReferenceUrls,
       brand,
       createVideoDto,
       model,
@@ -293,6 +314,8 @@ export class VideoGenerationPreparationService {
           rawCompiledDispatch,
           user.organizationId,
           resolved.grantedAvatarOwners,
+          resolved.model,
+          resolved.audioReferenceUrls,
         )
       : undefined;
 
@@ -356,6 +379,7 @@ export class VideoGenerationPreparationService {
             ...referenceIds,
             ...(createVideoDto.endFrame ? [createVideoDto.endFrame] : []),
             ...(createVideoDto.videoReferences ?? []),
+            ...(createVideoDto.audioReferences ?? []),
           ]),
         ],
         status: IngredientStatus.PROCESSING,
@@ -565,6 +589,9 @@ export class VideoGenerationPreparationService {
     const built = await this.promptBuilderService.buildPrompt(
       model,
       {
+        audioReferences: resolved.audioReferenceUrls
+          ? [...resolved.audioReferenceUrls.values()]
+          : undefined,
         audioUrl: createVideoDto.audioUrl,
         blacklist: createVideoDto.blacklist,
         brand: {
@@ -686,6 +713,7 @@ export class VideoGenerationPreparationService {
     try {
       const compiled = runVideoGenerationBrief({
         audioDirection: params.createVideoDto.speech,
+        audioReferenceIds: params.createVideoDto.audioReferences,
         avoid,
         brandContext: params.briefBrandContext,
         brandingMode: params.createVideoDto.brandingMode,
@@ -744,6 +772,8 @@ export class VideoGenerationPreparationService {
     dispatch: Record<string, unknown>,
     organizationId: string,
     grantedOwners?: ReadonlyMap<string, string>,
+    model?: string,
+    audioReferenceUrls: ReadonlyMap<string, string> = new Map(),
   ): Promise<Record<string, unknown>> {
     const resolveUrl = async (
       referenceId: string,
@@ -812,7 +842,14 @@ export class VideoGenerationPreparationService {
       const value = dispatch[field];
       if (typeof value === 'string' && value.length > 0) {
         resolved[field] = (
-          await this.resolveVideoReference(value, organizationId, field)
+          await resolveStoredVideoReference(
+            this.ingredientsService,
+            this.filesClientService,
+            this.configService,
+            value,
+            organizationId,
+            field,
+          )
         ).url;
       }
     }
@@ -824,9 +861,22 @@ export class VideoGenerationPreparationService {
           value
             .filter((entry): entry is string => typeof entry === 'string')
             .map((entry) =>
-              this.resolveVideoReference(entry, organizationId, field),
+              resolveStoredVideoReference(
+                this.ingredientsService,
+                this.filesClientService,
+                this.configService,
+                entry,
+                organizationId,
+                field,
+              ),
             ),
         );
+        if (model === MODEL_KEYS.REPLICATE_MINIMAX_H3) {
+          assertMinimaxH3ReferenceDurations(
+            references.map((reference) => reference.duration),
+            'video',
+          );
+        }
         if (field === 'reference_videos') {
           assertSeedanceReferenceVideoDuration(
             references.map((reference) => reference.duration),
@@ -836,51 +886,14 @@ export class VideoGenerationPreparationService {
       }
     }
 
-    return resolved;
-  }
-
-  private async resolveVideoReference(
-    referenceId: string,
-    organizationId: string,
-    role: string,
-  ): Promise<{ duration: number; url: string }> {
-    const ingredient = await this.ingredientsService.findOne(
-      {
-        category: IngredientCategory.VIDEO,
-        id: referenceId,
-        isDeleted: false,
-        organizationId,
-      },
-      [{ path: 'metadata', select: ['duration'] }],
-    );
-    if (!ingredient?.id) {
-      throw new HttpException(
-        {
-          detail: `Could not resolve a stored video for the ${role} reference`,
-          title: 'Generation brief reference resolution failed',
-        },
-        HttpStatus.BAD_REQUEST,
+    const audioIds = dispatch.reference_audio_urls;
+    if (Array.isArray(audioIds)) {
+      resolved.reference_audio_urls = resolveCompiledAudioReferences(
+        audioIds,
+        audioReferenceUrls,
       );
     }
-    const duration = ingredient.metadata?.duration;
-    assertReplicateVideoReference(
-      duration,
-      Boolean(ingredient.s3Key),
-      this.configService.isAuthorizedMediaDeliveryEnabled,
-      role,
-    );
-    return {
-      duration,
-      url:
-        this.configService.isAuthorizedMediaDeliveryEnabled && ingredient.s3Key
-          ? await this.filesClientService.getPresignedDownloadUrlForObjectKey(
-              ingredient.s3Key,
-            )
-          : await this.filesClientService.getPresignedDownloadUrl(
-              String(ingredient.id),
-              'videos',
-            ),
-    };
+    return resolved;
   }
 
   private async resolveReferenceUrls(

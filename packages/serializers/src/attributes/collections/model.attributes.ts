@@ -41,6 +41,8 @@ export const modelAttributes = createEntityAttributes([
   'hasInterpolation',
   'hasSpeech',
   'hasAudioToggle',
+  'hasAudioReferences',
+  'maxAudioReferences',
   'hasResolutionOptions',
   'isImagenModel',
   'isReferencesMandatory',

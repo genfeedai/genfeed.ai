@@ -30,6 +30,7 @@ import {
   buildPrunaaiPVideoGenerationSource,
 } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -237,6 +238,9 @@ describe('VideoGenerationService', () => {
       ingredientsEndpoint: REFERENCE_INGREDIENTS_ENDPOINT,
     };
     const filesClientService = {
+      getPresignedDownloadUrlForObjectKey: vi
+        .fn()
+        .mockResolvedValue('https://media.example/synthetic-voice.mp3'),
       getPresignedDownloadUrl: vi
         .fn()
         .mockImplementation((id: string) =>
@@ -1042,6 +1046,93 @@ describe('VideoGenerationService', () => {
   // for registered model families before provider dispatch, and persist a
   // redacted evidence/generation-source pair alongside every document.
   describe('video brief compilation (#3468)', () => {
+    it('dispatches image/video/audio together from scoped stored ingredients', async () => {
+      const { service, ingredientsService, replicateService, sharedService } =
+        createService();
+      ingredientsService.findOne.mockImplementation(
+        ({ id }: Pick<IIngredient, 'id'>) =>
+          Promise.resolve({
+            id,
+            s3Key: `stored/${id}`,
+            metadata: { duration: 5 },
+          }),
+      );
+      await service.generateVideo(
+        buildUser(),
+        baseDto({
+          model: COMPILED_MODEL_MINIMAX,
+          references: ['frame', 'person'],
+          videoReferences: ['driver'],
+          audioReferences: ['voice'],
+        }),
+        buildRequest(),
+      );
+      expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+        COMPILED_MODEL_MINIMAX,
+        expect.objectContaining({
+          reference_audio_urls: ['https://media.example/synthetic-voice.mp3'],
+          reference_video_urls: [
+            'https://s3.example.com/videos/driver?signed=true',
+          ],
+          reference_image_urls: [expect.stringContaining('person')],
+        }),
+        undefined,
+        expect.any(Function),
+      );
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'voice',
+          organizationId: ORG,
+          isDeleted: false,
+        }),
+        expect.any(Array),
+      );
+      expect(
+        sharedService.createMediaDocuments.mock.calls[0][1].sourceIds,
+      ).toContain('voice');
+    });
+    it('rejects unsupported audio before creating outputs or dispatching', async () => {
+      const { service, sharedService, replicateService } = createService();
+      await expect(
+        service.generateVideo(
+          buildUser(),
+          baseDto({
+            model: COMPILED_MODEL_PRUNAAI,
+            audioReferences: ['voice'],
+          }),
+          buildRequest(),
+        ),
+      ).rejects.toThrow('does not support audio references');
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+    });
+    it('rejects missing or foreign audio without dispatch', async () => {
+      const {
+        service,
+        ingredientsService,
+        replicateService,
+        sharedService,
+        enhancementService,
+      } = createService();
+      ingredientsService.findOne.mockImplementation(
+        ({ id }: Pick<IIngredient, 'id'>) =>
+          Promise.resolve(id === 'voice' ? null : { id }),
+      );
+      await expect(
+        service.generateVideo(
+          buildUser(),
+          baseDto({
+            model: COMPILED_MODEL_MINIMAX,
+            references: ['frame'],
+            audioReferences: ['voice'],
+          }),
+          buildRequest(),
+        ),
+      ).rejects.toThrow('known duration from this organization');
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(enhancementService.enhance).not.toHaveBeenCalled();
+    });
     it('compiles a brief for a registered model family and persists redacted evidence', async () => {
       const { service, sharedService } = createService();
 

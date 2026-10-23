@@ -87,6 +87,7 @@ export type VideoGenerationSaveDocumentsResult = Awaited<
 >;
 
 export interface ResolvedVideoGenerationRequest {
+  audioReferenceUrls?: ReadonlyMap<string, string>;
   brand: VideoGenerationResolvedBrand;
   createVideoDto: CreateVideoDto;
   model: string;
