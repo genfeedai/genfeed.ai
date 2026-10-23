@@ -30,6 +30,7 @@ import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
 import { CronLifecycleEmailsModule } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.module';
 import { CronLlmIdleModule } from '@workers/crons/llm-idle/cron.llm-idle.module';
+import { CronMediaDeliveryRecoveryModule } from '@workers/crons/media-delivery-recovery/cron.media-delivery-recovery.module';
 import { CronMediaPerceptionModule } from '@workers/crons/media-perception/cron.media-perception.module';
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
 import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-watcher.module';
@@ -97,6 +98,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronIngredientsModule,
     CronLifecycleEmailsModule,
     CronLlmIdleModule,
+    CronMediaDeliveryRecoveryModule,
     CronMediaPerceptionModule,
     CronModelDeprecationModule,
     CronModelWatcherModule,

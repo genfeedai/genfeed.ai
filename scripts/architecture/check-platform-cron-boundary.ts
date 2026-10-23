@@ -292,6 +292,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler that keeps provider-synced external voice catalogs current. Replaces the retired scripts/migrations/reseed-voice-catalog.ts path (#6911).',
   },
   {
+    file: 'apps/server/workers/src/crons/media-delivery-recovery/cron.media-delivery-recovery.service.ts',
+    id: 'media-delivery-recovery',
+    methodName: 'recoverMedia',
+    reason:
+      'Platform schedule handler that re-enqueues stale or failed media delivery variants and repairs verified ingredient storage keys; all queries are platform sweeps with tenant-scope-ignore.',
+  },
+  {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
     id: 'youtube-messages',
     methodName: 'syncYoutubeMessages',

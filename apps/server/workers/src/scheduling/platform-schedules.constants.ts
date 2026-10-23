@@ -1,6 +1,7 @@
 import { PROVIDER_PRICE_SYNC_TASKS } from '@genfeedai/contracts/queue';
 import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
+import { MEDIA_DELIVERY_RECOVERY_SCHEDULE } from '@workers/crons/media-delivery-recovery/media-delivery-recovery.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
@@ -42,6 +43,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
   LIFECYCLE_EMAILS: 'lifecycle-emails',
   LLM_IDLE_SHUTDOWN: 'llm-idle-shutdown',
+  MEDIA_DELIVERY_RECOVERY: 'media-delivery-recovery',
   MEDIA_PERCEPTION_SWEEP: 'media-perception-sweep',
   MODEL_DEPRECATION: 'model-deprecation',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
@@ -171,6 +173,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN]: {
     pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.MEDIA_DELIVERY_RECOVERY]: {
+    pattern: MEDIA_DELIVERY_RECOVERY_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP]: {

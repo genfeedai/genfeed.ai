@@ -49,6 +49,22 @@ export class FilesStorageController {
     return { deleted: true, storageKey };
   }
 
+  /** Report whether one full storage key exists, without reading the object. */
+  @Post('exists')
+  async storedObjectExists(
+    @Body() body: { storageKey?: string },
+  ): Promise<{ exists: boolean; storageKey: string }> {
+    const storageKey = body.storageKey?.trim();
+    if (!storageKey) {
+      throw new HttpException('storageKey is required', HttpStatus.BAD_REQUEST);
+    }
+
+    return {
+      exists: await this.uploadService.storedObjectExists(storageKey),
+      storageKey,
+    };
+  }
+
   /**
    * Upload file to S3 with metadata extraction and image processing
    */

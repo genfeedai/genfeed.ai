@@ -1,5 +1,6 @@
 import type { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import type { ContextEmbeddingSweepService } from '@api/collections/contexts/services/context-embedding-sweep.service';
+import type { CronMediaDeliveryRecoveryService } from '@workers/crons/media-delivery-recovery/cron.media-delivery-recovery.service';
 import type { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,12 +9,14 @@ function fixture() {
   const notifications = { recover: vi.fn().mockResolvedValue(undefined) };
   const brands = { recover: vi.fn().mockResolvedValue(undefined) };
   const embeddings = { sweep: vi.fn().mockResolvedValue(undefined) };
+  const mediaDelivery = { recoverMedia: vi.fn().mockResolvedValue(undefined) };
   const service = new PlatformRecoverySchedulesService(
     notifications as unknown as NotificationDeliveryRecoveryService,
     brands as unknown as BrandRelocationJobsService,
     embeddings as unknown as ContextEmbeddingSweepService,
+    mediaDelivery as unknown as CronMediaDeliveryRecoveryService,
   );
-  return { service, notifications, brands, embeddings };
+  return { service, notifications, brands, embeddings, mediaDelivery };
 }
 describe('platform recovery delegation', () => {
   it('awaits one embedding sweep without dispatching unrelated recovery', async () => {
@@ -51,6 +54,13 @@ describe('platform recovery delegation', () => {
     await f.service.recoverBrandRelocations();
     expect(f.notifications.recover).toHaveBeenCalledExactlyOnceWith();
     expect(f.brands.recover).toHaveBeenCalledExactlyOnceWith();
+    expect(f.embeddings.sweep).not.toHaveBeenCalled();
+  });
+  it('delegates media delivery recovery to its own sweep only', async () => {
+    const f = fixture();
+    await f.service.recoverMediaDelivery();
+    expect(f.mediaDelivery.recoverMedia).toHaveBeenCalledExactlyOnceWith();
+    expect(f.notifications.recover).not.toHaveBeenCalled();
     expect(f.embeddings.sweep).not.toHaveBeenCalled();
   });
 });

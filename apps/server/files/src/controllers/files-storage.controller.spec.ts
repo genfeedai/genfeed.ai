@@ -40,3 +40,36 @@ describe('FilesStorageController exact stored object signing', () => {
     },
   );
 });
+
+describe('FilesStorageController stored object existence', () => {
+  it('reports existence for one trimmed full storage key', async () => {
+    const storedObjectExists = vi.fn().mockResolvedValue(true);
+    const controller = new FilesStorageController(
+      {} as never,
+      {} as never,
+      { storedObjectExists } as never,
+    );
+
+    await expect(
+      controller.storedObjectExists({ storageKey: ' ingredients/images/a ' }),
+    ).resolves.toEqual({ exists: true, storageKey: 'ingredients/images/a' });
+    expect(storedObjectExists).toHaveBeenCalledWith('ingredients/images/a');
+  });
+
+  it.each([undefined, '', '  '])(
+    'rejects an empty key %s before touching storage',
+    async (storageKey) => {
+      const storedObjectExists = vi.fn();
+      const controller = new FilesStorageController(
+        {} as never,
+        {} as never,
+        { storedObjectExists } as never,
+      );
+
+      await expect(
+        controller.storedObjectExists({ storageKey }),
+      ).rejects.toThrow('storageKey is required');
+      expect(storedObjectExists).not.toHaveBeenCalled();
+    },
+  );
+});

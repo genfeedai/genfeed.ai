@@ -34,6 +34,7 @@ describe('PlatformSchedulesProcessor', () => {
   const replicateModels = { discoverNewModels: handler() };
   const notificationRecovery = { recover: handler() };
   const brandRelocations = { recover: handler() };
+  const mediaDeliveryRecovery = { recoverMedia: handler() };
   const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
@@ -141,6 +142,10 @@ describe('PlatformSchedulesProcessor', () => {
         ingredients.checkStuckProcessingIngredients,
       ],
       [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN, llmIdle.shutdownIfIdle],
+      [
+        PLATFORM_SCHEDULED_TASKS.MEDIA_DELIVERY_RECOVERY,
+        mediaDeliveryRecovery.recoverMedia,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP,
         mediaPerception.queueDuePerceptions,
@@ -259,6 +264,7 @@ describe('PlatformSchedulesProcessor', () => {
         notificationRecovery as never,
         brandRelocations as never,
         contextEmbeddings as never,
+        mediaDeliveryRecovery as never,
       ),
       patterns as never,
       posts as never,

@@ -95,6 +95,12 @@ export class UploadService {
     await this.storage.delete(safeStorageKey);
   }
 
+  /** Whether one full storage key names an object in the configured provider. */
+  async storedObjectExists(storageKey: string): Promise<boolean> {
+    const safeStorageKey = assertSafeObjectKey(storageKey, createBadRequest);
+    return this.storage.exists(safeStorageKey);
+  }
+
   private async getVideoDimensions(filePath: string): Promise<{
     width: number;
     height: number;

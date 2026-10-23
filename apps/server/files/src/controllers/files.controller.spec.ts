@@ -190,6 +190,7 @@ describe('FilesController', () => {
 
   const mockUploadService = {
     deleteStoredObject: vi.fn().mockResolvedValue(undefined),
+    storedObjectExists: vi.fn().mockResolvedValue(true),
     uploadToS3: vi.fn().mockResolvedValue({
       key: 'ingredients/video/uploaded-file.mp4',
       publicUrl: 'https://s3.amazonaws.com/uploaded-file.mp4',

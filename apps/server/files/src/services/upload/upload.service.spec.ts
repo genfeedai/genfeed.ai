@@ -158,6 +158,7 @@ describe('UploadService', () => {
 
     mockStorage = {
       delete: vi.fn().mockResolvedValue(undefined),
+      exists: vi.fn().mockResolvedValue(false),
       getUrl: vi.fn().mockReturnValue('https://s3.example.com/test-key'),
       upload: vi.fn().mockResolvedValue('ingredients/images/test-key'),
       uploadFromFile: vi.fn().mockResolvedValue('ingredients/videos/test-key'),
@@ -214,6 +215,25 @@ describe('UploadService', () => {
     await service.deleteStoredObject('videos/source.mp4');
 
     expect(mockStorage.delete).toHaveBeenCalledWith('videos/source.mp4');
+  });
+
+  it('reports whether a validated full storage key exists', async () => {
+    mockStorage.exists.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    await expect(
+      service.storedObjectExists('ingredients/images/a'),
+    ).resolves.toBe(true);
+    await expect(
+      service.storedObjectExists('ingredients/images/b'),
+    ).resolves.toBe(false);
+    expect(mockStorage.exists).toHaveBeenCalledWith('ingredients/images/a');
+  });
+
+  it('rejects an unsafe storage key before touching the provider', async () => {
+    mockStorage.exists.mockClear();
+
+    await expect(service.storedObjectExists('../escape')).rejects.toThrow();
+    expect(mockStorage.exists).not.toHaveBeenCalled();
   });
 
   describe('initialization', () => {

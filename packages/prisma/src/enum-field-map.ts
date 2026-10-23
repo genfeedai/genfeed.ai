@@ -4697,6 +4697,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   MediaDeliveryVariant: {
     allFields: [
+      'attemptCount',
       'createdAt',
       'failureCode',
       'id',

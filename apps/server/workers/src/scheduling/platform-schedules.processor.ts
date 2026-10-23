@@ -144,6 +144,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.ingredients.checkStuckProcessingIngredients(),
       [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN]: () =>
         this.llmIdle.shutdownIfIdle(),
+      [PLATFORM_SCHEDULED_TASKS.MEDIA_DELIVERY_RECOVERY]: () =>
+        this.recovery.recoverMediaDelivery(),
       [PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP]: () =>
         this.mediaPerception.queueDuePerceptions(),
       [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: () =>

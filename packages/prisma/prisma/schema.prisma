@@ -9574,6 +9574,7 @@ model MediaDeliveryVariant {
   state          String   @default("PENDING")
   storageKey     String?
   failureCode    String?
+  attemptCount   Int      @default(0)
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

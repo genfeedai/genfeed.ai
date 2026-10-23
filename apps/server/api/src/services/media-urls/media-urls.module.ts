@@ -3,7 +3,9 @@ import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-m
 import { MediaDeliveryController } from '@api/services/media-urls/media-delivery.controller';
 import { MediaDeliveryResponseInterceptor } from '@api/services/media-urls/media-delivery-response.interceptor';
 import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
+import { MediaKeyRepairService } from '@api/services/media-urls/media-key-repair.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
+import { MediaVariantRecoveryService } from '@api/services/media-urls/media-variant-recovery.service';
 import { RateLimitGuard } from '@api/shared/guards/rate-limit/rate-limit.guard';
 import { MEDIA_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
@@ -15,7 +17,9 @@ import { Module } from '@nestjs/common';
     AuthorizedMediaUrlService,
     MediaDerivativePreparationService,
     MediaDeliveryResponseInterceptor,
+    MediaKeyRepairService,
     MediaUrlService,
+    MediaVariantRecoveryService,
   ],
   imports: [
     FilesClientModule,
@@ -26,7 +30,9 @@ import { Module } from '@nestjs/common';
     AuthorizedMediaUrlService,
     MediaDerivativePreparationService,
     MediaDeliveryResponseInterceptor,
+    MediaKeyRepairService,
     MediaUrlService,
+    MediaVariantRecoveryService,
   ],
 })
 export class MediaUrlsModule {}

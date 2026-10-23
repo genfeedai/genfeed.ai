@@ -34,19 +34,21 @@ export class MediaDerivativePreparationService {
     private readonly queue: Queue<MediaDeliveryJobData>,
   ) {}
 
+  /** Preparation only runs in Cloud with the issuer or preparation flag on. */
+  isEnabled(): boolean {
+    return (
+      isCloudDeployment() &&
+      (this.config.isAuthorizedMediaPreparationEnabled ||
+        this.config.isAuthorizedMediaDeliveryEnabled)
+    );
+  }
+
   /** Public reads may enqueue one missing durable variant, never render inline. */
   async enqueuePublicMissing(
     ingredientIds: readonly string[],
     purpose: 'public-share' | 'public-og',
   ): Promise<void> {
-    if (
-      !isCloudDeployment() ||
-      !(
-        this.config.isAuthorizedMediaPreparationEnabled ||
-        this.config.isAuthorizedMediaDeliveryEnabled
-      )
-    )
-      return;
+    if (!this.isEnabled()) return;
     const sources = await this.issuer.readPublicSources(
       ingredientIds.slice(0, 50),
     );
@@ -109,14 +111,7 @@ export class MediaDerivativePreparationService {
     ingredientId: string,
     purpose: MediaDeliveryPurpose = 'preview',
   ): Promise<void> {
-    if (
-      !isCloudDeployment() ||
-      !(
-        this.config.isAuthorizedMediaPreparationEnabled ||
-        this.config.isAuthorizedMediaDeliveryEnabled
-      )
-    )
-      return;
+    if (!this.isEnabled()) return;
     const [source] = await this.issuer.readSources(organizationId, [
       ingredientId,
     ]);
@@ -160,28 +155,33 @@ export class MediaDerivativePreparationService {
       },
     });
     if (!isSupported || variant.state === 'READY') return;
-    await this.queue.add(
-      'prepare',
-      { ingredientId, organizationId, purpose, sourceIdentity },
-      {
-        attempts: 3,
-        backoff: { delay: 30_000, type: 'exponential' },
-        jobId: `media-delivery-${variant.id}`,
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
-    );
+    await this.addPrepareJob(variant.id, {
+      ingredientId,
+      organizationId,
+      purpose,
+      sourceIdentity,
+    });
+  }
+
+  /**
+   * One job per variant: the job id dedupes while a job is still queued or
+   * running, so recovery may call this again for a variant whose job vanished.
+   */
+  async addPrepareJob(
+    variantId: string,
+    data: MediaDeliveryJobData,
+  ): Promise<void> {
+    await this.queue.add('prepare', data, {
+      attempts: 3,
+      backoff: { delay: 30_000, type: 'exponential' },
+      jobId: `media-delivery-${variantId}`,
+      removeOnComplete: true,
+      removeOnFail: true,
+    });
   }
 
   async process(data: MediaDeliveryJobData): Promise<void> {
-    if (
-      !isCloudDeployment() ||
-      !(
-        this.config.isAuthorizedMediaPreparationEnabled ||
-        this.config.isAuthorizedMediaDeliveryEnabled
-      )
-    )
-      return;
+    if (!this.isEnabled()) return;
     const [source] = await this.issuer.readSources(data.organizationId, [
       data.ingredientId,
     ]);
