@@ -52,14 +52,14 @@ describe('FilesStorageController stored object existence', () => {
 
   function createController(
     storedObjectExists = vi.fn(),
-    expectedKey: string | undefined = SERVICE_KEY,
+    expectedKey: string | null = SERVICE_KEY,
   ) {
     return {
       controller: new FilesStorageController(
         {} as never,
         {} as never,
         { storedObjectExists } as never,
-        { get: vi.fn().mockReturnValue(expectedKey) } as never,
+        { get: vi.fn().mockReturnValue(expectedKey ?? undefined) } as never,
       ),
       storedObjectExists,
     };
@@ -103,10 +103,7 @@ describe('FilesStorageController stored object existence', () => {
   );
 
   it('is unavailable while no service key is configured', async () => {
-    const { controller, storedObjectExists } = createController(
-      vi.fn(),
-      undefined,
-    );
+    const { controller, storedObjectExists } = createController(vi.fn(), null);
 
     await expect(
       controller.storedObjectExists(SERVICE_KEY, { storageKey: 'a/b' }),
