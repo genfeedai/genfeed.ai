@@ -53,16 +53,16 @@ export default function AssetDeepLink() {
         openedKey.current = null;
         return;
       }
-      if (!isReady) return;
       const key = `${organizationId}:${brandId}:${assetId}`;
       if (openedKey.current === key) return;
       if (!/^[A-Za-z0-9_-]{1,200}$/.test(assetId)) {
         setState('error');
         return;
       }
+      setState('loading');
+      if (!isReady) return;
       // Scope still settling: wait for it rather than reporting the asset gone.
       if ((isBrandScoped && !brandId) || !organizationId) return;
-      setState('loading');
       try {
         let ingredient: Awaited<
           ReturnType<IngredientsService['findOne']>

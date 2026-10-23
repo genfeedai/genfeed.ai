@@ -171,6 +171,27 @@ describe('AssetDeepLink', () => {
     await waitFor(() => expect(mocks.open).toHaveBeenCalledTimes(1));
   });
 
+  it('rejects a malformed identifier even while brand context is not ready', async () => {
+    mocks.brand.isReady = false;
+    mocks.assetId = '../../users';
+    render(<AssetDeepLink />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This asset is unavailable',
+    );
+    expect(mocks.getService).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale error when the asset changes to a valid id before the scope is ready', async () => {
+    mocks.assetId = '../../users';
+    const { rerender } = render(<AssetDeepLink />);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    mocks.brand.isReady = false;
+    mocks.assetId = 'asset-1';
+    rerender(<AssetDeepLink />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
   it('does nothing without an asset query and rejects malformed identifiers locally', async () => {
     mocks.assetId = null;
     const { rerender } = render(<AssetDeepLink />);
