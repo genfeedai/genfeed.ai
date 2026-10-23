@@ -4,18 +4,20 @@ import {
   publicYoutubeInboxPostFilter,
 } from '@api/collections/posts/services/post-publication-capture.filters';
 import type {
-  SocialConversationAvailability,
   SocialConversationDocument,
   SocialMessage,
   SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
+import { queueSocialCommentTrigger } from '@api/collections/social-inbox/services/ingestion/comment-trigger-ingestion';
+import {
+  accountFieldsFromCredential,
+  ingestInboundSocialMessage,
+  type SyncedItem,
+  toXPostReplyItem,
+} from '@api/collections/social-inbox/services/ingestion/inbound-message-ingestion';
 import {
   boundLimit,
-  clamp,
-  getAvailability,
   LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
-  normalizePlatform,
-  sanitizeBody,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
   CreatedSocialMessageRef,
@@ -23,7 +25,6 @@ import type {
   SocialInboxScope,
   XPostRepliesIngestInput,
   XPostRepliesIngestResult,
-  XReplyTargetPost,
   YoutubeCommentIngestResult,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
@@ -35,7 +36,6 @@ import { scopedWhere } from '@api/index';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import type { TwitterInboxTweet } from '@api/services/integrations/twitter/services/twitter-inbox.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -43,40 +43,13 @@ import {
   SocialConversationType,
   SocialMessageType,
 } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
-import {
-  CredentialPlatform as PrismaCredentialPlatform,
-  toPrismaJson,
-} from '@genfeedai/prisma';
-import { isObjectLike, readRecord } from '@genfeedai/utils/data/extract.util';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
 const X_DM_MAX_PAGES = 5;
-
-type ConnectedCredentialAccount = {
-  externalHandle?: string | null;
-  externalId?: string | null;
-  externalName?: string | null;
-  label?: string | null;
-  userId?: string | null;
-  username?: string | null;
-};
-
-function accountFieldsFromCredential(
-  credential: ConnectedCredentialAccount,
-  fallbackUserId?: string,
-) {
-  return {
-    accountExternalId: credential.externalId ?? undefined,
-    accountHandle:
-      credential.externalHandle ?? credential.username ?? undefined,
-    accountName: credential.externalName ?? credential.label ?? undefined,
-    userId: credential.userId ?? fallbackUserId,
-  };
-}
 
 function isProviderRateLimit(error: unknown): boolean {
   if (!isObjectLike(error)) {
@@ -96,53 +69,6 @@ function isProviderRateLimit(error: unknown): boolean {
     message.includes('too many requests') ||
     isObjectLike(error.rateLimit)
   );
-}
-
-type WorkflowTriggerClaim = {
-  attemptedAt: Date;
-  jobId: string;
-};
-
-type SyncedItem = {
-  input: InboundSocialMessageInput;
-  messageId: string;
-  threadId: string;
-};
-
-function toXPostReplyItem(
-  credential: ConnectedCredentialAccount & { id: string },
-  scope: SocialInboxScope,
-  post: XReplyTargetPost,
-  reply: TwitterInboxTweet,
-): SyncedItem {
-  return {
-    input: {
-      ...accountFieldsFromCredential(credential, scope.userId),
-      body: reply.text,
-      brandId: post.brandId,
-      conversationType: SocialConversationType.COMMENT,
-      createdAt: reply.createdAt,
-      credentialId: credential.id,
-      externalConversationId: reply.conversationId,
-      externalMessageId: reply.tweetId,
-      externalParentId: reply.tweetId,
-      externalParentMessageId: reply.inReplyToId ?? undefined,
-      externalThreadId: reply.conversationId,
-      organizationId: scope.organizationId,
-      participantAvatarUrl: reply.authorAvatarUrl,
-      participantExternalId: reply.authorId,
-      participantHandle: reply.authorUsername,
-      participantName: reply.authorName ?? reply.authorUsername,
-      platform: Platform.TWITTER,
-      postId: post.id,
-      sourceContentId: String(post.externalId),
-      sourceContentTitle: post.label ?? post.description.slice(0, 120),
-      sourceContentType: 'tweet',
-      sourceContentUrl: post.url ?? `https://x.com/i/status/${post.externalId}`,
-    },
-    messageId: reply.tweetId,
-    threadId: reply.conversationId,
-  };
 }
 
 @Injectable()
@@ -171,141 +97,13 @@ export class SocialInboxIngestionService {
   async ingestInboundMessage(
     input: InboundSocialMessageInput,
   ): Promise<SocialMessageDocument> {
-    const platform = normalizePlatform(input.platform);
-    const body = sanitizeBody(input.body);
-    const messageCreatedAt = input.createdAt ?? new Date();
-    const availability = getAvailability({
-      conversationType: input.conversationType,
-      externalParentId: input.externalParentId,
-      participantExternalId: input.participantExternalId,
-      platform,
-      sourceContentId: input.sourceContentId,
+    return ingestInboundSocialMessage(input, {
+      hasWorkflowQueue: () => Boolean(this.workflowExecutionQueueService),
+      prisma: this.prisma,
+      queueCommentTrigger: (inbound, message, conversation) =>
+        this.queueCommentTrigger(inbound, message, conversation),
+      realtime: this.realtimeService,
     });
-
-    const conversation = await this.findOrCreateConversation({
-      ...input,
-      availability,
-      body,
-      createdAt: messageCreatedAt,
-      platform,
-    });
-
-    const existing = await this.prisma.socialMessage.findFirst({
-      where: scopedWhere(input.organizationId, {
-        externalMessageId: input.externalMessageId,
-        platform,
-      }),
-    });
-
-    if (existing) {
-      await this.queueCommentTrigger(input, existing, conversation);
-      return existing;
-    }
-
-    let message: Awaited<ReturnType<typeof this.prisma.socialMessage.create>>;
-    try {
-      message = await this.prisma.socialMessage.create({
-        data: {
-          body,
-          brandId: input.brandId,
-          conversationId: conversation.id,
-          createdAt: messageCreatedAt,
-          credentialId: input.credentialId,
-          direction: 'inbound',
-          externalMessageId: input.externalMessageId,
-          externalParentMessageId: input.externalParentMessageId,
-          metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-          messageType:
-            input.conversationType === SocialConversationType.DM
-              ? SocialMessageType.DM
-              : SocialMessageType.COMMENT,
-          organizationId: input.organizationId,
-          platform,
-          postId: input.postId,
-          senderAvatarUrl: clamp(input.participantAvatarUrl, 2048),
-          senderExternalId: clamp(input.participantExternalId, 512),
-          senderHandle: clamp(input.participantHandle, 280),
-          senderName: clamp(input.participantName, 280),
-          sourceUrl: clamp(input.sourceContentUrl, 2048),
-          status: 'received',
-          userId: input.userId,
-          workflowTriggerStatus:
-            this.workflowExecutionQueueService && input.userId
-              ? 'pending'
-              : undefined,
-        },
-      });
-    } catch (error) {
-      // Same ingestion race as conversations: unique
-      // (organizationId, platform, externalMessageId) makes the losing
-      // concurrent create throw P2002 — return the winner's row.
-      if ((error as { code?: string })?.code !== 'P2002') {
-        throw error;
-      }
-      const winner = await this.prisma.socialMessage.findFirst({
-        where: scopedWhere(input.organizationId, {
-          externalMessageId: input.externalMessageId,
-          platform,
-        }),
-      });
-      if (!winner) {
-        throw error;
-      }
-      await this.queueCommentTrigger(input, winner, conversation);
-      return winner;
-    }
-
-    // Batches are reverse-chronological: only the newest message advances the
-    // preview; unreadCount and inboundSequence (read cursor) always increment.
-    const previewAdvanced = await this.prisma.socialConversation.updateMany({
-      data: {
-        inboundSequence: { increment: 1 },
-        latestMessageAt: messageCreatedAt,
-        latestMessageText: clamp(body, 500),
-        lastInboundAt: messageCreatedAt,
-        unreadCount: { increment: 1 },
-        updatedAt: new Date(),
-      },
-      where: scopedWhere(input.organizationId, {
-        id: conversation.id,
-        OR: [
-          { latestMessageAt: null },
-          { latestMessageAt: { lte: messageCreatedAt } },
-        ],
-      }),
-    });
-
-    if (previewAdvanced.count === 0) {
-      await this.prisma.socialConversation.updateMany({
-        data: {
-          inboundSequence: { increment: 1 },
-          unreadCount: { increment: 1 },
-          updatedAt: new Date(),
-        },
-        where: scopedWhere(input.organizationId, { id: conversation.id }),
-      });
-    }
-
-    // A new reply reopens an archived thread (common inbox behavior), which
-    // keeps unreadCount > 0 and status === 'archived' mutually exclusive —
-    // the invariant unreadFilter() and the bell's checks rely on.
-    await this.prisma.socialConversation.updateMany({
-      data: { status: 'open', updatedAt: new Date() },
-      where: scopedWhere(input.organizationId, {
-        id: conversation.id,
-        status: 'archived',
-      }),
-    });
-
-    await this.queueCommentTrigger(input, message, conversation);
-
-    await this.realtimeService.emit(
-      input.organizationId,
-      conversation.id,
-      'message-created',
-    );
-
-    return message;
   }
 
   async ingestYoutubeComments(
@@ -1152,306 +950,14 @@ export class SocialInboxIngestionService {
     });
   }
 
-  private async findOrCreateConversation(
-    input: InboundSocialMessageInput & {
-      availability: SocialConversationAvailability;
-      body: string;
-      createdAt: Date;
-      platform: string;
-    },
-  ): Promise<SocialConversationDocument> {
-    const existing = await this.prisma.socialConversation.findFirst({
-      where: scopedWhere(input.organizationId, {
-        externalConversationId: input.externalConversationId,
-        platform: input.platform,
-      }),
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    let created: Awaited<
-      ReturnType<typeof this.prisma.socialConversation.create>
-    >;
-    try {
-      created = await this.prisma.socialConversation.create({
-        data: {
-          accountExternalId: clamp(input.accountExternalId, 512),
-          accountHandle: clamp(input.accountHandle, 280),
-          accountName: clamp(input.accountName, 280),
-          availability: toPrismaJson(input.availability),
-          automationState: 'manual',
-          brandId: input.brandId,
-          conversationType: input.conversationType,
-          credentialId: input.credentialId,
-          externalConversationId: input.externalConversationId,
-          externalParentId: clamp(input.externalParentId, 512),
-          externalThreadId: clamp(input.externalThreadId, 512),
-          lastInboundAt: input.createdAt,
-          latestMessageAt: input.createdAt,
-          latestMessageText: clamp(input.body, 500),
-          metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-          organizationId: input.organizationId,
-          participantAvatarUrl: clamp(input.participantAvatarUrl, 2048),
-          participantExternalId: clamp(input.participantExternalId, 512),
-          participantHandle: clamp(input.participantHandle, 280),
-          participantName: clamp(input.participantName, 280),
-          platform: input.platform,
-          postId: input.postId,
-          sourceContentId: clamp(input.sourceContentId, 512),
-          sourceContentTitle: clamp(input.sourceContentTitle, 500),
-          sourceContentType: clamp(input.sourceContentType, 100),
-          sourceContentUrl: clamp(input.sourceContentUrl, 2048),
-          status: 'open',
-          unreadCount: 0,
-          userId: input.userId,
-        },
-      });
-    } catch (error) {
-      // Concurrent ingestion (webhook + cron) can race the findFirst above;
-      // the unique (organizationId, platform, externalConversationId) makes
-      // the loser throw P2002 — recover by returning the winner's row.
-      if ((error as { code?: string })?.code !== 'P2002') {
-        throw error;
-      }
-      const winner = await this.prisma.socialConversation.findFirst({
-        where: scopedWhere(input.organizationId, {
-          externalConversationId: input.externalConversationId,
-          platform: input.platform,
-        }),
-      });
-      if (!winner) {
-        throw error;
-      }
-      return winner;
-    }
-
-    return created;
-  }
-
   private async queueCommentTrigger(
     input: InboundSocialMessageInput,
     message: SocialMessage,
     conversation: SocialConversationDocument,
   ): Promise<void> {
-    const userId = input.userId ?? message.userId ?? undefined;
-    const queueService = this.workflowExecutionQueueService;
-    if (!queueService || !userId) {
-      return;
-    }
-
-    const claim = await this.claimCommentTrigger(input, message, conversation);
-    if (!claim) {
-      return;
-    }
-
-    let queuedJobId: string;
-    try {
-      queuedJobId = await this.enqueueCommentTrigger(
-        input,
-        message,
-        conversation,
-        userId,
-        claim.jobId,
-        queueService,
-      );
-    } catch (error: unknown) {
-      await this.finalizeFailedCommentTrigger(
-        input,
-        message,
-        conversation,
-        claim.attemptedAt,
-        error instanceof Error ? error.message : String(error),
-      );
-      return;
-    }
-
-    await this.finalizeQueuedCommentTrigger(
-      input,
-      message,
-      conversation,
-      claim.attemptedAt,
-      queuedJobId,
-    );
-  }
-
-  private async claimCommentTrigger(
-    input: InboundSocialMessageInput,
-    message: SocialMessage,
-    conversation: SocialConversationDocument,
-  ): Promise<WorkflowTriggerClaim | null> {
-    const attemptedAt = new Date();
-    const staleClaimBefore = new Date(
-      attemptedAt.getTime() - WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS,
-    );
-    const jobId = [
-      'social-comment-trigger',
-      input.organizationId,
-      message.id,
-    ].join('-');
-    const claim = await this.prisma.socialMessage.updateMany({
-      data: {
-        workflowTriggerAttemptedAt: attemptedAt,
-        workflowTriggerError: null,
-        workflowTriggerJobId: jobId,
-        workflowTriggerStatus: 'enqueueing',
-      },
-      where: scopedWhere(input.organizationId, {
-        conversationId: conversation.id,
-        id: message.id,
-        OR: [
-          { workflowTriggerStatus: null },
-          { workflowTriggerStatus: { in: ['pending', 'failed'] } },
-          {
-            workflowTriggerAttemptedAt: { lt: staleClaimBefore },
-            workflowTriggerStatus: 'enqueueing',
-          },
-        ],
-      }),
-    });
-
-    return claim.count === 0 ? null : { attemptedAt, jobId };
-  }
-
-  private enqueueCommentTrigger(
-    input: InboundSocialMessageInput,
-    message: SocialMessage,
-    conversation: SocialConversationDocument,
-    userId: string,
-    jobId: string,
-    queueService: WorkflowExecutionQueueService,
-  ): Promise<string> {
-    return queueService.queueTriggerEvent(
-      {
-        data: {
-          authorId: input.participantExternalId,
-          authorUsername: input.participantHandle ?? input.participantName,
-          brandId: input.brandId,
-          commentId: input.externalMessageId,
-          contentId: input.sourceContentId,
-          contentUrl: input.sourceContentUrl,
-          conversationId: conversation.id,
-          credentialId: input.credentialId,
-          externalMessageId: input.externalMessageId,
-          externalParentId: input.externalParentId,
-          messageId: message.id,
-          parentId: input.externalParentId,
-          platform: conversation.platform,
-          postId:
-            input.externalParentId ??
-            input.externalMessageId ??
-            input.sourceContentId,
-          postUrl: input.sourceContentUrl,
-          sourceContentId: input.sourceContentId,
-          text: message.body,
-        },
-        organizationId: input.organizationId,
-        platform: conversation.platform,
-        type: 'commentTrigger',
-        userId,
-      },
-      { jobId },
-    );
-  }
-
-  private async finalizeFailedCommentTrigger(
-    input: InboundSocialMessageInput,
-    message: SocialMessage,
-    conversation: SocialConversationDocument,
-    attemptedAt: Date,
-    errorMessage: string,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (transaction) => {
-      const finalized = await transaction.socialMessage.updateMany({
-        data: {
-          workflowTriggerError: errorMessage,
-          workflowTriggerStatus: 'failed',
-        },
-        where: scopedWhere(input.organizationId, {
-          conversationId: conversation.id,
-          id: message.id,
-          workflowTriggerAttemptedAt: attemptedAt,
-          workflowTriggerStatus: 'enqueueing',
-        }),
-      });
-      if (finalized.count === 0) {
-        return;
-      }
-
-      const freshConversation = await transaction.socialConversation.findFirst({
-        where: scopedWhere(input.organizationId, { id: conversation.id }),
-      });
-      if (!freshConversation) {
-        return;
-      }
-
-      await transaction.socialConversation.updateMany({
-        data: {
-          automationState: 'failed',
-          metadata: {
-            ...readRecord(freshConversation.metadata),
-            workflowTriggerError: errorMessage,
-            workflowTriggerFailedAt: new Date().toISOString(),
-          } as Prisma.InputJsonValue,
-        },
-        where: scopedWhere(input.organizationId, { id: conversation.id }),
-      });
-    });
-  }
-
-  private async finalizeQueuedCommentTrigger(
-    input: InboundSocialMessageInput,
-    message: SocialMessage,
-    conversation: SocialConversationDocument,
-    attemptedAt: Date,
-    queuedJobId: string,
-  ): Promise<void> {
-    const queuedAt = new Date();
-    await this.prisma.$transaction(async (transaction) => {
-      const finalized = await transaction.socialMessage.updateMany({
-        data: {
-          workflowTriggerError: null,
-          workflowTriggerJobId: queuedJobId,
-          workflowTriggerQueuedAt: queuedAt,
-          workflowTriggerStatus: 'queued',
-        },
-        where: scopedWhere(input.organizationId, {
-          conversationId: conversation.id,
-          id: message.id,
-          workflowTriggerAttemptedAt: attemptedAt,
-          workflowTriggerStatus: 'enqueueing',
-        }),
-      });
-      if (finalized.count === 0) {
-        return;
-      }
-
-      const freshConversation = await transaction.socialConversation.findFirst({
-        where: scopedWhere(input.organizationId, { id: conversation.id }),
-      });
-      if (!freshConversation) {
-        return;
-      }
-      const freshMetadata = readRecord(freshConversation.metadata);
-
-      await transaction.socialConversation.updateMany({
-        data: {
-          automationState:
-            freshConversation.automationState === 'failed' &&
-            typeof freshMetadata.workflowTriggerFailedAt === 'string'
-              ? 'manual'
-              : freshConversation.automationState,
-          metadata: {
-            ...freshMetadata,
-            lastWorkflowTriggerJobId: queuedJobId,
-            lastWorkflowTriggeredAt: queuedAt.toISOString(),
-            workflowTriggerError: null,
-            workflowTriggerFailedAt: null,
-          } as Prisma.InputJsonValue,
-        },
-        where: scopedWhere(input.organizationId, { id: conversation.id }),
-      });
+    return queueSocialCommentTrigger(input, message, conversation, {
+      prisma: this.prisma,
+      queueService: this.workflowExecutionQueueService,
     });
   }
 }
