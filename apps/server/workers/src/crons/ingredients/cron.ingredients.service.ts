@@ -14,6 +14,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { ConfigService } from '@workers/config/config.service';
 
 /**
@@ -162,6 +163,23 @@ export class CronIngredientsService {
           updated: result.modifiedCount,
         },
       );
+
+      // A generation that outlives the timeout is a provider or dispatch
+      // fault, not a user error: report it so it is seen, not only logged.
+      // Its credit hold is not released here; the hold recovery sweep owns
+      // that decision because the provider may still have produced output.
+      if (result.modifiedCount > 0) {
+        Sentry.captureMessage('Studio generations timed out while processing', {
+          extra: {
+            count: result.modifiedCount,
+            ingredientIds: stuckIngredients.docs
+              .slice(0, 10)
+              .map((ingredient: { id: unknown }) => String(ingredient.id)),
+          },
+          level: 'error',
+          tags: { cron: 'ingredient-processing-timeout' },
+        });
+      }
 
       // Log individual ingredient IDs for debugging
       if (result.modifiedCount > 0 && stuckIngredients.docs) {
