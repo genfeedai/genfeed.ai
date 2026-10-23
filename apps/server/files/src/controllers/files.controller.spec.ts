@@ -440,6 +440,8 @@ describe('FilesController', () => {
       processYoutube: jobsController.processYoutube.bind(jobsController),
       resizeImage: processingController.resizeImage.bind(processingController),
       splitImage: processingController.splitImage.bind(processingController),
+      storedObjectExists:
+        storageController.storedObjectExists.bind(storageController),
       uploadFile: storageController.uploadFile.bind(storageController),
       uploadMultipart:
         storageController.uploadMultipart.bind(storageController),
