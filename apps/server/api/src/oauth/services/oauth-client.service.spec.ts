@@ -198,6 +198,43 @@ describe('OAuth CIMD clients', () => {
     ).rejects.toMatchObject({ response: { error: 'invalid_request' } });
   });
 
+  it('accepts Claude\'s real metadata document and drops grant types it does not support', async () => {
+    const claudeId = 'https://claude.ai/oauth/mcp-oauth-client-metadata';
+    const claudeDocument = {
+      client_id: claudeId,
+      client_name: 'Claude',
+      client_uri: 'https://claude.ai',
+      redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
+      grant_types: [
+        'authorization_code',
+        'refresh_token',
+        'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      ],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+    };
+    vi.mocked(safeFetch).mockResolvedValue(documentResponse(claudeDocument));
+    await expect(
+      buildService().requireClient(claudeId, claudeDocument.redirect_uris[0]),
+    ).resolves.toMatchObject({
+      clientId: claudeId,
+      clientName: 'Claude',
+      grantTypes: ['authorization_code', 'refresh_token'],
+    });
+  });
+
+  it('rejects a document that does not offer the authorization_code grant', async () => {
+    vi.mocked(safeFetch).mockResolvedValue(
+      documentResponse({
+        ...metadata,
+        grant_types: ['urn:ietf:params:oauth:grant-type:jwt-bearer'],
+      }),
+    );
+    await expect(buildService().requireClient(clientId)).rejects.toMatchObject({
+      response: { error: 'invalid_client' },
+    });
+  });
+
   it.each([
     'http://client.example/metadata.json',
     'https://client.example/',
