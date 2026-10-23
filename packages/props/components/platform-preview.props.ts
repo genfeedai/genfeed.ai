@@ -97,3 +97,39 @@ export type PlatformPreviewRenderer =
   ComponentType<PlatformPreviewRendererProps>;
 
 export type PlatformPreviewIcon = IconComponent;
+
+export type PlatformPreviewPresentation = Pick<
+  PlatformPreviewProps,
+  | 'renderMedia'
+  | 'statusLabel'
+  | 'showValidation'
+  | 'presentation'
+  | 'headerPresentation'
+>;
+export type PlatformPreviewStatus = { messageKey: string; className: string };
+export type PlatformPreviewCharacterCounterProps = {
+  state: CaptionPreviewState;
+};
+export type PlatformPreviewCaptionProps = PlatformPreviewRendererProps & {
+  emptyMessage?: string;
+};
+export type PlatformPreviewMediaTileProps = {
+  intrinsic?: boolean;
+  item: PlatformPreviewMedia;
+  index: number;
+  className?: string;
+  animatedConsequence?: string;
+};
+export type PlatformPreviewMediaGridProps = PlatformPreviewRendererProps & {
+  variant?: 'grid' | 'square' | 'video' | 'vertical';
+};
+export type PlatformPreviewShellProps = PlatformPreviewRendererProps & {
+  eyebrow: string;
+  isApproximate?: boolean;
+  children: ReactNode;
+  className?: string;
+};
+export type PlatformPreviewAuthorRowProps = PlatformPreviewRendererProps & {
+  meta?: ReactNode;
+  showPlatformBadge?: boolean;
+};

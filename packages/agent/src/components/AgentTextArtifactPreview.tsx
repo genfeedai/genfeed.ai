@@ -4,11 +4,11 @@ import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { PlatformPreviewAuthor } from '@genfeedai/props/components/platform-preview.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PlatformPreview, {
   type PlatformPreviewThreadSegment,
 } from '@ui/posts/platform-preview/PlatformPreview';
-import type { PlatformPreviewAuthor } from '@ui/posts/platform-preview/PlatformPreview.types';
 import { resolvePreviewAuthor } from '@ui/posts/platform-preview/preview-author';
 import { Button } from '@ui/primitives/button';
 import {

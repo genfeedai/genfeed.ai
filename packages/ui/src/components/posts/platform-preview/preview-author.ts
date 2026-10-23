@@ -1,6 +1,6 @@
 import { parsePlatform } from '@genfeedai/contracts';
 import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
-import type { PlatformPreviewAuthor } from './PlatformPreview.types';
+import type { PlatformPreviewAuthor } from '@genfeedai/props/components/platform-preview.props';
 
 export interface PreviewAuthorScope {
   brandId: string;

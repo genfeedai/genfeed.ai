@@ -2,11 +2,11 @@
 
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
+import type { PlatformPreviewTarget } from '@genfeedai/props/components/platform-preview.props';
 import type { TargetPreviewCredential } from '@genfeedai/props/ui/previews.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { PostsService } from '@services/content/posts.service';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
-import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview.types';
 import { buildTargetPreview } from '@ui/previews/preview.helpers';
 import {
   HoverCard,

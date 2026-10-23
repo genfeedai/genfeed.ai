@@ -21,7 +21,7 @@ import type {
   PlatformPreviewMedia,
   PlatformPreviewTarget,
   ResolvedPlatformPreviewTarget,
-} from './PlatformPreview.types';
+} from '@genfeedai/props/components/platform-preview.props';
 
 export const DEFAULT_PLATFORM_PREVIEW_AUTHOR_NAME = 'Your Account';
 export const DEFAULT_PLATFORM_PREVIEW_AUTHOR_HANDLE = 'youraccount';

@@ -4,12 +4,12 @@ import type {
   IReleaseAttachment,
 } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
+import type { PlatformPreviewTarget } from '@genfeedai/props/components/platform-preview.props';
 import type {
   TargetPreviewCredential,
   TargetPreviewProps,
   TargetPreviewRelease,
 } from '@genfeedai/props/ui/previews.props';
-import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview.types';
 
 /**
  * A target's `settings.caption` is the per-platform text override; falling
