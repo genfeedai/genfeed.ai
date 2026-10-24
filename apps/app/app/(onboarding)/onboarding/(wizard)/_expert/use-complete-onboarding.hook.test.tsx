@@ -7,6 +7,12 @@ const mocks = vi.hoisted(() => ({
   token: 'token' as string | null,
   patch: vi.fn(),
   reload: vi.fn(),
+  isCompleted: false,
+}));
+vi.mock('@contexts/user/user-context/user-context', () => ({
+  useCurrentUser: () => ({
+    currentUser: { id: 'user-1', isOnboardingCompleted: mocks.isCompleted },
+  }),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: undefined }),
@@ -31,6 +37,7 @@ describe('useCompleteOnboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.token = 'token';
+    mocks.isCompleted = false;
     localStorage.setItem('gf_onboarding_brand_domain', 'acme.co');
   });
   it('keeps onboarding open when the authenticated completion write fails', async () => {
@@ -46,5 +53,16 @@ describe('useCompleteOnboarding', () => {
     await expect(result.current()).rejects.toThrow('Authentication');
     expect(mocks.patch).not.toHaveBeenCalled();
     expect(mocks.reload).not.toHaveBeenCalled();
+  });
+  it('writes nothing when a finished user replays onboarding', async () => {
+    mocks.isCompleted = true;
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const { result } = renderHook(() => useCompleteOnboarding());
+    await result.current();
+    expect(mocks.patch).not.toHaveBeenCalled();
+    expect(mocks.reload).not.toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 });

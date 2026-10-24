@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -21,6 +22,8 @@ export function useCompleteOnboarding(): () => Promise<void> {
   const { getToken } = useAuthIdentity();
   const { user } = useAuthUser();
   const { selectedBrand } = useBrand();
+  const { currentUser } = useCurrentUser();
+  const isReplay = currentUser?.isOnboardingCompleted === true;
 
   return useCallback(async () => {
     // Onboarding completion is a field write on the user resource; the
@@ -33,16 +36,22 @@ export function useCompleteOnboarding(): () => Promise<void> {
     // hook used to) double-emitted the funnel event whenever two wizard tabs
     // raced, or the agent-first onboarding path completed first and this
     // PATCH later found the user already onboarded (genfeedai/genfeed.ai#5311).
-    try {
-      const token = await resolveAuthToken(getToken, { forceRefresh: true });
-      if (!token) throw new Error('Authentication is unavailable');
-      await UsersService.getInstance(token).patchMe({
-        isOnboardingCompleted: true,
-      });
-      await user?.reload();
-    } catch (error) {
-      logger.error('Failed to complete funnel', error);
-      throw error;
+    //
+    // A replay by an already-onboarded user writes nothing: the completion
+    // claim, its funnel event and the finished-onboarding announcement all
+    // already happened.
+    if (!isReplay) {
+      try {
+        const token = await resolveAuthToken(getToken, { forceRefresh: true });
+        if (!token) throw new Error('Authentication is unavailable');
+        await UsersService.getInstance(token).patchMe({
+          isOnboardingCompleted: true,
+        });
+        await user?.reload();
+      } catch (error) {
+        logger.error('Failed to complete funnel', error);
+        throw error;
+      }
     }
 
     for (const key of [
@@ -69,5 +78,5 @@ export function useCompleteOnboarding(): () => Promise<void> {
         ? createBrandAppRoute(orgSlug, brandSlug, '/workspace')
         : APP_ROUTES.WORKSPACE.OVERVIEW,
     );
-  }, [getToken, selectedBrand, user]);
+  }, [getToken, isReplay, selectedBrand, user]);
 }

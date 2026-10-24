@@ -19,7 +19,8 @@ export type FirstDraftsError =
   | 'generate'
   | 'continue'
   | 'recovery'
-  | 'feedback';
+  | 'feedback'
+  | 'replay';
 
 export interface FirstDraftsState {
   canRetry: boolean;

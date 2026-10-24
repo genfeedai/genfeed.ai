@@ -258,6 +258,29 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.scanBrand).not.toHaveBeenCalled();
   });
 
+  it('replays the saved run for a finished user without leaving onboarding', async () => {
+    mocks.isCompleted = true;
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    expect(await screen.findByText('twitter draft text')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+    expect(mocks.scanBrand).not.toHaveBeenCalled();
+  });
+
+  it('never starts a generation or scan when a finished user replays without a saved run', async () => {
+    mocks.isCompleted = true;
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You already finished onboarding',
+    );
+    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(mocks.readDrafts).toHaveBeenCalled();
+    expect(mocks.scanBrand).not.toHaveBeenCalled();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+  });
+
   it('disables future steps before any run exists', async () => {
     render(<FirstDraftsOnboarding />);
     await screen.findByRole('textbox');

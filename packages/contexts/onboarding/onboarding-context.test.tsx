@@ -350,4 +350,25 @@ describe('guarded onboarding completion boundaries', () => {
       expect(replaceMock).toHaveBeenCalledExactlyOnceWith('/');
     },
   );
+  it('only navigates when a finished user replays a step', async () => {
+    boundary.currentUser = {
+      id: 'usr_123',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+    };
+    const completed = vi.fn();
+    render(
+      <OnboardingProvider>
+        <CompletionProbe onComplete={completed} />
+      </OnboardingProvider>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Guarded completion' }),
+    );
+    await waitFor(() => expect(completed).toHaveBeenCalledTimes(1));
+    expect(getTokenMock).not.toHaveBeenCalled();
+    expect(updateOnboardingMock).not.toHaveBeenCalled();
+    expect(refetchUserMock).not.toHaveBeenCalled();
+    expect(replaceMock).toHaveBeenCalledExactlyOnceWith('/');
+  });
 });

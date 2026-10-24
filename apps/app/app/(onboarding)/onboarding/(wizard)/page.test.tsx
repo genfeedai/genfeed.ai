@@ -61,8 +61,17 @@ describe('onboarding entry redirects', () => {
       expect.stringContaining('agent'),
     );
   });
-  it('sends a finished user to the app', async () => {
+  it('replays onboarding from the first step for a finished user', async () => {
     mocks.isCompleted = true;
+    mocks.steps = ['brand', 'providers', 'summary'];
+    render(<OnboardingRootPage />);
+    await waitFor(() =>
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand'),
+    );
+    expect(mocks.replace).not.toHaveBeenCalledWith('/');
+  });
+  it('sends a user with every step done but no completion flag to the app', async () => {
+    mocks.steps = ['brand', 'providers', 'summary'];
     render(<OnboardingRootPage />);
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/'));
   });

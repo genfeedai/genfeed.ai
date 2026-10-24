@@ -85,18 +85,16 @@ export function useFirstDrafts(): FirstDraftsState {
     if (run.status === 'interrupted') setError('recovery');
   }, []);
 
-  const isOnboardingCompleted = currentUser?.isOnboardingCompleted === true;
-  useEffect(() => {
-    if (isOnboardingCompleted) replace('/');
-  }, [isOnboardingCompleted, replace]);
-
+  // A finished user lands here to replay the flow. The replay reads the saved
+  // run but never starts a generation: that is the free allowance, and the
+  // trial credits are not a replay's to grant.
+  const isReplay = currentUser?.isOnboardingCompleted === true;
   useEffect(() => {
     if (
       !brandId ||
       !currentUser?.id ||
       isLoading ||
-      !isBrandScopeResolved ||
-      isOnboardingCompleted
+      !isBrandScopeResolved
     )
       return;
     const controller = new AbortController();
@@ -176,7 +174,6 @@ export function useFirstDrafts(): FirstDraftsState {
     currentUser?.email,
     isLoading,
     isBrandScopeResolved,
-    isOnboardingCompleted,
     scopeKey,
     storageKey,
     searchParams,
@@ -236,6 +233,11 @@ export function useFirstDrafts(): FirstDraftsState {
           acceptRun(existing, true);
           return;
         }
+        if (isReplay) {
+          setPhase('url');
+          setError('replay');
+          return;
+        }
         if (!context) {
           const scanned = await service.scanBrand(
             brandId,
@@ -290,6 +292,7 @@ export function useFirstDrafts(): FirstDraftsState {
       brandId,
       getService,
       isGenerating,
+      isReplay,
       isRestoring,
       result?.requestKey,
       scopeKey,

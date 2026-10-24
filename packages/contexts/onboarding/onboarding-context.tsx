@@ -133,7 +133,11 @@ export default function OnboardingProvider({
         ...extraPayload,
       };
 
-      await saveProgress(payload, shouldContinue);
+      // Replaying a finished onboarding only navigates; its progress is
+      // already saved and nothing in it is rewritten.
+      if (currentUser?.isOnboardingCompleted !== true) {
+        await saveProgress(payload, shouldContinue);
+      }
       if (shouldContinue?.() === false) return;
 
       const nextHref = resolveOnboardingContinueHref({

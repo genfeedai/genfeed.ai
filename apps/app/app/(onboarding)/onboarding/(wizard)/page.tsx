@@ -14,6 +14,8 @@ import { useEffect } from 'react';
 
 /**
  * Root /onboarding page — redirects to the first unfinished onboarding step.
+ * A user who already finished onboarding replays the flow from its first step
+ * (the replay never generates or grants anything, see `useFirstDrafts`).
  */
 export default function OnboardingRootPage() {
   const { currentUser, isLoading } = useCurrentUser();
@@ -25,12 +27,12 @@ export default function OnboardingRootPage() {
       return;
     }
 
-    const completedSteps = currentUser.onboardingStepsCompleted ?? [];
-    const hasCompletedAllOnboardingSteps =
-      currentUser.isOnboardingCompleted === true ||
-      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+    const isReplay = currentUser.isOnboardingCompleted === true;
+    const completedSteps = isReplay
+      ? []
+      : (currentUser.onboardingStepsCompleted ?? []);
 
-    if (hasCompletedAllOnboardingSteps) {
+    if (ONBOARDING_STEPS.every((step) => completedSteps.includes(step))) {
       replace('/');
       return;
     }
