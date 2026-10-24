@@ -1,11 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { PostCard } from '@ui/primitives/animated-icons/custom-lucide';
-import { Gauge, Route } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, Gauge, Route } from 'lucide-react';
 
 /**
  * Posts owns social posts, articles, and newsletters with type and status
- * filters. Calendar and approvals are Posts views (#5502), not nav items.
+ * filters. Calendar and Approvals are Posts views (`?view=`) that also get
+ * their own entries here; the `view` query decides which entry is active.
  */
 export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -24,6 +25,24 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.PUBLISHING.POSTS],
     outline: PostCard,
     solid: PostCard,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.PUBLISHING.CALENDAR,
+    label: 'Calendar',
+    matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
+    matchSearchParams: { view: 'calendar' },
+    outline: CalendarDays,
+    solid: CalendarDays,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.PUBLISHING.REVIEW,
+    label: 'Approvals',
+    matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
+    matchSearchParams: { view: 'approvals' },
+    outline: ClipboardCheck,
+    solid: ClipboardCheck,
   },
   {
     group: '',

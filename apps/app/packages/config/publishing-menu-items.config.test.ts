@@ -33,16 +33,19 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('is a flat Overview → Posts → Campaigns bar', () => {
-    // #5502: calendar and approvals are Posts views, not nav items.
+  it('is a flat Overview → Posts → Calendar → Approvals → Campaigns bar', () => {
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
+      'Calendar',
+      'Approvals',
       'Campaigns',
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
       APP_ROUTES.PUBLISHING.OVERVIEW,
       APP_ROUTES.PUBLISHING.POSTS,
+      APP_ROUTES.PUBLISHING.CALENDAR,
+      APP_ROUTES.PUBLISHING.REVIEW,
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(
@@ -61,12 +64,26 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     ).toEqual(expect.objectContaining({ releaseItemId: 'campaigns' }));
   });
 
-  it('has no groups, collapsible sections, or search-param shortcuts', () => {
+  it('has no groups or collapsible sections', () => {
     for (const item of PUBLISHING_MENU_ITEMS) {
       expect(item.group).toBe('');
       expect(item.isCollapsible).toBeFalsy();
-      expect(item.matchSearchParams).toBeUndefined();
     }
+  });
+
+  it('tells Calendar and Approvals apart from Posts by the view query', () => {
+    expect(
+      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Calendar')
+        ?.matchSearchParams,
+    ).toEqual({ view: 'calendar' });
+    expect(
+      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Approvals')
+        ?.matchSearchParams,
+    ).toEqual({ view: 'approvals' });
+    expect(
+      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Posts')
+        ?.matchSearchParams,
+    ).toBeUndefined();
   });
 
   it('has no duplicate hrefs', () => {

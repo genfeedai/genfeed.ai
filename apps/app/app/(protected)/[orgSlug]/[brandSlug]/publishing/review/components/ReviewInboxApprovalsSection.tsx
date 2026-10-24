@@ -1,8 +1,15 @@
 import { CardVariant } from '@genfeedai/contracts';
 import type { ReviewInboxApprovalsSectionProps } from '@props/publishing/review-inbox-approvals.props';
 import Card from '@ui/card/Card';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  getReviewInboxItemPage,
+  getReviewInboxPageCount,
+  paginateReviewInboxItems,
+} from './review-inbox.helpers';
 import ReviewInboxApprovalsTable from './ReviewInboxApprovalsTable';
 
 /**
@@ -13,6 +20,33 @@ export default function ReviewInboxApprovalsSection({
   approvals,
 }: ReviewInboxApprovalsSectionProps) {
   const translate = useTranslations('pages.publishing.review.inbox');
+  const { highlightedItemId, items, sourceFilters } = approvals;
+  const [requestedPage, setRequestedPage] = useState(1);
+  const handledHighlightRef = useRef<string | null>(null);
+  const pageCount = getReviewInboxPageCount(items.length);
+  const page = Math.min(requestedPage, pageCount);
+  const visibleItems = useMemo(
+    () => paginateReviewInboxItems(items, page),
+    [items, page],
+  );
+
+  // A different source selection is a different list: start from its top.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resets on the filter change only
+  useEffect(() => {
+    setRequestedPage(1);
+  }, [sourceFilters]);
+
+  // A deep link lands once on the page holding its row, so a later refetch
+  // does not pull the reviewer back from the page they moved to.
+  useEffect(() => {
+    if (!highlightedItemId || handledHighlightRef.current === highlightedItemId)
+      return;
+    const highlightedPage = getReviewInboxItemPage(items, highlightedItemId);
+    if (highlightedPage) {
+      handledHighlightRef.current = highlightedItemId;
+      setRequestedPage(highlightedPage);
+    }
+  }, [highlightedItemId, items]);
 
   if (approvals.error) {
     return (
@@ -27,32 +61,35 @@ export default function ReviewInboxApprovalsSection({
     );
   }
 
-  if (approvals.items.length === 0 && !approvals.isHighlightedItemMissing) {
+  if (items.length === 0 && !approvals.isHighlightedItemMissing) {
     return null;
   }
 
   return (
     <section className="mb-6" data-testid="review-inbox-approvals">
-      <div className="mb-3 min-w-0">
-        <h2 className="text-sm font-semibold text-foreground">
-          {translate('title')}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {translate('description')}
-        </p>
-      </div>
       {approvals.isHighlightedItemMissing ? (
         <p className="mb-3 text-xs text-muted-foreground" role="status">
           {translate('highlightMissing')}
         </p>
       ) : null}
-      {approvals.items.length > 0 ? (
-        <ReviewInboxApprovalsTable
-          decidingItemId={approvals.decidingItemId}
-          highlightedItemId={approvals.highlightedItemId}
-          items={approvals.items}
-          onDecide={approvals.onDecide}
-        />
+      {items.length > 0 ? (
+        <>
+          <ReviewInboxApprovalsTable
+            decidingItemId={approvals.decidingItemId}
+            highlightedItemId={highlightedItemId}
+            items={visibleItems}
+            onDecide={approvals.onDecide}
+          />
+          <div className="mt-4">
+            <Pagination
+              currentPage={page}
+              onPageChange={setRequestedPage}
+              totalItems={items.length}
+              totalLabel={translate('totalLabel')}
+              totalPages={pageCount}
+            />
+          </div>
+        </>
       ) : null}
     </section>
   );

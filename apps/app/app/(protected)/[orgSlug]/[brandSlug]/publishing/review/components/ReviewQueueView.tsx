@@ -3,7 +3,6 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
-  ComponentSize,
   PageScope,
   TurboRunStatus,
 } from '@genfeedai/contracts';
@@ -13,7 +12,6 @@ import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.p
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
@@ -88,7 +86,6 @@ export default function ReviewQueueView({
   onUnassign,
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
-  const translate = useTranslations('pages.publishing.review.approvalQueue');
   const translateReview = useTranslations('pages.publishing.review');
   const translateInbox = useTranslations('pages.publishing.review.inbox');
   // Rows the operator tapped, as opposed to the first item the queue picks
@@ -289,23 +286,6 @@ export default function ReviewQueueView({
   return (
     <>
       {approvalsSection}
-      {/* Explicit framing: this is the decision queue, not the content library. */}
-      <div
-        className="mb-4 flex flex-wrap items-center justify-between gap-3"
-        data-testid="approval-queue-framing"
-      >
-        <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            {translate('title')}
-            <Badge size={ComponentSize.SM} variant="purple">
-              {translate('sourceBadge')}
-            </Badge>
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {translate('description')}
-          </p>
-        </div>
-      </div>
       {isTurboRunLoading && !activeTurboRun ? (
         <Loading />
       ) : activeTurboRunError ? (

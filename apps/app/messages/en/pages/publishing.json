@@ -346,19 +346,21 @@
       "openPost": "Open post"
     },
     "approvalQueue": {
-      "title": "Approval queue",
-      "description": "Drafts from generated batches that are waiting for a human decision.",
-      "sourceBadge": "Agent"
+      "title": "Approval queue"
     },
     "inbox": {
-      "title": "Waiting on you",
-      "description": "Workflow review gates and MCP client requests that need an approve or reject.",
+      "ariaLabel": "Pending approvals",
+      "totalLabel": "approvals",
+      "noPreview": "No preview",
+      "previewImage": "Preview of the media this request would use",
+      "previewVideo": "Preview of the video this request would use",
       "loadFailed": "Unable to load workflow and MCP approvals",
       "highlightMissing": "That request was already resolved, or it is not visible to you.",
       "columns": {
         "source": "Source",
         "brand": "Brand",
         "request": "What it wants to do",
+        "preview": "Preview",
         "status": "Status"
       },
       "sources": {

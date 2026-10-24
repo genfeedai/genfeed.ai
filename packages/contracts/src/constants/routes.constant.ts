@@ -249,7 +249,10 @@ export const APP_ROUTES = {
     ACTIVITIES: '/overview/activities',
   },
   PUBLISHING: {
-    /** The calendar is the Posts desk's calendar view; there is no separate route. */
+    /**
+     * The calendar is the Posts desk's calendar view; there is no separate
+     * route. The Publishing sidebar links straight to it.
+     */
     CALENDAR: '/publishing/posts?view=calendar',
     /**
      * Publish content Campaigns — named, dated, cross-platform programs.
@@ -280,8 +283,9 @@ export const APP_ROUTES = {
      */
     REMIX: '/publishing/remix',
     /**
-     * #5502 approvals are a Posts view, not a Publishing destination. Build
-     * batch or filter deep links with `createPublishingApprovalsRoute`.
+     * Approvals are a Posts view, not a route of their own; the Publishing
+     * sidebar links straight to it. Build batch or filter deep links with
+     * `createPublishingApprovalsRoute`.
      */
     REVIEW: '/publishing/posts?view=approvals',
     ROOT: '/publishing',
