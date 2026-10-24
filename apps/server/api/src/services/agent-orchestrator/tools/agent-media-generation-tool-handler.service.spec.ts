@@ -1073,6 +1073,31 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
     });
   });
 
+  it('runs the model an approval froze instead of routing the image again', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
+      data: { attributes: { status: 'PROCESSING' }, id: 'ingredient-pinned' },
+    });
+    const approvedGenerationQuote = {
+      billingMode: 'credits' as const,
+      maximumCredits: 43,
+      model: 'openai/gpt-image-2',
+      pricingHash: 'hash',
+      provider: 'replicate',
+      quantities: {},
+      unitCredits: 43,
+    };
+
+    await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
+      { ...context, approvedGenerationQuote },
+    );
+
+    const { body } = gateway.generateImage.mock.calls[0][0];
+    expect(body).toMatchObject({ model: 'openai/gpt-image-2' });
+    expect(body).not.toHaveProperty('autoSelectModel');
+  });
+
   it('does not claim success with a blank preview when generation errors', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateImage.mockRejectedValue(

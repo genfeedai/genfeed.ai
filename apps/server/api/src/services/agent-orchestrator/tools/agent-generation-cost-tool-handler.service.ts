@@ -1,7 +1,10 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
-import { resolveStudioGenerationDimensions } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  resolveStudioGenerationDimensions,
+} from '@genfeedai/contracts/constants';
 import {
   AgentGenerationQuoteUnavailableReason,
   type AgentToolResult,
@@ -95,7 +98,7 @@ export class AgentGenerationCostToolHandler {
       resolvedAspectRatio,
       resolvedResolution,
     );
-    const request = buildStudioGenerationQuoteRequest({
+    const studioRequest = buildStudioGenerationQuoteRequest({
       aspectRatio: resolvedAspectRatio,
       duration: type === 'video' ? (duration.value ?? 5) : duration.value,
       height: dimensions.height,
@@ -107,11 +110,18 @@ export class AgentGenerationCostToolHandler {
           ? undefined
           : modelKey.value,
       outputs: outputs.value ?? 1,
-      resolution: resolvedResolution,
+      // FLUX.3 names its tiers in lower case, so the Studio default "1K" is
+      // not one of them.
+      resolution:
+        resolution.value === undefined &&
+        modelKey.value &&
+        isFlux3ImageModel(modelKey.value)
+          ? '1k'
+          : resolvedResolution,
       type,
       width: dimensions.width,
     });
-    if (!request) {
+    if (!studioRequest) {
       return this.result(balance, {
         credits: null,
         status: 'unavailable',
@@ -119,6 +129,16 @@ export class AgentGenerationCostToolHandler {
           AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
       });
     }
+    // `generate` forwards a caller's resolution to every image model, so the
+    // estimate does too; Studio only carries it for FLUX.3 and quality models,
+    // which would otherwise quote the model's default tier for a 2K request.
+    const request =
+      type === 'image' &&
+      resolution.value !== undefined &&
+      studioRequest.resolution === undefined &&
+      studioRequest.quality === undefined
+        ? { ...studioRequest, resolution: resolution.value }
+        : studioRequest;
 
     try {
       const quote = await this.estimateService.estimate({
@@ -132,6 +152,9 @@ export class AgentGenerationCostToolHandler {
           : {
               credits: null,
               status: 'unavailable',
+              ...(quote.unavailableDetail
+                ? { unavailableDetail: quote.unavailableDetail }
+                : {}),
               unavailableReason: quote.unavailableReason,
             },
       );
@@ -141,6 +164,7 @@ export class AgentGenerationCostToolHandler {
         return this.result(balance, {
           credits: null,
           status: 'unavailable',
+          unavailableDetail: 'outputs must be a whole number from 1 to 8.',
           unavailableReason:
             AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
         });

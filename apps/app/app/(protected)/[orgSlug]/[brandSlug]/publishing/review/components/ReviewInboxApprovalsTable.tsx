@@ -12,6 +12,7 @@ import AppTable from '@ui/display/table/Table';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import ReviewInboxPreview from './ReviewInboxPreview';
 import { REVIEW_INBOX_SOURCE_MESSAGE_KEYS } from './review-inbox.helpers';
 
 const SOURCE_BADGE_VARIANTS: Record<
@@ -91,11 +92,6 @@ export default function ReviewInboxApprovalsTable({
             <span className="line-clamp-1 text-sm font-medium text-foreground">
               {item.actionSummary}
             </span>
-            {item.preview.caption ? (
-              <span className="line-clamp-1 text-xs text-muted-foreground">
-                {item.preview.caption}
-              </span>
-            ) : null}
             {item.reasons.map((reason) => (
               <span
                 className="line-clamp-1 text-xs text-warning"
@@ -106,6 +102,12 @@ export default function ReviewInboxApprovalsTable({
             ))}
           </span>
         ),
+      },
+      {
+        className: 'w-80',
+        header: translate('columns.preview'),
+        key: 'preview',
+        render: (item) => <ReviewInboxPreview preview={item.preview} />,
       },
       {
         className: 'w-36',
@@ -131,7 +133,7 @@ export default function ReviewInboxApprovalsTable({
   return (
     <AppTable<IReviewInboxItem>
       actions={actions}
-      ariaLabel={translate('title')}
+      ariaLabel={translate('ariaLabel')}
       columns={columns}
       getRowClassName={(item) =>
         cn(

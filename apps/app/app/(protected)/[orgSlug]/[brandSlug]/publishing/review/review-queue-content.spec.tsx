@@ -659,7 +659,7 @@ describe('ReviewQueueContent', () => {
     });
   });
 
-  it('frames itself as the approval queue without a separate Posts link', () => {
+  it('opens straight into the queue without a title or description block', () => {
     // #5502: approvals are a Posts view; the view toggle switches back.
     searchParamsState.set('run', 'batch-1');
     searchParamsState.set('item', 'item-1');
@@ -667,12 +667,15 @@ describe('ReviewQueueContent', () => {
 
     render(<ReviewQueueContent />);
 
-    const framing = screen.getByTestId('approval-queue-framing');
-    expect(framing).toHaveTextContent('Approval queue');
-    expect(framing).toHaveTextContent(
-      'Drafts from generated batches that are waiting for a human decision.',
-    );
-    expect(within(framing).queryByRole('link')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('approval-queue-framing'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Approval queue')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Drafts from generated batches that are waiting for a human decision.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('loads review batches, syncs the active item, and handles batch/filter changes', async () => {

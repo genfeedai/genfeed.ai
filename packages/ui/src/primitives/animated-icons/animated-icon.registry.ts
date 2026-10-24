@@ -163,6 +163,13 @@ export const ANIMATED_ICON_LOADERS: ReadonlyArray<
       })),
   ],
   [
+    'CalendarClock',
+    () =>
+      import('./icons/calendar-clock').then((module) => ({
+        default: module.CalendarClockIcon,
+      })),
+  ],
+  [
     'CalendarDays',
     () =>
       import('./icons/calendar-days').then((module) => ({

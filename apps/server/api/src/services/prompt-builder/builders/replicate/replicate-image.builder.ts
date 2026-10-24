@@ -42,6 +42,12 @@ import {
 } from '@genfeedai/helpers';
 import { Injectable, Logger } from '@nestjs/common';
 
+/** Resolution Replicate runs when none is sent, per the published model schema. */
+const NANO_BANANA_DEFAULT_RESOLUTION: Readonly<Record<string, string>> = {
+  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2]: '1K',
+  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO]: '2K',
+};
+
 /**
  * Replicate image model prompt builder.
  * Handles: Imagen, Nano Banana, Ideogram, SeeDream, FLUX, Qwen, RunwayML Gen4, Luma models,
@@ -396,8 +402,9 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
       safety_filter_level: 'block_only_high',
     };
 
-    if (params.resolution) {
-      input.resolution = params.resolution;
+    const resolution = this.resolveNanoBananaResolution(model, params);
+    if (resolution) {
+      input.resolution = resolution;
     }
 
     if (hasImageInput) {
@@ -405,6 +412,31 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     }
 
     return input;
+  }
+
+  /**
+   * Nano Banana prices by resolution tier. An omitted resolution is sent as
+   * the model's own default, so the quote and the dispatch bill the tier
+   * Replicate runs. Tiers are upper case on Replicate ("1K"); a caller's "1k"
+   * would otherwise be rejected and never match the reviewed rate.
+   */
+  private resolveNanoBananaResolution(
+    model: string,
+    params: PromptBuilderParams,
+  ): string | undefined {
+    const requested = params.resolution?.trim();
+    if (requested) {
+      return /^\d+(?:\.\d+)?k$/i.test(requested)
+        ? requested.toUpperCase()
+        : requested;
+    }
+    const schema = resolveModelSchema(params.modelInputSchema);
+    const schemaDefault = schema
+      ? getSchemaDefault(schema, 'resolution')
+      : undefined;
+    return typeof schemaDefault === 'string' && schemaDefault
+      ? schemaDefault
+      : NANO_BANANA_DEFAULT_RESOLUTION[model];
   }
 
   private buildNanoBanana2Prompt(
@@ -427,8 +459,9 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
       prompt: promptText,
     };
 
-    if (params.resolution) {
-      input.resolution = params.resolution;
+    const resolution = this.resolveNanoBananaResolution(model, params);
+    if (resolution) {
+      input.resolution = resolution;
     }
 
     if (hasImageInput) {

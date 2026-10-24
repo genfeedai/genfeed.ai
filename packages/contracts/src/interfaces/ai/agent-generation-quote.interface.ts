@@ -61,6 +61,11 @@ export interface AgentGenerationQuote {
   isAvailable: boolean;
   /** Concrete validated model; unavailable quotes never disclose a key. */
   modelKey: string | null;
+  /**
+   * One fixed sentence naming the setting that blocked the quote, written by
+   * the server and never built from provider data or caller text.
+   */
+  unavailableDetail?: string;
   /** Set whenever `isAvailable` is false. */
   unavailableReason?: AgentGenerationQuoteUnavailableReason;
 }

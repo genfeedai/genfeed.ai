@@ -168,10 +168,83 @@ describe('MCP approval selected-model pricing', () => {
   });
 
   it.each([
+    { characterHandles: ['vincent'] },
+    { references: ['ingredient-1'] },
+    { imageUrl: 'https://example.com/a.png' },
+  ])(
+    'quotes an image request that carries reference inputs: %j',
+    async (references) => {
+      const { service, estimate, context } = build();
+      await expect(
+        service.quote(
+          'generate',
+          { type: 'image', model: 'gpt-image-2', ...references },
+          context,
+        ),
+      ).resolves.toMatchObject({ credits: 2, isAvailable: true });
+      expect(estimate).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ category: 'image', modelKey: 'gpt-image-2' }),
+      );
+    },
+  );
+
+  it('quotes an image with an attachment', async () => {
+    const { service, estimate, context } = build();
+    await service.quote(
+      'generate',
+      { type: 'image', model: 'gpt-image-2' },
+      { ...context, attachmentUrls: ['https://example.com/a.png'] },
+    );
+    expect(estimate).toHaveBeenCalledOnce();
+  });
+
+  it('names the input to change when a quote is unavailable', async () => {
+    const { service, estimate, context } = build();
+    await expect(
+      service.prepare('generate', { type: 'image' }, context),
+    ).rejects.toThrow(/Pass model with a key from get_generation_options/);
+    estimate.mockResolvedValue({
+      credits: null,
+      isAvailable: false,
+      modelKey: null,
+      unavailableDetail: 'FLUX.3 returns one image per request.',
+      unavailableReason: 'MISSING_SETTING',
+    });
+    await expect(
+      service.prepare(
+        'generate',
+        { type: 'image', model: 'flux', outputs: 2 },
+        context,
+      ),
+    ).rejects.toThrow('quote is unavailable: FLUX.3 returns one image');
+  });
+
+  it('freezes the router choice when an image request names no model', async () => {
+    const { service, estimate, context } = build();
+    await expect(
+      service.quote(
+        'generate',
+        { type: 'image', prompt: 'A red car', outputs: 2 },
+        { ...context, generationPriority: 'speed' as never },
+      ),
+    ).resolves.toMatchObject({ credits: 2 });
+    const request = estimate.mock.calls[0][0];
+    expect(request).toMatchObject({
+      category: 'image',
+      outputs: 2,
+      prioritize: 'speed',
+      prompt: 'A red car',
+    });
+    expect(request).not.toHaveProperty('modelKey');
+  });
+
+  it.each([
     { type: 'image' },
     { type: 'image', model: 'Auto' },
     { type: 'voice', model: 'voice' },
     { type: 'video', model: 'model', imageUrl: 'https://example.com/a' },
+    { type: 'video', model: 'model', characterHandles: ['vincent'] },
+    { type: 'image', model: 'model', endFrame: 'https://example.com/a' },
     { type: 'video', model: 'model', videoReferences: ['ingredient-1'] },
   ])('keeps unresolved concrete requests unknown: %j', async (args) => {
     const { service, estimate, context } = build();

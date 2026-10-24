@@ -55,7 +55,10 @@ describe('ReviewInboxApprovalsSection', () => {
   it('shows source, brand and what the request wants to do', () => {
     render(<ReviewInboxApprovalsSection approvals={state()} />);
 
-    expect(screen.getByText('Waiting on you')).toBeInTheDocument();
+    expect(screen.queryByText('Waiting on you')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Workflow review gates and MCP client requests/),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('MCP client')).toBeInTheDocument();
     expect(screen.getByText('Acme')).toBeInTheDocument();
     expect(
@@ -64,6 +67,81 @@ describe('ReviewInboxApprovalsSection', () => {
     expect(screen.getByText('Hello world')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByText('4 credits')).toBeInTheDocument();
+  });
+
+  it('previews the post caption and image on the row', () => {
+    render(
+      <ReviewInboxApprovalsSection
+        approvals={state({
+          items: [
+            {
+              ...approval,
+              preview: {
+                caption: 'Ship the post',
+                mediaUrl: 'https://cdn.example.com/post.jpg',
+              },
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Ship the post')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {
+        name: 'Preview of the media this request would use',
+      }),
+    ).toHaveAttribute('src', 'https://cdn.example.com/post.jpg');
+  });
+
+  it('says so when a request has nothing to preview', () => {
+    render(
+      <ReviewInboxApprovalsSection
+        approvals={state({
+          items: [{ ...approval, preview: { caption: null, mediaUrl: null } }],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('No preview')).toBeInTheDocument();
+  });
+
+  it('paginates the approvals ten at a time', () => {
+    const items = Array.from({ length: 12 }, (_, index) => ({
+      ...approval,
+      actionSummary: `Request ${index + 1}`,
+      id: `mcp_approval:apr-${index + 1}`,
+    }));
+    render(<ReviewInboxApprovalsSection approvals={state({ items })} />);
+
+    expect(screen.getByText('Request 1')).toBeInTheDocument();
+    expect(screen.getByText('Request 10')).toBeInTheDocument();
+    expect(screen.queryByText('Request 11')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('link', { name: '2' }));
+
+    expect(screen.getByText('Request 11')).toBeInTheDocument();
+    expect(screen.getByText('Request 12')).toBeInTheDocument();
+    expect(screen.queryByText('Request 1')).not.toBeInTheDocument();
+  });
+
+  it('opens on the page holding a deep-linked approval', () => {
+    const items = Array.from({ length: 12 }, (_, index) => ({
+      ...approval,
+      actionSummary: `Request ${index + 1}`,
+      id: `mcp_approval:apr-${index + 1}`,
+    }));
+    render(
+      <ReviewInboxApprovalsSection
+        approvals={state({
+          highlightedItemId: 'mcp_approval:apr-12',
+          items,
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Request 12')).toBeInTheDocument();
+    expect(screen.queryByText('Request 1')).not.toBeInTheDocument();
   });
 
   it('approves and rejects through the row actions', () => {
