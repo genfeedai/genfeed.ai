@@ -699,7 +699,6 @@ test('server image keeps exact build inputs and fail-closed scope with bounded p
       'tsconfig.server.decorators.json',
       'bun.lock',
       'package.json',
-      '.github/workflows/server-image-pr.yml',
       '.github/workflows/ci.yml',
       '.github/actions/build-pr-server-image/**',
     ],
