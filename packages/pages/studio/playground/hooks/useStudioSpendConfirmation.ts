@@ -1,7 +1,10 @@
 'use client';
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
+import {
+  formatCreditBalanceExact,
+  hasSourceDerivedAspect,
+} from '@genfeedai/contracts/constants';
 import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import type { AgentGenerationQuote } from '@genfeedai/contracts/interfaces/ai/agent-generation-quote.interface';
 import type { StudioSubmitOptions } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
@@ -77,6 +80,7 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
     (details: {
       credits: number;
       isStillCurrent?: () => boolean;
+      modelKey?: string;
       modelLabel?: string;
       onApproved: () => void;
     }) => {
@@ -102,7 +106,10 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
         confirmLabel: translate('confirm', values),
         isOpen: true,
         label: translate('title', values),
-        message: translate(messageKey, values),
+        message:
+          details.modelKey && hasSourceDerivedAspect(details.modelKey)
+            ? `${translate(messageKey, values)} ${translate('sourceAspectNote')}`
+            : translate(messageKey, values),
         onConfirm: () => {
           if (details.isStillCurrent && !details.isStillCurrent()) {
             notificationsService.error(translate('priceChanged'));
@@ -117,7 +124,7 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
 
   const confirmSpend = useCallback(
     (input: StudioSpendConfirmationInput, onApproved: SpendApproval) => {
-      const { models, source } = input;
+      const { modelKey, models, source } = input;
       if (isQuotingRef.current) return;
       if (source.kind === 'unpriced') {
         onApproved();
@@ -131,6 +138,7 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
         openDialog({
           credits: source.credits,
           isStillCurrent: source.isStillCurrent,
+          modelKey,
           onApproved: () => onApproved(),
         });
         return;
@@ -192,6 +200,7 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
           }
           openDialog({
             credits: quote.credits,
+            modelKey: pinnedModelKey ?? modelKey,
             modelLabel: pinnedModelKey
               ? (models.find((model) => model.key === pinnedModelKey)?.label ??
                 pinnedModelKey)

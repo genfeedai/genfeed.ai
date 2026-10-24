@@ -49,6 +49,12 @@ export interface VideoModelCapability extends BaseModelCapability {
   hasDurationEditing?: boolean;
   hasResolutionOptions?: boolean;
   requiresFirstFrame?: boolean;
+  /**
+   * The provider takes no aspect-ratio control and sizes the clip from the
+   * first frame, so the selected aspect ratio is not a guaranteed output.
+   * Set only where the dispatch mapper sends no aspect field.
+   */
+  hasSourceDerivedAspect?: boolean;
   aspectRatios?: readonly string[];
   defaultAspectRatio?: string;
   usesOrientation?: boolean;
@@ -941,6 +947,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasDurationEditing: true,
       hasResolutionOptions: true,
       isBatchSupported: false,
+      // The Replicate input carries no aspect ratio; the clip follows the
+      // first frame (a square image renders 768 x 768).
+      hasSourceDerivedAspect: true,
       maxOutputs: 4,
       maxReferences: 1,
       requiresFirstFrame: true,

@@ -208,8 +208,9 @@ export default function StudioPlaygroundComposer({
   // Nothing is spent before the operator has seen and confirmed the amount.
   const guardedSubmit = () => {
     if (isSubmitBlocked || !canSubmitStudioGeneration()) return;
-    confirmSpend({ models, source: spendSource }, (options) =>
-      onSubmitRef.current(options),
+    confirmSpend(
+      { modelKey: settings.modelKey, models, source: spendSource },
+      (options) => onSubmitRef.current(options),
     );
   };
   // Narrowed against the selected model's own registry capability — the
@@ -491,6 +492,7 @@ export default function StudioPlaygroundComposer({
       return;
     confirmSpend(
       {
+        modelKey: draftSettings.modelKey,
         models,
         source: {
           autoRequest: null,
