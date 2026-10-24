@@ -63,7 +63,6 @@ jobs:
               - 'tsconfig.server.decorators.json'
               - 'bun.lock'
               - 'package.json'
-              - '.github/workflows/server-image-pr.yml'
               - '.github/workflows/ci.yml'
               - '.github/actions/build-pr-server-image/**'
 
