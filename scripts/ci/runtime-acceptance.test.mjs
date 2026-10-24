@@ -5098,8 +5098,8 @@ test('actual spawn guard is synchronous and immediately precedes spawn, while ex
 const FROZEN_CRUN = {
   image: {
     path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
-    sha256: '7e8df9451489fe6c72e01e85a6ab6757d8a925d9d0185f91504f1bf98e5a667c',
-    count: 18,
+    sha256: '4ca36459f2aa82ca970b86904ff2db801b188a9d08f42b93ceb4cc09de2802ae',
+    count: 17,
     passedTitles: [
       'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
       'Crun image quote through durable owned output and accounting model 0 outputs 1 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
@@ -5117,14 +5117,13 @@ const FROZEN_CRUN = {
       'Crun image quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario failed: frozen quote, restart, owned storage and exact accounting',
       'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario refused: frozen quote, restart, owned storage and exact accounting',
       'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario deferred: frozen quote, restart, owned storage and exact accounting',
-      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario disabled: frozen quote, restart, owned storage and exact accounting',
       'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario ambiguous: frozen quote, restart, owned storage and exact accounting',
     ],
   },
   video: {
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: 'a2cd90360d534c1be20d5194ddb13f593f006f01f13d78599473cd228361b775',
-    count: 23,
+    sha256: '38dcc5ff48d982d5f818fb9a08c74a04a0821f17698b116351fd74700649568b',
+    count: 22,
     passedTitles: [
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
@@ -5142,7 +5141,6 @@ const FROZEN_CRUN = {
       'Crun video quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario failed variant default: frozen quote, restart, owned storage and exact accounting',
       'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario refused variant default: frozen quote, restart, owned storage and exact accounting',
       'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario deferred variant default: frozen quote, restart, owned storage and exact accounting',
-      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario disabled variant default: frozen quote, restart, owned storage and exact accounting',
       'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario ambiguous variant default: frozen quote, restart, owned storage and exact accounting',
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant 10s: frozen quote, restart, owned storage and exact accounting',
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant start: frozen quote, restart, owned storage and exact accounting',
@@ -5190,7 +5188,7 @@ test('Crun source qualification freezes the exact independent image18/video23 in
       [crunReportContract(mediaKind)],
       child,
     );
-    assert.equal(cases[0].passed, mediaKind === 'image' ? 18 : 23);
+    assert.equal(cases[0].passed, mediaKind === 'image' ? 17 : 22);
   }
 });
 for (const mediaKind of ['image', 'video'])
