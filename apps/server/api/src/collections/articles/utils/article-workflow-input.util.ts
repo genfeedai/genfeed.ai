@@ -1,4 +1,5 @@
 import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 
 export function readArticleGenerationInput(
   value: unknown,
@@ -43,12 +44,6 @@ export function readArticleGenerationInput(
     ...(targetWordCount === undefined ? {} : { targetWordCount }),
     ...(tone === undefined ? {} : { tone }),
   } as GenerateArticlesDto;
-}
-
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 export function requiredString(value: unknown, field: string): string {

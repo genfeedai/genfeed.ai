@@ -1,6 +1,5 @@
 import {
   readArticleGenerationInput,
-  readRecord,
   requiredString,
 } from '@api/collections/articles/utils/article-workflow-input.util';
 import { describe, expect, it } from 'vitest';
@@ -105,12 +104,6 @@ describe('article workflow input', () => {
       );
     },
   );
-  it('accepts plain records by reference and rejects other record inputs', () => {
-    const record = { prompt: 'Prompt' };
-    expect(readRecord(record)).toBe(record);
-    for (const value of [undefined, null, [], 1, 'text'])
-      expect(readRecord(value)).toEqual({});
-  });
   it('trims required strings and retains the field-specific exception', () => {
     expect(requiredString('  article-1  ', 'articleId')).toBe('article-1');
     for (const value of [undefined, null, '', ' ', 1])
