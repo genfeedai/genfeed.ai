@@ -548,7 +548,11 @@ describe('OnboardingCreditGrantsService', () => {
     });
 
     it('records the mailbox key on each grant it pays', async () => {
-      evaluate.mockResolvedValue({ emailKey: 'mailbox-key', isEligible: true });
+      evaluate.mockResolvedValue({
+        emailKey: 'mailbox-key',
+        ipKey: 'ip-key',
+        isEligible: true,
+      });
 
       await guarded.grantSignupGift('org', 'user');
       await guarded.grantTrialCredits('org', 'user');
@@ -563,7 +567,11 @@ describe('OnboardingCreditGrantsService', () => {
       });
       for (const call of grants.mock.calls) {
         expect(call[0].options).toMatchObject({
-          metadata: { emailKey: 'mailbox-key', kind: 'promotional' },
+          metadata: {
+            emailKey: 'mailbox-key',
+            ipKey: 'ip-key',
+            kind: 'promotional',
+          },
         });
       }
       expect(balance).toBe(100);

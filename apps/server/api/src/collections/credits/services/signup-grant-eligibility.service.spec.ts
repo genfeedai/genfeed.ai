@@ -41,6 +41,7 @@ describe('SignupGrantEligibilityService', () => {
 
     await expect(service.evaluate(tx, input)).resolves.toEqual({
       emailKey: null,
+      ipKey: null,
       isEligible: true,
     });
     expect(userFindFirst).not.toHaveBeenCalled();
@@ -110,6 +111,29 @@ describe('SignupGrantEligibilityService', () => {
     });
   });
 
+  it('counts prior grants by the hashed IP stored on the ledger, not by live sessions', async () => {
+    await service.evaluate(tx, input);
+
+    expect(grantCount).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        metadata: {
+          equals: expect.stringMatching(/^[0-9a-f]{64}$/),
+          path: ['ipKey'],
+        },
+        organization: { userId: { not: 'user-1' } },
+      }),
+    });
+    expect(grantCount.mock.calls[0]?.[0].where).not.toHaveProperty(
+      'organization.user.sessions',
+    );
+  });
+
+  it('returns the IP key to record on the grant', async () => {
+    await expect(service.evaluate(tx, input)).resolves.toMatchObject({
+      ipKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+  });
+
   it('grants while an IP address is under the daily limit', async () => {
     grantCount.mockResolvedValue(MAX_FREE_GRANTS_PER_IP_PER_DAY - 1);
 
@@ -133,6 +157,7 @@ describe('SignupGrantEligibilityService', () => {
 
     await expect(service.evaluate(tx, input)).resolves.toEqual({
       emailKey: null,
+      ipKey: null,
       isEligible: true,
     });
     expect(grantFindFirst).not.toHaveBeenCalled();

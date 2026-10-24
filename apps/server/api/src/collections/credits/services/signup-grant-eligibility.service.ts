@@ -1,3 +1,4 @@
+import { hashToken } from '@api/auth/shared/pkce.util';
 import { hashCanonicalEmail } from '@api/auth/shared/signup-email-policy.util';
 import { isFreeTrialEnforced } from '@api/collections/credits/services/free-trial-state.util';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
@@ -16,7 +17,7 @@ export type SignupGrantRefusal =
   | 'ip-velocity';
 
 export type SignupGrantEligibility =
-  | { emailKey: string | null; isEligible: true }
+  | { emailKey: string | null; ipKey: string | null; isEligible: true }
   | { isEligible: false; reason: SignupGrantRefusal };
 
 /**
@@ -31,9 +32,10 @@ export type SignupGrantEligibility =
  *   one mailbox, keyed by a hash stored on the grant's ledger row;
  * - at most {@link MAX_FREE_GRANTS_PER_IP_PER_DAY} grants of one kind go to
  *   accounts that signed in from the same address within a day. The address
- *   is the user's first session, so a grant paid before any session exists
- *   (an OAuth signup's gift) is not IP-checked; the trial credits, paid after
- *   onboarding, always are.
+ *   is the user's first session, hashed onto the grant's ledger row so the
+ *   count survives sign-outs (sessions are hard-deleted). A grant paid before
+ *   any session exists (an OAuth signup's gift) is not IP-checked; the trial
+ *   credits, paid after onboarding, always are.
  *
  * Runs inside the grant transaction so the read and the grant are serialised
  * together. Deployments without the hosted free trial are always eligible.
@@ -49,7 +51,7 @@ export class SignupGrantEligibilityService {
     input: { source: string; userId: string },
   ): Promise<SignupGrantEligibility> {
     if (!isFreeTrialEnforced()) {
-      return { emailKey: null, isEligible: true };
+      return { emailKey: null, ipKey: null, isEligible: true };
     }
     const { source, userId } = input;
     const user = await tx.user.findFirst({
@@ -64,10 +66,11 @@ export class SignupGrantEligibilityService {
     if (emailKey && (await this.isMailboxAlreadyGranted(tx, emailKey, input))) {
       return this.refuse('duplicate-mailbox', userId, source);
     }
-    if (await this.isIpOverLimit(tx, input)) {
+    const ipKey = await this.resolveIpKey(tx, userId);
+    if (ipKey && (await this.isIpOverLimit(tx, ipKey, input))) {
       return this.refuse('ip-velocity', userId, source);
     }
-    return { emailKey, isEligible: true };
+    return { emailKey, ipKey, isEligible: true };
   }
 
   private async isMailboxAlreadyGranted(
@@ -93,10 +96,10 @@ export class SignupGrantEligibilityService {
     return existing !== null;
   }
 
-  private async isIpOverLimit(
+  private async resolveIpKey(
     tx: PrismaTransactionClient,
-    { source, userId }: { source: string; userId: string },
-  ): Promise<boolean> {
+    userId: string,
+  ): Promise<string | null> {
     // tenant-scope-ignore: sessions are not tenant data; the signup address is read to bound how many accounts one IP may fund.
     const firstSession = await crossOrgUnsafe(
       async () =>
@@ -107,10 +110,14 @@ export class SignupGrantEligibilityService {
           where: { ipAddress: { not: null }, userId },
         }),
     );
-    const ipAddress = firstSession?.ipAddress;
-    if (!ipAddress) {
-      return false;
-    }
+    return firstSession?.ipAddress ? hashToken(firstSession.ipAddress) : null;
+  }
+
+  private async isIpOverLimit(
+    tx: PrismaTransactionClient,
+    ipKey: string,
+    { source, userId }: { source: string; userId: string },
+  ): Promise<boolean> {
     // tenant-scope-ignore: counts grants across organizations whose owners share an IP address.
     const grants = await crossOrgUnsafe(
       async () =>
@@ -120,9 +127,8 @@ export class SignupGrantEligibilityService {
             category: CreditTransactionCategory.ADD,
             createdAt: { gte: new Date(Date.now() - IP_WINDOW_MS) },
             isDeleted: false,
-            organization: {
-              user: { id: { not: userId }, sessions: { some: { ipAddress } } },
-            },
+            metadata: { equals: ipKey, path: ['ipKey'] },
+            organization: { userId: { not: userId } },
             source,
           },
         }),

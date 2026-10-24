@@ -127,6 +127,9 @@ export class OnboardingCreditGrantsService {
               ...(eligibility?.isEligible && eligibility.emailKey
                 ? { emailKey: eligibility.emailKey }
                 : {}),
+              ...(eligibility?.isEligible && eligibility.ipKey
+                ? { ipKey: eligibility.ipKey }
+                : {}),
             },
           },
         },
@@ -212,6 +215,9 @@ export class OnboardingCreditGrantsService {
               campaign: TRIAL_CAMPAIGN,
               ...(eligibility?.isEligible && eligibility.emailKey
                 ? { emailKey: eligibility.emailKey }
+                : {}),
+              ...(eligibility?.isEligible && eligibility.ipKey
+                ? { ipKey: eligibility.ipKey }
                 : {}),
             },
           },
