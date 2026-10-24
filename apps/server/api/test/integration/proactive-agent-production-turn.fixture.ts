@@ -375,6 +375,7 @@ export async function createProactiveProductionTurnFixture() {
         `${namespace}-absent-aws-credentials`,
       ),
       AWS_CONFIG_FILE: resolve(tmpdir(), `${namespace}-absent-aws-config`),
+      CRUN_ENABLED: 'false',
       VISUAL_CODE_RENDERER_ENABLED: 'false',
     };
     for (const key of requiredStrings)
