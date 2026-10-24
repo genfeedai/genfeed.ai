@@ -159,6 +159,8 @@ export interface GenerationSetupSubmenuListProps {
   /** Shows a search box above the options. */
   isSearchable?: boolean;
   label: string;
+  /** Explains a limit of the field, shown under the options. */
+  note?: string;
   value: string;
 }
 

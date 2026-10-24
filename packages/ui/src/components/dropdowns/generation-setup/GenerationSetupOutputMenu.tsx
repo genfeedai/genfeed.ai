@@ -1,5 +1,6 @@
 'use client';
 
+import { hasSourceDerivedAspect } from '@genfeedai/contracts/constants';
 import type { GenerationSetupOutputMenuProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupAspectRatioIcon from '@ui/dropdowns/generation-setup/GenerationSetupAspectRatioIcon';
@@ -74,6 +75,11 @@ export default function GenerationSetupOutputMenu({
     return (
       <GenerationSetupSubmenuList
         label={translate('aspectRatio')}
+        note={
+          hasSourceDerivedAspect(setup.values.modelKey)
+            ? translate('aspectFollowsSource')
+            : undefined
+        }
         onValueChange={(value) => {
           if (
             value === GENERATION_SETUP_AUTO_ASPECT_RATIO &&

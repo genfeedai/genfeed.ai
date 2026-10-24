@@ -94,6 +94,34 @@ function optionLabels(group: string): string[] {
   ).map((item) => item.textContent?.trim() ?? '');
 }
 
+describe('GenerationSetupOutputMenu — aspect ratio', () => {
+  it('says a source-sized video model follows its image, not the picked ratio', () => {
+    renderMenu({
+      capabilities: { hasAspectRatio: true },
+      section: 'aspectRatio',
+      setup: buildSetup({
+        aspectRatio: '9:16',
+        modelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+        type: 'video',
+      }),
+    });
+
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'sizes the video from your source image',
+    );
+  });
+
+  it('shows no note for a model that honors the picked ratio', () => {
+    renderMenu({
+      capabilities: { hasAspectRatio: true },
+      section: 'aspectRatio',
+      setup: buildSetup({ aspectRatio: '9:16', type: 'image' }),
+    });
+
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+});
+
 describe('GenerationSetupOutputMenu — music controls', () => {
   it('renders Style, Instrumental, and Lyrics for a music-capable setup', () => {
     renderMenu();

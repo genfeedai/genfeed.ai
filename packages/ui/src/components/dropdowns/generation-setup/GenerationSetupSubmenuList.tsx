@@ -39,6 +39,7 @@ function keepTypingInSearch(event: KeyboardEvent<HTMLInputElement>): void {
 export default function GenerationSetupSubmenuList({
   isSearchable = false,
   label,
+  note,
   onReset,
   onValueChange,
   options,
@@ -114,6 +115,14 @@ export default function GenerationSetupSubmenuList({
             </DropdownMenuItem>
           ))}
         </div>
+        {note ? (
+          <>
+            <DropdownMenuSeparator className="my-0" />
+            <p className="px-3 py-2 text-xs text-muted-foreground" role="note">
+              {note}
+            </p>
+          </>
+        ) : null}
         {onReset ? (
           <>
             <DropdownMenuSeparator className="my-0" />
