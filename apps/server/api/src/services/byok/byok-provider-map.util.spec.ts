@@ -1,4 +1,7 @@
 import {
+  BYOK_MODEL_ROUTES,
+  BYOK_PROVIDERS_WITHOUT_MODEL_ROUTE,
+  MODEL_PROVIDERS_WITHOUT_BYOK,
   modelKeyToByokProvider,
   modelProviderToByokProvider,
   resolveModelByokProvider,
@@ -172,6 +175,70 @@ describe('byok-provider-map.util', () => {
           ModelProvider.GENFEED_AI,
         ),
       ).toBeUndefined();
+    });
+  });
+
+  describe('route table completeness', () => {
+    it('places every ByokProvider in a route or gives a reason it has none', () => {
+      const routed = new Set(BYOK_MODEL_ROUTES.map((r) => r.byokProvider));
+
+      for (const provider of Object.values(ByokProvider)) {
+        const hasReason = provider in BYOK_PROVIDERS_WITHOUT_MODEL_ROUTE;
+        expect(
+          routed.has(provider) !== hasReason,
+          `${provider} must be in exactly one of BYOK_MODEL_ROUTES or BYOK_PROVIDERS_WITHOUT_MODEL_ROUTE`,
+        ).toBe(true);
+      }
+    });
+
+    it('places every ModelProvider in a route or gives a reason it has none', () => {
+      const routed = new Set(BYOK_MODEL_ROUTES.map((r) => r.modelProvider));
+
+      for (const provider of Object.values(ModelProvider)) {
+        const hasReason = provider in MODEL_PROVIDERS_WITHOUT_BYOK;
+        expect(
+          routed.has(provider) !== hasReason,
+          `${provider} must be in exactly one of BYOK_MODEL_ROUTES or MODEL_PROVIDERS_WITHOUT_BYOK`,
+        ).toBe(true);
+      }
+    });
+
+    it('never routes GENFEED_AI to a caller-supplied key (#5294)', () => {
+      expect(modelProviderToByokProvider(ModelProvider.GENFEED_AI)).toBe(
+        undefined,
+      );
+    });
+
+    it('keeps model-key prefixes unambiguous across providers', () => {
+      const prefixes = BYOK_MODEL_ROUTES.flatMap((route) =>
+        [
+          ...(route.modelKeyPrefixes ?? []),
+          ...(route.authoritativeModelKeyPrefixes ?? []),
+        ].map((prefix) => [prefix, route.byokProvider] as const),
+      );
+
+      for (const [prefix, provider] of prefixes) {
+        for (const [other, otherProvider] of prefixes) {
+          if (provider !== otherProvider && other.startsWith(prefix)) {
+            throw new Error(
+              `${other} (${otherProvider}) is shadowed by ${prefix} (${provider})`,
+            );
+          }
+        }
+      }
+    });
+
+    it('resolves every declared prefix to its own provider', () => {
+      for (const route of BYOK_MODEL_ROUTES) {
+        for (const prefix of [
+          ...(route.modelKeyPrefixes ?? []),
+          ...(route.authoritativeModelKeyPrefixes ?? []),
+        ]) {
+          expect(modelKeyToByokProvider(`${prefix}model`)).toBe(
+            route.byokProvider,
+          );
+        }
+      }
     });
   });
 });

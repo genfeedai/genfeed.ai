@@ -44,6 +44,9 @@ export const generalAiSchema = {
   AGENT_STREAM_COALESCE_MAX_BYTES: Joi.number().integer().min(1).default(2048),
   AGENT_STREAM_COALESCE_WINDOW_MS: Joi.number().integer().min(1).default(50),
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
+  // Direct provider keys for `openai/*` and `anthropic/*` models; OpenRouter still serves the rest.
+  ANTHROPIC_API_KEY: Joi.string().optional().allow(''),
+  OPENAI_API_KEY: Joi.string().optional().allow(''),
   // Typed decisions (#4864). Which provider is bound, and every decision
   // point's mode and threshold, are Admin platform settings (#4908, #5407) —
   // the key here is only the credential that makes a hosted provider available.
@@ -180,6 +183,32 @@ export const gpuFleetSchema = {
  */
 export const falSchema = {
   FAL_API_KEY: Joi.string().optional().allow(''),
+};
+
+/**
+ * Higgsfield media generation. The key/secret pair is the platform fallback;
+ * an organization's BYOK credential wins. The host is documented, so the base
+ * URL override is only for sandboxes.
+ */
+export const higgsfieldSchema = {
+  HIGGSFIELD_API_BASE_URL: Joi.string().uri().optional().allow(''),
+  HIGGSFIELD_API_KEY: Joi.string().optional().allow(''),
+  HIGGSFIELD_API_SECRET: Joi.string().optional().allow(''),
+};
+
+/**
+ * Kie gateway video models. The key alone does not enable anything: Kie also
+ * starts globally disabled in admin until an operator activates a reviewed model.
+ */
+export const kieSchema = {
+  KIE_API_KEY: Joi.string().optional().allow(''),
+};
+
+/**
+ * Apify actors behind social trend and monitored-account ingestion.
+ */
+export const apifySchema = {
+  APIFY_API_TOKEN: Joi.string().optional().allow(''),
 };
 
 /**

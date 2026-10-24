@@ -42,6 +42,18 @@ deployed model registry remains the source of truth for model availability. The
 configuration and execution steps below apply to deployed provider cards and
 routes; prepared direct media entries are not a launch or activation guide.
 
+### Platform-only providers
+
+These providers run on the deployment's own key only. They have no BYOK identifier,
+and each model stays inactive until an operator activates it in admin.
+
+| Provider | Used for                          | Environment variables                   |
+| -------- | --------------------------------- | --------------------------------------- |
+| Kie      | Gateway video models              | `KIE_API_KEY`                           |
+| Mureka   | Music generation (`mureka-9`)     | `MUREKA_API_KEY`, `MUREKA_API_BASE_URL` |
+
+`MUREKA_API_BASE_URL` defaults to `https://api.mureka.ai`.
+
 ## HeyGen API v3
 
 HeyGen catalog reads, account validation, avatar rendering and status polling use

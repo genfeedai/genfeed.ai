@@ -14,7 +14,7 @@ bun run --cwd packages/pricing build
 bun scripts/models/import-provider-models.ts --output /absolute/path/import.json
 ```
 
-Provide `REPLICATE_KEY` and `FAL_API_KEY` (or `FAL_KEY`) through the executing
+Provide `REPLICATE_KEY` and `FAL_API_KEY` through the executing
 environment. For an existing environment file, Bun supports
 `bun --env-file=/absolute/path/env-file scripts/models/import-provider-models.ts ...`.
 The command does not read an environment by deployment name or print credentials.

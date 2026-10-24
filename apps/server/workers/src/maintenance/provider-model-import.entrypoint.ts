@@ -32,7 +32,7 @@ async function main(): Promise<void> {
     ? assertImportDatabaseTarget(process.env.DATABASE_URL, args.databaseTarget)
     : undefined;
   const credentials = {
-    fal: process.env.FAL_API_KEY ?? process.env.FAL_KEY,
+    fal: process.env.FAL_API_KEY,
     replicate: process.env.REPLICATE_KEY,
   };
   const observations: ProviderModelImportObservation[] = [];

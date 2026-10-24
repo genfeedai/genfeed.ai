@@ -1,5 +1,6 @@
 import * as aiSchemas from '@config/schemas/ai.schema';
 import {
+  apifySchema,
   argilSchema,
   elevenlabsSchema,
   falSchema,
@@ -8,6 +9,8 @@ import {
   gpuFleetSchema,
   hedraSchema,
   heygenSchema,
+  higgsfieldSchema,
+  kieSchema,
   klingaiSchema,
   leonardoSchema,
   murekaSchema,
@@ -492,6 +495,21 @@ describe('Config Schemas', () => {
       expect(value.MUREKA_API_BASE_URL).toBe('https://api.mureka.ai');
       expect(murekaSchema).not.toHaveProperty('MUREKA_MODEL');
       expect(value).not.toHaveProperty('MUREKA_MODEL');
+    });
+  });
+
+  describe.each([
+    ['higgsfieldSchema', higgsfieldSchema, 'HIGGSFIELD_API_KEY'],
+    ['kieSchema', kieSchema, 'KIE_API_KEY'],
+    ['apifySchema', apifySchema, 'APIFY_API_TOKEN'],
+  ])('%s', (_name, schema, key) => {
+    it('declares only optional Joi credentials', () => {
+      expect(schema).toHaveProperty(key);
+      for (const rule of Object.values(schema)) {
+        expect(Joi.isSchema(rule)).toBe(true);
+      }
+      expect(Joi.object(schema).validate({}).error).toBeUndefined();
+      expect(Joi.object(schema).validate({ [key]: '' }).error).toBeUndefined();
     });
   });
 

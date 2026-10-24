@@ -218,6 +218,14 @@ const checks = [
     name: 'Env product-flag boundary (#5407)',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-provider-key-declarations.ts',
+    ],
+    name: 'Provider key declarations',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-opaque-user-ids.ts'],
     name: 'Opaque user IDs (#5410)',
   },

@@ -97,6 +97,12 @@ export const internalAuthSchema = {
   GENFEEDAI_API_KEY: Joi.string()
     .optional()
     .description('API key for internal service-to-service authentication'),
+  GITHUB_TOKEN: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'GitHub token the CI triage webhook uses to comment on pull requests',
+    ),
   GITHUB_WEBHOOK_SECRET: Joi.string()
     .optional()
     .description(
