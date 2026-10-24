@@ -12,8 +12,8 @@ import AppTable from '@ui/display/table/Table';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import { REVIEW_INBOX_SOURCE_MESSAGE_KEYS } from './review-inbox.helpers';
 import ReviewInboxPreview from './ReviewInboxPreview';
+import { REVIEW_INBOX_SOURCE_MESSAGE_KEYS } from './review-inbox.helpers';
 
 const SOURCE_BADGE_VARIANTS: Record<
   ReviewInboxItemSource,

@@ -7,9 +7,12 @@ import {
   REVIEW_INBOX_PAGE_SIZE,
 } from './review-inbox.helpers';
 
-const items = Array.from({ length: REVIEW_INBOX_PAGE_SIZE * 2 + 1 }, (_, i) => ({
-  id: `item-${i + 1}`,
-}));
+const items = Array.from(
+  { length: REVIEW_INBOX_PAGE_SIZE * 2 + 1 },
+  (_, i) => ({
+    id: `item-${i + 1}`,
+  }),
+);
 
 describe('review inbox pagination', () => {
   it('counts at least one page, even when empty', () => {

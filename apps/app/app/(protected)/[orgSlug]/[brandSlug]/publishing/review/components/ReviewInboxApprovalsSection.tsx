@@ -5,12 +5,12 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReviewInboxApprovalsTable from './ReviewInboxApprovalsTable';
 import {
   getReviewInboxItemPage,
   getReviewInboxPageCount,
   paginateReviewInboxItems,
 } from './review-inbox.helpers';
-import ReviewInboxApprovalsTable from './ReviewInboxApprovalsTable';
 
 /**
  * Workflow review gates and MCP approvals above the Turbo run drafts. Renders

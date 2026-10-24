@@ -98,9 +98,7 @@ describe('ReviewInboxApprovalsSection', () => {
     render(
       <ReviewInboxApprovalsSection
         approvals={state({
-          items: [
-            { ...approval, preview: { caption: null, mediaUrl: null } },
-          ],
+          items: [{ ...approval, preview: { caption: null, mediaUrl: null } }],
         })}
       />,
     );
