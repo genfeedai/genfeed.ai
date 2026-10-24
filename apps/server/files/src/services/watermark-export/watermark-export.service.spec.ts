@@ -282,7 +282,7 @@ describe('WatermarkExportService', () => {
     expect(s3.downloadFromUrl).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
-      256 * 1024 * 1024,
+      512 * 1024 * 1024,
     );
   });
   it.skipIf(!resolvedFfmpegBinary || !resolvedFfprobeBinary)(

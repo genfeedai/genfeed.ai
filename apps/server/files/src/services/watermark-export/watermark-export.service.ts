@@ -33,12 +33,12 @@ const POSITIONS = new Set([
 ]);
 const MAX_PIXELS = 40_000_000;
 const MAX_DOWNLOAD_BYTES = 1024 * 1024 * 1024;
-// The files task is small: a libx264 encode of a large source gets the
+// The files task has 2 GB: a libx264 encode of a large source gets the
 // container OOM-killed (SIGKILL, no error from ffmpeg), which left every
 // such video without a preview. Reject sources the task cannot encode,
 // and raise these together with the task memory.
-const MAX_VIDEO_BYTES = 256 * 1024 * 1024;
-const MAX_VIDEO_PIXELS = 1920 * 1080;
+const MAX_VIDEO_BYTES = 512 * 1024 * 1024;
+const MAX_VIDEO_PIXELS = 2560 * 1440;
 const invalid = (message: string) => new BadRequestException(message);
 
 function escapeXml(value: string): string {
