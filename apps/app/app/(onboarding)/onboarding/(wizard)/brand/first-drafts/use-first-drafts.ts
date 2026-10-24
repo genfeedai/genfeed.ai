@@ -90,12 +90,7 @@ export function useFirstDrafts(): FirstDraftsState {
   // trial credits are not a replay's to grant.
   const isReplay = currentUser?.isOnboardingCompleted === true;
   useEffect(() => {
-    if (
-      !brandId ||
-      !currentUser?.id ||
-      isLoading ||
-      !isBrandScopeResolved
-    )
+    if (!brandId || !currentUser?.id || isLoading || !isBrandScopeResolved)
       return;
     const controller = new AbortController();
     controllerRef.current?.abort();
