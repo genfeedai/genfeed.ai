@@ -105,7 +105,7 @@ function controls(key: string) {
 async function installFixture(
   page: Page,
   key: string,
-  mode: 'available' | 'disabled' | 'stale' | 'expired' = 'available',
+  mode: 'available' | 'unavailable' | 'stale' | 'expired' = 'available',
   frames = false,
 ) {
   const previews: CrunVideoQuoteRequest[] = [];
@@ -290,7 +290,7 @@ async function installFixture(
       ) {
         const intent: CrunVideoQuoteRequest = request.postDataJSON();
         previews.push(intent);
-        const available = mode !== 'disabled';
+        const available = mode !== 'unavailable';
         await route.fulfill({
           json: {
             data: {
@@ -317,7 +317,7 @@ async function installFixture(
                     contractVersion: null,
                     credits: null,
                     billingMode: null,
-                    reasonCode: 'CRUN_DISABLED',
+                    reasonCode: 'CRUN_MODEL_UNAVAILABLE',
                   },
             },
           },
@@ -650,7 +650,7 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
   expect(fixture.consumes).toHaveLength(0);
 });
 
-for (const mode of ['disabled', 'expired'] as const) {
+for (const mode of ['unavailable', 'expired'] as const) {
   test(`${mode} video quote preserves prompt and performs no consume`, async ({
     authenticatedPage: page,
   }) => {

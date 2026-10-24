@@ -234,14 +234,7 @@ describe('Crun scoped video preview freshness', () => {
       f.service.consume(intent, response.quoteId as string, user as never, now),
     ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_IN_PROGRESS' } });
   });
-  it.each([
-    'category',
-    'pending',
-    'credential',
-    'rate',
-    'expiry',
-    'scope',
-  ])(
+  it.each(['category', 'pending', 'credential', 'rate', 'expiry', 'scope'])(
     'rejects stale %s before token consumption or dispatch',
     async (reason) => {
       const f = fresh();

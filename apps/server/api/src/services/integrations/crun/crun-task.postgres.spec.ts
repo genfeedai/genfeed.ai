@@ -99,7 +99,7 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       } as unknown as ByokService,
       {
         get: () => key,
-      } as ConfigService,
+      } as unknown as ConfigService,
       { createTask, taskInfo } as unknown as CrunClient,
     );
   });
