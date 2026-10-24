@@ -1,0 +1,216 @@
+name: Seed hosted SaaS
+run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || 'dry run' }}
+
+# On-demand data seeds for the hosted SaaS. The deploy already runs migrations
+# and the reference-data sync; this is the operator's way to run a seed by hand
+# without a deploy and without production credentials on a laptop. It starts the
+# one-off ECS tasks that the deploy registers, inside the VPC, using the deploy
+# role over OIDC.
+#
+# The task runs the server image of the last deploy. A seed edited after that
+# deploy reaches production only after the next deploy rolls it out.
+#
+#   articles             Public articles catalog. Default is a dry run. The task
+#                        definition pins the owner and organization.
+#   reference-data-sync  Model catalog, rates, skills, presets, elements, fonts.
+#                        The dry run only validates that the catalogs load, since
+#                        the sync has no diff mode. Live is idempotent.
+#
+# Dispatch from master.
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "which seed to run"
+        required: true
+        type: choice
+        options:
+          - articles
+          - reference-data-sync
+      live:
+        description: "apply the seed; unchecked is a dry run"
+        required: false
+        default: false
+        type: boolean
+      reason:
+        description: "why the seed is being run (kept in the run summary)"
+        required: true
+        type: string
+
+# Share the deploy lock so a seed never overlaps a rollout.
+concurrency:
+  group: hosted-saas-core-production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_DIR: infra/tofu/hosted-saas
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
+
+jobs:
+  seed:
+    name: Seed ${{ inputs.seed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Require master
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Seeds must run from refs/heads/master (got ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Require seed variables
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          PROJECT: ${{ vars.PROJECT }}
+          HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
+          HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in \
+            AWS_REGION AWS_DEPLOY_ROLE_ARN PROJECT TF_STATE_BUCKET TF_STATE_KEY \
+            HOSTED_OWNER_EMAIL HOSTED_ORGANIZATION_LABEL
+          do
+            eval "value=\${$name-}"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing required hosted SaaS variable: ${name}"
+              missing=1
+            fi
+          done
+          if [ -z "${REASON// }" ]; then
+            echo "::error::A seed needs a reason."
+            missing=1
+          fi
+          exit "${missing}"
+
+      - name: Checkout public deploy engine
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ops
+          persist-credentials: false
+
+      - name: Setup Bun (ECS poll script)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: ops/.bun-version
+
+      - name: Install ECS poll script deps (isolated)
+        working-directory: ops/scripts/deploy/hosted-saas
+        run: bun install --frozen-lockfile
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "1.12.2"
+          tofu_wrapper: false
+
+      - name: Tofu init (read-only, outputs only)
+        working-directory: ops/${{ env.TF_DIR }}
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=${TF_STATE_KEY}" \
+            -backend-config="region=${AWS_REGION}"
+
+      - name: Run seed task
+        id: seed
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          SEED: ${{ inputs.seed }}
+          LIVE: ${{ inputs.live }}
+          REASON: ${{ inputs.reason }}
+          PROJECT: ${{ vars.PROJECT }}
+          HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
+          HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+
+          # Every command override replaces the task definition's whole command,
+          # so each one repeats the node prefix the definition uses.
+          node_prefix=(node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register)
+          override=()
+          case "${SEED}" in
+            articles)
+              TASK_DEFINITION=$(tofu output -raw articles_seed_task_definition_arn)
+              CONTAINER=articles-seed
+              LOG_GROUP="/ecs/${PROJECT}-production/articles-seed"
+              # The definition's own command is the dry run, pinned to the owner.
+              if [ "${LIVE}" = "true" ]; then
+                override=(--container-name "${CONTAINER}")
+                for arg in "${node_prefix[@]}" \
+                  apps/server/dist/apps/api-articles-seed/main \
+                  --env=production \
+                  "--ownerEmail=${HOSTED_OWNER_EMAIL}" \
+                  "--organizationLabel=${HOSTED_ORGANIZATION_LABEL}" \
+                  --live; do
+                  override+=(--command-arg "${arg}")
+                done
+              fi
+              ;;
+            reference-data-sync)
+              TASK_DEFINITION=$(tofu output -raw reference_data_sync_task_definition_arn)
+              CONTAINER=reference-data-sync
+              LOG_GROUP="/ecs/${PROJECT}-production/reference-data-sync"
+              # The definition's own command is live. A dry run only validates
+              # that the catalogs load.
+              if [ "${LIVE}" != "true" ]; then
+                override=(--container-name "${CONTAINER}")
+                for arg in "${node_prefix[@]}" \
+                  apps/server/dist/apps/api-reference-data-sync/main \
+                  --validate-runtime; do
+                  override+=(--command-arg "${arg}")
+                done
+              fi
+              ;;
+            *)
+              echo "::error::Unknown seed '${SEED}'"
+              exit 1
+              ;;
+          esac
+
+          mode=$([ "${LIVE}" = "true" ] && echo live || echo "dry run")
+          {
+            echo "## Seed hosted SaaS"
+            echo ""
+            echo "- Seed: \`${SEED}\` (${mode})"
+            echo "- Task definition: \`${TASK_DEFINITION}\`"
+            echo "- Reason: ${REASON}"
+            echo "- Runs the image of the last deploy; a seed changed since then needs a deploy first."
+          } >>"${GITHUB_STEP_SUMMARY}"
+          echo "log_group=${LOG_GROUP}" >>"${GITHUB_OUTPUT}"
+
+          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
+            --phase "seed-${SEED}" \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 1800 \
+            --stop-on-timeout \
+            "${override[@]}"
+
+      - name: Print seed task logs
+        if: ${{ always() && steps.seed.outputs.log_group != '' }}
+        env:
+          LOG_GROUP: ${{ steps.seed.outputs.log_group }}
+        run: |
+          echo "::group::CloudWatch logs — ${LOG_GROUP}"
+          aws logs tail "${LOG_GROUP}" --since 45m --format short | tail -n 400 || true
+          echo "::endgroup::"

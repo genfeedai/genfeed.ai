@@ -2,7 +2,7 @@
 name: data-change-protocol
 description: Three channels for data changes — Prisma data migrations, deploy-time reference-data sync, local fixture seed
 type: project
-last_verified: 2026-10-14
+last_verified: 2026-10-24
 ---
 
 # Seeding and data-change protocol
@@ -75,6 +75,12 @@ The sync is a compiled Nest one-off app (`api-reference-data-sync`). It is not i
 | External voices | Platform schedule `external-voice-catalog-sync` |
 | `scripts/migrations/` production CLIs | Retired |
 
+## Manual runs against production
+
+The deploy is not the only trigger. The `Seed hosted SaaS` workflow (`.github/workflows/seed-hosted-saas.yml`, dispatch from `master`, behind the `production` environment) starts the same one-off ECS tasks on demand for `articles` and `reference-data-sync`. It defaults to a dry run; the articles dry run is the task's own dry-run command, and the sync's dry run only validates that the catalogs load (it has no diff mode). It shares the deploy lock, so a seed never overlaps a rollout, and it runs the image of the last deploy: a seed changed since then needs a deploy first.
+
+Articles stay operator-triggered only; no deploy runs them. Do not copy production env files to a laptop to run a seed; use the workflow.
+
 ## Trust and failure
 
-The sync runs with deploy credentials inside the deploy pipeline or container entrypoint, never from a developer machine against production. It logs one summary line per domain (`written`, `unchanged`, `failed`). Any failed domain exits 1 after every domain has been attempted.
+The sync runs with deploy credentials inside the deploy pipeline, the manual seed workflow, or the container entrypoint, never from a developer machine against production. It logs one summary line per domain (`written`, `unchanged`, `failed`). Any failed domain exits 1 after every domain has been attempted.

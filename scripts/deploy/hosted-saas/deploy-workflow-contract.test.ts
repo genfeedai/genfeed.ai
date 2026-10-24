@@ -156,3 +156,34 @@ describe('hosted SaaS rollback contract', () => {
     expect(core).toContain('docs/operations/rollback.md');
   });
 });
+
+describe('hosted SaaS on-demand seed contract', () => {
+  test('runs only from master, behind the production environment and the deploy lock', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+
+    expect(seed).toContain('Seeds must run from refs/heads/master');
+    expect(seed).toContain('environment: production');
+    expect(seed).toContain('group: hosted-saas-core-production');
+    expect(seed).toContain('cancel-in-progress: false');
+  });
+
+  test('defaults to a dry run and never changes infrastructure', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+
+    expect(seed).toMatch(/live:[\s\S]*?default: false/);
+    expect(seed).not.toMatch(/tofu (apply|plan|destroy)/);
+    expect(seed).toContain('A seed needs a reason.');
+  });
+
+  test('passes user input through env, never into the script text', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+
+    const interpolations = seed
+      .split('\n')
+      .filter((line) => line.includes('${{ inputs.'));
+    expect(interpolations.length).toBeGreaterThan(0);
+    for (const line of interpolations) {
+      expect(line).toMatch(/^(run-name: |\s+name: |\s+[A-Z_]+: )/);
+    }
+  });
+});
