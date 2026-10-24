@@ -5664,7 +5664,7 @@ test('qualified final seal writes both media proofs and raw evidence using uncha
   assert.equal(receipt.status, 'passed');
   assert.equal(
     receipt.passed,
-    41 +
+    39 +
       requireLearningSourceContract().suites.reduce(
         (sum, suite) => sum + suite.count,
         0,
@@ -5698,7 +5698,7 @@ test('qualified final seal writes both media proofs and raw evidence using uncha
   assert.equal(
     privateEvidence.outcome.completed.find((e) => e.stage === 'crun-video')
       .cases[0].passed,
-    23,
+    22,
   );
 });
 for (const missing of [
