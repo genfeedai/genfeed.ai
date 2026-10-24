@@ -548,7 +548,7 @@ async function probeBackground() {
       }
       if (result.constructors) break;
     }
-    result.pass =
+    result.pass = Boolean(
       result.domGlobalsAbsent &&
       result.constructors?.validString &&
       result.constructors?.invalidNumber &&
@@ -561,7 +561,8 @@ async function probeBackground() {
       result.chromeCalls.includes('sidePanel.setPanelBehavior') &&
       !result.rejections.length &&
       !result.consoleErrors.length &&
-      !result.unexpectedNetwork.length;
+      !result.unexpectedNetwork.length,
+    );
   } catch (error) {
     result.errors.push({ kind: 'worker-startup', message: safe(error) });
   } finally {

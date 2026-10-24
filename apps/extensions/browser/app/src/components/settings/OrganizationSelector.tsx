@@ -24,8 +24,13 @@ export function OrganizationSelector() {
   const selected = organizations.find(
     (organization) => organization.id === snapshot?.organizationId,
   );
-  const label =
-    selected?.label ?? snapshot?.organizationLabel ?? 'Organization';
+  const isDuplicateLabel = (candidate: string): boolean =>
+    organizations.filter((item) => item.label === candidate).length > 1;
+  const label = selected
+    ? isDuplicateLabel(selected.label)
+      ? `${selected.label} (${selected.slug})`
+      : selected.label
+    : (snapshot?.organizationLabel ?? 'Organization');
 
   return (
     <SwitcherDropdown
@@ -35,11 +40,9 @@ export function OrganizationSelector() {
         id: organization.id,
         imageUrl: organization.logoUrl || undefined,
         isActive: organization.id === snapshot?.organizationId,
-        label:
-          organizations.filter((item) => item.label === organization.label)
-            .length > 1
-            ? `${organization.label} (${organization.slug})`
-            : organization.label,
+        label: isDuplicateLabel(organization.label)
+          ? `${organization.label} (${organization.slug})`
+          : organization.label,
       }))}
       isDisabled={workspace.status !== 'ready' || Boolean(snapshot?.isApiKey)}
       isLoading={!snapshot}

@@ -7,10 +7,8 @@ import { OrganizationSelector } from '~components/settings/OrganizationSelector'
 import { PublicationRecordingSettings } from '~components/settings/PublicationRecordingSettings';
 import { ThemeSelector } from '~components/settings/ThemeSelector';
 import { useSettingsStore } from '~store/use-settings-store';
-import { useWorkspaceStore } from '~store/use-workspace-store';
 
 export function SettingsPanel(): ReactElement {
-  const workspace = useWorkspaceStore();
   const isPreferencesLoaded = useSettingsStore((state) => state.isLoaded);
 
   return (
@@ -24,11 +22,6 @@ export function SettingsPanel(): ReactElement {
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Account and workspace
           </h3>
-          {workspace.status === 'ready' && (
-            <p className="text-xs text-muted-foreground">
-              {workspace.snapshot.organizationLabel}
-            </p>
-          )}
           <OrganizationSelector />
         </section>
         <section>
