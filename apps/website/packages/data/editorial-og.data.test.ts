@@ -84,8 +84,8 @@ describe('dedicated editorial OG coverage', () => {
         competitor.name,
       );
     }
-    expect(Object.keys(ARTICLE_OG_CARDS)).toHaveLength(52);
-    expect(new Set(Object.values(ARTICLE_OG_CARDS)).size).toBe(52);
+    expect(Object.keys(ARTICLE_OG_CARDS)).toHaveLength(57);
+    expect(new Set(Object.values(ARTICLE_OG_CARDS)).size).toBe(57);
     for (const slug of Object.keys(ARTICLE_OG_CARDS))
       expectDedicated(`/articles/${slug}`);
   });

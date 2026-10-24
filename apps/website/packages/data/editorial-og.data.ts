@@ -375,6 +375,26 @@ export const EDITORIAL_OG_ARTWORKS = {
     headline: ['Choose', 'your setup'],
     route: '/articles/genfeed-cloud-vs-self-hosted',
   },
+  'card-0053': {
+    headline: ['Start', 'small'],
+    route: '/articles/how-to-start-b2b-content-playbook',
+  },
+  'card-0054': {
+    headline: ['Founder', 'voice'],
+    route: '/articles/founder-led-linkedin-b2b-playbook',
+  },
+  'card-0055': {
+    headline: ['Calls to', 'content'],
+    route: '/articles/turn-customer-calls-into-b2b-content-playbook',
+  },
+  'card-0056': {
+    headline: ['One becomes', 'twenty'],
+    route: '/articles/turn-one-case-study-into-20-b2b-assets',
+  },
+  'card-0057': {
+    headline: ['Pipeline', 'proof'],
+    route: '/articles/measure-b2b-content-against-pipeline-playbook',
+  },
 } as const;
 
 export const ARTICLE_OG_CARDS = {
@@ -431,6 +451,11 @@ export const ARTICLE_OG_CARDS = {
   'using-studio-for-images-and-video': 'card-0050',
   'connect-claude-code-or-cursor-to-genfeed-cloud-mcp': 'card-0051',
   'genfeed-cloud-vs-self-hosted': 'card-0052',
+  'how-to-start-b2b-content-playbook': 'card-0053',
+  'founder-led-linkedin-b2b-playbook': 'card-0054',
+  'turn-customer-calls-into-b2b-content-playbook': 'card-0055',
+  'turn-one-case-study-into-20-b2b-assets': 'card-0056',
+  'measure-b2b-content-against-pipeline-playbook': 'card-0057',
 } as const;
 
 export function getEditorialArticleCard(slug: string, source?: string) {
