@@ -5,6 +5,10 @@ import type {
   IBillingPortalResponse,
   ICheckoutSessionResponse,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ITrialClaimResponse,
+  ITrialClaimStatusResponse,
+} from '@genfeedai/contracts/interfaces/billing';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -54,6 +58,42 @@ export class StripeService extends HTTPBaseService {
         params: returnPath ? { returnPath } : undefined,
       })
       .then((res) => deserializeResource<IBillingPortalResponse>(res.data));
+  }
+
+  /**
+   * Whether the signed-in user can still unlock the free-trial credits by
+   * saving a card.
+   */
+  public async getTrialCardStatus(
+    signal?: AbortSignal,
+  ): Promise<ITrialClaimStatusResponse> {
+    return await this.instance
+      .get<ITrialClaimStatusResponse>('/trial-card/status', { signal })
+      .then((res) => res.data);
+  }
+
+  /**
+   * Start Stripe Checkout in setup mode to save a card (no charge). Stripe
+   * returns the user to `returnPath` with `trialCard=success&session_id=`.
+   */
+  public async createTrialCardCheckout(
+    returnPath: string,
+  ): Promise<ICheckoutSessionResponse> {
+    return await this.instance
+      .post<JsonApiResponseDocument>('/trial-card/checkout', { returnPath })
+      .then((res) => deserializeResource<ICheckoutSessionResponse>(res.data));
+  }
+
+  /**
+   * Claim the trial credits with the card saved by a finished setup session.
+   */
+  public async claimTrialCard(
+    sessionId: string,
+    signal?: AbortSignal,
+  ): Promise<ITrialClaimResponse> {
+    return await this.instance
+      .post<ITrialClaimResponse>('/trial-card/claim', { sessionId }, { signal })
+      .then((res) => res.data);
   }
 
   /**

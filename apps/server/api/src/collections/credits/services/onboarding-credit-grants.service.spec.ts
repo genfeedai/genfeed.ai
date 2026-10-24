@@ -34,7 +34,7 @@ describe('OnboardingCreditGrantsService', () => {
   const findOrganization = vi.fn();
   const effects = vi.fn();
   const trialState = vi.fn<() => Promise<IFreeTrialState>>();
-  const logger = { warn: vi.fn() };
+  const logger = { log: vi.fn(), warn: vi.fn() };
   const grants = vi.fn(
     async (
       input: { creditsToAdd: number; options: { idempotencyKey: string } },
@@ -323,17 +323,17 @@ describe('OnboardingCreditGrantsService', () => {
     await service.grantSignupGift('org', 'user');
     expect(balance).toBe(25);
   });
-  describe('free-trial credits (finish or skip)', () => {
-    it('grants 75 credits once per user across a finish, a skip and concurrent retries', async () => {
+  describe('free-trial credits (card claim)', () => {
+    it('grants 75 credits once per user across repeated and concurrent claims', async () => {
       const results = await Promise.all([
-        service.grantTrialCredits('org', 'user'),
-        service.grantTrialCredits('org', 'user'),
+        service.claimTrialCredits('org', 'user'),
+        service.claimTrialCredits('org', 'user'),
       ]);
-      const retry = await service.grantTrialCredits('org', 'user');
+      const retry = await service.claimTrialCredits('org', 'user');
 
       expect(ONBOARDING_TRIAL_CREDITS).toBe(75);
-      expect(results.filter(Boolean)).toHaveLength(1);
-      expect(retry).toBe(false);
+      expect(results.filter((result) => result === 'granted')).toHaveLength(1);
+      expect(retry).toBe('already-claimed');
       expect(balance).toBe(75);
       expect(ledger).toEqual(['onboarding:trial:user']);
       expect(grants).toHaveBeenCalledWith(
@@ -357,10 +357,54 @@ describe('OnboardingCreditGrantsService', () => {
       );
     });
 
+    describe('getTrialClaimStatus', () => {
+      it('is claimable for an owner with no trial grant yet', async () => {
+        await expect(service.getTrialClaimStatus('org', 'user')).resolves.toBe(
+          'claimable',
+        );
+      });
+
+      it('is claimed once the ledger holds a trial grant', async () => {
+        historicalGift.mockResolvedValue({ id: 'earlier' });
+
+        await expect(service.getTrialClaimStatus('org', 'user')).resolves.toBe(
+          'claimed',
+        );
+      });
+
+      it('is unavailable for a non-owner workspace', async () => {
+        findOrganization.mockResolvedValue(null);
+
+        await expect(
+          service.getTrialClaimStatus('org', 'invited'),
+        ).resolves.toBe('unavailable');
+      });
+
+      it.each([
+        ['expired', { isTrialExpired: true, trialEndsAt: new Date() }],
+        ['not applicable', { isTrialExpired: false, trialEndsAt: null }],
+      ])('is unavailable when the trial is %s', async (_label, state) => {
+        trialState.mockResolvedValue(state);
+
+        await expect(service.getTrialClaimStatus('org', 'user')).resolves.toBe(
+          'unavailable',
+        );
+        expect(transaction).not.toHaveBeenCalled();
+      });
+
+      it('is unavailable where the hosted free trial does not exist', async () => {
+        vi.mocked(deployment.isSelfHostedDeployment).mockReturnValue(true);
+
+        await expect(service.getTrialClaimStatus('org', 'user')).resolves.toBe(
+          'unavailable',
+        );
+      });
+    });
+
     it('stacks on the 25-credit signup gift and the per-answer rewards', async () => {
       await service.grantSignupGift('org', 'user');
       await service.grantOnboardingAnswerCredits('org', 'brand-1', ['goals']);
-      await service.grantTrialCredits('org', 'user');
+      await service.claimTrialCredits('org', 'user');
 
       expect(balance).toBe(ONBOARDING_SIGNUP_GIFT_CREDITS + 5 + 75);
       expect(ledger).toEqual([
@@ -373,8 +417,8 @@ describe('OnboardingCreditGrantsService', () => {
     it('is suppressed by a historical trial grant on any organization the user owns', async () => {
       historicalGift.mockResolvedValue({ id: 'earlier', amount: 75 });
 
-      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
-        false,
+      await expect(service.claimTrialCredits('org', 'user')).resolves.toBe(
+        'already-claimed',
       );
       expect(grants).not.toHaveBeenCalled();
       expect(historicalGift).toHaveBeenCalledWith(
@@ -393,8 +437,8 @@ describe('OnboardingCreditGrantsService', () => {
     it('skips proactive, warm-up and non-owner workspaces like the signup gift', async () => {
       findOrganization.mockResolvedValue(null);
 
-      await expect(service.grantTrialCredits('org', 'invited')).resolves.toBe(
-        false,
+      await expect(service.claimTrialCredits('org', 'invited')).resolves.toBe(
+        'not-eligible',
       );
       expect(grants).not.toHaveBeenCalled();
       expect(findOrganization).toHaveBeenCalledWith(
@@ -410,13 +454,13 @@ describe('OnboardingCreditGrantsService', () => {
 
     it('never grants when billing is off or the deployment is self-hosted', async () => {
       vi.mocked(deployment.usesMeteredCredits).mockReturnValue(false);
-      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
-        false,
+      await expect(service.claimTrialCredits('org', 'user')).resolves.toBe(
+        'not-eligible',
       );
       vi.mocked(deployment.usesMeteredCredits).mockReturnValue(true);
       vi.mocked(deployment.isSelfHostedDeployment).mockReturnValue(true);
-      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
-        false,
+      await expect(service.claimTrialCredits('org', 'user')).resolves.toBe(
+        'not-eligible',
       );
       expect(transaction).not.toHaveBeenCalled();
       expect(grants).not.toHaveBeenCalled();
@@ -428,25 +472,10 @@ describe('OnboardingCreditGrantsService', () => {
         trialEndsAt: new Date('2026-10-01T00:00:00.000Z'),
       });
 
-      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
-        false,
+      await expect(service.claimTrialCredits('org', 'user')).resolves.toBe(
+        'not-eligible',
       );
       expect(transaction).not.toHaveBeenCalled();
-    });
-
-    it('logs and swallows a failed grant on the best-effort path', async () => {
-      transaction.mockRejectedValueOnce(new Error('ledger down'));
-
-      await expect(
-        service.grantTrialCreditsBestEffort('org', 'user'),
-      ).resolves.toBe(false);
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Could not grant free-trial credits',
-        expect.objectContaining({
-          error: 'ledger down',
-          organizationId: 'org',
-        }),
-      );
     });
   });
 
@@ -539,29 +568,32 @@ describe('OnboardingCreditGrantsService', () => {
       });
 
       await guarded.grantSignupGift('org', 'user');
-      await expect(guarded.grantTrialCredits('org', 'user')).resolves.toBe(
-        false,
+      await expect(guarded.claimTrialCredits('org', 'user')).resolves.toBe(
+        'not-eligible',
       );
 
       expect(grants).not.toHaveBeenCalled();
       expect(balance).toBe(0);
     });
 
-    it('records the mailbox key on each grant it pays', async () => {
+    it('records the mailbox, IP and card keys on each grant it pays', async () => {
       evaluate.mockResolvedValue({
+        cardKey: 'card-key',
         emailKey: 'mailbox-key',
         ipKey: 'ip-key',
         isEligible: true,
       });
 
       await guarded.grantSignupGift('org', 'user');
-      await guarded.grantTrialCredits('org', 'user');
+      await guarded.claimTrialCredits('org', 'user', { cardKey: 'card-key' });
 
       expect(evaluate).toHaveBeenCalledWith(expect.anything(), {
         source: 'onboarding-signup-gift',
         userId: 'user',
       });
       expect(evaluate).toHaveBeenCalledWith(expect.anything(), {
+        cardKey: 'card-key',
+        isCardRequired: true,
         source: 'onboarding-trial',
         userId: 'user',
       });
@@ -574,7 +606,63 @@ describe('OnboardingCreditGrantsService', () => {
           },
         });
       }
+      expect(grants.mock.calls[1]?.[0].options).toMatchObject({
+        metadata: { cardKey: 'card-key' },
+      });
       expect(balance).toBe(100);
+    });
+
+    describe('claimTrialCredits', () => {
+      it('reports a withheld grant for a user who has not saved a card', async () => {
+        evaluate.mockResolvedValue({
+          isEligible: false,
+          reason: 'card-required',
+        });
+
+        await expect(guarded.claimTrialCredits('org', 'user')).resolves.toBe(
+          'not-eligible',
+        );
+        expect(grants).not.toHaveBeenCalled();
+      });
+
+      it('reports a card that another account already used', async () => {
+        evaluate.mockResolvedValue({
+          isEligible: false,
+          reason: 'duplicate-card',
+        });
+
+        await expect(
+          guarded.claimTrialCredits('org', 'user', { cardKey: 'card-key' }),
+        ).resolves.toBe('card-already-used');
+        expect(grants).not.toHaveBeenCalled();
+      });
+
+      it('reports a user who already claimed the trial credits', async () => {
+        historicalGift.mockResolvedValue({
+          balanceAfter: 75,
+          id: 'earlier',
+          organizationId: 'org',
+        });
+
+        await expect(
+          guarded.claimTrialCredits('org', 'user', { cardKey: 'card-key' }),
+        ).resolves.toBe('already-claimed');
+        expect(evaluate).not.toHaveBeenCalled();
+      });
+
+      it('grants once a verified, unused card is supplied', async () => {
+        evaluate.mockResolvedValue({
+          cardKey: 'card-key',
+          emailKey: null,
+          ipKey: null,
+          isEligible: true,
+        });
+
+        await expect(
+          guarded.claimTrialCredits('org', 'user', { cardKey: 'card-key' }),
+        ).resolves.toBe('granted');
+        expect(balance).toBe(75);
+      });
     });
 
     it('does not re-evaluate a user who already collected the grant', async () => {

@@ -7,7 +7,6 @@ and enforce usage limits.
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
 import { EmailVerifiedCreditsListener } from '@api/collections/credits/listeners/email-verified-credits.listener';
-import { OnboardingTrialCreditsListener } from '@api/collections/credits/listeners/onboarding-trial-credits.listener';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
@@ -74,7 +73,6 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     OnboardingCreditGrantsService,
-    OnboardingTrialCreditsListener,
     EmailVerifiedCreditsListener,
     SignupGrantEligibilityService,
     CreditBalanceService,

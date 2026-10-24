@@ -39,7 +39,10 @@ describe('SignupGrantEligibilityService', () => {
   it('is always eligible where the hosted free trial does not exist', async () => {
     vi.spyOn(deployment, 'isSelfHostedDeployment').mockReturnValue(true);
 
-    await expect(service.evaluate(tx, input)).resolves.toEqual({
+    await expect(
+      service.evaluate(tx, { ...input, isCardRequired: true }),
+    ).resolves.toEqual({
+      cardKey: null,
       emailKey: null,
       ipKey: null,
       isEligible: true,
@@ -175,10 +178,59 @@ describe('SignupGrantEligibilityService', () => {
     userFindFirst.mockResolvedValue({ email: null, emailVerified: true });
 
     await expect(service.evaluate(tx, input)).resolves.toEqual({
+      cardKey: null,
       emailKey: null,
       ipKey: expect.stringMatching(/^[0-9a-f]{64}$/),
       isEligible: true,
     });
     expect(grantFindFirst).not.toHaveBeenCalled();
+  });
+
+  describe('card requirement', () => {
+    const cardInput = { ...input, isCardRequired: true };
+
+    it('withholds a card-gated grant while no card has been verified', async () => {
+      await expect(service.evaluate(tx, cardInput)).resolves.toEqual({
+        isEligible: false,
+        reason: 'card-required',
+      });
+      expect(logger.log).toHaveBeenCalledWith(
+        'Free credit grant withheld',
+        expect.objectContaining({ reason: 'card-required' }),
+      );
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('does not ask for a card on grants that do not need one', async () => {
+      await expect(service.evaluate(tx, input)).resolves.toMatchObject({
+        isEligible: true,
+      });
+    });
+
+    it('withholds the grant when another account already used the same card', async () => {
+      grantFindFirst.mockImplementation(
+        async ({ where }: { where: { metadata: { path: string[] } } }) =>
+          where.metadata.path[0] === 'cardKey' ? { id: 'earlier-grant' } : null,
+      );
+
+      await expect(
+        service.evaluate(tx, { ...cardInput, cardKey: 'card-hash' }),
+      ).resolves.toEqual({ isEligible: false, reason: 'duplicate-card' });
+      expect(grantFindFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            metadata: { equals: 'card-hash', path: ['cardKey'] },
+            organization: { userId: { not: 'user-1' } },
+            source: 'onboarding-trial',
+          }),
+        }),
+      );
+    });
+
+    it('returns the card key to record on the grant', async () => {
+      await expect(
+        service.evaluate(tx, { ...cardInput, cardKey: 'card-hash' }),
+      ).resolves.toMatchObject({ cardKey: 'card-hash', isEligible: true });
+    });
   });
 });

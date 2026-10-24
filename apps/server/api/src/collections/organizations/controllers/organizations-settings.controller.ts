@@ -247,8 +247,7 @@ export class OrganizationsSettingsController {
       organizationSettings.id,
       normalizedSettingsDto,
     );
-    // `isFirstLogin: false` is the classic onboarding skip (REST audit #1354);
-    // skipping still starts the free trial, so the trial credits are granted.
+    // `isFirstLogin: false` is the classic onboarding skip (REST audit #1354).
     const actorUserId = req.user?.userId || req.user?.id;
     if (settingsDto.isFirstLogin === false && actorUserId) {
       const event: OrganizationOnboardingFinishedEvent = {

@@ -8,13 +8,12 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
 /**
- * Releases the free credits an email/password signup could not collect before
- * its mailbox was verified: the signup gift, and the trial credits when
- * onboarding was already finished or skipped. Both grants are idempotent per
- * user and apply their own eligibility rules, so a repeat verification, an
- * already-credited user or an ineligible one is a no-op. Never throws: a
- * failed grant must not break the verification redirect, and the next
- * onboarding finish retries the trial grant.
+ * Releases the signup gift an email/password signup could not collect before
+ * its mailbox was verified. The grant is idempotent per user and applies its
+ * own eligibility rules, so a repeat verification, an already-credited user or
+ * an ineligible one is a no-op. Never throws: a failed grant must not break
+ * the verification redirect. The trial credits are not released here: they
+ * need a saved card (see `TrialCardController`).
  */
 @Injectable()
 export class EmailVerifiedCreditsListener {
@@ -37,10 +36,7 @@ export class EmailVerifiedCreditsListener {
           // tenant-scope-ignore: resolves the organization a just-verified user owns, before any tenant context exists.
           await this.prisma.organization.findFirst({
             orderBy: { createdAt: 'asc' },
-            select: {
-              id: true,
-              user: { select: { isOnboardingCompleted: true } },
-            },
+            select: { id: true },
             where: {
               isDeleted: false,
               isProactiveOnboarding: false,
@@ -56,13 +52,6 @@ export class EmailVerifiedCreditsListener {
         event.userId,
         { ipAddress: event.ipAddress },
       );
-      if (organization.user.isOnboardingCompleted) {
-        await this.onboardingCreditGrantsService.grantTrialCreditsBestEffort(
-          organization.id,
-          event.userId,
-          { ipAddress: event.ipAddress },
-        );
-      }
     } catch (error: unknown) {
       this.logger.warn(
         'Could not release free credits after email verification',

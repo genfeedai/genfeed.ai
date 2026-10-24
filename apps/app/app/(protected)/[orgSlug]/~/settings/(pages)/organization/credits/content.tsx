@@ -26,6 +26,7 @@ import { useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AddCreditsCard from '../billing/add-credits-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
+import TrialCardClaimCard from './trial-card-claim-card';
 
 /**
  * Credits surface: balance + top-up.
@@ -181,6 +182,10 @@ function SettingsCreditsContent() {
             ) : null}
           </Text>
         </Card>
+      ) : null}
+
+      {isBillingEnabled && !useManagedCloudCheckout ? (
+        <TrialCardClaimCard onClaimed={refreshCreditsBreakdown} />
       ) : null}
 
       {useManagedCloudCheckout ? (

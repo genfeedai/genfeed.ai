@@ -75,9 +75,8 @@ export class UserOnboardingCompletionService {
       );
     }
 
-    // Free-trial credits (granted by a CreditsModule listener, idempotent per
-    // user). Emitted on every call, not only the first transition, so a
-    // grant that failed once is retried by the next completion call.
+    // Emitted on every call, not only the first transition, so a listener
+    // that failed once is retried by the next completion call.
     if (user.organizationId) {
       const event: OrganizationOnboardingFinishedEvent = {
         organizationId: user.organizationId,

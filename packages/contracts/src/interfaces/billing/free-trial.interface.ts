@@ -37,3 +37,25 @@ export interface ILowCreditStanding {
   isTrialSubject: boolean;
   threshold: number | null;
 }
+
+/** Whether a user can still unlock the trial credits with a saved card. */
+export type TrialClaimStatus = 'claimable' | 'claimed' | 'unavailable';
+
+/**
+ * How a trial-credits claim ended. `card-not-verified` means the Stripe
+ * session was not a finished card setup for the organization's customer.
+ */
+export type TrialClaimOutcome =
+  | 'already-claimed'
+  | 'card-already-used'
+  | 'card-not-verified'
+  | 'granted'
+  | 'not-eligible';
+
+export interface ITrialClaimStatusResponse {
+  status: TrialClaimStatus;
+}
+
+export interface ITrialClaimResponse {
+  outcome: TrialClaimOutcome;
+}

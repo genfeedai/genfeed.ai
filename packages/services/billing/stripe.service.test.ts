@@ -48,4 +48,52 @@ describe('StripeService', () => {
   it('has getInstance static method', () => {
     expect(typeof StripeService.getInstance).toBe('function');
   });
+
+  describe('trial card', () => {
+    function http(): {
+      get: ReturnType<typeof vi.fn>;
+      post: ReturnType<typeof vi.fn>;
+    } {
+      return (service as unknown as { instance: ReturnType<typeof http> })
+        .instance;
+    }
+
+    it('reads the claim status', async () => {
+      http().get.mockResolvedValue({ data: { status: 'claimable' } });
+      const signal = new AbortController().signal;
+
+      await expect(service.getTrialCardStatus(signal)).resolves.toEqual({
+        status: 'claimable',
+      });
+      expect(http().get).toHaveBeenCalledWith('/trial-card/status', {
+        signal,
+      });
+    });
+
+    it('claims with the finished setup session', async () => {
+      http().post.mockResolvedValue({ data: { outcome: 'granted' } });
+      const signal = new AbortController().signal;
+
+      await expect(service.claimTrialCard('cs_1', signal)).resolves.toEqual({
+        outcome: 'granted',
+      });
+      expect(http().post).toHaveBeenCalledWith(
+        '/trial-card/claim',
+        { sessionId: 'cs_1' },
+        { signal },
+      );
+    });
+
+    it('starts card setup that returns to the given path', async () => {
+      http().post.mockResolvedValue({
+        data: { data: { attributes: { url: 'https://stripe.test/setup' } } },
+      });
+
+      await service.createTrialCardCheckout('/acme/~/settings/credits');
+
+      expect(http().post).toHaveBeenCalledWith('/trial-card/checkout', {
+        returnPath: '/acme/~/settings/credits',
+      });
+    });
+  });
 });

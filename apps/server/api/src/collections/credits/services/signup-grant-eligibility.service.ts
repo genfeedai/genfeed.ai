@@ -13,17 +13,26 @@ const IP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** Request-scoped facts a grant caller may hold that the database does not. */
 export type GrantEligibilityOptions = {
+  /** Hash of the verified card's Stripe fingerprint, for grants that need one. */
+  cardKey?: string | null;
   /** Client IP to use when the user has no session yet. */
   ipAddress?: string | null;
 };
 
 export type SignupGrantRefusal =
+  | 'card-required'
+  | 'duplicate-card'
   | 'duplicate-mailbox'
   | 'email-unverified'
   | 'ip-velocity';
 
 export type SignupGrantEligibility =
-  | { emailKey: string | null; ipKey: string | null; isEligible: true }
+  | {
+      cardKey: string | null;
+      emailKey: string | null;
+      ipKey: string | null;
+      isEligible: true;
+    }
   | { isEligible: false; reason: SignupGrantRefusal };
 
 /**
@@ -36,6 +45,8 @@ export type SignupGrantEligibility =
  *   verified; email/password users get theirs on verification);
  * - every alias of a mailbox (Gmail dots, `+tags`, `googlemail.com`) counts as
  *   one mailbox, keyed by a hash stored on the grant's ledger row;
+ * - grants that require a card (the trial credits) need the key of a verified
+ *   card that no other account has used for the same grant;
  * - at most {@link MAX_FREE_GRANTS_PER_IP_PER_DAY} grants of one kind go to
  *   accounts that signed in from the same address within a day. The address
  *   is the user's first session, hashed onto the grant's ledger row so the
@@ -56,12 +67,16 @@ export class SignupGrantEligibilityService {
 
   async evaluate(
     tx: PrismaTransactionClient,
-    input: GrantEligibilityOptions & { source: string; userId: string },
+    input: GrantEligibilityOptions & {
+      isCardRequired?: boolean;
+      source: string;
+      userId: string;
+    },
   ): Promise<SignupGrantEligibility> {
     if (!isFreeTrialEnforced()) {
-      return { emailKey: null, ipKey: null, isEligible: true };
+      return { cardKey: null, emailKey: null, ipKey: null, isEligible: true };
     }
-    const { source, userId } = input;
+    const { cardKey = null, isCardRequired = false, source, userId } = input;
     const user = await tx.user.findFirst({
       select: { email: true, emailVerified: true },
       where: { id: userId, isDeleted: false },
@@ -71,31 +86,47 @@ export class SignupGrantEligibilityService {
     }
 
     const emailKey = user.email ? hashCanonicalEmail(user.email) : null;
-    if (emailKey && (await this.isMailboxAlreadyGranted(tx, emailKey, input))) {
+    if (
+      emailKey &&
+      (await this.isKeyAlreadyGranted(tx, 'emailKey', emailKey, input))
+    ) {
       return this.refuse('duplicate-mailbox', userId, source);
+    }
+    if (isCardRequired) {
+      if (!cardKey) {
+        return this.refuse('card-required', userId, source);
+      }
+      if (await this.isKeyAlreadyGranted(tx, 'cardKey', cardKey, input)) {
+        return this.refuse('duplicate-card', userId, source);
+      }
     }
     const ipKey = await this.resolveIpKey(tx, userId, input.ipAddress);
     if (ipKey && (await this.isIpOverLimit(tx, ipKey, input))) {
       return this.refuse('ip-velocity', userId, source);
     }
-    return { emailKey, ipKey, isEligible: true };
+    return { cardKey, emailKey, ipKey, isEligible: true };
   }
 
-  private async isMailboxAlreadyGranted(
+  /**
+   * Whether another account already collected this kind of grant under the
+   * same mailbox or card key.
+   */
+  private async isKeyAlreadyGranted(
     tx: PrismaTransactionClient,
-    emailKey: string,
+    field: 'cardKey' | 'emailKey',
+    key: string,
     { source, userId }: { source: string; userId: string },
   ): Promise<boolean> {
-    // tenant-scope-ignore: a mailbox may hold one grant across every organization it owns; the ledger is the only record of who already collected.
+    // tenant-scope-ignore: a mailbox or card may hold one grant across every organization it owns; the ledger is the only record of who already collected.
     const existing = await crossOrgUnsafe(
       async () =>
-        // tenant-scope-ignore: a mailbox may hold one grant across every organization it owns; the ledger is the only record of who already collected.
+        // tenant-scope-ignore: a mailbox or card may hold one grant across every organization it owns; the ledger is the only record of who already collected.
         await tx.creditTransaction.findFirst({
           select: { id: true },
           where: {
             category: CreditTransactionCategory.ADD,
             isDeleted: false,
-            metadata: { equals: emailKey, path: ['emailKey'] },
+            metadata: { equals: key, path: [field] },
             organization: { userId: { not: userId } },
             source,
           },
@@ -151,9 +182,12 @@ export class SignupGrantEligibilityService {
     userId: string,
     source: string,
   ): SignupGrantEligibility {
-    // An unverified mailbox is the normal state of an email/password signup
-    // until the link is followed, so it is not worth a warning.
-    const log = reason === 'email-unverified' ? 'log' : 'warn';
+    // An unverified mailbox and a missing card are the normal states of a new
+    // signup before it verifies or adds a card, so they are not worth a warning.
+    const log =
+      reason === 'email-unverified' || reason === 'card-required'
+        ? 'log'
+        : 'warn';
     this.logger[log]('Free credit grant withheld', {
       ...this.context,
       reason,

@@ -59,6 +59,10 @@ vi.mock('../billing/add-credits-card', () => ({
   },
 }));
 
+vi.mock('./trial-card-claim-card', () => ({
+  default: () => <div data-testid="trial-card-claim">Trial card</div>,
+}));
+
 vi.mock('./managed-credits-checkout-card', () => ({
   default: () => {
     managedCheckoutMock();
@@ -178,6 +182,19 @@ describe('SettingsCreditsPage', () => {
     expect(
       screen.queryByTestId('managed-credits-card'),
     ).not.toBeInTheDocument();
+  });
+
+  it('offers the free-trial card claim only where organization billing is on', () => {
+    isSelfHostedMock.mockReturnValue(false);
+    hasOrganizationBillingMock.mockReturnValue(true);
+
+    const { unmount } = renderCreditsPage();
+    expect(screen.getByTestId('trial-card-claim')).toBeInTheDocument();
+    unmount();
+
+    hasOrganizationBillingMock.mockReturnValue(false);
+    renderCreditsPage();
+    expect(screen.queryByTestId('trial-card-claim')).not.toBeInTheDocument();
   });
 
   it('links to the dedicated referrals page when organization billing is enabled', () => {

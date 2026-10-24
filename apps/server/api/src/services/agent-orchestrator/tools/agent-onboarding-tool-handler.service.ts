@@ -33,7 +33,6 @@ import {
   ONBOARDING_ANSWER_TOTAL_CREDITS,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
-  ONBOARDING_TRIAL_CREDITS,
   type OnboardingJourneyMissionId,
   resolveMissionCtaHref,
 } from '@genfeedai/contracts/types';
@@ -507,13 +506,16 @@ export class AgentOnboardingToolHandler {
       await this.creditsUtilsService.getOrganizationCreditsWithExpiration(
         organizationId,
       );
-    const signupGiftCredits = credits.credits.reduce((total, entry) => {
-      if (entry.source !== 'onboarding-signup-gift') {
-        return total;
-      }
-
-      return total + entry.balance;
-    }, 0);
+    const sumBySource = (source: string): number =>
+      credits.credits.reduce(
+        (total, entry) =>
+          entry.source === source ? total + entry.balance : total,
+        0,
+      );
+    const signupGiftCredits = sumBySource('onboarding-signup-gift');
+    // The trial credits are paid on the card claim, not on finishing
+    // onboarding, so only a claimed grant is counted.
+    const trialCredits = sumBySource('onboarding-trial');
 
     return {
       journeyEarnedCredits: earnedCredits,
@@ -522,10 +524,9 @@ export class AgentOnboardingToolHandler {
         0,
       ),
       signupGiftCredits,
-      // The trial credits land when onboarding is finished or skipped.
       totalOnboardingCreditsVisible:
         signupGiftCredits +
-        ONBOARDING_TRIAL_CREDITS +
+        trialCredits +
         ONBOARDING_ANSWER_TOTAL_CREDITS +
         ONBOARDING_JOURNEY_TOTAL_CREDITS,
     };

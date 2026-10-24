@@ -453,6 +453,17 @@
       "resets": "Resets",
       "retryBalance": "Retry balance",
       "title": "Credits",
+      "trialCard": {
+        "cardAlreadyUsed": "This card has already unlocked free credits on another account.",
+        "cardNotVerified": "We couldn't confirm your card. Please try again.",
+        "claimFailed": "We couldn't unlock your free credits. Please try again.",
+        "cta": "Add card",
+        "description": "Save a card to unlock your 75 free trial credits. You won't be charged.",
+        "granted": "75 free credits added to your balance.",
+        "notEligible": "Free credits aren't available for this account.",
+        "startFailed": "We couldn't open card setup. Please try again.",
+        "title": "Unlock 75 free credits"
+      },
       "viewReferrals": "View referrals"
     },
     "members": {

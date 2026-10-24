@@ -18,6 +18,10 @@ import {
 import { isSelfHostedDeployment, usesMeteredCredits } from '@genfeedai/config';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import type { OnboardingAnswerFieldId } from '@genfeedai/contracts/interfaces';
+import type {
+  TrialClaimOutcome,
+  TrialClaimStatus,
+} from '@genfeedai/contracts/interfaces/billing';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_ANSWER_REWARD_CREDITS,
@@ -34,6 +38,9 @@ const REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const WELCOME_CAMPAIGN = 'onboarding-signup-gift';
 const TRIAL_CAMPAIGN = 'onboarding-trial';
 const ANSWER_CAMPAIGN = 'onboarding-answer';
+
+const trialIdempotencyKey = (userId: string): string =>
+  `onboarding:trial:${userId}`;
 
 @Injectable()
 export class OnboardingCreditGrantsService {
@@ -153,25 +160,54 @@ export class OnboardingCreditGrantsService {
   }
 
   /**
-   * The 75 free-trial credits, granted once per user when onboarding is
-   * finished or skipped. They stack on the signup gift and on the per-answer
-   * rewards. Same entitlement rules as the signup gift: the organization's
-   * owner only, never for a proactive or warm-up workspace, and the ledger
-   * (keyed by user across every organization they own) is the only
-   * idempotency guard, so a second finish, a skip after a finish, or a
-   * concurrent call never pays twice. Nothing is granted once the trial is
-   * already over: those credits could not be spent and would only be swept.
-   * Returns whether this call granted the credits.
+   * Whether the user can still unlock the trial credits with a card: the trial
+   * applies to the organization, the user owns it, and no grant exists yet.
    */
-  async grantTrialCredits(
+  async getTrialClaimStatus(
+    organizationId: string,
+    userId: string,
+  ): Promise<TrialClaimStatus> {
+    if (!isFreeTrialEnforced()) return 'unavailable';
+    const trial = await this.freeTrialService.getState(organizationId);
+    if (trial.isTrialExpired || !trial.trialEndsAt) return 'unavailable';
+    return await this.runSerializable(async (tx): Promise<TrialClaimStatus> => {
+      const organization = await tx.organization.findFirst({
+        where: {
+          id: organizationId,
+          isDeleted: false,
+          userId,
+          isProactiveOnboarding: false,
+          warmupAccounts: { none: { isDeleted: false } },
+        },
+      });
+      if (!organization) return 'unavailable';
+      return (await this.findTrialGrant(tx, userId)) ? 'claimed' : 'claimable';
+    });
+  }
+
+  /**
+   * The 75 free-trial credits, granted once per user against a verified card
+   * (`options.cardKey`, the hash of its Stripe fingerprint). They stack on the
+   * signup gift and on the per-answer rewards. Same entitlement rules as the
+   * signup gift: the organization's owner only, never for a proactive or
+   * warm-up workspace, and the ledger (keyed by user across every organization
+   * they own) is the only idempotency guard, so a repeated or concurrent claim
+   * never pays twice. A card another account already used is refused, so one
+   * card unlocks one trial. Nothing is granted once the trial is already over:
+   * those credits could not be spent and would only be swept. Returns why the
+   * credits were or were not paid.
+   */
+  async claimTrialCredits(
     organizationId: string,
     userId: string,
     options: GrantEligibilityOptions = {},
-  ): Promise<boolean> {
-    if (!isFreeTrialEnforced()) return false;
+  ): Promise<TrialClaimOutcome> {
+    if (!isFreeTrialEnforced()) return 'not-eligible';
     if ((await this.freeTrialService.getState(organizationId)).isTrialExpired)
-      return false;
+      return 'not-eligible';
+    let outcome: TrialClaimOutcome = 'not-eligible';
     const result = await this.runSerializable(async (tx) => {
+      outcome = 'not-eligible';
       const organization = await tx.organization.findFirst({
         where: {
           id: organizationId,
@@ -182,31 +218,26 @@ export class OnboardingCreditGrantsService {
         },
       });
       if (!organization) return null;
-      const idempotencyKey = `onboarding:trial:${userId}`;
-      // tenant-scope-ignore: the trial entitlement is user-scoped across owned organizations; historical ledger evidence survives spent or expired credits.
-      const existing = await crossOrgUnsafe(
-        async () =>
-          // tenant-scope-ignore: the trial entitlement is user-scoped across owned organizations; historical ledger evidence survives spent or expired credits.
-          await tx.creditTransaction.findFirst({
-            where: {
-              category: CreditTransactionCategory.ADD,
-              isDeleted: false,
-              source: TRIAL_CAMPAIGN,
-              OR: [
-                { idempotencyKey },
-                { actorUserId: userId },
-                { organization: { userId } },
-              ],
-            },
-          }),
-      );
-      if (existing) return null;
+      const idempotencyKey = trialIdempotencyKey(userId);
+      const existing = await this.findTrialGrant(tx, userId);
+      if (existing) {
+        outcome = 'already-claimed';
+        return null;
+      }
       const eligibility = await this.signupGrantEligibility?.evaluate(tx, {
+        cardKey: options.cardKey,
         ipAddress: options.ipAddress,
+        isCardRequired: true,
         source: TRIAL_CAMPAIGN,
         userId,
       });
-      if (eligibility && !eligibility.isEligible) return null;
+      if (eligibility && !eligibility.isEligible) {
+        outcome =
+          eligibility.reason === 'duplicate-card'
+            ? 'card-already-used'
+            : 'not-eligible';
+        return null;
+      }
       return this.creditsUtilsService.addPromotionalCreditsInTransaction(
         {
           creditsToAdd: ONBOARDING_TRIAL_CREDITS,
@@ -223,6 +254,9 @@ export class OnboardingCreditGrantsService {
             metadata: {
               kind: 'promotional',
               campaign: TRIAL_CAMPAIGN,
+              ...(eligibility?.isEligible && eligibility.cardKey
+                ? { cardKey: eligibility.cardKey }
+                : {}),
               ...(eligibility?.isEligible && eligibility.emailKey
                 ? { emailKey: eligibility.emailKey }
                 : {}),
@@ -235,35 +269,23 @@ export class OnboardingCreditGrantsService {
         tx,
       );
     });
-    if (!result?.wasApplied) return false;
-    await this.creditsUtilsService.publishCreditAddition(
-      organizationId,
-      ONBOARDING_TRIAL_CREDITS,
-      result,
-    );
-    return true;
-  }
-
-  /**
-   * `grantTrialCredits` for paths that have already recorded onboarding and
-   * must not fail because of it. The next finish or skip retries the same
-   * idempotent grant.
-   */
-  async grantTrialCreditsBestEffort(
-    organizationId: string,
-    userId: string,
-    options: GrantEligibilityOptions = {},
-  ): Promise<boolean> {
-    try {
-      return await this.grantTrialCredits(organizationId, userId, options);
-    } catch (error: unknown) {
-      this.loggerService.warn('Could not grant free-trial credits', {
-        error: error instanceof Error ? error.message : String(error),
+    if (result?.wasApplied) {
+      await this.creditsUtilsService.publishCreditAddition(
         organizationId,
-        service: OnboardingCreditGrantsService.name,
-      });
-      return false;
+        ONBOARDING_TRIAL_CREDITS,
+        result,
+      );
+      outcome = 'granted';
+    } else if (result) {
+      // The ledger's idempotency key absorbed a concurrent claim.
+      outcome = 'already-claimed';
     }
+    this.loggerService.log('Trial credits claim', {
+      organizationId,
+      outcome,
+      service: OnboardingCreditGrantsService.name,
+    });
+    return outcome;
   }
 
   async completeMissions(
@@ -410,6 +432,26 @@ export class OnboardingCreditGrantsService {
         addition.result,
       );
     return additions.map((addition) => addition.fieldId);
+  }
+
+  private async findTrialGrant(tx: PrismaTransactionClient, userId: string) {
+    // tenant-scope-ignore: the trial entitlement is user-scoped across owned organizations; historical ledger evidence survives spent or expired credits.
+    return await crossOrgUnsafe(
+      async () =>
+        // tenant-scope-ignore: the trial entitlement is user-scoped across owned organizations; historical ledger evidence survives spent or expired credits.
+        await tx.creditTransaction.findFirst({
+          where: {
+            category: CreditTransactionCategory.ADD,
+            isDeleted: false,
+            source: TRIAL_CAMPAIGN,
+            OR: [
+              { idempotencyKey: trialIdempotencyKey(userId) },
+              { actorUserId: userId },
+              { organization: { userId } },
+            ],
+          },
+        }),
+    );
   }
 
   private async runSerializable<T>(
