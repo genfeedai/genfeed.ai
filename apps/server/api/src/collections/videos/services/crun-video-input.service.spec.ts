@@ -76,7 +76,6 @@ function fixture(index = 0) {
     }),
   };
   const tasks = {
-    isAdmissionEnabled: vi.fn().mockReturnValue(true),
     resolveCredential: vi.fn().mockResolvedValue({
       apiKey: 'secret',
       credentialSource: 'hosted',
@@ -85,9 +84,6 @@ function fixture(index = 0) {
     }),
   };
   const config = {
-    get: vi.fn((key: string) =>
-      key === 'CRUN_CREDITS_PER_USD' ? '1000' : 'test-rate',
-    ),
     ingredientsEndpoint: 'https://owned.fixture.test',
   };
   const personas = personasServiceStub();

@@ -60,7 +60,6 @@ export class CrunImageInputService {
     const unavailable = (
       reasonCode: CrunQuoteReasonCode,
     ): CrunPreparedImageResult => ({ isAvailable: false, reasonCode });
-    if (!this.tasks.isAdmissionEnabled()) return unavailable('CRUN_DISABLED');
     const { brandId, brand } = await this.authorizeSelection(intent, user);
     const provenance = await this.validatePromptProvenance(
       intent,
@@ -262,7 +261,6 @@ export class CrunImageInputService {
   ): Promise<CrunPreparedImageResult> {
     return prepareCrunPricing(
       {
-        config: this.config,
         models: this.models,
         prisma: this.prisma,
         tasks: this.tasks,

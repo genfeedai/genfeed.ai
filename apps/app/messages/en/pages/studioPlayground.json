@@ -268,7 +268,6 @@
     "byok": "Your API key",
     "credits": "{credits} credits",
     "reasons": {
-      "CRUN_DISABLED": "This image provider is unavailable on this server.",
       "CRUN_MODEL_UNAVAILABLE": "This image model is unavailable.",
       "CRUN_CREDENTIALS_UNAVAILABLE": "Connect an image provider API key to continue.",
       "CRUN_BILLING_UNSUPPORTED": "Image billing is unavailable for this connection.",
@@ -300,7 +299,6 @@
     "videoQuoteStale": "Video settings changed. Select current settings to continue.",
     "referenceUnavailable": "The saved video references are unavailable. Select current references to continue.",
     "videoReasons": {
-      "CRUN_DISABLED": "This video provider is unavailable on this server.",
       "CRUN_MODEL_UNAVAILABLE": "This video model is unavailable.",
       "CRUN_CREDENTIALS_UNAVAILABLE": "Connect an video provider API key to continue.",
       "CRUN_BILLING_UNSUPPORTED": "Video billing is unavailable for this connection.",

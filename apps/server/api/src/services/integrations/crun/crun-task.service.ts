@@ -47,10 +47,6 @@ export class CrunTaskService {
     private readonly client: CrunClient,
   ) {}
 
-  isAdmissionEnabled(): boolean {
-    return this.config.get('CRUN_ENABLED') === 'true';
-  }
-
   async resolveCredential(
     organizationId: string,
   ): Promise<CrunResolvedCredential> {
@@ -161,8 +157,6 @@ export class CrunTaskService {
   async prepareTasks(
     inputs: CrunPreparedTask[],
   ): Promise<CrunGenerationTask[]> {
-    if (!this.isAdmissionEnabled())
-      throw new ServiceUnavailableException({ code: 'CRUN_DISABLED' });
     return this.runSerializable(async (transaction) => {
       const rows: CrunGenerationTask[] = [];
       for (const input of inputs) {
@@ -203,10 +197,6 @@ export class CrunTaskService {
     request: CrunProviderRequest,
     now = new Date(),
   ) {
-    if (!this.isAdmissionEnabled()) {
-      await this.markUnsubmitted(task, 'CRUN_DISABLED', now);
-      return { isSubmitted: false, reasonCode: 'CRUN_DISABLED' };
-    }
     const active = await this.prisma.model.findFirst({
       where: {
         key: task.modelKey,

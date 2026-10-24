@@ -21,7 +21,6 @@ function fixture() {
     getdel: vi.fn(),
   };
   const tasks = {
-    isAdmissionEnabled: vi.fn().mockReturnValue(false),
     resolveCredential: vi.fn(),
   };
   const models = { findOne: vi.fn() };
@@ -68,7 +67,6 @@ describe('Crun frozen quote consumption', () => {
       ],
     });
     expect(f.cache.get).not.toHaveBeenCalled();
-    expect(f.tasks.isAdmissionEnabled).not.toHaveBeenCalled();
     expect(f.input.prepare).not.toHaveBeenCalled();
     expect(f.quote.quote).not.toHaveBeenCalled();
     expect(f.prisma.crunGenerationTask.findMany).toHaveBeenCalledWith(
@@ -130,7 +128,6 @@ describe('Crun frozen quote consumption', () => {
 describe('Crun quote character admission on consume (#6040)', () => {
   it('re-admits the quoted characters and refuses once access was revoked', async () => {
     const f = fixture();
-    f.tasks.isAdmissionEnabled.mockReturnValue(true);
     f.personas.resolveCharacterReferences.mockRejectedValue(
       new NotFoundException('Reference image'),
     );
