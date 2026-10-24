@@ -176,7 +176,7 @@ describe('SignupGrantEligibilityService', () => {
 
     await expect(service.evaluate(tx, input)).resolves.toEqual({
       emailKey: null,
-      ipKey: null,
+      ipKey: expect.stringMatching(/^[0-9a-f]{64}$/),
       isEligible: true,
     });
     expect(grantFindFirst).not.toHaveBeenCalled();
