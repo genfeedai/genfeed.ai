@@ -550,18 +550,18 @@ async function probeBackground() {
     }
     result.pass = Boolean(
       result.domGlobalsAbsent &&
-      result.constructors?.validString &&
-      result.constructors?.invalidNumber &&
-      [
-        'runtime.onInstalled',
-        'runtime.onMessage',
-        'contextMenus.onClicked',
-        'tabs.onUpdated',
-      ].every((name) => result.registrations.includes(name)) &&
-      result.chromeCalls.includes('sidePanel.setPanelBehavior') &&
-      !result.rejections.length &&
-      !result.consoleErrors.length &&
-      !result.unexpectedNetwork.length,
+        result.constructors?.validString &&
+        result.constructors?.invalidNumber &&
+        [
+          'runtime.onInstalled',
+          'runtime.onMessage',
+          'contextMenus.onClicked',
+          'tabs.onUpdated',
+        ].every((name) => result.registrations.includes(name)) &&
+        result.chromeCalls.includes('sidePanel.setPanelBehavior') &&
+        !result.rejections.length &&
+        !result.consoleErrors.length &&
+        !result.unexpectedNetwork.length,
     );
   } catch (error) {
     result.errors.push({ kind: 'worker-startup', message: safe(error) });
