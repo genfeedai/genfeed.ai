@@ -24,6 +24,7 @@ vi.mock('@api/services/prompt-builder/utils/replicate-schema.util', () => ({
   assertRequiredSchemaInput: vi.fn(),
   detectImageReferenceFields: vi.fn(() => []),
   getArrayImageLimit: vi.fn(() => undefined),
+  getSchemaDefault: vi.fn(() => undefined),
   isArrayImageField: vi.fn(() => false),
   resolveModelSchema: vi.fn(() => null),
   replicateModelIdToSlug: vi.fn((modelId: string) => modelId.split('/').pop()),
@@ -36,6 +37,7 @@ import type { ReplicateModelSchema } from '@api/services/prompt-builder/interfac
 import {
   detectImageReferenceFields,
   getArrayImageLimit,
+  getSchemaDefault,
   isArrayImageField,
   resolveModelSchema,
   schemaHasField,
@@ -162,6 +164,48 @@ describe('ReplicateImageBuilder', () => {
         prompt: 'A lightweight image',
       });
       expect(result.resolution).toBeUndefined();
+    });
+
+    it.each([
+      [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2, undefined, '1K'],
+      [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO, undefined, '2K'],
+      [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2, '4k', '4K'],
+      [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO, '1k', '1K'],
+    ])(
+      'should send %s with the resolution tier Replicate bills (%s -> %s)',
+      (model, resolution, expected) => {
+        const result = buildImagePrompt(
+          model,
+          createParams({ height: 1024, resolution, width: 1024 }),
+          'A priced image',
+        );
+
+        expect(result.resolution).toBe(expected);
+      },
+    );
+
+    it('should send the schema default tier when Nano Banana 2.1 has no built-in one', () => {
+      expect(
+        buildImagePrompt(
+          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
+          createParams({ height: 1024, width: 1024 }),
+          'A priced image',
+        ).resolution,
+      ).toBeUndefined();
+
+      vi.mocked(resolveModelSchema).mockReturnValueOnce({
+        properties: { resolution: { default: '2K', type: 'string' } },
+        required: [],
+        type: 'object',
+      } as unknown as ReplicateModelSchema);
+      vi.mocked(getSchemaDefault).mockReturnValueOnce('2K');
+      expect(
+        buildImagePrompt(
+          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
+          createParams({ height: 1024, width: 1024 }),
+          'A priced image',
+        ).resolution,
+      ).toBe('2K');
     });
 
     it('should route Imagen 4 to dedicated builder', () => {

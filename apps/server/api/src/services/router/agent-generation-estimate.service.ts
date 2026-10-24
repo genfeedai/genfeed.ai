@@ -20,6 +20,7 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+  FLUX_3_RESOLUTIONS,
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isFlux3Resolution,
@@ -56,8 +57,15 @@ type VideoEstimateModel = Pick<Model, 'provider'> &
 function unavailableQuote(
   unavailableReason: AgentGenerationQuoteUnavailableReason,
   modelKey: string | null = null,
+  unavailableDetail?: string,
 ): AgentGenerationQuote {
-  return { credits: null, isAvailable: false, modelKey, unavailableReason };
+  return {
+    credits: null,
+    isAvailable: false,
+    modelKey,
+    ...(unavailableDetail ? { unavailableDetail } : {}),
+    unavailableReason,
+  };
 }
 
 function isPricingUnresolved(error: unknown): boolean {
@@ -253,15 +261,14 @@ export class AgentGenerationEstimateService {
     const isBatchSupported = isVideo
       ? Boolean(MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported)
       : isNativeImageBatch(modelKey, provider);
-    const flux = isFlux3ImageModel(modelKey);
-    if (
-      flux &&
-      (outputs !== 1 ||
-        !isFlux3Resolution(input.resolution ?? '1k') ||
-        input.quality !== undefined)
-    )
+    const fluxSettingError = isFlux3ImageModel(modelKey)
+      ? this.fluxSettingError(input, outputs)
+      : undefined;
+    if (fluxSettingError)
       return unavailableQuote(
         AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
+        null,
+        fluxSettingError,
       );
     const quote = await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
       ...dimensions,
@@ -284,6 +291,20 @@ export class AgentGenerationEstimateService {
       : unavailableQuote(
           AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
         );
+  }
+
+  /** FLUX.3 admits one output, a native resolution and no quality tier. */
+  private fluxSettingError(
+    input: AgentGenerationQuoteInput,
+    outputs: number,
+  ): string | undefined {
+    if (outputs !== 1)
+      return 'FLUX.3 returns one image per request; set outputs to 1.';
+    if (!isFlux3Resolution(input.resolution ?? '1k'))
+      return `FLUX.3 resolution must be one of ${FLUX_3_RESOLUTIONS.join(', ')} (lower case).`;
+    if (input.quality !== undefined)
+      return 'FLUX.3 has no quality setting; remove quality.';
+    return undefined;
   }
 
   /**

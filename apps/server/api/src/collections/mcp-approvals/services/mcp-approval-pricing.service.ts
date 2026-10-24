@@ -19,6 +19,30 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
+const QUOTE_UNAVAILABLE =
+  'A model-specific quote is unavailable. Select a supported model and complete its generation settings before requesting approval.';
+
+const UNAVAILABLE_REASON_DETAIL: Partial<
+  Record<AgentGenerationQuoteUnavailableReason, string>
+> = {
+  [AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE]:
+    'The model is not enabled for this organization. Pick another key from get_generation_options.',
+  [AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED]:
+    'The model has no reviewed price for these settings. Set resolution or quality explicitly, or pick another model.',
+};
+
+/** Why a quote is unavailable, in words that name the input to change. */
+function describeUnavailable(quote: PreparedAgentGenerationQuote | null) {
+  const detail =
+    quote?.unavailableDetail ??
+    (quote?.unavailableReason
+      ? UNAVAILABLE_REASON_DETAIL[quote.unavailableReason]
+      : undefined);
+  return detail
+    ? `A model-specific quote is unavailable: ${detail}`
+    : QUOTE_UNAVAILABLE;
+}
+
 /** Approval prices are read-only quotes of the concrete Agent request. */
 @Injectable()
 export class McpApprovalPricingService {
@@ -45,9 +69,7 @@ export class McpApprovalPricingService {
       quote.snapshot.modelKey !== quote.modelKey ||
       quote.credits !== quote.snapshot.credits
     ) {
-      throw new BadRequestException(
-        'A model-specific quote is unavailable. Select a supported model and complete its generation settings before requesting approval.',
-      );
+      throw new BadRequestException(describeUnavailable(quote));
     }
     const provider = resolveModelByokProvider(
       quote.modelKey,
@@ -76,7 +98,7 @@ export class McpApprovalPricingService {
   ): Promise<PreparedAgentGenerationQuote | null> {
     if (toolName !== 'generate') return null;
     if (args.type !== 'image' && args.type !== 'video') {
-      return this.unavailable();
+      return this.unavailable('Only image and video generation are quoted.');
     }
     const video = args.type === 'video';
     const model =
@@ -86,7 +108,9 @@ export class McpApprovalPricingService {
     // An automatic route must be frozen before it can be offered for consent.
     // Do not display a floor as though it were the selected model's quote.
     if (!model || model === 'auto' || model === 'Auto')
-      return this.unavailable();
+      return this.unavailable(
+        'No model was selected. Pass model with a key from get_generation_options; automatic routing cannot be priced for approval.',
+      );
     const aspectRatio =
       context.generationSettings?.aspectRatio ||
       this.string(args.aspectRatio) ||
@@ -99,18 +123,30 @@ export class McpApprovalPricingService {
       !video && typeof rawOutputs === 'number' && Number.isFinite(rawOutputs)
         ? Math.min(8, Math.max(1, Math.round(rawOutputs)))
         : 1;
-    // References need the same trusted media resolution as dispatch. A raw
-    // caller URL or persona handle cannot establish its billable quantities.
+    // A video tariff can bill reference media (duration, tokens), and its
+    // quantities come only from trusted media resolution, so video requests
+    // with any reference input stay unquotable. An image tariff bills the
+    // output alone: admission prices an image without its references, so the
+    // consent quote is the same figure. Dispatch re-prices the prepared
+    // request and rejects a frozen quote that no longer matches.
     if (
-      args.references ||
-      args.characterHandles ||
-      args.videoReferences ||
-      args.audioUrl ||
-      args.imageUrl ||
-      args.endFrame ||
-      context.attachmentUrls?.length
+      video &&
+      (args.references ||
+        args.characterHandles ||
+        args.videoReferences ||
+        args.audioUrl ||
+        args.imageUrl ||
+        args.endFrame ||
+        context.attachmentUrls?.length)
     ) {
-      return this.unavailable();
+      return this.unavailable(
+        'Video with reference media cannot be quoted yet. Remove references, characterHandles, imageUrl, endFrame, audioUrl and videoReferences, or generate in Studio.',
+      );
+    }
+    if (!video && (args.videoReferences || args.audioUrl || args.endFrame)) {
+      return this.unavailable(
+        'videoReferences, audioUrl and endFrame apply to video only; remove them from an image request.',
+      );
     }
     return this.estimate.estimateWithSnapshot({
       organizationId: context.organizationId,
@@ -135,11 +171,12 @@ export class McpApprovalPricingService {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
   }
 
-  private unavailable(): AgentGenerationQuote {
+  private unavailable(unavailableDetail?: string): AgentGenerationQuote {
     return {
       credits: null,
       isAvailable: false,
       modelKey: null,
+      ...(unavailableDetail ? { unavailableDetail } : {}),
       unavailableReason:
         AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
     };
