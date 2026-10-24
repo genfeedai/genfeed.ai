@@ -1,4 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { GENERATION_INGREDIENT_SELECT } from '@api/collections/activities/utils/generation-ingredient.select';
 import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import {
   ActionOrigin,
@@ -347,7 +348,7 @@ describe('ActivitiesService generation hydration', () => {
       } as Parameters<typeof service.hydrateGenerationActivities>[0][number];
       expect(await service.hydrateGenerationActivities([row])).toEqual([row]);
       expect(findMany).toHaveBeenCalledWith({
-        include: { metadata: true },
+        select: GENERATION_INGREDIENT_SELECT,
         where: {
           isDeleted: false,
           organizationId,
@@ -383,7 +384,7 @@ describe('ActivitiesService generation hydration', () => {
       [3, null, ['asset-4']],
     ] as const) {
       expect(findMany).toHaveBeenNthCalledWith(index, {
-        include: { metadata: true },
+        select: GENERATION_INGREDIENT_SELECT,
         where: { organizationId, isDeleted: false, id: { in: ids } },
       });
     }
@@ -417,7 +418,7 @@ describe('ActivitiesService generation hydration', () => {
       ingredient,
     });
     expect(findMany).toHaveBeenCalledWith({
-      include: { metadata: true },
+      select: GENERATION_INGREDIENT_SELECT,
       where: {
         organizationId: null,
         isDeleted: false,

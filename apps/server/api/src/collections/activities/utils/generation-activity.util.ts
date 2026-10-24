@@ -1,4 +1,5 @@
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import type { GenerationIngredient } from '@api/collections/activities/utils/generation-ingredient.select';
 import {
   getActivityRouting,
   getFailureActivityRouting,
@@ -9,11 +10,6 @@ import {
   parseActivityValue,
 } from '@api/helpers/utils/activity-value/activity-value.util';
 import { IngredientStatus, parseActivityKey } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
-
-type GenerationIngredient = Prisma.IngredientGetPayload<{
-  include: { metadata: true };
-}>;
 
 /** Reconcile missed legacy events from persisted output, without rewriting history. */
 export function hydrateGenerationActivity(

@@ -7,6 +7,7 @@ import {
   normalizeActivityDocument,
 } from '@api/collections/activities/utils/activity-document.util';
 import { hydrateGenerationActivity } from '@api/collections/activities/utils/generation-activity.util';
+import { GENERATION_INGREDIENT_SELECT } from '@api/collections/activities/utils/generation-ingredient.select';
 import { normalizeActionOrigin, withActionOriginMetadata } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -86,7 +87,7 @@ export class ActivitiesService extends BaseService<
     for (const [organizationId, ids] of idsByOrganization) {
       ingredients.push(
         ...(await this.prisma.ingredient.findMany({
-          include: { metadata: true },
+          select: GENERATION_INGREDIENT_SELECT,
           where: {
             organizationId,
             isDeleted: false,
