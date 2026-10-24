@@ -32,12 +32,12 @@ test.describe('Onboarding Steps', () => {
     });
   }
 
-  test('brand replay sends a completed user back into the app', async ({
+  test('brand replay keeps a completed user in the onboarding flow', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.ONBOARDING.BRAND);
-    await expect(authenticatedPage).not.toHaveURL((url) =>
-      url.pathname.startsWith(APP_ROUTES.ONBOARDING.ROOT),
+    await expect(authenticatedPage).toHaveURL(
+      (url) => url.pathname === APP_ROUTES.ONBOARDING.BRAND,
     );
   });
 
