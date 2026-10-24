@@ -102,6 +102,12 @@ export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
     reason:
       'Hits the live API health endpoint, not the mocked app-core full tier.',
   },
+  {
+    lane: 'release-install',
+    file: 'playwright/e2e/tests/release/first-signup.spec.ts',
+    reason:
+      'Signs up through the UI of a released image with a real Better Auth API, not mocked app-core.',
+  },
 ];
 
 /** Single selector set for local core and CI shards. */

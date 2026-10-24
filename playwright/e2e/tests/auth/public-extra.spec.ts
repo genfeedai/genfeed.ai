@@ -41,14 +41,16 @@ test.describe('Public Routes (Unauthenticated)', () => {
 
   test('sign-up stays interactive', async ({ unauthenticatedPage }) => {
     await assertRouteRenders(unauthenticatedPage, APP_ROUTES.SIGN_UP);
-    const magicLink = unauthenticatedPage.getByRole('link', {
-      name: 'Magic Link',
+    // The mocked app-core server has no email provider, so sign-up offers
+    // email and password rather than a magic link.
+    const passwordSignUp = unauthenticatedPage.getByRole('link', {
+      name: 'Email & password',
     });
-    await expect(magicLink).toBeVisible();
-    await magicLink.click();
-    await expect(unauthenticatedPage).not.toHaveURL(/\/login/);
+    await expect(passwordSignUp).toBeVisible();
+    await passwordSignUp.click();
+    await expect(unauthenticatedPage).toHaveURL(/\/sign-up\/password(?:\?|$)/);
     await expect(
-      unauthenticatedPage.getByText(/sign up with a magic link/i),
+      unauthenticatedPage.getByRole('button', { name: 'Create account' }),
     ).toBeVisible();
   });
 
