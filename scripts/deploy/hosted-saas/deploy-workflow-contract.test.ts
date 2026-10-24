@@ -170,7 +170,10 @@ describe('hosted SaaS on-demand seed contract', () => {
   test('defaults to a dry run and never changes infrastructure', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
 
-    expect(seed).toMatch(/live:[\s\S]*?default: false/);
+    const liveInput = seed.match(/\n {6}live:\n((?: {8}.*\n)+)/)?.[1] ?? '';
+    expect(liveInput).toContain('default: false');
+    expect(seed).toContain('A live articles seed needs brand_slug');
+    expect(seed).toContain('"--brandSlug=${BRAND_SLUG}"');
     expect(seed).not.toMatch(/tofu (apply|plan|destroy)/);
     expect(seed).toContain('A seed needs a reason.');
   });

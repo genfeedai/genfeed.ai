@@ -11,7 +11,9 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 # deploy reaches production only after the next deploy rolls it out.
 #
 #   articles             Public articles catalog. Default is a dry run. The task
-#                        definition pins the owner and organization.
+#                        definition pins the owner and organization. A live run
+#                        also needs brand_slug: the seed refuses a live
+#                        production run without a review brand.
 #   reference-data-sync  Model catalog, rates, skills, presets, elements, fonts.
 #                        The dry run only validates that the catalogs load, since
 #                        the sync has no diff mode. Live is idempotent.
@@ -32,6 +34,11 @@ on:
         required: false
         default: false
         type: boolean
+      brand_slug:
+        description: "review brand slug; required for a live articles run, ignored otherwise"
+        required: false
+        default: ""
+        type: string
       reason:
         description: "why the seed is being run (kept in the run summary)"
         required: true
@@ -73,9 +80,21 @@ jobs:
           HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
           HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
           REASON: ${{ inputs.reason }}
+          SEED: ${{ inputs.seed }}
+          LIVE: ${{ inputs.live }}
+          BRAND_SLUG: ${{ inputs.brand_slug }}
         run: |
           set -euo pipefail
           missing=0
+          if [ "${SEED}" = "articles" ] && [ "${LIVE}" = "true" ]; then
+            if [ -z "${BRAND_SLUG}" ]; then
+              echo "::error::A live articles seed needs brand_slug (the review brand)."
+              missing=1
+            elif ! printf '%s' "${BRAND_SLUG}" | grep -Eq '^[A-Za-z0-9._-]{1,64}$'; then
+              echo "::error::brand_slug may only contain letters, digits, '.', '_' and '-'."
+              missing=1
+            fi
+          fi
           for name in \
             AWS_REGION AWS_DEPLOY_ROLE_ARN PROJECT TF_STATE_BUCKET TF_STATE_KEY \
             HOSTED_OWNER_EMAIL HOSTED_ORGANIZATION_LABEL
@@ -132,6 +151,7 @@ jobs:
         env:
           SEED: ${{ inputs.seed }}
           LIVE: ${{ inputs.live }}
+          BRAND_SLUG: ${{ inputs.brand_slug }}
           REASON: ${{ inputs.reason }}
           PROJECT: ${{ vars.PROJECT }}
           HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
@@ -159,6 +179,7 @@ jobs:
                   --env=production \
                   "--ownerEmail=${HOSTED_OWNER_EMAIL}" \
                   "--organizationLabel=${HOSTED_ORGANIZATION_LABEL}" \
+                  "--brandSlug=${BRAND_SLUG}" \
                   --live; do
                   override+=(--command-arg "${arg}")
                 done
@@ -195,6 +216,7 @@ jobs:
             echo "- Runs the image of the last deploy; a seed changed since then needs a deploy first."
           } >>"${GITHUB_STEP_SUMMARY}"
           echo "log_group=${LOG_GROUP}" >>"${GITHUB_OUTPUT}"
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"${GITHUB_OUTPUT}"
 
           bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
             --phase "seed-${SEED}" \
@@ -210,7 +232,8 @@ jobs:
         if: ${{ always() && steps.seed.outputs.log_group != '' }}
         env:
           LOG_GROUP: ${{ steps.seed.outputs.log_group }}
+          STARTED_AT: ${{ steps.seed.outputs.started_at }}
         run: |
           echo "::group::CloudWatch logs — ${LOG_GROUP}"
-          aws logs tail "${LOG_GROUP}" --since 45m --format short | tail -n 400 || true
+          aws logs tail "${LOG_GROUP}" --since "${STARTED_AT:-45m}" --format short | tail -n 400 || true
           echo "::endgroup::"
