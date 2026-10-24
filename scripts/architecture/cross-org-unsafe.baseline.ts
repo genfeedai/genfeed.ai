@@ -377,17 +377,39 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/credits/services/free-trial.service.ts',
       line: 127,
     },
+    // Email-verified grant: resolves the user's first owned organization; the entitlement is user-scoped, not tenant-scoped.
+    {
+      file: 'apps/server/api/src/collections/credits/listeners/email-verified-credits.listener.ts',
+      line: 35,
+    },
     // #6120: the signup welcome entitlement is user-scoped across the user's
     // owned organizations.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 79,
+      line: 82,
     },
     // The free-trial entitlement is user-scoped across the user's owned
     // organizations, exactly like the signup gift above.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 161,
+      line: 175,
+    },
+    // Free-credit abuse gate: the same mailbox, IP and grant velocity are
+    // compared across all other users' organizations by design.
+    {
+      file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
+      line: 79,
+    },
+    // Free-credit abuse gate: first-session IP lookup for the signing-up user.
+    {
+      file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
+      line: 101,
+    },
+    // Free-credit abuse gate: counts recent free grants to other users on the
+    // same IP across tenants.
+    {
+      file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
+      line: 115,
     },
     // #6120: superadmin reads another organization's blacklist entry.
     {
