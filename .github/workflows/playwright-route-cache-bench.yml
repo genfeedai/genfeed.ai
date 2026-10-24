@@ -73,6 +73,7 @@ jobs:
         run: bash .github/scripts/playwright-route-cache-bench.sh core
         env:
           CI: true
+          E2E_SHARD: 1/1
           APP_BASE_URL: http://localhost:3000
           E2E_EXPECT_TIMEOUT_MS: '15000'
           E2E_RETRIES: '0'
