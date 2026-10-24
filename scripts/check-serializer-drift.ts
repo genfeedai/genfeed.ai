@@ -337,7 +337,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'hasReviewedPricing',
     // Computed: clip lengths per resolution, read from the reviewed provider rates.
     'durationsByResolution',
+    // Computed: audio reference support comes from the reviewed catalog by model key.
+    'hasAudioReferences',
     'inputControls',
+    'maxAudioReferences',
   ],
   'monitored-account:MonitoredAccount': ['lastPostId'],
   'optimization:Optimization': [
