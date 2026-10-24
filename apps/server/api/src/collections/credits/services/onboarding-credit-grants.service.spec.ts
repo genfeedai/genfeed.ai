@@ -514,44 +514,6 @@ describe('OnboardingCreditGrantsService', () => {
     ).toBe(true);
     expect(grants).not.toHaveBeenCalled();
   });
-});
-
-describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (genfeedai/genfeed.ai#4969)', () => {
-  it('captures onboarding_completed through the injected funnel capture service', () => {
-    const funnelCaptureService = {
-      capture: vi.fn().mockResolvedValue(undefined),
-    };
-    const service = new OnboardingCreditGrantsService(
-      {} as unknown as TransactionUtil,
-      {} as unknown as OrganizationSettingsService,
-      {} as unknown as CreditsUtilsService,
-      {} as unknown as FreeTrialService,
-      {} as unknown as LoggerService,
-      funnelCaptureService as never,
-    );
-
-    service.captureOnboardingCompletedBestEffort('user-1');
-
-    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
-    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
-      distinctId: 'user-1',
-      event: 'onboarding_completed',
-    });
-  });
-
-  it('is a no-op when no funnel capture service is configured', () => {
-    const service = new OnboardingCreditGrantsService(
-      {} as unknown as TransactionUtil,
-      {} as unknown as OrganizationSettingsService,
-      {} as unknown as CreditsUtilsService,
-      {} as unknown as FreeTrialService,
-      {} as unknown as LoggerService,
-    );
-
-    expect(() =>
-      service.captureOnboardingCompletedBestEffort('user-1'),
-    ).not.toThrow();
-  });
   describe('free-credit eligibility', () => {
     const evaluate = vi.fn();
     const guarded = new OnboardingCreditGrantsService(
@@ -618,5 +580,43 @@ describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (ge
 
       expect(evaluate).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (genfeedai/genfeed.ai#4969)', () => {
+  it('captures onboarding_completed through the injected funnel capture service', () => {
+    const funnelCaptureService = {
+      capture: vi.fn().mockResolvedValue(undefined),
+    };
+    const service = new OnboardingCreditGrantsService(
+      {} as unknown as TransactionUtil,
+      {} as unknown as OrganizationSettingsService,
+      {} as unknown as CreditsUtilsService,
+      {} as unknown as FreeTrialService,
+      {} as unknown as LoggerService,
+      funnelCaptureService as never,
+    );
+
+    service.captureOnboardingCompletedBestEffort('user-1');
+
+    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
+      distinctId: 'user-1',
+      event: 'onboarding_completed',
+    });
+  });
+
+  it('is a no-op when no funnel capture service is configured', () => {
+    const service = new OnboardingCreditGrantsService(
+      {} as unknown as TransactionUtil,
+      {} as unknown as OrganizationSettingsService,
+      {} as unknown as CreditsUtilsService,
+      {} as unknown as FreeTrialService,
+      {} as unknown as LoggerService,
+    );
+
+    expect(() =>
+      service.captureOnboardingCompletedBestEffort('user-1'),
+    ).not.toThrow();
   });
 });

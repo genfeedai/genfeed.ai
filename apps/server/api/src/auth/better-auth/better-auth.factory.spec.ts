@@ -455,7 +455,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(undefined, () => true);
 
     await expect(
-      hooks.before({ email: 'farmer@mailinator.com' } as never),
+      hooks.before({ email: 'farmer@mailinator.com' } as never, null),
     ).rejects.toMatchObject({ body: { code: 'DISPOSABLE_EMAIL' } });
   });
 
@@ -463,7 +463,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(undefined, () => false);
 
     await expect(
-      hooks.before({ email: 'farmer@mailinator.com' } as never),
+      hooks.before({ email: 'farmer@mailinator.com' } as never, null),
     ).resolves.toEqual({
       data: expect.objectContaining({ email: 'farmer@mailinator.com' }),
     });
@@ -473,7 +473,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(undefined, () => true);
 
     await expect(
-      hooks.before({ email: 'person@genfeed.ai' } as never),
+      hooks.before({ email: 'person@genfeed.ai' } as never, null),
     ).resolves.toEqual({
       data: expect.objectContaining({ email: 'person@genfeed.ai' }),
     });
