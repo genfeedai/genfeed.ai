@@ -1,9 +1,9 @@
-import type { PlatformConfig } from '~platforms/config';
 import {
   activateComposer,
   insertContentIntoComposer,
   markWrittenByGenfeed,
 } from '~platforms/composer-helpers';
+import type { PlatformConfig } from '~platforms/config';
 import { attachMediaToComposer } from '~platforms/media-attach';
 import { extractPostContext } from '~platforms/post-context';
 import { showToast } from '~platforms/ui/toast';

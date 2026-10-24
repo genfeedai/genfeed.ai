@@ -333,7 +333,7 @@ export function createGenfeedGroup({
     const enabled = (built?.items ?? [])
       .map((view) => view.button)
       .filter((item) => !item.disabled && !item.hidden);
-    const index = enabled.findIndex((item) => item === menuRoot.activeElement);
+    const index = enabled.indexOf(menuRoot.activeElement as HTMLButtonElement);
     const focusAt = (next: number): void => {
       keyEvent.preventDefault();
       enabled[(next + enabled.length) % enabled.length]?.focus();

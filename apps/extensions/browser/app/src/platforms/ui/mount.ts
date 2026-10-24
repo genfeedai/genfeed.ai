@@ -10,7 +10,9 @@ const LABEL_SEARCH_DEPTH = 8;
 
 function isRowFlex(element: Element): boolean {
   const style = getComputedStyle(element);
-  return style.display.includes('flex') && style.flexDirection.startsWith('row');
+  return (
+    style.display.includes('flex') && style.flexDirection.startsWith('row')
+  );
 }
 
 /**
@@ -39,7 +41,9 @@ export function measureSkin(submit: Element): ButtonSkin {
   const height = Math.round(submit.getBoundingClientRect().height);
   const isMeasured = height >= MIN_HEIGHT_PX && height <= MAX_HEIGHT_PX;
   const resolvedHeight = isMeasured ? height : DEFAULT_HEIGHT_PX;
-  const radius = Number.parseFloat(getComputedStyle(submit).borderTopLeftRadius);
+  const radius = Number.parseFloat(
+    getComputedStyle(submit).borderTopLeftRadius,
+  );
   return {
     height: resolvedHeight,
     radius: Number.isFinite(radius)
@@ -49,7 +53,9 @@ export function measureSkin(submit: Element): ButtonSkin {
 }
 
 function hasGroup(anchor: Element): boolean {
-  return Boolean(anchor.parentElement?.querySelector(`:scope > [${GROUP_ATTRIBUTE}]`));
+  return Boolean(
+    anchor.parentElement?.querySelector(`:scope > [${GROUP_ATTRIBUTE}]`),
+  );
 }
 
 /** Puts the Genfeed group on the row of a submit button, once. */
@@ -112,6 +118,7 @@ export function mayContainSubmit(
   platform: PlatformConfig,
   node: Element,
 ): boolean {
-  const selector = platform.selectors.submitButton ?? platform.selectors.replyTextarea;
+  const selector =
+    platform.selectors.submitButton ?? platform.selectors.replyTextarea;
   return node.matches(selector) || Boolean(node.querySelector(selector));
 }

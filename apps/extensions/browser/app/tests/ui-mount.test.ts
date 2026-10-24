@@ -69,8 +69,9 @@ describe('measureSkin', () => {
     expect(measureSkin(button)).toEqual({ height: 32, radius: 8 });
   });
 
-  it('uses a 36px pill when the button has no usable size yet', () => {
-    document.body.innerHTML = '<button id="b">Post</button>';
+  it('caps a pill-shaped radius at half the height, and uses 36px when unmeasured', () => {
+    document.body.innerHTML =
+      '<button id="b" style="border-top-left-radius: 9999px">Post</button>';
 
     const skin = measureSkin(document.getElementById('b') as Element);
 

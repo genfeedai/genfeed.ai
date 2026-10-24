@@ -37,7 +37,8 @@ describe('extractPostContext', () => {
   });
 
   it('uses X selector chains when the primary selectors miss', () => {
-    document.body.innerHTML = '<p id="t">Chain text</p><p id="u">Chain user</p>';
+    document.body.innerHTML =
+      '<p id="t">Chain text</p><p id="u">Chain user</p>';
     vi.mocked(findElement).mockImplementation(((key: string) =>
       document.querySelector(key === 'tweetText' ? '#t' : '#u')) as never);
 

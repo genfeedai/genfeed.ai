@@ -24,7 +24,9 @@ function groups(...specs: MenuItemSpec[]): MenuGroupSpec[] {
     { id: 'write', items: specs, label: 'Write' },
     {
       id: 'media',
-      items: [item({ ariaLabel: 'Reply with Image', id: 'image', label: 'Image' })],
+      items: [
+        item({ ariaLabel: 'Reply with Image', id: 'image', label: 'Image' }),
+      ],
       label: 'Reply with media',
     },
   ];
@@ -111,7 +113,10 @@ describe('Genfeed button group', () => {
 
   it('leaves out rows that are unavailable when the menu opens', () => {
     const host = mount(
-      groups(item(), item({ id: 'save', isAvailable: () => false, label: 'Save' })),
+      groups(
+        item(),
+        item({ id: 'save', isAvailable: () => false, label: 'Save' }),
+      ),
     );
 
     trigger(host).click();

@@ -59,12 +59,13 @@ describe('buildMenuGroups', () => {
       platformName: 'twitter',
     });
 
-    expect(groups.map((group) => [group.label, group.items.map((i) => i.label)]))
-      .toEqual([
-        ['Write', ['Generate reply', 'Proofread', 'Rewrite in my voice']],
-        ['Reply with media', ['Image', 'Video', 'GIF']],
-        [undefined, ['Generate image']],
-      ]);
+    expect(
+      groups.map((group) => [group.label, group.items.map((i) => i.label)]),
+    ).toEqual([
+      ['Write', ['Generate reply', 'Proofread', 'Rewrite in my voice']],
+      ['Reply with media', ['Image', 'Video', 'GIF']],
+      [undefined, ['Generate image']],
+    ]);
   });
 
   it('keeps a full accessible name on each media row', () => {
@@ -162,7 +163,9 @@ describe('buildMenuGroups', () => {
       expect.objectContaining({
         event: 'generateImage',
         platform: 'twitter',
-        prompt: expect.stringContaining('Source URL: https://x.com/author/status/123'),
+        prompt: expect.stringContaining(
+          'Source URL: https://x.com/author/status/123',
+        ),
       }),
     );
     expect(window.open).toHaveBeenCalledWith(

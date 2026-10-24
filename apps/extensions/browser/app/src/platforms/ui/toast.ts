@@ -44,8 +44,7 @@ export function showToast(message: string, isError = false): void {
 /** The text of the toast on screen, for tests and assistive checks. */
 export function currentToastText(): string | null {
   return (
-    document
-      .getElementById(TOAST_HOST_ID)
-      ?.shadowRoot?.querySelector('.toast')?.textContent ?? null
+    document.getElementById(TOAST_HOST_ID)?.shadowRoot?.querySelector('.toast')
+      ?.textContent ?? null
   );
 }

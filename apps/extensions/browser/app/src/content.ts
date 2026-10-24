@@ -25,8 +25,12 @@ import {
   registerTextActionSession,
   TextActionSession,
 } from '~platforms/text-action-session';
+import {
+  findSubmitButtons,
+  mayContainSubmit,
+  mountGenfeedGroup,
+} from '~platforms/ui/mount';
 import { injectImageOverlayStyles } from '~platforms/ui/page-styles';
-import { findSubmitButtons, mayContainSubmit, mountGenfeedGroup } from '~platforms/ui/mount';
 import { showToast } from '~platforms/ui/toast';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { publicationCapturePlatform } from '~services/publication-capture-validation';

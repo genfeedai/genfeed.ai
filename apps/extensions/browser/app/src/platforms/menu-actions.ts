@@ -1,5 +1,5 @@
-import type { PlatformConfig } from '~platforms/config';
 import { markWrittenByGenfeed } from '~platforms/composer-helpers';
+import type { PlatformConfig } from '~platforms/config';
 import { buildImagePrompt } from '~platforms/image-prompt';
 import { extractPostContext } from '~platforms/post-context';
 import { type ReplyMediaKind, runReplyWithMedia } from '~platforms/reply-media';

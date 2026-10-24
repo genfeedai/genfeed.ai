@@ -80,7 +80,10 @@ describe('runReplyWithMedia', () => {
         postContent: 'We just launched our public API.',
       }),
     );
-    expect(mocks.insert).toHaveBeenCalledWith('Great launch!', platforms.twitter);
+    expect(mocks.insert).toHaveBeenCalledWith(
+      'Great launch!',
+      platforms.twitter,
+    );
     expect(mocks.markWritten).toHaveBeenCalledWith('Great launch!');
     expect(mocks.attach).toHaveBeenCalledWith(
       platforms.twitter,
@@ -121,7 +124,9 @@ describe('runReplyWithMedia', () => {
 
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        imagePrompt: expect.stringContaining('We just launched our public API.'),
+        imagePrompt: expect.stringContaining(
+          'We just launched our public API.',
+        ),
         mediaType: 'gif',
       }),
     );
@@ -163,7 +168,10 @@ describe('runReplyWithMedia', () => {
 
   it('keeps the reply and opens the file when the reply box is missing', async () => {
     reply();
-    mocks.insert.mockReturnValue({ error: 'Compose box not found.', success: false });
+    mocks.insert.mockReturnValue({
+      error: 'Compose box not found.',
+      success: false,
+    });
 
     await runReplyWithMedia('image', {
       controls: controls(),

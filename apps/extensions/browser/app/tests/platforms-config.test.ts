@@ -5,6 +5,7 @@ vi.mock('@genfeedai/contracts', () => ({
     FACEBOOK: 'facebook',
     REDDIT: 'reddit',
     TIKTOK: 'tiktok',
+    THREADS: 'threads',
     TWITTER: 'twitter',
     YOUTUBE: 'youtube',
   },

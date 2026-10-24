@@ -21,17 +21,17 @@ vi.mock('~utils/logger.util', () => ({
 }));
 
 import type { PlatformConfig } from '../src/platforms/config';
-import { currentToastText } from '../src/platforms/ui/toast';
 import {
   attachSourceButton,
-  createSourceMenuItem,
   captureXPostImage,
   copyImageToClipboard,
   createImageSourceActions,
+  createSourceMenuItem,
   describeSaveOutcome,
   isSourcePage,
   savePageSource,
 } from '../src/platforms/source-capture-control';
+import { currentToastText } from '../src/platforms/ui/toast';
 
 function stubLocation(href: string): void {
   const url = new URL(href);
@@ -123,7 +123,9 @@ describe('visible Save source action', () => {
     });
     expect(mocks.extract).toHaveBeenCalledWith({ scope: 'page' });
     await vi.waitFor(() =>
-      expect(currentToastText()).toBe('Saved for later. Nothing was generated.'),
+      expect(currentToastText()).toBe(
+        'Saved for later. Nothing was generated.',
+      ),
     );
   });
 
