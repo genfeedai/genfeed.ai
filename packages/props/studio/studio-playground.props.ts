@@ -151,6 +151,8 @@ export type StudioSpendSource =
 
 export interface StudioSpendConfirmationInput {
   models: readonly IModel[];
+  /** The chosen model, so the dialog can state what it does with the output. */
+  modelKey?: string;
   source: StudioSpendSource;
 }
 

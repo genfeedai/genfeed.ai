@@ -130,20 +130,20 @@ describe('runCheckEnvProductFlags', () => {
 });
 
 describe('Crun deployment gate boundary', () => {
-  it('allows only the exact infrastructure admission switch', () => {
+  it('treats every Crun on/off switch as a product flag', () => {
     const rootDir = createRepo({
       'packages/config/src/schemas/ai.schema.ts':
         'export const schema = {\n  CRUN_ENABLED: Joi.string(),\n  CRUN_FEATURE_ENABLED: Joi.string(),\n  CRUN_ROLLOUT_MODE: Joi.string(),\n};',
     });
     expect(
       runCheckEnvProductFlags({ rootDir }).violations.map(({ key }) => key),
-    ).toEqual(['CRUN_FEATURE_ENABLED', 'CRUN_ROLLOUT_MODE']);
-    expect(INFRASTRUCTURE_ENV_ALLOW_LIST.has('CRUN_ENABLED')).toBe(true);
+    ).toEqual(['CRUN_ENABLED', 'CRUN_FEATURE_ENABLED', 'CRUN_ROLLOUT_MODE']);
+    expect(INFRASTRUCTURE_ENV_ALLOW_LIST.has('CRUN_ENABLED')).toBe(false);
     expect(INFRASTRUCTURE_ENV_ALLOW_LIST.has('CRUN_FEATURE_ENABLED')).toBe(
       false,
     );
     expect(INFRASTRUCTURE_ENV_ALLOW_LIST.has('CRUN_ROLLOUT_MODE')).toBe(false);
-    expect(isProductFlagKey('CRUN_FEATURE_ENABLED')).toBe(true);
+    expect(isProductFlagKey('CRUN_ENABLED')).toBe(true);
     expect(isProductFlagKey('CRUN_ROLLOUT_MODE')).toBe(true);
   });
 });

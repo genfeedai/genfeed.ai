@@ -1,6 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
+import {
+  CRUN_ACQUISITION_RATE_VERSION,
+  CRUN_CREDITS_PER_USD,
+} from '@api/services/integrations/crun/crun-acquisition-rate.constant';
 import type { CrunQuotePreparation } from '@api/services/integrations/crun/crun-task.schema';
 import type { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -11,7 +15,6 @@ import type {
   CrunQuoteReasonCode,
 } from '@genfeedai/contracts/interfaces';
 import { getRuntimeMarginMultiplier } from '@genfeedai/pricing';
-import type { ConfigService } from '@libs/config/config.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { z } from 'zod';
 
@@ -184,7 +187,6 @@ export async function readReviewedCrunContract(
 
 export async function prepareCrunPricing<TIntent extends CrunQuoteIntentBase>(
   deps: {
-    config: ConfigService;
     models: ModelsService;
     prisma: PrismaService;
     tasks: CrunTaskService;
@@ -226,8 +228,6 @@ export async function prepareCrunPricing<TIntent extends CrunQuoteIntentBase>(
   } catch {
     return unavailable('CRUN_CREDENTIALS_UNAVAILABLE');
   }
-  const creditsPerUsd = deps.config.get('CRUN_CREDITS_PER_USD');
-  const rateVersion = deps.config.get('CRUN_RATE_VERSION');
   return {
     isAvailable: true,
     data: {
@@ -243,9 +243,8 @@ export async function prepareCrunPricing<TIntent extends CrunQuoteIntentBase>(
         request: { model: contract.endpoint, input: normalizedInput },
         credential,
         outputs: intent.outputs,
-        creditsPerUsd: typeof creditsPerUsd === 'string' ? creditsPerUsd : null,
-        acquisitionRateVersion:
-          typeof rateVersion === 'string' ? rateVersion : null,
+        creditsPerUsd: CRUN_CREDITS_PER_USD,
+        acquisitionRateVersion: CRUN_ACQUISITION_RATE_VERSION,
         marginMultiplier: getRuntimeMarginMultiplier(),
       },
     },

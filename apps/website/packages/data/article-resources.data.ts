@@ -30,6 +30,26 @@ const ARTICLE_RESOURCES: Readonly<Record<string, ArticleResource>> = {
     skill: 'youtube-content-creator',
     label: 'Develop your YouTube content',
   },
+  'how-to-start-b2b-content-playbook': {
+    skill: 'content-strategist',
+    label: 'Plan your B2B content',
+  },
+  'founder-led-linkedin-b2b-playbook': {
+    skill: 'linkedin-content-creator',
+    label: 'Draft your founder-led LinkedIn posts',
+  },
+  'turn-customer-calls-into-b2b-content-playbook': {
+    skill: 'content-strategist',
+    label: 'Plan content from your calls',
+  },
+  'turn-one-case-study-into-20-b2b-assets': {
+    skill: 'content-atomizer',
+    label: 'Atomize your case study',
+  },
+  'measure-b2b-content-against-pipeline-playbook': {
+    skill: 'analytics-collector',
+    label: 'Collect your post metrics',
+  },
   'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt': {
     skill: 'launch-copy-creator',
     label: 'Prepare your launch copy',

@@ -150,7 +150,7 @@ describe('dispatchFrozenCrunGeneration', () => {
       .mockResolvedValueOnce({ isSubmitted: true, taskId: 'task-0' })
       .mockResolvedValueOnce({
         isSubmitted: false,
-        reasonCode: 'CRUN_DISABLED',
+        reasonCode: 'CRUN_MODEL_UNAVAILABLE',
       });
     h.tasks.findForIngredient.mockResolvedValue(null);
     const request = {

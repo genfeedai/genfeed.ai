@@ -99,6 +99,12 @@ export interface IEnvConfig {
 
   FAL_API_KEY?: string;
 
+  CRUN_API_KEY?: string;
+
+  GITHUB_TOKEN?: string;
+
+  KIE_API_KEY?: string;
+
   MUREKA_API_KEY?: string;
   MUREKA_API_BASE_URL?: string;
 

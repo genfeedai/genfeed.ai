@@ -105,6 +105,18 @@ export function requiresFirstFrame(
   return (cap as VideoModelCapability).requiresFirstFrame ?? false;
 }
 
+/** True when the clip is sized from its first frame, not the selected aspect ratio. */
+export function hasSourceDerivedAspect(
+  modelKey: string,
+  capability?: ModelOutputCapability | null,
+): boolean {
+  const cap = resolveCapability(modelKey, capability);
+  if (!cap || cap.category !== ModelCategory.VIDEO) {
+    return false;
+  }
+  return (cap as VideoModelCapability).hasSourceDerivedAspect ?? false;
+}
+
 /** Audio support is restricted to the reviewed catalog, never inferred from speech output. */
 export function getModelMaxAudioReferences(modelKey: string): number {
   const cap = MODEL_OUTPUT_CAPABILITIES[modelKey];

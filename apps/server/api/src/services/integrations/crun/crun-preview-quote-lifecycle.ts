@@ -3,6 +3,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import type { CacheService } from '@api/services/cache/cache.service';
+import {
+  CRUN_ACQUISITION_RATE_VERSION,
+  CRUN_CREDITS_PER_USD,
+} from '@api/services/integrations/crun/crun-acquisition-rate.constant';
 import type { CrunQuoteService } from '@api/services/integrations/crun/crun-quote.service';
 import type {
   CrunPreparedResult,
@@ -236,7 +240,6 @@ export abstract class CrunPreviewQuoteLifecycle<
   }
 
   async assertCurrent(captured: TFrozen): Promise<void> {
-    if (!this.tasks.isAdmissionEnabled()) throw this.stale();
     await this.admitFrozenCharacters(captured);
     const frozen = captured.snapshot.providerQuote;
     if (!frozen) throw this.stale();
@@ -268,8 +271,8 @@ export abstract class CrunPreviewQuoteLifecycle<
       throw this.stale();
     if (
       frozen.credentialSource === 'hosted' &&
-      (this.config.get('CRUN_CREDITS_PER_USD') !== frozen.creditsPerUsd ||
-        this.config.get('CRUN_RATE_VERSION') !== frozen.acquisitionRateVersion)
+      (CRUN_CREDITS_PER_USD !== frozen.creditsPerUsd ||
+        CRUN_ACQUISITION_RATE_VERSION !== frozen.acquisitionRateVersion)
     )
       throw this.stale();
   }

@@ -138,6 +138,7 @@
     "messageAuto": "Auto chose {model}. This generation costs {credits, plural, one {# credit} other {# credits}}.",
     "messageAutoWithBalance": "Auto chose {model}. This generation costs {credits, plural, one {# credit} other {# credits}}. Your balance is {balance}.",
     "confirm": "Generate",
+    "sourceAspectNote": "This model sizes the video from your source image, so the result follows that image instead of the selected aspect ratio.",
     "confirmedModelUnavailable": "The confirmed model is no longer available. Get a fresh quote and confirm before generating again.",
     "unavailable": "The price could not be confirmed, so nothing was generated. {reason}",
     "priceChanged": "The price changed. Generate again to see the current price."
@@ -268,7 +269,6 @@
     "byok": "Your API key",
     "credits": "{credits} credits",
     "reasons": {
-      "CRUN_DISABLED": "This image provider is unavailable on this server.",
       "CRUN_MODEL_UNAVAILABLE": "This image model is unavailable.",
       "CRUN_CREDENTIALS_UNAVAILABLE": "Connect an image provider API key to continue.",
       "CRUN_BILLING_UNSUPPORTED": "Image billing is unavailable for this connection.",
@@ -300,7 +300,6 @@
     "videoQuoteStale": "Video settings changed. Select current settings to continue.",
     "referenceUnavailable": "The saved video references are unavailable. Select current references to continue.",
     "videoReasons": {
-      "CRUN_DISABLED": "This video provider is unavailable on this server.",
       "CRUN_MODEL_UNAVAILABLE": "This video model is unavailable.",
       "CRUN_CREDENTIALS_UNAVAILABLE": "Connect an video provider API key to continue.",
       "CRUN_BILLING_UNSUPPORTED": "Video billing is unavailable for this connection.",
@@ -328,5 +327,7 @@
     "moreLike": "More like",
     "moreLikeAria": "More like {name}",
     "savedLooks": "Saved looks"
-  }
+  },
+  "audioReference": "Audio reference",
+  "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video."
 }

@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process';
-import process from 'node:process';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -18,6 +17,7 @@ import type {
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
 } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
@@ -38,6 +38,7 @@ export class OnboardingReadinessService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -57,10 +58,14 @@ export class OnboardingReadinessService {
   }
 
   getProviderReadiness() {
-    const replicate = this.isConfigured(process.env.REPLICATE_KEY);
-    const fal = this.isConfigured(process.env.FAL_API_KEY);
-    const openai = this.isConfigured(process.env.OPENAI_API_KEY);
-    const openrouter = this.isConfigured(process.env.OPENROUTER_API_KEY);
+    const replicate = this.isConfigured(
+      this.configService.get('REPLICATE_KEY'),
+    );
+    const fal = this.isConfigured(this.configService.get('FAL_API_KEY'));
+    const openai = this.isConfigured(this.configService.get('OPENAI_API_KEY'));
+    const openrouter = this.isConfigured(
+      this.configService.get('OPENROUTER_API_KEY'),
+    );
     const configured = [
       replicate ? 'replicate' : null,
       fal ? 'fal' : null,

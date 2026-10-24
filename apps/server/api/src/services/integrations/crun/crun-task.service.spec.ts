@@ -120,8 +120,7 @@ describe('Crun durable credential and lease boundaries', () => {
     );
   });
 
-  it('drains accepted hosted tasks when new admission is disabled', async () => {
-    expect(service.isAdmissionEnabled()).toBe(false);
+  it('drains accepted hosted tasks on the hosted key', async () => {
     expect(await service.resolveOriginalCredential(task())).toMatchObject({
       credentialSource: 'hosted',
       credentialId: null,
@@ -242,7 +241,7 @@ describe('Crun durable credential and lease boundaries', () => {
   });
   it('atomic prepared claim precedes the one request and acceptance persistence', async () => {
     get.mockImplementation((key: string) =>
-      key === 'CRUN_ENABLED' ? 'true' : 'fixture-hosted-key',
+      key === 'CRUN_API_KEY' ? 'fixture-hosted-key' : 'false',
     );
     modelFind.mockResolvedValue({ id: 'model-1' });
     updateMany.mockResolvedValue({ count: 1 });
@@ -276,7 +275,7 @@ describe('Crun durable credential and lease boundaries', () => {
     'submits only category-bound video funding for %s',
     async (endpoint) => {
       get.mockImplementation((key: string) =>
-        key === 'CRUN_ENABLED' ? 'true' : 'fixture-hosted-key',
+        key === 'CRUN_API_KEY' ? 'fixture-hosted-key' : 'false',
       );
       modelFind.mockResolvedValue({ id: 'model-1' });
       updateMany.mockResolvedValue({ count: 1 });
@@ -318,7 +317,7 @@ describe('Crun durable credential and lease boundaries', () => {
     'denies %s task binding before provider create',
     async (mode) => {
       get.mockImplementation((key: string) =>
-        key === 'CRUN_ENABLED' ? 'true' : 'fixture-hosted-key',
+        key === 'CRUN_API_KEY' ? 'fixture-hosted-key' : 'false',
       );
       modelFind.mockResolvedValue({ id: 'model-1' });
       const prepared = task({ state: 'prepared' });

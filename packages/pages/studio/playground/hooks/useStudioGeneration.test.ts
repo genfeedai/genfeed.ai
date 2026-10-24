@@ -2289,3 +2289,79 @@ describe('failed Studio card recovery hydration (#6398)', () => {
     expect(result.current.jobs[0]?.ingredient).toBeUndefined();
   });
 });
+
+describe('audio reference submission', () => {
+  const modelKey = MODEL_KEYS.REPLICATE_MINIMAX_H3;
+  it('posts ordered image, clip and audio ingredient IDs in separate fields', async () => {
+    const { result } = renderStudioGeneration({
+      type: 'video',
+      models: [makeModel(modelKey)],
+      settings: { ...getDefaultStudioPlaygroundSettings('video'), modelKey },
+    });
+    await act(async () =>
+      expect(
+        await result.current.submit('Synthetic mixed media', {
+          imageReferenceIds: ['still-b', 'still-a'],
+          videoReferenceIds: ['clip'],
+          audioReferenceIds: ['voice-b', 'recording-a'],
+        }),
+      ).toBe(true),
+    );
+    expect(mockVideosPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        references: ['still-b', 'still-a'],
+        videoReferences: ['clip'],
+        audioReferences: ['voice-b', 'recording-a'],
+      }),
+    );
+  });
+  it.each([
+    {
+      type: 'video' as const,
+      key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+      audio: ['voice'],
+      visual: ['still'],
+    },
+    {
+      type: 'video' as const,
+      key: modelKey,
+      audio: ['a', 'b', 'c', 'd'],
+      visual: ['still'],
+    },
+    { type: 'video' as const, key: modelKey, audio: ['voice'], visual: [] },
+    {
+      type: 'image' as const,
+      key: modelKey,
+      audio: ['voice'],
+      visual: ['still'],
+    },
+    {
+      type: 'video' as const,
+      key: AUTO_MODEL_OPTION_VALUE,
+      audio: ['voice'],
+      visual: ['still'],
+    },
+  ])(
+    'blocks unsupported audio before any generation request: %j',
+    async ({ type, key, audio, visual }) => {
+      const { result } = renderStudioGeneration({
+        type,
+        models: [makeModel(key)],
+        settings: {
+          ...getDefaultStudioPlaygroundSettings(type),
+          modelKey: key,
+        },
+      });
+      await act(async () =>
+        expect(
+          await result.current.submit('Synthetic video', {
+            audioReferenceIds: audio,
+            imageReferenceIds: visual,
+          }),
+        ).toBe(false),
+      );
+      expect(mockVideosPost).not.toHaveBeenCalled();
+      expect(mockImagesPost).not.toHaveBeenCalled();
+    },
+  );
+});

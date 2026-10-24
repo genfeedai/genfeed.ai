@@ -8,10 +8,13 @@ fanout creates separate tasks with one group credit rounding operation.
 
 ## Configuration and review
 
-Admission defaults to disabled (`CRUN_ENABLED=false`). The deployment gate is
-independent of reviewed database model activation. Hosted requests require
-`CRUN_API_KEY`, an explicit positive decimal `CRUN_CREDITS_PER_USD`, and a
-nonempty `CRUN_RATE_VERSION`. There is no inferred dollar conversion. An eligible
+Availability is set by the reviewed model registry, not by an env var. A hosted
+request needs `CRUN_API_KEY` and an active, reviewed model; deactivating the
+model in admin stops new admission while accepted tasks keep draining. The
+dollar cost of hosted tasks comes from `CRUN_CREDITS_PER_USD` and
+`CRUN_ACQUISITION_RATE_VERSION` in `crun-acquisition-rate.constant.ts`: Crun
+bills in its own credits and has no dollar conversion in its API. Bump the
+version whenever the rate changes so frozen quotes go stale. An eligible
 organization Crun key uses BYOK accounting without a customer credit debit or
 platform acquisition rate.
 

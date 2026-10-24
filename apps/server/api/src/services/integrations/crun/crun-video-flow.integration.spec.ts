@@ -57,6 +57,14 @@ import { z } from 'zod';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
+// Fixed acquisition rate keeps the exact vendor-cost expectations below stable.
+vi.mock(
+  '@api/services/integrations/crun/crun-acquisition-rate.constant',
+  () => ({
+    CRUN_ACQUISITION_RATE_VERSION: 'fixture-rate',
+    CRUN_CREDITS_PER_USD: '1000',
+  }),
+);
 vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<object>()),
   usesMeteredCredits: () => true,
@@ -352,7 +360,6 @@ describe('Crun video quote through durable owned output and accounting', () => {
     [1, 4, 'hosted', 'failed', 'default'],
     [0, 4, 'hosted', 'refused', 'default'],
     [0, 4, 'hosted', 'deferred', 'default'],
-    [0, 4, 'hosted', 'disabled', 'default'],
     [0, 4, 'hosted', 'ambiguous', 'default'],
     [0, 1, 'hosted', 'success', '10s'],
     [0, 1, 'hosted', 'success', 'start'],
@@ -386,14 +393,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
       const key = `fixture-${randomUUID()}`;
       const fixtureFingerprint = createHash('sha256').update(key).digest('hex');
       registerRedisKeys(`crun:requests:${fixtureFingerprint}`);
-      let enabled = true;
-      transport.setOnCreate(
-        scenario === 'disabled'
-          ? () => {
-              enabled = false;
-            }
-          : undefined,
-      );
+      transport.setOnCreate(undefined);
       const logger = {
         error: vi.fn(),
         warn: vi.fn(),
@@ -404,10 +404,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
         ingredientsEndpoint: 'https://owned-fixture.invalid',
         get: (name: string) =>
           ({
-            CRUN_ENABLED: String(enabled),
             CRUN_API_KEY: key,
-            CRUN_CREDITS_PER_USD: '1000',
-            CRUN_RATE_VERSION: 'fixture-rate',
           })[name],
       };
       const client = prisma as unknown as PrismaService;
@@ -871,7 +868,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
         orderBy: { outputIndex: 'asc' },
       });
       expect(rows.map((row) => row.ingredientId)).toEqual(ids);
-      if (scenario === 'deferred' || scenario === 'disabled') {
+      if (scenario === 'deferred') {
         expect(
           rows.filter((row) => row.state === 'provider-failed'),
         ).toHaveLength(3);
@@ -921,7 +918,6 @@ describe('Crun video quote through durable owned output and accounting', () => {
       expect(held.heldAmount).toBe(
         funding === 'hosted' ? attributes.credits : 0,
       );
-      enabled = false;
       // A restarted service has no in-memory task or temporary media URL state.
       const restarted = new CrunTaskService(
         client,
@@ -1100,7 +1096,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
       expect(expenses).toHaveLength(
         scenario === 'refused' || scenario === 'ambiguous'
           ? 2
-          : scenario === 'deferred' || scenario === 'disabled'
+          : scenario === 'deferred'
             ? 1
             : outputs,
       );

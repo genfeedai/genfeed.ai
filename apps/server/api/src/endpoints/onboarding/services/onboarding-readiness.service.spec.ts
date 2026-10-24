@@ -2,6 +2,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import type { ConfigService } from '@libs/config/config.service';
 import {
   afterAll,
   afterEach,
@@ -22,6 +23,11 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
     isCloudDeployment: () => mockedConfig.isCloud,
   };
 });
+
+// Reads the live process env so each test's vi.stubEnv reaches the service.
+const envConfigService = {
+  get: (key: string) => process.env[key],
+} as unknown as ConfigService;
 
 const spawnSyncMock = vi.hoisted(() => vi.fn());
 
@@ -50,6 +56,7 @@ describe('OnboardingReadinessService local tool readiness', () => {
       {} as unknown as OrganizationSettingsService,
       {} as unknown as OrganizationsService,
       {} as unknown as UsersService,
+      envConfigService,
     ) as unknown as {
       getLocalToolReadiness: () => LocalToolReadiness;
     };
@@ -173,6 +180,7 @@ describe('OnboardingReadinessService provider readiness', () => {
       {} as unknown as OrganizationSettingsService,
       {} as unknown as OrganizationsService,
       {} as unknown as UsersService,
+      envConfigService,
     ).getProviderReadiness();
   };
 
@@ -272,6 +280,7 @@ describe('OnboardingReadinessService workspace readiness', () => {
           .mockResolvedValue(hasOrganization ? { id: ORGANIZATION_ID } : null),
       } as unknown as OrganizationsService,
       { findOne: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+      envConfigService,
     );
 
     return service.getInstallReadiness({ id: USER_ID } as never, {
@@ -317,6 +326,7 @@ describe('OnboardingReadinessService workspace readiness', () => {
         findOne: vi.fn().mockResolvedValue({ id: ORGANIZATION_ID }),
       } as unknown as OrganizationsService,
       { findOne: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+      envConfigService,
     );
 
     await service.getInstallReadiness({ id: USER_ID } as never, {

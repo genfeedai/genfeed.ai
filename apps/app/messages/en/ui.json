@@ -493,8 +493,7 @@
     "generationUnaffordableTitle": "Not enough credits to keep generating",
     "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
     "trialEndedTitle": "Your free trial has ended",
-    "trialEndedBadge": "Trial over",
-    "trialEndedBody": "Your 3-day free trial is over and any free credits left have expired. Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
+    "trialEndedBody": "Free credits expired. Everything you made stays in your Library.",
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
   },

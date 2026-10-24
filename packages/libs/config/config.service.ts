@@ -1,6 +1,7 @@
 import {
   // Social
   allSocialSchema,
+  apifySchema,
   argilSchema,
   awsSchema,
   BaseConfigService,
@@ -17,9 +18,11 @@ import {
   googleOAuthSchema,
   hedraSchema,
   heygenSchema,
+  higgsfieldSchema,
   type IEnvConfig,
   internalAuthSchema,
   isCloudDeployment,
+  kieSchema,
   klingaiSchema,
   leonardoSchema,
   microservicesSchema,
@@ -72,10 +75,10 @@ interface ApiEnvConfig extends IEnvConfig {
   MARKETPLACE_API_URL?: string;
   MARKETPLACE_AUTH_ORIGIN?: string;
   LOGO_DEV_PUBLISHABLE_KEY?: string;
+  GIPHY_API_KEY?: string;
   PGSSLROOTCERT?: string;
   PRISMA_POSTGRES_CA_FILE?: string;
   REPLICATE_API_TOKEN?: string;
-  KIE_API_KEY?: string;
   npm_package_description?: string;
   npm_package_version?: string;
 }
@@ -143,10 +146,10 @@ const apiSpecificSchema = {
     .optional()
     .default('http://localhost:3200'),
   LOGO_DEV_PUBLISHABLE_KEY: Joi.string().optional().allow(''),
+  GIPHY_API_KEY: Joi.string().optional().allow(''),
   PGSSLROOTCERT: Joi.string().optional().allow(''),
   PRISMA_POSTGRES_CA_FILE: Joi.string().optional().allow(''),
   REPLICATE_API_TOKEN: Joi.string().optional().allow(''),
-  KIE_API_KEY: Joi.string().optional().allow(''),
   SOLANA_KEY: Joi.string().optional().allow(''),
   SOLANA_URL: Joi.string().optional().allow(''),
 };
@@ -171,6 +174,9 @@ const apiSchema = Joi.object({
   ...generalAiSchema,
   ...replicateSchema,
   ...falSchema,
+  ...higgsfieldSchema,
+  ...kieSchema,
+  ...apifySchema,
   ...murekaSchema,
   ...klingaiSchema,
   ...elevenlabsSchema,

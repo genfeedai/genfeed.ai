@@ -98,8 +98,8 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         lookupApiKey: vi.fn().mockResolvedValue(undefined),
       } as unknown as ByokService,
       {
-        get: (name: string) => (name === 'CRUN_ENABLED' ? 'true' : key),
-      } as ConfigService,
+        get: () => key,
+      } as unknown as ConfigService,
       { createTask, taskInfo } as unknown as CrunClient,
     );
   });
@@ -402,7 +402,7 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         lookupRetainedCrunApiKey: async () => ({ apiKey: key }),
       } as never,
       {
-        get: (name: string) => (name === 'CRUN_ENABLED' ? 'true' : key),
+        get: () => key,
       } as never,
       { createTask, taskInfo } as never,
     );

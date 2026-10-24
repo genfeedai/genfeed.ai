@@ -8,6 +8,7 @@ import {
   IngredientStatus,
   ModelCategory,
   RouterPriority,
+  UploadStatus,
 } from '@genfeedai/contracts';
 import {
   DEFAULT_IMAGE_EDIT_MODEL_KEY,
@@ -17,11 +18,18 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
 import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
 import type {
   PrepareCrunGenerationIntentProps,
+  StudioPlaygroundComposerProps,
   StudioPlaygroundFocusedPreviewProps,
 } from '@genfeedai/props/studio/studio-playground.props';
+import type {
+  AttachmentItem,
+  UseAttachmentsOptions,
+} from '@genfeedai/props/ui/attachments.props';
 import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import {
@@ -142,6 +150,7 @@ const mocks = vi.hoisted(() => ({
     .fn<(ids: string[]) => Promise<unknown[]>>()
     .mockResolvedValue([]),
   findOne: vi.fn().mockResolvedValue(null),
+  findAllPage: vi.fn().mockResolvedValue({ items: [] }),
   gallery: vi.fn(),
   // #4716 review — the Agent -> Studio handoff pipeline (apply, model
   // validation/fallback, param validation, reference attachment, brand
@@ -486,7 +495,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {
-    getInstance: () => ({ findByIds: mocks.findByIds, findOne: mocks.findOne }),
+    getInstance: () => ({
+      findByIds: mocks.findByIds,
+      findOne: mocks.findOne,
+      findAllPage: mocks.findAllPage,
+    }),
   },
 }));
 
@@ -757,6 +770,7 @@ describe('StudioPlaygroundWorkspace', () => {
     };
     mocks.findByIds.mockResolvedValue([]);
     mocks.findOne.mockReset().mockResolvedValue(null);
+    mocks.findAllPage.mockReset().mockResolvedValue({ items: [] });
     window.localStorage.clear();
     mocks.outbox.current = createStudioPlaygroundDraftOutbox();
     mocks.getDraft.mockResolvedValue(null);
@@ -1306,6 +1320,7 @@ describe('StudioPlaygroundWorkspace', () => {
         editSourceIds: [],
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
+        audioReferenceIds: [],
         videoReferenceIds: [],
       },
       { originalText: 'Use this composition' },
@@ -1332,6 +1347,7 @@ describe('StudioPlaygroundWorkspace', () => {
         editSourceIds: [],
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
+        audioReferenceIds: [],
         videoReferenceIds: [],
       },
       { originalText: '@anna walking' },
@@ -2616,6 +2632,238 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled();
     expect(mocks.notify).toHaveBeenCalledTimes(1);
   });
+  describe('audio references', () => {
+    function composer(): StudioPlaygroundComposerProps {
+      return mocks.composer.mock.calls.at(-1)?.[0];
+    }
+    function configureVideo() {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        settings: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+        resetSettings: vi.fn(),
+        setType: mocks.setType,
+        updateSettings: mocks.updateSettings,
+      });
+      mocks.models.value.models = [
+        { key: MODEL_KEYS.REPLICATE_MINIMAX_H3, provider: 'replicate' },
+      ];
+    }
+    function audioAsset(
+      id: string,
+      category: IngredientCategory,
+      label: string,
+    ) {
+      return new Ingredient({
+        id,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category,
+        status: IngredientStatus.GENERATED,
+        s3Key: `audio/${id}.mp3`,
+        cdnUrl: `https://cdn.example/${id}.mp3`,
+        metadata: new Metadata({
+          label,
+          duration: 6,
+          model:
+            category === IngredientCategory.VOICE
+              ? 'eleven_multilingual_v2'
+              : 'recorded-audio',
+          extension: 'mp3',
+        }),
+      });
+    }
+    it('selects a generated ElevenLabs voice from ingredient Library and forwards only its audio ID', async () => {
+      configureVideo();
+      mocks.findAllPage.mockImplementation(async (query) => ({
+        items:
+          query.categories[0] === IngredientCategory.VOICE
+            ? [
+                audioAsset(
+                  'voice-output',
+                  IngredientCategory.VOICE,
+                  'Generated narration',
+                ),
+              ]
+            : [],
+      }));
+      await renderLoaded();
+      act(() => composer().onOpenLibrary?.('audioReference'));
+      fireEvent.click(
+        await screen.findByRole('option', {
+          name: 'Reference Generated narration',
+        }),
+      );
+      expect(composer().attachedAssets).toContainEqual(
+        expect.objectContaining({
+          id: 'voice-output',
+          kind: 'audio',
+          role: 'audioReference',
+          previewUrl: undefined,
+        }),
+      );
+      act(() => composer().onPromptChange('Use this voice with the still'));
+      act(() => composer().onSubmit());
+      expect(mocks.submit).toHaveBeenLastCalledWith(
+        'Use this voice with the still',
+        expect.objectContaining({
+          audioReferenceIds: ['voice-output'],
+          imageReferenceIds: ['ingredient-1', 'img-anna'],
+          videoReferenceIds: [],
+        }),
+        expect.anything(),
+      );
+    });
+    it('limits recorded-audio uploads using the existing selected Library count and retains their role', async () => {
+      configureVideo();
+      const addFiles = vi.fn();
+      mocks.attachments.mockReturnValue({
+        addFiles,
+        attachments: [
+          {
+            id: 'selected-audio',
+            ingredientId: 'selected-audio',
+            kind: 'audio',
+            status: UploadStatus.COMPLETED,
+            previewUrl: 'recording.mp3',
+            name: 'Recording',
+          },
+        ],
+        clearAll: mocks.clearAttachments,
+        dragHandlers: {},
+        dragState: { isActive: false },
+        getCompletedAttachments: () => [
+          {
+            ingredientId: 'selected-audio',
+            kind: 'audio',
+            url: 'recording.mp3',
+          },
+        ],
+        isUploading: false,
+        removeAttachment: vi.fn(),
+      });
+      await renderLoaded();
+      const files = [
+        new File(['a'], 'recording.wav', { type: 'audio/wav' }),
+        new File(['b'], 'recording-two.mp3', { type: 'audio/mpeg' }),
+        new File(['c'], 'overflow.mp3', { type: 'audio/mpeg' }),
+        new File(['x'], 'wrong.png', { type: 'image/png' }),
+      ];
+      act(() => composer().onAddFiles(files, 'audioReference'));
+      expect(addFiles).toHaveBeenCalledWith(files.slice(0, 2));
+      expect(composer().attachedAssets).toContainEqual(
+        expect.objectContaining({ kind: 'audio', role: 'audioReference' }),
+      );
+      expect(mocks.attachments.mock.calls.at(-1)?.[0].acceptedTypes).toContain(
+        'audio/*',
+      );
+    });
+    it('restores recorded uploads plus voice/music Library assets with audio kinds and stable audio ordering', async () => {
+      configureVideo();
+      mocks.attachments.mockImplementation((options: UseAttachmentsOptions) => {
+        const [items, setItems] = useState<AttachmentItem[]>([]);
+        useEffect(
+          () => setItems(options.initialAttachments ?? []),
+          [options.initialAttachments],
+        );
+        return {
+          addFiles: vi.fn(),
+          attachments: items,
+          clearAll: mocks.clearAttachments,
+          dragHandlers: {},
+          dragState: { isActive: false },
+          getCompletedAttachments: () =>
+            items.flatMap((item) =>
+              item.ingredientId
+                ? [
+                    {
+                      ingredientId: item.ingredientId,
+                      kind: item.kind,
+                      url: item.url ?? '',
+                    },
+                  ]
+                : [],
+            ),
+          isUploading: false,
+          removeAttachment: vi.fn(),
+        };
+      });
+      mocks.getDraft.mockResolvedValueOnce({
+        id: 'draft-audio',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        prompt: 'Audio restore',
+        type: 'video',
+        settingsByType: {
+          video: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+        },
+        knowledgeSelection: {},
+        attachments: [{ id: 'recorded', role: 'audioReference' }],
+        references: [
+          { id: 'voice', role: 'audioReference' },
+          { id: 'music', role: 'audioReference' },
+          { id: 'still', role: 'startFrame' },
+        ],
+        droppedReferenceIds: [],
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        audioAsset('recorded', IngredientCategory.AUDIO, 'Recorded audio'),
+        audioAsset('voice', IngredientCategory.VOICE, 'Narration'),
+        audioAsset('music', IngredientCategory.MUSIC, 'Track'),
+        new Ingredient({
+          id: 'still',
+          category: IngredientCategory.IMAGE,
+          cdnUrl: 'https://cdn.example/still.png',
+        }),
+      ]);
+      await renderLoaded();
+      await waitFor(() =>
+        expect(
+          composer().attachedAssets?.filter((asset) => asset.kind === 'audio'),
+        ).toHaveLength(3),
+      );
+      expect(
+        composer()
+          .attachedAssets?.filter((asset) => asset.kind === 'audio')
+          .every((asset) => asset.role === 'audioReference'),
+      ).toBe(true);
+      act(() => composer().onSubmit());
+      expect(mocks.submit).toHaveBeenLastCalledWith(
+        'Audio restore',
+        expect.objectContaining({
+          audioReferenceIds: ['recorded', 'voice', 'music'],
+          imageReferenceIds: ['still', 'img-anna'],
+          videoReferenceIds: [],
+        }),
+        expect.anything(),
+      );
+    });
+    it('rejects audio uploads and avoids audio reads for unflagged models', async () => {
+      const addFiles = vi.fn();
+      mocks.attachments.mockReturnValue({
+        addFiles,
+        attachments: [],
+        clearAll: mocks.clearAttachments,
+        dragHandlers: {},
+        dragState: { isActive: false },
+        getCompletedAttachments: () => [],
+        isUploading: false,
+        removeAttachment: vi.fn(),
+      });
+      await renderLoaded();
+      act(() =>
+        composer().onAddFiles(
+          [new File(['x'], 'recording.wav', { type: 'audio/wav' })],
+          'audioReference',
+        ),
+      );
+      act(() => composer().onOpenLibrary?.('audioReference'));
+      expect(addFiles).not.toHaveBeenCalled();
+      expect(mocks.findAllPage).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith('audioReferenceUnsupported');
+    });
+  });
+
   describe('composer draft', () => {
     const savedDraft = {
       attachments: [{ id: 'upload-1', role: 'startFrame' }],

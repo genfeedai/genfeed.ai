@@ -3,14 +3,14 @@ import { articleArtwork } from './article-artwork';
 import { UPCOMING_SEO_ARTICLES } from './seo-articles';
 
 describe('upcoming SEO article catalog', () => {
-  it('contains thirty-three complete, uniquely scheduled articles', () => {
-    expect(UPCOMING_SEO_ARTICLES).toHaveLength(33);
+  it('contains thirty-eight complete, uniquely scheduled articles', () => {
+    expect(UPCOMING_SEO_ARTICLES).toHaveLength(38);
     expect(new Set(UPCOMING_SEO_ARTICLES.map(({ slug }) => slug)).size).toBe(
-      33,
+      38,
     );
     expect(
       new Set(UPCOMING_SEO_ARTICLES.map(({ publishedAt }) => publishedAt)).size,
-    ).toBe(33);
+    ).toBe(38);
   });
 
   it('publishes exactly on Tuesday and Thursday at 09:00 UTC', () => {

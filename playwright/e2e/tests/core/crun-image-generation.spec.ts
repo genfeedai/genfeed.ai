@@ -91,7 +91,7 @@ function controls(key: string): CrunInputControls {
 async function installFixture(
   page: Page,
   key: string,
-  mode: 'available' | 'disabled' | 'stale' = 'available',
+  mode: 'available' | 'unavailable' | 'stale' = 'available',
 ) {
   const previews: CrunImageQuoteRequest[] = [];
   const consumes: Record<string, unknown>[] = [];
@@ -248,7 +248,7 @@ async function installFixture(
       ) {
         const intent: CrunImageQuoteRequest = request.postDataJSON();
         previews.push(intent);
-        const available = mode !== 'disabled';
+        const available = mode !== 'unavailable';
         await route.fulfill({
           json: {
             data: {
@@ -273,7 +273,7 @@ async function installFixture(
                     contractVersion: null,
                     credits: null,
                     billingMode: null,
-                    reasonCode: 'CRUN_DISABLED',
+                    reasonCode: 'CRUN_MODEL_UNAVAILABLE',
                   },
             },
           },
@@ -522,14 +522,11 @@ for (const key of [nanoKey, seedreamKey]) {
   });
 }
 
-test('disabled Crun admission keeps the draft and makes zero consumes', async ({
+test('unavailable Crun model keeps the draft and makes zero consumes', async ({
   authenticatedPage: page,
 }) => {
-  const fixture = await installFixture(page, nanoKey, 'disabled');
-  await expectSubmitTooltip(
-    page,
-    'This image provider is unavailable on this server.',
-  );
+  const fixture = await installFixture(page, nanoKey, 'unavailable');
+  await expectSubmitTooltip(page, 'This image model is unavailable.');
   await expect(
     fixture.composer.getByRole('button', { name: 'Generate', exact: true }),
   ).toBeDisabled();

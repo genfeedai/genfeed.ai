@@ -24,6 +24,7 @@ import {
   hasModelWithoutDurationEditing,
   hasNativeExtend,
   hasResolutionOptions,
+  hasSourceDerivedAspect,
   hasSpeech,
   hasVideoReferences,
   isImagenModel,
@@ -114,6 +115,21 @@ describe('model-helpers.constant', () => {
       );
       expect(hasNativeExtend(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1)).toBe(false);
       expect(hasNativeExtend(UNKNOWN)).toBe(false);
+    });
+  });
+
+  describe('hasSourceDerivedAspect', () => {
+    it('flags only models whose dispatch sends no aspect ratio', () => {
+      expect(
+        hasSourceDerivedAspect(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST),
+      ).toBe(true);
+      expect(
+        hasSourceDerivedAspect(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3),
+      ).toBe(false);
+      expect(
+        hasSourceDerivedAspect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      ).toBe(false);
+      expect(hasSourceDerivedAspect(UNKNOWN)).toBe(false);
     });
   });
 

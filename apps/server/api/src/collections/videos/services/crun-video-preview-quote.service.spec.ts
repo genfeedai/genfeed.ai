@@ -2,6 +2,10 @@ import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/c
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
+import {
+  CRUN_ACQUISITION_RATE_VERSION,
+  CRUN_CREDITS_PER_USD,
+} from '@api/services/integrations/crun/crun-acquisition-rate.constant';
 import { ModelCategory } from '@genfeedai/contracts';
 import {
   getRuntimeMarginMultiplier,
@@ -27,7 +31,6 @@ function fixture() {
     getdel: vi.fn(),
   };
   const tasks = {
-    isAdmissionEnabled: vi.fn().mockReturnValue(false),
     resolveCredential: vi.fn(),
   };
   const models = { findOne: vi.fn() };
@@ -86,7 +89,6 @@ describe('Crun frozen quote consumption', () => {
       ],
     });
     expect(f.cache.get).not.toHaveBeenCalled();
-    expect(f.tasks.isAdmissionEnabled).not.toHaveBeenCalled();
     expect(f.input.prepare).not.toHaveBeenCalled();
     expect(f.quote.quote).not.toHaveBeenCalled();
     expect(f.prisma.crunGenerationTask.findMany).toHaveBeenCalledWith(
@@ -165,8 +167,8 @@ describe('Crun scoped video preview freshness', () => {
         quoteHash: 'a'.repeat(64),
         inputHash: 'b'.repeat(64),
         contractVersion: 'reviewed',
-        creditsPerUsd: '1000',
-        acquisitionRateVersion: 'rate',
+        creditsPerUsd: CRUN_CREDITS_PER_USD,
+        acquisitionRateVersion: CRUN_ACQUISITION_RATE_VERSION,
         credentialSource: 'hosted',
         credentialId: null,
         credentialFingerprint: 'c'.repeat(64),
@@ -195,7 +197,6 @@ describe('Crun scoped video preview freshness', () => {
     });
     f.quote.quote.mockResolvedValue({ isAvailable: true, snapshot });
     f.cache.set.mockResolvedValue(true);
-    f.tasks.isAdmissionEnabled.mockReturnValue(true);
     f.tasks.resolveCredential.mockResolvedValue(credential);
     f.models.findOne.mockResolvedValue({
       isActive: true,
@@ -205,9 +206,6 @@ describe('Crun scoped video preview freshness', () => {
       reviewedProviderContractVersion: 'reviewed',
       pendingProviderContractVersion: null,
     });
-    f.config.get.mockImplementation((key: string) =>
-      key === 'CRUN_CREDITS_PER_USD' ? '1000' : 'rate',
-    );
     return f;
   }
   it('stores a scope-bound video quote for exactly 60 seconds and atomically consumes once', async () => {
@@ -236,15 +234,7 @@ describe('Crun scoped video preview freshness', () => {
       f.service.consume(intent, response.quoteId as string, user as never, now),
     ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_IN_PROGRESS' } });
   });
-  it.each([
-    'disabled',
-    'category',
-    'pending',
-    'credential',
-    'rate',
-    'expiry',
-    'scope',
-  ])(
+  it.each(['category', 'pending', 'credential', 'rate', 'expiry', 'scope'])(
     'rejects stale %s before token consumption or dispatch',
     async (reason) => {
       const f = fresh();
@@ -252,8 +242,6 @@ describe('Crun scoped video preview freshness', () => {
       const response = await f.service.preview(intent, user as never, now);
       const captured = f.cache.set.mock.calls[0][1];
       f.cache.get.mockResolvedValue(captured);
-      if (reason === 'disabled')
-        f.tasks.isAdmissionEnabled.mockReturnValue(false);
       if (reason === 'category')
         f.models.findOne.mockResolvedValue({ category: ModelCategory.IMAGE });
       if (reason === 'pending')
@@ -266,7 +254,8 @@ describe('Crun scoped video preview freshness', () => {
           credentialId: null,
           credentialFingerprint: 'd'.repeat(64),
         });
-      if (reason === 'rate') f.config.get.mockReturnValue('changed');
+      if (reason === 'rate')
+        captured.snapshot.providerQuote.acquisitionRateVersion = 'changed';
       await expect(
         f.service.consume(
           intent,
@@ -286,7 +275,6 @@ describe('Crun scoped video preview freshness', () => {
 describe('Crun quote character admission on consume (#6040)', () => {
   it('re-admits the quoted characters and refuses once access was revoked', async () => {
     const f = fixture();
-    f.tasks.isAdmissionEnabled.mockReturnValue(true);
     f.personas.resolveCharacterReferences.mockRejectedValue(
       new NotFoundException('Reference image'),
     );

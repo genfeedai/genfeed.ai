@@ -2,6 +2,7 @@
 
 // AI providers
 export {
+  apifySchema,
   argilSchema,
   elevenlabsSchema,
   falSchema,
@@ -9,6 +10,8 @@ export {
   generalAiSchema,
   hedraSchema,
   heygenSchema,
+  higgsfieldSchema,
+  kieSchema,
   klingaiSchema,
   leonardoSchema,
   murekaSchema,

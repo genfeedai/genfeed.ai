@@ -42,6 +42,18 @@ deployed model registry remains the source of truth for model availability. The
 configuration and execution steps below apply to deployed provider cards and
 routes; prepared direct media entries are not a launch or activation guide.
 
+### Platform-only providers
+
+These providers run on the deployment's own key only. They have no BYOK identifier,
+and each model stays inactive until an operator activates it in admin.
+
+| Provider | Used for                          | Environment variables                   |
+| -------- | --------------------------------- | --------------------------------------- |
+| Kie      | Gateway video models              | `KIE_API_KEY`                           |
+| Mureka   | Music generation (`mureka-9`)     | `MUREKA_API_KEY`, `MUREKA_API_BASE_URL` |
+
+`MUREKA_API_BASE_URL` defaults to `https://api.mureka.ai`.
+
 ## HeyGen API v3
 
 HeyGen catalog reads, account validation, avatar rendering and status polling use
@@ -140,10 +152,10 @@ For registry behavior, see
 
 ## Crun image and video generation
 
-Crun supports reviewed Nano Banana Pro and Seedream 4.5 image models, Kling 2.5 Turbo Pro videos and Veo 3.1 Fast text-to-video. Deployment
-admission is disabled by default. Operators must review the imported contract,
-activate the model and configure hosted acquisition pricing before enabling
-hosted requests. Crun is called directly with your own key.
+Crun supports reviewed Nano Banana Pro and Seedream 4.5 image models, Kling 2.5 Turbo Pro videos and Veo 3.1 Fast text-to-video. Models are
+inactive by default. Operators must review the imported contract and activate
+the model before hosted requests are admitted; `CRUN_API_KEY` is the only
+setting. Crun is called directly with your own key.
 
 Studio requests an exact quote for the prepared prompt and selected controls.
 The quote lasts 60 seconds and covers all requested outputs. Changing inputs or
@@ -171,8 +183,8 @@ are unavailable. Crun video generation is asynchronous; wait-for-completion,
 callbacks, remix budget approvals and advanced skill/knowledge execution are
 unsupported. Enhanced prompts must carry authorized stored provenance.
 
-Provider prices must match a reviewed fixed estimate. Operator approval, explicit
-admission enablement and funded canary checks are separate release steps. Stored
+Provider prices must match a reviewed fixed estimate. Operator approval, model
+activation and funded canary checks are separate release steps. Stored
 video inspection establishes duration, dimensions and audio metadata; temporary
 provider URLs are copied into owned storage before financial completion. Accepted
-work continues reconciliation when admission is disabled.
+work continues reconciliation after its model is deactivated.
