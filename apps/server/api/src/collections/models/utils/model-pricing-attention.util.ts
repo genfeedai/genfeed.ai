@@ -1,5 +1,6 @@
 import { PRICING_ATTENTION_SELECT } from '@api/collections/models/services/public-model-catalog.types';
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { loadCurrentPricingContracts } from '@api/collections/models/utils/model-pricing-contracts.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
@@ -53,6 +54,11 @@ export type PricingAttentionContract = Pick<
   | 'reviewStatus'
   | 'version'
 >;
+
+const {
+  providerContracts: _providerContracts,
+  ...PRICING_ATTENTION_MODEL_SELECT
+} = PRICING_ATTENTION_SELECT;
 
 /**
  * What an operator has to act on for one registry row. The admin pricing page
@@ -112,14 +118,22 @@ export async function findUnpriceableModelIds(
 ): Promise<string[]> {
   // tenant-scope-ignore: callers pass a platform-only or platform-plus-tenant `where` (organizationId:null or the platform-or-tenant arm) with isDeleted:false
   const rows = await prisma.model.findMany({
-    select: PRICING_ATTENTION_SELECT,
+    select: PRICING_ATTENTION_MODEL_SELECT,
     where,
   });
+  // Classification reads only each model's reviewed and pending contract, so
+  // the version history is never loaded (it grows with every provider sync).
+  const contractsByModel = await loadCurrentPricingContracts(prisma, rows);
   const now = new Date();
   const margin = getRuntimeMarginMultiplier();
   return rows
     .filter((row) =>
-      isModelRowPricingRed(row, row.providerContracts, margin, now),
+      isModelRowPricingRed(
+        row,
+        contractsByModel.get(row.id) ?? [],
+        margin,
+        now,
+      ),
     )
     .map((row) => row.id);
 }

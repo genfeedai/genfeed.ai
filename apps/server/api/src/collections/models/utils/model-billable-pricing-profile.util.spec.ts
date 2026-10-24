@@ -1,12 +1,16 @@
-import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import {
+  findModelBillablePricingProfile,
+  projectModelBillablePricingProfile,
+} from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { classifyModelRowPricingAttention } from '@api/collections/models/utils/model-pricing-attention.util';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { UNIFIED_MODEL_CATALOG } from '@genfeedai/contracts/constants';
 import {
   classifyModelPricingAttention,
   quoteModelBillablePricing,
 } from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const model = {
   key: 'fal/model',
@@ -493,4 +497,44 @@ describe('brand vision catalog rows (#6727)', () => {
       ).toEqual([]);
     },
   );
+});
+
+describe('findModelBillablePricingProfile contract loading', () => {
+  it('prices from the reviewed contract without joining the version history', async () => {
+    const modelFindFirst = vi
+      .fn()
+      .mockResolvedValue({ ...model, id: 'model-1' });
+    const contractFindMany = vi
+      .fn()
+      .mockResolvedValue([{ ...contract, modelId: 'model-1' }]);
+    const prisma = {
+      model: { findFirst: modelFindFirst },
+      modelProviderContract: { findMany: contractFindMany },
+    } as unknown as PrismaService;
+
+    const profile = await findModelBillablePricingProfile(prisma, model.key);
+
+    expect(profile?.rateVersion).toBe('rate-v1');
+    expect(profile?.reviewedPricing?.version).toBe('rate-v1');
+    expect(modelFindFirst.mock.calls[0][0].select).not.toHaveProperty(
+      'providerContracts',
+    );
+    expect(contractFindMany.mock.calls[0][0].where).toEqual({
+      modelId: { in: ['model-1'] },
+      version: { in: ['rate-v1'] },
+    });
+  });
+
+  it('returns null without a contract query when the model is unknown', async () => {
+    const contractFindMany = vi.fn();
+    const prisma = {
+      model: { findFirst: vi.fn().mockResolvedValue(null) },
+      modelProviderContract: { findMany: contractFindMany },
+    } as unknown as PrismaService;
+
+    await expect(
+      findModelBillablePricingProfile(prisma, 'missing'),
+    ).resolves.toBeNull();
+    expect(contractFindMany).not.toHaveBeenCalled();
+  });
 });

@@ -1,7 +1,11 @@
-import { classifyModelRowPricingAttention } from '@api/collections/models/utils/model-pricing-attention.util';
+import {
+  classifyModelRowPricingAttention,
+  findUnpriceableModelIds,
+} from '@api/collections/models/utils/model-pricing-attention.util';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import type { Model } from '@genfeedai/prisma';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 /** An active Replicate row the provider stopped serving: no price at all. */
 function unpricedRow(lifecycle: ModelLifecycle): Model {
@@ -67,5 +71,55 @@ describe('classifyModelRowPricingAttention', () => {
         new Date('2026-10-15T00:00:00Z'),
       ),
     ).toEqual([]);
+  });
+});
+
+describe('findUnpriceableModelIds', () => {
+  function build(rows: Model[]) {
+    const modelFindMany = vi.fn().mockResolvedValue(rows);
+    const contractFindMany = vi.fn().mockResolvedValue([]);
+    const prisma = {
+      model: { findMany: modelFindMany },
+      modelProviderContract: { findMany: contractFindMany },
+    } as unknown as PrismaService;
+    return { contractFindMany, modelFindMany, prisma };
+  }
+
+  it('returns the unpriced rows without joining contract history onto the catalog', async () => {
+    const red = { ...unpricedRow(ModelLifecycle.AVAILABLE), id: 'red' };
+    const retired = { ...unpricedRow(ModelLifecycle.RETIRED), id: 'retired' };
+    const { modelFindMany, prisma } = build([red, retired]);
+
+    await expect(findUnpriceableModelIds(prisma, {})).resolves.toEqual(['red']);
+    expect(modelFindMany.mock.calls[0][0].select).not.toHaveProperty(
+      'providerContracts',
+    );
+  });
+
+  it('loads only the reviewed contract version, not the version history', async () => {
+    const reviewed = {
+      ...unpricedRow(ModelLifecycle.AVAILABLE),
+      id: 'reviewed',
+      reviewedProviderContractVersion: 'rate-v7',
+    };
+    const { contractFindMany, prisma } = build([reviewed]);
+
+    await findUnpriceableModelIds(prisma, {});
+
+    expect(contractFindMany).toHaveBeenCalledOnce();
+    expect(contractFindMany.mock.calls[0][0].where).toEqual({
+      modelId: { in: ['reviewed'] },
+      version: { in: ['rate-v7'] },
+    });
+  });
+
+  it('skips the contract query when no model carries a contract version', async () => {
+    const { contractFindMany, prisma } = build([
+      { ...unpricedRow(ModelLifecycle.AVAILABLE), id: 'plain' },
+    ]);
+
+    await findUnpriceableModelIds(prisma, {});
+
+    expect(contractFindMany).not.toHaveBeenCalled();
   });
 });

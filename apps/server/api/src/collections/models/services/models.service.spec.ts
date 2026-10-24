@@ -142,11 +142,12 @@ describe('ModelsService', () => {
           isDeleted: false,
           OR: [{ organizationId: 'org-1' }, { organizationId: null }],
         }),
-        select: expect.objectContaining({
-          providerCostUsd: true,
-          providerContracts: expect.any(Object),
-        }),
+        select: expect.objectContaining({ providerCostUsd: true }),
       }),
+    );
+    // Contract history is loaded separately, never joined onto the model.
+    expect(modelDelegate.findFirst.mock.calls[0][0].select).not.toHaveProperty(
+      'providerContracts',
     );
   });
 

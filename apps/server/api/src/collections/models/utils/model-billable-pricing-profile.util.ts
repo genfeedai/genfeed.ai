@@ -1,3 +1,4 @@
+import { loadCurrentPricingContracts } from '@api/collections/models/utils/model-pricing-contracts.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ModelBillablePricingProfile,
@@ -395,22 +396,13 @@ export async function findModelBillablePricingProfile(
       providerInputSchema: true,
       reviewedProviderContractVersion: true,
       pendingProviderContractVersion: true,
-      providerContracts: {
-        select: {
-          provider: true,
-          endpoint: true,
-          version: true,
-          reviewStatus: true,
-          mappingStatus: true,
-          pricing: true,
-          conditionalDimensions: true,
-          discoveredAt: true,
-          lastSeenAt: true,
-        },
-      },
+      id: true,
     },
   });
-  return model
-    ? projectModelBillablePricingProfile(model, model.providerContracts)
-    : null;
+  if (!model) return null;
+  const contracts = await loadCurrentPricingContracts(prisma, [model]);
+  return projectModelBillablePricingProfile(
+    model,
+    contracts.get(model.id) ?? [],
+  );
 }
