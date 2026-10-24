@@ -518,6 +518,50 @@ describe('resolveStudioAssetFacts', () => {
     });
   });
 
+  it('reports the measured aspect of a saved video over the requested recipe', () => {
+    const recipe = {
+      aspectRatio: '16:9',
+      blacklist: [],
+      isAudioEnabled: false,
+      outputs: 1,
+      references: [],
+      tags: [],
+      text: 'An apple',
+      type: 'video' as const,
+    };
+    const square = resolveStudioAssetFacts(
+      buildJob({
+        ingredient: buildIngredient({
+          category: IngredientCategory.VIDEO,
+          metadata: { height: 768, width: 768 } as IIngredient['metadata'],
+        }),
+        recipe,
+        type: 'video',
+      }),
+    );
+    const landscape = resolveStudioAssetFacts(
+      buildJob({
+        ingredient: buildIngredient({
+          category: IngredientCategory.VIDEO,
+          metadata: { height: 1080, width: 1920 } as IIngredient['metadata'],
+        }),
+        recipe,
+        type: 'video',
+      }),
+    );
+    const unmeasured = resolveStudioAssetFacts(
+      buildJob({
+        ingredient: buildIngredient({ category: IngredientCategory.VIDEO }),
+        recipe,
+        type: 'video',
+      }),
+    );
+
+    expect(square.aspectRatio).toBe('1:1');
+    expect(landscape.aspectRatio).toBe('16:9');
+    expect(unmeasured.aspectRatio).toBe('16:9');
+  });
+
   it('falls back to live job fields and omits what it does not know', () => {
     const facts = resolveStudioAssetFacts(
       buildJob({

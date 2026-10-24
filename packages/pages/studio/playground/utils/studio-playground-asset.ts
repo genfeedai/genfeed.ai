@@ -270,17 +270,23 @@ export function resolveStudioAssetFacts(
       : undefined;
   const submittedRecipe = job.recipe;
   const { height, width } = resolveStudioAssetDimensions(ingredient);
-  const resolvedWidth = width ?? job.width;
-  const resolvedHeight = height ?? job.height;
   const brand = ingredient?.brand;
   const durationSeconds = submittedRecipe?.duration ?? metadata?.duration;
+  const measuredAspectRatio =
+    width && height ? resolveAspectRatioFromDimensions(width, height) : undefined;
+  const fallbackWidth = width ?? job.width;
+  const fallbackHeight = height ?? job.height;
 
+  // The saved media's measured dimensions beat the submitted recipe: a model
+  // that derives its output aspect from the source image can return a ratio
+  // other than the one requested.
   return {
     aspectRatio:
+      measuredAspectRatio ||
       submittedRecipe?.aspectRatio ||
-      (resolvedWidth && resolvedHeight
-        ? (resolveAspectRatioFromDimensions(resolvedWidth, resolvedHeight) ??
-          `${resolvedWidth}×${resolvedHeight}`)
+      (fallbackWidth && fallbackHeight
+        ? (resolveAspectRatioFromDimensions(fallbackWidth, fallbackHeight) ??
+          `${fallbackWidth}×${fallbackHeight}`)
         : undefined),
     brandLabel:
       brand && typeof brand === 'object' ? brand.label || undefined : undefined,
