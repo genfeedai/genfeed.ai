@@ -1135,6 +1135,65 @@ describe('GenerationBillingService', () => {
         expect(await service.reconcile(NOW)).toBe(0);
         expect(credits.releaseReservation).not.toHaveBeenCalled();
       });
+
+      describe('a generation given up on', () => {
+        const abandoned = (generationError?: string) => ({
+          ...ingredient('intent', IngredientStatus.FAILED),
+          generationError,
+        });
+
+        it.each([
+          ['cancelled by the user', 'Cancelled by user', 'release'],
+          [
+            'failed by the processing timeout',
+            'Processing timed out',
+            'expiry',
+          ],
+        ])(
+          'releases the hold of a generation %s before the ceiling',
+          async (_name, generationError, reason) => {
+            prisma.creditReservation.findMany.mockResolvedValue([
+              intentRow('replicate', -3_600_000),
+            ]);
+            prisma.ingredient.findMany.mockResolvedValue([
+              abandoned(generationError),
+            ]);
+
+            expect(await service.reconcile(NOW)).toBe(1);
+
+            expect(credits.releaseReservation).toHaveBeenCalledWith({
+              organizationId: 'org_1',
+              reason,
+              reservationId: 'hold_intent',
+            });
+            expect(holdRecovery.recoverAtCeiling).not.toHaveBeenCalled();
+          },
+        );
+
+        it('keeps the hold of a generation that failed for another reason', async () => {
+          prisma.creditReservation.findMany.mockResolvedValue([
+            intentRow('replicate', -3_600_000),
+          ]);
+          prisma.ingredient.findMany.mockResolvedValue([
+            abandoned('Provider rejected the prompt'),
+          ]);
+
+          expect(await service.reconcile(NOW)).toBe(0);
+          expect(credits.releaseReservation).not.toHaveBeenCalled();
+        });
+
+        it('leaves a cancelled Crun generation to its own task receipts', async () => {
+          prisma.creditReservation.findMany.mockResolvedValue([
+            intentRow('crun', -3_600_000),
+          ]);
+          prisma.ingredient.findMany.mockResolvedValue([
+            abandoned('Cancelled by user'),
+          ]);
+
+          expect(await service.reconcile(NOW)).toBe(0);
+          expect(credits.releaseReservation).not.toHaveBeenCalled();
+        });
+      });
     });
 
     describe('late completions after hold expiry', () => {

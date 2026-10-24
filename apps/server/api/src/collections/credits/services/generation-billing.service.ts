@@ -21,6 +21,8 @@ import {
   pollHoldAtCeiling,
 } from '@api/collections/credits/services/generation-hold-recovery-backoff.util';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
+import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import {
@@ -74,6 +76,18 @@ export type GenerationReleaseOutcome = 'released' | 'no-hold' | 'held';
 /** Reconcile leaves a fresh hold to the completion hook before sweeping it. */
 const RECONCILE_GRACE_MS = 2 * 60 * 1000;
 const RECONCILE_BATCH = 200;
+/**
+ * A generation the user cancelled, or that the processing-timeout cron failed,
+ * is given up on: its hold goes back at the next sweep instead of waiting for
+ * the provider ceiling. The provider may still finish the output; if it does,
+ * the late completion is charged on its own (#5886), so this cannot give a
+ * delivered output away.
+ */
+const ABANDONED_GENERATION_RELEASE: ReadonlyMap<string, 'release' | 'expiry'> =
+  new Map([
+    [GENERATION_CANCELLED_BY_USER, 'release'],
+    [INGREDIENT_PROCESSING_TIMEOUT_ERROR, 'expiry'],
+  ]);
 const TERMINAL_FAILURE_STATUSES: readonly string[] = [
   IngredientStatus.FAILED,
   IngredientStatus.REJECTED,
@@ -806,6 +820,7 @@ export class GenerationBillingService {
     // tenant-scope-ignore: ids come from the holds above, matched by org below
     const ingredients = await this.prisma.ingredient.findMany({
       select: {
+        generationError: true,
         id: true,
         isDeleted: true,
         organizationId: true,
@@ -860,6 +875,25 @@ export class GenerationBillingService {
             evidence.confirmedFailure.provider ===
               evidence.submissionIntent.provider;
           const intent = generationSubmissionIntentSchema.parse(hold.metadata);
+          // Crun resolves through its own task receipts, never from here.
+          const abandonedReason =
+            ingredient &&
+            !ingredient.isDeleted &&
+            status === IngredientStatus.FAILED &&
+            intent.submissionIntent.provider !== 'crun'
+              ? ABANDONED_GENERATION_RELEASE.get(
+                  ingredient.generationError ?? '',
+                )
+              : undefined;
+          if (abandonedReason) {
+            await this.releaseOutput(
+              ingredientId,
+              hold.organizationId,
+              abandonedReason,
+            );
+            acted += 1;
+            continue;
+          }
           const isPastCeiling =
             intent.submissionIntent.provider !== 'crun' &&
             hold.expiresAt.getTime() +
