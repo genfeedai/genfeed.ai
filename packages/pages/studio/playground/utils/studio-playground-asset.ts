@@ -273,7 +273,9 @@ export function resolveStudioAssetFacts(
   const brand = ingredient?.brand;
   const durationSeconds = submittedRecipe?.duration ?? metadata?.duration;
   const measuredAspectRatio =
-    width && height ? resolveAspectRatioFromDimensions(width, height) : undefined;
+    width && height
+      ? resolveAspectRatioFromDimensions(width, height)
+      : undefined;
   const fallbackWidth = width ?? job.width;
   const fallbackHeight = height ?? job.height;
 
