@@ -5,6 +5,7 @@ import {
   ingredientResponseIds,
   projectMediaResponse,
 } from '@serializers/helpers/media-delivery-projection.helper';
+import { PostSerializer } from '@serializers/server/content/post.serializer';
 import { IngredientSerializer } from '@serializers/server/ingredients/ingredient.serializer';
 import { describe, expect, it } from 'vitest';
 
@@ -50,6 +51,34 @@ describe('media delivery response projection', () => {
     expect(projected).toContain('"generationHarness":null');
     expect(projected).not.toContain('original.png');
     expect(JSON.stringify(response)).toBe(snapshot);
+  });
+
+  it('projects a grant onto every ingredient of a serialized post, in saved order', () => {
+    const secondId = testId('ingredient', 2);
+    const response = PostSerializer.serialize({
+      id: testId('post', 1),
+      ingredients: [secondId, id].map((ingredientId) => ({
+        id: ingredientId,
+        category: 'IMAGE',
+        cdnUrl: `https://cdn.example/${ingredientId}-original.png`,
+        s3Key: `ingredients/images/${ingredientId}`,
+        metadata: { id: testId('metadata', 9), label: 'Photo' },
+      })),
+    });
+    expect(ingredientResponseIds(response).sort()).toEqual(
+      [id, secondId].sort(),
+    );
+    const projected = JSON.stringify(
+      projectMediaResponse(response, [preview], false),
+    );
+    // Every ingredient carries a delivery grant: READY for the authorized
+    // one, an explicit UNSUPPORTED for the other. None keeps an original URL,
+    // so the client never falls back to the unsigned route.
+    expect(projected.match(/"mediaDelivery"/g)).toHaveLength(2);
+    expect(projected).toContain('protected-preview');
+    expect(projected).toContain('UNSUPPORTED');
+    expect(projected).not.toContain('original.png');
+    expect(projected).not.toContain('ingredients/images/');
   });
 
   it('covers nested persona ingredient url fields and omits foreign/deleted projections', () => {
