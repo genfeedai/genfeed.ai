@@ -1,12 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '@playwright/test';
 
 test.describe('Released image — first sign-up through the UI', () => {
   test('a visitor creates the first account with email and password', async ({
     page,
   }) => {
-    await page.goto(APP_ROUTES.SIGN_UP, { waitUntil: 'domcontentloaded' });
+    await page.goto('/sign-up', { waitUntil: 'domcontentloaded' });
 
     // The shipped template has no email provider, so a link could never arrive.
     await expect(
