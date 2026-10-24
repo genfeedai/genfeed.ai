@@ -4,6 +4,7 @@ import { buildSoftwareApplicationJsonLd } from '@data/software-jsonld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import HomeContent from '@public/(home)/home-content';
 import type { Metadata, ResolvingMetadata } from 'next';
+import { HOME_SOCIAL_VIDEO } from '@web-components/home/_assets';
 
 const HOME_PAGE_TITLE = 'Genfeed.ai | Ask once. Show up everywhere.';
 
@@ -25,6 +26,7 @@ export async function generateMetadata(
       title: HOME_PAGE_TITLE,
       type: 'website',
       url: metadata.url,
+      videos: [HOME_SOCIAL_VIDEO],
     },
     title: HOME_PAGE_TITLE,
     twitter: {

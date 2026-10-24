@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { metadata as site } from '@helpers/media/metadata/metadata.helper';
 import { render, screen } from '@testing-library/react';
+import { HOME_SOCIAL_VIDEO } from '@web-components/home/_assets';
 import { describe, expect, it } from 'vitest';
 import XPlayerCardContent from './content';
 import { metadata } from './page';
@@ -48,11 +49,21 @@ describe('X player card page', () => {
       '_blank',
     );
     expect(container.querySelector('form, input, textarea, select')).toBeNull();
-    expect(container.querySelector('main > div')?.className).toContain(
-      'h-[70dvh]',
-    );
-    expect(container.querySelector('main > div')?.className).toContain(
-      'sm:h-full',
+    const frame = container.querySelector('main > div.relative');
+    expect(frame?.className).toContain('h-[70dvh]');
+    expect(frame?.className).toContain('sm:h-full');
+  });
+
+  it('plays the OG video muted behind the copy', () => {
+    const { container } = render(<XPlayerCardContent />);
+    const video = container.querySelector('main > video');
+
+    expect(video?.hasAttribute('autoplay')).toBe(true);
+    expect(video?.hasAttribute('loop')).toBe(true);
+    expect(video?.hasAttribute('playsinline')).toBe(true);
+    expect(video?.getAttribute('poster')).toBe('https://genfeed.ai/og/home');
+    expect(video?.querySelector('source')?.getAttribute('src')).toBe(
+      HOME_SOCIAL_VIDEO.url,
     );
   });
 

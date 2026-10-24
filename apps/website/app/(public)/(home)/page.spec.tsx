@@ -32,4 +32,20 @@ describe('homepage metadata', () => {
       }),
     ]);
   });
+
+  it('offers the OG video as og:video beside the og:image fallback', async () => {
+    const parent = Promise.resolve({}) as ResolvingMetadata;
+
+    const result = await PageModule.generateMetadata({}, parent);
+
+    expect(result.openGraph?.videos).toEqual([
+      {
+        height: 630,
+        type: 'video/mp4',
+        url: 'https://cdn.genfeed.ai/assets/site/home/og/og-home.mp4',
+        width: 1200,
+      },
+    ]);
+    expect(result.openGraph?.images).toHaveLength(1);
+  });
 });

@@ -26,6 +26,29 @@ export const HOME_HERO_VIDEO = {
 } as const;
 
 /**
+ * The link-preview video (`og:video`, and the `/x/card` player). Frame 0 is the
+ * homepage OG card (`/og/home`), which then crossfades into the hero loop, so
+ * the still `og:image` and the video start on the same pixels. 1200x630 H.264,
+ * muted, about 1 MB, 11 s. `og:image` remains the fallback where video is ignored.
+ *
+ * Built by hand from the card PNG and the hero MP4, then uploaded next to the
+ * other homepage clips (2 s card hold, 1 s crossfade, 10 s of footage):
+ *
+ *   ffmpeg -loop 1 -framerate 30 -t 2 -i og-home.png -t 10 -i hero-loop.mp4 \
+ *     -filter_complex "[0:v]format=yuv420p,scale=1200:630,setsar=1,fps=30[a];\
+ *       [1:v]scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630,\
+ *       setsar=1,fps=30,format=yuv420p[b];[a][b]xfade=transition=fade:duration=1:offset=1[v]" \
+ *     -map "[v]" -an -c:v libx264 -profile:v high -crf 24 -preset slow \
+ *     -movflags +faststart og-home.mp4
+ */
+export const HOME_SOCIAL_VIDEO = {
+  height: 630,
+  type: 'video/mp4',
+  url: home('og/og-home.mp4'),
+  width: 1200,
+} as const;
+
+/**
  * The output rail. Order is the argument: a campaign still, then the same brand
  * moving, then the ad, then long-form, then a presenter, then voice — widest
  * surface first, narrowest last.
