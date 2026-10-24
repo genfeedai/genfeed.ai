@@ -42,7 +42,7 @@ describe('homepage metadata', () => {
       {
         height: 630,
         type: 'video/mp4',
-        url: 'https://cdn.genfeed.ai/assets/site/home/og/og-home.mp4',
+        url: 'https://cdn.genfeed.ai/assets/og/home.mp4',
         width: 1200,
       },
     ]);

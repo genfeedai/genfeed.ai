@@ -32,7 +32,7 @@ export const HOME_HERO_VIDEO = {
  * muted, about 1 MB, 11 s. `og:image` remains the fallback where video is ignored.
  *
  * Built by hand from the card PNG and the hero MP4, then uploaded next to the
- * other homepage clips (2 s card hold, 1 s crossfade, 10 s of footage):
+ * link-preview art as og/home.mp4 (2 s card hold, 1 s crossfade, 10 s of footage):
  *
  *   ffmpeg -loop 1 -framerate 30 -t 2 -i og-home.png -t 10 -i hero-loop.mp4 \
  *     -filter_complex "[0:v]format=yuv420p,scale=1200:630,setsar=1,fps=30[a];\
@@ -44,7 +44,7 @@ export const HOME_HERO_VIDEO = {
 export const HOME_SOCIAL_VIDEO = {
   height: 630,
   type: 'video/mp4',
-  url: home('og/og-home.mp4'),
+  url: cdnAsset('/assets/og/home.mp4'),
   width: 1200,
 } as const;
 

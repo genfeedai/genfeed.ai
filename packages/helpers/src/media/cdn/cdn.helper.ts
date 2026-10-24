@@ -21,6 +21,7 @@ export const CDN_BASE_URL = 'https://cdn.genfeed.ai';
  *   site/home/**             homepage hero and output-carousel video + posters
  *   site/proof/*             proof screenshots
  *   og/<id>.jpg              link-preview artwork rendered by the website OG routes
+ *   og/<id>.mp4              link-preview video (og:video), opens on the same card
  *
  * User-generated media lives outside assets/ (ingredients/, banners/, logos/,
  * exports/) and is owned by the API, not by this tree.
