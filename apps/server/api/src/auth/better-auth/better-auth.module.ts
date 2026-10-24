@@ -206,6 +206,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
             usesMeteredCredits() && !isSelfHostedDeployment(),
           prisma,
           rateLimitStore,
+          turnstileSecretKey: config.get('TURNSTILE_SECRET_KEY')?.trim(),
           resolveIsEmailVerificationRequired: () =>
             resolveIsEmailVerificationEnforced({
               isMailerConfigured: () =>

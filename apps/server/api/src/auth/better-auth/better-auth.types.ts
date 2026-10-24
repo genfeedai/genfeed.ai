@@ -296,6 +296,11 @@ export interface ICreateBetterAuthOptions {
    * user creation; true only where free trial credits are on offer.
    */
   shouldBlockDisposableEmail?: () => boolean;
+  /**
+   * Cloudflare Turnstile secret. When set, account-creating endpoints require a
+   * valid `x-captcha-response` token; when unset no captcha is requested.
+   */
+  turnstileSecretKey?: string;
 }
 
 /** Config-derived Better Auth instance options (secrets, origins, providers). */

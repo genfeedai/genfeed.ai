@@ -48,6 +48,7 @@ import {
   AuthFormActions,
 } from '../auth-ui';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
+import { useTurnstileToken } from '../use-turnstile-token';
 
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
@@ -114,6 +115,7 @@ export default function LoginBetterAuth({
   const searchParams = useSearchParams();
   const isDesktop = useIsDesktopClient();
   const isMagicLinkAvailable = useIsMagicLinkAvailable();
+  const { getCaptchaFetchOptions } = useTurnstileToken();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -343,6 +345,7 @@ export default function LoginBetterAuth({
       const result = await signIn.magicLink({
         callbackURL: toAbsoluteMagicLinkCallbackURL(callbackURL),
         email,
+        fetchOptions: await getCaptchaFetchOptions(),
       });
       if (result?.error) {
         setErrorMessage(

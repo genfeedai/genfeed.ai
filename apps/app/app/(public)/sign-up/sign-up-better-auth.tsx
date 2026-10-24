@@ -36,6 +36,7 @@ import {
   AuthFormActions,
 } from '../auth-ui';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
+import { useTurnstileToken } from '../use-turnstile-token';
 
 const MIN_PASSWORD_LENGTH = 8;
 const SIGN_UP_MAGIC_LINK_METADATA = { intent: 'signup' } as const;
@@ -73,6 +74,7 @@ export default function SignUpBetterAuth({
   const translate = useTranslations('common');
   const searchParams = useSearchParams();
   const isMagicLinkAvailable = useIsMagicLinkAvailable();
+  const { getCaptchaFetchOptions } = useTurnstileToken();
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -125,6 +127,7 @@ export default function SignUpBetterAuth({
       const result = await signIn.magicLink({
         callbackURL: toAbsoluteMagicLinkCallbackURL(callbackURL),
         email: normalizedEmail,
+        fetchOptions: await getCaptchaFetchOptions(),
         metadata: SIGN_UP_MAGIC_LINK_METADATA,
       });
       if (result?.error) {
@@ -159,6 +162,7 @@ export default function SignUpBetterAuth({
       const result = await signUp.email({
         callbackURL: authCallbackURL,
         email: normalizedEmail,
+        fetchOptions: await getCaptchaFetchOptions(),
         name: name.trim(),
         password,
       });

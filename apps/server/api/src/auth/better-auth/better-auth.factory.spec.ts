@@ -13,6 +13,7 @@ import {
   buildBetterAuthOrganizationOptions,
   buildBetterAuthUserDatabaseHooks,
   buildRateLimitStorage,
+  CAPTCHA_PROTECTED_ENDPOINTS,
   createBetterAuthInstance,
   RATE_LIMIT_TTL_SECONDS,
   resolveBetterAuthJwtAccess,
@@ -431,6 +432,23 @@ describe('buildBetterAuthDashPlugin', () => {
       ).toThrow('lastActiveAt is not allowed to be set');
     },
   );
+});
+
+describe('Turnstile signup captcha', () => {
+  it('protects only the endpoints that can create an account', () => {
+    expect(CAPTCHA_PROTECTED_ENDPOINTS).toEqual([
+      '/sign-up/email',
+      '/sign-in/magic-link',
+    ]);
+  });
+
+  it('installs the captcha plugin only when a secret is configured', () => {
+    const source = createBetterAuthInstance.toString();
+
+    expect(source).toMatch(/turnstileSecretKey\s*\?/);
+    expect(source).toContain('cloudflare-turnstile');
+    expect(source).toContain('CAPTCHA_PROTECTED_ENDPOINTS');
+  });
 });
 
 describe('buildBetterAuthUserDatabaseHooks', () => {

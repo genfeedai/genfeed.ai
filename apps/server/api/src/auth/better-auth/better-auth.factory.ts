@@ -14,6 +14,7 @@ import { createAuthMiddleware } from 'better-auth/api';
 import {
   type AdminOptions,
   admin,
+  captcha,
   jwt,
   type MagicLinkOptions,
   magicLink,
@@ -62,6 +63,17 @@ type BetterAuthUserAfterPayload = {
   email?: string | null;
   id: string;
 };
+
+/**
+ * Endpoints that can create an account: email/password sign-up and the magic
+ * link (which creates the user on first use). Social sign-in is left alone —
+ * it already requires a real provider account — and so is email/password
+ * sign-in, so returning users never see a challenge.
+ */
+export const CAPTCHA_PROTECTED_ENDPOINTS = [
+  '/sign-up/email',
+  '/sign-in/magic-link',
+];
 
 export const DISPOSABLE_EMAIL_MESSAGE =
   'Temporary email addresses are not supported. Sign up with a permanent address.';
@@ -738,6 +750,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     onUserCreated,
     onEmailVerified,
     shouldBlockDisposableEmail,
+    turnstileSecretKey,
   } = options;
   const socialProviders = {
     ...(google
@@ -899,6 +912,17 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       }),
       admin(buildBetterAuthAdminOptions()),
       desktopSession(),
+      // Invisible Turnstile on the endpoints that create accounts. Off until a
+      // secret is configured, so deployments without one are unchanged.
+      ...(turnstileSecretKey
+        ? [
+            captcha({
+              endpoints: CAPTCHA_PROTECTED_ENDPOINTS,
+              provider: 'cloudflare-turnstile',
+              secretKey: turnstileSecretKey,
+            }),
+          ]
+        : []),
     ],
   });
 }
