@@ -293,6 +293,8 @@ const UI_TEST_MESSAGES = {
       lookPreviewUnavailable: 'No example image saved for this option.',
       agentPick: 'Agent pick',
       applyPreset: 'Apply preset {label}',
+      aspectFollowsSource:
+        'This model sizes the video from your source image, so the result follows that image and may not match the ratio you pick.',
       aspectRatio: 'Aspect ratio',
       auto: 'Auto',
       autoModeTooltip: 'Auto: Genfeed picks the model and settings',
