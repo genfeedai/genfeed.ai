@@ -8,6 +8,9 @@ import { test as base, expect } from '@playwright/test';
 export const releaseApiURL =
   process.env.API_BASE_URL || 'http://localhost:3010';
 
+const SIGNUP_RATE_LIMIT_RETRIES = 3;
+const SIGNUP_RATE_LIMIT_FALLBACK_SECONDS = 10;
+
 type ReleaseAccount = {
   email: string;
   headers: { Authorization: string };
@@ -19,17 +22,39 @@ export const test = base.extend<{ releaseAccount: ReleaseAccount }>({
   releaseAccount: async ({ page, baseURL }, use) => {
     const email = `release-${randomUUID()}@example.com`;
     const request = page.context().request;
-    const signup = await request.post(
-      `${releaseApiURL}/v1/auth/sign-up/email`,
-      {
-        data: {
-          email,
-          name: 'Release Readiness',
-          password: `Release-${randomUUID()}!`,
-        },
-        headers: { origin: new URL(baseURL || 'http://localhost:3000').origin },
-      },
-    );
+    const signupData = {
+      email,
+      name: 'Release Readiness',
+      password: `Release-${randomUUID()}!`,
+    };
+    const signupHeaders = {
+      origin: new URL(baseURL || 'http://localhost:3000').origin,
+    };
+    // Better Auth caps /sign-up/email at 3 requests per 10 seconds per IP, and
+    // this suite signs up one account per test. Wait out the window the API
+    // reports instead of failing on the 429.
+    const postSignup = () =>
+      request.post(`${releaseApiURL}/v1/auth/sign-up/email`, {
+        data: signupData,
+        headers: signupHeaders,
+      });
+    let signup = await postSignup();
+    for (
+      let attempt = 0;
+      attempt < SIGNUP_RATE_LIMIT_RETRIES && signup.status() === 429;
+      attempt += 1
+    ) {
+      const retryAfterSeconds = Number(signup.headers()['x-retry-after']);
+      await new Promise((resolve) =>
+        setTimeout(
+          resolve,
+          (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+            ? retryAfterSeconds
+            : SIGNUP_RATE_LIMIT_FALLBACK_SECONDS) * 1000,
+        ),
+      );
+      signup = await postSignup();
+    }
     expect(signup.ok(), 'first account signup must succeed').toBe(true);
 
     const exchange = await request.get(`${releaseApiURL}/v1/auth/token`);
