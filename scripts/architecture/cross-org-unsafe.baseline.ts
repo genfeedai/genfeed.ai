@@ -386,30 +386,30 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // owned organizations.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 82,
+      line: 89,
     },
     // The free-trial entitlement is user-scoped across the user's owned
     // organizations, exactly like the signup gift above.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 178,
+      line: 187,
     },
     // Free-credit abuse gate: the same mailbox, IP and grant velocity are
     // compared across all other users' organizations by design.
     {
       file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
-      line: 82,
+      line: 90,
     },
     // Free-credit abuse gate: first-session IP lookup for the signing-up user.
     {
       file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
-      line: 104,
+      line: 113,
     },
     // Free-credit abuse gate: counts recent free grants to other users on the
     // same IP across tenants.
     {
       file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
-      line: 122,
+      line: 132,
     },
     // #6120: superadmin reads another organization's blacklist entry.
     {

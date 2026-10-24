@@ -11,6 +11,12 @@ import { Injectable } from '@nestjs/common';
 export const MAX_FREE_GRANTS_PER_IP_PER_DAY = 5;
 const IP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+/** Request-scoped facts a grant caller may hold that the database does not. */
+export type GrantEligibilityOptions = {
+  /** Client IP to use when the user has no session yet. */
+  ipAddress?: string | null;
+};
+
 export type SignupGrantRefusal =
   | 'duplicate-mailbox'
   | 'email-unverified'
@@ -35,7 +41,9 @@ export type SignupGrantEligibility =
  *   is the user's first session, hashed onto the grant's ledger row so the
  *   count survives sign-outs (sessions are hard-deleted). A grant paid before
  *   any session exists (an OAuth signup's gift) is not IP-checked; the trial
- *   credits, paid after onboarding, always are.
+ *   credits, paid after onboarding, always are. An email/password signup has
+ *   no session until its link is followed, so the verification request's IP
+ *   stands in for it.
  *
  * Runs inside the grant transaction so the read and the grant are serialised
  * together. Deployments without the hosted free trial are always eligible.
@@ -48,7 +56,7 @@ export class SignupGrantEligibilityService {
 
   async evaluate(
     tx: PrismaTransactionClient,
-    input: { source: string; userId: string },
+    input: GrantEligibilityOptions & { source: string; userId: string },
   ): Promise<SignupGrantEligibility> {
     if (!isFreeTrialEnforced()) {
       return { emailKey: null, ipKey: null, isEligible: true };
@@ -66,7 +74,7 @@ export class SignupGrantEligibilityService {
     if (emailKey && (await this.isMailboxAlreadyGranted(tx, emailKey, input))) {
       return this.refuse('duplicate-mailbox', userId, source);
     }
-    const ipKey = await this.resolveIpKey(tx, userId);
+    const ipKey = await this.resolveIpKey(tx, userId, input.ipAddress);
     if (ipKey && (await this.isIpOverLimit(tx, ipKey, input))) {
       return this.refuse('ip-velocity', userId, source);
     }
@@ -99,6 +107,7 @@ export class SignupGrantEligibilityService {
   private async resolveIpKey(
     tx: PrismaTransactionClient,
     userId: string,
+    requestIpAddress?: string | null,
   ): Promise<string | null> {
     // tenant-scope-ignore: sessions are not tenant data; the signup address is read to bound how many accounts one IP may fund.
     const firstSession = await crossOrgUnsafe(
@@ -110,7 +119,8 @@ export class SignupGrantEligibilityService {
           where: { ipAddress: { not: null }, userId },
         }),
     );
-    return firstSession?.ipAddress ? hashToken(firstSession.ipAddress) : null;
+    const ipAddress = firstSession?.ipAddress ?? requestIpAddress;
+    return ipAddress ? hashToken(ipAddress) : null;
   }
 
   private async isIpOverLimit(

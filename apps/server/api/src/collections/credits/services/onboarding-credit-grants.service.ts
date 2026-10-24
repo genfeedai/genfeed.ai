@@ -2,7 +2,10 @@ import { isCreditTransactionConflict } from '@api/collections/credits/services/c
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { isFreeTrialEnforced } from '@api/collections/credits/services/free-trial-state.util';
-import { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
+import {
+  type GrantEligibilityOptions,
+  SignupGrantEligibilityService,
+} from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   type PrismaTransactionClient,
@@ -64,7 +67,11 @@ export class OnboardingCreditGrantsService {
     captureOnboardingCompletedEvent(this.funnelCaptureService, userId);
   }
 
-  async grantSignupGift(organizationId: string, userId: string): Promise<void> {
+  async grantSignupGift(
+    organizationId: string,
+    userId: string,
+    options: GrantEligibilityOptions = {},
+  ): Promise<void> {
     if (!usesMeteredCredits()) return;
     const result = await this.runSerializable(async (tx) => {
       const organization = await tx.organization.findFirst({
@@ -104,6 +111,7 @@ export class OnboardingCreditGrantsService {
             }
           : null;
       const eligibility = await this.signupGrantEligibility?.evaluate(tx, {
+        ipAddress: options.ipAddress,
         source: WELCOME_CAMPAIGN,
         userId,
       });
@@ -158,6 +166,7 @@ export class OnboardingCreditGrantsService {
   async grantTrialCredits(
     organizationId: string,
     userId: string,
+    options: GrantEligibilityOptions = {},
   ): Promise<boolean> {
     if (!isFreeTrialEnforced()) return false;
     if ((await this.freeTrialService.getState(organizationId)).isTrialExpired)
@@ -193,6 +202,7 @@ export class OnboardingCreditGrantsService {
       );
       if (existing) return null;
       const eligibility = await this.signupGrantEligibility?.evaluate(tx, {
+        ipAddress: options.ipAddress,
         source: TRIAL_CAMPAIGN,
         userId,
       });
@@ -242,9 +252,10 @@ export class OnboardingCreditGrantsService {
   async grantTrialCreditsBestEffort(
     organizationId: string,
     userId: string,
+    options: GrantEligibilityOptions = {},
   ): Promise<boolean> {
     try {
-      return await this.grantTrialCredits(organizationId, userId);
+      return await this.grantTrialCredits(organizationId, userId, options);
     } catch (error: unknown) {
       this.loggerService.warn('Could not grant free-trial credits', {
         error: error instanceof Error ? error.message : String(error),

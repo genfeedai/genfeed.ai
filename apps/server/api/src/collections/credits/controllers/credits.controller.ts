@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
+import { withoutInternalLedgerMetadata } from '@api/collections/credits/utils/ledger-metadata.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -104,7 +105,9 @@ export class CreditsController {
         },
       );
 
-    return serializeCollection(req, CreditTransactionSerializer, { docs });
+    return serializeCollection(req, CreditTransactionSerializer, {
+      docs: docs.map(withoutInternalLedgerMetadata),
+    });
   }
 
   @Get('topbar-balances')

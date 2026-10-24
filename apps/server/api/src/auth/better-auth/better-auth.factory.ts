@@ -806,8 +806,14 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       // Free signup credits wait for a verified mailbox; credit them the
       // moment the link is followed. Awaited so the grant lands before the
       // verified user is redirected into the app.
-      afterEmailVerification: async (user) => {
-        await onEmailVerified?.({ userId: user.id });
+      afterEmailVerification: async (user, request) => {
+        // The email/password signup has no session until the link is
+        // followed, so the verification request is the first place its IP is
+        // seen. The mount middleware pins x-forwarded-for to the real client.
+        const ipAddress =
+          request?.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+          null;
+        await onEmailVerified?.({ ipAddress, userId: user.id });
       },
       autoSignInAfterVerification: true,
       sendOnSignIn: false,

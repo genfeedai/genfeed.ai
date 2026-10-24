@@ -142,6 +142,25 @@ describe('SignupGrantEligibilityService', () => {
     });
   });
 
+  it('uses the request IP when the user has no session yet', async () => {
+    sessionFindFirst.mockResolvedValue(null);
+    grantCount.mockResolvedValue(MAX_FREE_GRANTS_PER_IP_PER_DAY);
+
+    await expect(
+      service.evaluate(tx, { ...input, ipAddress: '198.51.100.9' }),
+    ).resolves.toEqual({ isEligible: false, reason: 'ip-velocity' });
+  });
+
+  it('prefers the first session IP over the request IP', async () => {
+    const withSession = await service.evaluate(tx, input);
+    const withRequestIp = await service.evaluate(tx, {
+      ...input,
+      ipAddress: '198.51.100.9',
+    });
+
+    expect(withRequestIp).toEqual(withSession);
+  });
+
   it('skips the IP check when the user has no session yet', async () => {
     sessionFindFirst.mockResolvedValue(null);
     grantCount.mockResolvedValue(MAX_FREE_GRANTS_PER_IP_PER_DAY);

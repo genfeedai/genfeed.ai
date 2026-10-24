@@ -201,6 +201,8 @@ export interface IBetterAuthUserCreatedEvent {
 
 /** Payload emitted after a user follows their email verification link. */
 export interface IBetterAuthEmailVerifiedEvent {
+  /** Client IP of the verification request, when it could be resolved. */
+  ipAddress?: string | null;
   userId: string;
 }
 

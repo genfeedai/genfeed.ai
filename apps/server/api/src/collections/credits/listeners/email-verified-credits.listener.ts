@@ -54,11 +54,13 @@ export class EmailVerifiedCreditsListener {
       await this.onboardingCreditGrantsService.grantSignupGift(
         organization.id,
         event.userId,
+        { ipAddress: event.ipAddress },
       );
       if (organization.user.isOnboardingCompleted) {
         await this.onboardingCreditGrantsService.grantTrialCreditsBestEffort(
           organization.id,
           event.userId,
+          { ipAddress: event.ipAddress },
         );
       }
     } catch (error: unknown) {

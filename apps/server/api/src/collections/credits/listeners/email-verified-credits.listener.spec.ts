@@ -31,9 +31,14 @@ describe('EmailVerifiedCreditsListener', () => {
       user: { isOnboardingCompleted: false },
     });
 
-    await listener.handleEmailVerified({ userId: 'user-1' });
+    await listener.handleEmailVerified({
+      ipAddress: '198.51.100.9',
+      userId: 'user-1',
+    });
 
-    expect(grantSignupGift).toHaveBeenCalledWith('org-1', 'user-1');
+    expect(grantSignupGift).toHaveBeenCalledWith('org-1', 'user-1', {
+      ipAddress: '198.51.100.9',
+    });
     expect(grantTrialCreditsBestEffort).not.toHaveBeenCalled();
   });
 
@@ -45,8 +50,14 @@ describe('EmailVerifiedCreditsListener', () => {
 
     await listener.handleEmailVerified({ userId: 'user-1' });
 
-    expect(grantSignupGift).toHaveBeenCalledWith('org-1', 'user-1');
-    expect(grantTrialCreditsBestEffort).toHaveBeenCalledWith('org-1', 'user-1');
+    expect(grantSignupGift).toHaveBeenCalledWith('org-1', 'user-1', {
+      ipAddress: undefined,
+    });
+    expect(grantTrialCreditsBestEffort).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      { ipAddress: undefined },
+    );
   });
 
   it('does nothing for a user who owns no organization', async () => {
