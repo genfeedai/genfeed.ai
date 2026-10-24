@@ -233,6 +233,58 @@ describe('WatermarkExportService', () => {
     expect(args).toContain('0:a?');
     expect(args).toContain('libx264');
   });
+
+  it('reports an ffmpeg signal exit as a likely out-of-memory kill', async () => {
+    const { service, storage, ffmpeg } = setup();
+    ffmpeg.getVideoMetadata.mockResolvedValue({
+      streams: [{ codec_type: 'video', width: 400, height: 300 }],
+    });
+    ffmpeg.executeFFmpegCapture.mockResolvedValue({
+      code: null,
+      stderr: '',
+      stdout: '',
+    });
+    await expect(
+      service.render({ ...request, category: 'videos' }),
+    ).rejects.toThrow('likely out of memory');
+    expect(storage.uploadFromFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a video the files task cannot encode before ffmpeg runs', async () => {
+    const { service, ffmpeg } = setup();
+    ffmpeg.getVideoMetadata.mockResolvedValue({
+      streams: [{ codec_type: 'video', width: 3840, height: 2160 }],
+    });
+    await expect(
+      service.render({ ...request, category: 'videos' }),
+    ).rejects.toThrow('Video resolution exceeds the export limit');
+    expect(ffmpeg.executeFFmpegCapture).not.toHaveBeenCalled();
+  });
+
+  it('caps a video download well below the image limit', async () => {
+    const { service, s3, ffmpeg } = setup();
+    deployment.cloud = true;
+    ffmpeg.getVideoMetadata.mockResolvedValue({
+      streams: [{ codec_type: 'video', width: 400, height: 300 }],
+    });
+    ffmpeg.executeFFmpegCapture.mockResolvedValue({
+      code: 1,
+      stderr: 'failed',
+      stdout: '',
+    });
+    await expect(
+      service.render({
+        ...request,
+        category: 'videos',
+        storageKey: 'ingredients/videos/source.mp4',
+      }),
+    ).rejects.toThrow('rendering failed');
+    expect(s3.downloadFromUrl).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      256 * 1024 * 1024,
+    );
+  });
   it.skipIf(!resolvedFfmpegBinary || !resolvedFfprobeBinary)(
     'renders a real MP4 while retaining duration and audio',
     async () => {

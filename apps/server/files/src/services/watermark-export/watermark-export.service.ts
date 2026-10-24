@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { freemem, totalmem } from 'node:os';
 import path from 'node:path';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
@@ -20,6 +21,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import sharp, { type OverlayOptions } from 'sharp';
 
@@ -30,6 +32,13 @@ const POSITIONS = new Set([
   'bottom-right',
 ]);
 const MAX_PIXELS = 40_000_000;
+const MAX_DOWNLOAD_BYTES = 1024 * 1024 * 1024;
+// The files task is small: a libx264 encode of a large source gets the
+// container OOM-killed (SIGKILL, no error from ffmpeg), which left every
+// such video without a preview. Reject sources the task cannot encode,
+// and raise these together with the task memory.
+const MAX_VIDEO_BYTES = 256 * 1024 * 1024;
+const MAX_VIDEO_PIXELS = 1920 * 1080;
 const invalid = (message: string) => new BadRequestException(message);
 
 function escapeXml(value: string): string {
@@ -48,6 +57,7 @@ function escapeXml(value: string): string {
 
 @Injectable()
 export class WatermarkExportService {
+  private readonly logger = new Logger(WatermarkExportService.name);
   private activeRenders = 0;
   constructor(
     @Inject('STORAGE_PROVIDER') private readonly storage: StorageProvider,
@@ -82,9 +92,17 @@ export class WatermarkExportService {
         directory,
         request.category === 'images' ? 'input.png' : 'input.mp4',
       );
-      await this.downloadStoredSource(request.storageKey, input);
-      if ((await stat(input)).size > 1024 * 1024 * 1024)
+      const isVideo = request.category === 'videos';
+      await this.downloadStoredSource(
+        request.storageKey,
+        input,
+        isVideo ? MAX_VIDEO_BYTES : MAX_DOWNLOAD_BYTES,
+      );
+      const inputBytes = (await stat(input)).size;
+      if (inputBytes > MAX_DOWNLOAD_BYTES)
         throw invalid('Media exceeds the 1 GB export limit');
+      if (isVideo && inputBytes > MAX_VIDEO_BYTES)
+        throw invalid('Video exceeds the export size limit');
       let width: number;
       let height: number;
       if (request.category === 'images') {
@@ -115,6 +133,8 @@ export class WatermarkExportService {
       }
       if (width < 16 || height < 16 || width * height > MAX_PIXELS)
         throw invalid('Unsupported media dimensions');
+      if (isVideo && width * height > MAX_VIDEO_PIXELS)
+        throw invalid('Video resolution exceeds the export limit');
       const digest = createHash('sha256').update(
         JSON.stringify({
           version: 1,
@@ -194,6 +214,16 @@ export class WatermarkExportService {
           '-y',
           output,
         ]);
+        if (result.code === null) {
+          // A signal exit with no ffmpeg message is almost always the
+          // container OOM killer; say so, with what it was encoding.
+          this.logger.error(
+            `ffmpeg was killed by a signal while watermarking (likely out of memory): ${inputBytes} bytes, ${width}x${height}, ${Math.round(freemem() / 1048576)} of ${Math.round(totalmem() / 1048576)} MB host memory free`,
+          );
+          throw new InternalServerErrorException(
+            'Watermarked video rendering was killed (likely out of memory)',
+          );
+        }
         if (result.code !== 0)
           throw new InternalServerErrorException(
             'Watermarked video rendering failed',
@@ -214,10 +244,11 @@ export class WatermarkExportService {
   private async downloadStoredSource(
     key: string,
     target: string,
+    maxBytes = MAX_DOWNLOAD_BYTES,
   ): Promise<void> {
     if (isCloudDeployment()) {
       const url = await this.s3.getPresignedDownloadUrlForStoredKey(key, 300);
-      await this.s3.downloadFromUrl(url, target, 1024 * 1024 * 1024);
+      await this.s3.downloadFromUrl(url, target, maxBytes);
     } else await this.storage.download(key, target, FILES_TMP_ROOT);
   }
 
