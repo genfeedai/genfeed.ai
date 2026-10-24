@@ -7,6 +7,7 @@ import { WorkflowNodeContinuationService } from '@api/collections/workflows/serv
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
@@ -108,7 +109,10 @@ export class ReplicateGenerationWebhookHandler {
       await this.webhooksService.handleFailedGeneration(
         payload.id,
         // @ts-expect-error TS2345
-        payload.error || 'Generation failed',
+        payload.error ||
+          (payload.status === (ReplicateStatus.CANCELED as string)
+            ? 'Generation was canceled'
+            : 'Generation failed'),
       );
     }
   }

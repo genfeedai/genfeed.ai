@@ -217,6 +217,24 @@ describe('ReplicateWebhookController', () => {
       );
     });
 
+    it('should fail the generation of a canceled prediction instead of leaving it processing', async () => {
+      const body = {
+        id: 'pred_canceled',
+        model: 'owner/model',
+        status: 'canceled',
+      };
+      verificationService.resolveTrustedPayload.mockResolvedValue(body);
+
+      await controller.handleCallback(mockRequest, body);
+      await flushAsyncProcessing();
+
+      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
+      expect(generationWebhookHandler.handleFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'pred_canceled', status: 'canceled' }),
+        undefined,
+      );
+    });
+
     it('should not dispatch a payload whose prediction cannot be trusted', async () => {
       const body = {
         id: 'pred_untrusted',

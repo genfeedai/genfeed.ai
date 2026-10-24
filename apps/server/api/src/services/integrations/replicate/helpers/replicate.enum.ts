@@ -5,4 +5,5 @@ export enum ReplicateStatus {
   SUCCEEDED = 'succeeded',
   FAILED = 'failed',
   ERROR = 'error',
+  CANCELED = 'canceled',
 }

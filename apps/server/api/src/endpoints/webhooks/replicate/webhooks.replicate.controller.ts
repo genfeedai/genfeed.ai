@@ -129,7 +129,8 @@ export class ReplicateWebhookController {
         );
       } else if (
         payload.status === (ReplicateStatus.FAILED as string) ||
-        payload.status === (ReplicateStatus.ERROR as string)
+        payload.status === (ReplicateStatus.ERROR as string) ||
+        payload.status === (ReplicateStatus.CANCELED as string)
       ) {
         await this.generationWebhookHandler.handleFailed(
           payload,

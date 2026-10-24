@@ -533,4 +533,35 @@ describe('ReplicateGenerationWebhookHandler', () => {
       );
     });
   });
+
+  describe('failed generation', () => {
+    const payloadWithStatus = (
+      status: string,
+      error?: string,
+    ): ReplicateWebhookPayload =>
+      ({
+        error,
+        id: 'pred_123',
+        model: 'owner/some-model',
+        status,
+      }) as unknown as ReplicateWebhookPayload;
+
+    it('fails the ingredient with the provider error', async () => {
+      await handler.handleFailed(payloadWithStatus('failed', 'NSFW content'));
+
+      expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
+        'pred_123',
+        'NSFW content',
+      );
+    });
+
+    it('fails the ingredient of a canceled prediction with a canceled message', async () => {
+      await handler.handleFailed(payloadWithStatus('canceled'));
+
+      expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
+        'pred_123',
+        'Generation was canceled',
+      );
+    });
+  });
 });
