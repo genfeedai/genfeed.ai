@@ -19,20 +19,30 @@ SUBSET_SPECS=(
   playwright/e2e/tests/smoke/all-app-pages.spec.ts
 )
 
-bundle="$(grep -rl 'Network.setCacheDisabled", { cacheDisabled: enabled }' node_modules/playwright-core/lib | head -n1)"
-if [ -z "$bundle" ]; then
+PATTERN='Network.setCacheDisabled", { cacheDisabled: enabled }'
+mapfile -t bundles < <(find node_modules -type f -path '*/playwright-core/lib/*.js' -print0 2>/dev/null | xargs -0 grep -lF "$PATTERN" 2>/dev/null | sort -u)
+if [ "${#bundles[@]}" -eq 0 ]; then
   echo "playwright-core cache-disable call not found; cannot patch" >&2
   exit 1
 fi
-cp "$bundle" "$out/playwright-core-bundle.orig"
-echo "patch target: $bundle"
+mkdir -p "$out/orig"
+i=0
+for f in "${bundles[@]}"; do
+  cp "$f" "$out/orig/$i.js"
+  echo "patch target $i: $f"
+  i=$((i + 1))
+done
 
 set_cache_patch() {
-  if [ "$1" = "on" ]; then
-    sed -i 's/Network.setCacheDisabled", { cacheDisabled: enabled }/Network.setCacheDisabled", { cacheDisabled: false }/' "$bundle"
-  else
-    cp "$out/playwright-core-bundle.orig" "$bundle"
-  fi
+  local n=0
+  for f in "${bundles[@]}"; do
+    if [ "$1" = "on" ]; then
+      sed -i 's/Network.setCacheDisabled", { cacheDisabled: enabled }/Network.setCacheDisabled", { cacheDisabled: false }/' "$f"
+    else
+      cp "$out/orig/$n.js" "$f"
+    fi
+    n=$((n + 1))
+  done
 }
 
 run_once() {
