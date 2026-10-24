@@ -7,6 +7,7 @@ import { ModelCategory } from '@genfeedai/contracts';
 import {
   type ImageEditSize,
   isFlux3ImageModel,
+  MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
 } from '@genfeedai/contracts/constants';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -44,6 +45,18 @@ export function imageGenerationPromptSettings(
   };
 }
 
+/**
+ * Models whose builder refuses to run without a reference image. The tariff
+ * does not depend on which image it is, so a quote builds with this stand-in;
+ * it is never fetched or sent to a provider.
+ */
+const QUOTE_STAND_IN_REFERENCES: Readonly<Record<string, readonly string[]>> =
+  {
+    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER]: [
+      'https://quote.invalid/character-reference.png',
+    ],
+  };
+
 /** Build locally, without templates or provider calls; missing inputs stay unquotable. */
 export async function buildImageQuoteProviderInput(
   builder: PromptBuilderService,
@@ -74,7 +87,9 @@ export async function buildImageQuoteProviderInput(
       brandingMode: 'off',
       modelCategory: ModelCategory.IMAGE,
       prompt: '',
-      references,
+      references: references.length
+        ? references
+        : [...(QUOTE_STAND_IN_REFERENCES[model] ?? [])],
       useTemplate: false,
     });
     return built.input as unknown as Record<string, unknown>;

@@ -7,6 +7,7 @@ import {
   AgentGenerationEstimateService,
   type PreparedAgentGenerationQuote,
 } from '@api/services/router/agent-generation-estimate.service';
+import { RouterPriority } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
@@ -101,15 +102,22 @@ export class McpApprovalPricingService {
       return this.unavailable('Only image and video generation are quoted.');
     }
     const video = args.type === 'video';
-    const model =
+    const requested =
       context.generationSettings?.model ??
       this.string(args.model) ??
       context.generationModelOverride;
-    // An automatic route must be frozen before it can be offered for consent.
-    // Do not display a floor as though it were the selected model's quote.
-    if (!model || model === 'auto' || model === 'Auto')
+    const isRouted =
+      !requested || requested === 'auto' || requested === 'Auto';
+    const prompt =
+      this.string(args.prompt) ??
+      this.string(args.description) ??
+      this.string(args.text);
+    // An automatic route is frozen here: the router picks the model now, the
+    // snapshot records it, and the approved execution is pinned to that model
+    // rather than routing again.
+    if (isRouted && !prompt)
       return this.unavailable(
-        'No model was selected. Pass model with a key from get_generation_options; automatic routing cannot be priced for approval.',
+        'No model was selected and there is no prompt to route from. Pass model with a key from get_generation_options, or a prompt.',
       );
     const aspectRatio =
       context.generationSettings?.aspectRatio ||
@@ -151,7 +159,12 @@ export class McpApprovalPricingService {
     return this.estimate.estimateWithSnapshot({
       organizationId: context.organizationId,
       category: args.type,
-      modelKey: model,
+      ...(isRouted
+        ? {
+            prioritize: context.generationPriority || RouterPriority.QUALITY,
+            prompt,
+          }
+        : { modelKey: requested }),
       aspectRatio,
       dimensions,
       outputs,

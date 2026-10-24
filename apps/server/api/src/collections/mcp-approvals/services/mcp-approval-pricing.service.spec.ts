@@ -219,6 +219,25 @@ describe('MCP approval selected-model pricing', () => {
     ).rejects.toThrow('quote is unavailable: FLUX.3 returns one image');
   });
 
+  it('freezes the router choice when an image request names no model', async () => {
+    const { service, estimate, context } = build();
+    await expect(
+      service.quote(
+        'generate',
+        { type: 'image', prompt: 'A red car', outputs: 2 },
+        { ...context, generationPriority: 'speed' as never },
+      ),
+    ).resolves.toMatchObject({ credits: 2 });
+    const request = estimate.mock.calls[0][0];
+    expect(request).toMatchObject({
+      category: 'image',
+      outputs: 2,
+      prioritize: 'speed',
+      prompt: 'A red car',
+    });
+    expect(request).not.toHaveProperty('modelKey');
+  });
+
   it.each([
     { type: 'image' },
     { type: 'image', model: 'Auto' },

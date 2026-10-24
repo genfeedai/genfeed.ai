@@ -104,7 +104,11 @@ describe('generation quote settings (#8010)', () => {
   }
 
   function gptImage2Row() {
-    const modelKey = MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2;
+    return capturedRow(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2);
+  }
+
+  /** A registry row priced by the captured Replicate billing tiers. */
+  function capturedRow(modelKey: string) {
     const fixture = REPLICATE_VARIANT_FIXTURES[modelKey];
     if (!fixture) throw new Error(`Missing fixture ${modelKey}`);
     const mapping = mapReplicateBillingTiers(
@@ -215,6 +219,17 @@ describe('generation quote settings (#8010)', () => {
     });
   });
 
+  describe('Ideogram Character', () => {
+    const CHARACTER = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER;
+
+    it('quotes the default rendering speed without a reference image', async () => {
+      row = capturedRow(CHARACTER);
+      const quoted = await image(CHARACTER);
+      expect(quoted).toMatchObject({ isAvailable: true });
+      expect(quoted.credits).toBeGreaterThan(0);
+    });
+  });
+
   describe('FLUX.3', () => {
     const FLUX_3 = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
 
@@ -291,11 +306,11 @@ describe('generation quote settings (#8010)', () => {
       ).resolves.toMatchObject({ billingMode: 'credits', version: 1 });
     });
 
-    it('tells the caller to pass a model when none was chosen', async () => {
+    it('tells the caller to pass a model or a prompt when neither was given', async () => {
       row = gptImage2Row();
       await expect(
         pricing.prepare('generate', { type: 'image' }, ctx),
-      ).rejects.toThrow(/automatic routing cannot be priced/);
+      ).rejects.toThrow(/no prompt to route from/);
     });
 
     it('explains that video with reference media cannot be quoted', async () => {

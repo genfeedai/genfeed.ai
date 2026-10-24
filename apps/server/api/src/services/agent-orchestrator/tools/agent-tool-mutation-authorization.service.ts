@@ -680,6 +680,7 @@ export class AgentToolMutationAuthorizationService {
         generationContext: {
           generationSettings: context.generationSettings,
           generationModelOverride: context.generationModelOverride,
+          generationPriority: context.generationPriority,
           attachmentUrls: context.attachmentUrls,
         },
       },

@@ -74,7 +74,7 @@ export class McpApprovalsService extends BaseService<
       scope?: { brandId?: string; contextVersion: number };
       generationContext?: Pick<
         ToolExecutionContext,
-        'generationSettings' | 'generationModelOverride' | 'attachmentUrls'
+        'generationSettings' | 'generationModelOverride' | 'generationPriority' | 'attachmentUrls'
       >;
     },
   ): Promise<McpApprovalDocument> {
