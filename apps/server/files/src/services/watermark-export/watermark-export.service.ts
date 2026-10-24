@@ -179,55 +179,15 @@ export class WatermarkExportService {
           .png()
           .toFile(output);
       } else {
-        const filters = overlays.map(
-          (overlay, index) =>
-            `${index === 0 ? '[0:v]' : `[v${index}]`}[${index + 1}:v]overlay=${overlay.left}:${overlay.top}:eof_action=repeat[v${index + 1}]`,
-        );
-        const result = await this.ffmpeg.executeFFmpegCapture([
-          '-hide_banner',
-          '-loglevel',
-          'error',
-          '-nostdin',
-          '-i',
+        await this.renderVideo(
           input,
-          ...overlayPaths.flatMap((overlayPath) => ['-i', overlayPath]),
-          '-filter_complex',
-          `${filters.join(';')};[v${overlays.length}]pad=ceil(iw/2)*2:ceil(ih/2)*2[output]`,
-          '-map',
-          '[output]',
-          '-map',
-          '0:a?',
-          '-c:v',
-          'libx264',
-          '-preset',
-          'fast',
-          '-crf',
-          '20',
-          '-pix_fmt',
-          'yuv420p',
-          '-c:a',
-          'aac',
-          '-movflags',
-          '+faststart',
-          '-map_metadata',
-          '-1',
-          '-y',
           output,
-        ]);
-        if (result.code === null) {
-          // A signal exit with no ffmpeg message is almost always the
-          // container OOM killer; say so, with what it was encoding.
-          this.logger.error(
-            `ffmpeg was killed by a signal while watermarking (likely out of memory): ${inputBytes} bytes, ${width}x${height}, ${Math.round(freemem() / 1048576)} of ${Math.round(totalmem() / 1048576)} MB host memory free`,
-          );
-          throw new InternalServerErrorException(
-            'Watermarked video rendering was killed (likely out of memory)',
-          );
-        }
-        if (result.code !== 0)
-          throw new InternalServerErrorException(
-            'Watermarked video rendering failed',
-          );
+          overlays,
+          overlayPaths,
+          width,
+          height,
+          inputBytes,
+        );
       }
       const storedKey = await this.storage.uploadFromFile(
         storageKey,
@@ -239,6 +199,66 @@ export class WatermarkExportService {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  }
+
+  private async renderVideo(
+    input: string,
+    output: string,
+    overlays: OverlayOptions[],
+    overlayPaths: string[],
+    width: number,
+    height: number,
+    inputBytes: number,
+  ): Promise<void> {
+    const filters = overlays.map(
+      (overlay, index) =>
+        `${index === 0 ? '[0:v]' : `[v${index}]`}[${index + 1}:v]overlay=${overlay.left}:${overlay.top}:eof_action=repeat[v${index + 1}]`,
+    );
+    const result = await this.ffmpeg.executeFFmpegCapture([
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-nostdin',
+      '-i',
+      input,
+      ...overlayPaths.flatMap((overlayPath) => ['-i', overlayPath]),
+      '-filter_complex',
+      `${filters.join(';')};[v${overlays.length}]pad=ceil(iw/2)*2:ceil(ih/2)*2[output]`,
+      '-map',
+      '[output]',
+      '-map',
+      '0:a?',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'fast',
+      '-crf',
+      '20',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:a',
+      'aac',
+      '-movflags',
+      '+faststart',
+      '-map_metadata',
+      '-1',
+      '-y',
+      output,
+    ]);
+    if (result.code === null) {
+      // A signal exit with no ffmpeg message is almost always the
+      // container OOM killer; say so, with what it was encoding.
+      this.logger.error(
+        `ffmpeg was killed by a signal while watermarking (likely out of memory): ${inputBytes} bytes, ${width}x${height}, ${Math.round(freemem() / 1048576)} of ${Math.round(totalmem() / 1048576)} MB host memory free`,
+      );
+      throw new InternalServerErrorException(
+        'Watermarked video rendering was killed (likely out of memory)',
+      );
+    }
+    if (result.code !== 0)
+      throw new InternalServerErrorException(
+        'Watermarked video rendering failed',
+      );
   }
 
   private async downloadStoredSource(
