@@ -11,9 +11,8 @@ vi.mock('next-intl', async () => {
             'Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.',
           generationUnaffordableTitle: 'Not enough credits to keep generating',
           seePlans: 'See plans',
-          trialEndedBadge: 'Trial over',
           trialEndedBody:
-            'Your 3-day free trial is over and any free credits left have expired.',
+            'Free credits expired. Everything you made stays in your Library.',
           trialEndedTitle: 'Your free trial has ended',
         },
       },
@@ -338,7 +337,8 @@ describe('LowCreditsBanner', () => {
 
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Your free trial has ended');
-    expect(alert).toHaveTextContent('Trial over');
+    expect(alert).toHaveTextContent('Free credits expired.');
+    expect(alert).not.toHaveTextContent('Trial over');
     expect(alert).not.toHaveTextContent('60 left');
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
       'href',

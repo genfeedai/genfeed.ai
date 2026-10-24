@@ -164,9 +164,9 @@ function LowCreditsContent({
       : isCritical
         ? "You've run out of credits"
         : "You're running low on credits";
-  // Expired trial credits cannot be spent, so the badge must not count them.
+  // Expired trial credits cannot be spent, so the title alone carries the state.
   const balanceLabel = isTrialEnded
-    ? translate('trialEndedBadge')
+    ? null
     : isCritical && balance !== null && balance > 0
       ? `${formatCreditBalanceExact(balance)} left`
       : isCritical
@@ -188,109 +188,72 @@ function LowCreditsContent({
 
   return (
     <div
-      className={cn('w-full', isInline ? '' : 'px-4 pt-3')}
+      className={cn('@container w-full', isInline ? '' : 'px-4 pt-3')}
       data-testid={isInline ? 'library-credit-notice' : 'shell-credit-notice'}
     >
       <div
         role="alert"
         className={cn(
-          'mx-auto flex w-full flex-col gap-3 border text-sm backdrop-blur',
-          isInline
-            ? 'rounded-[1.4rem] px-4 py-3 shadow-none'
-            : 'max-w-6xl rounded-2xl px-4 py-3 shadow-border',
-          isCritical
-            ? 'border-red-500/25 bg-red-500/[0.08] text-red-100'
-            : 'border-amber-500/25 bg-amber-500/[0.08] text-amber-50',
+          'mx-auto flex w-full flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm',
+          'items-stretch @2xl:flex-row @2xl:items-center @2xl:justify-between',
+          !isInline && 'max-w-6xl',
         )}
       >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div
-              className={cn(
-                'flex shrink-0 items-center justify-center border',
-                isInline ? 'size-9 rounded-lg' : 'size-10 rounded-xl',
-                isCritical
-                  ? 'border-red-400/25 bg-red-500/[0.12] text-red-300'
-                  : 'border-amber-400/25 bg-amber-500/[0.12] text-amber-300',
-              )}
-            >
-              <TriangleAlert className="size-5" />
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold leading-5 text-foreground">
-                  {title}
-                </p>
-                <span
-                  className={cn(
-                    'rounded-full border px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.12em] tabular-nums',
-                    isCritical
-                      ? 'border-red-400/20 bg-red-500/[0.12] text-red-200'
-                      : 'border-amber-400/20 bg-amber-500/[0.12] text-amber-200',
-                  )}
-                >
-                  {balanceLabel}
-                </span>
-              </div>
-
-              <p
-                className={cn(
-                  'mt-1 max-w-3xl leading-5 text-foreground/70',
-                  isInline ? 'text-sm' : 'text-sm',
-                )}
-              >
-                {description}
-              </p>
-            </div>
-          </div>
-
+        <div className="flex min-w-0 items-start gap-3 @2xl:items-center">
           <div
             className={cn(
-              'flex items-center gap-2',
-              isInline ? 'pl-0' : 'pl-[3.25rem] lg:pl-0',
+              'flex size-8 shrink-0 items-center justify-center rounded-md border',
+              isCritical
+                ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                : 'border-warning/30 bg-warning/10 text-warning',
             )}
           >
-            <Link
-              href={ctaHref}
-              className={cn(
-                'inline-flex items-center justify-center text-sm font-semibold transition-colors',
-                isInline ? 'h-9 rounded-lg px-3.5' : 'h-10 rounded-xl px-4',
-                isCritical
-                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/80'
-                  : 'bg-warning text-warning-foreground hover:bg-warning/80',
-              )}
-            >
-              {isTrialUsedUp ? translate('buyCredits') : ctaLabel}
-            </Link>
-
-            {isTrialUsedUp ? (
-              <Link
-                href={plansHref}
-                className={cn(
-                  'inline-flex items-center justify-center border border-red-400/20 text-sm font-semibold text-foreground transition-colors hover:bg-red-500/[0.12]',
-                  isInline ? 'h-9 rounded-lg px-3.5' : 'h-10 rounded-xl px-4',
-                )}
-              >
-                {translate('seePlans')}
-              </Link>
-            ) : (
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={handleDismiss}
-                className={cn(
-                  'inline-flex items-center justify-center border transition-colors',
-                  isInline ? 'size-9 rounded-lg' : 'size-10 rounded-xl',
-                  isCritical
-                    ? 'border-red-400/15 text-red-200 hover:bg-red-500/[0.12]'
-                    : 'border-amber-400/15 text-amber-200 hover:bg-amber-500/[0.12]',
-                )}
-                ariaLabel="Dismiss low credits banner"
-                icon={<X className="size-4" />}
-              />
-            )}
+            <TriangleAlert className="size-4" />
           </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold leading-5 text-foreground">
+                {title}
+              </p>
+              {balanceLabel ? (
+                <span className="whitespace-nowrap rounded-full border border-border bg-secondary px-2 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em] tabular-nums text-foreground/70">
+                  {balanceLabel}
+                </span>
+              ) : null}
+            </div>
+
+            <p className="text-sm leading-5 text-foreground/70">
+              {description}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex w-full shrink-0 items-center gap-2 @2xl:w-auto">
+          <Link
+            href={ctaHref}
+            className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 @2xl:flex-none"
+          >
+            {isTrialUsedUp ? translate('buyCredits') : ctaLabel}
+          </Link>
+
+          {isTrialUsedUp ? (
+            <Link
+              href={plansHref}
+              className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-border-strong px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent @2xl:flex-none"
+            >
+              {translate('seePlans')}
+            </Link>
+          ) : (
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              onClick={handleDismiss}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-strong text-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+              ariaLabel="Dismiss low credits banner"
+              icon={<X className="size-4" />}
+            />
+          )}
         </div>
       </div>
     </div>
