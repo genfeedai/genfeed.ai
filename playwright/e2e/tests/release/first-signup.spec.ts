@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { APP_ROUTES } from '../../../../packages/contracts/src/constants/routes.constant';
 
 test.describe('Released image — first sign-up through the UI', () => {
   test('a visitor creates the first account with email and password', async ({
     page,
   }) => {
-    await page.goto('/sign-up', { waitUntil: 'domcontentloaded' });
+    await page.goto(APP_ROUTES.SIGN_UP, { waitUntil: 'domcontentloaded' });
 
     // The shipped template has no email provider, so a link could never arrive.
     await expect(
