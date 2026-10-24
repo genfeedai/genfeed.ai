@@ -3,8 +3,15 @@ import type {
   MediaResourceProjection,
 } from '@genfeedai/contracts/interfaces';
 
+// ts-jsonapi names an included resource after the relationship key, not the
+// configured type, so the many-valued ingredient relations (post and prompt
+// `ingredients`, bookmark `extractedIngredients` / `generatedIngredients`)
+// arrive under their own key and need listing here.
 const INGREDIENT_TYPES = new Set([
   'ingredient',
+  'ingredients',
+  'extractedIngredients',
+  'generatedIngredients',
   'image',
   'video',
   'voice',

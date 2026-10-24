@@ -53,7 +53,7 @@ describe('media delivery response projection', () => {
     expect(JSON.stringify(response)).toBe(snapshot);
   });
 
-  it('projects a grant onto every ingredient of a serialized post, in saved order', () => {
+  it('projects a grant onto every ingredient included with a serialized post', () => {
     const secondId = testId('ingredient', 2);
     const response = PostSerializer.serialize({
       id: testId('post', 1),
