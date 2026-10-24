@@ -106,8 +106,7 @@ export class McpApprovalPricingService {
       context.generationSettings?.model ??
       this.string(args.model) ??
       context.generationModelOverride;
-    const isRouted =
-      !requested || requested === 'auto' || requested === 'Auto';
+    const isRouted = !requested || requested === 'auto' || requested === 'Auto';
     const prompt =
       this.string(args.prompt) ??
       this.string(args.description) ??

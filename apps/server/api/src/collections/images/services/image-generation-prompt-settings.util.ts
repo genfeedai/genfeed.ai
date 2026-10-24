@@ -50,12 +50,11 @@ export function imageGenerationPromptSettings(
  * does not depend on which image it is, so a quote builds with this stand-in;
  * it is never fetched or sent to a provider.
  */
-const QUOTE_STAND_IN_REFERENCES: Readonly<Record<string, readonly string[]>> =
-  {
-    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER]: [
-      'https://quote.invalid/character-reference.png',
-    ],
-  };
+const QUOTE_STAND_IN_REFERENCES: Readonly<Record<string, readonly string[]>> = {
+  [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER]: [
+    'https://quote.invalid/character-reference.png',
+  ],
+};
 
 /** Build locally, without templates or provider calls; missing inputs stay unquotable. */
 export async function buildImageQuoteProviderInput(

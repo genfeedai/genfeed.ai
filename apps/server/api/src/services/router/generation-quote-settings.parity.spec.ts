@@ -108,7 +108,7 @@ describe('generation quote settings (#8010)', () => {
   }
 
   /** A registry row priced by the captured Replicate billing tiers. */
-  function capturedRow(modelKey: string) {
+  function capturedRow(modelKey: string, category = ModelCategory.IMAGE) {
     const fixture = REPLICATE_VARIANT_FIXTURES[modelKey];
     if (!fixture) throw new Error(`Missing fixture ${modelKey}`);
     const mapping = mapReplicateBillingTiers(
@@ -118,7 +118,7 @@ describe('generation quote settings (#8010)', () => {
     );
     if (mapping.status !== 'ok') throw new Error(mapping.reason);
     return {
-      category: ModelCategory.IMAGE,
+      category,
       isActive: true,
       isDeleted: false,
       key: modelKey,
@@ -225,6 +225,24 @@ describe('generation quote settings (#8010)', () => {
     it('quotes the default rendering speed without a reference image', async () => {
       row = capturedRow(CHARACTER);
       const quoted = await image(CHARACTER);
+      expect(quoted).toMatchObject({ isAvailable: true });
+      expect(quoted.credits).toBeGreaterThan(0);
+    });
+  });
+
+  describe('video models that need a source image', () => {
+    it.each([
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+      MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    ])('quotes %s by duration and resolution without a source', async (key) => {
+      row = capturedRow(key, ModelCategory.VIDEO);
+      const quoted = await estimate.estimate({
+        category: 'video',
+        duration: 5,
+        modelKey: key,
+        organizationId: 'org-1',
+      });
       expect(quoted).toMatchObject({ isAvailable: true });
       expect(quoted.credits).toBeGreaterThan(0);
     });

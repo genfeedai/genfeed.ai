@@ -24,6 +24,7 @@ import {
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isFlux3Resolution,
+  MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
@@ -53,6 +54,26 @@ type VideoEstimateModel = Pick<Model, 'provider'> &
   Partial<
     Pick<Model, 'endpoint' | 'providerInputSchema' | 'providerSchemaFamily'>
   >;
+
+/**
+ * Video models whose builder refuses to run without a source image (and audio
+ * for the avatar). Their tariff is by duration and resolution, so a quote
+ * builds with these stand-ins; they are never fetched or sent to a provider.
+ */
+const VIDEO_QUOTE_STAND_INS: Readonly<
+  Record<string, { audioUrl?: string; references: string[] }>
+> = {
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2]: {
+    audioUrl: 'https://quote.invalid/audio.mp3',
+    references: ['https://quote.invalid/portrait.png'],
+  },
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: {
+    references: ['https://quote.invalid/start-image.png'],
+  },
+  [MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST]: {
+    references: ['https://quote.invalid/start-image.png'],
+  },
+};
 
 function unavailableQuote(
   unavailableReason: AgentGenerationQuoteUnavailableReason,
@@ -482,8 +503,12 @@ export class AgentGenerationEstimateService {
         ),
       };
     try {
+      const standIn = params.references?.length
+        ? undefined
+        : VIDEO_QUOTE_STAND_INS[modelKey];
       const built = await this.promptBuilderService.buildPrompt(modelKey, {
         ...params,
+        ...(standIn ?? {}),
         brandingMode: 'off',
         modelCategory: ModelCategory.VIDEO,
         prompt: 'Price estimate',
