@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { PostCard } from '@ui/primitives/animated-icons/custom-lucide';
-import { CalendarDays, ClipboardCheck, Gauge, Route } from 'lucide-react';
+import { CalendarClock, Gauge, Gavel, Route } from 'lucide-react';
 
 /**
  * Posts owns social posts, articles, and newsletters with type and status
@@ -32,8 +32,8 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     label: 'Calendar',
     matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
     matchSearchParams: { view: 'calendar' },
-    outline: CalendarDays,
-    solid: CalendarDays,
+    outline: CalendarClock,
+    solid: CalendarClock,
   },
   {
     group: '',
@@ -41,8 +41,8 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     label: 'Approvals',
     matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
     matchSearchParams: { view: 'approvals' },
-    outline: ClipboardCheck,
-    solid: ClipboardCheck,
+    outline: Gavel,
+    solid: Gavel,
   },
   {
     group: '',
