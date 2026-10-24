@@ -185,6 +185,32 @@ describe('runReplyWithMedia', () => {
     expect(currentToastText()).toBe('Compose box not found.');
   });
 
+  it('reports a missing reply box when there is no media and keeps the text', async () => {
+    reply({ mediaDataUrl: undefined, videoUrl: 'https://cdn.example/v.mp4' });
+    mocks.insert.mockReturnValue({
+      error: 'Compose box not found.',
+      success: false,
+    });
+    const row = controls();
+
+    await runReplyWithMedia('video', {
+      controls: row,
+      platform: platforms.twitter,
+      platformName: 'twitter',
+    });
+
+    expect(window.open).toHaveBeenCalledWith(
+      'https://cdn.example/v.mp4',
+      '_blank',
+    );
+    expect(currentToastText()).toContain('Compose box not found.');
+    expect(currentToastText()).toContain('Great launch!');
+    expect(row.setStatus).toHaveBeenLastCalledWith(
+      'error',
+      'Reply not inserted',
+    );
+  });
+
   it('opens the generated video link when the media came as a URL only', async () => {
     reply({ mediaDataUrl: undefined, videoUrl: 'https://cdn.example/v.mp4' });
 

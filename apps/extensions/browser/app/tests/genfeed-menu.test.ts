@@ -225,6 +225,21 @@ describe('Genfeed button group', () => {
     expect(host.shadowRoot?.activeElement).toBe(trigger(host));
   });
 
+  it('closes on Escape pressed on the button after a mouse open', () => {
+    const host = mount(groups(item()));
+    trigger(host).click();
+
+    trigger(host).dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        composed: true,
+        key: 'Escape',
+      }),
+    );
+
+    expect(menuHost()).toBeUndefined();
+  });
+
   it('closes when the page is pressed outside it, not inside it', () => {
     const host = mount(groups(item()));
     trigger(host).click();

@@ -109,6 +109,17 @@ export async function runReplyWithMedia(
   }
 
   if (!response.mediaDataUrl) {
+    if (!inserted.success) {
+      if (response.videoUrl) {
+        window.open(response.videoUrl, '_blank');
+      }
+      showToast(
+        `${inserted.error ?? 'Could not find the reply box.'} Generated reply: ${response.reply}`,
+        true,
+      );
+      controls.setStatus('error', 'Reply not inserted');
+      return;
+    }
     if (response.videoUrl) {
       window.open(response.videoUrl, '_blank');
       showToast(

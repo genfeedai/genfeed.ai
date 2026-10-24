@@ -322,7 +322,11 @@ export function createGenfeedGroup({
     }
   });
   trigger.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowDown' && !isOpen) {
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+    } else if (event.key === 'ArrowDown' && !isOpen) {
       event.preventDefault();
       open(true);
     }
