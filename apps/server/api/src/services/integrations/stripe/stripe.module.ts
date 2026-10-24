@@ -12,6 +12,7 @@ import { TrialCardController } from '@api/services/integrations/stripe/controlle
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { TrialCardSetupService } from '@api/services/integrations/stripe/services/trial-card-setup.service';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { Module } from '@nestjs/common';
@@ -40,6 +41,10 @@ import { Module } from '@nestjs/common';
     UsersModule,
     LifecycleEmailsModule,
   ],
-  providers: [ManagedStripeCheckoutService, OrganizationBillingAccountService],
+  providers: [
+    ManagedStripeCheckoutService,
+    OrganizationBillingAccountService,
+    TrialCardSetupService,
+  ],
 })
 export class StripeModule {}

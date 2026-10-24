@@ -22,7 +22,7 @@ import {
   BillingAccountResolutionError,
   type OrganizationBillingAccountService,
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import type { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import type { TrialCardSetupService } from '@api/services/integrations/stripe/services/trial-card-setup.service';
 import { BillingAccountMemberRole } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -47,7 +47,7 @@ describe('TrialCardController', () => {
   const grants = { claimTrialCredits: vi.fn(), getTrialClaimStatus: vi.fn() };
   const logger = { warn: vi.fn() };
   const controller = new TrialCardController(
-    stripeService as unknown as StripeService,
+    stripeService as unknown as TrialCardSetupService,
     usersService as unknown as UsersService,
     organizationsService as unknown as OrganizationsService,
     billingAccountService as unknown as OrganizationBillingAccountService,

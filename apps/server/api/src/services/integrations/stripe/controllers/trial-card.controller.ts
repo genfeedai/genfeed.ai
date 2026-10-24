@@ -15,7 +15,7 @@ import {
   BillingAccountResolutionError,
   OrganizationBillingAccountService,
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { TrialCardSetupService } from '@api/services/integrations/stripe/services/trial-card-setup.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { BillingAccountMemberRole } from '@genfeedai/contracts';
 import type {
@@ -57,7 +57,7 @@ function readRequestOrigin(request: Request): string | undefined {
 @UseGuards(RolesGuard)
 export class TrialCardController {
   constructor(
-    private readonly stripeService: StripeService,
+    private readonly trialCardSetupService: TrialCardSetupService,
     private readonly usersService: UsersService,
     private readonly organizationsService: OrganizationsService,
     private readonly billingAccountService: OrganizationBillingAccountService,
@@ -94,12 +94,13 @@ export class TrialCardController {
     const stripeCustomerId = await this.resolveStripeCustomerId(user);
 
     try {
-      const session = await this.stripeService.createTrialCardSetupSession({
-        cancelUrl: `${origin}${returnPath}`,
-        organizationId: user.organizationId,
-        stripeCustomerId,
-        successUrl: `${origin}${returnPath}${returnPath.includes('?') ? '&' : '?'}trialCard=success&session_id={CHECKOUT_SESSION_ID}`,
-      });
+      const session =
+        await this.trialCardSetupService.createTrialCardSetupSession({
+          cancelUrl: `${origin}${returnPath}`,
+          organizationId: user.organizationId,
+          stripeCustomerId,
+          successUrl: `${origin}${returnPath}${returnPath.includes('?') ? '&' : '?'}trialCard=success&session_id={CHECKOUT_SESSION_ID}`,
+        });
       return serializeSingle(request, StripeUrlSerializer, session);
     } catch {
       throw new ServiceUnavailableException(
@@ -123,7 +124,7 @@ export class TrialCardController {
 
     let fingerprint: string | null;
     try {
-      fingerprint = await this.stripeService.getTrialCardFingerprint(
+      fingerprint = await this.trialCardSetupService.getTrialCardFingerprint(
         dto.sessionId,
         stripeCustomerId,
       );
