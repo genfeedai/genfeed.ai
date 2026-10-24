@@ -599,16 +599,19 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const authorLoop = readSourceOf('AuthorReplyLoopService', {
       root: API_SRC,
     });
+    const authorInbox = readSourceOf('collectAuthorReplyInbox', {
+      root: API_SRC,
+    });
     expect(vocabulary).toContain('export type ReplyIntent');
     expect(vocabulary).toContain("'thanks'");
     expect(vocabulary).toContain("'troll'");
     expect(intent).toContain('DEFAULT_REPLY_MAX_AGE_HOURS = 24');
     expect(intent).toContain('MAX_REPLY_MAX_AGE_HOURS = 48');
     expect(authorLoop).toContain('? 48 : DEFAULT_REPLY_MAX_AGE_HOURS');
-    expect(authorLoop).toContain('clampReplyMaxAgeHours(params.hours ?? 48)');
+    expect(authorInbox).toContain('clampReplyMaxAgeHours(params.hours ?? 48)');
     // Non-YouTube inbox path. Leading `:` so this cannot match `?? 48`.
-    expect(authorLoop).toContain(': clampReplyMaxAgeHours(params.hours)');
-    expect(authorLoop).toContain('resolveReplyIntent');
+    expect(authorInbox).toContain(': clampReplyMaxAgeHours(params.hours)');
+    expect(authorInbox).toContain('resolveReplyIntent');
   });
 
   it('gates reply-bot auto-skip on a typed decision it can never fail on (#4866)', () => {
