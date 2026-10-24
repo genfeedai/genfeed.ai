@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isDisposableEmail } from '@api/auth/shared/signup-email-policy.util';
 import { type DashOptions, dash } from '@better-auth/infra';
 import { PlatformRole } from '@genfeedai/contracts';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/contracts/interfaces';
@@ -61,6 +62,9 @@ type BetterAuthUserAfterPayload = {
   email?: string | null;
   id: string;
 };
+
+export const DISPOSABLE_EMAIL_MESSAGE =
+  'Temporary email addresses are not supported. Sign up with a permanent address.';
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
   'An account already exists for this email. Sign in instead.';
@@ -513,12 +517,25 @@ function generateHandle(input: {
  */
 export function buildBetterAuthUserDatabaseHooks(
   onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
+  shouldBlockDisposableEmail?: ICreateBetterAuthOptions['shouldBlockDisposableEmail'],
 ): BetterAuthDatabaseHooks {
   return {
     user: {
       create: {
         before: async (user) => {
           const typed = user as BetterAuthUserBeforePayload;
+          // Throwaway inboxes mint free signups to farm trial credits; refuse
+          // them before the row exists, whichever way the account is created.
+          if (
+            typed.email &&
+            shouldBlockDisposableEmail?.() &&
+            isDisposableEmail(typed.email)
+          ) {
+            throw APIError.from('BAD_REQUEST', {
+              code: 'DISPOSABLE_EMAIL',
+              message: DISPOSABLE_EMAIL_MESSAGE,
+            });
+          }
           if (typed.handle) {
             return { data: user };
           }
@@ -719,6 +736,8 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     sendResetPassword,
     sendVerificationEmail,
     onUserCreated,
+    onEmailVerified,
+    shouldBlockDisposableEmail,
   } = options;
   const socialProviders = {
     ...(google
@@ -771,6 +790,12 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       },
     },
     emailVerification: {
+      // Free signup credits wait for a verified mailbox; credit them the
+      // moment the link is followed. Awaited so the grant lands before the
+      // verified user is redirected into the app.
+      afterEmailVerification: async (user) => {
+        await onEmailVerified?.({ userId: user.id });
+      },
       autoSignInAfterVerification: true,
       sendOnSignIn: false,
       sendOnSignUp: false,
@@ -834,7 +859,10 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         },
       },
     },
-    databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
+    databaseHooks: buildBetterAuthUserDatabaseHooks(
+      onUserCreated,
+      shouldBlockDisposableEmail,
+    ),
     plugins: [
       ...(apiKey ? [buildBetterAuthDashPlugin(apiKey)] : []),
       magicLink(

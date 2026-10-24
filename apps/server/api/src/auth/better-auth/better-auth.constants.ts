@@ -26,3 +26,9 @@ export const BETTER_AUTH_RATE_LIMIT_LOG_SERVICE = 'BetterAuthRateLimitStore';
  * `user.created` webhook (epic #735, Phase 4).
  */
 export const BETTER_AUTH_USER_CREATED_EVENT = 'better-auth.user.created';
+
+/**
+ * Emitted (awaited via `emitAsync`) from `emailVerification.afterEmailVerification`
+ * once a user follows their verification link.
+ */
+export const BETTER_AUTH_EMAIL_VERIFIED_EVENT = 'better-auth.email.verified';

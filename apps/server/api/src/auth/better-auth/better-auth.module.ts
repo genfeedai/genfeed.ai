@@ -15,7 +15,11 @@ import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill
 import { SystemEventsModule } from '@api/services/system-events/system-events.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
-import { envFlag, isSelfHostedDeployment } from '@genfeedai/config';
+import {
+  envFlag,
+  isSelfHostedDeployment,
+  usesMeteredCredits,
+} from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 // Value import: consumed through the `inject` array below, not just as a type.
 import { LoggerService } from '@libs/logger/logger.service';
@@ -25,6 +29,7 @@ import { PassportModule } from '@nestjs/passport';
 
 import { resolveBetterAuthRuntimeConfig } from './better-auth.config';
 import {
+  BETTER_AUTH_EMAIL_VERIFIED_EVENT,
   BETTER_AUTH_INSTANCE,
   BETTER_AUTH_RATE_LIMIT_LOG_SERVICE,
   BETTER_AUTH_USER_CREATED_EVENT,
@@ -190,6 +195,15 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           onUserCreated: async (event) => {
             await eventEmitter.emitAsync(BETTER_AUTH_USER_CREATED_EVENT, event);
           },
+          onEmailVerified: async (event) => {
+            await eventEmitter.emitAsync(
+              BETTER_AUTH_EMAIL_VERIFIED_EVENT,
+              event,
+            );
+          },
+          // The free trial exists only on hosted, metered deployments.
+          shouldBlockDisposableEmail: () =>
+            usesMeteredCredits() && !isSelfHostedDeployment(),
           prisma,
           rateLimitStore,
           resolveIsEmailVerificationRequired: () =>

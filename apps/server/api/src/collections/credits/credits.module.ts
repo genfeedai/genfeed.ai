@@ -6,6 +6,7 @@ and enforce usage limits.
 
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
+import { EmailVerifiedCreditsListener } from '@api/collections/credits/listeners/email-verified-credits.listener';
 import { OnboardingTrialCreditsListener } from '@api/collections/credits/listeners/onboarding-trial-credits.listener';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
@@ -17,6 +18,7 @@ import { GenerationHoldRecoveryService } from '@api/collections/credits/services
 import { GenerationLineReservationService } from '@api/collections/credits/services/generation-line-reservation.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
+import { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { VideoGenerationLineageService } from '@api/collections/credits/services/video-generation-lineage.service';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
@@ -73,6 +75,8 @@ import { Module } from '@nestjs/common';
   providers: [
     OnboardingCreditGrantsService,
     OnboardingTrialCreditsListener,
+    EmailVerifiedCreditsListener,
+    SignupGrantEligibilityService,
     CreditBalanceService,
     CreditReservationService,
     CreditTransactionsService,

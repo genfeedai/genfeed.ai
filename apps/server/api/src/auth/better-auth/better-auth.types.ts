@@ -199,6 +199,11 @@ export interface IBetterAuthUserCreatedEvent {
   email: string | null;
 }
 
+/** Payload emitted after a user follows their email verification link. */
+export interface IBetterAuthEmailVerifiedEvent {
+  userId: string;
+}
+
 /**
  * Env values Better Auth reads through ConfigService. Cookie domain is env-only
  * — callers must not derive it from `BETTER_AUTH_URL` or the request hostname.
@@ -281,6 +286,16 @@ export interface ICreateBetterAuthOptions {
    * Phase 4).
    */
   onUserCreated?: (event: IBetterAuthUserCreatedEvent) => Promise<void>;
+  /**
+   * Invoked (and awaited) after a user's email is verified, so credits that
+   * were withheld from an unverified mailbox can be released.
+   */
+  onEmailVerified?: (event: IBetterAuthEmailVerifiedEvent) => Promise<void>;
+  /**
+   * Whether signups from throwaway email providers are refused. Resolved per
+   * user creation; true only where free trial credits are on offer.
+   */
+  shouldBlockDisposableEmail?: () => boolean;
 }
 
 /** Config-derived Better Auth instance options (secrets, origins, providers). */

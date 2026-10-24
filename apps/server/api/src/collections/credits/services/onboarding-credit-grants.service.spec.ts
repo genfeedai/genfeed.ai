@@ -1,6 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
+import type { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   type PrismaTransactionClient,
@@ -550,5 +551,72 @@ describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (ge
     expect(() =>
       service.captureOnboardingCompletedBestEffort('user-1'),
     ).not.toThrow();
+  });
+  describe('free-credit eligibility', () => {
+    const evaluate = vi.fn();
+    const guarded = new OnboardingCreditGrantsService(
+      { runInTransaction: transaction } as unknown as TransactionUtil,
+      {
+        normalizeJourneyState:
+          OrganizationSettingsService.prototype.normalizeJourneyState,
+      } as OrganizationSettingsService,
+      {
+        addPromotionalCreditsInTransaction: grants,
+        publishCreditAddition: effects,
+      } as unknown as CreditsUtilsService,
+      { getState: trialState } as unknown as FreeTrialService,
+      logger as unknown as LoggerService,
+      undefined,
+      { evaluate } as unknown as SignupGrantEligibilityService,
+    );
+
+    it('withholds the signup gift and the trial credits from an ineligible user', async () => {
+      evaluate.mockResolvedValue({
+        isEligible: false,
+        reason: 'email-unverified',
+      });
+
+      await guarded.grantSignupGift('org', 'user');
+      await expect(guarded.grantTrialCredits('org', 'user')).resolves.toBe(
+        false,
+      );
+
+      expect(grants).not.toHaveBeenCalled();
+      expect(balance).toBe(0);
+    });
+
+    it('records the mailbox key on each grant it pays', async () => {
+      evaluate.mockResolvedValue({ emailKey: 'mailbox-key', isEligible: true });
+
+      await guarded.grantSignupGift('org', 'user');
+      await guarded.grantTrialCredits('org', 'user');
+
+      expect(evaluate).toHaveBeenCalledWith(expect.anything(), {
+        source: 'onboarding-signup-gift',
+        userId: 'user',
+      });
+      expect(evaluate).toHaveBeenCalledWith(expect.anything(), {
+        source: 'onboarding-trial',
+        userId: 'user',
+      });
+      for (const call of grants.mock.calls) {
+        expect(call[0].options).toMatchObject({
+          metadata: { emailKey: 'mailbox-key', kind: 'promotional' },
+        });
+      }
+      expect(balance).toBe(100);
+    });
+
+    it('does not re-evaluate a user who already collected the grant', async () => {
+      historicalGift.mockResolvedValue({
+        balanceAfter: 25,
+        id: 'earlier',
+        organizationId: 'org',
+      });
+
+      await guarded.grantSignupGift('org', 'user');
+
+      expect(evaluate).not.toHaveBeenCalled();
+    });
   });
 });

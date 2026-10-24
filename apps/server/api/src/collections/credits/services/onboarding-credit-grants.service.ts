@@ -2,6 +2,7 @@ import { isCreditTransactionConflict } from '@api/collections/credits/services/c
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { isFreeTrialEnforced } from '@api/collections/credits/services/free-trial-state.util';
+import { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   type PrismaTransactionClient,
@@ -41,6 +42,8 @@ export class OnboardingCreditGrantsService {
     private readonly loggerService: LoggerService,
     @Optional()
     private readonly funnelCaptureService?: ServerFunnelCaptureService,
+    @Optional()
+    private readonly signupGrantEligibility?: SignupGrantEligibilityService,
   ) {}
 
   /**
@@ -100,6 +103,11 @@ export class OnboardingCreditGrantsService {
               wasApplied: false,
             }
           : null;
+      const eligibility = await this.signupGrantEligibility?.evaluate(tx, {
+        source: WELCOME_CAMPAIGN,
+        userId,
+      });
+      if (eligibility && !eligibility.isEligible) return null;
       return this.creditsUtilsService.addPromotionalCreditsInTransaction(
         {
           creditsToAdd: ONBOARDING_SIGNUP_GIFT_CREDITS,
@@ -113,7 +121,13 @@ export class OnboardingCreditGrantsService {
             idempotencyKey,
             referenceId: userId,
             referenceType: WELCOME_CAMPAIGN,
-            metadata: { kind: 'promotional', campaign: WELCOME_CAMPAIGN },
+            metadata: {
+              kind: 'promotional',
+              campaign: WELCOME_CAMPAIGN,
+              ...(eligibility?.isEligible && eligibility.emailKey
+                ? { emailKey: eligibility.emailKey }
+                : {}),
+            },
           },
         },
         tx,
@@ -175,6 +189,11 @@ export class OnboardingCreditGrantsService {
           }),
       );
       if (existing) return null;
+      const eligibility = await this.signupGrantEligibility?.evaluate(tx, {
+        source: TRIAL_CAMPAIGN,
+        userId,
+      });
+      if (eligibility && !eligibility.isEligible) return null;
       return this.creditsUtilsService.addPromotionalCreditsInTransaction(
         {
           creditsToAdd: ONBOARDING_TRIAL_CREDITS,
@@ -188,7 +207,13 @@ export class OnboardingCreditGrantsService {
             idempotencyKey,
             referenceId: userId,
             referenceType: TRIAL_CAMPAIGN,
-            metadata: { kind: 'promotional', campaign: TRIAL_CAMPAIGN },
+            metadata: {
+              kind: 'promotional',
+              campaign: TRIAL_CAMPAIGN,
+              ...(eligibility?.isEligible && eligibility.emailKey
+                ? { emailKey: eligibility.emailKey }
+                : {}),
+            },
           },
         },
         tx,

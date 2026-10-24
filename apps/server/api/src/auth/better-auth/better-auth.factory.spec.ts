@@ -29,9 +29,12 @@ type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
 
 function requireUserCreateHooks(
   onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
+  shouldBlockDisposableEmail?: ICreateBetterAuthOptions['shouldBlockDisposableEmail'],
 ) {
-  const createHooks =
-    buildBetterAuthUserDatabaseHooks(onUserCreated).user?.create;
+  const createHooks = buildBetterAuthUserDatabaseHooks(
+    onUserCreated,
+    shouldBlockDisposableEmail,
+  ).user?.create;
   const before = createHooks?.before;
   const after = createHooks?.after;
   if (!before || !after) {
@@ -448,6 +451,34 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     });
   });
 
+  it('refuses a throwaway email when disposable signups are blocked', async () => {
+    const hooks = requireUserCreateHooks(undefined, () => true);
+
+    await expect(
+      hooks.before({ email: 'farmer@mailinator.com' } as never),
+    ).rejects.toMatchObject({ body: { code: 'DISPOSABLE_EMAIL' } });
+  });
+
+  it('lets a throwaway email through where the free trial does not exist', async () => {
+    const hooks = requireUserCreateHooks(undefined, () => false);
+
+    await expect(
+      hooks.before({ email: 'farmer@mailinator.com' } as never),
+    ).resolves.toEqual({
+      data: expect.objectContaining({ email: 'farmer@mailinator.com' }),
+    });
+  });
+
+  it('still accepts an ordinary email when disposable signups are blocked', async () => {
+    const hooks = requireUserCreateHooks(undefined, () => true);
+
+    await expect(
+      hooks.before({ email: 'person@genfeed.ai' } as never),
+    ).resolves.toEqual({
+      data: expect.objectContaining({ email: 'person@genfeed.ai' }),
+    });
+  });
+
   it('preserves an existing handle', async () => {
     const hooks = requireUserCreateHooks();
     const user = {
@@ -711,8 +742,8 @@ describe('createBetterAuthInstance source', () => {
 
     expect(source).toContain('additionalFields');
     expect(source).toMatch(/handle:\s*\{/);
-    expect(source).toContain(
-      'databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated)',
+    expect(source).toMatch(
+      /databaseHooks:\s*buildBetterAuthUserDatabaseHooks\(\s*onUserCreated/,
     );
   });
 
