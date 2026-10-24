@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { pinBetterAuthClientIp } from '@api/auth/better-auth/better-auth-client-ip.util';
 import { attachBetterAuthRequestLog } from '@api/auth/better-auth/better-auth-request-log.util';
 import {
   isBetterAuthAdminPath,
@@ -256,6 +257,7 @@ async function main() {
             return;
           }
 
+          pinBetterAuthClientIp(req);
           if (logger) {
             attachBetterAuthRequestLog(req, res, logger);
           }
