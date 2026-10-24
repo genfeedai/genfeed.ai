@@ -10,7 +10,9 @@ import {
 import { logger } from '~utils/logger.util';
 
 const CONTENT_THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
-const CONTENT_THEME_SELECTOR = '.genfeed-dropdown';
+/** Marks every Genfeed shadow host so the content theme can find and restyle it. */
+export const GENFEED_HOST_ATTRIBUTE = 'data-genfeed-host';
+const CONTENT_THEME_SELECTOR = `[${GENFEED_HOST_ATTRIBUTE}]`;
 
 let currentPreference: ThemePreference = DEFAULT_THEME;
 let systemPrefersDark = false;

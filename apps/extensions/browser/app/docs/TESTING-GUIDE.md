@@ -315,9 +315,8 @@ Verify these API calls:
 
 Verify these elements exist:
 
-- `.genfeed-buttons` - Button container
-- `.genfeed-dropdown` - GenFeed dropdown
-- `.genfeed-btn` - Individual buttons
+- `[data-genfeed-group]` - The Genfeed logo button next to the site's submit button (its button is inside the host's shadow root)
+- `[data-genfeed-host]` - Every Genfeed shadow host; the open menu is one of these on `document.body`
 
 ---
 

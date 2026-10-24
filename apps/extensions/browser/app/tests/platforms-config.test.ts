@@ -79,6 +79,32 @@ describe('extension platform config', () => {
     expect(platforms.tiktok.extractPostId()).toBe('9876543210');
   });
 
+  it('detects Threads on both of its domains and reads the post code', () => {
+    stubLocation('https://www.threads.com/@acme/post/C8abcDEF');
+
+    expect(getCurrentPlatform()?.platform).toBe('threads');
+    expect(platforms.threads.extractPostId()).toBe('C8abcDEF');
+    expect(platforms.threads.constructPostUrl('C8abcDEF')).toBe(
+      'https://www.threads.com/t/C8abcDEF',
+    );
+
+    stubLocation('https://www.threads.net/@acme/post/C8abcDEF');
+    expect(getCurrentPlatform()?.platform).toBe('threads');
+    expect(getPlatformForUrl('https://www.threads.com/@acme')).toBe('threads');
+  });
+
+  it('knows which platforms can take an image or video in a reply', () => {
+    expect(platforms.twitter.mediaReply).toMatchObject({
+      image: true,
+      video: true,
+    });
+    expect(platforms.linkedin.mediaReply).toMatchObject({
+      image: true,
+      video: false,
+    });
+    expect(platforms.youtube.mediaReply).toBeUndefined();
+  });
+
   it('maps a source URL to its platform without trusting the current page', () => {
     stubLocation('https://example.com/');
 

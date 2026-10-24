@@ -5,6 +5,20 @@ import type {
   ComposerTextSnapshot,
 } from '~types/extension';
 
+/** Tells the background this text came from Genfeed, so publishing it may be saved. */
+export function markWrittenByGenfeed(content: string): void {
+  try {
+    void Promise.resolve(
+      chrome.runtime.sendMessage({
+        payload: { content, success: true },
+        type: 'CONTENT_INSERTED',
+      }),
+    ).catch(() => undefined);
+  } catch {
+    // The extension context was invalidated; the text simply is not saved.
+  }
+}
+
 export interface ComposerActionResult {
   error?: string;
   success: boolean;

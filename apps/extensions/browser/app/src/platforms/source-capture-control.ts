@@ -5,10 +5,12 @@ import type {
 } from '~models/imported-source.model';
 import type { PlatformConfig } from '~platforms/config';
 import { extractSourceCapture } from '~platforms/source-capture-extract';
-import { icons } from '~platforms/ui-helpers';
+import { createIconButton } from '~platforms/ui/icon-button';
+import { icons } from '~platforms/ui/icons';
+import { showToast } from '~platforms/ui/toast';
+import type { MenuItemSpec } from '~types/genfeed-menu';
 import { logger } from '~utils/logger.util';
 
-const TOAST_DURATION_MS = 3600;
 const RESET_DELAY_MS = 3000;
 const SOURCE_BUTTON_LABEL = 'Save source for later';
 const SUPPORTED_PLATFORMS: readonly string[] = ['twitter', 'reddit', 'youtube'];
@@ -94,38 +96,26 @@ export async function savePageSource(): Promise<{
   }
 }
 
-export function showSourceToast(message: string, isError = false): void {
-  document.querySelector('.genfeed-toast')?.remove();
-  const toast = document.createElement('div');
-  toast.className = `genfeed-toast${isError ? ' genfeed-toast-error' : ''}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  window.setTimeout(() => toast.remove(), TOAST_DURATION_MS);
-}
-
-function createSourceButton(): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'genfeed-btn genfeed-save-btn';
-  button.title = SOURCE_BUTTON_LABEL;
-  button.setAttribute('aria-label', SOURCE_BUTTON_LABEL);
-  button.innerHTML = icons.bookmark;
+function createSourceButton(): HTMLElement {
+  const { button, host, setIcon } = createIconButton({
+    icon: icons.bookmark,
+    label: SOURCE_BUTTON_LABEL,
+  });
   button.addEventListener('click', async (event) => {
     event.stopPropagation();
-    const original = button.innerHTML;
-    button.innerHTML = icons.spinner;
+    setIcon(icons.spinner, true);
     button.disabled = true;
     const outcome = await savePageSource();
-    button.innerHTML = outcome.isError ? icons.x : icons.check;
+    setIcon(outcome.isError ? icons.x : icons.check);
     button.title = outcome.message;
-    showSourceToast(outcome.message, outcome.isError);
+    showToast(outcome.message, outcome.isError);
     window.setTimeout(() => {
-      button.innerHTML = original;
+      setIcon(icons.bookmark);
       button.title = SOURCE_BUTTON_LABEL;
       button.disabled = false;
     }, RESET_DELAY_MS);
   });
-  return button;
+  return host;
 }
 
 /** A visible "save source" action on the post or video the user is viewing. */
@@ -151,41 +141,24 @@ export function attachSourceButton(platform: PlatformConfig): void {
   actions.appendChild(button);
 }
 
-interface SourceMenuOptions {
-  dropdown: HTMLElement;
-  platform: PlatformConfig;
-}
-
-/** First item of the Genfeed menu next to the composer. */
-export function attachSourceMenuItem({
-  dropdown,
-  platform,
-}: SourceMenuOptions): void {
-  if (!SUPPORTED_PLATFORMS.includes(platform.platform) || !isSourcePage()) {
-    return;
+/** The "save source" row of the Genfeed menu, on the networks and pages that can be saved. */
+export function createSourceMenuItem(
+  platform: PlatformConfig | null,
+): MenuItemSpec | null {
+  if (!platform || !SUPPORTED_PLATFORMS.includes(platform.platform)) {
+    return null;
   }
-  const menu = dropdown.querySelector('.genfeed-dropdown-menu');
-  if (!menu || menu.querySelector('[data-genfeed-source-menu]')) {
-    return;
-  }
-  const item = document.createElement('button');
-  item.type = 'button';
-  item.className = 'genfeed-menu-item';
-  item.dataset.genfeedSourceMenu = 'true';
-  item.textContent = SOURCE_BUTTON_LABEL;
-  item.addEventListener('click', async (event) => {
-    event.stopPropagation();
-    menu.classList.remove('active');
-    item.disabled = true;
-    item.textContent = 'Saving…';
-    const outcome = await savePageSource();
-    item.textContent = outcome.message;
-    item.disabled = false;
-    window.setTimeout(() => {
-      item.textContent = SOURCE_BUTTON_LABEL;
-    }, RESET_DELAY_MS);
-  });
-  menu.prepend(item);
+  return {
+    icon: icons.bookmark,
+    id: 'save-source',
+    isAvailable: isSourcePage,
+    label: SOURCE_BUTTON_LABEL,
+    run: async (controls) => {
+      controls.setStatus('busy', 'Saving...');
+      const outcome = await savePageSource();
+      controls.setStatus(outcome.isError ? 'error' : 'done', outcome.message);
+    },
+  };
 }
 
 async function toPngBlob(blob: Blob): Promise<Blob> {
@@ -282,9 +255,9 @@ export function createImageSourceActions(
     copy.disabled = true;
     try {
       await copyImageToClipboard(image.currentSrc || image.src);
-      showSourceToast('Image copied.');
+      showToast('Image copied.');
     } catch {
-      showSourceToast(
+      showToast(
         'This site does not allow copying this image. Use the browser menu instead.',
         true,
       );
@@ -302,15 +275,15 @@ export function createImageSourceActions(
     event.stopPropagation();
     const raw = captureXPostImage(image);
     if (!raw) {
-      showSourceToast('Open this post to save its image as a source.', true);
+      showToast('Open this post to save its image as a source.', true);
       return;
     }
     save.disabled = true;
     try {
       const outcome = describeSaveOutcome(await sendSave(raw));
-      showSourceToast(outcome.message, outcome.isError);
+      showToast(outcome.message, outcome.isError);
     } catch {
-      showSourceToast('Could not save this source.', true);
+      showToast('Could not save this source.', true);
     } finally {
       save.disabled = false;
     }

@@ -6,7 +6,7 @@ import type {
   ActionRecovery,
   ActionRouting,
 } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
-import { applyContentThemeToElement } from '~theme/content-theme';
+import { createShadowHost, GENFEED_FONT_STACK } from '~platforms/ui/tokens';
 
 export interface TextActionPreviewOptions {
   mode: TextActionMode;
@@ -34,20 +34,14 @@ const HOST_ID = 'genfeed-text-action-preview';
 
 const STYLES = `
   :host {
-    --card: #fff; --border: #cfd9de; --text: #0f1419; --muted: #536471;
-    --accent: #1d9bf0; --accent-text: #fff; --hover: #f7f9f9; --error: #f4212e;
     all: initial;
     position: fixed; right: 24px; bottom: 24px; z-index: 2147483647;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  :host([data-genfeed-theme="dark"]) {
-    --card: #15202b; --border: #2f3336; --text: #e7e9ea; --muted: #71767b;
-    --hover: #202327;
+    font-family: ${GENFEED_FONT_STACK};
   }
   .card { box-sizing: border-box; width: 360px; max-width: calc(100vw - 32px);
     max-height: 70vh; overflow: auto; padding: 14px; border-radius: 14px;
     border: 1px solid var(--border); background: var(--card); color: var(--text);
-    box-shadow: 0 8px 28px rgba(0,0,0,.28); font-size: 14px; line-height: 1.4; }
+    box-shadow: var(--shadow); font-size: 14px; line-height: 1.4; }
   h2 { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
   .text { margin: 0; padding: 10px; border-radius: 10px; background: var(--hover);
     white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -89,11 +83,7 @@ export function showTextActionPreview(options: TextActionPreviewOptions): {
   dismiss: () => void;
 } {
   document.getElementById(HOST_ID)?.remove();
-  const host = element('div');
-  host.id = HOST_ID;
-  applyContentThemeToElement(host);
-  const root = host.attachShadow({ mode: 'open' });
-  root.appendChild(element('style', undefined, STYLES));
+  const { host, root } = createShadowHost({ css: STYLES, id: HOST_ID });
 
   const card = element('div', 'card');
   card.setAttribute('role', 'dialog');
@@ -177,11 +167,7 @@ export function showTextActionFailure(options: TextActionFailureOptions): {
   dismiss: () => void;
 } {
   document.getElementById(HOST_ID)?.remove();
-  const host = element('div');
-  host.id = HOST_ID;
-  applyContentThemeToElement(host);
-  const root = host.attachShadow({ mode: 'open' });
-  root.appendChild(element('style', undefined, STYLES));
+  const { host, root } = createShadowHost({ css: STYLES, id: HOST_ID });
 
   const card = element('div', 'card');
   card.setAttribute('role', 'dialog');

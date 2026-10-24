@@ -68,7 +68,7 @@ Paths are relative to repository root:
 - `packages/prisma/prisma/schema.prisma` (`SourcePost`)
 - `apps/extensions/browser/app/src/components/pages/{IdeasPage,IdeaDraftPage,KnowledgeCapturePage,RemixPage}.tsx`
 - `apps/extensions/browser/app/src/{background,content}.ts`
-- `apps/extensions/browser/app/src/platforms/ui-helpers.ts`
+- `apps/extensions/browser/app/src/platforms/{menu-actions,reply-media}.ts` and `.../platforms/ui/`
 - `apps/extensions/browser/app/src/services/knowledge-capture.service.ts`
 - `apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/knowledge/`
 - `packages/pages/studio/generate/components/StudioRemixRunPanel.tsx`

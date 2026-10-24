@@ -13,6 +13,7 @@ The Genfeed Extension now supports multiple social media platforms, allowing you
 5. **Facebook** - facebook.com
 6. **TikTok** - tiktok.com
 7. **LinkedIn** - linkedin.com
+8. **Threads** - threads.com, threads.net
 
 ## Architecture
 
@@ -25,14 +26,16 @@ The extension uses a modular platform configuration system located in `src/platf
 - **Post ID Extraction**: Platform-specific logic to extract post/comment IDs
 - **URL Construction**: Logic to build URLs to specific posts
 
-### UI Helpers
+### Injected UI
 
-Located in `src/platforms/ui-helpers.ts`, this module provides:
+Everything the extension draws on a page lives in `src/platforms/ui/` and renders in a shadow root, so a site's CSS cannot restyle it:
 
-- **Global Styles**: Consistent styling across all platforms
-- **Button Creation**: Factory functions for creating buttons
-- **Icons**: SVG icons for all actions
-- **Dropdown Menus**: Contextual actions for posts
+- **`menu.ts`**: the Genfeed logo button and its grouped menu. The menu attaches to `document.body` while open, so the site's stacking, clipping and opacity cannot touch it.
+- **`mount.ts`**: finds the site's submit button, sizes the Genfeed button to match it, and inserts it on the same row without moving any of the site's nodes.
+- **`tokens.ts`**: the one set of theme tokens shared by the button, menu, toast and text-action preview.
+- **`toast.ts`**, **`icon-button.ts`**, **`icons.ts`**: the shared toast, round icon button and SVG icons.
+
+What the menu does is defined in `src/platforms/menu-actions.ts`. Replying with an image, GIF or video is one flow in `reply-media.ts`; `media-attach.ts` hands the file to the page's own upload control, using `mediaReply` in the platform config. A platform with no `mediaReply` gets the reply text only and the file opens in a tab.
 
 ### Content Script
 

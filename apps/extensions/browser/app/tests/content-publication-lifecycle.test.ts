@@ -31,13 +31,22 @@ vi.mock('~platforms/composer-helpers', () => ({
 }));
 vi.mock('~platforms/source-capture-control', () => ({
   attachSourceButton: vi.fn(),
-  attachSourceMenuItem: vi.fn(),
   createImageSourceActions: vi.fn(() => []),
 }));
-vi.mock('~platforms/ui-helpers', () => ({
-  createButtonContainer: vi.fn(),
-  createGenFeedDropdown: vi.fn(),
-  injectGlobalStyles: vi.fn(),
+vi.mock('~platforms/menu-actions', () => ({
+  buildMenuGroups: vi.fn(() => []),
+}));
+vi.mock('~platforms/ui/mount', () => ({
+  findSubmitButtons: vi.fn(() => []),
+  mayContainSubmit: vi.fn(() => false),
+  mountGenfeedGroup: vi.fn(),
+}));
+vi.mock('~platforms/ui/page-styles', () => ({
+  injectImageOverlayStyles: vi.fn(),
+}));
+vi.mock('~theme/content-theme', () => ({
+  applyContentThemeToElement: vi.fn(),
+  GENFEED_HOST_ATTRIBUTE: 'data-genfeed-host',
   watchContentTheme: vi.fn(),
 }));
 vi.mock('~services/error-tracking.service', () => ({

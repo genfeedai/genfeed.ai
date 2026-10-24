@@ -14,9 +14,10 @@ import {
   getPlatformName,
   type PlatformConfig,
 } from '~platforms/config';
+import { buildMenuGroups } from '~platforms/menu-actions';
+import { extractPostContext } from '~platforms/post-context';
 import {
   attachSourceButton,
-  attachSourceMenuItem,
   createImageSourceActions,
 } from '~platforms/source-capture-control';
 import {
@@ -24,18 +25,15 @@ import {
   registerTextActionSession,
   TextActionSession,
 } from '~platforms/text-action-session';
-import {
-  createButtonContainer,
-  createGenFeedDropdown,
-  injectGlobalStyles,
-  watchContentTheme,
-} from '~platforms/ui-helpers';
+import { injectImageOverlayStyles } from '~platforms/ui/page-styles';
+import { findSubmitButtons, mayContainSubmit, mountGenfeedGroup } from '~platforms/ui/mount';
+import { showToast } from '~platforms/ui/toast';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { publicationCapturePlatform } from '~services/publication-capture-validation';
+import { watchContentTheme } from '~theme/content-theme';
 
 const DEBOUNCE_DELAY_MS = 300;
 const NAVIGATION_DELAY_MS = 100;
-const TOAST_DURATION_MS = 3200;
 
 const PUBLICATION_OBSERVERS: Record<
   PublicationCapturePlatform,
@@ -70,8 +68,7 @@ function initializePlatformIntegration(): void {
 
   currentPlatform = platform;
 
-  // Inject global styles (only once)
-  injectGlobalStyles();
+  injectImageOverlayStyles();
 
   const platformName = getPlatformName();
 
@@ -82,47 +79,17 @@ function initializePlatformIntegration(): void {
 
     attachSourceButton(currentPlatform);
 
-    const submitButton = platform.selectors.submitButton
-      ? document.querySelector(platform.selectors.submitButton)
-      : null;
-
-    if (!submitButton?.parentNode) {
-      return;
-    }
-
-    const actionsContainer = platform.selectors.actionsContainer
-      ? document.querySelector(platform.selectors.actionsContainer)
-      : null;
-
-    const injectionTarget = (submitButton?.parentNode ??
-      actionsContainer) as Element | null;
-    if (!injectionTarget) {
-      return;
-    }
-
-    const existingButtons = injectionTarget.querySelector('.genfeed-buttons');
-    if (existingButtons) {
-      return;
-    }
-
     const postId = currentPlatform.extractPostId();
     if (!postId) {
       return;
     }
-
     const postUrl = currentPlatform.constructPostUrl(postId);
 
-    const buttonContainer = createButtonContainer();
-
-    const dropdown = createGenFeedDropdown(postId, platformName, { postUrl });
-    attachSourceMenuItem({ dropdown, platform });
-    dropdown.style.marginRight = '8px';
-    buttonContainer.appendChild(dropdown);
-
-    if (submitButton?.parentNode) {
-      submitButton.parentNode.insertBefore(buttonContainer, submitButton);
-    } else {
-      injectionTarget.insertBefore(buttonContainer, injectionTarget.firstChild);
+    for (const submit of findSubmitButtons(currentPlatform)) {
+      mountGenfeedGroup(
+        submit,
+        buildMenuGroups({ platform: currentPlatform, platformName, postUrl }),
+      );
     }
   }
 
@@ -135,30 +102,19 @@ function initializePlatformIntegration(): void {
 
   // Observe DOM changes to inject buttons when UI is ready
   observer = new MutationObserver((mutations) => {
-    const submitButtonSelector = platform?.selectors.submitButton;
     const actionsContainerSelector = platform?.selectors.actionsContainer;
 
-    const hasSubmitButton =
-      submitButtonSelector &&
-      mutations.some((mutation) =>
-        Array.from(mutation.addedNodes).some(
-          (node) =>
-            node.nodeType === 1 &&
-            (node as Element).querySelector?.(submitButtonSelector),
-        ),
-      );
+    const isRelevant = mutations.some((mutation) =>
+      Array.from(mutation.addedNodes).some(
+        (node) =>
+          node.nodeType === 1 &&
+          ((platform && mayContainSubmit(platform, node as Element)) ||
+            (actionsContainerSelector &&
+              (node as Element).querySelector?.(actionsContainerSelector))),
+      ),
+    );
 
-    const hasActionsContainer =
-      actionsContainerSelector &&
-      mutations.some((mutation) =>
-        Array.from(mutation.addedNodes).some(
-          (node) =>
-            node.nodeType === 1 &&
-            (node as Element).querySelector?.(actionsContainerSelector),
-        ),
-      );
-
-    if (hasSubmitButton || hasActionsContainer) {
+    if (isRelevant) {
       debouncedInject();
     }
   });
@@ -279,18 +235,12 @@ function extractCurrentPageContext(): {
     : null;
 
   if (postContainer) {
-    const textEl = postContainer.querySelector(
-      '[data-testid="tweetText"], .update-components-text, .userContent-body, ._a9zs',
-    );
-    if (textEl) {
-      context.postContent = textEl.textContent?.trim().substring(0, 500);
+    const post = extractPostContext(platform, postContainer);
+    if (post.content) {
+      context.postContent = post.content.substring(0, 500);
     }
-
-    const authorEl = postContainer.querySelector(
-      '[data-testid="User-Name"] a, .update-components-actor__name, .author a, ._aacl',
-    );
-    if (authorEl) {
-      context.postAuthor = authorEl.textContent?.trim();
+    if (post.author) {
+      context.postAuthor = post.author;
     }
   }
 
@@ -485,21 +435,6 @@ if (platform?.name === 'Twitter/X') {
 
 function initializeTwitterImageHover(): void {
   const PROCESSED_ATTR = 'data-genfeed-image-processed';
-  const toastTimeouts: Set<number> = new Set();
-
-  function showToast(message: string, isError: boolean = false): void {
-    const toast = document.createElement('div');
-    toast.className = `genfeed-toast${isError ? ' genfeed-toast-error' : ''}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-
-    const timeout = window.setTimeout(() => {
-      toast.remove();
-      toastTimeouts.delete(timeout);
-    }, TOAST_DURATION_MS);
-
-    toastTimeouts.add(timeout);
-  }
 
   function buildPrompt(image: HTMLImageElement): string {
     const altText = image.getAttribute('alt');

@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('~platforms/source-capture-extract', () => ({
   extractSourceCapture: mocks.extract,
 }));
-vi.mock('~platforms/ui-helpers', () => ({
+vi.mock('~platforms/ui/icons', () => ({
   icons: {
     bookmark: '<svg>b</svg>',
     check: '<svg>c</svg>',
@@ -21,9 +21,10 @@ vi.mock('~utils/logger.util', () => ({
 }));
 
 import type { PlatformConfig } from '../src/platforms/config';
+import { currentToastText } from '../src/platforms/ui/toast';
 import {
   attachSourceButton,
-  attachSourceMenuItem,
+  createSourceMenuItem,
   captureXPostImage,
   copyImageToClipboard,
   createImageSourceActions,
@@ -108,12 +109,13 @@ describe('visible Save source action', () => {
     });
     attachSourceButton(platform('twitter'));
     attachSourceButton(platform('twitter'));
-    const buttons = document.querySelectorAll('[data-genfeed-source]');
-    expect(buttons).toHaveLength(1);
-    expect(buttons[0].getAttribute('aria-label')).toBe('Save source for later');
+    const hosts = document.querySelectorAll('[data-genfeed-source]');
+    expect(hosts).toHaveLength(1);
+    const button = hosts[0].shadowRoot?.querySelector('button');
+    expect(button?.getAttribute('aria-label')).toBe('Save source for later');
     expect(mocks.sendMessage).not.toHaveBeenCalled();
 
-    (buttons[0] as HTMLButtonElement).click();
+    button?.click();
     await vi.waitFor(() => expect(mocks.sendMessage).toHaveBeenCalled());
     expect(mocks.sendMessage).toHaveBeenCalledWith({
       event: 'importedSourceSave',
@@ -121,9 +123,7 @@ describe('visible Save source action', () => {
     });
     expect(mocks.extract).toHaveBeenCalledWith({ scope: 'page' });
     await vi.waitFor(() =>
-      expect(document.querySelector('.genfeed-toast')?.textContent).toBe(
-        'Saved for later. Nothing was generated.',
-      ),
+      expect(currentToastText()).toBe('Saved for later. Nothing was generated.'),
     );
   });
 
@@ -135,24 +135,43 @@ describe('visible Save source action', () => {
     expect(document.querySelector('[data-genfeed-source]')).toBeNull();
   });
 
-  it('adds the menu item once and reports the outcome in it', async () => {
+  it('offers a menu row on supported platforms only, and only on a saveable page', () => {
+    const row = createSourceMenuItem(platform('twitter'));
+
+    expect(row?.label).toBe('Save source for later');
     stubLocation('https://x.com/author/status/123');
-    const dropdown = document.createElement('div');
-    dropdown.innerHTML = '<div class="genfeed-dropdown-menu"></div>';
+    expect(row?.isAvailable?.()).toBe(true);
+    stubLocation('https://x.com/home');
+    expect(row?.isAvailable?.()).toBe(false);
+    expect(createSourceMenuItem(platform('linkedin'))).toBeNull();
+    expect(createSourceMenuItem(null)).toBeNull();
+  });
+
+  it('reports the save outcome in the menu row', async () => {
+    stubLocation('https://x.com/author/status/123');
     mocks.sendMessage.mockResolvedValue({
       data: { deduplicated: true, source: { id: 'csource00000001' } },
       success: true,
     });
-    attachSourceMenuItem({ dropdown, platform: platform('twitter') });
-    attachSourceMenuItem({ dropdown, platform: platform('twitter') });
-    const items = dropdown.querySelectorAll('[data-genfeed-source-menu]');
-    expect(items).toHaveLength(1);
-    (items[0] as HTMLButtonElement).click();
-    await vi.waitFor(() =>
-      expect(items[0].textContent).toBe(
-        'Already saved. Nothing was changed or generated.',
-      ),
+    const controls = { reset: vi.fn(), setStatus: vi.fn() };
+
+    await createSourceMenuItem(platform('twitter'))?.run(controls);
+
+    expect(controls.setStatus).toHaveBeenNthCalledWith(1, 'busy', 'Saving...');
+    expect(controls.setStatus).toHaveBeenLastCalledWith(
+      'done',
+      'Already saved. Nothing was changed or generated.',
     );
+  });
+
+  it('marks the row as an error when the save fails', async () => {
+    stubLocation('https://x.com/author/status/123');
+    mocks.sendMessage.mockResolvedValue({ error: 'Offline', success: false });
+    const controls = { reset: vi.fn(), setStatus: vi.fn() };
+
+    await createSourceMenuItem(platform('twitter'))?.run(controls);
+
+    expect(controls.setStatus).toHaveBeenLastCalledWith('error', 'Offline');
   });
 
   it('shows the honest limitation when the page cannot be captured', async () => {
@@ -257,9 +276,7 @@ describe('image actions', () => {
     const [copy] = createImageSourceActions(feedImage());
     copy.click();
     await vi.waitFor(() =>
-      expect(document.querySelector('.genfeed-toast')?.textContent).toMatch(
-        /does not allow copying/,
-      ),
+      expect(currentToastText()).toMatch(/does not allow copying/),
     );
     expect(mocks.sendMessage).not.toHaveBeenCalled();
   });

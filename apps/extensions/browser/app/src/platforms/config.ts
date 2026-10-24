@@ -1,6 +1,17 @@
 import { Platform } from '@genfeedai/contracts';
 import { SocialUrlHelper } from '@genfeedai/helpers';
 
+export interface MediaReplyConfig {
+  // File input that takes the media once it exists, or after the button is clicked
+  fileInput: string;
+  image: boolean;
+  // Control that reveals the file input when the site creates it on demand
+  mediaButton?: string;
+  // How long to wait for the input after clicking the media button
+  openDelayMs: number;
+  video: boolean;
+}
+
 // Platform configuration for multi-platform support
 export interface PlatformConfig {
   name: string;
@@ -21,13 +32,18 @@ export interface PlatformConfig {
     submitButton?: string;
     // Selector to identify individual posts
     postIdentifier: string;
+    // Selectors tried in order for the text and author of a post
+    postText?: string[];
+    postAuthor?: string[];
   };
+  // Visible text of the submit button, for sites that give it no stable selector
+  submitButtonLabels?: string[];
+  // How an image or video can be attached to this site's reply box; text-only when absent
+  mediaReply?: MediaReplyConfig;
   // Function to extract post ID from URL or element
   extractPostId: (element?: Element) => string | null;
   // Function to construct post URL from post ID
   constructPostUrl: (postId: string) => string;
-  // Platform-specific button injection logic
-  injectButtons?: (postId: string, container: Element) => void;
 }
 
 function parseTwitterPostUrl(value: string) {
@@ -94,6 +110,26 @@ export const platforms: Record<string, PlatformConfig> = {
       replyTextarea:
         'div[contenteditable="true"][role="textbox"], div[aria-label*="comment"]',
       submitButton: 'div[aria-label*="Post"] div[role="button"]',
+      postAuthor: [
+        'h2[dir="auto"] a',
+        'span.fwb a',
+        '[data-testid="story-subtitle"] a',
+      ],
+      postText: [
+        '[data-ad-preview="message"]',
+        'div[data-testid="post_message"]',
+        '.userContent-body',
+        'div[dir="auto"][style*="text-align"]',
+      ],
+    },
+    mediaReply: {
+      fileInput:
+        'input[type="file"][accept*="image"], input[type="file"][multiple][accept]',
+      image: true,
+      mediaButton:
+        '[aria-label*="photo"], [aria-label*="Photo"], [data-testid="photo-video-button"], div[role="button"][aria-label*="Attach"]',
+      openDelayMs: 500,
+      video: false,
     },
     // URL patterns for different Facebook sections (feed, marketplace, etc.)
     urlPatterns: [
@@ -159,6 +195,8 @@ export const platforms: Record<string, PlatformConfig> = {
       postIdentifier: 'article',
       replyTextarea: 'textarea[placeholder*="comment"]',
       submitButton: 'button[type="submit"]',
+      postAuthor: ['._aacl'],
+      postText: ['._a9zs'],
     },
   },
 
@@ -199,6 +237,25 @@ export const platforms: Record<string, PlatformConfig> = {
       replyTextarea: 'div[contenteditable="true"], div[role="textbox"]',
       submitButton:
         'button[type="submit"], button[class*="comments-comment-box__submit-button"]',
+      postAuthor: [
+        '.feed-shared-actor__name',
+        '.update-components-actor__name',
+      ],
+      postText: [
+        '.feed-shared-update-v2__description',
+        '.feed-shared-text',
+        '.update-components-text',
+        '[data-ad-preview="message"]',
+      ],
+    },
+    mediaReply: {
+      fileInput:
+        'input[type="file"][accept*="image"], .comments-comment-box input[type="file"]',
+      image: true,
+      mediaButton:
+        'button[aria-label*="image"], button[aria-label*="photo"], .comments-comment-box__media-button, [data-control-name="comment_image"]',
+      openDelayMs: 500,
+      video: false,
     },
   },
 
@@ -239,6 +296,29 @@ export const platforms: Record<string, PlatformConfig> = {
       replyActivator: 'comment-composer-host faceplate-textarea-input',
       replyTextarea: 'div[contenteditable="true"], textarea[name="comment"]',
       submitButton: 'button[type="submit"]',
+      postAuthor: [
+        'shreddit-post [slot="authorName"]',
+        'a[data-testid="post_author_link"]',
+        '.author a',
+        '.author',
+        'a[href*="/user/"]',
+      ],
+      postText: [
+        '[data-testid="post-content"]',
+        'shreddit-post [slot="text-body"]',
+        'div[data-click-id="text"]',
+        '.md-container .md',
+        '.expando .usertext-body',
+      ],
+    },
+    mediaReply: {
+      fileInput:
+        'input[type="file"][accept*="image"], input[type="file"][accept*="video"]',
+      image: true,
+      mediaButton:
+        'button[aria-label*="image"], button[aria-label*="Image"], [data-testid="image-upload-button"], button[aria-label*="Add an image"]',
+      openDelayMs: 500,
+      video: false,
     },
   },
 
@@ -276,6 +356,32 @@ export const platforms: Record<string, PlatformConfig> = {
       replyTextarea: 'div[contenteditable="true"]',
       submitButton: 'div[data-e2e="comment-post"]',
     },
+  },
+  threads: {
+    constructPostUrl: (postId: string) => `https://www.threads.com/t/${postId}`,
+    extractPostId: () =>
+      window.location.pathname.match(/\/post\/([^/?#]+)/)?.[1] ?? null,
+    hostnames: [
+      'threads.com',
+      'www.threads.com',
+      'threads.net',
+      'www.threads.net',
+    ],
+    mediaReply: {
+      fileInput: 'input[type="file"][accept*="image"], input[type="file"]',
+      image: true,
+      openDelayMs: 500,
+      video: true,
+    },
+    name: 'Threads',
+    platform: Platform.THREADS,
+    selectors: {
+      actionsContainer: '[role="group"]',
+      postContainer: 'div[data-pressable-container="true"]',
+      postIdentifier: 'div[data-pressable-container="true"]',
+      replyTextarea: 'div[contenteditable="true"][role="textbox"]',
+    },
+    submitButtonLabels: ['post', 'reply'],
   },
   twitter: {
     constructPostUrl: (postId: string) => {
@@ -323,6 +429,16 @@ export const platforms: Record<string, PlatformConfig> = {
       postIdentifier: 'article',
       replyTextarea: '[data-testid="tweetTextarea_0"]',
       submitButton: '[data-testid="tweetButtonInline"]',
+      postAuthor: ['[data-testid="User-Name"] a', '[data-testid="User-Name"]'],
+      postText: ['[data-testid="tweetText"]'],
+    },
+    mediaReply: {
+      fileInput:
+        '[data-testid="fileInput"], input[type="file"][accept*="image"][accept*="video"], input[type="file"][accept*="image"], input[type="file"][multiple][accept]',
+      image: true,
+      mediaButton: '[aria-label*="Add photos"], [aria-label*="Add media"]',
+      openDelayMs: 300,
+      video: true,
     },
   },
 

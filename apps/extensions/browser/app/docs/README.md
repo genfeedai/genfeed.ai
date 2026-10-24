@@ -57,7 +57,7 @@ bun run test        # unit tests (Vitest) when configured
 The extension uses a modular platform configuration system (`src/platforms/`):
 
 - **Platform Config** (`config.ts`): Defines selectors, URL patterns, and ID extraction logic for each platform
-- **UI Helpers** (`ui-helpers.ts`): Platform-agnostic button creation and styling
+- **Injected UI** (`ui/`): The Genfeed button group, menu, toast and shared theme tokens, rendered in shadow roots
 - **Content Script** (`content.ts`): Automatically detects platform and injects appropriate UI elements
 - **Background Script** (`background.ts`): Handles API communication with platform context
 
