@@ -20,9 +20,11 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+  FLUX_3_RESOLUTIONS,
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isFlux3Resolution,
+  MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
@@ -53,11 +55,38 @@ type VideoEstimateModel = Pick<Model, 'provider'> &
     Pick<Model, 'endpoint' | 'providerInputSchema' | 'providerSchemaFamily'>
   >;
 
+/**
+ * Video models whose builder refuses to run without a source image (and audio
+ * for the avatar). Their tariff is by duration and resolution, so a quote
+ * builds with these stand-ins; they are never fetched or sent to a provider.
+ */
+const VIDEO_QUOTE_STAND_INS: Readonly<
+  Record<string, { audioUrl?: string; references: string[] }>
+> = {
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2]: {
+    audioUrl: 'https://quote.invalid/audio.mp3',
+    references: ['https://quote.invalid/portrait.png'],
+  },
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: {
+    references: ['https://quote.invalid/start-image.png'],
+  },
+  [MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST]: {
+    references: ['https://quote.invalid/start-image.png'],
+  },
+};
+
 function unavailableQuote(
   unavailableReason: AgentGenerationQuoteUnavailableReason,
   modelKey: string | null = null,
+  unavailableDetail?: string,
 ): AgentGenerationQuote {
-  return { credits: null, isAvailable: false, modelKey, unavailableReason };
+  return {
+    credits: null,
+    isAvailable: false,
+    modelKey,
+    ...(unavailableDetail ? { unavailableDetail } : {}),
+    unavailableReason,
+  };
 }
 
 function isPricingUnresolved(error: unknown): boolean {
@@ -253,15 +282,14 @@ export class AgentGenerationEstimateService {
     const isBatchSupported = isVideo
       ? Boolean(MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported)
       : isNativeImageBatch(modelKey, provider);
-    const flux = isFlux3ImageModel(modelKey);
-    if (
-      flux &&
-      (outputs !== 1 ||
-        !isFlux3Resolution(input.resolution ?? '1k') ||
-        input.quality !== undefined)
-    )
+    const fluxSettingError = isFlux3ImageModel(modelKey)
+      ? this.fluxSettingError(input, outputs)
+      : undefined;
+    if (fluxSettingError)
       return unavailableQuote(
         AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
+        null,
+        fluxSettingError,
       );
     const quote = await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
       ...dimensions,
@@ -284,6 +312,20 @@ export class AgentGenerationEstimateService {
       : unavailableQuote(
           AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
         );
+  }
+
+  /** FLUX.3 admits one output, a native resolution and no quality tier. */
+  private fluxSettingError(
+    input: AgentGenerationQuoteInput,
+    outputs: number,
+  ): string | undefined {
+    if (outputs !== 1)
+      return 'FLUX.3 returns one image per request; set outputs to 1.';
+    if (!isFlux3Resolution(input.resolution ?? '1k'))
+      return `FLUX.3 resolution must be one of ${FLUX_3_RESOLUTIONS.join(', ')} (lower case).`;
+    if (input.quality !== undefined)
+      return 'FLUX.3 has no quality setting; remove quality.';
+    return undefined;
   }
 
   /**
@@ -461,8 +503,12 @@ export class AgentGenerationEstimateService {
         ),
       };
     try {
+      const standIn = params.references?.length
+        ? undefined
+        : VIDEO_QUOTE_STAND_INS[modelKey];
       const built = await this.promptBuilderService.buildPrompt(modelKey, {
         ...params,
+        ...(standIn ?? {}),
         brandingMode: 'off',
         modelCategory: ModelCategory.VIDEO,
         prompt: 'Price estimate',

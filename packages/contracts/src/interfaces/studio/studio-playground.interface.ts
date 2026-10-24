@@ -388,5 +388,7 @@ export interface StudioGenerationCostEstimate {
   /** Avatar quotes only: the clip length a per-second hold is estimated at. */
   estimatedSeconds?: number;
   status: 'auto' | 'loading' | 'unavailable' | 'estimated';
+  /** The setting that blocked the quote, when the server names one. */
+  unavailableDetail?: string;
   unavailableReason?: AgentGenerationQuoteUnavailableReason;
 }

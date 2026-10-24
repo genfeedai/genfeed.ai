@@ -120,7 +120,10 @@ export class AgentMediaAssetGenerationService {
       ctx.generationSettings?.model ??
       (typeof params.model === 'string' && params.model.trim().length > 0
         ? params.model.trim()
-        : (ctx.generationModelOverride ?? undefined))
+        : (ctx.generationModelOverride ?? undefined)) ??
+      // An approved generation that was routed at consent runs the model the
+      // approval froze, so it is neither routed again nor priced differently.
+      ctx.approvedGenerationQuote?.model
     );
   }
 
@@ -170,11 +173,7 @@ export class AgentMediaAssetGenerationService {
       ctx,
       explicitReferences: params.references,
       handles: params.characterHandles,
-      modelKey:
-        ctx.generationSettings?.model ??
-        (typeof params.model === 'string' ? params.model : undefined) ??
-        ctx.generationModelOverride ??
-        undefined,
+      modelKey: this.readRequestedModel(ctx, params),
       personasService: this.personasService,
     });
     if (resolvedReferences.error) {
@@ -307,12 +306,7 @@ export class AgentMediaAssetGenerationService {
         : {}),
       ...(input.references.length > 0 ? { references: input.references } : {}),
     };
-    const requestedModel =
-      input.ctx.generationSettings?.model ??
-      (typeof input.params.model === 'string' &&
-      input.params.model.trim().length > 0
-        ? input.params.model.trim()
-        : input.ctx.generationModelOverride);
+    const requestedModel = this.readRequestedModel(input.ctx, input.params);
     const resolution =
       input.ctx.generationSettings?.resolution ?? input.params.resolution;
     const aspectRatio =
