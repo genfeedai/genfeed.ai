@@ -220,7 +220,10 @@ describe('generation quote settings (#8010)', () => {
 
     it('quotes the default request in the model lower-case tier', async () => {
       row = sheetRow(FLUX_3);
-      const result = await cost.execute({ modelKey: FLUX_3, type: 'image' }, ctx);
+      const result = await cost.execute(
+        { modelKey: FLUX_3, type: 'image' },
+        ctx,
+      );
       expect(estimateOf(result)).toMatchObject({ status: 'estimated' });
       expect(estimateOf(result).credits).toBe(
         (await image(FLUX_3, '1k')).credits,
@@ -232,7 +235,8 @@ describe('generation quote settings (#8010)', () => {
       expect(await image(FLUX_3, '1k', 2)).toMatchObject({
         isAvailable: false,
         unavailableDetail: expect.stringContaining('outputs to 1'),
-        unavailableReason: AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
+        unavailableReason:
+          AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
       });
       const result = await cost.execute(
         { modelKey: FLUX_3, outputs: 2, resolution: '1k', type: 'image' },
@@ -299,7 +303,11 @@ describe('generation quote settings (#8010)', () => {
       await expect(
         pricing.prepare(
           'generate',
-          { imageUrl: 'https://cdn.example.com/a.jpg', model: 'm', type: 'video' },
+          {
+            imageUrl: 'https://cdn.example.com/a.jpg',
+            model: 'm',
+            type: 'video',
+          },
           ctx,
         ),
       ).rejects.toThrow(/Video with reference media/);
