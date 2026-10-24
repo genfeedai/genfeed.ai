@@ -1,9 +1,9 @@
 import {
   matchOrphanVariant,
   readDispatchSuccesses,
-  readRecord,
   readVariantCredits,
   requiredNumber,
+  requiredRecord,
   requiredString,
   runtimeOf,
 } from '@api/collections/content-runs/services/brand-remix-run-execution.helpers';
@@ -57,8 +57,8 @@ describe('remix workflow input adapters', () => {
   it.each([undefined, null, [], true, 12, 'record'])(
     'rejects a non-record input %j with the existing conflict',
     (value) => {
-      expect(() => readRecord(value)).toThrow(ConflictException);
-      expect(() => readRecord(value)).toThrow(
+      expect(() => requiredRecord(value)).toThrow(ConflictException);
+      expect(() => requiredRecord(value)).toThrow(
         'Brand remix workflow requires an object.',
       );
     },
@@ -66,7 +66,7 @@ describe('remix workflow input adapters', () => {
 
   it('preserves record identity and string/finite-number input semantics', () => {
     const record = { organizationId: ' org-fixture ', expectedRevision: 0 };
-    expect(readRecord(record)).toBe(record);
+    expect(requiredRecord(record)).toBe(record);
     expect(requiredString(record.organizationId, 'organizationId')).toBe(
       'org-fixture',
     );

@@ -9,9 +9,9 @@ import {
   type BrandRemixVariantCredit,
   matchOrphanVariant,
   readDispatchSuccesses,
-  readRecord,
   readVariantCredits,
   requiredNumber,
+  requiredRecord,
   requiredString,
   runtimeOf,
 } from '@api/collections/content-runs/services/brand-remix-run-execution.helpers';
@@ -209,7 +209,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   private async claimAction(
     request: SystemWorkflowActionRequest,
   ): Promise<BrandRemixGenerateState> {
-    const payload = readRecord(request.input.request);
+    const payload = requiredRecord(request.input.request);
     const organizationId = requiredString(
       payload.organizationId,
       'organizationId',
@@ -283,7 +283,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   private resolveVariantCreditsAction(
     request: SystemWorkflowActionRequest,
   ): Promise<BrandRemixVariantCredit> {
-    const item = readRecord(request.input.item) as BrandRemixVariantItem;
+    const item = requiredRecord(request.input.item) as BrandRemixVariantItem;
     const { request: httpRequest } = runtimeOf(request);
     return this.dispatch.resolveVariantCredits({
       avatarByokBypass: item.avatarByokBypass,
@@ -361,7 +361,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
   private async dispatchVariantAction(
     request: SystemWorkflowActionRequest,
   ): Promise<{ success: boolean; variantId: string }> {
-    const item = readRecord(request.input.item) as BrandRemixVariantItem;
+    const item = requiredRecord(request.input.item) as BrandRemixVariantItem;
     const runtime = runtimeOf(request);
     const generationUser = { ...runtime.user, brandId: item.brandId };
     if (item.config.draft.output.kind === 'copy') {

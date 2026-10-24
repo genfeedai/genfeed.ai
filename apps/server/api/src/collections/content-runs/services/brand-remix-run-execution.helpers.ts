@@ -30,7 +30,7 @@ export function runtimeOf(
   return runtime;
 }
 
-export function readRecord(value: unknown): Record<string, unknown> {
+export function requiredRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new ConflictException('Brand remix workflow requires an object.');
   }
