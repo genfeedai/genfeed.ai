@@ -4,7 +4,7 @@ import { signedCreditUsage } from './credit-usage.util';
 
 interface CycleLedgerEntry {
   amount: number;
-  balanceAfter?: number;
+  balanceAfter?: number | null;
   category?: string;
   referenceType?: string | null;
 }
