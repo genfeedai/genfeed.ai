@@ -32,7 +32,6 @@
   "disconnectAccountDescription": "{account} stops publishing for this brand. Other accounts on {platform} are untouched, and you can reconnect it later.",
   "disconnectNamed": "Disconnect {account}",
   "empty": "No social accounts connected yet.",
-  "emptyAccountsDescription": "Connect a platform to start publishing from this brand.",
   "emptyAccountsTitle": "No accounts connected yet",
   "expires": " · expires {time}",
   "health": {

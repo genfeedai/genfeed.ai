@@ -484,7 +484,6 @@ export default function WorkflowsPage() {
         <AppTable<SystemWorkflowCatalogEntry>
           label={translate('catalog.title')}
           ariaLabel={translate('catalog.title')}
-          description={translate('catalog.description')}
           items={catalog}
           columns={catalogColumns}
           isLoading={isLoading}
@@ -503,7 +502,6 @@ export default function WorkflowsPage() {
         <AppTable<Workflow>
           label={translate('listTitle')}
           ariaLabel={translate('listTitle')}
-          description={translate('listDescription')}
           items={workflows}
           columns={workflowColumns}
           actions={workflowActions}

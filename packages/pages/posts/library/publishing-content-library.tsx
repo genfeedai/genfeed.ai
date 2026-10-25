@@ -667,20 +667,11 @@ export default function PublishingContentLibrary() {
   }, [isFetching, setIsRefreshing]);
 
   const emptyState = error ? (
-    <CardEmptyContent
-      icon={Files}
-      label="Posts unavailable"
-      description="Refresh to try loading posts, articles, and newsletters again."
-    />
+    <CardEmptyContent icon={Files} label="Posts unavailable" />
   ) : (
     <CardEmptyContent
       icon={Files}
       label={hasActiveFilters ? 'No matching posts' : 'No posts yet'}
-      description={
-        hasActiveFilters
-          ? 'Try a different type, channel, lifecycle status, or search.'
-          : 'Posts, articles, and newsletters will appear here as you create them.'
-      }
     />
   );
 

@@ -205,7 +205,6 @@ export default function AccountsTable({
               <Plus /> {translate('connectAccount')}
             </Button>
           }
-          description={translate('emptyAccountsDescription')}
           icon={Link2}
           label={translate('emptyAccountsTitle')}
         />

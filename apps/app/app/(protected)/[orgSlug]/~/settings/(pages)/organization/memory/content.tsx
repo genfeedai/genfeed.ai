@@ -252,7 +252,6 @@ export default function SettingsOrganizationMemoryPage() {
             </Link>
           </Button>
         }
-        description={translate('billedDescription')}
         icon={Lock}
         label={translate('billedTitle')}
       />
@@ -292,7 +291,6 @@ export default function SettingsOrganizationMemoryPage() {
             : []
         }
         columns={columns}
-        description={translate('description')}
         emptyLabel={translate('empty')}
         error={
           loadError

@@ -579,7 +579,6 @@ export default function KnowledgeSourcesList({
             },
           ]}
           columns={columns}
-          emptyDescription={translate('emptyDescription')}
           emptyLabel={translate('emptyTitle')}
           getRowKey={(row) => row.source.id}
           isLoading={isLoading}

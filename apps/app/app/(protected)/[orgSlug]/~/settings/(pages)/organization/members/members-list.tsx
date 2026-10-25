@@ -392,7 +392,6 @@ function MembersListContent() {
               </Link>
             </Button>
           }
-          description={`Your current plan is a solo workspace. Upgrade to ${upgradeTierLabel} to invite members and collaborate with your team.`}
           icon={Lock}
           label={`Unlock team members with ${upgradeTierLabel}`}
         />
@@ -416,7 +415,6 @@ function MembersListContent() {
               isLoading={invitations === null}
               getRowKey={(item, index) => item.id ?? `invitation-${index}`}
               label="Invitations"
-              description="Track delivery, acceptance, expiry, and recovery for organization invitations."
               emptyLabel="No invitations"
             />
           ) : null}

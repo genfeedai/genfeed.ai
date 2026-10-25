@@ -286,11 +286,6 @@ describe('DiscoveryTrendTurnover', () => {
 
     expect(await screen.findByText('No trend turnover yet')).toBeVisible();
     expect(
-      screen.getByText(
-        /counts the trends that appeared and expired in the last 30 days/,
-      ),
-    ).toBeVisible();
-    expect(
       screen.getByRole('link', { name: /Check source health/ }),
     ).toHaveAttribute('href', '/acme/brand/discovery/trends');
     expect(screen.queryByTestId('trend-flow-chart')).not.toBeInTheDocument();

@@ -481,11 +481,6 @@ describe('PublishingContentLibrary', () => {
 
     expect(screen.getByText('0 posts')).toBeVisible();
     expect(screen.getByText('No matching posts')).toBeVisible();
-    expect(
-      screen.getByText(
-        'Try a different type, channel, lifecycle status, or search.',
-      ),
-    ).toBeVisible();
   });
 
   it('shows a distinct empty state when the library has no content', () => {
@@ -498,10 +493,5 @@ describe('PublishingContentLibrary', () => {
     render(<PublishingContentLibrary />);
 
     expect(screen.getByText('No posts yet')).toBeVisible();
-    expect(
-      screen.getByText(
-        'Posts, articles, and newsletters will appear here as you create them.',
-      ),
-    ).toBeVisible();
   });
 });

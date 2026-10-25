@@ -148,7 +148,6 @@ export default function TrainingsList({
             </Link>
           </Button>
         }
-        description={`Custom model training is included on paid plans. Upgrade to ${TRAINING_UPGRADE_TIER_LABEL} to train brand models on your assets.`}
         icon={Lock}
         label={`Unlock trainings with ${TRAINING_UPGRADE_TIER_LABEL}`}
       />
@@ -186,7 +185,6 @@ export default function TrainingsList({
           scope !== PageScope.SUPERADMIN ? (
             <EmptyState
               title="No trainings yet"
-              description="Train a custom AI model on your brand assets to generate on-brand content."
               icon={Cpu}
               action={{
                 label: 'Create Training',

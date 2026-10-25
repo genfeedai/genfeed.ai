@@ -26,14 +26,11 @@ export function CardEmptyContent({
   icon: Icon,
   iconClassName,
   label,
-  description,
   action,
   actions,
   className,
   size = CardEmptySize.DEFAULT,
 }: CardEmptyProps) {
-  const hasAction = Boolean(action || actions);
-
   return (
     <div
       aria-live="polite"
@@ -55,17 +52,6 @@ export function CardEmptyContent({
       )}
 
       {label && <h2 className={cn(SIZE_CLASSES[size].title)}>{label}</h2>}
-
-      {description && (
-        <p
-          className={cn(
-            'max-w-xs text-xs leading-5 text-muted-foreground',
-            hasAction && 'mb-3',
-          )}
-        >
-          {description}
-        </p>
-      )}
 
       {actions
         ? actions
@@ -93,7 +79,6 @@ export default function CardEmpty({
   icon,
   iconClassName,
   label,
-  description,
   action,
   actions,
   className,
@@ -111,7 +96,6 @@ export default function CardEmpty({
         icon={icon}
         iconClassName={iconClassName}
         label={label}
-        description={description}
         action={action}
         actions={actions}
         className="min-h-[12rem] w-full"

@@ -33,17 +33,10 @@ describe('PostDetailAnalytics', () => {
     expect(screen.getByText('No analytics found')).toBeInTheDocument();
   });
 
-  it('renders a custom empty state label and description', () => {
-    render(
-      <PostDetailAnalytics
-        stats={[]}
-        emptyStateLabel="Nothing yet"
-        emptyStateDescription="Come back after publishing."
-      />,
-    );
+  it('renders a custom empty state label', () => {
+    render(<PostDetailAnalytics stats={[]} emptyStateLabel="Nothing yet" />);
 
     expect(screen.getByText('Nothing yet')).toBeInTheDocument();
-    expect(screen.getByText('Come back after publishing.')).toBeInTheDocument();
   });
 
   it('renders nothing when empty and the empty state is suppressed', () => {

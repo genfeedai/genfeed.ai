@@ -15,7 +15,6 @@ export function EmptyState({
   action,
   icon,
   iconClassName,
-  description,
   className,
   size,
 }: EmptyStateProps) {
@@ -24,7 +23,6 @@ export function EmptyState({
       icon={icon}
       iconClassName={iconClassName}
       label={title}
-      description={description}
       action={action}
       className={className}
       size={size}
@@ -42,7 +40,6 @@ export function EmptyStateCard({
   action,
   icon,
   iconClassName,
-  description,
   className,
   size,
 }: EmptyStateProps) {
@@ -51,7 +48,6 @@ export function EmptyStateCard({
       icon={icon}
       iconClassName={iconClassName}
       label={title}
-      description={description}
       action={action}
       size={size}
       className={className}

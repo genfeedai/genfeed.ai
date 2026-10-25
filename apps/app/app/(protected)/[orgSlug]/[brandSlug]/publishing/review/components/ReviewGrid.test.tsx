@@ -116,9 +116,6 @@ describe('ReviewGrid', () => {
 
     expect(screen.getByTestId('table-empty')).toBeInTheDocument();
     expect(screen.getAllByText('No items match these filters')).toHaveLength(1);
-    expect(
-      screen.getByText('Try All statuses, or pick another batch.'),
-    ).toBeInTheDocument();
     expect(screen.queryByText('No items in this view')).not.toBeInTheDocument();
   });
 

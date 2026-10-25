@@ -21,11 +21,6 @@ describe('EmptyWorkflowState', () => {
 
     expect(screen.getByText('No workflows yet')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Create your first workflow for a fixed, repeatable automation pipeline.',
-      ),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole('link', { name: 'Browse Templates' }),
     ).toHaveAttribute(
       'href',

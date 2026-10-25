@@ -7,12 +7,11 @@ import { describe, expect, it, vi } from 'vitest';
 const emptyStateComponents = [EmptyState, EmptyStateCard];
 
 describe.each(emptyStateComponents)('EmptyState %s', (Empty) => {
-  it('describes the empty result and runs its recovery action', () => {
+  it('names the empty result and runs its recovery action', () => {
     const onClick = vi.fn();
     render(
       <Empty
         title="No saved drafts"
-        description="Create a draft to get started."
         action={{ label: 'Create draft', onClick }}
         size={CardEmptySize.LG}
       />,
@@ -20,7 +19,6 @@ describe.each(emptyStateComponents)('EmptyState %s', (Empty) => {
     expect(
       screen.getByRole('heading', { name: 'No saved drafts' }),
     ).toHaveClass('text-base');
-    expect(screen.getByText('Create a draft to get started.')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Create draft' }));
     expect(onClick).toHaveBeenCalledExactlyOnceWith(expect.anything());
   });

@@ -132,7 +132,6 @@ export default function DiscoveryTrendTurnover() {
         <CardEmpty
           icon={Repeat}
           label={translate('emptyState.title')}
-          description={translate('emptyState.description', { days: period })}
           actions={
             <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
               <Button

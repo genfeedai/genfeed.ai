@@ -194,11 +194,6 @@ export default function ContentRunListPage() {
                   ? translate('emptyTitle')
                   : translate('emptyFilteredTitle')
               }
-              description={
-                status === ALL_STATUSES
-                  ? translate('emptyDescription')
-                  : undefined
-              }
               action={
                 status !== ALL_STATUSES
                   ? {

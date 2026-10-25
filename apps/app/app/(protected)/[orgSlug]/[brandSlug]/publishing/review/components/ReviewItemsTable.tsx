@@ -270,7 +270,6 @@ export default function ReviewItemsTable({
     <AppTable<ITurboRunItem>
       actions={rowActions}
       columns={columns}
-      emptyDescription={translateReview('table.emptyDescription')}
       emptyLabel={translateReview('table.emptyTitle')}
       getItemId={(item) => item.id}
       getRowClassName={(item) =>

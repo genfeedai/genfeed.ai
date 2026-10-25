@@ -164,12 +164,7 @@ const PostsGrid = memo(
     const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
     if (posts.length === 0) {
-      return (
-        <CardEmpty
-          label={EMPTY_STATES.POSTS_FOUND}
-          description="Create and schedule posts to see them here."
-        />
-      );
+      return <CardEmpty label={EMPTY_STATES.POSTS_FOUND} />;
     }
 
     return (

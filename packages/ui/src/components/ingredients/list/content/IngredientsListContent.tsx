@@ -796,13 +796,7 @@ export default function IngredientsListContent({
       // Mirror the media grid and say so.
       if (filteredIngredients.length === 0) {
         const noun = categoryToString(singularType);
-        return (
-          <CardEmptyContent
-            label={`No ${noun} yet`}
-            description={`Generate or upload ${noun} to fill this list.`}
-            className="w-full"
-          />
-        );
+        return <CardEmptyContent label={`No ${noun} yet`} className="w-full" />;
       }
 
       return (
@@ -828,11 +822,6 @@ export default function IngredientsListContent({
           {mediaItems.length > 0 || nonVisualIngredients.length === 0 ? (
             <IngredientsMediaGrid
               emptyLabel={`No ${mediaNoun} yet`}
-              emptyDescription={
-                isPlaygroundAvailable
-                  ? `Prompt something in the Playground and your ${mediaNoun} will show up here.`
-                  : `Generate or upload ${mediaNoun} to fill this list.`
-              }
               emptyActions={
                 isPlaygroundAvailable ? (
                   <Button asChild variant={ButtonVariant.SECONDARY}>
@@ -1014,7 +1003,6 @@ export default function IngredientsListContent({
       ) : hasFilteredEmptyState ? (
         <CardEmptyContent
           label={EMPTY_STATES.RESULTS_FOUND}
-          description="Try adjusting your filters or search terms."
           action={{
             label: 'Clear Filters',
             onClick: onClearFilters,

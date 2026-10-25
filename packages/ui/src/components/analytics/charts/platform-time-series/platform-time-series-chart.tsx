@@ -178,11 +178,6 @@ export function PlatformTimeSeriesChart({
                 ? 'No performance trends yet'
                 : 'No connected platforms yet'
             }
-            description={
-              hasConnectedPlatforms
-                ? 'Publish content to build a performance trend for this date range.'
-                : 'Connect at least one channel to start tracking performance over time.'
-            }
           />
         ) : null}
 

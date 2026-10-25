@@ -75,18 +75,13 @@ export default function TrainingImagesTab({
       <CardEmptyContent
         icon={LucideImage}
         label="Generated assets failed to load"
-        description="Refresh the page or try again in a moment."
       />
     );
   }
 
   if (!hasTrainingModel) {
     return (
-      <CardEmptyContent
-        icon={LucideImage}
-        label="Training model unavailable"
-        description="Generated assets can load once this training has a model."
-      />
+      <CardEmptyContent icon={LucideImage} label="Training model unavailable" />
     );
   }
 

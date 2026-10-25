@@ -283,7 +283,6 @@ export default function CharactersTable({
       columns={columns}
       emptyState={
         <CardEmptyContent
-          description={translate('empty')}
           icon={UserRound}
           label={translate('list.title')}
           actions={

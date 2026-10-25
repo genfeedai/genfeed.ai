@@ -71,11 +71,7 @@ interface TableBaseProps<T> {
   label?: string;
   /** Accessible name for the `<table>` element when no visible `label` is shown. */
   ariaLabel?: string;
-  /** Optional supporting line under `label`. */
-  description?: string;
   emptyLabel?: string;
-  /** Optional supporting line under `emptyLabel`. Omit for title-only empties. */
-  emptyDescription?: string;
   emptyState?: ReactNode;
 
   // Selection support

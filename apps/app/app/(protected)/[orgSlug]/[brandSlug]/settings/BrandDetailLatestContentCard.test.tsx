@@ -11,7 +11,6 @@ const props = {
     </Link>
   ),
   emptyTitle: 'Nothing here',
-  emptyDescription: 'Create content to begin.',
   createLabel: 'Create content',
   createHref: 'https://app.example.test/create',
 };
@@ -35,18 +34,13 @@ describe('BrandDetailLatestContentCard', () => {
         'h-8 px-2.5 bg-tertiary border border-border',
       );
       const title = screen.getByText('Nothing here');
-      const description = screen.getByText('Create content to begin.');
       expect(title.tagName).toBe('P');
-      expect(description.tagName).toBe('P');
       expect(title).toHaveClass('text-sm font-medium text-foreground/70');
-      expect(description).toHaveClass(
-        'max-w-xs text-xs leading-5 text-muted-foreground',
-      );
       const empty = title.parentElement;
       expect(empty).toHaveClass(
         'flex flex-col items-center justify-center gap-1 px-4 py-8 text-center',
       );
-      expect(empty?.children).toHaveLength(3);
+      expect(empty?.children).toHaveLength(2);
       const create = screen.getByRole('link', { name: 'Create content' });
       expect(create).toHaveAttribute('href', 'https://app.example.test/create');
       expect(create).toHaveClass(
@@ -79,9 +73,6 @@ describe('BrandDetailLatestContentCard', () => {
       '/all?type=example',
     );
     expect(screen.queryByText('Nothing here')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Create content to begin.'),
-    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Create content' }),
     ).not.toBeInTheDocument();

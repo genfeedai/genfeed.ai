@@ -18,7 +18,6 @@ describe('CardEmpty', () => {
     render(
       <CardEmpty
         label="No tasks"
-        description="Tasks will appear here."
         action={{
           label: 'Create task',
           onClick,
@@ -50,30 +49,13 @@ describe('CardEmpty', () => {
   });
 
   it('should apply correct styles and classes', () => {
-    const { rerender } = render(
-      <CardEmpty label="No tasks" description="Tasks will appear here." />,
-    );
+    render(<CardEmpty label="No tasks" />);
 
     expect(screen.getByTestId('card-empty')).toHaveClass(
       'rounded-card',
       'bg-card',
       'shadow-border',
     );
-    expect(screen.getByText('Tasks will appear here.')).not.toHaveClass('mb-3');
-
-    rerender(
-      <CardEmpty
-        label="No tasks"
-        description="Tasks will appear here."
-        action={{
-          label: 'Create task',
-          onClick: () => undefined,
-          variant: ButtonVariant.DEFAULT,
-        }}
-      />,
-    );
-
-    expect(screen.getByText('Tasks will appear here.')).toHaveClass('mb-3');
   });
 
   it('applies the large size title class on CardEmptyContent', () => {

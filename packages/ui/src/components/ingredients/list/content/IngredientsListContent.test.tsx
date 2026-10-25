@@ -163,14 +163,12 @@ vi.mock('next/dynamic', async () => {
 vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   default: ({
     emptyActions,
-    emptyDescription,
     items,
     onClickIngredient,
     onSeeDetails,
     onReviewUpdated,
   }: {
     emptyActions?: ReactNode;
-    emptyDescription?: string;
     items: IIngredient[];
     onClickIngredient: (ingredient: IIngredient) => void;
     onSeeDetails: (ingredient: IIngredient) => void;
@@ -178,10 +176,7 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   }) => (
     <>
       {items.length === 0 ? (
-        <div data-testid="media-grid-empty">
-          <p>{emptyDescription}</p>
-          {emptyActions}
-        </div>
+        <div data-testid="media-grid-empty">{emptyActions}</div>
       ) : null}
       <button
         data-testid="media-grid-item"
@@ -563,11 +558,6 @@ describe('IngredientsListContent', () => {
     });
 
     expect(
-      screen.getByText(
-        'Prompt something in the Playground and your images will show up here.',
-      ),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole('link', { name: 'Open Playground' }),
     ).toBeInTheDocument();
   });
@@ -584,9 +574,7 @@ describe('IngredientsListContent', () => {
       type: 'images',
     });
 
-    expect(
-      screen.getByText('Generate or upload images to fill this list.'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('media-grid-empty')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Open Playground' })).toBeNull();
   });
 

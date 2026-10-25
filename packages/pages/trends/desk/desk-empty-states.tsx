@@ -71,7 +71,6 @@ export function DeskEmptyState({
       <EmptyStateCard
         icon={TrendingUp}
         title="No matching signals"
-        description="Nothing on the Desk matches that search or filter combination."
         action={{
           label: 'Clear search',
           onClick: onClearSearch,
@@ -115,7 +114,6 @@ export function DeskEmptyState({
           />
         </div>
       }
-      description="No saved observed posts are available for this brand yet. Coverage depends on connected accounts, followed creators, and trend source refreshes."
       icon={TrendingUp}
       label="No saved posts yet"
     />

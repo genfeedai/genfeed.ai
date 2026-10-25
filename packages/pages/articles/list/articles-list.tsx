@@ -199,7 +199,6 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
           <CardEmptyContent
             icon={Newspaper}
             label={translate('emptyTitle')}
-            description={translate('emptyDescription')}
             action={{
               label: translate('create'),
               onClick: openCreateArticleModal,

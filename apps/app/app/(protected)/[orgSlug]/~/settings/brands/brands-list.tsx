@@ -364,7 +364,6 @@ function BrandsListContent() {
         emptyState={
           <EmptyState
             title="No brands yet"
-            description="Create a brand to manage settings, platforms, and publishing identity."
             icon={Building2}
             action={{
               label: 'Add Brand',

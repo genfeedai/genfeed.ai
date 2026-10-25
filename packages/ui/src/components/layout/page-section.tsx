@@ -5,8 +5,6 @@ export interface PageSectionProps
   extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   /** Section title */
   title?: ReactNode;
-  /** Section description */
-  description?: ReactNode;
   /** Right-side actions (buttons, etc.) */
   actions?: ReactNode;
   ref?: React.Ref<HTMLElement>;
@@ -17,20 +15,16 @@ function PageSection({
   actions,
   children,
   className,
-  description,
   title,
   ...props
 }: PageSectionProps) {
   return (
     <section className={cn('space-y-4', className)} ref={ref} {...props}>
-      {(title || description || actions) && (
+      {(title || actions) && (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             {title && (
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-            )}
-            {description && (
-              <p className="text-sm text-foreground/60">{description}</p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}

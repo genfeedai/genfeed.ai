@@ -657,7 +657,6 @@ export default function StoryboardPlanEditor({
             <CardEmptyContent
               icon={Clapperboard}
               label={translateDraft('emptyTitle')}
-              description={translateDraft('emptyDescription')}
               actions={
                 <div className="mt-1 flex flex-wrap justify-center gap-2">
                   {sourceBrief && onDraftFromBrief ? (

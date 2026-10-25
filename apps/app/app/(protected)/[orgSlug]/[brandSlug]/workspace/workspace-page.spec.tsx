@@ -737,18 +737,13 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Published recap')).toBeInTheDocument();
   });
 
-  it('explains what the empty recent inbox will contain', async () => {
+  it('shows the empty recent inbox', async () => {
     listMock.mockResolvedValue([]);
 
     render(<WorkspacePageContent section="inbox" defaultInboxView="recent" />);
 
     expect(
       await screen.findByText('No inbox activity yet'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
-      ),
     ).toBeInTheDocument();
   });
 

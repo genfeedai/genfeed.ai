@@ -229,9 +229,6 @@ describe('MembersList seat limit', () => {
 
     expect(screen.getByText('Unlock team members with Scale')).toBeVisible();
     expect(
-      screen.getByText(/Your current plan is a solo workspace/i),
-    ).toBeVisible();
-    expect(
       screen.getByRole('link', { name: 'Upgrade to Scale' }),
     ).toHaveAttribute('href', '/org-123/~/settings/subscription');
     expect(

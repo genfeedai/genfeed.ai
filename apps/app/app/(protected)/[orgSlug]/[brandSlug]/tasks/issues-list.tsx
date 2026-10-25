@@ -462,11 +462,6 @@ export default function IssuesList() {
           label={
             isFiltered ? translate('noMatchingTasks') : translate('noTasksYet')
           }
-          description={
-            isFiltered
-              ? translate('noMatchingTasksDescription')
-              : translate('noTasksYetDescription')
-          }
           action={
             isStartEmpty
               ? {

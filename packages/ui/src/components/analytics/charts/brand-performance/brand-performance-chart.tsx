@@ -131,7 +131,6 @@ export function BrandPerformanceChart({
             <CardEmptyContent
               className="absolute inset-0 py-0"
               label="No brand performance yet"
-              description="Publish posts from a brand to see engagement, posts, and views ranked here."
             />
           ) : null}
 

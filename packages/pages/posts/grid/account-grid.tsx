@@ -368,12 +368,7 @@ export default function AccountGrid({
   }
 
   if (lanes.length === 0) {
-    return (
-      <CardEmpty
-        description={translate('emptyDescription')}
-        label={translate('emptyLabel')}
-      />
-    );
+    return <CardEmpty label={translate('emptyLabel')} />;
   }
 
   return (

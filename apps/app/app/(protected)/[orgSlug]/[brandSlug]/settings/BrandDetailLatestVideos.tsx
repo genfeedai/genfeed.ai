@@ -24,7 +24,6 @@ export default function BrandDetailLatestVideos({
         </Link>
       }
       emptyTitle="No videos yet"
-      emptyDescription="Generate a video for this brand to populate this strip."
       createLabel="Create a video"
       createHref={createHref}
     >

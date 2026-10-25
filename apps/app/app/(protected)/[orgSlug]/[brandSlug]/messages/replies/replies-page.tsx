@@ -286,7 +286,6 @@ export default function RepliesPage() {
       <Container label="Replies">
         <EmptyState
           title="Choose a brand to review replies"
-          description="Replies belong to a brand's connected social accounts. Select a brand in the top bar to open its inbox."
           icon={MessageCircleReply}
           action={{
             label: 'Manage brands',

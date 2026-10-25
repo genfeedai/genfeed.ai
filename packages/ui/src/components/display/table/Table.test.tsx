@@ -155,7 +155,6 @@ describe('Table', () => {
         items={[]}
         columns={[{ header: 'Name', key: 'name' }]}
         emptyLabel="No unread items"
-        emptyDescription="Items waiting for your attention will show up here."
       />,
     );
 

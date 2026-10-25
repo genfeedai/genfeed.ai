@@ -11,7 +11,6 @@ export interface PostDetailAnalyticsProps {
   variant?: 'grid' | 'inline';
   showEmptyState?: boolean;
   emptyStateLabel?: string;
-  emptyStateDescription?: string;
 }
 
 /**
@@ -24,20 +23,13 @@ export default function PostDetailAnalytics({
   variant = 'grid',
   showEmptyState = true,
   emptyStateLabel = 'No analytics found',
-  emptyStateDescription = 'Analytics will appear once the post data is synced.',
 }: PostDetailAnalyticsProps) {
   if (stats.length === 0) {
     if (!showEmptyState) {
       return null;
     }
 
-    return (
-      <CardEmpty
-        label={emptyStateLabel}
-        description={emptyStateDescription}
-        className={className}
-      />
-    );
+    return <CardEmpty label={emptyStateLabel} className={className} />;
   }
 
   if (variant === 'inline') {

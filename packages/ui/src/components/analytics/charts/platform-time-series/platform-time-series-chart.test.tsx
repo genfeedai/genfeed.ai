@@ -170,11 +170,6 @@ describe('PlatformTimeSeriesChart', () => {
     it('shows empty message when data is empty array', () => {
       render(<PlatformTimeSeriesChart data={[]} />);
       expect(screen.getByText('No performance trends yet')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Publish content to build a performance trend for this date range.',
-        ),
-      ).toBeInTheDocument();
     });
 
     it('shows empty message when data is undefined', () => {
@@ -192,11 +187,6 @@ describe('PlatformTimeSeriesChart', () => {
 
       expect(
         screen.getByText('No connected platforms yet'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Connect at least one channel to start tracking performance over time.',
-        ),
       ).toBeInTheDocument();
       expect(
         screen.queryByTestId('responsive-container'),

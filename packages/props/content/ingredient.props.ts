@@ -27,8 +27,7 @@ export interface IngredientTimeGroupHeadingProps {
 export interface IngredientsMediaGridProps {
   /** Shown when `items` is empty. Omit when the caller renders its own empty state. */
   emptyLabel?: string;
-  emptyDescription?: string;
-  /** Optional call to action rendered under the empty-state description. */
+  /** Optional call to action rendered in the empty state. */
   emptyActions?: ReactNode;
   items: IIngredient[];
   isLoading: boolean;

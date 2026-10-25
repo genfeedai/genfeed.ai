@@ -439,7 +439,6 @@ export default function FollowingDeck({
               variant={ButtonVariant.SECONDARY}
             />
           }
-          description={translate('emptyDescription')}
           icon={AtSign}
           label={translate('emptyTitle')}
         />

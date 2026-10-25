@@ -10,7 +10,6 @@
     "unpinNamed": "Unpin {label} from Featured"
   },
   "catalog": {
-    "description": "Code-owned recipes every organization can install. Installing one copies it into that organization as an editable workflow; nothing is created automatically.",
     "empty": "No system workflows in the catalog",
     "loadError": "The system workflow catalog could not be loaded.",
     "status": {
@@ -47,7 +46,6 @@
     "title": "Featured",
     "unpinned": "Removed from Featured"
   },
-  "listDescription": "Workflows saved in the active organization, including installed copies of the catalog recipes.",
   "listTitle": "Workflows in this organization",
   "title": "Workflows",
   "totalLabel": "workflows",

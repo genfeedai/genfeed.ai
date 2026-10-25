@@ -446,7 +446,6 @@ export default function EditorProjectsPage() {
         <CardEmpty
           icon={Film}
           label={translate('emptyTitle')}
-          description={translate('emptyDescription')}
           actions={emptyProjectButton}
         />
       )}

@@ -132,7 +132,7 @@ describe('BrandDetailLatestArticles', () => {
   ] as const;
 
   it.each(emptyCases)(
-    'preserves guidance and exact navigation for %s input',
+    'preserves exact navigation for %s input',
     (_state, element) => {
       render(element);
       expect(
@@ -143,13 +143,6 @@ describe('BrandDetailLatestArticles', () => {
       expect(title).toHaveClass('text-sm font-medium text-foreground/70');
       expect(title.parentElement).toHaveClass(
         'flex flex-col items-center justify-center gap-1 px-4 py-8 text-center',
-      );
-      const description = screen.getByText(
-        'Draft an article for this brand to populate this strip.',
-      );
-      expect(description.tagName).toBe('P');
-      expect(description).toHaveClass(
-        'max-w-xs text-xs leading-5 text-muted-foreground',
       );
       expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
         'href',
@@ -233,11 +226,6 @@ describe('BrandDetailLatestArticles', () => {
       '/acme/moonrise/publishing/posts?type=article',
     );
     expect(screen.queryByText('No articles yet')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'Draft an article for this brand to populate this strip.',
-      ),
-    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Create an article' }),
     ).not.toBeInTheDocument();

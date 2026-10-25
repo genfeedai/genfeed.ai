@@ -69,7 +69,6 @@ export default function ContentPlansSection() {
           rowSidebar={rowSidebar}
           framed={false}
           emptyLabel={translate('emptyTitle')}
-          emptyDescription={translate('emptyDescription')}
         />
         {!isLoading && plans.length > 0 ? (
           <AutoPagination showTotal totalLabel="plans" />

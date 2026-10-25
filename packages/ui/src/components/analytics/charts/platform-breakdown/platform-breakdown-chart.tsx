@@ -98,7 +98,6 @@ export function PlatformBreakdownChart({
             <CardEmptyContent
               className="absolute inset-0 py-0"
               label="No platform distribution yet"
-              description="Connect channels and publish content to see how views split across platforms."
             />
           ) : null}
 

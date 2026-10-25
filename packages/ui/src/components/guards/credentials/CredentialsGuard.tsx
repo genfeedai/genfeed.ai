@@ -42,7 +42,6 @@ export default function CredentialsGuard({ children }: CredentialsGuardProps) {
           icon={Link}
           iconClassName="size-12"
           label="No Social Accounts Connected"
-          description="Connect a social media account to start creating and scheduling posts."
           size={CardEmptySize.LG}
           action={{
             label: 'Connect Account',

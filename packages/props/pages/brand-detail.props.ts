@@ -45,7 +45,6 @@ export interface BrandDetailLatestContentCardProps {
   label: string;
   viewAllLink: ReactNode;
   emptyTitle: string;
-  emptyDescription: string;
   createLabel: string;
   createHref: string;
   children: ReactNode;

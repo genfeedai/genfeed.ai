@@ -133,7 +133,6 @@ function OrganizationMetricStrip({
       <EmptyStateCard
         icon={Building2}
         title="No organization activity yet"
-        description="Create your first brand to start publishing content and tracking performance across your organization."
         action={{
           label: 'Create your first brand',
           onClick: () => router.push(APP_ROUTES.ONBOARDING.BRAND),

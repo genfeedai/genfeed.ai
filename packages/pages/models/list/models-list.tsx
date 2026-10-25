@@ -250,11 +250,6 @@ export default function ModelsList({
         emptyState={
           <EmptyState
             title={translate('noModelsFound')}
-            description={
-              searchTerm
-                ? translate('emptySearchHint')
-                : translate('emptyFilterHint')
-            }
             icon={Cpu}
             action={{
               label: searchTerm

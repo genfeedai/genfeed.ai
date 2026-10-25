@@ -8,7 +8,6 @@ export default function BrandDetailLatestContentCard({
   label,
   viewAllLink,
   emptyTitle,
-  emptyDescription,
   createLabel,
   createHref,
   children,
@@ -31,9 +30,6 @@ export default function BrandDetailLatestContentCard({
       {children ?? (
         <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
           <p className="text-sm font-medium text-foreground/70">{emptyTitle}</p>
-          <p className="max-w-xs text-xs leading-5 text-muted-foreground">
-            {emptyDescription}
-          </p>
           <Button
             asChild
             className="mt-2"

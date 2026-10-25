@@ -105,11 +105,6 @@ describe('IssuesList view controls', () => {
 
     expect(await screen.findByText('No tasks yet')).toBeVisible();
     expect(
-      screen.getByText(
-        'Create a task to start tracking work in this workspace.',
-      ),
-    ).toBeVisible();
-    expect(
       screen.getByRole('heading', { level: 1, name: 'Tasks' }),
     ).toHaveClass('sr-only');
 

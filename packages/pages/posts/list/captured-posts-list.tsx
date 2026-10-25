@@ -263,7 +263,6 @@ export default function CapturedPostsList({
               ),
           },
         ]}
-        emptyDescription={translate('empty.description')}
         emptyLabel={translate('empty.label')}
         error={
           error

@@ -28,14 +28,8 @@ const Checkbox = dynamic(
   { ssr: false },
 );
 
-function TableSectionHeading({
-  label,
-  description,
-}: {
-  label?: string;
-  description?: string;
-}) {
-  if (!label && !description) {
+function TableSectionHeading({ label }: { label?: string }) {
+  if (!label) {
     return null;
   }
 
@@ -45,9 +39,6 @@ function TableSectionHeading({
         <h2 className="truncate text-sm font-semibold text-foreground">
           {label}
         </h2>
-      ) : null}
-      {description ? (
-        <p className="text-xs text-foreground/55">{description}</p>
       ) : null}
     </div>
   );
@@ -128,9 +119,7 @@ export default function AppTable<T>({
   label,
   ariaLabel,
   scrollAriaLabel,
-  description,
   emptyLabel = EMPTY_STATES.DEFAULT,
-  emptyDescription,
   emptyState,
 
   selectable = false,
@@ -321,7 +310,7 @@ export default function AppTable<T>({
     // SkeletonTable already owns the card shell — do not wrap it again.
     return (
       <TableSectionWrapper label={label}>
-        <TableSectionHeading label={label} description={description} />
+        <TableSectionHeading label={label} />
         <SkeletonTable
           className={framed ? undefined : 'rounded-none border-0 shadow-none'}
           rows={Math.max(items?.length ?? 0, 6)}
@@ -334,7 +323,7 @@ export default function AppTable<T>({
   if (error && items.length === 0) {
     return (
       <TableSectionWrapper label={label}>
-        <TableSectionHeading label={label} description={description} />
+        <TableSectionHeading label={label} />
         <div
           className={cn(
             'relative w-full overflow-hidden bg-card',
@@ -356,7 +345,7 @@ export default function AppTable<T>({
   if (items?.length === 0) {
     return (
       <TableSectionWrapper label={label}>
-        <TableSectionHeading label={label} description={description} />
+        <TableSectionHeading label={label} />
         <div
           className={cn(
             'relative w-full overflow-hidden bg-card',
@@ -369,7 +358,6 @@ export default function AppTable<T>({
           {emptyState ?? (
             <CardEmptyContent
               label={emptyLabel}
-              description={emptyDescription}
               className="min-h-[12rem] w-full"
             />
           )}
@@ -380,7 +368,7 @@ export default function AppTable<T>({
 
   return (
     <TableSectionWrapper label={label}>
-      <TableSectionHeading label={label} description={description} />
+      <TableSectionHeading label={label} />
       <div
         className={cn(
           'relative bg-card',

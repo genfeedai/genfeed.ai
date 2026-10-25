@@ -111,7 +111,6 @@ export default function PlatformHomePage({
         <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
           <EmptyStateCard
             title={translate('empty.title', { platform: platformLabel })}
-            description={translate('empty.description')}
             icon={Plug}
             action={{
               label: translate('empty.connect', { platform: platformLabel }),

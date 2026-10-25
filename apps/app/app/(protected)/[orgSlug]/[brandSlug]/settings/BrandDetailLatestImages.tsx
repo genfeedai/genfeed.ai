@@ -24,7 +24,6 @@ export default function BrandDetailLatestImages({
         </Link>
       }
       emptyTitle="No images yet"
-      emptyDescription="Generate an image for this brand to populate this strip."
       createLabel="Create an image"
       createHref={createHref}
     >

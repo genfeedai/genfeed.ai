@@ -470,7 +470,6 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
               isLoading={entriesQuery.isLoading}
               getRowKey={(row) => `${row.entryType}:${row.id}`}
               emptyLabel={translate('tables.emptyLabel')}
-              emptyDescription={translate('tables.ledger.emptyDescription')}
             />
             <Pagination
               currentPage={page}

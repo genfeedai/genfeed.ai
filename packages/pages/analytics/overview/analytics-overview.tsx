@@ -126,7 +126,6 @@ export default function AnalyticsOverview({
       <EmptyStateCard
         icon={ChartColumn}
         title={translate('emptyTitle')}
-        description={translate('emptyDescription')}
         action={{
           label: translate('connectAccounts'),
           onClick: () => router.push(connectAccountsHref),

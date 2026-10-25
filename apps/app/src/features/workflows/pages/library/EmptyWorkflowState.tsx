@@ -18,7 +18,6 @@ export default function EmptyWorkflowState() {
     <CardEmpty
       icon={Sparkles}
       label={translate('emptyTitle')}
-      description={translate('emptyDescription')}
       actions={
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link href={href(workflowTemplatesTabPath())}>

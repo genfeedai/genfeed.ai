@@ -28,7 +28,6 @@ export default function BrandDetailLatestArticles({
         </NextLink>
       }
       emptyTitle="No articles yet"
-      emptyDescription="Draft an article for this brand to populate this strip."
       createLabel="Create an article"
       createHref={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
     >

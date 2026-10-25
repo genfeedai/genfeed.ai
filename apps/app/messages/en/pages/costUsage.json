@@ -60,7 +60,6 @@
     },
     "ledger": {
       "label": "Generation history",
-      "emptyDescription": "Generations and credit charges will appear here.",
       "entries": "entries",
       "creditNotice": "Credit charges are recorded separately. “Not recorded” means a generation has no linked credit amount. Exports include up to 10,000 entries."
     }

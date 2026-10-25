@@ -610,10 +610,7 @@ export default function ReleasePostsList({
       ) : isLoading && data.releases.length === 0 ? (
         <Loading isFullSize={false} />
       ) : data.releases.length === 0 ? (
-        <CardEmpty
-          description={translate('empty.description')}
-          label={translate('empty.label')}
-        />
+        <CardEmpty label={translate('empty.label')} />
       ) : (
         <Table
           items={data.releases}

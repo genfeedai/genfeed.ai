@@ -73,7 +73,7 @@ describe('BrandDetailLatestImages', () => {
   ] as const;
 
   it.each(emptyCases)(
-    'preserves guidance and scoped anchors for %s input',
+    'preserves scoped anchors for %s input',
     (_state, element) => {
       render(element);
       expect(
@@ -84,13 +84,6 @@ describe('BrandDetailLatestImages', () => {
       expect(title).toHaveClass('text-sm font-medium text-foreground/70');
       expect(title.parentElement).toHaveClass(
         'flex flex-col items-center justify-center gap-1 px-4 py-8 text-center',
-      );
-      const description = screen.getByText(
-        'Generate an image for this brand to populate this strip.',
-      );
-      expect(description.tagName).toBe('P');
-      expect(description).toHaveClass(
-        'max-w-xs text-xs leading-5 text-muted-foreground',
       );
       expect(
         screen.getByRole('link', { name: 'Create an image' }),
@@ -122,11 +115,6 @@ describe('BrandDetailLatestImages', () => {
       expect(props.isPublicGallery).toBe(false);
     });
     expect(screen.queryByText('No images yet')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'Generate an image for this brand to populate this strip.',
-      ),
-    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Create an image' }),
     ).not.toBeInTheDocument();

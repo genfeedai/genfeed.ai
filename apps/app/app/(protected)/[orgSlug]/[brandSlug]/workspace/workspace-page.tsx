@@ -343,14 +343,7 @@ function WorkspacePageContentContent({
       items={inboxTableItems}
       isLoading={isWorkspaceTasksLoading || inboxRead.state.isLoading}
       emptyLabel={inboxEmpty.label}
-      emptyDescription={inboxEmpty.description}
-      emptyState={
-        <CardEmptyContent
-          description={inboxEmpty.description}
-          icon={Inbox}
-          label={inboxEmpty.label}
-        />
-      }
+      emptyState={<CardEmptyContent icon={Inbox} label={inboxEmpty.label} />}
       getGroupHeading={
         hasInboxGroups
           ? (task) => {

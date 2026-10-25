@@ -9,7 +9,7 @@ import type { CardEmptyAction } from '@genfeedai/props/ui/cards/card-empty.props
  * tell the user *what* is empty (`title`) and offer a concrete next step
  * (`action`). This prevents surfaces from shipping bare skeleton chrome — an
  * empty grid, pending placeholder cards, or zero-value tiles — as if it were
- * content. Optional `icon`/`description` add context; the primitive delegates
+ * content. Optional `icon` adds context; the primitive delegates
  * rendering to `CardEmptyContent` (mapping `title` -> `label`).
  */
 export interface EmptyStateProps {
@@ -20,8 +20,6 @@ export interface EmptyStateProps {
   /** Optional leading icon; sized by `size`. */
   icon?: IconComponent;
   iconClassName?: string;
-  /** Optional supporting copy under the title. */
-  description?: string;
   className?: string;
   size?: CardEmptySize;
   /** Card visual variant — applies to the card-wrapped `EmptyStateCard` only. */

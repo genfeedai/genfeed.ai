@@ -25,15 +25,6 @@ describe('PageSection', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders description when provided', () => {
-    render(
-      <PageSection title="Title" description="Section description">
-        Content
-      </PageSection>,
-    );
-    expect(screen.getByText('Section description')).toBeInTheDocument();
-  });
-
   it('renders actions when provided', () => {
     render(
       <PageSection actions={<button type="button">Action Button</button>}>
@@ -45,11 +36,10 @@ describe('PageSection', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders title, description, and actions together', () => {
+  it('renders title and actions together', () => {
     render(
       <PageSection
         title="Complete Section"
-        description="With description"
         actions={<button type="button">Action</button>}
       >
         Content
@@ -59,7 +49,6 @@ describe('PageSection', () => {
     expect(
       screen.getByRole('heading', { name: 'Complete Section' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('With description')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
   });
 
@@ -111,41 +100,6 @@ describe('PageSection', () => {
     });
   });
 
-  describe('description rendering', () => {
-    it('renders string description', () => {
-      render(
-        <PageSection description="String description">Content</PageSection>,
-      );
-      expect(screen.getByText('String description')).toBeInTheDocument();
-    });
-
-    it('renders ReactNode description', () => {
-      render(
-        <PageSection
-          description={
-            <span data-testid="custom-desc">Custom Description</span>
-          }
-        >
-          Content
-        </PageSection>,
-      );
-      expect(screen.getByTestId('custom-desc')).toBeInTheDocument();
-    });
-
-    it('description renders as paragraph', () => {
-      render(<PageSection description="Description">Content</PageSection>);
-      const desc = screen.getByText('Description');
-      expect(desc.tagName).toBe('P');
-    });
-
-    it('has correct description styles', () => {
-      render(<PageSection description="Description">Content</PageSection>);
-      const desc = screen.getByText('Description');
-      expect(desc).toHaveClass('text-sm');
-      expect(desc).toHaveClass('text-foreground/60');
-    });
-  });
-
   describe('actions rendering', () => {
     it('renders single action', () => {
       render(
@@ -179,7 +133,7 @@ describe('PageSection', () => {
   });
 
   describe('header rendering', () => {
-    it('does not render header when no title, description, or actions', () => {
+    it('does not render header when no title or actions', () => {
       const { container } = render(<PageSection>Content only</PageSection>);
       const headers = container.querySelectorAll('.flex.flex-wrap');
       expect(headers.length).toBe(0);
@@ -188,14 +142,6 @@ describe('PageSection', () => {
     it('renders header when title is provided', () => {
       const { container } = render(
         <PageSection title="Title">Content</PageSection>,
-      );
-      const header = container.querySelector('.flex.flex-wrap');
-      expect(header).toBeInTheDocument();
-    });
-
-    it('renders header when description is provided', () => {
-      const { container } = render(
-        <PageSection description="Description">Content</PageSection>,
       );
       const header = container.querySelector('.flex.flex-wrap');
       expect(header).toBeInTheDocument();
