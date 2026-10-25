@@ -1,12 +1,12 @@
-import {
-  type AgentChatMessage,
-  type AgentThread,
-  useAgentChatStore,
-} from '@genfeedai/agent';
+import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentDockThreads } from './use-agent-dock-threads';
+
+type StoredMessage = ReturnType<
+  typeof useAgentChatStore.getState
+>['messages'][number];
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -24,7 +24,7 @@ function makeThread(id: string, title: string): AgentThread {
     updatedAt: '2026-10-25T00:00:00Z',
   };
 }
-const getMessages = vi.fn(async (): Promise<AgentChatMessage[]> => []);
+const getMessages = vi.fn(async (): Promise<StoredMessage[]> => []);
 const getThreads = vi.fn(async (): Promise<AgentThread[]> => []);
 const apiService = { getMessages, getThreads } satisfies Parameters<
   typeof useAgentDockThreads
@@ -64,7 +64,7 @@ describe('useAgentDockThreads history and lifecycle', () => {
     );
   });
   it('selects the actual thread and restores cached messages when revisiting it', async () => {
-    const message: AgentChatMessage = {
+    const message: StoredMessage = {
       id: 'message-1',
       threadId: 'thread-1',
       role: 'assistant',
