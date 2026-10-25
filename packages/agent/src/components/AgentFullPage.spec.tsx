@@ -259,6 +259,17 @@ function createAbortAwareValue<T>(value: T, signal?: AbortSignal): Promise<T> {
   });
 }
 
+function SelectionProbe() {
+  const contextSidebar = useContextSidebar();
+  return (
+    <p data-testid="context-sidebar-selection">
+      {contextSidebar?.selection
+        ? `${contextSidebar.selection.kind}:${contextSidebar.selection.id}`
+        : 'none'}
+    </p>
+  );
+}
+
 describe('AgentFullPage', () => {
   beforeEach(async () => {
     ({ AgentFullPage } = await import(
@@ -875,6 +886,140 @@ describe('AgentFullPage', () => {
     );
   });
 
+  it.each([
+    { threadId: 'does-not-exist-qa', snapshotStatus: 400 },
+    { threadId: '00000000-0000-4000-8000-000000000807', snapshotStatus: 404 },
+  ])(
+    'uses the thread response when snapshot validation fails first for $threadId',
+    async ({ threadId, snapshotStatus }) => {
+      const threadResponse = Promise.withResolvers<never>();
+      const apiService = createApiService({
+        getMessagesPage: vi.fn().mockResolvedValue({
+          hasMore: false,
+          messages: [],
+          nextCursor: null,
+        }),
+        getThread: vi.fn().mockReturnValue(threadResponse.promise),
+        getThreadSnapshot: vi.fn().mockRejectedValue(
+          new AgentApiRequestError({
+            message: 'Thread snapshot unavailable',
+            source: 'api',
+            status: snapshotStatus,
+          }),
+        ),
+      });
+
+      render(
+        <AgentFullPage
+          apiService={apiService as never}
+          newChatHref="/test-org/~/agent/new"
+          threadId={threadId}
+        />,
+      );
+      await waitFor(() => {
+        expect(apiService.getThreadSnapshot).toHaveBeenCalled();
+      });
+      await act(async () => {
+        threadResponse.reject(
+          new AgentApiRequestError({
+            message: 'Thread not found',
+            source: 'api',
+            status: 404,
+          }),
+        );
+      });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Chat not found',
+      );
+      expect(screen.queryByText('Start a chat')).not.toBeInTheDocument();
+      expect(storeState.setError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      status: 401,
+      message: 'Authentication required. Refresh the page or sign in again.',
+    },
+    {
+      status: 403,
+      message: 'Failed to load this thread. Refresh and try again.',
+    },
+    {
+      status: 500,
+      message: 'Failed to load this thread. Refresh and try again.',
+    },
+  ])(
+    'preserves a thread-read $status after a faster snapshot 404',
+    async ({ status, message }) => {
+      const threadResponse = Promise.withResolvers<never>();
+      const apiService = createApiService({
+        getMessagesPage: vi.fn().mockResolvedValue({
+          hasMore: false,
+          messages: [],
+          nextCursor: null,
+        }),
+        getThread: vi.fn().mockReturnValue(threadResponse.promise),
+        getThreadSnapshot: vi.fn().mockRejectedValue(
+          new AgentApiRequestError({
+            message: 'Snapshot not found',
+            source: 'api',
+            status: 404,
+          }),
+        ),
+      });
+      render(
+        <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+      );
+      await waitFor(() => {
+        expect(apiService.getThreadSnapshot).toHaveBeenCalled();
+      });
+      await act(async () => {
+        threadResponse.reject(
+          new AgentApiRequestError({
+            message: `Failed to fetch thread: ${status}`,
+            source: 'api',
+            status,
+          }),
+        );
+      });
+
+      await waitFor(() =>
+        expect(storeState.setError).toHaveBeenCalledWith(message),
+      );
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    },
+  );
+
+  it('keeps a snapshot failure visible when the thread itself exists', async () => {
+    const apiService = createApiService({
+      getMessagesPage: vi.fn().mockResolvedValue({
+        hasMore: false,
+        messages: [],
+        nextCursor: null,
+      }),
+      getThread: vi.fn().mockResolvedValue({ id: 'thread-1' }),
+      getThreadSnapshot: vi.fn().mockRejectedValue(
+        new AgentApiRequestError({
+          message: 'Failed to fetch snapshot: 500',
+          source: 'api',
+          status: 500,
+        }),
+      ),
+    });
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Failed to load this thread. Refresh and try again.',
+      );
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('passes a loading state to the chat container while bootstrapping a thread', async () => {
     const messages = [
       {
@@ -1021,17 +1166,6 @@ describe('AgentFullPage', () => {
       role: 'assistant',
       threadId,
     };
-  }
-
-  function SelectionProbe() {
-    const contextSidebar = useContextSidebar();
-    return (
-      <p data-testid="context-sidebar-selection">
-        {contextSidebar?.selection
-          ? `${contextSidebar.selection.kind}:${contextSidebar.selection.id}`
-          : 'none'}
-      </p>
-    );
   }
 
   function shellTree(page: { threadId?: string } | null) {

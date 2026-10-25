@@ -124,7 +124,7 @@ describe('app rail registry', () => {
     expect(getAppRailFlagKeyForPath('/acme/~/messages/replies')).toBe(
       'messages',
     );
-    expect(getAppRailFlagKeyForPath('/acme/brand/publishing/review')).toBe(
+    expect(getAppRailFlagKeyForPath('/acme/brand/publishing/approvals')).toBe(
       'publishing',
     );
     // Workspace is the home and has no flag; non-module routes have none.

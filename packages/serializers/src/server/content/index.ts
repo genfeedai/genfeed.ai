@@ -40,6 +40,7 @@ export * from '@serializers/server/content/fanvue-schedule.serializer';
 export * from '@serializers/server/content/fanvue-subscriber.serializer';
 export * from '@serializers/server/content/fanvue-sync-log.serializer';
 export * from '@serializers/server/content/generated-content.serializer';
+export * from '@serializers/server/content/ingredient-generation-cost.serializer';
 export * from '@serializers/server/content/insight.serializer';
 export * from '@serializers/server/content/knowledge-source.serializer';
 export * from '@serializers/server/content/knowledge-source-version.serializer';

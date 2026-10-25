@@ -301,7 +301,7 @@ export function useClipWorkflowRunCard({
     setStep('supervised_review', 'completed');
 
     if (typeof window !== 'undefined') {
-      window.location.href = nextUrl ?? APP_ROUTES.PUBLISHING.REVIEW;
+      window.location.href = nextUrl ?? APP_ROUTES.PUBLISHING.APPROVALS;
     }
   }, [
     action.brandId,
@@ -416,6 +416,6 @@ export function useClipWorkflowRunCard({
     workflowExecutionUrl: hrefFn(
       `${APP_ROUTES.AUTOMATION.RUNS}/${workflowExecutionId ?? ''}`,
     ),
-    humanReviewUrl: hrefFn(APP_ROUTES.PUBLISHING.REVIEW),
+    humanReviewUrl: hrefFn(APP_ROUTES.PUBLISHING.APPROVALS),
   };
 }

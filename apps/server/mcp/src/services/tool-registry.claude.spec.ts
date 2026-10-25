@@ -5,6 +5,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 function build() {
   const client = {
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(),
     createScheduledRelease: vi.fn(),
     updateScheduledRelease: vi.fn(),

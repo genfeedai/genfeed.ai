@@ -12,11 +12,9 @@ import {
   type McpBrandOption,
   type McpToolOutput,
   readMcpBrandId,
-  requiresMcpApproval,
   type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
-import { isMcpTextDraftCall } from '@genfeedai/actions/server';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
@@ -34,6 +32,10 @@ import {
 import { getPublicAppUrl, getPublicMcpUrl } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  isMcpApprovalGated,
+  requiresMcpToolApproval,
+} from '@mcp/services/mcp-approval-gate.util';
 import {
   collectBrandIds,
   withBrandNames,
@@ -413,8 +415,9 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.brandRequiredResult();
       }
 
-      // Declared approvals and credit spenders wait for confirmation.
-      if (ToolRegistryService.requiresApproval(name, args)) {
+      // Declared approvals and credit spenders wait for confirmation, unless the
+      // organization and member both waived a credit spender (mcp-approval-gate.util).
+      if (await requiresMcpToolApproval(this.clientService, name, args)) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
@@ -525,32 +528,6 @@ export class ToolRegistryService implements OnModuleInit {
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
     return 'unknown';
-  }
-
-  private static requiresApproval(
-    name: string,
-    args?: Record<string, unknown>,
-  ): boolean {
-    // These concrete calls cannot spend credits or dispatch publishing. The
-    // API still validates their arguments, actor, brand and key permissions.
-    if (name === 'create_post' && args && isMcpTextDraftCall(args))
-      return false;
-    if (name === 'repurpose_post' && args?.mode === 'deterministic')
-      return false;
-    const release = args?.release;
-    if (
-      name === 'create_scheduled_release' &&
-      isRecord(release) &&
-      (release.status === undefined || release.status === 'draft') &&
-      !release.scheduledDate &&
-      Array.isArray(release.targets) &&
-      release.targets.every(
-        (target) => isRecord(target) && !target.scheduledDate,
-      )
-    ) {
-      return false;
-    }
-    return requiresMcpApproval(getToolByName(name));
   }
 
   private async executeTool(
@@ -690,7 +667,7 @@ export class ToolRegistryService implements OnModuleInit {
     // Defense-in-depth: only execute tools that are actually approval-gated, so
     // a stray approval row created for a non-write tool cannot be run via the
     // admin resolve path.
-    if (!ToolRegistryService.requiresApproval(approval.toolName)) {
+    if (!isMcpApprovalGated(approval.toolName)) {
       const message = `Approval ${approvalId} references non-approval-gated tool "${approval.toolName}"; not executed.`;
       await this.attachApprovalResultSafe(approvalId, { error: message });
       throw new Error(message);
