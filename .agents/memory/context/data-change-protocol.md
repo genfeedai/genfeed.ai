@@ -79,7 +79,14 @@ The sync is a compiled Nest one-off app (`api-reference-data-sync`). It is not i
 
 The deploy is not the only trigger. The `Seed hosted SaaS` workflow (`.github/workflows/seed-hosted-saas.yml`, dispatch from `master`, behind the `production` environment) starts the same one-off ECS tasks on demand for `articles` and `reference-data-sync`. It defaults to a dry run; the articles dry run is the task's own dry-run command, and the sync's dry run only validates that the catalogs load (it has no diff mode). It shares the deploy lock, so a seed never overlaps a rollout, and it runs the image of the last deploy: a seed changed since then needs a deploy first.
 
-Articles stay operator-triggered only; no deploy runs them. Do not copy production env files to a laptop to run a seed; use the workflow.
+Articles stay operator-triggered only; no deploy runs them. The owner can also run the articles seed from a local checkout against production. Export `DATABASE_URL` for the production database in the shell (a shell variable wins over `.env.production`) and run it from `apps/server/api`:
+
+```bash
+bun run seed:articles:prod:dry -- --ownerEmail=<owner email>
+bun run seed:articles:prod -- --ownerEmail=<owner email> --brandSlug=genfeedai
+```
+
+The first command is the dry run. The second writes. The script refuses a live run without an owner and a brand, and refuses one whose `DATABASE_URL` is a local database. The production database is private, so the machine needs a network path to it; agents never fetch or copy production credentials for this.
 
 ## Trust and failure
 

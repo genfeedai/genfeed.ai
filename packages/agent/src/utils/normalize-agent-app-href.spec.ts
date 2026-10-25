@@ -63,8 +63,8 @@ describe('normalizeAgentAppHref', () => {
   it('uses current canonical scope for bare destinations and preserves external URLs', () => {
     const scope = { orgSlug: 'acme', brandSlug: 'launch' };
     expect(
-      normalizeAgentAppHref('/publishing/review?filter=ready', scope),
-    ).toBe('/acme/launch/publishing/review?filter=ready');
+      normalizeAgentAppHref('/publishing/approvals?filter=ready', scope),
+    ).toBe('/acme/launch/publishing/approvals?filter=ready');
     expect(normalizeAgentAppHref('/agent/new', scope)).toBe(
       '/acme/~/agent/new',
     );
@@ -86,8 +86,8 @@ describe('normalizeAgentAppHref', () => {
   });
 
   it('leaves already-valid and unknown paths unchanged', () => {
-    expect(normalizeAgentAppHref(APP_ROUTES.PUBLISHING.REVIEW)).toBe(
-      APP_ROUTES.PUBLISHING.REVIEW,
+    expect(normalizeAgentAppHref(APP_ROUTES.PUBLISHING.APPROVALS)).toBe(
+      APP_ROUTES.PUBLISHING.APPROVALS,
     );
     expect(normalizeAgentAppHref('/studio/images')).toBe('/studio/images');
   });
@@ -110,8 +110,8 @@ describe('normalizeAgentAssetHref', () => {
   });
 
   it('leaves non-Library CTAs unchanged', () => {
-    expect(normalizeAgentAssetHref('/publishing/review', IMAGE_ID)).toBe(
-      '/publishing/review',
+    expect(normalizeAgentAssetHref('/publishing/approvals', IMAGE_ID)).toBe(
+      '/publishing/approvals',
     );
   });
 });

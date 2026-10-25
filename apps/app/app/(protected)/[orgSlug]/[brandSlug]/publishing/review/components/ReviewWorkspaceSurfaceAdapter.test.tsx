@@ -22,7 +22,7 @@ vi.mock('@genfeedai/agent', () => ({
     {
       getState: () => ({
         pageContext: {
-          route: '/acme/brand/publishing/review',
+          route: '/acme/brand/publishing/approvals',
           suggestedActions: [],
         },
       }),
@@ -31,7 +31,7 @@ vi.mock('@genfeedai/agent', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/brand/publishing/review',
+  usePathname: () => '/acme/brand/publishing/approvals',
 }));
 
 vi.mock('./ReviewDetailPanel', () => ({

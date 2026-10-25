@@ -19,8 +19,7 @@ describe('workspace surface launcher', () => {
   it('returns to the canonical active-thread conversation URL', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
-        currentHref:
-          '/acme/moonrise/publishing/posts?view=calendar&thread=thread-1',
+        currentHref: '/acme/moonrise/publishing/calendar?thread=thread-1',
         destinationHref: '/acme/moonrise/agent',
       }),
     ).toMatchObject({

@@ -64,7 +64,7 @@ describe('resolveBrandSurfaceSuggestions', () => {
     expect(resolveAgentPromptSurface(APP_ROUTES.PUBLISHING.CALENDAR)).toBe(
       'calendar',
     );
-    expect(resolveAgentPromptSurface(APP_ROUTES.PUBLISHING.REVIEW)).toBe(
+    expect(resolveAgentPromptSurface(APP_ROUTES.PUBLISHING.APPROVALS)).toBe(
       'review',
     );
     expect(resolveAgentPromptSurface('/calendar')).toBeNull();

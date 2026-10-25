@@ -426,7 +426,7 @@ export default function ReleaseBoard({
                 {column === 'review' ? (
                   <Link
                     className="text-xs text-primary underline-offset-2 hover:underline"
-                    href={href(APP_ROUTES.PUBLISHING.REVIEW)}
+                    href={href(APP_ROUTES.PUBLISHING.APPROVALS)}
                   >
                     {translate('columns.reviewLink')}
                   </Link>
