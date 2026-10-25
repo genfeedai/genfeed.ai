@@ -500,7 +500,9 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       expect(
         harness.adWatchedAdvertisersService.claimManualPoll.mock
           .invocationCallOrder[0],
-      ).toBeLessThan(harness.adapter.fetchCreatives.mock.invocationCallOrder[0]);
+      ).toBeLessThan(
+        harness.adapter.fetchCreatives.mock.invocationCallOrder[0],
+      );
     });
   });
 
