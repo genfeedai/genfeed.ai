@@ -44,6 +44,9 @@ export function selectMediaKnowledgeSources(
 
 const MAX_VISUAL_CUES = 8;
 
+/** Time-based media: a video model renders neither type nor hex codes. */
+const MOTION_KINDS = new Set<ContentKind>(['ugc', 'video']);
+
 /** Copy-voice and bookkeeping words: an image or video model renders them as scene content. */
 const COPY_CUE =
   /\b(tone|voice|writing|write|written|sound like|persona|personality|audience|cadence|copy|headline|hooks?|captions?|messaging|beliefs|phrasing|phrases|wording|language|listicles?|motivational|harness)\b/i;
@@ -76,13 +79,20 @@ function isTransparentBackground(line: string): boolean {
   return /background/i.test(line) && /transparent/i.test(line);
 }
 
-function selectVisualCues(brief: ContentHarnessBrief): string[] {
+function selectVisualCues(
+  brief: ContentHarnessBrief,
+  options: { shouldKeepPolicy: boolean } = { shouldKeepPolicy: true },
+): string[] {
   const cues = [
     ...brief.styleDirectives,
     ...brief.systemDirectives,
     ...brief.guardrails,
   ]
     .filter(isVisualCue)
+    .filter(
+      (line) =>
+        options.shouldKeepPolicy || !POLICY_BOILERPLATE.test(line.trim()),
+    )
     .filter((line) => !isTransparentBackground(line))
     .map((line) => toSentence(humanizeCue(line)));
   return [...new Set(cues)].slice(0, MAX_VISUAL_CUES);
@@ -110,6 +120,111 @@ function buildVisualHarnessSuffix(
   }
   if (subjectLock?.trim()) {
     parts.push(subjectLock.trim());
+  }
+  return parts.join(' ');
+}
+
+/** Built-in copy and evaluation policy that reads as scene content to a video model. */
+const POLICY_BOILERPLATE =
+  /^(prefer distinctive brand-native|when confidence in brand fidelity|lead with a strong|favor distinctive|if you cannot sound|reject generic|avoid bland|prefer specificity|brand fidelity:|use internet-native|keep messaging compact)/i;
+
+const PALETTE_LINE =
+  /^(?:primary|secondary|accent|background) colou?r\s*:\s*(.+)$/i;
+const FONT_LINE = /^font(?: family)?\s*:/i;
+const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+const HUE_NAMES: ReadonlyArray<readonly [number, string]> = [
+  [15, 'red'],
+  [40, 'orange'],
+  [65, 'yellow'],
+  [165, 'green'],
+  [195, 'teal'],
+  [255, 'blue'],
+  [290, 'purple'],
+  [345, 'pink'],
+  [360, 'red'],
+];
+
+/** `#000000` reads as `black`: a diffusion video model has no use for the code. */
+export function describeHexColor(hex: string): string | undefined {
+  const value = hex.trim();
+  if (!HEX_COLOR.test(value)) {
+    return undefined;
+  }
+  const digits = value.slice(1);
+  const full =
+    digits.length === 3
+      ? digits
+          .split('')
+          .map((digit) => `${digit}${digit}`)
+          .join('')
+      : digits;
+  const [red, green, blue] = [0, 2, 4].map(
+    (offset) => Number.parseInt(full.slice(offset, offset + 2), 16) / 255,
+  );
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+  if (lightness <= 0.1) return 'black';
+  if (lightness >= 0.93) return 'white';
+  const saturation =
+    delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  if (saturation < 0.12) {
+    return lightness < 0.4
+      ? 'charcoal'
+      : lightness > 0.7
+        ? 'light gray'
+        : 'gray';
+  }
+  let hue: number;
+  if (max === red) hue = ((green - blue) / delta + (green < blue ? 6 : 0)) * 60;
+  else if (max === green) hue = ((blue - red) / delta + 2) * 60;
+  else hue = ((red - green) / delta + 4) * 60;
+  const name = HUE_NAMES.find(([limit]) => hue < limit)?.[1] ?? 'red';
+  if (lightness < 0.3) return `dark ${name}`;
+  if (lightness > 0.75) return `light ${name}`;
+  return name;
+}
+
+function selectMotionPalette(brief: ContentHarnessBrief): string[] {
+  const names: string[] = [];
+  for (const line of [...brief.styleDirectives, ...brief.systemDirectives]) {
+    const value = PALETTE_LINE.exec(line.trim())?.[1];
+    const name = value ? describeHexColor(value.replace(/\.$/, '')) : undefined;
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+function selectMotionCues(brief: ContentHarnessBrief): string[] {
+  return selectVisualCues(brief, { shouldKeepPolicy: false }).filter(
+    (line) => !PALETTE_LINE.test(line) && !FONT_LINE.test(line),
+  );
+}
+
+/**
+ * The brand a video model can use: palette in plain color words and any
+ * authored visual cue, then facts. No type, hex codes, policy boilerplate or
+ * subject lock: those read as scene content over a clip.
+ */
+function buildMotionHarnessSuffix(brief: ContentHarnessBrief): string {
+  const parts: string[] = [];
+  const palette = selectMotionPalette(brief);
+  if (palette.length > 0) {
+    parts.push(`Brand palette: ${palette.join(' and ')}.`);
+  }
+  const cues = selectMotionCues(brief);
+  if (cues.length > 0) {
+    parts.push(`Brand look: ${cues.join(' ')}`);
+  }
+  const facts = selectMediaKnowledgeSources(brief).map((source) =>
+    toSentence(source.content),
+  );
+  if (facts.length > 0) {
+    parts.push(`Brand facts: ${facts.join(' ')}`);
   }
   return parts.join(' ');
 }
@@ -213,7 +328,8 @@ function buildMusicHarnessSuffix(brief: ContentHarnessBrief): string {
  * Always keeps the operator prompt first; harness is advisory context so the
  * model still follows the user's creative intent while locking brand fidelity.
  * Visual kinds get a short brand look and the subject lock, not the whole
- * brief.
+ * brief. Video and ugc get a palette in plain words and the authored look: the
+ * subject lock steers the enhancer instead (see `MediaPromptEnhancementService`).
  */
 export function buildMediaPromptFromHarness(
   userPrompt: string,
@@ -233,12 +349,14 @@ export function buildMediaPromptFromHarness(
     return prompt;
   }
 
-  const suffix = VISUAL_KINDS.has(brief.metadata.contentType)
-    ? buildVisualHarnessSuffix(brief, options?.subjectLock)
-    : buildGenericHarnessSuffix(brief, {
-        maxSourceChars: options?.maxSourceChars ?? 200,
-        maxSources: options?.maxSources ?? 4,
-      });
+  const suffix = MOTION_KINDS.has(brief.metadata.contentType)
+    ? buildMotionHarnessSuffix(brief)
+    : VISUAL_KINDS.has(brief.metadata.contentType)
+      ? buildVisualHarnessSuffix(brief, options?.subjectLock)
+      : buildGenericHarnessSuffix(brief, {
+          maxSourceChars: options?.maxSourceChars ?? 200,
+          maxSources: options?.maxSources ?? 4,
+        });
 
   if (!suffix) {
     return prompt;
