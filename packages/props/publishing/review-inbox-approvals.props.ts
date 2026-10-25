@@ -40,6 +40,8 @@ export interface ReviewInboxApprovalsTableProps {
 
 export interface ReviewInboxApprovalsSectionProps {
   approvals: ReviewInboxApprovalsState;
+  /** Heads the requests as their own section; omit to render the bare table. */
+  title?: string;
 }
 
 export interface ReviewSourceFiltersProps {

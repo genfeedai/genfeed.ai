@@ -1,6 +1,7 @@
 import { CardVariant } from '@genfeedai/contracts';
 import type { ReviewInboxApprovalsSectionProps } from '@props/publishing/review-inbox-approvals.props';
 import Card from '@ui/card/Card';
+import CollectionSection from '@ui/collection/CollectionSection';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -14,10 +15,14 @@ import {
 
 /**
  * Workflow review gates and MCP approvals above the Turbo run drafts. Renders
- * nothing while there is nothing to decide, so the drafts keep the page.
+ * nothing while there is nothing to decide, so the drafts keep the page. With
+ * a `title` the requests become a headed "Needs you" section; without one the
+ * table stands alone, because a heading only earns its place when it splits
+ * the page.
  */
 export default function ReviewInboxApprovalsSection({
   approvals,
+  title,
 }: ReviewInboxApprovalsSectionProps) {
   const translate = useTranslations('pages.publishing.review.inbox');
   const { highlightedItemId, items, sourceFilters } = approvals;
@@ -65,6 +70,27 @@ export default function ReviewInboxApprovalsSection({
     return null;
   }
 
+  const table =
+    items.length > 0 ? (
+      <>
+        <ReviewInboxApprovalsTable
+          decidingItemId={approvals.decidingItemId}
+          highlightedItemId={highlightedItemId}
+          items={visibleItems}
+          onDecide={approvals.onDecide}
+        />
+        <div className="mt-4">
+          <Pagination
+            currentPage={page}
+            onPageChange={setRequestedPage}
+            totalItems={items.length}
+            totalLabel={translate('totalLabel')}
+            totalPages={pageCount}
+          />
+        </div>
+      </>
+    ) : null;
+
   return (
     <section className="mb-6" data-testid="review-inbox-approvals">
       {approvals.isHighlightedItemMissing ? (
@@ -72,25 +98,13 @@ export default function ReviewInboxApprovalsSection({
           {translate('highlightMissing')}
         </p>
       ) : null}
-      {items.length > 0 ? (
-        <>
-          <ReviewInboxApprovalsTable
-            decidingItemId={approvals.decidingItemId}
-            highlightedItemId={highlightedItemId}
-            items={visibleItems}
-            onDecide={approvals.onDecide}
-          />
-          <div className="mt-4">
-            <Pagination
-              currentPage={page}
-              onPageChange={setRequestedPage}
-              totalItems={items.length}
-              totalLabel={translate('totalLabel')}
-              totalPages={pageCount}
-            />
-          </div>
-        </>
-      ) : null}
+      {title ? (
+        <CollectionSection itemCount={items.length} title={title}>
+          {table}
+        </CollectionSection>
+      ) : (
+        table
+      )}
     </section>
   );
 }

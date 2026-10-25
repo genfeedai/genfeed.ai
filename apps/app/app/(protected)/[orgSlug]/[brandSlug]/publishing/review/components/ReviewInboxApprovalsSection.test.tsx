@@ -69,6 +69,27 @@ describe('ReviewInboxApprovalsSection', () => {
     expect(screen.getByText('4 credits')).toBeInTheDocument();
   });
 
+  it('heads the requests as a Needs you section only when given a title', () => {
+    const { rerender } = render(
+      <ReviewInboxApprovalsSection approvals={state()} />,
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <ReviewInboxApprovalsSection approvals={state()} title="Needs you" />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Needs you' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Publish post · Platform: instagram'),
+    ).toBeVisible();
+  });
+
   it('previews the post caption and image on the row', () => {
     render(
       <ReviewInboxApprovalsSection
