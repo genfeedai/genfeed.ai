@@ -118,8 +118,8 @@ describe('cinematic enhancement', () => {
     expect(imagePrompt).toContain('high-angle shot');
     expect(imagePrompt).toContain('golden hour');
     expect(imagePrompt).toContain('never invent camera jargon');
-    expect(imagePrompt).toContain('Problem → Goal → Correction');
-    expect(imagePrompt).toContain('full-quality model');
+    expect(imagePrompt).not.toContain('Problem → Goal → Correction');
+    expect(imagePrompt).not.toContain('full-quality model');
     expect(videoPrompt).toContain('whip pan');
     expect(videoPrompt).toContain('Preserve the user subject');
   });
