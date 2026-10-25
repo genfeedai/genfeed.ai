@@ -388,6 +388,7 @@ export function useStudioGeneration({
           window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
           if (message !== 'Cancelled by user')
             notificationsService.error(message);
+          notifyGenerated();
           cleanup();
         },
       );

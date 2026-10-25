@@ -458,6 +458,33 @@ describe('useStudioGeneration socket tracking', () => {
     window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
+  it.each(['Cancelled by user', 'Processing timed out'])(
+    'refreshes the wallet when a socket reports %s before its row can be hydrated',
+    async (message) => {
+      const refreshWallet = vi.fn();
+      const captured = captureHandler();
+      const { result } = renderStudioGeneration();
+      await act(async () => {
+        await result.current.submit('Portrait');
+      });
+      mockImagesFindOne.mockRejectedValue(new Error('Result unavailable'));
+      window.addEventListener('genfeed:topbar-balances:refresh', refreshWallet);
+      try {
+        await act(async () => captured.current?.onFailed(message));
+        expect(result.current.jobs[0]).toMatchObject({
+          error: message,
+          status: IngredientStatus.FAILED,
+        });
+        expect(refreshWallet).toHaveBeenCalledOnce();
+      } finally {
+        window.removeEventListener(
+          'genfeed:topbar-balances:refresh',
+          refreshWallet,
+        );
+      }
+    },
+  );
+
   it('drops every subscription on unmount', async () => {
     const { result, unmount } = renderStudioGeneration();
 

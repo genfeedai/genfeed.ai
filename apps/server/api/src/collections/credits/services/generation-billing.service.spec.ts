@@ -1,12 +1,17 @@
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   type GenerationBillingRequest,
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
 import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import type { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditHoldRecoveryAction,
@@ -16,7 +21,9 @@ import {
 } from '@genfeedai/contracts';
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
+
+import { Test } from '@nestjs/testing';
 
 const NOW = new Date('2026-09-29T12:00:00Z');
 
@@ -1167,6 +1174,131 @@ describe('GenerationBillingService', () => {
               reservationId: 'hold_intent',
             });
             expect(holdRecovery.recoverAtCeiling).not.toHaveBeenCalled();
+          },
+        );
+
+        it.each([
+          ['Cancelled by user', 'release', CreditReservationStatus.RELEASED],
+          ['Processing timed out', 'expiry', CreditReservationStatus.EXPIRED],
+        ] as const)(
+          'returns the 8 GEN hold and publishes the spendable wallet exactly once for %s',
+          async (generationError, reason, terminalStatus) => {
+            let reservationStatus: CreditReservationStatus =
+              CreditReservationStatus.RESERVED;
+            const reservation = () => ({
+              ...hold({ amount: 8, id: 'hold_intent', workloadId: 'intent' }),
+              status: reservationStatus,
+              createdAt: new Date('2026-09-29T10:00:00Z'),
+              expiresAt: new Date('2026-09-29T13:00:00Z'),
+              updatedAt: new Date('2026-09-29T10:00:00Z'),
+              metadata: intentRow('replicate', -3_600_000).metadata,
+            });
+            const wallet = {
+              id: 'wallet_1',
+              organizationId: 'org_1',
+              billingAccountId: 'ba_1',
+              settled: 1442,
+              held: 8,
+              available: 1434,
+              version: 1,
+            };
+            const ledger = {
+              crunGenerationTask: { findMany: vi.fn().mockResolvedValue([]) },
+              creditReservation: {
+                findFirst: vi.fn(async () => reservation()),
+                updateMany: vi.fn(async () => {
+                  if (reservationStatus !== CreditReservationStatus.RESERVED)
+                    return { count: 0 };
+                  reservationStatus = terminalStatus;
+                  return { count: 1 };
+                }),
+              },
+            };
+            const balance = {
+              applyDelta: vi.fn(
+                async (
+                  _organizationId: string,
+                  delta: Parameters<CreditBalanceService['applyDelta']>[1],
+                ) => {
+                  wallet.held += delta.heldDelta ?? 0;
+                  wallet.available = wallet.settled - wallet.held;
+                  wallet.version += 1;
+                  return { ...wallet };
+                },
+              ),
+              getOrCreateBalance: vi.fn(async () => ({ ...wallet })),
+              toSnapshot: vi.fn(() => ({ ...wallet })),
+            };
+            const transactions = { createTransactionEntry: vi.fn() };
+            const publisher = { emit: vi.fn().mockResolvedValue(undefined) };
+            const module = await Test.createTestingModule({
+              providers: [
+                CreditReservationService,
+                CreditsUtilsService,
+                { provide: PrismaService, useValue: ledger },
+                { provide: LoggerService, useValue: logger },
+                { provide: CreditBalanceService, useValue: balance },
+                { provide: CreditTransactionsService, useValue: transactions },
+                { provide: NotificationsPublisherService, useValue: publisher },
+                {
+                  provide: TransactionUtil,
+                  useValue: {
+                    runInTransaction: async (
+                      run: (tx: typeof ledger) => Promise<unknown>,
+                    ) => run(ledger),
+                  },
+                },
+              ],
+            })
+              .useMocker(() => ({}))
+              .compile();
+            try {
+              const realCredits = module.get(CreditsUtilsService);
+              credits.findReservationForWorkload.mockImplementation((input) =>
+                realCredits.findReservationForWorkload(input),
+              );
+              credits.releaseReservation.mockImplementation((input) =>
+                realCredits.releaseReservation(input),
+              );
+              prisma.creditReservation.findMany.mockImplementation(async () =>
+                reservationStatus === CreditReservationStatus.RESERVED
+                  ? [intentRow('replicate', -3_600_000)]
+                  : [],
+              );
+              prisma.ingredient.findMany.mockResolvedValue([
+                abandoned(generationError),
+              ]);
+
+              await service.reconcile(NOW);
+              await service.reconcile(NOW);
+              await realCredits.releaseReservation({
+                organizationId: 'org_1',
+                reservationId: 'hold_intent',
+                reason,
+              });
+
+              expect(reservationStatus).toBe(terminalStatus);
+              expect(wallet).toMatchObject({
+                settled: 1442,
+                held: 0,
+                available: 1442,
+              });
+              expect(balance.applyDelta).toHaveBeenCalledExactlyOnceWith(
+                'org_1',
+                { billingAccountId: 'ba_1', heldDelta: -8 },
+                ledger,
+                'hold_intent',
+              );
+              expect(publisher.emit).toHaveBeenCalledWith('/credits/org_1', {
+                balance: 1442,
+              });
+              expect(
+                transactions.createTransactionEntry,
+              ).not.toHaveBeenCalled();
+              expect(queue.queueDeduction).not.toHaveBeenCalled();
+            } finally {
+              await module.close();
+            }
           },
         );
 
