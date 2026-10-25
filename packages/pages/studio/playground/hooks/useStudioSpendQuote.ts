@@ -23,7 +23,7 @@ export interface UseStudioSpendQuoteReturn {
    * which model Auto chose and what it costs.
    */
   quoteSpend: (input: StudioSpendQuoteInput, onSubmit: SpendApproval) => void;
-  /** True while the price is being fetched, before the dialog opens. */
+  /** True while the price is being fetched, before the generation submits. */
   isQuoting: boolean;
 }
 

@@ -47,6 +47,7 @@ import {
   snapStoryboardDuration,
   storyboardRuntimeRanges,
 } from '@pages/studio/storyboard/utils/storyboard-runtime';
+import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -268,27 +269,18 @@ export default function StoryboardPlanEditor({
       setWorking(false);
     }
   }
-  /** Prices the stills, asks before charging, then starts them. */
+  /** Prices the stills, says what they cost in a toast, then starts them. */
   function requestStills(shotIds?: readonly string[]) {
     if (!quoteStills || !generateStills) return;
     void perform(async (revision) => {
       const quote = await quoteStills(revision, shotIds);
       const count = quote.items.length;
-      openConfirm({
-        isOpen: true,
-        label: translate('stillQuoteTitle', { count }),
-        message:
-          quote.billingMode === 'byok'
-            ? translate('stillQuoteByok', { count })
-            : translate('stillQuoteMessage', { count, credits: quote.total }),
-        confirmLabel: translate('stillQuoteConfirm'),
-        onConfirm: () =>
-          perform(async (current) => {
-            if (current !== quote.revision)
-              throw new Error(translate('stillQuoteChanged'));
-            await generateStills(quote);
-          }),
-      });
+      NotificationsService.getInstance().info(
+        quote.billingMode === 'byok'
+          ? translate('stillQuoteByok', { count })
+          : translate('stillQuoteMessage', { count, credits: quote.total }),
+      );
+      await generateStills(quote);
     });
   }
   function reset() {

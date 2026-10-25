@@ -33,7 +33,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const modal = vi.hoisted(() => ({ openConfirm: vi.fn() }));
+const modal = vi.hoisted(() => ({ info: vi.fn(), openConfirm: vi.fn() }));
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: { getInstance: () => ({ info: modal.info }) },
+}));
 // jsdom has no ResizeObserver; the Radix Slider in each shot card measures its thumb.
 class MockResizeObserver {
   disconnect = vi.fn();
@@ -258,6 +261,7 @@ describe('persisted storyboard plan editor', () => {
   });
   beforeEach(() => {
     modal.openConfirm.mockReset();
+    modal.info.mockReset();
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -649,7 +653,7 @@ describe('persisted storyboard plan editor', () => {
       } as StoryboardRun;
     }
 
-    it('shows the quote and charges only after confirmation', async () => {
+    it('says what the stills cost and starts them without a confirmation', async () => {
       const user = userEvent.setup();
       const quoteStills = vi.fn().mockResolvedValue(quote);
       const generateStills = vi.fn().mockResolvedValue(run);
@@ -661,19 +665,11 @@ describe('persisted storyboard plan editor', () => {
       await waitFor(() =>
         expect(quoteStills).toHaveBeenCalledWith(1, ['shot-1']),
       );
-      expect(modal.openConfirm).toHaveBeenCalledWith(
-        expect.objectContaining({
-          label: 'Generate 1 still?',
-          message:
-            '1 black-and-white sketch still for 4 credits. You are charged only for stills that render.',
-          confirmLabel: 'Generate',
-        }),
+      await waitFor(() => expect(generateStills).toHaveBeenCalledWith(quote));
+      expect(modal.info).toHaveBeenCalledWith(
+        '1 black-and-white sketch still for 4 credits. You are charged only for stills that render.',
       );
-      expect(generateStills).not.toHaveBeenCalled();
-      await act(async () => {
-        await modal.openConfirm.mock.calls[0][0].onConfirm();
-      });
-      expect(generateStills).toHaveBeenCalledWith(quote);
+      expect(modal.openConfirm).not.toHaveBeenCalled();
     });
 
     it('generates every described shot that needs a still from the Shots tab', async () => {
@@ -704,11 +700,10 @@ describe('persisted storyboard plan editor', () => {
       await waitFor(() =>
         expect(quoteStills).toHaveBeenCalledWith(1, undefined),
       );
-      expect(modal.openConfirm).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message:
-            '1 black-and-white sketch still with your Replicate key. No credits are charged.',
-        }),
+      await waitFor(() =>
+        expect(modal.info).toHaveBeenCalledWith(
+          '1 black-and-white sketch still with your Replicate key. No credits are charged.',
+        ),
       );
     });
 
