@@ -4,6 +4,7 @@ import {
   characterMentionMissingReferenceNotice,
   dedupeCharacterReferenceIds,
   extractCharacterMentionTokens,
+  findTypedCharacterMentions,
   serializeCharacterMentionDisplayName,
 } from './character-mention.util';
 
@@ -131,5 +132,45 @@ describe('character-mention.util', () => {
     expect(result.notices).toEqual([
       characterMentionMissingReferenceNotice(token),
     ]);
+  });
+
+  describe('typed @handles', () => {
+    const catalog = [
+      {
+        avatarIngredientId: 'img-vincent',
+        handle: 'vincent',
+        hasReferenceImage: true,
+        id: 'p1',
+        label: 'Vincent',
+        referenceIngredientIds: ['img-vincent'],
+      },
+    ];
+
+    it('finds a typed handle without case and ignores unknown ones', () => {
+      expect(
+        findTypedCharacterMentions('Dance with @Vincent. And @nobody', catalog),
+      ).toEqual([{ handle: 'vincent', id: 'p1', label: 'Vincent' }]);
+    });
+
+    it('skips a character that is already a chip', () => {
+      expect(
+        findTypedCharacterMentions('@vincent', catalog, [
+          { handle: 'vincent', id: 'p1', label: 'Vincent' },
+        ]),
+      ).toEqual([]);
+    });
+
+    it('resolves a typed handle to its references and display name on submit', () => {
+      const result = applyCharacterMentionsToSubmit({
+        catalog,
+        document: { content: [], type: 'doc' },
+        existingReferenceIds: [],
+        text: 'Create a dance featuring @vincent.',
+      });
+
+      expect(result.referenceIds).toEqual(['img-vincent']);
+      expect(result.text).toBe('Create a dance featuring Vincent.');
+      expect(result.notices).toEqual([]);
+    });
   });
 });

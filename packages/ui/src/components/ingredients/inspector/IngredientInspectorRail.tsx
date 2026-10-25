@@ -53,6 +53,7 @@ import IngredientLineageStrip from './IngredientLineageStrip';
 import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
 import { getIngredientShelf } from './ingredient-shelf.util';
+import { useIngredientGenerationCost } from './use-ingredient-generation-cost';
 
 const SHELF_VARIANTS: Record<
   LibraryShelf,
@@ -67,6 +68,10 @@ const SHELF_VARIANTS: Record<
   [LibraryShelf.FAILED]: 'error',
   [LibraryShelf.ARCHIVED]: 'slate',
 };
+
+const CREDITS_FORMAT = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+});
 
 function InspectorField({
   label,
@@ -196,6 +201,14 @@ export default function IngredientInspectorRail({
   const fileSize = formatIngredientFileSize(
     ingredient.fileSize || ingredient.metadataSize,
   );
+  const generationCost = useIngredientGenerationCost(
+    ingredient.id,
+    ingredient.origin === IngredientOrigin.GENERATED,
+  );
+  const credits =
+    generationCost?.credits == null
+      ? null
+      : CREDITS_FORMAT.format(generationCost.credits);
 
   return (
     <aside
@@ -308,6 +321,14 @@ export default function IngredientInspectorRail({
           value={getIngredientFormatLabel(ingredient)}
         />
         <InspectorField label={translate('file')} value={fileSize} />
+        <InspectorField
+          label={translate('credits')}
+          value={
+            credits && generationCost?.status === 'reserved'
+              ? translate('creditsReserved', { count: credits })
+              : credits
+          }
+        />
         <InspectorField
           label={translate('created')}
           value={

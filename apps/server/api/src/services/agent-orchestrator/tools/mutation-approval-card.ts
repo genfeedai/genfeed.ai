@@ -7,8 +7,13 @@ import {
 import type {
   AgentGenerationQuote,
   AgentMutationApprovalData,
+  AgentMutationApprovalPostPreview,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import {
+  readNonBlankString,
+  readRecord,
+} from '@genfeedai/utils/data/extract.util';
 
 const PRIVATE_FIELD =
   /secret|password|token|authorization|credential|api.?key/i;
@@ -27,6 +32,68 @@ function describeValue(value: unknown): string {
   return value == null || (typeof value === 'string' && !value.trim())
     ? 'None'
     : String(value);
+}
+
+/** Parameters of `create_post` the platform preview already shows. */
+const POST_PREVIEW_PARAMETERS = new Set([
+  'caption',
+  'content',
+  'mediaUrls',
+  'platform',
+  'platforms',
+  'targets',
+]);
+
+function readTextList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.flatMap((item) => readNonBlankString(item)?.trim() ?? [])
+    : [];
+}
+
+/**
+ * The draft per target, so the approval card can render the same platform
+ * preview as the review queue instead of a key/value list.
+ */
+function buildPostPreviews(
+  parameters: Record<string, unknown>,
+): AgentMutationApprovalPostPreview[] {
+  const defaultCaption =
+    readNonBlankString(parameters.content)?.trim() ??
+    readNonBlankString(parameters.caption)?.trim();
+  const mediaUrls = readTextList(parameters.mediaUrls);
+  const previews: AgentMutationApprovalPostPreview[] = [];
+
+  for (const target of Array.isArray(parameters.targets)
+    ? parameters.targets
+    : []) {
+    const record = readRecord(target);
+    const platform = readNonBlankString(record.platform)?.trim();
+    const caption =
+      readNonBlankString(record.caption)?.trim() ?? defaultCaption;
+    if (!platform || !caption) continue;
+    previews.push({
+      caption,
+      credentialId: readNonBlankString(record.credentialId)?.trim(),
+      mediaUrls,
+      platform,
+    });
+  }
+  if (previews.length > 0) return previews;
+
+  const platform = readNonBlankString(parameters.platform)?.trim();
+  const platforms = [
+    ...new Set([
+      ...readTextList(parameters.platforms),
+      ...(platform ? [platform] : []),
+    ]),
+  ];
+  return defaultCaption
+    ? platforms.map((platform) => ({
+        caption: defaultCaption,
+        mediaUrls,
+        platform,
+      }))
+    : [];
 }
 
 function humanize(value: string): string {
@@ -71,6 +138,8 @@ export function buildMutationApprovalCard(
     estimateSentence && !baseDescription.includes(estimateSentence)
       ? `${baseDescription} ${estimateSentence}`
       : baseDescription;
+  const postPreviews =
+    toolName === 'create_post' ? buildPostPreviews(parameters) : [];
   return {
     id: sourceActionId,
     type: 'mutation_approval_card',
@@ -83,6 +152,10 @@ export function buildMutationApprovalCard(
       summary,
       items: Object.entries(parameters)
         .filter(([key]) => !PRIVATE_FIELD.test(key))
+        .filter(
+          ([key]) =>
+            postPreviews.length === 0 || !POST_PREVIEW_PARAMETERS.has(key),
+        )
         .map(([key, value]) => ({
           label: humanize(key),
           value: describeValue(value),
@@ -92,6 +165,7 @@ export function buildMutationApprovalCard(
       brandId: context.validatedScope?.brandId ?? null,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       ...(typeof estimatedCredits === 'number' ? { estimatedCredits } : {}),
+      ...(postPreviews.length > 0 ? { postPreviews } : {}),
     } satisfies AgentMutationApprovalData,
     ctas: [
       {

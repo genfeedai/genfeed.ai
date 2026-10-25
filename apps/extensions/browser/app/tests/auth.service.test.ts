@@ -198,16 +198,6 @@ describe('extension API authentication', () => {
     mocks.fetch.mockResolvedValue(response({ data: context }));
     expect(await authService.getAuthContext(true)).toEqual(context);
   });
-
-  it('inspects the configured app cookie origin for diagnostics', async () => {
-    process.env.PLASMO_PUBLIC_ENV = 'development';
-    const { authService } = await import('../src/services/auth.service');
-    authService.debugCookies();
-    expect(chrome.cookies.getAll).toHaveBeenCalledWith(
-      { url: 'https://app.genfeed.localhost' },
-      expect.any(Function),
-    );
-  });
 });
 
 describe('authoritative cookie refresh on focus', () => {

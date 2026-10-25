@@ -1,12 +1,14 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ElementDto } from '@api/shared/dto/element/element.dto';
 import { ModelCategory, Platform } from '@genfeedai/contracts';
+import type { AdPreset } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -15,6 +17,14 @@ import {
 } from 'class-validator';
 
 export class CreatePresetDto extends ElementDto {
+  @IsOptional()
+  @IsObject()
+  @ApiProperty({
+    description: 'Ordered ad preset section template; validated on compilation',
+    required: false,
+  })
+  adPreset?: AdPreset;
+
   @IsEntityId()
   @IsOptional()
   @ApiProperty({

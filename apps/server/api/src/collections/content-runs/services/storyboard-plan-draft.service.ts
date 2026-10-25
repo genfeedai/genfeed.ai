@@ -45,8 +45,11 @@ export class StoryboardPlanDraftService {
       );
     try {
       const response = await this.openrouter.chatCompletion({
-        model: LLM_DEFAULTS.background,
-        max_tokens: 4096,
+        // First-party OpenRouter calls send `zdr: true`; the background
+        // default (gemini-2.5-flash-lite) has no ZDR endpoint and 404s.
+        // This model reasons by default, so leave headroom in max_tokens.
+        model: LLM_DEFAULTS.productTextFallback,
+        max_tokens: 8192,
         messages: buildStoryboardDraftMessages(request),
         response_format: {
           type: 'json_schema',

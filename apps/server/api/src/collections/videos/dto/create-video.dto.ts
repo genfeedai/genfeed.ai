@@ -8,6 +8,7 @@ import {
   RouterPriority,
   VideoTransition,
 } from '@genfeedai/contracts';
+import type { AdPresetSubmission } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
 import {
   GENERATION_PROMPT_AUTHORS,
   type GenerationPromptAuthor,
@@ -22,6 +23,7 @@ import {
   IsEnum,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -140,6 +142,26 @@ export class CreateMergedVideoDto {
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsObject()
+  @ApiProperty({
+    description:
+      'Saved ad preset and typed parameters. Reference audio steers the voice; there is no unchanged-audio guarantee.',
+    required: false,
+  })
+  readonly adPreset?: AdPresetSubmission;
+
+  // Retain unsupported mask inputs for explicit preset validation instead of whitelist stripping.
+  @ValidateIf((dto: CreateVideoDto) => dto.adPreset !== undefined)
+  @IsEmpty({ message: 'Ad presets do not support edit-mask token bindings' })
+  @ApiHideProperty()
+  readonly maskId?: unknown;
+
+  @ValidateIf((dto: CreateVideoDto) => dto.adPreset !== undefined)
+  @IsEmpty({ message: 'Ad presets do not support edit-mask token bindings' })
+  @ApiHideProperty()
+  readonly editMask?: unknown;
+
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MinLength(1)

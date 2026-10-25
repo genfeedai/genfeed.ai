@@ -45,7 +45,7 @@ describe('PUBLISHING_MENU_ITEMS', () => {
       APP_ROUTES.PUBLISHING.OVERVIEW,
       APP_ROUTES.PUBLISHING.POSTS,
       APP_ROUTES.PUBLISHING.CALENDAR,
-      APP_ROUTES.PUBLISHING.REVIEW,
+      APP_ROUTES.PUBLISHING.APPROVALS,
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(
@@ -71,19 +71,19 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     }
   });
 
-  it('tells Calendar and Approvals apart from Posts by the view query', () => {
+  it('gives Calendar and Approvals routes of their own, matched by path', () => {
+    for (const label of ['Calendar', 'Approvals', 'Posts']) {
+      expect(
+        PUBLISHING_MENU_ITEMS.find((item) => item.label === label)
+          ?.matchSearchParams,
+      ).toBeUndefined();
+    }
     expect(
-      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Calendar')
-        ?.matchSearchParams,
-    ).toEqual({ view: 'calendar' });
+      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Calendar')?.href,
+    ).toBe('/publishing/calendar');
     expect(
-      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Approvals')
-        ?.matchSearchParams,
-    ).toEqual({ view: 'approvals' });
-    expect(
-      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Posts')
-        ?.matchSearchParams,
-    ).toBeUndefined();
+      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Approvals')?.href,
+    ).toBe('/publishing/approvals');
   });
 
   it('has no duplicate hrefs', () => {

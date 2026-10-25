@@ -109,6 +109,22 @@ describe('useStudioPromptEnhancement', () => {
     expect(result.current.enhancedPromptId).toBeUndefined();
   });
 
+  it('omits the Auto sentinel so the API never sees it as a model', async () => {
+    const { result } = renderHook(() =>
+      useStudioPromptEnhancement({
+        brandId: 'brand-1',
+        contentType: 'video',
+        modelKey: '__auto_model__',
+        onPromptChange: vi.fn(),
+        prompt: 'A coast',
+      }),
+    );
+
+    await act(async () => result.current.enhancePrompt());
+
+    expect(mockPromptsPost.mock.calls[0][0].model).toBeUndefined();
+  });
+
   it('starts idle', () => {
     const { result } = renderHook(() =>
       useStudioPromptEnhancement({

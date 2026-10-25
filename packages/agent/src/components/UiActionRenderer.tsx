@@ -270,7 +270,7 @@ export function UiActionRenderer({
       card = <TurboRunCard action={action} />;
       break;
     case 'turbo_run_result_card':
-      card = <TurboRunResultCard action={action} />;
+      card = <TurboRunResultCard action={action} onUiAction={liveOnUiAction} />;
       break;
     case 'voice_clone_card':
       card = liveApiService ? (

@@ -798,4 +798,28 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
     expect(voice).not.toHaveProperty('terminalToolName');
     expect(music).not.toHaveProperty('terminalToolName');
   });
+
+  it('ends the turn when a mutation is waiting for approval', async () => {
+    executeTool.mockResolvedValueOnce({
+      approvalId: 'approval-1',
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      nextActions: [
+        { id: 'mutation-approval:approval-1', type: 'mutation_approval_card' },
+      ],
+      requiresConfirmation: true,
+      success: true,
+    });
+
+    const result = await round({
+      allowed: ['generate_turbo_content'],
+      args: { count: 14 },
+      name: 'generate_turbo_content',
+    });
+
+    expect(result).toMatchObject({
+      terminalContent: 'Review the details and approve to continue.',
+      terminalToolName: 'generate_turbo_content',
+    });
+  });
 });

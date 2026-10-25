@@ -13,7 +13,6 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import { brandPath } from '../../utils/app-chrome';
-import { confirmGenerationSpend } from '../../utils/generation-setup';
 import {
   assertNoErrorBoundaryFallback,
   expectNoErrorOverlay,
@@ -480,7 +479,6 @@ for (const key of [nanoKey, seedreamKey]) {
     });
     await expect(generate).toBeEnabled();
     await generate.click();
-    await confirmGenerationSpend(page);
     await expect.poll(() => fixture.consumes.length).toBe(1);
     const quote = fixture.previews.at(-1);
     expect(quote?.crunControls).toEqual({
@@ -550,7 +548,6 @@ test('expired server quote preserves the prompt and never resubmits automaticall
       response.status() === 409,
   );
   await generate.click();
-  await confirmGenerationSpend(page);
   await rejection;
   const errorToast = page
     .locator('[data-sonner-toast][data-type="error"]')

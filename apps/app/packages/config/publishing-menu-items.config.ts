@@ -5,8 +5,7 @@ import { CalendarClock, Gauge, Gavel, Route } from 'lucide-react';
 
 /**
  * Posts owns social posts, articles, and newsletters with type and status
- * filters. Calendar and Approvals are Posts views (`?view=`) that also get
- * their own entries here; the `view` query decides which entry is active.
+ * filters. Calendar and Approvals are their own pages under Publishing.
  */
 export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -31,16 +30,14 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.PUBLISHING.CALENDAR,
     label: 'Calendar',
     matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
-    matchSearchParams: { view: 'calendar' },
     outline: CalendarClock,
     solid: CalendarClock,
   },
   {
     group: '',
-    href: APP_ROUTES.PUBLISHING.REVIEW,
+    href: APP_ROUTES.PUBLISHING.APPROVALS,
     label: 'Approvals',
-    matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
-    matchSearchParams: { view: 'approvals' },
+    matchPaths: [APP_ROUTES.PUBLISHING.APPROVALS],
     outline: Gavel,
     solid: Gavel,
   },

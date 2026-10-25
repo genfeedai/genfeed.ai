@@ -9,6 +9,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import {
+  compileSubmittedAdPreset,
+  resolveAdPresetBriefReferences,
+} from '@api/collections/videos/services/ad-preset-submit.util';
 import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import {
   assertAudioReferencesSupported,
@@ -29,6 +33,7 @@ import type {
   VideoGenerationContext,
   VideoGenerationResolvedBrand,
 } from '@api/collections/videos/services/video-generation.types';
+import { buildVideoDirection } from '@api/collections/videos/services/video-generation-direction.util';
 import {
   brandPromptLabel,
   emptyStyleToNull,
@@ -36,6 +41,7 @@ import {
   pickVideoModelPreference,
 } from '@api/collections/videos/services/video-generation-model.util';
 import {
+  createMissingPromptIdException,
   hasStoredPromptId,
   requireVideoPromptInput,
   resolveInlinePromptText,
@@ -96,22 +102,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-export const MISSING_PROMPT_ID_DETAIL =
-  'Prompt resolution requires a prompt ID';
 export {
   assertSeedanceReferenceVideoDuration,
   MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
-
-export function createMissingPromptIdException(): HttpException {
-  return new HttpException(
-    {
-      detail: MISSING_PROMPT_ID_DETAIL,
-      title: 'Prompt validation failed',
-    },
-    HttpStatus.BAD_REQUEST,
-  );
-}
 
 @Injectable()
 export class VideoGenerationPreparationService {
@@ -138,7 +132,7 @@ export class VideoGenerationPreparationService {
     createVideoDto: CreateVideoDto,
     request: RequestWithSelectedModel<Request>,
   ): Promise<ResolvedVideoGenerationRequest> {
-    if (!requireVideoPromptInput(createVideoDto)) {
+    if (!createVideoDto.adPreset && !requireVideoPromptInput(createVideoDto)) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -198,6 +192,13 @@ export class VideoGenerationPreparationService {
           validationOrgId,
         )
       : undefined;
+    createVideoDto = await compileSubmittedAdPreset({
+      dto: createVideoDto,
+      ingredients: this.ingredientsService,
+      organizationId: user.organizationId,
+      brandId: brand.id,
+      model,
+    });
     const nativeReferenceLimit =
       registeredModel?.provider === ModelProvider.FAL
         ? seedanceVideoReferenceLimit(registeredModel.endpoint ?? '')
@@ -516,6 +517,7 @@ export class VideoGenerationPreparationService {
       brandId,
       prompt: promptText,
       contentType: 'video',
+      creativeDirection: buildVideoDirection(createVideoDto).enhancer,
       model,
       harness: createVideoDto.harness,
       ...(createVideoDto.brandMode
@@ -697,12 +699,7 @@ export class VideoGenerationPreparationService {
     evidence: VideoGenerationBriefPersistedEvidence;
     generationSource: string;
   } {
-    const composition = [
-      params.createVideoDto.camera,
-      params.createVideoDto.lens,
-    ]
-      .filter((value): value is string => Boolean(value?.trim()))
-      .join(', ');
+    const direction = buildVideoDirection(params.createVideoDto).brief;
     const avoid = [
       ...(params.createVideoDto.blacklist ?? []),
       ...(params.createVideoDto.negativePrompt
@@ -717,24 +714,23 @@ export class VideoGenerationPreparationService {
         avoid,
         brandContext: params.briefBrandContext,
         brandingMode: params.createVideoDto.brandingMode,
-        composition,
+        composition: direction.composition,
         durationSeconds: params.createVideoDto.duration,
         fidelityMode: params.createVideoDto.fidelityMode,
         endFrameId: params.createVideoDto.endFrame,
         height: params.height,
         isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
-        lighting: params.createVideoDto.lighting,
+        lighting: direction.lighting,
         model: params.model,
-        motion: params.createVideoDto.cameraMovement,
+        motion: direction.motion,
         objective: params.generationHarness.enhancedPrompt,
         referenceIds: params.referenceIds,
-        references: params.runReferences,
+        references: resolveAdPresetBriefReferences(params),
         resolution: params.createVideoDto.resolution,
-        scene: params.createVideoDto.scene,
+        scene: direction.scene,
         seed: params.createVideoDto.seed,
         surface: 'studio',
-        visualDirection:
-          params.createVideoDto.style || params.createVideoDto.mood,
+        visualDirection: direction.visualDirection,
         videoReferenceIds: params.createVideoDto.videoReferences,
         width: params.width,
       });

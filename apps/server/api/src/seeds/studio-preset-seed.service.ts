@@ -1,9 +1,7 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory } from '@genfeedai/contracts';
-import {
-  STUDIO_SYSTEM_PRESETS,
-  studioSystemPresetId,
-} from '@genfeedai/contracts/constants/studio-system-presets.constant';
+import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
+import { STUDIO_SYSTEM_PRESETS } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -11,6 +9,16 @@ export type StudioPresetSeedResult = {
   unchanged: number;
   written: number;
 };
+
+const catalog = [
+  ...STUDIO_SYSTEM_PRESETS,
+  ...AD_PRESETS.map((preset) => ({
+    ...preset,
+    prompt: '',
+    type: 'video' as const,
+    values: { adPreset: preset },
+  })),
+];
 
 @Injectable()
 export class StudioPresetSeedService {
@@ -22,7 +30,7 @@ export class StudioPresetSeedService {
   async reconcileCatalog(): Promise<StudioPresetSeedResult> {
     const result: StudioPresetSeedResult = { unchanged: 0, written: 0 };
     const failedKeys: string[] = [];
-    for (const preset of STUDIO_SYSTEM_PRESETS) {
+    for (const preset of catalog) {
       try {
         if (await this.seedPreset(preset)) result.written += 1;
         else result.unchanged += 1;
@@ -43,10 +51,8 @@ export class StudioPresetSeedService {
     return result;
   }
 
-  private async seedPreset(
-    preset: (typeof STUDIO_SYSTEM_PRESETS)[number],
-  ): Promise<boolean> {
-    const id = studioSystemPresetId(preset.key);
+  private async seedPreset(preset: (typeof catalog)[number]): Promise<boolean> {
+    const id = `cpresetbuiltin${preset.key.replaceAll('-', '')}`;
     // tenant-scope-ignore: reserved platform seed ID collision probe; tenant rows are never rewritten, including deleted rows.
     const existing = await this.prisma.preset.findUnique({
       where: { id },

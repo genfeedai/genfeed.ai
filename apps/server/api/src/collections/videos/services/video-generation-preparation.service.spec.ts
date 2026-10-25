@@ -5,14 +5,16 @@ import {
   measuredSeedanceVideoReference,
   type SeedanceVideoReferenceEvidence,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
+import {
+  createMissingPromptIdException,
+  MISSING_PROMPT_ID_DETAIL,
+} from '@api/collections/videos/services/video-generation-prompt.util';
 import { resolveStoredVideoReference } from '@api/collections/videos/services/video-generation-reference.util';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
   assertSeedanceReferenceVideoDuration,
-  createMissingPromptIdException,
-  MISSING_PROMPT_ID_DETAIL,
   VideoGenerationPreparationService,
 } from './video-generation-preparation.service';
 

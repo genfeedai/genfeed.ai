@@ -47,7 +47,7 @@
     "start": "cd .. && nest start workers",
     "start:debug": "cd .. && nest start workers --debug --watch",
     "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
-    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/workers/main",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=1536 --expose-gc ../dist/apps/workers/main",
     "sync:fal-models": "node -r tsconfig-paths/register ../dist/apps/workers-fal-model-sync/main --live",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage",

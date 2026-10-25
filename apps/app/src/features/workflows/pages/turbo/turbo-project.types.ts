@@ -9,10 +9,13 @@ export interface TurboProjectPageProps {
 }
 export interface TurboIdeasEditorProps {
   canGenerate: boolean;
+  isAvatarReady: boolean;
+  name: string;
   settings: ITurboProjectIdeaSettings;
   disabled: boolean;
   onChange: (settings: ITurboProjectIdeaSettings) => void;
   onGenerate: () => void;
+  onNameChange: (name: string) => void;
 }
 export interface TurboWorkflowInputsProps {
   disabled: boolean;
