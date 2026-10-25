@@ -40,6 +40,7 @@ describe('native MCP untrusted-result integration', () => {
     getSocialConversation: vi.fn(),
     listSocialConversations: vi.fn(),
     createClipProjectFromYoutube: vi.fn(),
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(),
     resolveApproval: vi.fn(),
     attachApprovalResult: vi.fn(),

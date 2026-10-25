@@ -464,7 +464,7 @@ export default function PostDetail({
               isPublished={isPublished}
               onPublishNow={publishNow}
               onRetryPublish={handleRetryPublish}
-              onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+              onReviewHref={href(APP_ROUTES.PUBLISHING.APPROVALS)}
               post={post}
             />
             {sidebar}
@@ -579,7 +579,7 @@ export default function PostDetail({
               isPublished={isPublished}
               onPublishNow={publishNow}
               onRetryPublish={handleRetryPublish}
-              onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+              onReviewHref={href(APP_ROUTES.PUBLISHING.APPROVALS)}
               post={post}
             />
           </>

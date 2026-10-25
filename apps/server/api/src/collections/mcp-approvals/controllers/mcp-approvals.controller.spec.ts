@@ -1,5 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
+import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/services/mcp-approval-policy.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -43,6 +44,7 @@ describe('McpApprovalsController', () => {
     findPricingForActor: vi.fn(),
     resolve: vi.fn(),
   };
+  const mockPolicy = { isApprovalRequired: vi.fn() };
   const rolesGuard = { assertRoles: vi.fn() };
 
   beforeEach(async () => {
@@ -52,6 +54,7 @@ describe('McpApprovalsController', () => {
       controllers: [McpApprovalsController],
       providers: [
         { provide: McpApprovalsService, useValue: mockServiceMethods },
+        { provide: McpApprovalPolicyService, useValue: mockPolicy },
         { provide: RolesGuard, useValue: rolesGuard },
         {
           provide: LoggerService,
@@ -101,6 +104,16 @@ describe('McpApprovalsController', () => {
     });
     expect(JSON.stringify(result)).not.toContain('pricingQuote');
     expect(JSON.stringify(result)).not.toContain('hidden');
+  });
+
+  it("reports the connected member's effective approval policy", async () => {
+    mockPolicy.isApprovalRequired.mockResolvedValue(false);
+    const result = await controller.approvalPolicy(mockUser as never);
+    expect(mockPolicy.isApprovalRequired).toHaveBeenCalledWith(
+      'org-abc',
+      'user-xyz',
+    );
+    expect(result).toEqual({ data: { isApprovalRequired: false } });
   });
 
   it('serializes only minimal status after scoped authorization', async () => {

@@ -709,7 +709,7 @@ describe('WorkspacePageContent', () => {
     );
     expect(screen.getByRole('link', { name: 'Open Review' })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/publishing/posts?view=approvals',
+      '/acme-org/acme-creator/publishing/approvals',
     );
     // #5397: the "Open Inbox" link (`workspace-overview-sidebar.tsx`'s
     // "Recent activity" card) used to build a bare
@@ -720,7 +720,7 @@ describe('WorkspacePageContent', () => {
     // would have left the workspace inspector unable to activate.
     expect(screen.getByRole('link', { name: 'Open Inbox' })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox?view=unread',
+      '/acme-org/acme-creator/workspace/inbox/unread',
     );
     expect(screen.getByText('Library snapshot')).toBeVisible();
     expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();

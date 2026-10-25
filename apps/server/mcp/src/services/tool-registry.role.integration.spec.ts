@@ -30,6 +30,7 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
 
 function build(role: 'user' | 'admin') {
   const client = {
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn().mockResolvedValue({
       id: 'apr-brand',
       status: 'PENDING',

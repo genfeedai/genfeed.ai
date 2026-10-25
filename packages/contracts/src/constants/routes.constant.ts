@@ -250,10 +250,14 @@ export const APP_ROUTES = {
   },
   PUBLISHING: {
     /**
-     * The calendar is the Posts desk's calendar view; there is no separate
-     * route. The Publishing sidebar links straight to it.
+     * Approvals queue: `/publishing/approvals`, a Turbo run at
+     * `/publishing/approvals/:run` and one of its items at
+     * `/publishing/approvals/:run/:item`. Build those with
+     * `createPublishingApprovalsRoute`.
      */
-    CALENDAR: '/publishing/posts?view=calendar',
+    APPROVALS: '/publishing/approvals',
+    /** Scheduled content on a calendar. */
+    CALENDAR: '/publishing/calendar',
     /**
      * Publish content Campaigns — named, dated, cross-platform programs.
      * Distinct from Automate Programs (`APP_ROUTES.AUTOMATION.CAMPAIGNS`).
@@ -282,12 +286,6 @@ export const APP_ROUTES = {
      * Publishing nav item.
      */
     REMIX: '/publishing/remix',
-    /**
-     * Approvals are a Posts view, not a route of their own; the Publishing
-     * sidebar links straight to it. Build batch or filter deep links with
-     * `createPublishingApprovalsRoute`.
-     */
-    REVIEW: '/publishing/posts?view=approvals',
     ROOT: '/publishing',
   },
   SETTINGS: {
@@ -380,9 +378,9 @@ export const APP_ROUTES = {
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
     INBOX: '/workspace/inbox',
-    INBOX_ALL: '/workspace/inbox?view=all',
-    INBOX_RECENT: '/workspace/inbox?view=recent',
-    INBOX_UNREAD: '/workspace/inbox?view=unread',
+    INBOX_ALL: '/workspace/inbox/all',
+    INBOX_RECENT: '/workspace/inbox/recent',
+    INBOX_UNREAD: '/workspace/inbox/unread',
     /**
      * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
      * Overview nav item is a complete path that does not prefix-match

@@ -90,7 +90,7 @@ function ToolbarFixture() {
   useEffect(() => {
     setLeadingNode(<input aria-label="Search posts" />);
     setFiltersNode(<button type="button">Filter posts</button>);
-    setExportNode(<a href="/acme/main/publishing/review">Approval queue</a>);
+    setExportNode(<a href="/acme/main/publishing/approvals">Approval queue</a>);
     return () => {
       setLeadingNode(null);
       setFiltersNode(null);

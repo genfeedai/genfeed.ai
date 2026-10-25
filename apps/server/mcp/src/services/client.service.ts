@@ -250,6 +250,10 @@ export class ClientService {
     return this.agent.createApproval(toolName, args);
   }
 
+  isApprovalRequired(): Promise<boolean> {
+    return this.agent.isApprovalRequired();
+  }
+
   getApproval(approvalId: string): Promise<McpApprovalResource | null> {
     return this.agent.getApproval(approvalId);
   }

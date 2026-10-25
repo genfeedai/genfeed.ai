@@ -1066,7 +1066,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/publishing/review"
+        currentPath="/acme/my-brand/publishing/approvals"
       />,
     );
     const activeButton = screen.getByRole('link', { name: 'Publishing' });

@@ -52,7 +52,7 @@ describe('toAgentRequestPageContext', () => {
           draftTitle: 'Launch recap',
           postAuthor: '   ',
           researchReferences,
-          route: '/publishing/review',
+          route: '/publishing/approvals',
           socialReferences,
           suggestedActions: [],
           url: '',
@@ -63,7 +63,7 @@ describe('toAgentRequestPageContext', () => {
       analyticsQuery,
       draftTitle: 'Launch recap',
       researchReferences,
-      route: '/publishing/review',
+      route: '/publishing/approvals',
       socialReferences,
       timezone: 'Europe/Paris',
     });

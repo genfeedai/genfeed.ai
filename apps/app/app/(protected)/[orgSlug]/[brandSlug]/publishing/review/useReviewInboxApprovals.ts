@@ -53,6 +53,7 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
     [],
   );
   const [decidingItemId, setDecidingItemId] = useState<string | null>(null);
+  const [isBulkDeciding, setIsBulkDeciding] = useState(false);
 
   const {
     data: rawItems,
@@ -85,7 +86,7 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
 
   const onDecide = useCallback(
     async (item: IReviewInboxItem, decision: ReviewInboxDecision) => {
-      if (decidingItemId) return;
+      if (decidingItemId || isBulkDeciding) return;
       setDecidingItemId(item.id);
       try {
         const service = await getReviewInboxService();
@@ -108,7 +109,68 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
         await refetch();
       }
     },
-    [decidingItemId, getReviewInboxService, notifications, refetch, translate],
+    [
+      decidingItemId,
+      getReviewInboxService,
+      isBulkDeciding,
+      notifications,
+      refetch,
+      translate,
+    ],
+  );
+
+  const onDecideMany = useCallback(
+    async (
+      selected: readonly IReviewInboxItem[],
+      decision: ReviewInboxDecision,
+    ) => {
+      if (decidingItemId || isBulkDeciding || selected.length === 0) return;
+      setIsBulkDeciding(true);
+      let decidedCount = 0;
+      try {
+        const service = await getReviewInboxService();
+        // One at a time: the owning service fences each decision on its own.
+        for (const item of selected) {
+          try {
+            await service.decide({ decision, itemId: item.id });
+            decidedCount += 1;
+          } catch (decisionError: unknown) {
+            logger.error('Review inbox bulk decision failed', decisionError);
+          }
+        }
+        const failedCount = selected.length - decidedCount;
+        if (failedCount === 0) {
+          notifications.success(
+            translate(decision === 'reject' ? 'bulkRejected' : 'bulkApproved', {
+              count: decidedCount,
+            }),
+          );
+        } else {
+          notifications.error(
+            translate('bulkPartial', {
+              count: decidedCount,
+              failed: failedCount,
+            }),
+          );
+        }
+      } catch (serviceError: unknown) {
+        logger.error('Review inbox bulk decision failed', serviceError);
+        notifications.error(
+          getJsonApiErrorMessage(serviceError, translate('decisionFailed')),
+        );
+      } finally {
+        setIsBulkDeciding(false);
+        await refetch();
+      }
+    },
+    [
+      decidingItemId,
+      getReviewInboxService,
+      isBulkDeciding,
+      notifications,
+      refetch,
+      translate,
+    ],
   );
 
   return {
@@ -120,9 +182,11 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
       !isLoading &&
       !error &&
       !data.some((item) => item.id === highlightedItemId),
+    isBulkDeciding,
     isLoading,
     items,
     onDecide,
+    onDecideMany,
     onSourceFilterChange: setSourceFilters,
     refresh,
     sourceFilters,

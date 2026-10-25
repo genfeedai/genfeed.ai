@@ -12,6 +12,7 @@ import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.p
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
+import CollectionSection from '@ui/collection/CollectionSection';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
@@ -212,8 +213,17 @@ export default function ReviewQueueView({
     translateReview,
   ]);
 
+  // The requests and the batch drafts only get headings when both are on the
+  // page, so a lone table never carries a title that splits nothing.
+  const hasSplitSections =
+    approvals.items.length > 0 &&
+    isTurboQueueVisible &&
+    turboRunList.length > 0;
   const approvalsSection = (
-    <ReviewInboxApprovalsSection approvals={approvals} />
+    <ReviewInboxApprovalsSection
+      approvals={approvals}
+      title={hasSplitSections ? translateInbox('needsYou') : undefined}
+    />
   );
 
   // An error, a missing deep-linked row or a row to decide all render in the
@@ -283,6 +293,23 @@ export default function ReviewQueueView({
     );
   }
 
+  const draftsGrid = (
+    <ReviewGrid
+      activeItem={activeItem}
+      isActioning={isActioning}
+      items={visibleItems}
+      selectedIds={selectedIds}
+      isRewriteStarting={isRewriteStarting}
+      rewriteProgress={rewriteProgress}
+      rewritingIds={rewritingIds}
+      onBulkApprove={onBulkApprove}
+      onBulkReject={onBulkReject}
+      onBulkRewrite={onBulkRewrite}
+      onSelectItem={handleSelectRow}
+      onToggleSelect={onToggleSelect}
+    />
+  );
+
   return (
     <>
       {approvalsSection}
@@ -317,20 +344,13 @@ export default function ReviewQueueView({
             onToggleSelect={onToggleSelect}
             onUnassign={onUnassign}
           />
-          <ReviewGrid
-            activeItem={activeItem}
-            isActioning={isActioning}
-            items={visibleItems}
-            selectedIds={selectedIds}
-            isRewriteStarting={isRewriteStarting}
-            rewriteProgress={rewriteProgress}
-            rewritingIds={rewritingIds}
-            onBulkApprove={onBulkApprove}
-            onBulkReject={onBulkReject}
-            onBulkRewrite={onBulkRewrite}
-            onSelectItem={handleSelectRow}
-            onToggleSelect={onToggleSelect}
-          />
+          {hasSplitSections ? (
+            <CollectionSection title={translateReview('queue.draftsTitle')}>
+              {draftsGrid}
+            </CollectionSection>
+          ) : (
+            draftsGrid
+          )}
         </>
       ) : (
         <Card
