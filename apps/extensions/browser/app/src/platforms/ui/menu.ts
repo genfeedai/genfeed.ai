@@ -34,10 +34,10 @@ const TRIGGER_CSS = `
     height: var(--gf-height, ${DEFAULT_HEIGHT_PX}px); margin: 0; padding: 0;
     border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
     border-radius: var(--gf-radius, 9999px); background: transparent;
-    color: var(--accent); cursor: pointer; transition: background-color 0.15s;
+    color: var(--text); cursor: pointer; transition: background-color 0.15s;
   }
   .trigger:hover, .trigger[aria-expanded="true"] {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    background: color-mix(in srgb, var(--text) 10%, transparent);
   }
   .trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .trigger svg { display: block; width: 20px; height: 20px; }

@@ -83,16 +83,25 @@ function initializePlatformIntegration(): void {
 
     attachSourceButton(currentPlatform);
 
+    // With no post open (a new post or the home composer) only the draft
+    // actions apply, so the menu drops the ones that read a post.
     const postId = currentPlatform.extractPostId();
-    if (!postId) {
+    if (!postId && !currentPlatform.hasNewPostComposer) {
       return;
     }
-    const postUrl = currentPlatform.constructPostUrl(postId);
+    const postUrl = postId
+      ? currentPlatform.constructPostUrl(postId)
+      : undefined;
 
     for (const submit of findSubmitButtons(currentPlatform)) {
       mountGenfeedGroup(
         submit,
-        buildMenuGroups({ platform: currentPlatform, platformName, postUrl }),
+        buildMenuGroups({
+          hasPost: Boolean(postId),
+          platform: currentPlatform,
+          platformName,
+          postUrl,
+        }),
       );
     }
   }
