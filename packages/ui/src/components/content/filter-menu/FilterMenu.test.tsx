@@ -58,6 +58,31 @@ describe('FilterMenu', () => {
     ).toBeVisible();
   });
 
+  it('shows an option count as a badge instead of in the label', async () => {
+    const user = userEvent.setup();
+    renderMenu([
+      {
+        defaultValue: 'all',
+        key: 'status',
+        label: 'Status',
+        onChange: vi.fn(),
+        options: [
+          { label: 'All', value: 'all' },
+          { count: 32, label: 'Unsorted', value: 'unsorted' },
+        ],
+        selection: 'single',
+        value: 'all',
+      },
+    ]);
+    await openFacet(user, /Status/);
+    const unsorted = await screen.findByRole('menuitemradio', {
+      name: 'Unsorted 32',
+    });
+    expect(unsorted).toHaveTextContent(/^Unsorted32$/);
+    expect(screen.getByText('32')).toHaveClass('tabular-nums');
+    expect(screen.getByRole('menuitemradio', { name: 'All' })).toBeVisible();
+  });
+
   it('reports the chosen value of a single facet', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

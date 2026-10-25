@@ -5,6 +5,8 @@ export interface FilterMenuOption {
   value: string;
   label: string;
   icon?: ReactNode;
+  /** Number of results behind the option, shown as a right-aligned badge. */
+  count?: number;
 }
 
 interface FilterMenuFacetBase {

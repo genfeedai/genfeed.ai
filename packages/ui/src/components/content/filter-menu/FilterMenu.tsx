@@ -113,7 +113,7 @@ function FilterMenuFacetItem({
             >
               {visibleOptions.map((option) => (
                 <DropdownMenuRadioItem
-                  className="gap-2"
+                  count={option.count}
                   key={option.value}
                   value={option.value}
                 >
@@ -128,7 +128,7 @@ function FilterMenuFacetItem({
               return (
                 <DropdownMenuCheckboxItem
                   checked={isChecked}
-                  className="gap-2"
+                  count={option.count}
                   disabled={isLimitReached && !isChecked}
                   key={option.value}
                   onCheckedChange={(checked) =>

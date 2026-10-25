@@ -38,10 +38,6 @@ const ORIGIN_CHOICES: LibraryFilterChoice[] = INGREDIENT_ORIGIN_ORDER.map(
   }),
 );
 
-function withCount(label: string, count: number | undefined): string {
-  return typeof count === 'number' ? `${label} (${count})` : label;
-}
-
 /**
  * One reading of the filter axes for both surfaces that show them: the
  * Filters menu (every choice) and the chip row (only what is applied).
@@ -107,13 +103,15 @@ export function useLibraryFilters({
       }
 
       choices.push({
-        label: withCount(LIBRARY_SHELF_LABELS[shelfKey], count),
+        count,
+        label: LIBRARY_SHELF_LABELS[shelfKey],
         value: shelfKey,
       });
     }
 
     choices.push({
-      label: withCount(translate('statusTrash'), trashedCount),
+      count: trashedCount,
+      label: translate('statusTrash'),
       value: 'trash',
     });
 
@@ -125,7 +123,8 @@ export function useLibraryFilters({
   const tagChoices = useMemo(
     () =>
       tagOptions.map((tag) => ({
-        label: withCount(tag.label, tag.assetCount),
+        count: tag.assetCount,
+        label: tag.label,
         value: tag.id,
       })),
     [tagOptions],

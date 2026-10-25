@@ -122,6 +122,7 @@ export interface LibraryActiveFilter {
 }
 
 export interface LibraryFilterChoice {
+  count?: number;
   label: string;
   value: string;
 }
