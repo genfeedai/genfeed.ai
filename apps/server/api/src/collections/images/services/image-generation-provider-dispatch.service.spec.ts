@@ -10,6 +10,7 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
@@ -599,7 +600,9 @@ describe('ImageGenerationProviderDispatchService', () => {
   it('preserves completion when failure loses the terminal claim', async () => {
     const failure = new Error('provider rejected');
     comfyUIService.generateImage.mockRejectedValueOnce(failure);
-    imagesService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    imagesService.patchAll
+      .mockResolvedValueOnce({ modifiedCount: 0 })
+      .mockResolvedValueOnce({ modifiedCount: 0 });
     const plan = await service.dispatch(
       buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
     );
@@ -625,7 +628,9 @@ describe('ImageGenerationProviderDispatchService', () => {
     comfyUIService.generateImage.mockResolvedValueOnce({
       imageBuffer: Buffer.from('image'),
     });
-    imagesService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    imagesService.patchAll
+      .mockResolvedValueOnce({ modifiedCount: 0 })
+      .mockResolvedValueOnce({ modifiedCount: 0 });
     const plan = await service.dispatch(
       buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
     );
@@ -1259,6 +1264,201 @@ describe('ImageGenerationProviderDispatchService', () => {
       'replicate-byok-job',
       'org-replicate-key',
     );
+  });
+
+  it.each(['before-result', 'during-upload'])(
+    'recovers an exact processing timeout %s and settles only the final terminal claim',
+    async (timing) => {
+      const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+      replicateService.generateTextToImage.mockResolvedValueOnce('late-job');
+      replicateService.getPrediction.mockResolvedValueOnce({
+        status: 'succeeded',
+        output: ['https://replicate.delivery/pbxt/late.png'],
+      });
+      imagesService.findOne.mockResolvedValueOnce({
+        status:
+          timing === 'before-result'
+            ? IngredientStatus.FAILED
+            : IngredientStatus.PROCESSING,
+        generationError:
+          timing === 'before-result'
+            ? INGREDIENT_PROCESSING_TIMEOUT_ERROR
+            : null,
+      });
+      imagesService.patchAll
+        .mockResolvedValueOnce({ modifiedCount: 0 })
+        .mockResolvedValueOnce({ modifiedCount: 1 })
+        .mockResolvedValueOnce({ modifiedCount: 1 });
+      const plan = await service.dispatch(buildContext({ model }));
+      await plan?.generationPromise;
+      expect(filesClientService.uploadToS3).toHaveBeenCalledOnce();
+      expect(imagesService.patchAll).toHaveBeenCalledWith(
+        {
+          id: 'ingredient-1',
+          organizationId: 'organization-1',
+          isDeleted: false,
+          status: IngredientStatus.FAILED,
+          generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        },
+        { status: IngredientStatus.PROCESSING, generationError: null },
+      );
+      expect(generationBilling.settleOutput).toHaveBeenCalledExactlyOnceWith(
+        'ingredient-1',
+        'organization-1',
+      );
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    },
+  );
+
+  it('recovers a processing timeout during inline upload before settling the durable output', async () => {
+    comfyUIService.generateImage.mockResolvedValueOnce({
+      imageBuffer: Buffer.from('image'),
+    });
+    imagesService.patchAll
+      .mockResolvedValueOnce({ modifiedCount: 0 })
+      .mockResolvedValueOnce({ modifiedCount: 1 })
+      .mockResolvedValueOnce({ modifiedCount: 1 });
+    const plan = await service.dispatch(
+      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
+    );
+    await plan?.generationPromise;
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: IngredientStatus.FAILED,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      }),
+      { status: IngredientStatus.PROCESSING, generationError: null },
+    );
+    expect(generationBilling.settleOutput).toHaveBeenCalledExactlyOnceWith(
+      'ingredient-1',
+      'organization-1',
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
+
+  it.each(['provider failed', INGREDIENT_PROCESSING_TIMEOUT_ERROR])(
+    'records confirmed provider failure after a processing timeout without leaving a reopenable marker (%s)',
+    async (message) => {
+      replicateService.generateTextToImage.mockResolvedValueOnce(
+        'late-failure',
+      );
+      replicateService.getPrediction.mockResolvedValueOnce({
+        status: 'failed',
+        error: message,
+      });
+      imagesService.patchAll
+        .mockResolvedValueOnce({ modifiedCount: 0 })
+        .mockResolvedValueOnce({ modifiedCount: 1 })
+        .mockResolvedValueOnce({ modifiedCount: 1 });
+      const plan = await service.dispatch(
+        buildContext({ model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4 }),
+      );
+      await expect(plan?.generationPromise).rejects.toThrow(message);
+      expect(imagesService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: IngredientStatus.FAILED,
+          generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        }),
+        { status: IngredientStatus.PROCESSING, generationError: null },
+      );
+      expect(imagesService.patchAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: IngredientStatus.PROCESSING }),
+        expect.objectContaining({
+          status: IngredientStatus.FAILED,
+          isGenerationFailureConfirmed: true,
+          generationError:
+            message === INGREDIENT_PROCESSING_TIMEOUT_ERROR
+              ? 'Generation failed'
+              : message,
+        }),
+      );
+      expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+        'ingredient-1',
+        'organization-1',
+      );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['Cancelled by user', 'Provider rejected the prompt'])(
+    'does not recover a failed image with a different terminal reason (%s)',
+    async (generationError) => {
+      replicateService.generateTextToImage.mockResolvedValueOnce(
+        'terminal-job',
+      );
+      replicateService.getPrediction.mockResolvedValueOnce({
+        status: 'succeeded',
+        output: ['https://replicate.delivery/pbxt/late.png'],
+      });
+      imagesService.findOne.mockResolvedValueOnce({
+        status: IngredientStatus.FAILED,
+        generationError,
+      });
+      const plan = await service.dispatch(
+        buildContext({ model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4 }),
+      );
+      await plan?.generationPromise;
+      expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+      expect(imagesService.patchAll).not.toHaveBeenCalled();
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    },
+  );
+
+  it('recovers a timed-out batch slot only after the provider confirms it was not produced', async () => {
+    replicateService.generateTextToImage.mockResolvedValueOnce('partial-job');
+    replicateService.getPrediction.mockResolvedValueOnce({
+      status: 'succeeded',
+      output: ['https://replicate.delivery/pbxt/first.png'],
+    });
+    sharedService.createMediaDocuments.mockResolvedValueOnce({
+      ingredientData: { id: 'ingredient-2' },
+      metadataData: { id: 'metadata-2' },
+    });
+    imagesService.findOne.mockResolvedValueOnce({
+      status: IngredientStatus.PROCESSING,
+    });
+    let hasRecovered = false;
+    imagesService.patchAll.mockImplementation(async (where, update) => {
+      if (where.id !== 'ingredient-2') return { modifiedCount: 1 };
+      if (
+        where.status === IngredientStatus.FAILED &&
+        where.generationError === INGREDIENT_PROCESSING_TIMEOUT_ERROR &&
+        update.status === IngredientStatus.PROCESSING
+      ) {
+        hasRecovered = true;
+        return { modifiedCount: 1 };
+      }
+      return { modifiedCount: Number(hasRecovered) };
+    });
+    try {
+      const plan = await service.dispatch(
+        buildContext({
+          model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE,
+          outputs: 2,
+        }),
+      );
+      await plan?.generationPromise;
+      expect(hasRecovered).toBe(true);
+      expect(imagesService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'ingredient-2',
+          status: IngredientStatus.PROCESSING,
+        }),
+        expect.objectContaining({
+          status: IngredientStatus.FAILED,
+          isGenerationFailureConfirmed: true,
+        }),
+      );
+      expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+        'ingredient-2',
+        'organization-1',
+      );
+    } finally {
+      imagesService.patchAll
+        .mockReset()
+        .mockResolvedValue({ modifiedCount: 1 });
+    }
   });
 
   it('skips finalize when the ingredient is no longer processing', async () => {

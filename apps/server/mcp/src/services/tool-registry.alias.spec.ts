@@ -38,6 +38,7 @@ async function build(mode: 'standard' | 'claude' = 'standard') {
       .fn()
       .mockResolvedValue({ success: true, data: { assetId: 'asset' } }),
     evaluateMcpToolResult: vi.fn().mockResolvedValue({ outcome: 'allowed' }),
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(),
   };
   const logger = {

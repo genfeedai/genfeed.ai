@@ -58,6 +58,7 @@ function build() {
       .fn()
       .mockResolvedValue({ success: true, creditsUsed: 0, data: fixture }),
     evaluateMcpToolResult: vi.fn().mockResolvedValue({ outcome: 'allowed' }),
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(async (toolName, args) => {
       approval = {
         id: 'approval-private',

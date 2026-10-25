@@ -83,7 +83,7 @@ describe('Library copy', () => {
     ];
 
     expect(LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description).toBe(
-      'Generated output for this brand. Uploads and imports live on the References shelf.',
+      'Generated output for this brand. Uploads and imports live on the Imported page.',
     );
     for (const description of copy) {
       expect(description).not.toMatch(/this brand (has )?generated/);

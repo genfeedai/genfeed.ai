@@ -5,6 +5,7 @@ import {
   approvalGenerationConstraint,
   approvalGenerationQuote,
 } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/services/mcp-approval-policy.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { AGENT_RUNTIME_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
@@ -38,6 +39,7 @@ import {
   evaluateMutationPolicy,
   getToolByName,
   getVisualGenerationReviewType,
+  isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from '@genfeedai/actions';
 import {
@@ -97,6 +99,8 @@ export class AgentToolMutationAuthorizationService {
     private readonly prisma?: PrismaService,
     @Optional()
     private readonly membersService?: MembersService,
+    @Optional()
+    private readonly mcpApprovalPolicy?: McpApprovalPolicyService,
   ) {}
 
   /**
@@ -168,6 +172,9 @@ export class AgentToolMutationAuthorizationService {
       isMcpTextDraftCall(parameters)
     )
       effectivePolicy = 'direct';
+    if (await this.isMcpApprovalWaived(toolName, context, effectivePolicy)) {
+      effectivePolicy = 'direct';
+    }
     // Auto and Plan skip the brand-context card, and a threadless run keeps
     // the declared direct policy. Enabling auto-publish is the exception:
     // the model must not remove the supervised lock without a confirmation.
@@ -205,6 +212,33 @@ export class AgentToolMutationAuthorizationService {
       effectivePolicy,
       isAvailableOnSurface,
     );
+  }
+
+  /**
+   * "Require approval for MCP requests" (organization policy and the member's own
+   * setting, both on by default). When both are off, an MCP credit spender runs without
+   * the approvals queue. Credit balance and quote checks still run in the handler, and
+   * outbound, brand-context and other gated writes never qualify.
+   */
+  private async isMcpApprovalWaived(
+    toolName: CuratedActionName,
+    context: ToolExecutionContext,
+    effectivePolicy: ReturnType<typeof resolveEffectiveMutationPolicy>,
+  ): Promise<boolean> {
+    if (
+      effectivePolicy !== 'approval-required' ||
+      context.approvedApprovalId ||
+      context.threadId ||
+      !this.mcpApprovalPolicy ||
+      getActionOriginContext().origin !== ActionOrigin.MCP ||
+      !isMcpApprovalSkippable(toolName)
+    ) {
+      return false;
+    }
+    return !(await this.mcpApprovalPolicy.isApprovalRequired(
+      context.organizationId,
+      context.userId,
+    ));
   }
 
   private async resolveProactiveTextDraftConstraint(

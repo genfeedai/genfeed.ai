@@ -5,6 +5,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 function build() {
   const client = {
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(),
     createScheduledRelease: vi.fn(),
     updateScheduledRelease: vi.fn(),
@@ -105,7 +106,7 @@ describe('Claude connector execution boundary', () => {
         isError: true,
         structuredContent: {
           code: 'unavailable_in_connector',
-          nextStepUrl: 'https://app.genfeed.ai/studio/playground',
+          nextStepUrl: 'https://app.genfeed.ai/playground',
         },
       });
       expect(client.createApproval).not.toHaveBeenCalled();

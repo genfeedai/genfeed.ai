@@ -408,13 +408,13 @@ describe('AppProtectedRail', () => {
   });
 
   it('highlights from the current pathname', () => {
-    mockPathname.value = '/acme/brand/studio/clips';
+    mockPathname.value = '/acme/brand/clips';
 
     render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
 
     expect(screen.getByTestId('app-rail')).toBeInTheDocument();
     expect(appRailSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ currentPath: '/acme/brand/studio/clips' }),
+      expect.objectContaining({ currentPath: '/acme/brand/clips' }),
     );
   });
 

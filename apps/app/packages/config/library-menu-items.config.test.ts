@@ -5,15 +5,17 @@ import {
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
-  it('is Overview, Assets and References, never a shelf, trash, recency, or type (#5502)', () => {
+  it('is Overview, Assets, Imported and References, never a shelf, trash, recency, or type (#5502)', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Assets',
+      'Imported',
       'References',
     ]);
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
       '/library/overview',
       '/library/assets',
+      '/library/imported',
       '/library/references',
     ]);
     expect(

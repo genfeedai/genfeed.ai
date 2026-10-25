@@ -5,6 +5,10 @@ export interface FilterMenuOption {
   value: string;
   label: string;
   icon?: ReactNode;
+  /** Number of results behind the option, shown as a right-aligned badge. */
+  count?: number;
+  /** Text the user typed (tags, names): shown exactly as written, never re-cased. */
+  isLiteral?: boolean;
 }
 
 interface FilterMenuFacetBase {

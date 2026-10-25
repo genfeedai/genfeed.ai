@@ -30,7 +30,6 @@ interface AgentModeDropdownProps {
 }
 
 interface AgentModeOption {
-  description: string;
   icon: ReactNode;
   label: string;
   value: AgentThreadMode;
@@ -53,19 +52,16 @@ export function AgentModeDropdown({
   const options = useMemo<readonly AgentModeOption[]>(
     () => [
       {
-        description: translate('auto.description'),
         icon: <Sparkles className="size-4" />,
         label: translate('auto.label'),
         value: AgentThreadMode.AUTO,
       },
       {
-        description: translate('manual.description'),
         icon: <Hand className="size-4" />,
         label: translate('manual.label'),
         value: AgentThreadMode.MANUAL,
       },
       {
-        description: translate('plan.description'),
         icon: <ListChecks className="size-4" />,
         label: translate('plan.label'),
         value: AgentThreadMode.PLAN,
@@ -104,13 +100,8 @@ export function AgentModeDropdown({
         side="top"
         sideOffset={8}
       >
-        <DropdownMenuLabel className="flex flex-col gap-0.5 normal-case tracking-normal">
-          <span className="text-xs font-semibold text-foreground">
-            {translate('title')}
-          </span>
-          <span className="text-2xs font-normal leading-4 text-muted-foreground">
-            {translate('subtitle')}
-          </span>
+        <DropdownMenuLabel className="text-xs normal-case tracking-normal text-foreground">
+          {translate('title')}
         </DropdownMenuLabel>
         <DropdownMenuRadioGroup
           onValueChange={(value) => onChange(normalizeAgentThreadMode(value))}
@@ -118,16 +109,9 @@ export function AgentModeDropdown({
         >
           {options.map((option) => (
             <DropdownMenuRadioItem key={option.value} value={option.value}>
-              <span className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="text-muted-foreground">{option.icon}</span>
-                <span className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {option.label}
-                  </p>
-                  <p className="truncate text-2xs text-muted-foreground">
-                    {option.description}
-                  </p>
-                </span>
+              <span className="text-muted-foreground">{option.icon}</span>
+              <span className="min-w-0 flex-1 truncate text-xs">
+                {option.label}
               </span>
             </DropdownMenuRadioItem>
           ))}

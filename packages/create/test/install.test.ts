@@ -4,6 +4,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installRelease, openBrowser } from '../src/index.js';
 
@@ -11,10 +12,12 @@ interface FakeChildOutcome {
   code?: number | null;
   error?: Error;
   signal?: NodeJS.Signals | null;
+  stdout?: string;
 }
 
 interface FakeChildProcess extends EventEmitter {
   unref: () => void;
+  stdout: PassThrough;
 }
 
 const childProcessMock = vi.hoisted(() => ({
@@ -55,10 +58,12 @@ async function createTemporaryDirectory(prefix: string): Promise<string> {
 
 function createFakeChild(outcome: FakeChildOutcome = {}): FakeChildProcess {
   const child = new EventEmitter() as FakeChildProcess;
+  child.stdout = new PassThrough();
   child.unref = () => {
     // Detached children are fire-and-forget in these tests.
   };
   setImmediate(() => {
+    child.stdout.end(outcome.stdout ?? '');
     if (outcome.error) {
       child.emit('error', outcome.error);
       return;
@@ -83,6 +88,16 @@ function useDefaultSpawnBehavior(): void {
     (command: string, args: readonly string[]) => {
       if (command === 'tar') {
         extractTarFixture(args);
+      }
+      if (command === 'docker' && args.includes('ps')) {
+        return createFakeChild({
+          stdout: JSON.stringify({
+            Service: 'genfeed',
+            State: 'running',
+            Health: 'starting',
+            ExitCode: 0,
+          }),
+        });
       }
       return createFakeChild();
     },
@@ -214,7 +229,7 @@ describe('installRelease', () => {
     );
   });
 
-  it('warns when the containers start but the app never becomes ready', async () => {
+  it('fails when the containers start but the app never becomes ready', async () => {
     const base = await createTemporaryDirectory('genfeed-install-');
     const projectDirectory = join(base, 'app');
     let simulatedNow = 0;
@@ -226,14 +241,17 @@ describe('installRelease', () => {
       throw new Error('connection refused');
     });
 
-    await installRelease(
-      projectDirectory,
-      { release: RELEASE_TAG, start: true, yes: true },
-      fetchImplementation,
-    );
-
+    await expect(
+      installRelease(
+        projectDirectory,
+        { release: RELEASE_TAG, start: true, yes: true },
+        fetchImplementation,
+      ),
+    ).rejects.toThrow(`${APP_URL} did not become ready within 180 seconds`);
     expect(consolaMock.warn).toHaveBeenCalledWith(
-      `The containers started, but ${APP_URL} is not ready yet.`,
+      expect.stringContaining(
+        'docker compose --env-file .env -f compose.yml logs genfeed',
+      ),
     );
     expect(existsSync(projectDirectory)).toBe(true);
   });

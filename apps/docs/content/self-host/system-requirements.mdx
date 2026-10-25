@@ -13,15 +13,16 @@ the table says so rather than guessing.
 
 | Resource         | Supported floor     | Recommended                                                    |
 | ---------------- | ------------------- | -------------------------------------------------------------- |
-| Free disk        | About 10 GB         | 15 GB, plus room for generated media and backups               |
+| Free disk        | 15 GB               | More than 15 GB, plus room for generated media and backups     |
 | CPU              | Not yet published   | Not yet published                                              |
 | RAM              | Not yet published   | Not yet published                                              |
 | CPU architecture | `linux/amd64` image | `linux/amd64` (Docker Desktop can emulate it on Apple Silicon) |
 
 Disk covers the application image, PostgreSQL, and the media you generate, so
-it grows with use. A fresh install measured about 9.5 GB, which is why the floor
-is 10 GB; the 15 GB recommendation leaves headroom for the first media and
-database growth.
+it grows with use. On v0.2.15 the application image alone is 9.15 GB
+uncompressed and the PostgreSQL (pgvector) image adds about 631 MB, so a 10 GB
+disk leaves almost nothing for volumes. The 15 GB floor leaves headroom for the
+first media and database growth.
 
 ### What we have measured
 

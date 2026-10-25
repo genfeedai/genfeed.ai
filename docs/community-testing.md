@@ -12,8 +12,8 @@ Use the test report form below to tell us what worked, even if nothing broke.
 
 ## What you need
 
-- Docker with Compose v2, about 10 GB free disk, and free ports 3000, 3010 and
-  3014. The full list is in [Self-Hosting](./self-hosting.md#requirements).
+- Docker with Compose v2, at least 15 GB free disk, and free ports 3000, 3010,
+  3011 and 3014. The full list is in [Self-Hosting](./self-hosting.md#requirements).
 - An [OpenRouter](https://openrouter.ai/keys) key. It is the only required key;
   without it text generation and the agent do not run.
 - Optional, only for the image step: a `FAL_API_KEY` or `REPLICATE_KEY`. Your

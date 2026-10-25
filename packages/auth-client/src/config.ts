@@ -13,6 +13,7 @@ interface GenfeedRuntimeConfig {
   apiEndpoint?: string;
   betterAuthEnabled?: boolean;
   isMagicLinkAvailable?: boolean;
+  isGoogleSignInAvailable?: boolean;
   clientSurface?: 'desktop' | 'web';
 }
 
@@ -94,6 +95,16 @@ export function isBetterAuthEnabled(): boolean {
  */
 export function isMagicLinkAvailable(): boolean {
   return getRuntimeConfig().isMagicLinkAvailable !== false;
+}
+
+/**
+ * Whether the deployment has Google OAuth configured. A self-hosted install
+ * without Google client credentials cannot complete the sign-in, so the auth
+ * screens must not offer it. Defaults to available when the server did not
+ * report otherwise.
+ */
+export function isGoogleSignInAvailable(): boolean {
+  return getRuntimeConfig().isGoogleSignInAvailable !== false;
 }
 
 /** Reads the environment directly, without the browser runtime override. */

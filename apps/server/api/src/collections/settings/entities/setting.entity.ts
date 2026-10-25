@@ -31,4 +31,5 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly generationPriority: Setting['generationPriority'];
   declare readonly dashboardPreferences: Setting['dashboardPreferences'];
   declare readonly agentMode: Setting['agentMode'];
+  declare readonly isMcpApprovalRequired: Setting['isMcpApprovalRequired'];
 }

@@ -32,7 +32,12 @@ export interface LibraryBrowserProps {
   shelf?: LibraryShelf;
   /** Type chips pre-selected by a type-seeded route. The operator can clear them. */
   seededCategories?: readonly IngredientCategory[];
-  /** Header copy for a type-seeded route. Ignored when `shelf` is set. */
+  /**
+   * Origins a route lists when the URL names none (`/library/imported`). Without
+   * it the unfiltered browser lists generated output only.
+   */
+  seededOrigins?: readonly IngredientOrigin[];
+  /** Header copy for a seeded route. Ignored when `shelf` is set. */
   preset?: LibraryBrowserPreset;
   scope?: PageScope.BRAND | PageScope.ORGANIZATION | PageScope.SUPERADMIN;
   children?: ReactNode;
@@ -122,6 +127,8 @@ export interface LibraryActiveFilter {
 }
 
 export interface LibraryFilterChoice {
+  count?: number;
+  isLiteral?: boolean;
   label: string;
   value: string;
 }

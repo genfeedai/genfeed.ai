@@ -1155,7 +1155,18 @@ describe('all current route namespace delivery', () => {
     for (const page of routePages(path.join(APP, 'app'))) {
       const layouts = ancestors(page);
       const variants = page.includes('/[orgRootApp]/')
-        ? ['automation', 'library', 'studio', 'messages', 'publishing']
+        ? [
+            'automation',
+            'library',
+            'playground',
+            'storyboard',
+            'turbo',
+            'motion',
+            'clips',
+            'editor',
+            'messages',
+            'publishing',
+          ]
         : [undefined];
       for (const variant of variants) {
         routes += 1;

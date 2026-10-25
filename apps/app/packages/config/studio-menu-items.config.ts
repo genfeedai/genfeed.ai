@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 /**
- * Studio tools are separate apps (#5502): each owns its `/studio/<tool>`
+ * Studio tools are separate apps (#5502): each owns its `/<tool>`
  * routes and its own nav column, and none lists the others. There is no
  * Studio parent; members reach the next tool from the Apps launcher.
  */
@@ -112,7 +112,7 @@ const STUDIO_APP_ROOTS: Readonly<Record<StudioAppId, string>> = {
   turbo: APP_ROUTES.STUDIO.TURBO,
 };
 
-/** The Studio app that owns a product path such as `/studio/clips/new`. */
+/** The Studio app that owns a product path such as `/clips/new`. */
 export function getStudioAppForPath(
   productPath: string,
 ): StudioAppId | undefined {

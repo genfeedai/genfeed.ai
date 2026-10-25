@@ -6,13 +6,20 @@ import IngredientOriginBadge from './ingredient-origin-badge';
 describe('IngredientOriginBadge', () => {
   it.each([
     [IngredientOrigin.UPLOADED, 'Uploaded'],
-    [IngredientOrigin.GENERATED, 'Generated'],
     [IngredientOrigin.IMPORTED, 'Imported'],
     [IngredientOrigin.UNKNOWN, 'Unknown'],
   ])('labels %s in words, not color alone', (origin, label) => {
     render(<IngredientOriginBadge origin={origin} />);
 
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('renders nothing for a generated asset, the Library norm', () => {
+    const { container } = render(
+      <IngredientOriginBadge origin={IngredientOrigin.GENERATED} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it.each([undefined, null])('renders nothing for %p', (origin) => {

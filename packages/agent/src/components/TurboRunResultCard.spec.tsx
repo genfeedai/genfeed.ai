@@ -182,7 +182,7 @@ describe('TurboRunResultCard', () => {
       completedCount: 0,
       ctas: [
         {
-          href: '/publishing/posts?view=approvals&run=run-1',
+          href: '/publishing/approvals/run-1',
           label: 'Open approval queue',
         },
       ],
@@ -292,12 +292,12 @@ describe('TurboRunResultCard', () => {
         name: 'Review this X post in the approval queue',
       });
       expect(reviewLinks.map((link) => link.getAttribute('href'))).toEqual([
-        '/publishing/posts?view=approvals&run=run-1&item=item-1',
-        '/publishing/posts?view=approvals&run=run-1&item=item-2',
+        '/publishing/approvals/run-1/item-1',
+        '/publishing/approvals/run-1/item-2',
       ]);
       expect(
         screen.getByRole('link', { name: 'Open approval queue' }),
-      ).toHaveAttribute('href', '/publishing/posts?view=approvals&run=run-1');
+      ).toHaveAttribute('href', '/publishing/approvals/run-1');
     });
 
     it('asks the agent to rework just the post whose button was clicked', async () => {

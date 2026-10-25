@@ -113,7 +113,7 @@ describe('IngredientLineageStrip', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Used in' })).toBeInTheDocument();
-    expect(screen.getByText('Generated')).toBeInTheDocument();
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
   });
 
   it("shows a video output's first frame, not the stock placeholder poster", () => {

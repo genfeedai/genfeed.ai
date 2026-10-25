@@ -95,7 +95,7 @@ describe('IngredientsMediaGrid', () => {
     expect(screen.getByTestId('video-tile-video-1')).toBeInTheDocument();
   });
 
-  it('labels every card with its origin in words, never intercepting a click', () => {
+  it('labels uploaded cards with their origin in words, never intercepting a click', () => {
     render(
       <IngredientsMediaGrid
         {...baseProps}
@@ -107,22 +107,18 @@ describe('IngredientsMediaGrid', () => {
     );
 
     const uploaded = screen.getByText('Uploaded');
-    const generated = screen.getByText('Generated');
     expect(uploaded.parentElement).toContainElement(
       screen.getByTestId('image-tile-image-1'),
     );
-    expect(generated.parentElement).toContainElement(
-      screen.getByTestId('video-tile-video-1'),
-    );
-    expect(uploaded).toHaveClass('pointer-events-none');
-    expect(generated).toHaveClass(
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
+    expect(uploaded).toHaveClass(
       'pointer-events-none',
       'opacity-100',
       '[@media(hover:hover)]:opacity-0',
       '[@media(hover:hover)]:group-hover:opacity-100',
       '[@media(hover:hover)]:group-focus-within:opacity-100',
     );
-    expect(generated).not.toHaveClass('opacity-0');
+    expect(uploaded).not.toHaveClass('opacity-0');
   });
 
   it('shows each card’s tags above its origin, never intercepting a click', () => {

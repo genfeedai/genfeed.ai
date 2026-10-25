@@ -22,13 +22,13 @@ export function extractAgentConversationId(
   return conversationId;
 }
 
-/** The run id of a `/studio/storyboard/:runId` detail route, else `null`. */
+/** The run id of a `/storyboard/:runId` detail route, else `null`. */
 export function extractStoryboardRunId(pathname: string | null): string | null {
   if (!pathname) {
     return null;
   }
   const normalized = normalizeProtectedPathname(pathname);
-  const runId = normalized.match(/^\/studio\/storyboard\/([^/]+)\/?$/)?.[1];
+  const runId = normalized.match(/^\/storyboard\/([^/]+)\/?$/)?.[1];
   if (!runId || STORYBOARD_RUN_ID_EXCLUSIONS.has(runId)) {
     return null;
   }

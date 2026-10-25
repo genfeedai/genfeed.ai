@@ -1,3 +1,4 @@
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -38,7 +39,14 @@ export class ReplicatePollProcessor extends WorkerHost {
       isDeleted: false,
       organizationId: job.data.organizationId,
     });
-    if (!ingredient || ingredient.status !== IngredientStatus.PROCESSING) {
+    const isProcessingTimeout =
+      ingredient?.status === IngredientStatus.FAILED &&
+      ingredient.generationError === INGREDIENT_PROCESSING_TIMEOUT_ERROR;
+    if (
+      !ingredient ||
+      (ingredient.status !== IngredientStatus.PROCESSING &&
+        !isProcessingTimeout)
+    ) {
       return;
     }
 
@@ -58,11 +66,21 @@ export class ReplicatePollProcessor extends WorkerHost {
           externalId: job.data.externalId,
           ingredientId: job.data.ingredientId,
         });
-        await this.pollAgainOrTimeOut(job.data);
+        await this.pollAgainOrTimeOut(job.data, isProcessingTimeout);
         return;
       }
       apiKeyOverride = byokKey?.apiKey;
       if (!apiKeyOverride) {
+        if (isProcessingTimeout) {
+          this.logger.warn(
+            `${this.logContext}: timed-out provider outcome is unconfirmed without its BYOK key; retain funding`,
+            {
+              ingredientId: job.data.ingredientId,
+              organizationId: job.data.organizationId,
+            },
+          );
+          return;
+        }
         await this.webhooks.handleFailedGenerationForIngredient(
           job.data.ingredientId,
           'The Replicate key that started this generation is no longer available',
@@ -80,9 +98,13 @@ export class ReplicatePollProcessor extends WorkerHost {
     if (
       status === 'starting' ||
       status === 'processing' ||
-      status === 'queued'
+      status === 'queued' ||
+      (isProcessingTimeout &&
+        !['succeeded', 'completed', 'failed', 'canceled', 'cancelled'].includes(
+          status,
+        ))
     ) {
-      await this.pollAgainOrTimeOut(job.data);
+      await this.pollAgainOrTimeOut(job.data, isProcessingTimeout);
       return;
     }
 
@@ -116,8 +138,21 @@ export class ReplicatePollProcessor extends WorkerHost {
     });
   }
 
-  private async pollAgainOrTimeOut(data: ReplicatePollJobData): Promise<void> {
+  private async pollAgainOrTimeOut(
+    data: ReplicatePollJobData,
+    isProcessingTimeout: boolean,
+  ): Promise<void> {
     if (data.attempt >= REPLICATE_POLL_MAX_ATTEMPTS) {
+      if (isProcessingTimeout) {
+        this.logger.warn(
+          `${this.logContext}: provider outcome remains unconfirmed at the polling ceiling; retain funding`,
+          {
+            ingredientId: data.ingredientId,
+            organizationId: data.organizationId,
+          },
+        );
+        return;
+      }
       await this.webhooks.handleFailedGenerationForIngredient(
         data.ingredientId,
         'Replicate polling timed out',

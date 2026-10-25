@@ -454,7 +454,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             createBrandAppRoute(
               organization.slug,
               brand.slug,
-              `/studio/clips/${claimed.projectId}`,
+              `/clips/${claimed.projectId}`,
             ),
           );
           return;

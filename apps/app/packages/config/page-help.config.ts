@@ -73,10 +73,7 @@ export function resolvePageHelpKey(
     new URLSearchParams(search).get('place') === 'trash'
   )
     return 'libraryTrash';
-  if (
-    path === APP_ROUTES.AUTOMATION.WORKFLOWS &&
-    new URLSearchParams(search).get('view') === 'templates'
-  )
+  if (path === APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)
     return 'automationTemplates';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {

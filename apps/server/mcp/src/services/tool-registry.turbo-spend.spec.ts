@@ -8,6 +8,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  */
 function build() {
   const client = {
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn().mockResolvedValue({
       id: 'apr-turbo',
       status: 'PENDING',
@@ -61,6 +62,36 @@ describe('generate_turbo_content spend confirmation (#7180)', () => {
     ).structuredContent.estimatedCredits;
     expect(quote).toBeGreaterThan(100);
     expect(JSON.stringify(result)).toContain('Estimated cost');
+  });
+
+  it('runs without the queue once the organization and member both opt out', async () => {
+    const { client, registry } = build();
+    client.isApprovalRequired.mockResolvedValue(false);
+    client.executeAgentTool.mockResolvedValue({
+      creditsUsed: 120,
+      data: { runId: 'run-1' },
+      success: true,
+    });
+
+    const result = await registry.handleToolCall({
+      arguments: {
+        brandId: 'brand-1',
+        contentMix: { imagePercent: 0, videoPercent: 100 },
+        count: 100,
+        platforms: ['instagram'],
+      },
+      name: 'generate_turbo_content',
+    });
+
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).toHaveBeenCalledWith(
+      'generate_turbo_content',
+      expect.objectContaining({ brandId: 'brand-1', count: 100 }),
+      undefined,
+    );
+    expect(result).not.toMatchObject({
+      structuredContent: { code: 'approval_pending' },
+    });
   });
 
   it('tells the caller about the confirmation before the first call', () => {
