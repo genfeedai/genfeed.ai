@@ -199,6 +199,12 @@ export interface IBetterAuthUserCreatedEvent {
   email: string | null;
 }
 
+/** Payload emitted after Better Auth persists a session. IP is read from that row. */
+export type BetterAuthSessionCreatedEvent = Pick<
+  IBetterAuthUserCreatedEvent,
+  'userId'
+>;
+
 /** Payload emitted after a user follows their email verification link. */
 export interface IBetterAuthEmailVerifiedEvent {
   /** Client IP of the verification request, when it could be resolved. */
@@ -293,6 +299,8 @@ export interface ICreateBetterAuthOptions {
    * were withheld from an unverified mailbox can be released.
    */
   onEmailVerified?: (event: IBetterAuthEmailVerifiedEvent) => Promise<void>;
+  /** Retry a deferred signup gift after the session's trusted IP is persisted. */
+  onSessionCreated?: (event: BetterAuthSessionCreatedEvent) => Promise<void>;
   /**
    * Whether signups from throwaway email providers are refused. Resolved per
    * user creation; true only where free trial credits are on offer.

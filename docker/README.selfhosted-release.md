@@ -8,6 +8,8 @@ ARM host, enable AMD64 emulation in your Docker runtime before starting.
 
 ## Install
 
+Use Docker Engine 28+ with the Docker Compose v2 plugin, or Docker Desktop.
+
 ```bash
 cp .env.example .env
 # Before starting: set OPENROUTER_API_KEY in .env using your editor.
@@ -27,9 +29,10 @@ different host port requires a proxy at that endpoint or a custom image built
 with a matching `NEXT_PUBLIC_WS_ENDPOINT` build argument. A runtime `.env`
 change alone does not update the browser endpoint.
 
-The API and WebSocket host ports bind to `127.0.0.1` only. Use Docker Engine 28 or newer for
-loopback isolation, and keep the login wall enabled before exposing the API
-through a reverse proxy. Internal Docker-network access is unchanged.
+The API and WebSocket host ports bind to `127.0.0.1` only. The Docker Engine 28+
+minimum supports this loopback isolation. Keep the login wall enabled before
+exposing the API through a reverse proxy. Internal Docker-network access is
+unchanged.
 
 Before starting, edit `.env` and set `OPENROUTER_API_KEY` to a real key from
 <https://openrouter.ai/keys>; text generation and the agent need it, and the

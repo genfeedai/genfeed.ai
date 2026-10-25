@@ -152,12 +152,18 @@ vi.mock('@providers/promptbar/promptbar.context', () => ({
 
 const spendMocks = vi.hoisted(() => ({
   estimateGenerationCredits: vi.fn(),
-  openConfirm: vi.fn(),
+  info: vi.fn(),
 }));
-vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
-  () => ({ useConfirmModal: () => ({ openConfirm: spendMocks.openConfirm }) }),
-);
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: vi.fn(),
+      info: spendMocks.info,
+      success: vi.fn(),
+      warning: vi.fn(),
+    }),
+  },
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     estimateGenerationCredits: spendMocks.estimateGenerationCredits,
@@ -186,7 +192,6 @@ vi.mock('@ui/dropdowns/generation-setup/GenerationSetupSectionChips', () => ({
       <div data-testid="generation-setup-section-chips">
         {props.afterModel as React.ReactNode}
         {props.outputControls as React.ReactNode}
-        {props.trailing as React.ReactNode}
       </div>
     );
   },
@@ -399,7 +404,7 @@ describe('StudioPlaygroundComposer', () => {
     vi.clearAllMocks();
     avatarEstimateMocks.resolve.mockReset();
     spendMocks.estimateGenerationCredits.mockReset();
-    spendMocks.openConfirm.mockReset();
+    spendMocks.info.mockReset();
   });
 
   it('shows the selected settings in the picker and keeps library access in the context menu', () => {
@@ -2162,11 +2167,12 @@ describe('StudioPlaygroundComposer', () => {
       const generationControls = within(
         screen.getByRole('group', { name: 'Generation controls' }),
       );
+      // Enhance sits with the other tools, not next to Generate.
       expect(
-        generationControls.getByRole('button', { name: 'Enhance prompt' }),
+        promptTools.getByRole('button', { name: 'Enhance prompt' }),
       ).not.toHaveTextContent('Enhance prompt');
       expect(
-        promptTools.queryByRole('button', { name: 'Enhance prompt' }),
+        generationControls.queryByRole('button', { name: 'Enhance prompt' }),
       ).not.toBeInTheDocument();
       expect(
         promptTools.getByRole('button', { name: 'Setup' }),
@@ -2460,7 +2466,7 @@ describe('StudioPlaygroundComposer', () => {
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
   });
 
-  it('blocks unmatched reference prompts before requesting a quote, spend confirmation or generation', () => {
+  it('blocks unmatched reference prompts before requesting a quote or generation', () => {
     render(
       <StudioPlaygroundComposer
         {...baseProps}
@@ -2478,7 +2484,6 @@ describe('StudioPlaygroundComposer', () => {
     fireEvent.click(generate);
     act(() => promptEditorProps.onSubmit?.());
     expect(spendMocks.estimateGenerationCredits).not.toHaveBeenCalled();
-    expect(spendMocks.openConfirm).not.toHaveBeenCalled();
     expect(baseProps.onSubmit).not.toHaveBeenCalled();
   });
 
@@ -2493,7 +2498,7 @@ describe('StudioPlaygroundComposer', () => {
       provider: ModelProvider.REPLICATE,
     };
 
-    it('asks the server for the price and confirms it before anything is submitted', async () => {
+    it('asks the server for the price and submits once it is confirmed', async () => {
       spendMocks.estimateGenerationCredits.mockResolvedValue({
         credits: 64,
         isAvailable: true,
@@ -2511,7 +2516,7 @@ describe('StudioPlaygroundComposer', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-      await waitFor(() => expect(spendMocks.openConfirm).toHaveBeenCalled());
+      await waitFor(() => expect(baseProps.onSubmit).toHaveBeenCalledTimes(1));
       expect(spendMocks.estimateGenerationCredits).toHaveBeenCalledWith(
         expect.objectContaining({
           category: 'image',
@@ -2519,14 +2524,8 @@ describe('StudioPlaygroundComposer', () => {
         }),
         expect.any(AbortSignal),
       );
-      const dialog = spendMocks.openConfirm.mock.calls[0][0];
-      expect(dialog.label).toContain('64');
-      expect(dialog.message).toContain('64');
-      expect(baseProps.onSubmit).not.toHaveBeenCalled();
-
-      act(() => dialog.onConfirm());
-      expect(baseProps.onSubmit).toHaveBeenCalledTimes(1);
       expect(baseProps.onSubmit).toHaveBeenCalledWith(undefined);
+      expect(spendMocks.info).not.toHaveBeenCalled();
     });
 
     describe('video draft', () => {
@@ -2553,7 +2552,7 @@ describe('StudioPlaygroundComposer', () => {
         resolution: '1080p',
       };
 
-      it('prices the cheap draft and submits it flagged after the spend is confirmed', async () => {
+      it('prices the cheap draft and submits it flagged once the price is confirmed', async () => {
         estimateMocks.resolve.mockImplementation(
           (request: { modelKey?: string }) => ({
             credits: request.modelKey === veoFast.key ? 50 : 134,
@@ -2587,7 +2586,9 @@ describe('StudioPlaygroundComposer', () => {
           screen.getByRole('button', { name: 'Generate a cheap video draft' }),
         );
 
-        await waitFor(() => expect(spendMocks.openConfirm).toHaveBeenCalled());
+        await waitFor(() =>
+          expect(baseProps.onSubmit).toHaveBeenCalledWith({ isDraft: true }),
+        );
         expect(spendMocks.estimateGenerationCredits).toHaveBeenCalledWith(
           expect.objectContaining({
             duration: 4,
@@ -2596,10 +2597,6 @@ describe('StudioPlaygroundComposer', () => {
           }),
           expect.any(AbortSignal),
         );
-        expect(baseProps.onSubmit).not.toHaveBeenCalled();
-
-        act(() => spendMocks.openConfirm.mock.calls[0][0].onConfirm());
-        expect(baseProps.onSubmit).toHaveBeenCalledWith({ isDraft: true });
       });
 
       it('offers no draft when the cheaper sibling is not on offer', () => {
@@ -2625,7 +2622,7 @@ describe('StudioPlaygroundComposer', () => {
       });
     });
 
-    it('prices Auto at the model it routes to and submits that model pinned', async () => {
+    it('prices Auto at the model it routes to, names it in a toast and submits it pinned', async () => {
       spendMocks.estimateGenerationCredits.mockResolvedValue({
         credits: 8,
         isAvailable: true,
@@ -2643,7 +2640,7 @@ describe('StudioPlaygroundComposer', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-      await waitFor(() => expect(spendMocks.openConfirm).toHaveBeenCalled());
+      await waitFor(() => expect(baseProps.onSubmit).toHaveBeenCalledTimes(1));
       expect(spendMocks.estimateGenerationCredits).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -2657,10 +2654,9 @@ describe('StudioPlaygroundComposer', () => {
         expect.objectContaining({ modelKey: imagen.key }),
         expect.any(AbortSignal),
       );
-      const dialog = spendMocks.openConfirm.mock.calls[0][0];
-      expect(dialog.message).toContain('Imagen 4');
-
-      act(() => dialog.onConfirm());
+      expect(spendMocks.info).toHaveBeenCalledWith(
+        expect.stringContaining('Imagen 4'),
+      );
       expect(baseProps.onSubmit).toHaveBeenCalledWith({
         pinnedModelKey: imagen.key,
       });
@@ -2688,7 +2684,6 @@ describe('StudioPlaygroundComposer', () => {
       await waitFor(() =>
         expect(spendMocks.estimateGenerationCredits).toHaveBeenCalled(),
       );
-      expect(spendMocks.openConfirm).not.toHaveBeenCalled();
       expect(baseProps.onSubmit).not.toHaveBeenCalled();
     });
 
@@ -2711,7 +2706,6 @@ describe('StudioPlaygroundComposer', () => {
       await waitFor(() =>
         expect(spendMocks.estimateGenerationCredits).toHaveBeenCalled(),
       );
-      expect(spendMocks.openConfirm).not.toHaveBeenCalled();
       expect(baseProps.onSubmit).not.toHaveBeenCalled();
     });
 
@@ -2735,7 +2729,6 @@ describe('StudioPlaygroundComposer', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
       expect(spendMocks.estimateGenerationCredits).not.toHaveBeenCalled();
-      expect(spendMocks.openConfirm).not.toHaveBeenCalled();
       expect(baseProps.onSubmit).toHaveBeenCalledTimes(1);
     });
   });

@@ -71,7 +71,7 @@ import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/playground/hooks/useStudioLooks';
-import { useStudioSpendConfirmation } from '@pages/studio/playground/hooks/useStudioSpendConfirmation';
+import { useStudioSpendQuote } from '@pages/studio/playground/hooks/useStudioSpendQuote';
 import {
   buildStudioAvatarRequest,
   resolveStudioAvatarScript,
@@ -203,13 +203,13 @@ export default function StudioPlaygroundComposer({
     onSettingsChange,
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
-  const { confirmSpend, isQuoting } = useStudioSpendConfirmation();
+  const { isQuoting, quoteSpend } = useStudioSpendQuote();
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
-  // Nothing is spent before the operator has seen and confirmed the amount.
+  // The price is quoted by the server first; a price it cannot confirm submits nothing.
   const guardedSubmit = () => {
     if (isSubmitBlocked || !canSubmitStudioGeneration()) return;
-    confirmSpend(
+    quoteSpend(
       { modelKey: settings.modelKey, models, source: spendSource },
       (options) => onSubmitRef.current(options),
     );
@@ -491,7 +491,7 @@ export default function StudioPlaygroundComposer({
   const guardedDraftSubmit = () => {
     if (!draftSettings || isSubmitBlocked || !canSubmitStudioGeneration())
       return;
-    confirmSpend(
+    quoteSpend(
       {
         modelKey: draftSettings.modelKey,
         models,
@@ -584,8 +584,6 @@ export default function StudioPlaygroundComposer({
                 ? 0
                 : crunSpendQuote.credits,
             isByok: crunSpendQuote.billingMode === 'byok',
-            isStillCurrent: () =>
-              crunQuote?.getCurrentQuote()?.quoteId === crunSpendQuote.quoteId,
             kind: 'known',
           }
         : { kind: 'unpriced' }
@@ -1090,8 +1088,42 @@ export default function StudioPlaygroundComposer({
     />
   ) : null;
 
+  // The enhance action sits with the other tools, after the setup chips.
+  const enhanceControl =
+    onEnhancePrompt && type !== 'image-edit' ? (
+      <Button
+        ariaLabel={
+          isEnhancingPrompt
+            ? translate('cancelEnhancingPrompt')
+            : translate('enhancePrompt')
+        }
+        className="size-8 shrink-0 min-h-0 min-w-0 p-0"
+        icon={
+          isEnhancingPrompt ? (
+            <Spinner className="size-4" />
+          ) : (
+            <WandSparkles className={SHELL_ICON_CLASS} />
+          )
+        }
+        // The composer stays usable during enhancement: while pending,
+        // the button switches to Cancel instead of disabling (#4676).
+        isDisabled={!isEnhancingPrompt && isPromptEmpty}
+        onClick={isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt}
+        tooltip={
+          isEnhancingPrompt
+            ? translate('cancelEnhancingPrompt')
+            : translate('enhancePrompt')
+        }
+        textTransform="none"
+        tooltipPosition="top"
+        size={ButtonSize.ICON}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    ) : null;
+
   // The last things in the button row: undo for a prompt enhancement, then `+`.
-  const endOfRow = (
+  const referenceControl = (
     <>
       {!isEnhancingPrompt && previousPrompt !== null ? (
         <Button
@@ -1338,106 +1370,70 @@ export default function StudioPlaygroundComposer({
       <PromptBarToolbar
         leadingLabel={translateSetup('promptTools')}
         trailingLabel={translateSetup('generationControls')}
+        mode={
+          <GenerationSetupTypeBar
+            // Every type keeps the Auto/Advanced button; Avatar just has no
+            // model to choose in Advanced.
+            advancedMode={{
+              isEnabled: isAdvancedMode,
+              onChange: handleAdvancedModeChange,
+            }}
+            // Editing is a mode of Image, not a type of its own.
+            imageEditing={{
+              isEnabled: type === 'image-edit',
+              onChange: (isEditing) =>
+                onTypeChange(isEditing ? 'image-edit' : 'image'),
+            }}
+            onTypeChange={(nextType) => {
+              // The shared bar speaks GenerationSetupType; Studio only offers
+              // its own registry, so anything else is not a Studio pick.
+              if (isStudioPlaygroundType(nextType)) {
+                onTypeChange(nextType);
+              }
+            }}
+            setup={setupForComposer}
+            typeOptions={typeOptions}
+          />
+        }
         leading={
-          <>
-            <GenerationSetupTypeBar
-              // Every type keeps the Auto/Advanced button; Avatar just has no
-              // model to choose in Advanced.
-              advancedMode={{
-                isEnabled: isAdvancedMode,
-                onChange: handleAdvancedModeChange,
-              }}
-              // Editing is a mode of Image, not a type of its own.
-              imageEditing={{
-                isEnabled: type === 'image-edit',
-                onChange: (isEditing) =>
-                  onTypeChange(isEditing ? 'image-edit' : 'image'),
-              }}
-              onTypeChange={(nextType) => {
-                // The shared bar speaks GenerationSetupType; Studio only offers
-                // its own registry, so anything else is not a Studio pick.
-                if (isStudioPlaygroundType(nextType)) {
-                  onTypeChange(nextType);
-                }
-              }}
+          isAdvancedMode ? (
+            <GenerationSetupSectionChips
+              // Model follows the mode button; the identity pickers come
+              // next, then Output, Look, Brand and Presets.
+              afterModel={identityFields}
+              capabilities={capabilities}
+              favoriteModelKeys={favoriteModelKeys}
+              inputControls={inputControls}
+              isPresetsLoading={isPresetsLoading}
+              lookOptions={lookOptions}
+              models={isModelChoiceVisible ? models : []}
+              onApplyPreset={handleApplyPreset}
+              onApplySystemPreset={handleApplySystemPresetById}
+              onClearPreset={handleClearPreset}
+              onDeletePreset={handleDeletePreset}
+              onFavoriteToggle={onFavoriteToggle}
+              onResetAll={onResetSettings}
+              onResetField={handleResetField}
+              onSavePreset={handleSavePreset}
+              onSetField={handleSetField}
+              outputControls={outputControls}
+              presets={presets}
+              referenceCount={crunReferenceCount ?? attachedAssets.length}
+              showEnhancementSettings={type === 'image' || type === 'video'}
+              showPresets={type === 'image' || type === 'video'}
+              systemPresets={systemPresetOptions}
+              reasons={reasons}
               setup={setupForComposer}
               typeOptions={typeOptions}
             />
-            {isAdvancedMode ? (
-              <GenerationSetupSectionChips
-                // Model follows the mode button; the identity pickers come
-                // next, then Output, Look, Brand and Presets, and `+` ends the row.
-                afterModel={identityFields}
-                capabilities={capabilities}
-                favoriteModelKeys={favoriteModelKeys}
-                inputControls={inputControls}
-                isPresetsLoading={isPresetsLoading}
-                lookOptions={lookOptions}
-                models={isModelChoiceVisible ? models : []}
-                onApplyPreset={handleApplyPreset}
-                onApplySystemPreset={handleApplySystemPresetById}
-                onClearPreset={handleClearPreset}
-                onDeletePreset={handleDeletePreset}
-                onFavoriteToggle={onFavoriteToggle}
-                onResetAll={onResetSettings}
-                onResetField={handleResetField}
-                onSavePreset={handleSavePreset}
-                onSetField={handleSetField}
-                outputControls={outputControls}
-                presets={presets}
-                referenceCount={crunReferenceCount ?? attachedAssets.length}
-                showEnhancementSettings={type === 'image' || type === 'video'}
-                showPresets={type === 'image' || type === 'video'}
-                systemPresets={systemPresetOptions}
-                reasons={reasons}
-                setup={setupForComposer}
-                trailing={endOfRow}
-                typeOptions={typeOptions}
-              />
-            ) : (
-              <>
-                {identityFields}
-                {endOfRow}
-              </>
-            )}
-          </>
+          ) : (
+            identityFields
+          )
         }
+        enhance={enhanceControl}
+        reference={referenceControl}
         trailing={
           <>
-            {onEnhancePrompt && type !== 'image-edit' ? (
-              <Button
-                ariaLabel={
-                  isEnhancingPrompt
-                    ? translate('cancelEnhancingPrompt')
-                    : translate('enhancePrompt')
-                }
-                className="size-8 shrink-0 min-h-0 min-w-0 p-0"
-                icon={
-                  isEnhancingPrompt ? (
-                    <Spinner className="size-4" />
-                  ) : (
-                    <WandSparkles className={SHELL_ICON_CLASS} />
-                  )
-                }
-                // The composer stays usable during enhancement: while pending,
-                // the button switches to Cancel instead of disabling (#4676).
-                isDisabled={!isEnhancingPrompt && isPromptEmpty}
-                onClick={
-                  isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
-                }
-                tooltip={
-                  isEnhancingPrompt
-                    ? translate('cancelEnhancingPrompt')
-                    : translate('enhancePrompt')
-                }
-                textTransform="none"
-                tooltipPosition="top"
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            ) : null}
-
             {draftSettings && draftEstimate.status === 'estimated' ? (
               <Button
                 ariaLabel={translate('videoDraft.ariaLabel')}

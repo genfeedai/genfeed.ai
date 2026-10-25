@@ -333,9 +333,8 @@ export class OnboardingFirstDraftsService {
             ? 'pending'
             : 'failed';
       } catch (error) {
-        this.loggerService.warn('Onboarding video generation failed', {
+        this.loggerService.error('Onboarding video generation failed', error, {
           brandId,
-          error: error instanceof Error ? error.message : String(error),
         });
         result.videoStatus = 'failed';
       }
@@ -477,9 +476,8 @@ export class OnboardingFirstDraftsService {
           ) ?? null,
       };
     } catch (error: unknown) {
-      this.loggerService.warn('Onboarding image generation failed', {
+      this.loggerService.error('Onboarding image generation failed', error, {
         brandId: input.identity.brandId,
-        error: error instanceof Error ? error.message : String(error),
       });
       return { ingredientId: null, url: null };
     }

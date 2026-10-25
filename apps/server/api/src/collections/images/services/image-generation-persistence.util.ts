@@ -49,6 +49,8 @@ export interface ImageGenerationPersistenceParams {
   promptOriginalText: string;
   /** Character admitted for this request; the output links to it. */
   personaId?: string | null;
+  /** Admitted shared characters' reference ids, by owning organization. */
+  grantedAvatarOwners?: ReadonlyMap<string, string>;
   referenceIds: string[];
   referenceImageUrls: string[];
   placeholderScope?: GenerationPlaceholderScope;
@@ -154,6 +156,29 @@ function buildLegacyImagePromptInput(
     useTemplate: createImageDto.useTemplate,
   };
 }
+/**
+ * A reference can be an Ingredient or a brand-kit Asset (logo, banner, kit
+ * reference), but `sources` links Ingredients only. Connecting an Asset id
+ * makes Prisma reject the whole create, so lineage keeps just the ids that
+ * are Ingredients of the organization or admitted shared characters.
+ */
+async function resolveLineageSourceIds(
+  params: ImageGenerationPersistenceParams,
+  imagesService: ImagesService,
+): Promise<string[]> {
+  if (params.editing || params.referenceIds.length === 0) {
+    return params.referenceIds;
+  }
+  const granted = params.grantedAvatarOwners;
+  const candidateIds = params.referenceIds.filter((id) => !granted?.has(id));
+  const ingredients =
+    candidateIds.length > 0
+      ? await imagesService.findByIds(candidateIds, params.user.organizationId)
+      : [];
+  const found = new Set(ingredients.map((ingredient) => String(ingredient.id)));
+  return params.referenceIds.filter((id) => granted?.has(id) || found.has(id));
+}
+
 export async function persistImageDocuments(
   params: ImageGenerationPersistenceParams,
   dependencies: ImageGenerationPersistenceDependencies,
@@ -169,13 +194,16 @@ export async function persistImageDocuments(
     model,
     promptOriginalText,
     user,
-    referenceIds,
     referenceImageUrls,
     placeholderScope,
     style,
     width,
   } = params;
   const editing = params.editing;
+  const sourceIds = await resolveLineageSourceIds(
+    params,
+    dependencies.imagesService,
+  );
 
   const promptData = await resolveGenerationPrompt(
     dependencies.promptsService,
@@ -252,7 +280,7 @@ export async function persistImageDocuments(
           : {},
       scope: createImageDto.scope,
       sourceActionId: createImageDto.sourceActionId,
-      sourceIds: referenceIds,
+      sourceIds,
       style,
       tagIds: createImageDto.tags,
       templateVersion: imageTemplateVersion,

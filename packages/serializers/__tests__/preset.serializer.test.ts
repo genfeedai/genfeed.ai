@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 describe('PresetSerializer', () => {
   it('exposes persisted generation config while keeping scalar scope and activation authoritative', () => {
     const config = {
+      adPreset: {
+        key: 'ad-talking-head',
+        sections: [{ key: 'lighting', template: 'Edited lighting' }],
+      },
       label: 'Edited banner',
       prompt: 'New campaign',
       aspectRatio: '4:5',
@@ -27,6 +31,7 @@ describe('PresetSerializer', () => {
       config,
     }) as { data: { attributes: Record<string, unknown> } };
     expect(output.data.attributes).toMatchObject({
+      adPreset: config.adPreset,
       label: config.label,
       prompt: config.prompt,
       aspectRatio: config.aspectRatio,

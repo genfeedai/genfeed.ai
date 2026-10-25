@@ -1,0 +1,40 @@
+## Generation Goal
+Create a 9:16 video lasting 7 seconds.
+
+## No Words On Screen
+Do not add captions, titles, logos or other generated words on screen.
+
+## Reference Material Roles
+@Image1: person
+@Audio1: voiceover
+
+## Dialogue
+Say "  Try this.
+Keep "every" word — exactly!  ". Use the same words, same number of words, same order.
+
+## Subjects and Relationships
+Keep the referenced person recognizable and interacting naturally with the setting.
+
+## Scale and Proportion
+Keep human anatomy, objects and surroundings at realistic proportions.
+
+## Camera
+Handheld phone selfie, 24 mm lens, 9:16; subtle natural movement.
+
+## Picture Quality
+Low-quality phone selfie
+
+## Lighting
+Use believable, consistent light that suits the setting.
+
+## Performance
+Speak naturally with restrained gestures and expressions.
+
+## Event Script
+Start with an attentive look, deliver the dialogue, then settle naturally.
+
+## Audio
+Reference audio steers the voice. There is no unchanged-audio guarantee.
+
+## Maintain Consistency
+Maintain identity, wardrobe, setting and lighting throughout.

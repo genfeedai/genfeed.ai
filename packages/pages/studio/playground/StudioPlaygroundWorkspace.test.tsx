@@ -1167,7 +1167,8 @@ describe('StudioPlaygroundWorkspace', () => {
       ),
     );
     act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'));
-    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    // The in-flight guard holds until the submission settles.
+    await act(async () => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'A coast',
       expect.anything(),
@@ -1195,7 +1196,7 @@ describe('StudioPlaygroundWorkspace', () => {
       }),
     );
     act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A heron'));
-    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    await act(async () => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'A heron',
       expect.anything(),
@@ -1211,6 +1212,24 @@ describe('StudioPlaygroundWorkspace', () => {
       expect.anything(),
       { originalText: 'A crane' },
     );
+  });
+
+  it('sends one generation when Generate is clicked twice before the first settles', async () => {
+    let settle: (accepted: boolean) => void = () => {};
+    mocks.submit.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        settle = resolve;
+      }),
+    );
+    render(<StudioPlaygroundWorkspace />);
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+
+    await act(async () => settle(false));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledTimes(2);
   });
 
   it.each(['image', 'video'])(

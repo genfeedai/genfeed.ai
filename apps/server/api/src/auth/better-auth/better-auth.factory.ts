@@ -530,8 +530,16 @@ function generateHandle(input: {
 export function buildBetterAuthUserDatabaseHooks(
   onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
   shouldBlockDisposableEmail?: ICreateBetterAuthOptions['shouldBlockDisposableEmail'],
+  onSessionCreated?: ICreateBetterAuthOptions['onSessionCreated'],
 ): BetterAuthDatabaseHooks {
   return {
+    session: {
+      create: {
+        after: async (session) => {
+          await onSessionCreated?.({ userId: session.userId });
+        },
+      },
+    },
     user: {
       create: {
         before: async (user) => {
@@ -749,6 +757,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     sendVerificationEmail,
     onUserCreated,
     onEmailVerified,
+    onSessionCreated,
     shouldBlockDisposableEmail,
     turnstileSecretKey,
   } = options;
@@ -881,6 +890,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     databaseHooks: buildBetterAuthUserDatabaseHooks(
       onUserCreated,
       shouldBlockDisposableEmail,
+      onSessionCreated,
     ),
     plugins: [
       ...(apiKey ? [buildBetterAuthDashPlugin(apiKey)] : []),

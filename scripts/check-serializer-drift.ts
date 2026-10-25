@@ -577,6 +577,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'mood:ElementMood': ['category', 'isFavorite', 'isPlatformDefault'],
   // These creation controls are flattened from Preset.config by the service.
   'preset:Preset': [
+    'adPreset',
     'aspectRatio',
     'cameraMovement',
     'duration',

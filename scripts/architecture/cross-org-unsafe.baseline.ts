@@ -380,7 +380,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // Email-verified grant: resolves the user's first owned organization; the entitlement is user-scoped, not tenant-scoped.
     {
       file: 'apps/server/api/src/collections/credits/listeners/email-verified-credits.listener.ts',
-      line: 34,
+      line: 54,
     },
     // #6120: the signup welcome entitlement is user-scoped across the user's
     // owned organizations.
@@ -398,18 +398,18 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // compared across all other users' organizations by design.
     {
       file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
-      line: 121,
+      line: 124,
     },
     // Free-credit abuse gate: first-session IP lookup for the signing-up user.
     {
       file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
-      line: 144,
+      line: 147,
     },
     // Free-credit abuse gate: counts recent free grants to other users on the
     // same IP across tenants.
     {
       file: 'apps/server/api/src/collections/credits/services/signup-grant-eligibility.service.ts',
-      line: 163,
+      line: 166,
     },
     // #6120: superadmin reads another organization's blacklist entry.
     {

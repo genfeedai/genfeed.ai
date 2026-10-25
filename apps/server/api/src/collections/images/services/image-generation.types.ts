@@ -183,7 +183,6 @@ export interface ImageGenerationProviderAdapter {
 export interface ImageGenerationPreparedInputs {
   referenceIds: string[];
   referenceImageUrls: string[];
-  referenceImageUrl: string | null;
   generationHarness: GenerationHarnessReceipt;
   /** Character admitted for this request; outputs link to it. */
   personaId: string | null;

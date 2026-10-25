@@ -267,6 +267,22 @@ describe('MasonryVideo', () => {
     expect(mockVideoPlayer.mock.calls[0]?.[0]?.config?.preload).toBe('none');
   });
 
+  it('shows the poster instead of a player while the preview grant has no URL', () => {
+    const onMediaError = vi.fn();
+    mockVideoPlayer.mockClear();
+
+    render(
+      <MasonryVideo
+        onMediaError={onMediaError}
+        video={{ ...mockVideo, ingredientUrl: '' } as unknown as IVideo}
+      />,
+    );
+
+    expect(mockVideoPlayer).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
+    expect(onMediaError).not.toHaveBeenCalled();
+  });
+
   it('preloads metadata to show a first frame when no poster exists', () => {
     render(
       <MasonryVideo

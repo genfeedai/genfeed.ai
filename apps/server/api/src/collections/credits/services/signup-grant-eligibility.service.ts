@@ -15,7 +15,7 @@ const IP_WINDOW_MS = 24 * 60 * 60 * 1000;
 export type GrantEligibilityOptions = {
   /** Hash of the verified card's Stripe fingerprint, for grants that need one. */
   cardKey?: string | null;
-  /** Client IP to use when the user has no session yet. */
+  /** Server-resolved client IP to use when the user has no session yet. */
   ipAddress?: string | null;
 };
 
@@ -24,6 +24,7 @@ export type SignupGrantRefusal =
   | 'duplicate-card'
   | 'duplicate-mailbox'
   | 'email-unverified'
+  | 'ip-required'
   | 'ip-velocity';
 
 export type SignupGrantEligibility =
@@ -50,11 +51,10 @@ export type SignupGrantEligibility =
  * - at most {@link MAX_FREE_GRANTS_PER_IP_PER_DAY} grants of one kind go to
  *   accounts that signed in from the same address within a day. The address
  *   is the user's first session, hashed onto the grant's ledger row so the
- *   count survives sign-outs (sessions are hard-deleted). A grant paid before
- *   any session exists (an OAuth signup's gift) is not IP-checked; the trial
- *   credits, paid after onboarding, always are. An email/password signup has
- *   no session until its link is followed, so the verification request's IP
- *   stands in for it.
+ *   count survives sign-outs (sessions are hard-deleted). A missing address
+ *   defers the gift until session creation retries it. An email/password
+ *   signup has no session until its link is followed, so the verification
+ *   request's server-resolved IP stands in for it.
  *
  * Runs inside the grant transaction so the read and the grant are serialised
  * together. Deployments without the hosted free trial are always eligible.
@@ -101,7 +101,10 @@ export class SignupGrantEligibilityService {
       }
     }
     const ipKey = await this.resolveIpKey(tx, userId, input.ipAddress);
-    if (ipKey && (await this.isIpOverLimit(tx, ipKey, input))) {
+    if (!ipKey) {
+      return this.refuse('ip-required', userId, source);
+    }
+    if (await this.isIpOverLimit(tx, ipKey, input)) {
       return this.refuse('ip-velocity', userId, source);
     }
     return { cardKey, emailKey, ipKey, isEligible: true };
@@ -147,7 +150,7 @@ export class SignupGrantEligibilityService {
         await tx.session.findFirst({
           orderBy: { createdAt: 'asc' },
           select: { ipAddress: true },
-          where: { ipAddress: { not: null }, userId },
+          where: { ipAddress: { not: null, notIn: [''] }, userId },
         }),
     );
     const ipAddress = firstSession?.ipAddress ?? requestIpAddress;
@@ -185,7 +188,9 @@ export class SignupGrantEligibilityService {
     // An unverified mailbox and a missing card are the normal states of a new
     // signup before it verifies or adds a card, so they are not worth a warning.
     const log =
-      reason === 'email-unverified' || reason === 'card-required'
+      reason === 'email-unverified' ||
+      reason === 'card-required' ||
+      reason === 'ip-required'
         ? 'log'
         : 'warn';
     this.logger[log]('Free credit grant withheld', {

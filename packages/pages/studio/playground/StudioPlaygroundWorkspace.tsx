@@ -1445,6 +1445,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   );
 
   const referencePreviewUrlRef = useRef<string | undefined>(undefined);
+  // Generate submits at once now, so a double click must not send twice.
+  const isSubmitInFlightRef = useRef(false);
   const handleSubmit = useCallback(
     (submitOptions?: StudioSubmitOptions) => {
       if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
@@ -1459,6 +1461,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         ).errors.length
       )
         return;
+      if (isSubmitInFlightRef.current) return;
       const referencePreviewUrl = referencePreviewUrlRef.current;
       const previewOption = referencePreviewUrl
         ? { referencePreviewUrl }
@@ -1468,9 +1471,14 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         : undefined;
       if (type === 'image-edit') {
         const editOptions = { ...previewOption, ...pinnedOption };
-        const submission = Object.keys(editOptions).length
-          ? submit(prompt, resolvedReferences, editOptions)
-          : submit(prompt, resolvedReferences);
+        isSubmitInFlightRef.current = true;
+        const submission = (
+          Object.keys(editOptions).length
+            ? submit(prompt, resolvedReferences, editOptions)
+            : submit(prompt, resolvedReferences)
+        ).finally(() => {
+          isSubmitInFlightRef.current = false;
+        });
         const submittedPrompt = prompt;
         void submission.then((accepted) => {
           if (accepted && latestPromptRef.current === submittedPrompt) {
@@ -1493,6 +1501,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       for (const notice of prepared.notices) {
         notificationsService.warning(notice);
       }
+      isSubmitInFlightRef.current = true;
       const submittedPrompt = prompt;
       const promptAuthor = resolveStudioPromptAuthor(
         agentPromptSeed,
@@ -1536,20 +1545,24 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 }
               : {}),
         },
-      ).then((isAccepted) => {
-        // A sent generation leaves an empty composer (and draft) behind; the
-        // model settings stay for the next one. Skipped when the user already
-        // moved on to the next prompt while this one was being sent.
-        if (isAccepted && latestPromptRef.current === submittedPrompt) {
-          setPrompt('');
-          setAgentPromptSeed(null);
-          setContentReferences([]);
-          restoredRolesRef.current.clear();
-          setPendingRestoredUploadIds(null);
-          setRestoredAttachments(EMPTY_ATTACHMENTS);
-          clearAttachments();
-        }
-      });
+      )
+        .finally(() => {
+          isSubmitInFlightRef.current = false;
+        })
+        .then((isAccepted) => {
+          // A sent generation leaves an empty composer (and draft) behind; the
+          // model settings stay for the next one. Skipped when the user already
+          // moved on to the next prompt while this one was being sent.
+          if (isAccepted && latestPromptRef.current === submittedPrompt) {
+            setPrompt('');
+            setAgentPromptSeed(null);
+            setContentReferences([]);
+            restoredRolesRef.current.clear();
+            setPendingRestoredUploadIds(null);
+            setRestoredAttachments(EMPTY_ATTACHMENTS);
+            clearAttachments();
+          }
+        });
     },
     [
       agentPromptSeed,

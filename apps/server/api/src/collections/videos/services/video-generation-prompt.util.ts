@@ -1,3 +1,15 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
+
+export const MISSING_PROMPT_ID_DETAIL =
+  'Prompt resolution requires a prompt ID';
+
+export function createMissingPromptIdException(): HttpException {
+  return new HttpException(
+    { detail: MISSING_PROMPT_ID_DETAIL, title: 'Prompt validation failed' },
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
 export function requireVideoPromptInput(dto: {
   promptId?: unknown;
   text?: unknown;

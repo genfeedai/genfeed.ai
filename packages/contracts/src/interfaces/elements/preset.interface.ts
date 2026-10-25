@@ -1,4 +1,5 @@
 import type { ModelCategory, ModelProvider, Platform } from '../..';
+import type { AdPreset } from '../../api-types/contracts/ad-preset.contract';
 import type { IBaseEntity, IBrand, IOrganization } from '../index';
 
 export interface IPreset extends IBaseEntity {
@@ -11,6 +12,7 @@ export interface IPreset extends IBaseEntity {
   label: string;
   description: string;
   prompt?: string;
+  adPreset?: AdPreset;
   key: string;
   category: ModelCategory;
   model?: string;

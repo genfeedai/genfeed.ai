@@ -1,23 +1,5 @@
 @import "./_masonry-base.css";
 
-/* Neural Noir hover dimming */
-.masonry-container.is-hovering .masonry-item[data-hovered="false"] {
-  opacity: 0.5;
-  filter: brightness(0.7);
-}
-
-.masonry-container.is-hovering
-  .masonry-item[data-masonry-media="image"][data-hovered="false"] {
-  opacity: 0.6;
-  filter: brightness(0.75);
-}
-
-.masonry-container.is-hovering .masonry-item[data-hovered="true"] {
-  opacity: 1;
-  filter: brightness(1);
-  z-index: 10;
-}
-
 .masonry-item .quick-actions-wrapper {
   overflow: visible;
 }

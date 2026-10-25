@@ -9,6 +9,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import {
+  compileSubmittedAdPreset,
+  resolveAdPresetBriefReferences,
+} from '@api/collections/videos/services/ad-preset-submit.util';
 import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import {
   assertAudioReferencesSupported,
@@ -36,6 +40,7 @@ import {
   pickVideoModelPreference,
 } from '@api/collections/videos/services/video-generation-model.util';
 import {
+  createMissingPromptIdException,
   hasStoredPromptId,
   requireVideoPromptInput,
   resolveInlinePromptText,
@@ -96,22 +101,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-export const MISSING_PROMPT_ID_DETAIL =
-  'Prompt resolution requires a prompt ID';
 export {
   assertSeedanceReferenceVideoDuration,
   MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
-
-export function createMissingPromptIdException(): HttpException {
-  return new HttpException(
-    {
-      detail: MISSING_PROMPT_ID_DETAIL,
-      title: 'Prompt validation failed',
-    },
-    HttpStatus.BAD_REQUEST,
-  );
-}
 
 @Injectable()
 export class VideoGenerationPreparationService {
@@ -138,7 +131,7 @@ export class VideoGenerationPreparationService {
     createVideoDto: CreateVideoDto,
     request: RequestWithSelectedModel<Request>,
   ): Promise<ResolvedVideoGenerationRequest> {
-    if (!requireVideoPromptInput(createVideoDto)) {
+    if (!createVideoDto.adPreset && !requireVideoPromptInput(createVideoDto)) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -198,6 +191,13 @@ export class VideoGenerationPreparationService {
           validationOrgId,
         )
       : undefined;
+    createVideoDto = await compileSubmittedAdPreset({
+      dto: createVideoDto,
+      ingredients: this.ingredientsService,
+      organizationId: user.organizationId,
+      brandId: brand.id,
+      model,
+    });
     const nativeReferenceLimit =
       registeredModel?.provider === ModelProvider.FAL
         ? seedanceVideoReferenceLimit(registeredModel.endpoint ?? '')
@@ -728,7 +728,7 @@ export class VideoGenerationPreparationService {
         motion: params.createVideoDto.cameraMovement,
         objective: params.generationHarness.enhancedPrompt,
         referenceIds: params.referenceIds,
-        references: params.runReferences,
+        references: resolveAdPresetBriefReferences(params),
         resolution: params.createVideoDto.resolution,
         scene: params.createVideoDto.scene,
         seed: params.createVideoDto.seed,

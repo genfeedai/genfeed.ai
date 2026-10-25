@@ -33,10 +33,12 @@ function keepTypingInSearch(event: KeyboardEvent<HTMLInputElement>): void {
 /**
  * One nested submenu: its options, an optional search box, and, for Look
  * fields with illustrations, a preview that follows the highlighted row.
- * Selecting a row closes the whole menu through Radix; the parent menu row
- * already shows the value.
+ * Selecting a row closes the whole menu through Radix, unless the list is
+ * nested (`isMenuKeptOpen`): then the menu stays open so the next field can be
+ * changed, and the parent row already shows the new value.
  */
 export default function GenerationSetupSubmenuList({
+  isMenuKeptOpen = false,
   isSearchable = false,
   label,
   note,
@@ -100,7 +102,10 @@ export default function GenerationSetupSubmenuList({
               className="min-h-8 gap-2 text-xs"
               onFocus={() => setHighlighted(option.value)}
               onPointerEnter={() => setHighlighted(option.value)}
-              onSelect={() => onValueChange(option.value)}
+              onSelect={(event) => {
+                if (isMenuKeptOpen) event.preventDefault();
+                onValueChange(option.value);
+              }}
             >
               {option.icon}
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
@@ -128,7 +133,10 @@ export default function GenerationSetupSubmenuList({
             <DropdownMenuSeparator className="my-0" />
             <DropdownMenuItem
               className="min-h-8 text-xs text-muted-foreground"
-              onSelect={onReset}
+              onSelect={(event) => {
+                if (isMenuKeptOpen) event.preventDefault();
+                onReset();
+              }}
             >
               {translate('resetToAgent', { field: label })}
             </DropdownMenuItem>

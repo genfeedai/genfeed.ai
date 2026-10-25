@@ -33,6 +33,22 @@ describe('EmailVerifiedCreditsListener', () => {
     });
   });
 
+  it('retries the signup gift after a session is persisted without accepting a request IP', async () => {
+    findOrganization.mockResolvedValue({ id: 'org-1' });
+    await listener.handleSessionCreated({ userId: 'user-1' });
+    expect(grantSignupGift).toHaveBeenCalledWith('org-1', 'user-1', {
+      ipAddress: undefined,
+    });
+  });
+
+  it('keeps sign-in usable when releasing the deferred gift fails', async () => {
+    findOrganization.mockRejectedValueOnce(new Error('database unavailable'));
+    await expect(
+      listener.handleSessionCreated({ userId: 'user-1' }),
+    ).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
   it('does nothing for a user who owns no organization', async () => {
     findOrganization.mockResolvedValue(null);
 

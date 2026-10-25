@@ -7,6 +7,7 @@ export const presetSerializerConfig = {
   // and activation always come from scalar columns, never that JSON.
   attributeDerivations: Object.fromEntries(
     [
+      'adPreset',
       'label',
       'description',
       'prompt',

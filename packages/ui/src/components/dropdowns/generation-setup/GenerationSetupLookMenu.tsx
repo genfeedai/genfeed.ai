@@ -53,6 +53,7 @@ export default function GenerationSetupLookMenu({
             value={selected?.label ?? value}
           >
             <GenerationSetupSubmenuList
+              isMenuKeptOpen
               isSearchable
               label={label}
               onReset={isOwnedByAgent ? undefined : () => onResetField(key)}

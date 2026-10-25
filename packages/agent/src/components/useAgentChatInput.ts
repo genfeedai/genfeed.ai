@@ -54,6 +54,7 @@ import type {
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/contracts/interfaces';
+import { findTypedCharacterMentions } from '@genfeedai/helpers/content/character-mention.util';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -803,8 +804,20 @@ export function useAgentChatInput({
     }
 
     const json = editor.getJSON();
+    const pickedMentions = extractMentions(json);
+    // A typed `@handle` that names a character counts the same as a picked one.
+    const typedCharacterMentions = findTypedCharacterMentions(
+      promptContent,
+      characterMentions,
+      pickedMentions.flatMap((mention) =>
+        mention.type === 'character'
+          ? [{ handle: mention.handle, id: mention.id, label: mention.label }]
+          : [],
+      ),
+    ).map((token): ExtractedMention => ({ ...token, type: 'character' }));
     const mentionData = [
-      ...extractMentions(json),
+      ...pickedMentions,
+      ...typedCharacterMentions,
       ...contentReferences.map(contentReferenceToMention),
     ];
     const completed = getCompletedAttachments?.();
@@ -872,6 +885,7 @@ export function useAgentChatInput({
   }, [
     conversationBrandId,
     attachments,
+    characterMentions,
     composerShell,
     contentReferences,
     draftScopeKey,

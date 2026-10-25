@@ -184,6 +184,11 @@ describe('OnboardingFirstDraftsService', () => {
       expect(result.status).toBe('partial');
       expect(result.imageUrl).toBeNull();
       expect(result.drafts).toHaveLength(4);
+      expect(logger.error).toHaveBeenCalledWith(
+        'Onboarding image generation failed',
+        expect.any(Error),
+        { brandId: 'brand_1' },
+      );
     });
 
     it('is partial when one channel fails', async () => {

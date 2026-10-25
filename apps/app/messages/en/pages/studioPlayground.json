@@ -132,16 +132,10 @@
     "costContextUnavailable": "Cost context unavailable"
   },
   "spend": {
-    "title": "{credits, plural, one {Generate for # credit?} other {Generate for # credits?}}",
-    "message": "This generation costs {credits, plural, one {# credit} other {# credits}}.",
-    "messageWithBalance": "This generation costs {credits, plural, one {# credit} other {# credits}}. Your balance is {balance}.",
-    "messageAuto": "Auto chose {model}. This generation costs {credits, plural, one {# credit} other {# credits}}.",
-    "messageAutoWithBalance": "Auto chose {model}. This generation costs {credits, plural, one {# credit} other {# credits}}. Your balance is {balance}.",
-    "confirm": "Generate",
+    "autoChose": "Auto chose {model}. This generation costs {credits, plural, one {# credit} other {# credits}}.",
     "sourceAspectNote": "This model sizes the video from your source image, so the result follows that image instead of the selected aspect ratio.",
     "confirmedModelUnavailable": "The confirmed model is no longer available. Get a fresh quote and confirm before generating again.",
-    "unavailable": "The price could not be confirmed, so nothing was generated. {reason}",
-    "priceChanged": "The price changed. Generate again to see the current price."
+    "unavailable": "The price could not be confirmed, so nothing was generated. {reason}"
   },
   "generate": "Generate",
   "videoDraft": {

@@ -7,6 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('PresetsService', () => {
@@ -44,6 +45,7 @@ describe('PresetsService', () => {
 
     await service.create({
       brandId: 'brand-1',
+      adPreset: AD_PRESETS[0],
       camera: 'close-up',
       aspectRatio: '4:5',
       lighting: 'soft',
@@ -64,6 +66,7 @@ describe('PresetsService', () => {
         brandId: 'brand-1',
         category: 'image',
         config: {
+          adPreset: AD_PRESETS[0],
           camera: 'close-up',
           aspectRatio: '4:5',
           lighting: 'soft',

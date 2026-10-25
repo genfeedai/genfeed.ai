@@ -41,8 +41,10 @@ export interface ElementsReturn {
   cameraMovements: IElementCameraMovement[];
   imageModels: IModel[];
   imageEditModels: IModel[];
+  imageUpscaleModels: IModel[];
   videoModels: IModel[];
   videoEditModels: IModel[];
+  videoUpscaleModels: IModel[];
   voiceModels: IModel[];
   musicModels: IModel[];
   trainings: ITraining[];
@@ -162,9 +164,11 @@ export function useElements({
     () => ({
       image: filterModelsByCategory(ModelCategory.IMAGE),
       imageEdit: filterModelsByCategory(ModelCategory.IMAGE_EDIT),
+      imageUpscale: filterModelsByCategory(ModelCategory.IMAGE_UPSCALE),
       music: filterModelsByCategory(ModelCategory.MUSIC),
       video: filterModelsByCategory(ModelCategory.VIDEO),
       videoEdit: filterModelsByCategory(ModelCategory.VIDEO_EDIT),
+      videoUpscale: filterModelsByCategory(ModelCategory.VIDEO_UPSCALE),
       voice: filterModelsByCategory(ModelCategory.VOICE),
     }),
     [filterModelsByCategory],
@@ -173,8 +177,10 @@ export function useElements({
   const {
     image: imageModels,
     imageEdit: imageEditModels,
+    imageUpscale: imageUpscaleModels,
     video: videoModels,
     videoEdit: videoEditModels,
+    videoUpscale: videoUpscaleModels,
     voice: voiceModels,
     music: musicModels,
   } = modelsByCategory;
@@ -235,6 +241,7 @@ export function useElements({
     fontFamilies: contextData.fontFamilies || [],
     imageEditModels,
     imageModels,
+    imageUpscaleModels,
     isLoading: elementsData.isLoading || promptBarData.isLoading,
     isRefreshing,
     lenses: contextData.lenses || [],
@@ -252,6 +259,7 @@ export function useElements({
     trainings: contextData.trainings || [],
     videoEditModels,
     videoModels,
+    videoUpscaleModels,
     voiceModels,
   };
 }

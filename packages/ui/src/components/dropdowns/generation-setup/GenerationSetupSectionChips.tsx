@@ -21,7 +21,6 @@ import GenerationSetupOutputMenu from '@ui/dropdowns/generation-setup/Generation
 import { resolveGenerationSetupOutputFields } from '@ui/dropdowns/generation-setup/generation-setup.output-fields';
 import { summarizeGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.summary';
 import { usePhoneViewport } from '@ui/dropdowns/generation-setup/usePhoneViewport';
-import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -38,6 +37,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { TooltipProvider } from '@ui/primitives/tooltip';
+import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
 import {
   Bookmark,
   Clock3,
@@ -84,7 +84,6 @@ export default function GenerationSetupSectionChips(
     setup,
     showEnhancementSettings = false,
     showPresets = true,
-    trailing,
   } = props;
   const translate = useTranslations('agent.generationSetup');
   const isPhoneViewport = usePhoneViewport();
@@ -108,11 +107,7 @@ export default function GenerationSetupSectionChips(
   const chips: SectionChip[] = [];
   if (capabilities.hasModelSelection)
     chips.push({
-      icon: summary.selectedModel ? (
-        <ModelAvatar model={summary.selectedModel} />
-      ) : (
-        <Cpu aria-hidden="true" className={SHELL_ICON_CLASS} />
-      ),
+      icon: <Cpu aria-hidden="true" className={SHELL_ICON_CLASS} />,
       id: 'model',
       label: translate('model'),
       value: summary.modelLabel,
@@ -185,10 +180,16 @@ export default function GenerationSetupSectionChips(
       value: pinnedPreset?.label ?? translate('presets'),
     });
 
-  if (chips.length === 0 && !afterModel && !trailing) return null;
+  if (chips.length === 0 && !afterModel) return null;
 
+  // Switching chips closes the open one and opens the next in the same click.
+  // The old chip's dismiss can land after the new chip opens, so a close only
+  // clears the section when that chip is still the open one.
   function setOpen(id: GenerationSetupChipId, isOpen: boolean): void {
-    setOpenSection(isOpen && !isDisabled ? id : undefined);
+    setOpenSection((current) => {
+      if (isOpen && !isDisabled) return id;
+      return current === id ? undefined : current;
+    });
   }
 
   function renderTrigger(chip: SectionChip): ReactNode {
@@ -272,6 +273,7 @@ export default function GenerationSetupSectionChips(
                 : 'w-[min(16rem,calc(100vw-2rem))] py-1'
             }
             collisionPadding={16}
+            onCloseAutoFocus={keepFocusOnSwitch}
             side="top"
             sideOffset={8}
             // Keep the menu on screen when the chip sits near the right edge.
@@ -300,6 +302,7 @@ export default function GenerationSetupSectionChips(
             'max-h-[min(560px,var(--radix-popover-content-available-height,70vh))]',
           )}
           collisionPadding={16}
+          onCloseAutoFocus={keepFocusOnSwitch}
           side="top"
           sideOffset={8}
         >
@@ -355,50 +358,47 @@ export default function GenerationSetupSectionChips(
   }
 
   return (
-    <>
-      <div className="contents" data-testid="generation-setup-section-chips">
-        {chips.map((chip) => (
-          <span className="contents" key={chip.id}>
-            {renderChip(chip)}
-            {chip.id === 'model' ? afterModel : null}
-          </span>
-        ))}
-        {chips.every((chip) => chip.id !== 'model') ? afterModel : null}
-        {chips.length > 0 ? (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                ariaLabel={translate('moreSetup')}
-                className={cn(
-                  SHELL_CONTROL_HEIGHT_CLASS,
-                  'hidden w-8 shrink-0 p-0 text-foreground @max-[339px]/prompt-bar:inline-flex',
-                )}
-                icon={
-                  <Ellipsis aria-hidden="true" className={SHELL_ICON_CLASS} />
-                }
-                isDisabled={isDisabled}
-                size={ButtonSize.ICON}
-                textTransform="none"
-                tooltip={translate('moreSetup')}
-                tooltipPosition="top"
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              aria-label={translate('moreSetup')}
-              className="w-56"
-              collisionPadding={16}
-              side="top"
-              sideOffset={8}
-            >
-              {chips.map(renderMenuSection)}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
-      {trailing}
-    </>
+    <div className="contents" data-testid="generation-setup-section-chips">
+      {chips.map((chip) => (
+        <span className="contents" key={chip.id}>
+          {renderChip(chip)}
+          {chip.id === 'model' ? afterModel : null}
+        </span>
+      ))}
+      {chips.every((chip) => chip.id !== 'model') ? afterModel : null}
+      {chips.length > 0 ? (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ariaLabel={translate('moreSetup')}
+              className={cn(
+                SHELL_CONTROL_HEIGHT_CLASS,
+                'hidden w-8 shrink-0 p-0 text-foreground @max-[339px]/prompt-bar:inline-flex',
+              )}
+              icon={
+                <Ellipsis aria-hidden="true" className={SHELL_ICON_CLASS} />
+              }
+              isDisabled={isDisabled}
+              size={ButtonSize.ICON}
+              textTransform="none"
+              tooltip={translate('moreSetup')}
+              tooltipPosition="top"
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            aria-label={translate('moreSetup')}
+            className="w-56"
+            collisionPadding={16}
+            side="top"
+            sideOffset={8}
+          >
+            {chips.map(renderMenuSection)}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+    </div>
   );
 }

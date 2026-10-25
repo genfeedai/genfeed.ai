@@ -32,6 +32,7 @@ import {
   BETTER_AUTH_EMAIL_VERIFIED_EVENT,
   BETTER_AUTH_INSTANCE,
   BETTER_AUTH_RATE_LIMIT_LOG_SERVICE,
+  BETTER_AUTH_SESSION_CREATED_EVENT,
   BETTER_AUTH_USER_CREATED_EVENT,
 } from './better-auth.constants';
 import {
@@ -198,6 +199,12 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           onEmailVerified: async (event) => {
             await eventEmitter.emitAsync(
               BETTER_AUTH_EMAIL_VERIFIED_EVENT,
+              event,
+            );
+          },
+          onSessionCreated: async (event) => {
+            await eventEmitter.emitAsync(
+              BETTER_AUTH_SESSION_CREATED_EVENT,
               event,
             );
           },

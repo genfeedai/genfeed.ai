@@ -138,8 +138,6 @@ export type StudioSpendSource =
       credits: number;
       /** The render uses the organization's own key, so no credits are held. */
       isByok?: boolean;
-      /** Revalidates the quote just before the confirmed submit. */
-      isStillCurrent?: () => boolean;
     }
   | {
       kind: 'server';
@@ -151,9 +149,9 @@ export type StudioSpendSource =
       ) => AgentGenerationQuoteRequest | null;
     };
 
-export interface StudioSpendConfirmationInput {
+export interface StudioSpendQuoteInput {
   models: readonly IModel[];
-  /** The chosen model, so the dialog can state what it does with the output. */
+  /** The chosen model, so the submit can say what it does with the output. */
   modelKey?: string;
   source: StudioSpendSource;
 }

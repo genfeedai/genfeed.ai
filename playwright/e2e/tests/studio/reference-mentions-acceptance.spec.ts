@@ -153,7 +153,7 @@ for (const width of [1440, 390]) {
                           modelKey: model,
                           duration: 5,
                           aspectRatio: '16:9',
-                          resolution: '720p',
+                          resolution: '2K',
                           outputs: 1,
                         },
                       },
