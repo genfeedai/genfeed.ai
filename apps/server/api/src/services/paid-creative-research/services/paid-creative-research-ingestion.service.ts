@@ -36,6 +36,16 @@ const DEFAULT_CREATIVE_LIMIT = 50;
  */
 const MANUAL_POLL_COOLDOWN_MS = 10 * 60 * 1000;
 
+/**
+ * `unavailable` outcomes recorded after an archive actor may already have run,
+ * so a repeat poll is not free. Every other `unavailable` code is recorded
+ * before any actor starts (access, platform and readiness gates).
+ */
+const SPEND_POSSIBLE_ERROR_CODES: ReadonlySet<string> = new Set([
+  'paid_creative_source_unavailable',
+  'research_collection_start_unreconciled',
+]);
+
 export type WatchedAdvertiserScope = {
   advertiserHandle: string;
   advertiserName?: string | null;
@@ -104,9 +114,9 @@ export class PaidCreativeResearchIngestionService {
    * Poll one watched advertiser on demand, outside the scheduled workflow.
    *
    * Scoped to the caller's organization (and brand when the session has one).
-   * A previous attempt that never reached an archive (`unavailable`) can be
-   * retried at once; one that ran an actor is rate-limited because it spent
-   * money.
+   * A previous attempt that was blocked before any archive actor started can
+   * be retried at once; one that may have run an actor (success, error, or a
+   * failed fetch) is rate-limited because it spent money.
    */
   async pollWatchedAdvertiser(
     organizationId: string,
@@ -120,6 +130,7 @@ export class PaidCreativeResearchIngestionService {
     })) as
       | (WatchedAdvertiserScope & {
           lastAttemptedAt?: Date | null;
+          lastIngestionErrorCode?: string | null;
           lastIngestionStatus?: string | null;
         })
       | null;
@@ -134,9 +145,13 @@ export class PaidCreativeResearchIngestionService {
     const lastAttemptedAt = advertiser.lastAttemptedAt
       ? new Date(advertiser.lastAttemptedAt).getTime()
       : null;
+    const isBlockedBeforeSpend =
+      advertiser.lastIngestionStatus === 'unavailable' &&
+      !!advertiser.lastIngestionErrorCode &&
+      !SPEND_POSSIBLE_ERROR_CODES.has(advertiser.lastIngestionErrorCode);
     if (
       lastAttemptedAt !== null &&
-      advertiser.lastIngestionStatus !== 'unavailable' &&
+      !isBlockedBeforeSpend &&
       Date.now() - lastAttemptedAt < MANUAL_POLL_COOLDOWN_MS
     ) {
       throw new HttpException(

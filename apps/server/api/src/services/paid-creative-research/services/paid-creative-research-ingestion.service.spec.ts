@@ -484,11 +484,35 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
     });
 
-    it('lets a blocked advertiser be retried immediately', async () => {
+    it.each([
+      'paid_creative_source_unavailable',
+      'research_collection_start_unreconciled',
+      null,
+    ])(
+      'refuses a repeat poll after an unavailable run that may have spent an actor (%s)',
+      async (lastIngestionErrorCode) => {
+        const harness = buildHarness([
+          {
+            ...META_ADVERTISER,
+            lastAttemptedAt: new Date(Date.now() - 60 * 1000),
+            lastIngestionErrorCode,
+            lastIngestionStatus: 'unavailable',
+          },
+        ]);
+
+        await expect(
+          harness.service.pollWatchedAdvertiser('org-1', 'watch-1'),
+        ).rejects.toBeInstanceOf(HttpException);
+        expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+      },
+    );
+
+    it('lets an advertiser blocked before any actor started be retried immediately', async () => {
       const harness = buildHarness([
         {
           ...META_ADVERTISER,
           lastAttemptedAt: new Date(Date.now() - 60 * 1000),
+          lastIngestionErrorCode: 'research_paid_access_required',
           lastIngestionStatus: 'unavailable',
         },
       ]);
