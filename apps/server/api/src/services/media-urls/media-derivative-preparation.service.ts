@@ -17,13 +17,33 @@ import type {
   MediaDeliveryScope,
 } from '@genfeedai/contracts/interfaces';
 import { MEDIA_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
+import { isAxiosError } from 'axios';
 import type { Queue } from 'bullmq';
 
 const FAILED_RETRY_COOLDOWN_MS = 60_000;
+const FILES_FAILURE_DETAIL_LIMIT = 300;
+
+/**
+ * The files service answers a refused render with a 4xx body that the axios
+ * error message ("Request failed with status code 400") drops, so a failing
+ * source cannot be diagnosed from Sentry. Keep the status and a bounded reason.
+ */
+function describeFilesFailure(error: unknown): Record<string, unknown> {
+  if (!isAxiosError(error) || !error.response) return {};
+  const { data, status } = error.response;
+  const reason = isRecord(data) ? data.message : data;
+  return {
+    filesStatus: status,
+    ...(typeof reason === 'string'
+      ? { filesReason: reason.slice(0, FILES_FAILURE_DETAIL_LIMIT) }
+      : {}),
+  };
+}
 
 /** Producer plus durable variant state. Rendering is owned by the worker. */
 @Injectable()
@@ -311,6 +331,7 @@ export class MediaDerivativePreparationService {
       // broken renderer shows up only as every tile reading "Preview unavailable".
       Sentry.captureException(error, {
         extra: {
+          ...describeFilesFailure(error),
           ingredientId: data.ingredientId,
           organizationId: data.organizationId,
           purpose: data.purpose,

@@ -10,6 +10,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 vi.mock('@sentry/nestjs', () => ({
   captureException: vi.fn(),
@@ -252,6 +253,36 @@ describe('protected derivative preparation', () => {
       expect.objectContaining({
         extra: expect.objectContaining({ ingredientId: source.id }),
         tags: { queue: 'media-delivery' },
+      }),
+    );
+  });
+
+  it('reports the files service status and reason when a render is refused', async () => {
+    const { service, files } = await setup();
+    files.watermarkExport.mockRejectedValue(
+      new AxiosError(
+        'Request failed with status code 400',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        {
+          config: {} as InternalAxiosRequestConfig,
+          data: { message: 'Source object is not a supported image' },
+          headers: {},
+          status: 400,
+          statusText: 'Bad Request',
+        },
+      ),
+    );
+    await expect(service.process(data)).rejects.toThrow('status code 400');
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        extra: expect.objectContaining({
+          filesReason: 'Source object is not a supported image',
+          filesStatus: 400,
+          ingredientId: source.id,
+        }),
       }),
     );
   });
