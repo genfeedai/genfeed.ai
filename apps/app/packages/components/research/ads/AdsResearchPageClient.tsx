@@ -137,7 +137,7 @@ export default function AdsResearchPageClient() {
   } = useAdsResearchPageClient();
   // Called after the research hook so the ads queries keep their identity;
   // the watchlist is an independent concern layered on the same page.
-  const watchlist = useAdsResearchWatchlist();
+  const watchlist = useAdsResearchWatchlist(refetch);
   const [showWatchlist, setShowWatchlist] = useState<boolean>();
   const { pageItems, pagination } = useResearchPagination(allAds);
 

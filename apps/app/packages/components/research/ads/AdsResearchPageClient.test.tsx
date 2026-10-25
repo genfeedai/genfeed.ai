@@ -36,6 +36,9 @@ const createRemixWorkflowMock = vi.fn();
 const generateAdPackMock = vi.fn();
 const getAdsResearchServiceMock = vi.fn();
 const remixAvailability = vi.hoisted(() => ({ isAvailable: true }));
+const watchlistHook = vi.hoisted(() => ({
+  onPolled: undefined as (() => void) | undefined,
+}));
 const openRemixMock = vi.fn();
 const prepareCampaignForReviewMock = vi.fn();
 const saveSavedAdsMock = vi.fn();
@@ -243,15 +246,18 @@ vi.mock('@hooks/data/analytics/use-saved-ads/use-saved-ads', () => ({
 // positional `useQuery` stub below, which binds call order to the three
 // research queries and would silently reassign them.
 vi.mock('./useAdsResearchWatchlist', () => ({
-  useAdsResearchWatchlist: () => ({
-    addAdvertiser: vi.fn(),
-    advertisers: [],
-    isAdding: false,
-    isLoading: false,
-    readiness: [],
-    pollAdvertiser: vi.fn(),
-    removeAdvertiser: vi.fn(),
-  }),
+  useAdsResearchWatchlist: (onPolled?: () => void) => {
+    watchlistHook.onPolled = onPolled;
+    return {
+      addAdvertiser: vi.fn(),
+      advertisers: [],
+      isAdding: false,
+      isLoading: false,
+      readiness: [],
+      pollAdvertiser: vi.fn(),
+      removeAdvertiser: vi.fn(),
+    };
+  },
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -595,6 +601,15 @@ describe('AdsResearchPageClient', () => {
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });
+  });
+
+  it('refreshes the ads results after a watchlist poll', () => {
+    useQueryStates[0].refetch.mockClear();
+
+    render(<AdsResearchPageClient />);
+    watchlistHook.onPolled?.();
+
+    expect(useQueryStates[0].refetch).toHaveBeenCalledTimes(1);
   });
 
   it('filters ads, opens detail sidebar, and exposes remix and planning actions', () => {
