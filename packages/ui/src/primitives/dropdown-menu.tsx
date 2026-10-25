@@ -3,11 +3,7 @@
 import { cn } from '@genfeedai/helpers';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight } from 'lucide-react';
-import type {
-  ComponentPropsWithRef,
-  HTMLAttributes,
-  ReactNode,
-} from 'react';
+import type { ComponentPropsWithRef, HTMLAttributes, ReactNode } from 'react';
 import { Badge } from './badge';
 import { overlayMenuSurfaceClassName } from './field-control';
 

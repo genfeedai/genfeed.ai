@@ -76,7 +76,7 @@ describe('FilterMenu', () => {
     ]);
     await openFacet(user, /Status/);
     const unsorted = await screen.findByRole('menuitemradio', {
-      name: 'Unsorted 32',
+      name: /^Unsorted\s*32$/,
     });
     expect(unsorted).toHaveTextContent(/^Unsorted32$/);
     expect(screen.getByText('32')).toHaveClass('tabular-nums');

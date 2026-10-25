@@ -103,7 +103,7 @@ function FilterMenuFacetItem({
             />
           </div>
         ) : null}
-        <div className="max-h-72 overflow-y-auto py-1">
+        <div className="max-h-80 overflow-y-auto py-1">
           {facet.options.length === 0 ? (
             <DropdownMenuItem disabled>{facet.emptyLabel}</DropdownMenuItem>
           ) : facet.selection === 'single' ? (
