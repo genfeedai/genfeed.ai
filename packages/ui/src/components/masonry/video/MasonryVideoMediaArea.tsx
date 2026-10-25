@@ -90,9 +90,14 @@ export default function MasonryVideoMediaArea({
     },
   };
 
+  // A grant that is still pending carries no URL. A <video> pointed at the
+  // placeholder image would fire `error` at once and report a saved asset as
+  // unplayable, so the poster stands in until the grant resolves.
+  const isPlaceholderShown = isUnavailable || !ingredientUrl;
+
   return (
     <>
-      {isUnavailable ? (
+      {isPlaceholderShown ? (
         <div {...sharedWrapperProps}>
           {isProcessing && (
             <div
@@ -124,7 +129,7 @@ export default function MasonryVideoMediaArea({
           )}
 
           <Image
-            src={placeholderImageUrl}
+            src={isUnavailable ? placeholderImageUrl : thumbnailImageUrl}
             alt={accessibleLabel || metadataLabel || 'Video'}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -140,11 +145,7 @@ export default function MasonryVideoMediaArea({
         <div {...sharedWrapperProps}>
           <VideoPlayer
             mediaProps={{ onError: onMediaError }}
-            src={
-              ingredientUrl && ingredientUrl !== ''
-                ? ingredientUrl
-                : placeholderImageUrl
-            }
+            src={ingredientUrl}
             thumbnail={thumbnailImageUrl}
             videoRef={videoRef}
             className="pointer-events-none select-none"
