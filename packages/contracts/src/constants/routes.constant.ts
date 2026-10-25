@@ -184,6 +184,11 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/assets?categories=GIF',
     IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
+    /**
+     * Uploaded and imported assets, apart from generated output. The browser
+     * seeds the origin axis (`UPLOADED`, `IMPORTED`) like a type preset does.
+     */
+    IMPORTED: '/library/imported',
     MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
     /** #5502 Library home: what needs attention, linking into Assets filters. */
     OVERVIEW: '/library/overview',

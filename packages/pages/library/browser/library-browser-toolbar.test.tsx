@@ -163,6 +163,20 @@ describe('LibraryBrowserToolbar', () => {
     expect(onStatusChange).toHaveBeenCalledWith(LibraryShelf.FAILED);
   });
 
+  it('leaves uploads and imports out of the status filter, they have their own page', async () => {
+    renderToolbar({
+      shelfCounts: { [LibraryShelf.REFERENCES]: 5 },
+    });
+    await openFilters(/^Status/);
+
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'Trash' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', { name: /^Imported/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('sends Trash and All through the same status filter', async () => {
     const onStatusChange = vi.fn();
 

@@ -261,13 +261,23 @@ describe('IngredientInspectorRail', () => {
 
   it.each([
     [IngredientOrigin.UPLOADED, 'Uploaded'],
-    [IngredientOrigin.GENERATED, 'Generated'],
     [IngredientOrigin.IMPORTED, 'Imported'],
   ])('labels a %s asset in the detail panel', (origin, label) => {
     render(<IngredientInspectorRail ingredient={{ ...ingredient, origin }} />);
 
     expect(screen.getByText('Origin')).toBeInTheDocument();
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('has no Origin row for a generated asset', () => {
+    render(
+      <IngredientInspectorRail
+        ingredient={{ ...ingredient, origin: IngredientOrigin.GENERATED }}
+      />,
+    );
+
+    expect(screen.queryByText('Origin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
   });
 
   it('shows what produced a generated asset and its file details', () => {

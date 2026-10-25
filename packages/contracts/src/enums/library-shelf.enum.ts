@@ -14,7 +14,9 @@
  *
  * References is the one shelf keyed on origin rather than state: uploads and
  * imports are material to generate from, so they sit apart from the output
- * shelves (`LIBRARY_REFERENCE_ORIGINS`).
+ * shelves (`LIBRARY_REFERENCE_ORIGINS`). The key stays `references` for the
+ * API and agent tools; the product calls it Imported and the app lists it on
+ * its own page rather than in the status filter.
  */
 export enum LibraryShelf {
   REFERENCES = 'references',
@@ -41,7 +43,7 @@ export const LIBRARY_SHELF_ORDER: readonly LibraryShelf[] = [
 
 /** Human labels for each shelf. */
 export const LIBRARY_SHELF_LABELS: Record<LibraryShelf, string> = {
-  [LibraryShelf.REFERENCES]: 'References',
+  [LibraryShelf.REFERENCES]: 'Imported',
   [LibraryShelf.GENERATING]: 'Generating',
   [LibraryShelf.UNSORTED]: 'Unsorted',
   [LibraryShelf.NEEDS_REVIEW]: 'Needs review',

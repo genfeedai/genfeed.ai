@@ -9,11 +9,10 @@ import type { IngredientOriginBadgeProps } from '@genfeedai/props/content/ingred
 import Badge from '@ui/display/badge/Badge';
 
 const ORIGIN_VARIANTS: Record<
-  IngredientOrigin,
+  Exclude<IngredientOrigin, IngredientOrigin.GENERATED>,
   'info' | 'warning' | 'success' | 'slate'
 > = {
   [IngredientOrigin.UPLOADED]: 'success',
-  [IngredientOrigin.GENERATED]: 'info',
   [IngredientOrigin.IMPORTED]: 'warning',
   [IngredientOrigin.UNKNOWN]: 'slate',
 };
@@ -21,12 +20,15 @@ const ORIGIN_VARIANTS: Record<
 /**
  * The permanent origin of a Library asset. The label is always text, so color
  * is never the only signal.
+ *
+ * Generated is the norm in the Library, so it carries no badge; only the
+ * exceptions (uploaded, imported, unknown) are marked.
  */
 export default function IngredientOriginBadge({
   className,
   origin,
 }: IngredientOriginBadgeProps) {
-  if (!origin) {
+  if (!origin || origin === IngredientOrigin.GENERATED) {
     return null;
   }
 

@@ -154,6 +154,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/assets': 'Assets',
+  '/:orgSlug/:brandSlug/library/imported': 'Imported',
   '/:orgSlug/:brandSlug/library/overview': 'Overview',
   '/:orgSlug/:brandSlug/library/references': 'References',
   '/:orgSlug/:brandSlug/settings/brand-kit': 'Brand Kit',
@@ -926,6 +927,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/library',
       '/:orgSlug/:brandSlug/library/assets',
+      '/:orgSlug/:brandSlug/library/imported',
       '/:orgSlug/:brandSlug/library/overview',
       '/:orgSlug/:brandSlug/library/references',
       '/:orgSlug/:brandSlug/library/trash',

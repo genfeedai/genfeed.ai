@@ -97,6 +97,14 @@ export function useLibraryFilters({
     ];
 
     for (const shelfKey of LIBRARY_SHELF_ORDER) {
+      // Uploads and imports have their own page, not a status here.
+      if (
+        shelfKey === LibraryShelf.REFERENCES &&
+        statusValue !== LibraryShelf.REFERENCES
+      ) {
+        continue;
+      }
+
       const count = shelfCounts?.[shelfKey];
       if (
         shelfKey === LibraryShelf.GENERATING &&
