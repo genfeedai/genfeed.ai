@@ -6,6 +6,7 @@ import {
   getToolsetNames,
   getToolsForSurface,
   getToolsForToolsets,
+  isMcpApprovalSkippable,
   isMcpBrandRequiredTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
@@ -413,8 +414,13 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.brandRequiredResult();
       }
 
-      // Declared approvals and credit spenders wait for confirmation.
-      if (ToolRegistryService.requiresApproval(name, args)) {
+      // Declared approvals and credit spenders wait for confirmation, unless the
+      // organization and the member both turned "Require approval for MCP requests"
+      // off for a credit spender. The API still checks credits and quotes.
+      if (
+        ToolRegistryService.requiresApproval(name, args) &&
+        !(await this.isApprovalWaived(name))
+      ) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
@@ -450,6 +456,13 @@ export class ToolRegistryService implements OnModuleInit {
         isError: true,
       };
     }
+  }
+
+  private async isApprovalWaived(name: string): Promise<boolean> {
+    return (
+      isMcpApprovalSkippable(name) &&
+      !(await this.clientService.isApprovalRequired())
+    );
   }
 
   private async brandRequiredResult() {

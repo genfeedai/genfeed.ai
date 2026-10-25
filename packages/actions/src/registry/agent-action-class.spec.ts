@@ -3,6 +3,7 @@ import {
   AGENT_ACTION_CLASS,
   getAgentActionClass,
   getVisualGenerationReviewType,
+  isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from './agent-action-class';
 import { getDeclaredMutationPolicy } from './mutation-policy';
@@ -252,4 +253,33 @@ it('keeps credential linking outside native publication approval classes', () =>
   expect(
     getAgentActionClass('link_external_publication_credential'),
   ).toBeUndefined();
+});
+
+describe('isMcpApprovalSkippable', () => {
+  it('lets the setting waive plain credit spenders', () => {
+    for (const toolName of [
+      'generate',
+      'transform_media',
+      'generate_turbo_content',
+      'generate_ad_pack',
+    ]) {
+      expect(isMcpApprovalSkippable(toolName)).toBe(true);
+    }
+  });
+
+  it('keeps outbound, brand-context, workflow and unclassified writes queued', () => {
+    for (const toolName of [
+      'create_scheduled_release',
+      'control_scheduled_release',
+      'schedule_post',
+      'send_social_dm',
+      'create_brand',
+      'publish_article',
+      'execute_workflow',
+      'resolve_approval',
+      'get_brands',
+    ]) {
+      expect(isMcpApprovalSkippable(toolName)).toBe(false);
+    }
+  });
 });
