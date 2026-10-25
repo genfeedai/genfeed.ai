@@ -195,18 +195,14 @@ const filterRouteRedirects: AppRedirect[] = [
       permanent: true,
     })),
   ),
-  ...FILTER_ROUTE_SCOPES.map((prefix) => ({
-    destination: `${prefix}/settings/models/:type`,
-    has: [
-      {
-        key: 'type',
-        type: 'query' as const,
-        value: '(?<type>trainings|custom-models)',
-      },
-    ],
-    permanent: true,
-    source: `${prefix}/settings/models`,
-  })),
+  ...['trainings', 'custom-models'].flatMap((type) =>
+    FILTER_ROUTE_SCOPES.map((prefix) => ({
+      destination: `${prefix}/settings/models/${type}`,
+      has: [{ key: 'type', type: 'query' as const, value: type }],
+      permanent: true,
+      source: `${prefix}/settings/models`,
+    })),
+  ),
   ...LIBRARY_TYPE_PRESET_QUERIES.flatMap(([source, presetQuery]) =>
     FILTER_ROUTE_SCOPES.flatMap((prefix) => [
       {
