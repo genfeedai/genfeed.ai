@@ -1,3 +1,4 @@
+import { HttpException } from '@nestjs/common';
 import {
   isRetryableSystemRunError,
   toTerminalSystemRunError,
@@ -62,6 +63,27 @@ describe('isRetryableSystemRunError', () => {
         Object.assign(new Error('boom'), { code: 'ECONNRESET' }),
       ),
     ).toBe(true);
+  });
+
+  it.each([429, 500, 503])(
+    'retries a Nest HttpException with a transient %i status whose message is only the class name',
+    (status) => {
+      const error = new HttpException(
+        { code: 'ORGANIZATION_MODULE_UNAVAILABLE' },
+        status,
+      );
+
+      expect(error.message).toBe('Http Exception');
+      expect(isRetryableSystemRunError(error)).toBe(true);
+    },
+  );
+
+  it('does not retry a Nest HttpException that rejects the request', () => {
+    expect(
+      isRetryableSystemRunError(
+        new HttpException({ code: 'ORGANIZATION_MODULE_UNRELEASED' }, 403),
+      ),
+    ).toBe(false);
   });
 
   it('never retries an UnrecoverableError', () => {

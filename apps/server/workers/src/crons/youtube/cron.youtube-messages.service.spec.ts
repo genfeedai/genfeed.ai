@@ -3,6 +3,7 @@ import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prism
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import {
   buildYoutubeCommentsSweepDefinition,
+  buildYoutubeStatusSweepDefinition,
   YOUTUBE_MAINTENANCE_ACTION_IDS,
 } from '@workers/crons/youtube/youtube-maintenance-workflow-definition';
 
@@ -16,6 +17,15 @@ describe('YouTube comment workflows', () => {
         childWorkflowId: SOCIAL_INBOX_SYNC_WORKFLOW_IDS.YOUTUBE_COMMENTS,
       },
     });
+  });
+
+  it('collects per-account failures so one rejected tenant cannot fail the whole sweep', () => {
+    expect(
+      buildYoutubeCommentsSweepDefinition().definition.nodes[1]?.data.config,
+    ).toMatchObject({ parameters: { failureMode: 'collect' } });
+    expect(
+      buildYoutubeStatusSweepDefinition().definition.nodes[1]?.data.config,
+    ).toMatchObject({ parameters: { failureMode: 'collect' } });
   });
 });
 

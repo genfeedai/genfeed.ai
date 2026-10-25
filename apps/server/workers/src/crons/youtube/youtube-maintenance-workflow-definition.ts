@@ -60,6 +60,9 @@ function sweep(
         node(discoverActionId, 'discover', 0, ['request']),
         node('workflow.for-each-tenant', 'process', 180, [], {
           childWorkflowId,
+          // One tenant's rejection (module gate, expired credential) must not
+          // fail the whole hourly sweep for every other tenant.
+          failureMode: 'collect',
           itemInputKey: 'request',
           maxConcurrency: 5,
           mode: 'await',

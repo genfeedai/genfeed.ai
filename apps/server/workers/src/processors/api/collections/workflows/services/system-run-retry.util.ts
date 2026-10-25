@@ -38,6 +38,19 @@ const TRANSIENT_HTTP_STATUS = /\b(?:429|500|502|503|504)\b/;
 /** Prisma connection, pool-timeout and write-conflict codes. */
 const TRANSIENT_PRISMA_CODE = /\bP(?:1001|1002|1008|1017|2024|2034)\b/;
 
+/**
+ * A Nest `HttpException` carries its status separately from a message that is
+ * only the class name ("Http Exception") when the body is an object, so the
+ * text patterns below never see a transient 503 such as an unverifiable
+ * organization-module check.
+ */
+function readHttpStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) return undefined;
+  const status =
+    typeof error.getStatus === 'function' ? error.getStatus() : error.status;
+  return typeof status === 'number' ? status : undefined;
+}
+
 export function isRetryableSystemRunError(error: unknown): boolean {
   if (error instanceof UnrecoverableError) {
     return false;
@@ -50,6 +63,11 @@ export function isRetryableSystemRunError(error: unknown): boolean {
   }
   if (isRecord(error) && typeof error.isRetryable === 'boolean') {
     return error.isRetryable;
+  }
+
+  const httpStatus = readHttpStatus(error);
+  if (httpStatus === 429 || (httpStatus !== undefined && httpStatus >= 500)) {
+    return true;
   }
 
   const code =
