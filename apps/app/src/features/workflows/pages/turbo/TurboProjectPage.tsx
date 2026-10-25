@@ -75,6 +75,9 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
   const isFreshIdeasDraft = ideas && draft && !(project.items ?? []).length;
   const items = project.items ?? [];
   const quote = project.quote;
+  // A pending quote already has its own accept button.
+  const canRequestQuote =
+    draft && items.length > 0 && !(ideas && quote && !quote.acceptedAt);
   const canGenerate = !ideas || (isIdeasEnabled && readiness.ready);
   const steps = [
     ideas ? TurboProjectStep.IDEAS : TurboProjectStep.INPUTS,
@@ -278,7 +281,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
         {draft && project.step === TurboProjectStep.INPUTS && (
           <TurboWorkflowInputs disabled={blocked} onUpload={upload} />
         )}
-        {draft && items.length > 0 && (
+        {canRequestQuote && (
           <Button
             isDisabled={blocked || !canGenerate}
             onClick={() => requestStart()}
