@@ -1,6 +1,11 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -8,18 +13,33 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
+import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
+import { KieVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/kie-video-generation-provider.adapter';
+import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
+import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
+import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { ModelProvider } from '@genfeedai/contracts';
@@ -28,7 +48,10 @@ import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadRequestException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import express from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -84,13 +107,17 @@ function videoRequest(overrides: Partial<CreateVideoDto> = {}): CreateVideoDto {
   return Object.assign(new CreateVideoDto(), values);
 }
 
-function httpRequest(dto: CreateVideoDto): RequestWithContext {
+function httpRequest(
+  dto: CreateVideoDto,
+): RequestWithContext & GenerationBillingRequest {
   // Per-app Express request prototype: no listener, socket, or network request.
   const request: RequestWithContext = express().request;
   request.originalUrl = '/v1/videos';
   request.body = dto;
   request.user = USER;
-  return request;
+  return Object.assign(request, {
+    creditsConfig: { amount: 8, description: 'Synthetic video acceptance' },
+  });
 }
 
 async function fixture(preparedText: string) {
@@ -185,18 +212,18 @@ async function fixture(preparedText: string) {
       .fn<VideoGenerationCreditsService['ensureDeferredCredits']>()
       .mockResolvedValue(undefined),
   };
-  const execution = {
-    execute: vi
-      .fn<VideoGenerationExecutionService['execute']>()
+  const billing = {
+    bindOutput: vi
+      .fn<GenerationBillingService['bindOutput']>()
       .mockResolvedValue(undefined),
-    prepareProviderDispatch:
-      vi.fn<VideoGenerationExecutionService['prepareProviderDispatch']>(),
-    failPlaceholderBeforeDispatch: vi
-      .fn<VideoGenerationExecutionService['failPlaceholderBeforeDispatch']>()
-      .mockImplementation(async (_context, error) => {
-        throw error;
-      }),
+    releasePool: vi.fn().mockResolvedValue('no-hold'),
   };
+  const replicate = {
+    generateTextToVideo: vi
+      .fn<ReplicateService['generateTextToVideo']>()
+      .mockResolvedValue('fixture-job'),
+  };
+  const unavailableProvider = { supports: vi.fn(() => false) };
   const complete = vi
     .fn<VideoGenerationCompletionService['complete']>()
     .mockResolvedValue(RESPONSE);
@@ -209,6 +236,69 @@ async function fixture(preparedText: string) {
     providers: [
       VideoGenerationService,
       VideoGenerationPreparationService,
+      VideoGenerationExecutionService,
+      VideoGenerationProviderDispatchService,
+      ReplicateVideoGenerationProviderAdapter,
+      { provide: GenerationBillingService, useValue: billing },
+      { provide: ReplicateService, useValue: replicate },
+      {
+        provide: PollUntilService,
+        useValue: {
+          poll: vi.fn().mockRejectedValue(new Error('Unexpected polling')),
+        },
+      },
+      {
+        provide: FalVideoGenerationProviderAdapter,
+        useValue: unavailableProvider,
+      },
+      {
+        provide: HeyGenVideoGenerationProviderAdapter,
+        useValue: unavailableProvider,
+      },
+      {
+        provide: HiggsFieldVideoGenerationProviderAdapter,
+        useValue: unavailableProvider,
+      },
+      {
+        provide: KieVideoGenerationProviderAdapter,
+        useValue: unavailableProvider,
+      },
+      {
+        provide: KlingAiVideoGenerationProviderAdapter,
+        useValue: unavailableProvider,
+      },
+      {
+        provide: MetadataService,
+        useValue: { patch: vi.fn().mockResolvedValue({}) },
+      },
+      {
+        provide: ActivityRecorderService,
+        useValue: {
+          record: vi.fn().mockResolvedValue({ id: testId('activity') }),
+        },
+      },
+      {
+        provide: NotificationsPublisherService,
+        useValue: {
+          publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
+        },
+      },
+      {
+        provide: ReplicatePollQueueService,
+        useValue: { schedule: vi.fn().mockResolvedValue(undefined) },
+      },
+      {
+        provide: MediaGenerationReceiptsService,
+        useValue: { open: vi.fn(), recordAccepted: vi.fn() },
+      },
+      {
+        provide: WebhooksService,
+        useValue: { processMediaForIngredient: vi.fn() },
+      },
+      {
+        provide: FailedGenerationService,
+        useValue: { handleFailedVideoGeneration: vi.fn() },
+      },
       { provide: VideoReferenceUrlService, useValue: references },
       { provide: BrandsService, useValue: brands },
       {
@@ -248,7 +338,6 @@ async function fixture(preparedText: string) {
       { provide: MediaPromptEnhancementService, useValue: { enhance } },
       { provide: VideoGenerationCompletionService, useValue: { complete } },
       { provide: VideoGenerationCreditsService, useValue: credits },
-      { provide: VideoGenerationExecutionService, useValue: execution },
       {
         provide: VideosService,
         useValue: { findOne: vi.fn(), patch: vi.fn() },
@@ -257,11 +346,21 @@ async function fixture(preparedText: string) {
     ],
   }).compile();
   modules.push(module);
+  const executionService = module.get(VideoGenerationExecutionService);
+  const execution = {
+    execute: vi.spyOn(executionService, 'execute'),
+    prepareProviderDispatch: vi.spyOn(
+      executionService,
+      'prepareProviderDispatch',
+    ),
+  };
   return {
     service: module.get(VideoGenerationService),
     enhance,
     credits,
     execution,
+    replicate,
+    billing,
     media,
     prompts,
     personas,
@@ -276,6 +375,176 @@ afterEach(async () => {
 });
 
 describe('reference mentions through public video submission and real preparation', () => {
+  it.each([
+    ['unmatched', { text: 'Use @Image9' }, 'REFERENCE_MENTION_UNMATCHED'],
+    [
+      'duplicate images',
+      { references: [PERSON, PERSON, LOCATION] },
+      'REFERENCE_MENTION_DUPLICATE',
+    ],
+    [
+      'duplicate videos',
+      { videoReferences: [DRIVER, DRIVER] },
+      'REFERENCE_MENTION_DUPLICATE',
+    ],
+    [
+      'duplicate audio',
+      { audioReferences: [VOICE, VOICE] },
+      'REFERENCE_MENTION_DUPLICATE',
+    ],
+    [
+      'cross-kind duplicate',
+      { videoReferences: [PERSON] },
+      'REFERENCE_MENTION_DUPLICATE',
+    ],
+    [
+      'ten images',
+      {
+        references: Array.from({ length: 10 }, (_, index) =>
+          testId('ingredient', index + 20),
+        ),
+      },
+      'REFERENCE_MENTION_LIMIT',
+    ],
+    [
+      'end frame',
+      { endFrame: LAST_FRAME },
+      'REFERENCE_MENTION_DEDICATED_INPUT',
+    ],
+    ['mask', { maskId: 'mask' }, 'REFERENCE_MENTION_DEDICATED_INPUT'],
+    ['edit mask', { editMask: 'mask' }, 'REFERENCE_MENTION_DEDICATED_INPUT'],
+    [
+      'unsupported model',
+      {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+        videoReferences: [],
+        audioReferences: [],
+        text: 'Use @Image1',
+      },
+      'REFERENCE_MENTION_MODEL_UNSUPPORTED',
+    ],
+  ] satisfies Array<[string, Partial<CreateVideoDto>, string]>)(
+    'rejects %s against raw bindings before enhancement, persistence, credits and execution',
+    async (_label, overrides, code) => {
+      const f = await fixture(RETAINED);
+      const dto = videoRequest(overrides);
+      await expect(
+        f.service.generateVideo(USER, dto, httpRequest(dto)),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code }),
+      });
+      expect(f.enhance).not.toHaveBeenCalled();
+      expect(f.prompts.create).not.toHaveBeenCalled();
+      expect(f.media.createMediaDocuments).not.toHaveBeenCalled();
+      expect(f.credits.ensureDeferredCredits).not.toHaveBeenCalled();
+      expect(f.execution.prepareProviderDispatch).not.toHaveBeenCalled();
+      expect(f.execution.execute).not.toHaveBeenCalled();
+      expect(f.billing.bindOutput).not.toHaveBeenCalled();
+      expect(f.replicate.generateTextToVideo).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves explicitly typed H3 subject-reference order', async () => {
+    const f = await fixture(RETAINED);
+    const dto = videoRequest();
+    await expect(
+      f.service.generateVideo(
+        USER,
+        dto,
+        httpRequest(dto),
+        undefined,
+        undefined,
+        undefined,
+        [PERSON, LOCATION, CHARACTER].map((assetId) => ({
+          assetId,
+          role: 'subject',
+        })),
+      ),
+    ).resolves.toEqual(RESPONSE);
+    expect(f.execution.execute.mock.calls[0]?.[0].promptParams).toMatchObject({
+      reference_image_urls: [
+        imageUrl(PERSON),
+        imageUrl(LOCATION),
+        imageUrl(CHARACTER),
+      ],
+    });
+  });
+
+  it('refuses a second typed video list even when the prompt has no image tokens', async () => {
+    const f = await fixture('Use @Video1');
+    const dto = videoRequest({ text: 'Use @Video1' });
+    await expect(
+      f.service.generateVideo(
+        USER,
+        dto,
+        httpRequest(dto),
+        undefined,
+        undefined,
+        undefined,
+        [
+          { assetId: PERSON, role: 'subject' },
+          { assetId: DRIVER, role: 'reference_video' },
+        ],
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'REFERENCE_MENTION_BINDING_CONFLICT',
+      }),
+    });
+    expect(f.enhance).not.toHaveBeenCalled();
+    expect(f.media.createMediaDocuments).not.toHaveBeenCalled();
+    expect(f.billing.bindOutput).not.toHaveBeenCalled();
+    expect(f.replicate.generateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      [
+        { assetId: PERSON, role: 'first_frame' },
+        { assetId: LOCATION, role: 'subject' },
+        { assetId: CHARACTER, role: 'subject' },
+      ],
+    ],
+    [
+      [
+        { assetId: LOCATION, role: 'subject' },
+        { assetId: PERSON, role: 'subject' },
+        { assetId: CHARACTER, role: 'subject' },
+      ],
+    ],
+    [
+      [
+        { assetId: PERSON, role: 'subject' },
+        { assetId: LOCATION, role: 'subject' },
+        { assetId: CHARACTER, role: 'subject' },
+        { assetId: DRIVER, role: 'reference_video' },
+      ],
+    ],
+  ] satisfies Array<
+    [NonNullable<Parameters<VideoGenerationService['generateVideo']>[6]>]
+  >)(
+    'rejects typed bindings that disagree with positional image slots (%j)',
+    async (runReferences) => {
+      const f = await fixture(RETAINED);
+      const dto = videoRequest();
+      await expect(
+        f.service.generateVideo(
+          USER,
+          dto,
+          httpRequest(dto),
+          undefined,
+          undefined,
+          undefined,
+          runReferences,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(f.enhance).not.toHaveBeenCalled();
+      expect(f.media.createMediaDocuments).not.toHaveBeenCalled();
+      expect(f.credits.ensureDeferredCredits).not.toHaveBeenCalled();
+      expect(f.execution.execute).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps H3 Image1/Image2 aligned with ordered dispatch images and appends character images without changing enhancement', async () => {
     const f = await fixture(RETAINED);
     const dto = videoRequest();
@@ -306,6 +575,16 @@ describe('reference mentions through public video submission and real preparatio
     expect(context?.promptParams.prompt).toMatch(
       /@Audio1.*@Video1.*@Image1.*@Image2/,
     );
+    expect(f.replicate.generateTextToVideo).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_MINIMAX_H3,
+      context?.promptParams,
+      undefined,
+      expect.any(Function),
+    );
+    expect(f.billing.bindOutput).toHaveBeenCalledWith(
+      expect.objectContaining({ user: USER }),
+      { credits: 8, ingredientId: RESPONSE.data.id },
+    );
     expect(f.credits.ensureDeferredCredits).toHaveBeenCalledOnce();
     expect(f.promptBuilder.buildPrompt).not.toHaveBeenCalled();
   });
@@ -335,6 +614,8 @@ describe('reference mentions through public video submission and real preparatio
       expect.soft(f.credits.ensureDeferredCredits).not.toHaveBeenCalled();
       expect.soft(f.execution.prepareProviderDispatch).not.toHaveBeenCalled();
       expect.soft(f.execution.execute).not.toHaveBeenCalled();
+      expect.soft(f.billing.bindOutput).not.toHaveBeenCalled();
+      expect.soft(f.replicate.generateTextToVideo).not.toHaveBeenCalled();
       expect(error).toBeInstanceOf(UnprocessableEntityException);
       if (!(error instanceof UnprocessableEntityException))
         throw new Error(
@@ -365,6 +646,9 @@ describe('reference mentions through public video submission and real preparatio
       ],
     });
     expect(context?.promptParams).not.toHaveProperty('first_frame_image');
+    expect(f.replicate.generateTextToVideo.mock.calls[0]?.[1].prompt).toBe(
+      ORIGINAL,
+    );
   });
 
   it('keeps ordinary first/end-frame transport and appended character references unchanged', async () => {

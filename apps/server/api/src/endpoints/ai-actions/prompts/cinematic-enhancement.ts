@@ -68,8 +68,6 @@ export function formatCinematicLexiconGuidance(
     '- Translate naive spatial or mood words into the closest lexicon term.',
     '- Preserve the user subject, characters, and named references verbatim.',
     '- Do not bury the original intent under extra plot or new objects.',
-    'Draft-resolution testing: validate a prompt with 2–3 cheap waves at low resolution on the full-quality model; never switch to a mini variant for drafts.',
-    'Corrective feedback grammar: Problem → Goal → Correction. Never give bare dislike as direction.',
   ].join('\n\n');
 }
 

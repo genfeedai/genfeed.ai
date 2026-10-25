@@ -14,6 +14,8 @@ const mockQueueClose = vi.fn().mockResolvedValue(undefined);
 const mockGetJobCounts = vi.fn();
 const mockGetJobs = vi.fn();
 const createdQueueNames: string[] = [];
+const mockIncidentState =
+  vi.fn<(key: string) => Promise<Partial<Record<string, string>>>>();
 
 vi.mock('@aws-sdk/client-cloudwatch', () => {
   class MockPutMetricDataCommand {
@@ -67,7 +69,7 @@ describe('QueueMetricsService', () => {
     del: vi.fn(),
     expire: vi.fn(),
     hdel: vi.fn(),
-    hgetall: vi.fn(),
+    eval: vi.fn(),
     hset: vi.fn(),
     set: vi.fn(),
     xrange: vi.fn(),
@@ -109,7 +111,24 @@ describe('QueueMetricsService', () => {
     });
     mockGetJobs.mockResolvedValue([{ timestamp: Date.now() - 60_000 }]);
     mockRedisPublisher.set.mockResolvedValue('OK');
-    mockRedisPublisher.hgetall.mockResolvedValue({});
+    mockIncidentState.mockResolvedValue({});
+    mockRedisPublisher.eval.mockImplementation(
+      async (_script: string, _count: number, ...keys: string[]) =>
+        Promise.all(
+          keys.map(async (key) => {
+            const state = await mockIncidentState(key);
+            return [
+              key,
+              [
+                state.alerted ?? null,
+                state.breachStartedAt ?? null,
+                state.lastAlertAt ?? null,
+                state.status ?? null,
+              ],
+            ];
+          }),
+        ),
+    );
     mockRedisPublisher.hset.mockResolvedValue(1);
     mockRedisPublisher.hdel.mockResolvedValue(1);
     mockRedisPublisher.expire.mockResolvedValue(1);
@@ -155,6 +174,7 @@ describe('QueueMetricsService', () => {
       );
     }
     expect(new Set(createdQueueNames).size).toBe(createdQueueNames.length);
+    expect(mockRedisPublisher.eval).toHaveBeenCalledTimes(1);
   });
 
   it('persists counts and oldest-waiting age without job payloads', async () => {
@@ -233,7 +253,7 @@ describe('QueueMetricsService', () => {
       failed: 0,
       waiting: name === 'workflow-execution' ? 101 : 0,
     }));
-    mockRedisPublisher.hgetall.mockImplementation(async (key: string) =>
+    mockIncidentState.mockImplementation(async (key: string) =>
       key.endsWith(':workflow-execution')
         ? {
             alerted: '1',
@@ -274,7 +294,7 @@ describe('QueueMetricsService', () => {
       waiting: 0,
     });
     mockGetJobs.mockResolvedValue([]);
-    mockRedisPublisher.hgetall.mockImplementation(async (key: string) =>
+    mockIncidentState.mockImplementation(async (key: string) =>
       key.endsWith(':workflow-execution')
         ? {
             alerted: '1',

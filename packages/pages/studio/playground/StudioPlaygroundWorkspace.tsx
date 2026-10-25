@@ -1127,7 +1127,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           source: 'upload' as const,
         })),
       ...contentReferences.map((reference) => ({
-        key: `library:${reference.item.id}`,
+        key: `library:${reference.role}:${reference.item.id}`,
         id: reference.item.id,
         kind: getStudioReferenceKind(reference.item.contentType),
         name: reference.item.contentTitle,
@@ -2154,7 +2154,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     () =>
       new Map(
         attachedReferenceSources.map((reference, order) => [
-          reference.id,
+          `${reference.role}:${reference.id}`,
           order,
         ]),
       ),
@@ -2168,7 +2168,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               {
                 id: attachment.ingredientId,
                 role: resolveAttachmentRole(attachment),
-                order: draftReferenceOrder.get(attachment.ingredientId),
+                order: draftReferenceOrder.get(
+                  `${resolveAttachmentRole(attachment)}:${attachment.ingredientId}`,
+                ),
               },
             ]
           : [],
@@ -2178,7 +2180,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       references: contentReferences.map((reference) => ({
         id: reference.item.id,
         role: reference.role,
-        order: draftReferenceOrder.get(reference.item.id),
+        order: draftReferenceOrder.get(
+          `${reference.role}:${reference.item.id}`,
+        ),
       })),
       settingsByType: draftSettingsByType,
       type,
@@ -2258,7 +2262,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           return reference
             ? [
                 {
-                  key: `library:${entry.id}`,
+                  key: `library:${entry.role}:${entry.id}`,
                   id: entry.id,
                   kind: getStudioReferenceKind(reference.item.contentType),
                   name: reference.item.contentTitle,

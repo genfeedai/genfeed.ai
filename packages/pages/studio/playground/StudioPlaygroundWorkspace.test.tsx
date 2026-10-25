@@ -3075,6 +3075,67 @@ describe('StudioPlaygroundWorkspace', () => {
       expect(mocks.notify).toHaveBeenCalledWith('draft.referencesDropped');
     });
 
+    it('restores one Library image in both frame roles without merging their draft positions', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+        setType: mocks.setType,
+        updateSettings: mocks.updateSettings,
+      });
+      mocks.attachments.mockReturnValue({
+        addFiles: vi.fn(),
+        attachments: [],
+        clearAll: mocks.clearAttachments,
+        dragHandlers: {},
+        dragState: { isActive: false },
+        getCompletedAttachments: () => [],
+        isUploading: false,
+        removeAttachment: vi.fn(),
+      });
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [],
+        droppedReferenceIds: [],
+        references: [
+          { id: 'same-frame', role: 'startFrame', order: 0 },
+          { id: 'same-frame', role: 'endFrame', order: 1 },
+        ],
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          id: 'same-frame',
+          category: 'image',
+          cdnUrl: 'https://cdn.example/frame.png',
+        },
+      ]);
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      act(() => lastComposerProps().onSubmit());
+      expect(mocks.submit).toHaveBeenCalledWith(
+        savedDraft.prompt,
+        expect.objectContaining({
+          imageReferenceIds: ['same-frame', 'img-anna'],
+          endFrameId: 'same-frame',
+        }),
+        expect.anything(),
+      );
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({
+            references: [
+              { id: 'same-frame', role: 'startFrame', order: 0 },
+              { id: 'same-frame', role: 'endFrame', order: 1 },
+            ],
+          }),
+          expect.anything(),
+        ),
+      );
+    });
+
     it('keeps a restored library end frame next to a restored uploaded start frame', async () => {
       mocks.type.value = 'video';
       mocks.settings.mockReturnValue({

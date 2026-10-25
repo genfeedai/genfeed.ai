@@ -1,3 +1,4 @@
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { StudioPlaygroundReferenceRole } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 
 /** Stable attachment identity, independent of its current positional token. */
@@ -36,8 +37,10 @@ export interface StudioReferenceMentionDocument {
 export interface StudioVideoReferenceMentionBindingInput {
   audioReferenceIds?: readonly string[];
   endFrameId?: string;
+  hasEditMask?: boolean;
   imageReferenceIds?: readonly string[];
   model: string;
+  runReferences?: readonly GenerationBriefReference[];
   text: string;
   videoReferenceIds?: readonly string[];
 }
