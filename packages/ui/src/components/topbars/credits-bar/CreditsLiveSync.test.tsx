@@ -1,8 +1,8 @@
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, waitFor } from '@testing-library/react';
 import CreditsLiveSync from '@ui/topbars/credits-bar/CreditsLiveSync';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 
 const runtimeMocks = vi.hoisted(() => ({
   snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
@@ -105,13 +105,14 @@ function renderSync() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { gcTime: 0, retry: false } },
   });
-  const tree = (
+  // A fresh element each time: React bails out of re-rendering an identical one.
+  const tree = () => (
     <QueryClientProvider client={queryClient}>
       <CreditsLiveSync />
     </QueryClientProvider>
   );
-  const utils = render(tree);
-  return { ...utils, rerender: () => utils.rerender(tree) };
+  const utils = render(tree());
+  return { ...utils, rerender: () => utils.rerender(tree()) };
 }
 
 describe('CreditsLiveSync', () => {

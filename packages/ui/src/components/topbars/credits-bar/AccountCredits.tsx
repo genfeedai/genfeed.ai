@@ -60,16 +60,15 @@ function AccountCreditsContent({
     void refreshRef.current();
   }, []);
 
-  const { planLimit, planUsed, extraBalance, planUsagePercent } =
-    useMemo(
-      () =>
-        getPlanUsage({
-          balance,
-          cycleUsed: creditsBreakdown?.cycleUsed ?? 0,
-          planLimit: creditsBreakdown?.planLimit ?? 0,
-        }),
-      [balance, creditsBreakdown],
-    );
+  const { planLimit, planUsed, extraBalance, planUsagePercent } = useMemo(
+    () =>
+      getPlanUsage({
+        balance,
+        cycleUsed: creditsBreakdown?.cycleUsed ?? 0,
+        planLimit: creditsBreakdown?.planLimit ?? 0,
+      }),
+    [balance, creditsBreakdown],
+  );
 
   if (!showCredits) {
     return null;

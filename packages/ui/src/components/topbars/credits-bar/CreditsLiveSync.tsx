@@ -86,7 +86,9 @@ function CreditsLiveSyncContent({
 
 function WebCreditsLiveSync() {
   const { refreshCreditsBreakdown } = useSubscription();
-  return <CreditsLiveSyncContent refreshCreditsBreakdown={refreshCreditsBreakdown} />;
+  return (
+    <CreditsLiveSyncContent refreshCreditsBreakdown={refreshCreditsBreakdown} />
+  );
 }
 
 const noDesktopPlanRefresh = async () => {};

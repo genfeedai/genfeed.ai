@@ -66,7 +66,7 @@ describe('CreditsMenuSection', () => {
     );
     expect(screen.getByText('10,171')).toBeInTheDocument();
     expect(screen.getByText(/plan used/)).toHaveTextContent(
-      '1.6k / 5.9k plan used · 5.9k extra',
+      '1,629 / 5,900 plan used · 5,900 extra',
     );
     expect(
       screen.queryByText('Running low. Top up before generations stall.'),
@@ -96,7 +96,12 @@ describe('CreditsMenuSection', () => {
 
   it('stays neutral while loading instead of flashing critical zero', () => {
     render(
-      <CreditsMenuSection {...defaultProps} balance={null} fullBalance="—" isLoading />,
+      <CreditsMenuSection
+        {...defaultProps}
+        balance={null}
+        fullBalance="—"
+        isLoading
+      />,
     );
 
     expect(screen.getByTestId('account-credits')).toHaveAttribute(

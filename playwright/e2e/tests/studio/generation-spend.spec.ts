@@ -345,7 +345,9 @@ test.describe('Studio generation spend', () => {
     const { editor, generationBodies, generationWrites, wallet } =
       await mountPlayground(page, { routedModelKey: imageModel });
     const walletBlock = await openWallet(page);
-    await expect(walletBlock).toContainText(new RegExp(`${startingBalance}\\s*GEN`));
+    await expect(walletBlock).toContainText(
+      new RegExp(`${startingBalance}\\s*GEN`),
+    );
     await page.keyboard.press('Escape');
     const requestsBeforeSpend = wallet.requests;
     await editor.fill('A lighthouse at dusk');
