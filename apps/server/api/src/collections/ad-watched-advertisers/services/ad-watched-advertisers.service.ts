@@ -307,6 +307,45 @@ export class AdWatchedAdvertisersService extends BaseService<
     }
   }
 
+  /**
+   * Atomically claim an on-demand poll. The cooldown check and the timestamp
+   * write are one conditional update, so concurrent requests cannot all pass
+   * the check before the first billed fetch finishes. An advertiser whose last
+   * run was blocked before any archive actor started (an `unavailable` outcome
+   * with a code outside `spendPossibleErrorCodes`) can always be claimed.
+   *
+   * @returns true when this caller won the claim and may run the poll.
+   */
+  async claimManualPoll(
+    id: string,
+    organizationId: string,
+    {
+      cooldownMs,
+      spendPossibleErrorCodes,
+    }: { cooldownMs: number; spendPossibleErrorCodes: readonly string[] },
+  ): Promise<boolean> {
+    const now = Date.now();
+    const result = await this.delegate.updateMany({
+      data: { lastAttemptedAt: new Date(now) },
+      where: scopedWhere(organizationId, {
+        id,
+        OR: [
+          { lastAttemptedAt: null },
+          { lastAttemptedAt: { lt: new Date(now - cooldownMs) } },
+          {
+            lastIngestionErrorCode: {
+              not: null,
+              notIn: [...spendPossibleErrorCodes],
+            },
+            lastIngestionStatus: 'unavailable',
+          },
+        ],
+      }),
+    });
+
+    return result.count === 1;
+  }
+
   private async updateIngestionState(
     id: string,
     organizationId: string,

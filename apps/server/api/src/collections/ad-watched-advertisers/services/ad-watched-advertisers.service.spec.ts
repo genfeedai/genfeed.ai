@@ -480,6 +480,49 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
     });
   });
 
+  describe('claimManualPoll', () => {
+    const options = {
+      cooldownMs: 600_000,
+      spendPossibleErrorCodes: ['paid_creative_source_unavailable'],
+    };
+
+    it('claims in one scoped conditional update so concurrent polls cannot all pass', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.claimManualPoll('advertiser-4', 'org-1', options),
+      ).resolves.toBe(true);
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: { lastAttemptedAt: expect.any(Date) },
+        where: {
+          id: 'advertiser-4',
+          isDeleted: false,
+          organizationId: 'org-1',
+          OR: [
+            { lastAttemptedAt: null },
+            { lastAttemptedAt: { lt: expect.any(Date) } },
+            {
+              lastIngestionErrorCode: {
+                not: null,
+                notIn: ['paid_creative_source_unavailable'],
+              },
+              lastIngestionStatus: 'unavailable',
+            },
+          ],
+        },
+      });
+    });
+
+    it('reports a lost claim when the cooldown still holds', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.claimManualPoll('advertiser-4', 'org-1', options),
+      ).resolves.toBe(false);
+    });
+  });
+
   describe('recordIngestionResult', () => {
     it('records a successful snapshot without fabricating success time on failures', async () => {
       delegate.findFirst.mockResolvedValue({

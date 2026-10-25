@@ -127,13 +127,7 @@ export class PaidCreativeResearchIngestionService {
       id: advertiserId,
       isDeleted: false,
       organizationId,
-    })) as
-      | (WatchedAdvertiserScope & {
-          lastAttemptedAt?: Date | null;
-          lastIngestionErrorCode?: string | null;
-          lastIngestionStatus?: string | null;
-        })
-      | null;
+    })) as WatchedAdvertiserScope | null;
 
     if (
       !advertiser ||
@@ -142,18 +136,15 @@ export class PaidCreativeResearchIngestionService {
       throw new NotFoundException('Watched advertiser');
     }
 
-    const lastAttemptedAt = advertiser.lastAttemptedAt
-      ? new Date(advertiser.lastAttemptedAt).getTime()
-      : null;
-    const isBlockedBeforeSpend =
-      advertiser.lastIngestionStatus === 'unavailable' &&
-      !!advertiser.lastIngestionErrorCode &&
-      !SPEND_POSSIBLE_ERROR_CODES.has(advertiser.lastIngestionErrorCode);
-    if (
-      lastAttemptedAt !== null &&
-      !isBlockedBeforeSpend &&
-      Date.now() - lastAttemptedAt < MANUAL_POLL_COOLDOWN_MS
-    ) {
+    const isClaimed = await this.adWatchedAdvertisersService.claimManualPoll(
+      advertiser.id,
+      organizationId,
+      {
+        cooldownMs: MANUAL_POLL_COOLDOWN_MS,
+        spendPossibleErrorCodes: [...SPEND_POSSIBLE_ERROR_CODES],
+      },
+    );
+    if (!isClaimed) {
       throw new HttpException(
         'This advertiser was polled a few minutes ago. Try again shortly.',
         HttpStatus.TOO_MANY_REQUESTS,

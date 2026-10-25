@@ -53,6 +53,7 @@ type Harness = {
   };
   adWatchedAdvertisersService: {
     findAllByAccount: ReturnType<typeof vi.fn>;
+    claimManualPoll: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     recordIngestionResult: ReturnType<typeof vi.fn>;
   };
@@ -80,6 +81,7 @@ function buildHarness(
       .mockResolvedValue({ applied: true, recordCount: 1 }),
   };
   const adWatchedAdvertisersService = {
+    claimManualPoll: vi.fn().mockResolvedValue(true),
     findAllByAccount: vi.fn().mockResolvedValue(watched),
     findOne: vi.fn().mockResolvedValue(watched[0] ?? null),
     recordIngestionResult: vi.fn().mockResolvedValue(null),
@@ -469,14 +471,11 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    it('refuses a repeat poll while the last run that spent money is recent', async () => {
-      const harness = buildHarness([
-        {
-          ...META_ADVERTISER,
-          lastAttemptedAt: new Date(Date.now() - 60 * 1000),
-          lastIngestionStatus: 'success',
-        },
-      ]);
+    it('claims the poll before fetching and refuses when the claim is lost', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+      harness.adWatchedAdvertisersService.claimManualPoll.mockResolvedValue(
+        false,
+      );
 
       await expect(
         harness.service.pollWatchedAdvertiser('org-1', 'watch-1'),
@@ -484,45 +483,24 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
     });
 
-    it.each([
-      'paid_creative_source_unavailable',
-      'research_collection_start_unreconciled',
-      null,
-    ])(
-      'refuses a repeat poll after an unavailable run that may have spent an actor (%s)',
-      async (lastIngestionErrorCode) => {
-        const harness = buildHarness([
-          {
-            ...META_ADVERTISER,
-            lastAttemptedAt: new Date(Date.now() - 60 * 1000),
-            lastIngestionErrorCode,
-            lastIngestionStatus: 'unavailable',
-          },
-        ]);
+    it('claims with the cooldown and the codes that may have spent an actor', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
 
-        await expect(
-          harness.service.pollWatchedAdvertiser('org-1', 'watch-1'),
-        ).rejects.toBeInstanceOf(HttpException);
-        expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
-      },
-    );
+      await harness.service.pollWatchedAdvertiser('org-1', 'watch-1');
 
-    it('lets an advertiser blocked before any actor started be retried immediately', async () => {
-      const harness = buildHarness([
-        {
-          ...META_ADVERTISER,
-          lastAttemptedAt: new Date(Date.now() - 60 * 1000),
-          lastIngestionErrorCode: 'research_paid_access_required',
-          lastIngestionStatus: 'unavailable',
-        },
-      ]);
-
-      const result = await harness.service.pollWatchedAdvertiser(
-        'org-1',
-        'watch-1',
-      );
-
-      expect(result.status).toBe('success');
+      expect(
+        harness.adWatchedAdvertisersService.claimManualPoll,
+      ).toHaveBeenCalledWith('watch-1', 'org-1', {
+        cooldownMs: 10 * 60 * 1000,
+        spendPossibleErrorCodes: [
+          'paid_creative_source_unavailable',
+          'research_collection_start_unreconciled',
+        ],
+      });
+      expect(
+        harness.adWatchedAdvertisersService.claimManualPoll.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(harness.adapter.fetchCreatives.mock.invocationCallOrder[0]);
     });
   });
 
