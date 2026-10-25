@@ -10,6 +10,10 @@ import type {
   AgentMutationApprovalPostPreview,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import {
+  readNonBlankString,
+  readRecord,
+} from '@genfeedai/utils/data/extract.util';
 
 const PRIVATE_FIELD =
   /secret|password|token|authorization|credential|api.?key/i;
@@ -40,20 +44,10 @@ const POST_PREVIEW_PARAMETERS = new Set([
   'targets',
 ]);
 
-function readText(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
 function readTextList(value: unknown): string[] {
   return Array.isArray(value)
-    ? value.flatMap((item) => readText(item) ?? [])
+    ? value.flatMap((item) => readNonBlankString(item)?.trim() ?? [])
     : [];
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 /**
@@ -64,7 +58,8 @@ function buildPostPreviews(
   parameters: Record<string, unknown>,
 ): AgentMutationApprovalPostPreview[] {
   const defaultCaption =
-    readText(parameters.content) ?? readText(parameters.caption);
+    readNonBlankString(parameters.content)?.trim() ??
+    readNonBlankString(parameters.caption)?.trim();
   const mediaUrls = readTextList(parameters.mediaUrls);
   const previews: AgentMutationApprovalPostPreview[] = [];
 
@@ -72,19 +67,20 @@ function buildPostPreviews(
     ? parameters.targets
     : []) {
     const record = readRecord(target);
-    const platform = readText(record.platform);
-    const caption = readText(record.caption) ?? defaultCaption;
+    const platform = readNonBlankString(record.platform)?.trim();
+    const caption =
+      readNonBlankString(record.caption)?.trim() ?? defaultCaption;
     if (!platform || !caption) continue;
     previews.push({
       caption,
-      credentialId: readText(record.credentialId),
+      credentialId: readNonBlankString(record.credentialId)?.trim(),
       mediaUrls,
       platform,
     });
   }
   if (previews.length > 0) return previews;
 
-  const platform = readText(parameters.platform);
+  const platform = readNonBlankString(parameters.platform)?.trim();
   const platforms = [
     ...new Set([
       ...readTextList(parameters.platforms),
