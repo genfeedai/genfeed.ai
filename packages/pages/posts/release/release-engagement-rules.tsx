@@ -233,7 +233,7 @@ export default function ReleaseEngagementRules({
                     <Link
                       className="text-foreground underline"
                       href={href(
-                        `${APP_ROUTES.PUBLISHING.CALENDAR}&release=${encodeURIComponent(rule.resultingReleaseId)}`,
+                        `${APP_ROUTES.PUBLISHING.CALENDAR}?release=${encodeURIComponent(rule.resultingReleaseId)}`,
                       )}
                     >
                       {rule.resultingReleaseId}

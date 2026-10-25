@@ -21,7 +21,7 @@ describe('TurboRunResultCard', () => {
           creditsUsed: 5,
           ctas: [
             {
-              href: '/publishing/review?run=run-123&filter=ready',
+              href: '/publishing/approvals?run=run-123&filter=ready',
               label: 'Open review queue',
             },
             { href: '/calendar/posts', label: 'Open calendar' },
@@ -49,7 +49,7 @@ describe('TurboRunResultCard', () => {
     expect(screen.queryByText('Posts')).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open review queue' }),
-    ).toHaveAttribute('href', '/publishing/review?run=run-123&filter=ready');
+    ).toHaveAttribute('href', '/publishing/approvals?run=run-123&filter=ready');
     expect(screen.queryByText('run-123')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Collapse run result' }),
@@ -64,7 +64,7 @@ describe('TurboRunResultCard', () => {
           completedCount: 3,
           ctas: [
             {
-              href: '/publishing/review?run=b1&filter=ready',
+              href: '/publishing/approvals?run=b1&filter=ready',
               label: 'View all',
             },
           ],
@@ -102,7 +102,7 @@ describe('TurboRunResultCard', () => {
           completedCount: 8,
           ctas: [
             {
-              href: '/publishing/review?run=run-xyz&filter=ready',
+              href: '/publishing/approvals?run=run-xyz&filter=ready',
               label: 'View all 8 posts',
             },
           ],
@@ -146,7 +146,7 @@ describe('TurboRunResultCard', () => {
     expect(screen.getAllByTestId('turbo-run-result-preview')).toHaveLength(3);
     expect(
       screen.getByRole('link', { name: '+5 more posts in review' }),
-    ).toHaveAttribute('href', '/publishing/review?run=run-xyz&filter=ready');
+    ).toHaveAttribute('href', '/publishing/approvals?run=run-xyz&filter=ready');
   });
 
   it('emphasizes all-failed runs without Ready metrics', () => {

@@ -95,9 +95,7 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage);
     await calendarPage.gotoPosts();
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/publishing\/posts\?view=calendar/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
     await calendarPage.assertPostsTabActive();
   });
 
@@ -129,9 +127,7 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage, scheduledPosts);
     await calendarPage.gotoPosts();
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/publishing\/posts\?view=calendar/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
     await calendarPage.assertCalendarVisible();
 
     // Each post must render as a real, named event -- not merely "some
@@ -213,9 +209,7 @@ test.describe('Calendar — Scheduling', () => {
 
     await calendarPage.gotoPosts();
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/publishing\/posts\?view=calendar/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
 
     // `calendarEvent`'s broad `[class*="calendar-event"]` match also picks
     // up each event's nested time/title/badge spans (all named

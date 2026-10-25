@@ -31,6 +31,7 @@ import { usePublishingPostsViewPreference } from '@hooks/utils/use-publishing-po
 import ReleaseBoard from '@pages/posts/board/release-board';
 import AccountGrid from '@pages/posts/grid/account-grid';
 import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
+import PublishingViewToggle from '@pages/posts/library/publishing-view-toggle';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
 import { ReleaseRailActions } from '@pages/posts/rail/release-rail-row';
@@ -57,14 +58,6 @@ import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import {
-  CalendarDays,
-  ClipboardCheck,
-  Kanban,
-  LayoutGrid,
-  Rows3,
-} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -92,9 +85,6 @@ type ReleaseListPagination = {
 };
 
 export interface ReleasePostsListProps extends ContentProps {
-  /** #5502 approval queue, rendered as the `?view=approvals` Posts view. */
-  approvals?: React.ReactNode;
-  calendar?: React.ReactNode;
   campaignId?: string;
   contentTypes?: PostCategory[];
   credentialIds?: string[];
@@ -114,16 +104,8 @@ const VIEW_MODE_TO_VIEW_TYPE: Record<PublishingPostsViewMode, ViewType> = {
   list: ViewType.LIST,
 };
 
-const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
-  [ViewType.GRID]: 'grid',
-  [ViewType.KANBAN]: 'board',
-  [ViewType.LIST]: 'list',
-};
-
 export default function ReleasePostsList({
-  approvals,
   campaignId,
-  calendar,
   contentTypes,
   credentialIds,
   executionStates,
@@ -143,14 +125,9 @@ export default function ReleasePostsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams?.toString() ?? '';
-  const isCalendar =
-    Boolean(calendar) && searchParams?.get('view') === 'calendar';
-  const isApprovals =
-    Boolean(approvals) && searchParams?.get('view') === 'approvals';
-  const isEmbeddedView = isCalendar || isApprovals;
   const source = parsePostsSource(searchParams?.get('source'));
   // Captured records are not releases; the Extension filter swaps the list.
-  const isCapturedView = source !== undefined && !isEmbeddedView;
+  const isCapturedView = source !== undefined;
   const currentPage = Math.max(
     1,
     Number(new URLSearchParams(searchParamsString).get('page')) || 1,
@@ -460,42 +437,36 @@ export default function ReleasePostsList({
   );
 
   useEffect(() => {
-    // The approval queue owns the toolbar while its view is open.
-    if (isApprovals) return;
     setLeadingNode(
-      isCalendar ? null : (
-        <PostsListSearch
-          searchValue={search}
-          onSearchChange={handleSearchChange}
-        />
-      ),
+      <PostsListSearch
+        searchValue={search}
+        onSearchChange={handleSearchChange}
+      />,
     );
     setFiltersNode(
-      isCalendar ? null : (
-        <PostsListToolbar
-          showSearch={false}
-          onSearchChange={handleSearchChange}
-          onSourceChange={handleSourceChange}
-          sourceValue={source}
-          onSortChange={(nextSort) =>
-            replaceSearchParams((params) => {
-              if (nextSort === 'createdAt: -1') {
-                params.delete('sort');
-              } else {
-                params.set('sort', nextSort);
-              }
-              params.delete('page');
-            })
-          }
-          searchValue={search}
-          sortOptions={
-            isCapturedView
-              ? CAPTURED_POSTS_SORT_OPTIONS
-              : RELEASE_POSTS_SORT_OPTIONS
-          }
-          sortValue={isCapturedView ? normalizeCapturedPostsSort(sort) : sort}
-        />
-      ),
+      <PostsListToolbar
+        showSearch={false}
+        onSearchChange={handleSearchChange}
+        onSourceChange={handleSourceChange}
+        sourceValue={source}
+        onSortChange={(nextSort) =>
+          replaceSearchParams((params) => {
+            if (nextSort === 'createdAt: -1') {
+              params.delete('sort');
+            } else {
+              params.set('sort', nextSort);
+            }
+            params.delete('page');
+          })
+        }
+        searchValue={search}
+        sortOptions={
+          isCapturedView
+            ? CAPTURED_POSTS_SORT_OPTIONS
+            : RELEASE_POSTS_SORT_OPTIONS
+        }
+        sortValue={isCapturedView ? normalizeCapturedPostsSort(sort) : sort}
+      />,
     );
     return () => {
       setFiltersNode(null);
@@ -504,8 +475,6 @@ export default function ReleasePostsList({
   }, [
     handleSearchChange,
     handleSourceChange,
-    isApprovals,
-    isCalendar,
     isCapturedView,
     replaceSearchParams,
     search,
@@ -517,78 +486,26 @@ export default function ReleasePostsList({
 
   useEffect(() => {
     setViewToggleNode(
-      <ViewToggle
-        activeView={
-          isCalendar
-            ? ViewType.CALENDAR
-            : isApprovals
-              ? ViewType.APPROVALS
-              : VIEW_MODE_TO_VIEW_TYPE[viewMode]
-        }
-        onChange={(nextView) =>
-          nextView === ViewType.CALENDAR
-            ? replaceSearchParams((params) => params.set('view', 'calendar'))
-            : nextView === ViewType.APPROVALS
-              ? replaceSearchParams((params) => {
-                  params.delete('page');
-                  params.set('view', 'approvals');
-                })
-              : handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
-        }
-        options={[
-          {
-            icon: <CalendarDays className="size-3.5 shrink-0" />,
-            label: 'Calendar view',
-            type: ViewType.CALENDAR,
-          },
-          {
-            icon: <Rows3 className="size-3.5 shrink-0" />,
-            label: translate('viewToggle.list'),
-            type: ViewType.LIST,
-          },
-          {
-            icon: <Kanban className="size-3.5 shrink-0" />,
-            label: translate('viewToggle.board'),
-            type: ViewType.KANBAN,
-          },
-          {
-            icon: <LayoutGrid className="size-3.5 shrink-0" />,
-            label: translate('viewToggle.grid'),
-            type: ViewType.GRID,
-          },
-          ...(approvals
-            ? [
-                {
-                  icon: <ClipboardCheck className="size-3.5 shrink-0" />,
-                  label: translate('viewToggle.approvals'),
-                  type: ViewType.APPROVALS,
-                },
-              ]
-            : []),
-        ]}
+      <PublishingViewToggle
+        activeView={VIEW_MODE_TO_VIEW_TYPE[viewMode]}
+        onViewModeChange={handleViewModeChange}
       />,
     );
-    // The embedded views and the captured list own the refresh action.
-    if (!isEmbeddedView && !isCapturedView)
+    // The captured list owns the refresh action.
+    if (!isCapturedView)
       setRefresh(() => () => {
         void refetch();
       });
     return () => {
-      if (!isEmbeddedView && !isCapturedView) setRefresh(() => () => {});
+      if (!isCapturedView) setRefresh(() => () => {});
       setViewToggleNode(null);
     };
   }, [
-    approvals,
     handleViewModeChange,
-    isApprovals,
-    isCalendar,
     isCapturedView,
-    isEmbeddedView,
-    replaceSearchParams,
     refetch,
     setRefresh,
     setViewToggleNode,
-    translate,
     viewMode,
   ]);
 
@@ -623,7 +540,7 @@ export default function ReleasePostsList({
   }, [error]);
 
   const { activeIndex, registerItem, setActiveIndex } = useRailKeys({
-    enabled: !isEmbeddedView && !isCapturedView,
+    enabled: !isCapturedView,
     itemCount: data.releases.length,
     onOpen: (index) => {
       const release = data.releases[index];
@@ -634,8 +551,6 @@ export default function ReleasePostsList({
     onRefresh: () => void refetch(),
   });
 
-  if (isCalendar) return <>{calendar}</>;
-  if (isApprovals) return <>{approvals}</>;
   if (isCapturedView)
     return (
       <CapturedPostsList

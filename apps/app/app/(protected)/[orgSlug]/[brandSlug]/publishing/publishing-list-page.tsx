@@ -32,15 +32,11 @@ export type { PostsListSearchParams } from '@props/publishing/publishing-list-pa
  * no caller forces a lifecycle.
  */
 export async function renderPostsListPage({
-  approvals,
   campaignId,
-  calendar,
   searchParams,
   scope = PageScope.PUBLISHING,
 }: {
-  approvals?: React.ReactNode;
   campaignId?: string;
-  calendar?: React.ReactNode;
   searchParams: PostsListSearchParams;
   scope?: PageScope;
 }) {
@@ -56,7 +52,6 @@ export async function renderPostsListPage({
       sort,
       source,
       status,
-      view,
     },
     bootstrap,
   ] = await Promise.all([searchParams, loadProtectedBootstrap()]);
@@ -99,11 +94,7 @@ export async function renderPostsListPage({
   const contentTypes = normalizeReleasePostContentTypes(contentType);
   // The Extension source lists captured posts client-side; no release page
   // is read for it, so none is prefetched.
-  const isEmbeddedView =
-    (calendar !== undefined && view === 'calendar') ||
-    (approvals !== undefined && view === 'approvals');
-  const isCapturedSource =
-    parsePostsSource(source) !== undefined && !isEmbeddedView;
+  const isCapturedSource = parsePostsSource(source) !== undefined;
   // Start the query without awaiting it so the Publishing shell paints while
   // TanStack Query streams the pending result into the client boundary.
   if (!isCapturedSource) {
@@ -146,8 +137,6 @@ export async function renderPostsListPage({
   return (
     <ServerQueryHydrationBoundary>
       <ReleasePostsList
-        approvals={approvals}
-        calendar={calendar}
         campaignId={campaignId}
         contentTypes={contentTypes}
         credentialIds={credentialIds}
