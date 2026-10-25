@@ -21,11 +21,7 @@ export default function SettingsMcpApprovalCard({
   const isOrganizationRequired = settings?.isMcpApprovalRequired !== false;
 
   return (
-    <Card
-      bodyClassName="gap-3 p-4"
-      description={translate('description')}
-      label={translate('cardTitle')}
-    >
+    <Card bodyClassName="gap-3 p-4" label={translate('cardTitle')}>
       <Switch
         aria-label={translate('label')}
         description={translate('switchDescription')}

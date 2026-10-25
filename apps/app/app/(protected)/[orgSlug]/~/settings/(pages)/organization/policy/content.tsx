@@ -65,11 +65,7 @@ export default function SettingsOrganizationPolicyPage() {
 
   return (
     <div className="space-y-4">
-      <Card
-        label="Assistant Reply Style"
-        description="Controls the default style the assistant uses across the workspace. Personal chat defaults and brand voice are configured elsewhere."
-        bodyClassName="gap-3 p-4"
-      >
+      <Card label="Assistant Reply Style" bodyClassName="gap-3 p-4">
         <div>
           <p className="text-sm font-medium">Organization Default</p>
           {isSettingsLoading ? (

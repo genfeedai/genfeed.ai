@@ -59,26 +59,6 @@ const MERGEABLE_CATEGORIES: readonly IngredientCategory[] = [
   IngredientCategory.IMAGE,
 ];
 
-/**
- * `type` is the plural URL/filter token (e.g. "images", "ingredients"). Most
- * types pluralize/singularize by trailing "s", but the all-types view uses
- * the generic "ingredients" token while the product language for that view is
- * "assets".
- */
-const TYPE_LABEL_OVERRIDES: Readonly<
-  Record<string, { singular: string; plural: string }>
-> = {
-  ingredients: { plural: 'assets', singular: 'asset' },
-};
-
-function getItemLabel(type: string, count: number): string {
-  const override = TYPE_LABEL_OVERRIDES[type];
-  if (override) {
-    return count === 1 ? override.singular : override.plural;
-  }
-  return count === 1 ? type.slice(0, -1) : type;
-}
-
 export default function IngredientsList({
   folderNavigation = 'content',
   type: typeProp,
@@ -90,7 +70,6 @@ export default function IngredientsList({
     hostsSelectionActions = false,
     selectionSlot = null,
     actionSlot = null,
-    setHeaderMeta,
   } = useIngredientsHeaderContext();
   const { selectedBrand } = useBrand();
   const type = ingredientType || typeProp;
@@ -280,15 +259,6 @@ export default function IngredientsList({
     isLoading,
     onOpen: openIngredientSidebar,
   });
-
-  useEffect(() => {
-    const itemLabel = getItemLabel(type, filteredIngredients.length);
-    setHeaderMeta(`${filteredIngredients.length} ${itemLabel}`);
-
-    return () => {
-      setHeaderMeta(undefined);
-    };
-  }, [filteredIngredients.length, setHeaderMeta, type]);
 
   const selectionHeader = (
     <IngredientsListHeader

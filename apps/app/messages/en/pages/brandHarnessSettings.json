@@ -166,7 +166,6 @@
   },
   "positioningScorecard": {
     "title": "Positioning scorecard",
-    "description": "How strongly your positioning would land with a cold audience.",
     "scoreValue": "{score}/100",
     "dimensionScore": "{score}/10",
     "weakestTitle": "Weakest: {label}",

@@ -14,7 +14,7 @@ export default function AgentDefaults() {
   if (!brand) return null;
   return (
     <div className="flex flex-col gap-3">
-      <Card label={t('defaultsTitle')} description={t('defaultsDescription')}>
+      <Card label={t('defaultsTitle')}>
         <p className="text-xs leading-5 text-muted-foreground">
           {t('defaultsVoiceNote')}
         </p>

@@ -4,7 +4,6 @@
     "addStarter": "Add starter",
     "angle": "Angle",
     "audience": "Audience",
-    "description": "Reusable prompt seeds and the conversation starters shown in the agent prompt bar. The agent can also write these.",
     "empty": "No prompt seeds or starters yet. Generate the brand voice or add one.",
     "formats": "Preferred formats",
     "intent": "Intent",

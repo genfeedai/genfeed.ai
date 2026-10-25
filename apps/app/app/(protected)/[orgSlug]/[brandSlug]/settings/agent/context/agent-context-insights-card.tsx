@@ -51,12 +51,5 @@ export default function AgentContextInsightsCard({
     );
   }
 
-  return (
-    <Card
-      description={translate('insights.description')}
-      label={translate('insights.title')}
-    >
-      {body}
-    </Card>
-  );
+  return <Card label={translate('insights.title')}>{body}</Card>;
 }

@@ -196,7 +196,6 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
       }
       data-testid="brand-kit-review-card"
       label={translate('title')}
-      description={translate('description')}
       bodyClassName="gap-3 p-4"
     >
       <div

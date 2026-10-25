@@ -80,19 +80,9 @@ describe('SettingsWebhooksPage', () => {
 
     render(<SettingsWebhooksPage />);
 
-    // Chrome: both card titles/descriptions render immediately.
+    // Chrome: both card titles render immediately.
     expect(screen.getByText('Outbound Webhook Endpoint')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Signed publish events are sent to this organization endpoint.',
-      ),
-    ).toBeInTheDocument();
     expect(screen.getByText('Delivery Status')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Latest queued or attempted delivery for this endpoint.',
-      ),
-    ).toBeInTheDocument();
 
     expect(screen.getByTestId('webhook-form-loading')).toBeInTheDocument();
     expect(screen.getByTestId('webhook-delivery-loading')).toBeInTheDocument();

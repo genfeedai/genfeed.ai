@@ -54,7 +54,6 @@ export default function BrandWritingVoiceEditor({
     handlePlatformOverrideSelectChange,
     handlePromptingSave,
     isGenerating,
-    populatedPlatformCount,
     voiceCorpus,
   } = useBrandWritingProfile({ brand, brandId, onRefreshBrand });
   const translate = useTranslations('pages.brandAgentProfile');
@@ -93,11 +92,6 @@ export default function BrandWritingVoiceEditor({
       {section !== 'agent' && (
         <Card
           label={showsVoiceHeading ? 'Brand voice' : undefined}
-          description={
-            showsVoiceHeading
-              ? 'How agents write as this brand — tone, style, and messaging. Not the spoken TTS voice.'
-              : undefined
-          }
           headerAction={
             <div className="flex shrink-0 items-center gap-2">
               <Button
@@ -142,7 +136,7 @@ export default function BrandWritingVoiceEditor({
 
       {(!section || section === 'agent') && (
         <div className="grid gap-3 md:grid-cols-2">
-          <Card label="Persona" description="What agents optimize for.">
+          <Card label="Persona">
             <EditableText
               ariaLabel="Persona"
               className="w-full"
@@ -155,10 +149,7 @@ export default function BrandWritingVoiceEditor({
             />
           </Card>
 
-          <Card
-            label="Content model"
-            description="Optional brand override for content generation."
-          >
+          <Card label="Content model">
             <Select
               value={form.defaultModel || AUTO_MODEL_SELECT_VALUE}
               onValueChange={(value) =>
@@ -193,7 +184,7 @@ export default function BrandWritingVoiceEditor({
       )}
 
       {(!section || section === 'voice') && (
-        <Card label="Voice fields" description="Canonical writing system.">
+        <Card label="Voice fields">
           <AgentProfileVoiceFields
             voiceCanonicalSource={form.voiceCanonicalSource}
             voiceTone={form.voiceTone}
@@ -215,10 +206,7 @@ export default function BrandWritingVoiceEditor({
       )}
 
       {(!section || section === 'strategy') && (
-        <Card
-          label="Strategy"
-          description="What to publish, where, and how often."
-        >
+        <Card label="Strategy">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label
@@ -308,10 +296,7 @@ export default function BrandWritingVoiceEditor({
       )}
 
       {(!section || section === 'agent') && (
-        <Card
-          label={translate('prompting.title')}
-          description={translate('prompting.description')}
-        >
+        <Card label={translate('prompting.title')}>
           <AgentProfilePromptingFields
             conversationStarters={form.promptingStarters}
             isDisabled={isGenerating}
@@ -325,14 +310,7 @@ export default function BrandWritingVoiceEditor({
         <Collapsible>
           <CollapsibleTrigger>Platform overrides</CollapsibleTrigger>
           <CollapsibleContent>
-            <Card
-              label="Platform overrides"
-              description={
-                populatedPlatformCount > 0
-                  ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured. Empty fields inherit brand voice.`
-                  : 'Optional. Leave fields empty to inherit the brand voice above for that channel.'
-              }
-            >
+            <Card label="Platform overrides">
               <div className="grid gap-4 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] lg:items-start">
                 <div className="space-y-3">
                   <div>

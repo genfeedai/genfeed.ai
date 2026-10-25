@@ -447,12 +447,7 @@ export default function BrandSettingsPublishingPage() {
 
   return (
     <div className="space-y-4">
-      <Card
-        label="Publishing defaults"
-        labelAs="h1"
-        description="Recurring content generation cadence and auto-publish rules for this brand."
-        bodyClassName="gap-3 p-4"
-      >
+      <Card label="Publishing defaults" labelAs="h1" bodyClassName="gap-3 p-4">
         <div className="space-y-3">
           <SettingsToggleRow
             description="Generate recurring content for this brand on the cadence and timezone below."
@@ -632,11 +627,7 @@ export default function BrandSettingsPublishingPage() {
         />
       ) : null}
 
-      <Card
-        label="Connected account readiness"
-        description="Check provider credentials and setup before enabling automated publishing."
-        bodyClassName="gap-3 p-4"
-      >
+      <Card label="Connected account readiness" bodyClassName="gap-3 p-4">
         {connectedCredentials.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No connected accounts are available for this brand.

@@ -59,11 +59,7 @@ export default function OrganizationAutomationCard() {
   }
 
   return (
-    <Card
-      label={translate('title')}
-      description={translate('description')}
-      bodyClassName="gap-3 p-4"
-    >
+    <Card label={translate('title')} bodyClassName="gap-3 p-4">
       {!canManage ? (
         <p className="text-xs text-muted-foreground">
           {translate('adminOnly')}

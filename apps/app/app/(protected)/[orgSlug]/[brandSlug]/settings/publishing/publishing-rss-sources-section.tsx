@@ -178,11 +178,7 @@ export default function PublishingRssSourcesSection({
   );
 
   return (
-    <Card
-      label="RSS sources"
-      description="Import feed items as drafts, scheduled posts, or publish-now releases."
-      bodyClassName="gap-3 p-4"
-    >
+    <Card label="RSS sources" bodyClassName="gap-3 p-4">
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading RSS sources…</p>
       ) : sources.length === 0 ? (

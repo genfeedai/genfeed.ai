@@ -120,7 +120,6 @@
     "emptyTitle": "Connect accounts to see analytics",
     "placeholderDescription": "After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming.",
     "placeholderTitle": "Trend lines will appear here once performance data lands",
-    "timeseriesDescription": "Use this to see which channels are actually contributing movement in the selected range.",
     "timeseriesTitle": "Posts views by platform over time"
   },
   "hooksOutlierFilter": {

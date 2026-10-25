@@ -1,6 +1,5 @@
 {
   "budget": {
-    "description": "Brand context is capped so it never crowds out the conversation. Lower-priority sections are trimmed first.",
     "droppedSection": "{header}: dropped ({original} characters)",
     "fits": "Everything fits within the budget.",
     "title": "Context budget",
@@ -62,7 +61,6 @@
   },
   "insights": {
     "confidence": "{confidence}% confidence",
-    "description": "Distilled from published performance. The agent reads the newest five.",
     "empty": "No performance insights yet. They appear once published posts collect analytics.",
     "loadError": "Could not load performance insights.",
     "title": "Performance insights"
@@ -87,12 +85,10 @@
     "archive": "Archive",
     "archiveError": "Failed to archive this memory",
     "archived": "Memory archived",
-    "brandDescription": "Shared memories for this brand. Owners and admins manage them in organization Memory settings.",
     "brandEmpty": "No brand memories yet.",
     "brandTitle": "Brand memories",
     "injectedDescription": "The memories ranked into this turn, in the order the agent reads them.",
     "loadError": "Could not load memories.",
-    "personalDescription": "Only you can see these. The agent uses them in your conversations.",
     "personalEmpty": "You have no personal memories yet.",
     "personalTitle": "Your personal memories",
     "score": "score {score}",
@@ -104,7 +100,6 @@
   },
   "model": {
     "credits": "{credits} credits per round",
-    "description": "The model a chat turn runs and what one round costs.",
     "title": "Model"
   },
   "origin": {
@@ -113,14 +108,12 @@
   },
   "preview": {
     "clear": "Clear",
-    "help": "Knowledge, related posts, and memories are ranked against this message.",
     "label": "Preview a message",
     "placeholder": "e.g. Draft a launch post for next week",
     "submit": "Preview"
   },
   "prompt": {
     "copy": "Copy",
-    "description": "The exact system prompt a chat turn sends, followed by the saved-memory block.",
     "hide": "Hide raw prompt",
     "memoryBlock": "Saved-memory message",
     "show": "Show raw prompt",

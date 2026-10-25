@@ -36,7 +36,6 @@ export default function AgentContextOverviewCard({
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <Card
-        description={translate('model.description')}
         headerAction={
           <Button
             ariaLabel={translate('refresh')}
@@ -63,10 +62,7 @@ export default function AgentContextOverviewCard({
         </div>
       </Card>
 
-      <Card
-        description={translate('budget.description')}
-        label={translate('budget.title')}
-      >
+      <Card label={translate('budget.title')}>
         <div className="flex flex-col gap-2">
           <Progress
             aria-label={translate('budget.title')}
@@ -109,11 +105,7 @@ export default function AgentContextOverviewCard({
         </div>
       </Card>
 
-      <Card
-        className="md:col-span-2"
-        description={translate('preview.help')}
-        label={translate('preview.label')}
-      >
+      <Card className="md:col-span-2" label={translate('preview.label')}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Input
             aria-label={translate('preview.label')}

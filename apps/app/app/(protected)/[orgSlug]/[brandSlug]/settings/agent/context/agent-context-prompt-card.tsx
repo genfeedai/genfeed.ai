@@ -32,7 +32,6 @@ export default function AgentContextPromptCard({
 
   return (
     <Card
-      description={translate('prompt.description')}
       headerAction={
         <Button
           icon={<Copy className="size-3.5" />}

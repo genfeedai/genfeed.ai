@@ -201,7 +201,6 @@ export default function AnalyticsOverview({
             variant={CardVariant.DEFAULT}
             isLoading={!hasTimeseriesData && isTimeseriesLoading}
             label={translate('timeseriesTitle')}
-            description={translate('timeseriesDescription')}
           >
             <PlatformTimeSeriesChart
               data={timeseriesData}

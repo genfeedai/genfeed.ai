@@ -56,11 +56,7 @@ export default function OrganizationCustomModelsCard() {
 
   if (!isFleetConnected) {
     return (
-      <Card
-        label={translate('cta.title')}
-        description={translate('cta.description')}
-        bodyClassName="gap-4 p-4"
-      >
+      <Card label={translate('cta.title')} bodyClassName="gap-4 p-4">
         <ul className="space-y-2">
           {CTA_POINT_KEYS.map((key) => (
             <li
@@ -88,11 +84,7 @@ export default function OrganizationCustomModelsCard() {
   }
 
   return (
-    <Card
-      label={translate('title')}
-      description={translate('description')}
-      bodyClassName="gap-3 p-4"
-    >
+    <Card label={translate('title')} bodyClassName="gap-3 p-4">
       <Switch
         label={translate('nsfw.label')}
         description={translate('nsfw.description')}

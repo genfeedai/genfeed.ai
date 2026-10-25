@@ -96,11 +96,7 @@ export default function OrganizationGenerationDefaultsCard() {
   ]);
 
   return (
-    <Card
-      label="Generation Defaults"
-      description="Organization baseline models. Brands can inherit or override them."
-      bodyClassName="gap-3 p-4"
-    >
+    <Card label="Generation Defaults" bodyClassName="gap-3 p-4">
       <div className="space-y-4">
         <OrganizationGenerationDefaultsTextSection
           enabledModelIds={enabledModelIds}

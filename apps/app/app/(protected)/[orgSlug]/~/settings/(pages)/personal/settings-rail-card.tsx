@@ -17,11 +17,7 @@ export default function SettingsRailCard() {
   const { isLoaded, resetRail } = useRailPreferencesContext();
 
   return (
-    <Card
-      bodyClassName="gap-3 p-4"
-      description={translate('description')}
-      label={translate('label')}
-    >
+    <Card bodyClassName="gap-3 p-4" label={translate('label')}>
       <div>
         <Button
           data-testid="personal-rail-reset"

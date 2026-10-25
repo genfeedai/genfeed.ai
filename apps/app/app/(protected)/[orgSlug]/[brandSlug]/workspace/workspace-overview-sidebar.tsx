@@ -120,7 +120,6 @@ export function WorkspaceOverviewSidebar({
       <section aria-busy={isTasksLoading} data-testid="workspace-in-progress">
         <Card
           label={translate('sidebarCards.inProgress.label')}
-          description={translate('sidebarCards.inProgress.description')}
           bodyClassName="space-y-3 p-4"
         >
           {taskStreamContent}
@@ -137,7 +136,6 @@ export function WorkspaceOverviewSidebar({
       <section data-testid="workspace-recent-outputs">
         <Card
           label={translate('sidebarCards.recentOutputs.label')}
-          description={translate('sidebarCards.recentOutputs.description')}
           headerAction={
             <Button
               asChild
@@ -252,7 +250,6 @@ export function WorkspaceOverviewSidebar({
       >
         <Card
           label={translate('sidebarCards.recentActivity.label')}
-          description={translate('sidebarCards.recentActivity.description')}
           headerAction={
             <Button
               asChild
@@ -273,7 +270,6 @@ export function WorkspaceOverviewSidebar({
       <section data-testid="workspace-library-snapshot">
         <Card
           label={translate('sidebarCards.librarySnapshot.label')}
-          description={translate('sidebarCards.librarySnapshot.description')}
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">
@@ -298,7 +294,6 @@ export function WorkspaceOverviewSidebar({
       <section data-testid="workspace-advanced-tools">
         <Card
           label={translate('sidebarCards.operatorTools.label')}
-          description={translate('sidebarCards.operatorTools.description')}
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">

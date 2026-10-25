@@ -65,11 +65,7 @@ export default function RepliesWarmupTargets({
   }
 
   return (
-    <Card
-      label={translate('title')}
-      description={translate('description')}
-      bodyClassName="gap-4 p-4"
-    >
+    <Card label={translate('title')} bodyClassName="gap-4 p-4">
       <div className="flex flex-wrap items-end gap-2">
         <Input
           aria-label={translate('queryLabel')}

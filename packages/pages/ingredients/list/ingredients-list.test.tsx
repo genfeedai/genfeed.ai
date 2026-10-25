@@ -13,13 +13,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   mockHeaderContext,
   mockOpenPostBatchModal,
-  mockSetHeaderMeta,
   mockUseBrand,
   mockUseIngredientsList,
 } = vi.hoisted(() => ({
   mockHeaderContext: vi.fn(),
   mockOpenPostBatchModal: vi.fn(),
-  mockSetHeaderMeta: vi.fn(),
   mockUseBrand: vi.fn(),
   mockUseIngredientsList: vi.fn(),
 }));
@@ -210,9 +208,7 @@ function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
 
 describe('IngredientsList', () => {
   beforeEach(() => {
-    mockHeaderContext.mockReturnValue({
-      setHeaderMeta: mockSetHeaderMeta,
-    });
+    mockHeaderContext.mockReturnValue({});
   });
 
   it('forwards the real scoped Crun conversion binding into the library modal', () => {
@@ -387,7 +383,6 @@ describe('IngredientsList', () => {
     mockHeaderContext.mockReturnValue({
       hostsSelectionActions: true,
       selectionSlot: slot,
-      setHeaderMeta: mockSetHeaderMeta,
     });
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
@@ -405,7 +400,6 @@ describe('IngredientsList', () => {
     mockHeaderContext.mockReturnValue({
       hostsSelectionActions: true,
       selectionSlot: slot,
-      setHeaderMeta: mockSetHeaderMeta,
     });
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(

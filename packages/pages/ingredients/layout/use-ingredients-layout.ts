@@ -13,7 +13,6 @@ import type {
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   INGREDIENT_CONFIGS,
@@ -173,7 +172,6 @@ export function useIngredientsLayout({
   );
   const ingredientType =
     defaultType ?? routeIngredientType ?? selectedIngredientType;
-  const [headerMeta, setHeaderMeta] = useState<ReactNode>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const onRefreshCallbackRef = useRef<(() => void) | undefined>(undefined);
 
@@ -367,11 +365,9 @@ export function useIngredientsLayout({
     handleFiltersChange,
     handleRefresh,
     handleUpload,
-    headerMeta,
     ingredientCategory,
     ingredientType,
     isRefreshing,
-    setHeaderMeta,
     setIngredientType,
   };
 }

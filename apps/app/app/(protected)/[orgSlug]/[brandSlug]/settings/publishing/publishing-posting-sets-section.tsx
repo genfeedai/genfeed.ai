@@ -192,11 +192,7 @@ export default function PublishingPostingSetsSection({
   );
 
   return (
-    <Card
-      label="Posting sets"
-      description="Reusable channel groups for scheduling. Unhealthy credentials stay visible as warnings."
-      bodyClassName="gap-3 p-4"
-    >
+    <Card label="Posting sets" bodyClassName="gap-3 p-4">
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading posting sets…</p>
       ) : postingSets.length === 0 ? (

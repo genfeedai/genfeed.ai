@@ -193,24 +193,19 @@
   },
   "sidebarCards": {
     "inProgress": {
-      "label": "In progress",
-      "description": "Active workspace tasks and live execution state."
+      "label": "In progress"
     },
     "recentOutputs": {
-      "label": "Recent outputs",
-      "description": "Latest generated ingredients and posts."
+      "label": "Recent outputs"
     },
     "recentActivity": {
-      "label": "Recent activity",
-      "description": "Execution logs stay available without owning the main navigation."
+      "label": "Recent activity"
     },
     "librarySnapshot": {
-      "label": "Library snapshot",
-      "description": "Keep the ingredient library one click away from the dashboard."
+      "label": "Library snapshot"
     },
     "operatorTools": {
-      "label": "Operator tools",
-      "description": "Manual and expert surfaces stay available without owning the main navigation."
+      "label": "Operator tools"
     }
   }
 }

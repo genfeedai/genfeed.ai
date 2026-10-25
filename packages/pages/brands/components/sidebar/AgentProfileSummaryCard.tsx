@@ -32,7 +32,6 @@ export default function AgentProfileSummaryCard({
   return (
     <Card
       label="Agent Profile"
-      description="Persona, voice, strategy, and platform overrides for agents."
       headerAction={
         <Button
           onClick={onManage}

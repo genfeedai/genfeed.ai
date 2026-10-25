@@ -142,20 +142,14 @@ export default function AgentContextMemoriesSection({
       </AgentContextLayerCard>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <Card
-          description={translate('memories.personalDescription')}
-          label={translate('memories.personalTitle')}
-        >
+        <Card label={translate('memories.personalTitle')}>
           {renderList(
             personalMemories,
             translate('memories.personalEmpty'),
             true,
           )}
         </Card>
-        <Card
-          description={translate('memories.brandDescription')}
-          label={translate('memories.brandTitle')}
-        >
+        <Card label={translate('memories.brandTitle')}>
           {renderList(brandMemories, translate('memories.brandEmpty'), false)}
         </Card>
       </div>

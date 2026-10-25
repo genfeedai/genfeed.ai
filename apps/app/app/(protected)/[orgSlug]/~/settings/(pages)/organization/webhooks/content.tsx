@@ -272,10 +272,7 @@ export default function SettingsWebhooksPage() {
 
   return (
     <div className="grid gap-4">
-      <Card
-        label="Outbound Webhook Endpoint"
-        description="Signed publish events are sent to this organization endpoint."
-      >
+      <Card label="Outbound Webhook Endpoint">
         {isLoading ? (
           <div data-testid="webhook-form-loading">
             <SkeletonCard showImage={false} />
@@ -373,7 +370,6 @@ export default function SettingsWebhooksPage() {
 
       <Card
         label="Delivery Status"
-        description="Latest queued or attempted delivery for this endpoint."
         headerAction={
           deliveryStatus ? (
             <Badge variant={statusVariant(deliveryStatus.status)}>

@@ -19,7 +19,6 @@ import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Library } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import LibraryActiveFilters from './library-active-filters';
 import {
@@ -105,7 +104,6 @@ export default function LibraryBrowser({
     brandId: brandId || undefined,
   });
 
-  const [headerMeta, setHeaderMeta] = useState<ReactNode>();
   const [selectionSlot, setSelectionSlot] = useState<HTMLElement | null>(null);
   const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
   const isRecoveryView =
@@ -128,12 +126,10 @@ export default function LibraryBrowser({
   const headerContextValue = useMemo(
     () => ({
       actionSlot,
-      headerMeta,
       hostsSelectionActions: true,
       selectionSlot,
-      setHeaderMeta,
     }),
-    [actionSlot, headerMeta, selectionSlot],
+    [actionSlot, selectionSlot],
   );
 
   return (

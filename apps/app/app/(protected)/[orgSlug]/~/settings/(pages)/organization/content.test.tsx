@@ -80,9 +80,6 @@ describe('SettingsOrganizationPage', () => {
     render(<SettingsOrganizationPage />);
 
     expect(
-      screen.getByText(/members who have not picked a language/i),
-    ).toBeInTheDocument();
-    expect(
       screen.getByTestId('org-default-locale-trigger'),
     ).toBeInTheDocument();
   });

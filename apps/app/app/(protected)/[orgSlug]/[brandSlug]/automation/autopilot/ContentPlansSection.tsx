@@ -50,7 +50,6 @@ export default function ContentPlansSection() {
     <>
       <Card
         label={translate('title')}
-        description={translate('description')}
         headerAction={
           <Button
             variant={ButtonVariant.SECONDARY}

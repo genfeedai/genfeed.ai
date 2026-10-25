@@ -189,7 +189,6 @@ export default function SettingsProfilePage() {
       <Card
         id={PERSONAL_SETTINGS_ANCHOR.LANGUAGE}
         label="Language"
-        description="The language the app interface is shown in. Content you create is unaffected."
         bodyClassName="gap-3 p-4"
       >
         {/* The preference is saved; the app interface currently uses a static locale. */}
@@ -221,7 +220,6 @@ export default function SettingsProfilePage() {
       <Card
         id={PERSONAL_SETTINGS_ANCHOR.APPEARANCE}
         label="Appearance"
-        description="Choose a light or dark interface, or follow your device setting."
         bodyClassName="gap-3 p-4"
       >
         <Select
@@ -252,7 +250,6 @@ export default function SettingsProfilePage() {
       <SettingsRailCard />
 
       <Card
-        description={translate('settings.profile.agentMode.description')}
         label={translate('settings.profile.agentMode.label')}
         bodyClassName="gap-3 p-4"
       >

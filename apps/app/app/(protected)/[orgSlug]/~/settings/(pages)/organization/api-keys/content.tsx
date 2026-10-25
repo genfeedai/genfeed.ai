@@ -445,7 +445,6 @@ function AuthorizedApiKeysContent({
       {isReady ? (
         <Card
           label={translate('card.title')}
-          description={translate('card.description')}
           bodyClassName="gap-3 p-4"
           headerAction={
             <Button

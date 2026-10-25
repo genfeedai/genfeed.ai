@@ -24,11 +24,7 @@ export default function ContentRulesPositioningScorecard({
   );
 
   return (
-    <Card
-      bodyClassName="gap-4 p-4"
-      description={translate('description')}
-      label={translate('title')}
-    >
+    <Card bodyClassName="gap-4 p-4" label={translate('title')}>
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-2xl font-semibold text-foreground">
           {translate('scoreValue', {

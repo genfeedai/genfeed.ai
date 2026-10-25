@@ -504,11 +504,7 @@ export default function BrandDetailManualKitCard({
   ]);
 
   return (
-    <Card
-      data-testid="brand-manual-kit-card"
-      label="Manual Brand Kit"
-      description="Draft fields from uploaded assets, typed values, and pasted guidance."
-    >
+    <Card data-testid="brand-manual-kit-card" label="Manual Brand Kit">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3">
           <FormControl label="Description">

@@ -1,7 +1,6 @@
 {
   "apply": "Apply",
   "applySelected": "Apply Selected Fields",
-  "description": "Scan the brand site and apply proposed profile fields.",
   "empty": "Empty",
   "importSelectedAssets": "Import Selected Assets",
   "noProposal": "No proposal",

@@ -19,10 +19,7 @@ export default function BrandDetailReferencesCard({
   const hasReferences = brand?.references && brand.references.length > 0;
 
   return (
-    <Card
-      label="Branding References"
-      description="Assets referenced when generating content in Studio."
-    >
+    <Card label="Branding References">
       {hasReferences ? (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">

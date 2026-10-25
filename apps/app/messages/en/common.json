@@ -521,7 +521,6 @@
         "rotate": "Rotate"
       },
       "card": {
-        "description": "Use these keys for CLI profiles, MCP servers, and unattended workflows.",
         "title": "API keys"
       },
       "empty": "No active Genfeed API keys.",
@@ -823,7 +822,6 @@
     },
     "publishingCaps": {
       "cardLabel": "Daily publishing caps",
-      "description": "Limits how many posts each connected account can publish per day on each platform.",
       "helpText": "Max published posts per connected account per UTC day. A thread counts as one post. 0 = no cap.",
       "invalid": "Each cap must be a whole number between 0 and {max}.",
       "platforms": {
@@ -855,24 +853,20 @@
         "saveError": "Failed to save your agent email preference."
       },
       "homeApp": {
-        "description": "The app you land on after signing in. Leave it on Default to follow your organization.",
         "fieldAriaLabel": "Home app",
         "label": "Home app"
       },
       "rail": {
-        "description": "Your rail follows your organization's order until you arrange your own. Reset puts it back.",
         "label": "Rail"
       },
       "mcpApproval": {
         "cardTitle": "MCP approvals",
-        "description": "Choose whether your credit-spending requests from MCP clients wait in the approvals queue. This only takes effect when your organization allows it.",
         "label": "Require approval for MCP requests",
         "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
         "organizationRequired": "Your organization requires approval, so this stays on. An owner or admin can change that in organization settings.",
         "saveError": "Could not save your MCP approval setting."
       },
       "agentMode": {
-        "description": "The default mode a new Agent thread starts in. Change it for one thread from the mode dropdown in the prompt bar.",
         "fieldAriaLabel": "Default agent mode",
         "label": "Agent Mode",
         "placeholder": "Select a default agent mode"
@@ -1041,7 +1035,6 @@
     },
     "organizationAutomation": {
       "title": "Breakouts and brand checks",
-      "description": "Opt in to paid and automatic work. Everything here is off until an owner or admin turns it on.",
       "adminOnly": "Only owners and admins can change these settings.",
       "loading": "Loading settings…",
       "saving": "Saving…",
@@ -1064,7 +1057,6 @@
     },
     "organizationMcpApproval": {
       "title": "MCP approvals",
-      "description": "Choose whether credit-spending requests from MCP clients wait in the approvals queue. You own the credit pool, so this stays on until an owner or admin turns it off.",
       "label": "Require approval for MCP requests",
       "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
       "risk": "Members who also turn this off for themselves can spend your organization's credits from an MCP client without anyone approving first.",
@@ -1076,7 +1068,6 @@
     },
     "organizationCustomModels": {
       "title": "Custom Models",
-      "description": "Your organization's dedicated models for consistent, on-brand generation.",
       "controlsHeading": "Custom models are connected",
       "nsfw": {
         "label": "Reveal NSFW assets from custom models",
@@ -1087,7 +1078,6 @@
       "loading": "Loading custom model settings…",
       "cta": {
         "title": "A custom model, trained for you",
-        "description": "Get a LoRA model trained on your own character, style or product, so every image and video comes out consistent and recognizably yours. We set it up and run it for you.",
         "points": {
           "consistent": "One character, style or product that stays the same across every asset.",
           "trained": "Trained by our team on your reference material.",
@@ -1556,7 +1546,6 @@
       "usage": "Usage",
       "publishing": {
         "title": "Earned auto-publish",
-        "description": "Every platform starts in review. After {requiredApprovals} approvals in a row with no edits, that platform publishes this agent's text posts on its own.",
         "enable": "Earn auto-publish per platform",
         "threshold": "Approvals to graduate",
         "progressTitle": "Platform progress",
@@ -1616,7 +1605,6 @@
       "columnName": "Name",
       "columnPeriod": "Period",
       "columnStatus": "Status",
-      "description": "Plans generated for this brand by the content engine and agents.",
       "dialogAdditionalTopics": "Topics (optional)",
       "dialogColdStartHint": "This plan will be seeded from competitor ads, creative patterns and followed creators until this brand has more history.",
       "dialogDescription": "The plan is grounded in this brand’s own performance where there is enough of it, otherwise it starts from a cold-start brief.",
@@ -1691,7 +1679,6 @@
       },
       "queue": {
         "title": "Warm-up replies",
-        "description": "Replies drafted for accounts you follow. Open each one in X and post it yourself so a new account grows with real conversation.",
         "usage": "{posted} of {cap} posted in the last 24 hours",
         "nextAllowed": "Next reply allowed after {time}",
         "empty": "No drafts waiting. New drafts appear when the account monitor finds a post to answer.",
@@ -1708,7 +1695,6 @@
       },
       "targets": {
         "title": "Find accounts to reply to",
-        "description": "Describe your niche and Genfeed suggests active X accounts of a useful size. Monitored accounts get a reply draft in the queue above whenever they post.",
         "queryLabel": "Your niche",
         "queryPlaceholder": "indie hackers shipping SaaS",
         "search": "Find accounts",

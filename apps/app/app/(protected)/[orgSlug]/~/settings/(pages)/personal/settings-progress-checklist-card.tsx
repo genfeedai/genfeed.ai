@@ -15,7 +15,6 @@ export default function SettingsProgressChecklistCard({
     <Card
       id={PERSONAL_SETTINGS_ANCHOR.SETUP_CHECKLIST}
       label="Setup checklist"
-      description="Review every setup step"
       bodyClassName="gap-3 p-4"
       headerAction={
         <Badge variant="outline" className="px-3 py-1 text-xs font-medium">

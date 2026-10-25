@@ -50,11 +50,6 @@ export default function BrandDetailExternalLinksCard({
   return (
     <Card
       label={social ? 'Social & links' : 'Website links'}
-      description={
-        social
-          ? 'Connected accounts for publishing and ads, plus your websites.'
-          : 'Websites and other URLs.'
-      }
       headerAction={
         social ? (
           <Button

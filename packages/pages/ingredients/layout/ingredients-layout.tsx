@@ -20,10 +20,13 @@ import {
 import { Image, Upload } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
 
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
 import { useIngredientsLayout } from './use-ingredients-layout';
+
+// The provider only hosts header context for the Library; this layout has
+// nothing to publish, so the value is a stable constant.
+const HEADER_CONTEXT_VALUE = {};
 
 export default function IngredientsLayout({
   children,
@@ -49,21 +52,11 @@ export default function IngredientsLayout({
     handleFiltersChange,
     handleRefresh,
     handleUpload,
-    headerMeta,
     isRefreshing,
-    setHeaderMeta,
   } = useIngredientsLayout({ scope, defaultType });
 
-  // Stable context identity — avoid `value={{ ... }}` inline objects that
-  // force every consumer to re-render (and can remount list chrome) on each
-  // parent pass, even when setHeaderMeta itself is stable.
-  const headerContextValue = useMemo(
-    () => ({ headerMeta, setHeaderMeta }),
-    [headerMeta, setHeaderMeta],
-  );
-
   return (
-    <IngredientsHeaderProvider value={headerContextValue}>
+    <IngredientsHeaderProvider value={HEADER_CONTEXT_VALUE}>
       <IngredientsProvider value={contextValue}>
         <Container
           isTopbarPinned

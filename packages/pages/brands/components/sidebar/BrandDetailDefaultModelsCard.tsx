@@ -37,10 +37,7 @@ export default function BrandDetailDefaultModelsCard({
   }
 
   return (
-    <Card
-      label="Default Models"
-      description="Brand overrides take priority. Empty values inherit the organization baseline."
-    >
+    <Card label="Default Models">
       <div className="flex flex-col gap-2">
         {rows.map((row) => {
           const value = row.brandValue || row.orgValue;

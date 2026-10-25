@@ -126,7 +126,6 @@ export default function RepliesWarmupQueue() {
   return (
     <Card
       label={translate('title')}
-      description={translate('description')}
       bodyClassName="gap-4 p-4"
       headerAction={
         usage ? (

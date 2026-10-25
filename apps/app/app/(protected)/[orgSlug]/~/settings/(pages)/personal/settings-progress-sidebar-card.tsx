@@ -14,11 +14,7 @@ export default function SettingsProgressSidebarCard({
   setVisibility,
 }: Props) {
   return (
-    <Card
-      label="Sidebar module"
-      description="Keep the compact Progress module available in the main sidebar, or hide it until you want it back."
-      bodyClassName="gap-3 p-4"
-    >
+    <Card label="Sidebar module" bodyClassName="gap-3 p-4">
       <InsetSurface tone="contrast">
         <Switch
           label="Show Progress in sidebar"

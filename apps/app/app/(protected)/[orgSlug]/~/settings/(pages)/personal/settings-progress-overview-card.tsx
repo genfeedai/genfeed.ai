@@ -25,7 +25,6 @@ export default function SettingsProgressOverviewCard({
   return (
     <Card
       label="Progress"
-      description="Check setup progress, streak status, milestone rewards, and the sidebar module preference in one place."
       bodyClassName="gap-3 p-4"
       headerAction={
         nextSetupStep ? (

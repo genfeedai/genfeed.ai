@@ -105,7 +105,6 @@
     "evidenceRequired": "Add supporting evidence before saving this wording or asset inventory."
   },
   "title": "Brand OS revisions and export",
-  "description": "Review the fields included in each approved version of your brand.",
   "export": {
     "unavailable": "Approve a revision to create your design.md export.",
     "private": "Your approved design.md is private. Only organization members can download it.",

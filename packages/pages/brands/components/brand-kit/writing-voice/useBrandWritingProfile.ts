@@ -23,7 +23,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getBrandVoiceFailureView } from './brand-voice-failure.util';
 
@@ -403,12 +403,6 @@ export function useBrandWritingProfile({
   }, [brand]);
 
   const enabledModelIds = settings?.enabledModelIds ?? [];
-  const populatedPlatformCount = useMemo(
-    () =>
-      Object.values(form.platformOverrides).filter(hasPlatformOverrideContent)
-        .length,
-    [form.platformOverrides],
-  );
 
   const enqueueFormSave = useCallback(
     (
@@ -615,7 +609,6 @@ export function useBrandWritingProfile({
     handlePromptingSave,
     isGenerating,
     PLATFORM_OPTIONS,
-    populatedPlatformCount,
     voiceCorpus,
   };
 }
