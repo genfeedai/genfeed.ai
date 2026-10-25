@@ -4,7 +4,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
 import {
-  access,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -13,8 +13,15 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { consola } from 'consola';
+import {
+  createOwnedInstallation,
+  InstallationInterruptedError,
+  type InstallationLifecycle,
+  withInstallationLifecycle,
+} from './lifecycle.js';
 import { configureEnvironment } from './wizard.js';
 
 const REPOSITORY = 'genfeedai/genfeed.ai';
@@ -49,6 +56,7 @@ interface RunCommandOptions {
   cwd?: string;
   stdio?: 'ignore' | 'inherit' | 'pipe';
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 type FetchImplementation = typeof fetch;
@@ -91,6 +99,7 @@ export function getReleaseAssetUrls(
 export async function resolveReleaseTag(
   requestedRelease?: string,
   fetchImplementation: FetchImplementation = fetch,
+  signal?: AbortSignal,
 ): Promise<string> {
   if (requestedRelease) {
     return normalizeReleaseTag(requestedRelease);
@@ -101,7 +110,9 @@ export async function resolveReleaseTag(
       Accept: 'application/vnd.github+json',
       'User-Agent': '@genfeedai/create',
     },
-    signal: AbortSignal.timeout(30_000),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(30_000)])
+      : AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {
@@ -140,11 +151,12 @@ async function downloadFile(
   url: string,
   destination: string,
   fetchImplementation: FetchImplementation,
+  signal: AbortSignal,
 ): Promise<void> {
   const response = await fetchImplementation(url, {
     headers: { 'User-Agent': '@genfeedai/create' },
     redirect: 'follow',
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(120_000)]),
   });
 
   if (!response.ok) {
@@ -220,11 +232,13 @@ async function runCommand(
   args: string[],
   options: RunCommandOptions = {},
 ): Promise<string> {
+  options.signal?.throwIfAborted();
   return await new Promise<string>((resolvePromise, rejectPromise) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
       stdio: options.stdio ?? 'inherit',
       timeout: options.timeoutMs,
+      signal: options.signal,
     });
     let output = '';
     child.stdout?.setEncoding('utf8');
@@ -233,8 +247,26 @@ async function runCommand(
     });
     child.stderr?.resume();
 
-    child.once('error', rejectPromise);
+    let failure: Error | undefined;
+    let cancellationDeadline: ReturnType<typeof setTimeout> | undefined;
+    const stopUnresponsiveChild = () => {
+      cancellationDeadline = setTimeout(() => child.kill('SIGKILL'), 1_000);
+    };
+    options.signal?.addEventListener('abort', stopUnresponsiveChild, {
+      once: true,
+    });
+    child.once('error', (error) => {
+      failure = error;
+    });
     child.once('close', (code, signal) => {
+      clearTimeout(cancellationDeadline);
+      options.signal?.removeEventListener('abort', stopUnresponsiveChild);
+      if (failure || options.signal?.aborted) {
+        rejectPromise(
+          options.signal?.aborted ? options.signal.reason : failure,
+        );
+        return;
+      }
       if (code === 0) {
         resolvePromise(output);
         return;
@@ -281,6 +313,7 @@ function assertInstallPrerequisites(): void {
 
 async function isAppContainerRunning(
   projectDirectory: string,
+  signal: AbortSignal,
 ): Promise<boolean> {
   let output: string;
   try {
@@ -298,7 +331,7 @@ async function isAppContainerRunning(
         'json',
         'genfeed',
       ],
-      { cwd: projectDirectory, stdio: 'pipe', timeoutMs: 10_000 },
+      { cwd: projectDirectory, stdio: 'pipe', timeoutMs: 10_000, signal },
     );
   } catch (error) {
     throw new Error(
@@ -367,16 +400,17 @@ async function waitForApp(
   fetchImplementation: FetchImplementation,
   appUrl: string,
   projectDirectory: string,
+  signal: AbortSignal,
   timeoutMs = 180_000,
 ): Promise<void> {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
-    if (await isAppContainerRunning(projectDirectory)) {
+    if (await isAppContainerRunning(projectDirectory, signal)) {
       try {
         const response = await fetchImplementation(appUrl, {
           redirect: 'manual',
-          signal: AbortSignal.timeout(2_000),
+          signal: AbortSignal.any([signal, AbortSignal.timeout(2_000)]),
         });
         if (response.ok || (response.status >= 300 && response.status < 400)) {
           return;
@@ -386,7 +420,7 @@ async function waitForApp(
       }
     }
 
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
+    await delay(2_000, undefined, { signal });
   }
 
   throw new Error(
@@ -425,21 +459,34 @@ export async function installRelease(
   options: CliOptions,
   fetchImplementation: FetchImplementation = fetch,
 ): Promise<void> {
+  await withInstallationLifecycle((lifecycle) =>
+    installWithLifecycle(projectName, options, fetchImplementation, lifecycle),
+  );
+}
+
+async function installWithLifecycle(
+  projectName: string,
+  options: CliOptions,
+  fetchImplementation: FetchImplementation,
+  lifecycle: InstallationLifecycle,
+): Promise<void> {
+  const { signal } = lifecycle;
+  signal.throwIfAborted();
   assertInstallPrerequisites();
 
   const projectDirectory = resolve(process.cwd(), projectName);
   try {
-    await access(projectDirectory);
+    await lstat(projectDirectory);
     throw new Error(`Destination already exists: ${projectDirectory}`);
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('Destination')) {
+    if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT'))
       throw error;
-    }
   }
 
   const releaseTag = await resolveReleaseTag(
     options.release,
     fetchImplementation,
+    signal,
   );
   const assetUrls = getReleaseAssetUrls(releaseTag);
   const temporaryDirectory = await mkdtemp(
@@ -447,38 +494,62 @@ export async function installRelease(
   );
   const archivePath = join(temporaryDirectory, RELEASE_ARCHIVE_NAME);
   const checksumPath = join(temporaryDirectory, RELEASE_CHECKSUM_NAME);
-  let createdProjectDirectory = false;
+  const preparedDirectory = join(temporaryDirectory, 'prepared');
+  let owned: Awaited<ReturnType<typeof createOwnedInstallation>> | undefined;
   let startAttempted = false;
 
   consola.start(`Downloading Genfeed.ai ${releaseTag}`);
 
   try {
-    await Promise.all([
-      downloadFile(assetUrls.archive, archivePath, fetchImplementation),
-      downloadFile(assetUrls.checksum, checksumPath, fetchImplementation),
-    ]);
+    const downloads = await Promise.allSettled(
+      [
+        downloadFile(
+          assetUrls.archive,
+          archivePath,
+          fetchImplementation,
+          signal,
+        ),
+        downloadFile(
+          assetUrls.checksum,
+          checksumPath,
+          fetchImplementation,
+          signal,
+        ),
+      ].map((work) =>
+        work.catch((error: unknown) => {
+          lifecycle.abort(error);
+          throw error;
+        }),
+      ),
+    );
+    const failure = downloads.find((result) => result.status === 'rejected');
+    if (failure?.status === 'rejected') throw failure.reason;
+    signal.throwIfAborted();
     await verifyReleaseChecksum(archivePath, checksumPath);
 
-    await mkdir(projectDirectory);
-    createdProjectDirectory = true;
+    await mkdir(preparedDirectory);
+    signal.throwIfAborted();
     await runCommand(
       'tar',
-      ['-xzf', archivePath, '-C', projectDirectory, '--strip-components=1'],
-      { stdio: 'ignore' },
+      ['-xzf', archivePath, '-C', preparedDirectory, '--strip-components=1'],
+      { stdio: 'ignore', signal },
     );
 
     const releaseManifest = parseReleaseManifest(
-      await readFile(join(projectDirectory, RELEASE_MANIFEST_NAME), 'utf8'),
+      await readFile(join(preparedDirectory, RELEASE_MANIFEST_NAME), 'utf8'),
       releaseTag,
     );
+    signal.throwIfAborted();
+    owned = await createOwnedInstallation(projectDirectory);
+    await owned.populate(preparedDirectory, signal);
     const setup = await configureEnvironment(
       await readFile(join(projectDirectory, '.env.example'), 'utf8'),
       options.yes,
+      lifecycle,
     );
-    await writeFile(join(projectDirectory, '.env'), setup.content, {
-      flag: 'wx',
-      mode: 0o600,
-    });
+    signal.throwIfAborted();
+    await owned.writeEnvironment(setup.content);
+    signal.throwIfAborted();
 
     await runCommand(
       'docker',
@@ -491,9 +562,10 @@ export async function installRelease(
         'config',
         '--quiet',
       ],
-      { cwd: projectDirectory, stdio: 'ignore' },
+      { cwd: projectDirectory, stdio: 'ignore', signal },
     );
 
+    signal.throwIfAborted();
     consola.success(
       `Installed ${releaseManifest.releaseTag} (${releaseManifest.image}) in ${projectDirectory}`,
     );
@@ -509,16 +581,30 @@ export async function installRelease(
     await runCommand(
       'docker',
       ['compose', '--env-file', '.env', '-f', 'compose.yml', 'up', '-d'],
-      { cwd: projectDirectory },
+      { cwd: projectDirectory, signal },
     );
 
     consola.start('Waiting for Genfeed.ai to become ready…');
-    await waitForApp(fetchImplementation, setup.appUrl, projectDirectory);
+    await waitForApp(
+      fetchImplementation,
+      setup.appUrl,
+      projectDirectory,
+      signal,
+    );
     consola.success(`Genfeed.ai is running at ${setup.appUrl}`);
     openBrowser(setup.appUrl);
   } catch (error) {
-    if (createdProjectDirectory && !startAttempted) {
-      await rm(projectDirectory, { force: true, recursive: true });
+    if (owned && !startAttempted) {
+      let removed = false;
+      try {
+        removed = await owned.rollback();
+      } catch {
+        /* Preserve ambiguous files. */
+      }
+      if (!removed)
+        consola.warn(
+          `Installation files changed or ownership could not be verified. The entire destination was preserved at ${projectDirectory}; inspect it before choosing a new destination or recovering manually.`,
+        );
     } else if (startAttempted) {
       consola.warn(
         `Startup failed. Installation files were preserved at ${projectDirectory} for inspection or recovery.\nRun in that directory: docker compose --env-file .env -f compose.yml logs genfeed`,
@@ -565,7 +651,10 @@ async function main(): Promise<void> {
     const normalizedError =
       error instanceof Error ? error : new Error('Unknown CLI error');
     consola.error(normalizedError.message);
-    process.exitCode = 1;
+    process.exitCode =
+      normalizedError instanceof InstallationInterruptedError
+        ? normalizedError.exitCode
+        : 1;
   }
 }
 

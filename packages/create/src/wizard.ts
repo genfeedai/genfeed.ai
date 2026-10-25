@@ -1,9 +1,15 @@
 import { randomBytes } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
+import { createCancellation, type InstallationLifecycle } from './lifecycle.js';
 import { resolveSetupEnvironment } from './setup.js';
 
-async function ask(question: string, secret = false): Promise<string> {
+async function ask(
+  question: string,
+  secret: boolean,
+  cancellation: InstallationLifecycle,
+): Promise<string> {
+  cancellation.signal.throwIfAborted();
   process.stdout.write(question);
   const output = secret
     ? new Writable({
@@ -17,11 +23,18 @@ async function ask(question: string, secret = false): Promise<string> {
     output,
     terminal: true,
   });
-  const cancellation = new AbortController();
-  reader.once('SIGINT', () => cancellation.abort());
+  let isFinished = false;
+  reader.once('SIGINT', () => cancellation.interrupt('SIGINT'));
+  reader.once('close', () => {
+    if (!isFinished)
+      cancellation.abort(new Error('Installation input closed.'));
+  });
   try {
     return await reader.question('', { signal: cancellation.signal });
+  } catch (error) {
+    throw cancellation.signal.aborted ? cancellation.signal.reason : error;
   } finally {
+    isFinished = true;
     reader.close();
     if (secret) process.stdout.write('\n');
   }
@@ -30,16 +43,21 @@ async function ask(question: string, secret = false): Promise<string> {
 export async function configureEnvironment(
   template: string,
   yes = false,
+  cancellation: InstallationLifecycle = createCancellation(),
 ): Promise<{ content: string; appUrl: string }> {
+  cancellation.signal.throwIfAborted();
   const input = { ...process.env };
   if (!yes && process.stdin.isTTY) {
     input.OPENROUTER_API_KEY ||= await ask(
       'OpenRouter API key (hidden): ',
       true,
+      cancellation,
     );
     if (input.SELFHOSTED_DOMAIN === undefined)
       input.SELFHOSTED_DOMAIN = await ask(
         'Domain you own (blank for localhost): ',
+        false,
+        cancellation,
       );
   } else if (!yes) {
     throw new Error(

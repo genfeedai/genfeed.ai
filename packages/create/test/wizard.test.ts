@@ -1,10 +1,25 @@
 import { parseEnv } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createCancellation } from '../src/lifecycle.js';
 import { configureEnvironment } from '../src/wizard.js';
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe('setup wizard --yes', () => {
+  it.each([
+    ['SIGINT', 130],
+    ['SIGHUP', 129],
+    ['SIGTERM', 143],
+  ] as const)(
+    'rejects cancelled setup with its %s exit code before prompting or generating secrets',
+    async (signal, exitCode) => {
+      const cancellation = createCancellation();
+      cancellation.interrupt(signal);
+      await expect(
+        configureEnvironment('', true, cancellation),
+      ).rejects.toMatchObject({ exitCode });
+    },
+  );
   it('writes secrets and consistent domain config without logging secrets', async () => {
     vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-offline-fixture');
     vi.stubEnv('SELFHOSTED_DOMAIN', 'studio.example.com');

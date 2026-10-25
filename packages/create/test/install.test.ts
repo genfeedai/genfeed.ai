@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { existsSync, writeFileSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -66,6 +66,7 @@ function createFakeChild(outcome: FakeChildOutcome = {}): FakeChildProcess {
     child.stdout.end(outcome.stdout ?? '');
     if (outcome.error) {
       child.emit('error', outcome.error);
+      child.emit('close', null, null);
       return;
     }
     child.emit(
@@ -317,6 +318,63 @@ describe('installRelease', () => {
     expect(existsSync(projectDirectory)).toBe(false);
   });
 
+  it('preserves an existing dangling destination symlink', async () => {
+    const base = await createTemporaryDirectory('genfeed-install-');
+    const target = join(base, 'app');
+    await symlink(join(base, 'missing'), target);
+    await expect(
+      installRelease(
+        target,
+        { release: RELEASE_TAG, start: false, yes: true },
+        unreachableFetch,
+      ),
+    ).rejects.toThrow('Destination already exists');
+    expect(childProcessMock.spawn).not.toHaveBeenCalled();
+  });
+
+  it.each(['edited', 'added'])(
+    'preserves the whole destination when a user file was %s before failure',
+    async (change) => {
+      const base = await createTemporaryDirectory('genfeed-install-');
+      const target = join(base, 'app');
+      childProcessMock.spawn.mockImplementation(
+        (command: string, args: readonly string[]) => {
+          if (command === 'tar') extractTarFixture(args);
+          if (args.includes('config')) {
+            writeFileSync(
+              join(
+                target,
+                change === 'edited' ? '.env.example' : 'user-note.txt',
+              ),
+              'user data',
+            );
+            return createFakeChild({ code: 19 });
+          }
+          return createFakeChild();
+        },
+      );
+      await expect(
+        installRelease(
+          target,
+          { release: RELEASE_TAG, start: false, yes: true },
+          unreachableFetch,
+        ),
+      ).rejects.toThrow('failed with 19');
+      expect(
+        await readFile(
+          join(target, change === 'edited' ? '.env.example' : 'user-note.txt'),
+          'utf8',
+        ),
+      ).toBe('user data');
+      expect(await readFile(join(target, 'release.json'), 'utf8')).toBe(
+        RELEASE_MANIFEST_CONTENT,
+      );
+      expect(consolaMock.warn).toHaveBeenCalledWith(
+        expect.stringContaining('changed'),
+      );
+    },
+  );
+
   it('fails on a checksum mismatch before creating the project', async () => {
     const base = await createTemporaryDirectory('genfeed-install-');
     const projectDirectory = join(base, 'app');
@@ -338,6 +396,49 @@ describe('installRelease', () => {
       ),
     ).rejects.toThrow('Release checksum mismatch');
     expect(existsSync(projectDirectory)).toBe(false);
+  });
+
+  it('awaits a cancelled sibling download before returning its failure', async () => {
+    const base = await createTemporaryDirectory('genfeed-install-');
+    const target = join(base, 'app');
+    let isSiblingSettled = false;
+    const fetchImplementation: typeof fetch = async (input, options) => {
+      if (String(input).endsWith('.sha256'))
+        return new Response('missing', { status: 404 });
+      return await new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener(
+          'abort',
+          () => {
+            setImmediate(() => {
+              isSiblingSettled = true;
+              reject(options.signal?.reason);
+            });
+          },
+          { once: true },
+        );
+      });
+    };
+    await expect(
+      installRelease(
+        target,
+        { release: RELEASE_TAG, start: false, yes: true },
+        fetchImplementation,
+      ),
+    ).rejects.toThrow('Download failed (HTTP 404)');
+    expect(isSiblingSettled).toBe(true);
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it('removes only its own signal handlers after completion', async () => {
+    const base = await createTemporaryDirectory('genfeed-install-');
+    const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const;
+    const before = signals.map((signal) => process.listeners(signal));
+    await installRelease(
+      join(base, 'app'),
+      { release: RELEASE_TAG, start: false, yes: true },
+      unreachableFetch,
+    );
+    expect(signals.map((signal) => process.listeners(signal))).toEqual(before);
   });
 
   it('removes the project directory when extraction fails', async () => {
