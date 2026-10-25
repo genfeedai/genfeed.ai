@@ -6,6 +6,8 @@ import {
   adPresetSchema,
   adPresetSubmissionSchema,
 } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { minimaxH3DispatchSchema } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   AdPresetCompileError,
   compileAdPreset,
@@ -20,11 +22,54 @@ type AdPresetSubmitInput = {
   model: string;
 };
 
+type AdPresetBriefReferenceInput = {
+  createVideoDto: Pick<CreateVideoDto, 'adPreset'>;
+  referenceIds: string[];
+  runReferences?: readonly GenerationBriefReference[];
+};
+
+/** Positional preset images occupy reference_image_urls, never a dedicated frame field. */
+export function resolveAdPresetBriefReferences(
+  input: AdPresetBriefReferenceInput,
+): readonly GenerationBriefReference[] | undefined {
+  return input.createVideoDto.adPreset
+    ? input.referenceIds.map(
+        (assetId): GenerationBriefReference => ({ assetId, role: 'subject' }),
+      )
+    : input.runReferences;
+}
+
 /** Recompile saved templates before output admission. No reference audio preservation is promised. */
 export async function compileSubmittedAdPreset(
   input: AdPresetSubmitInput,
 ): Promise<CreateVideoDto> {
   if (input.dto.adPreset === undefined) return input.dto;
+  if (
+    input.dto.endFrame ||
+    input.dto.maskId != null ||
+    input.dto.editMask != null
+  )
+    throw new BadRequestException({
+      code: 'UNSUPPORTED_REFERENCE_ROLE',
+      message:
+        'Ad presets use positional references; dedicated end-frame and edit-mask inputs have no supported token binding.',
+    });
+  const images = input.dto.references ?? [];
+  const ids = [
+    ...images,
+    ...(input.dto.videoReferences ?? []),
+    ...(input.dto.audioReferences ?? []),
+  ];
+  if (
+    !minimaxH3DispatchSchema.shape.reference_image_urls.safeParse(images)
+      .success ||
+    new Set(ids.map((id) => id.trim())).size !== ids.length
+  )
+    throw new BadRequestException({
+      code: 'REFERENCE_ROLE_MISMATCH',
+      message:
+        'Preset reference IDs must be unique, with at most nine positional images.',
+    });
   const submission = adPresetSubmissionSchema.safeParse(input.dto.adPreset);
   if (!submission.success)
     throw new BadRequestException({

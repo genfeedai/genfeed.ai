@@ -111,8 +111,48 @@ describe('ad preset submit', () => {
   });
   it('leaves ordinary video requests alone', async () => {
     const { input, ingredients } = fixture();
-    const dto = { text: 'An ordinary video' };
+    const dto = {
+      text: 'An ordinary video',
+      references: ['start'],
+      endFrame: 'end',
+    };
     expect(await compileSubmittedAdPreset({ ...input, dto })).toBe(dto);
     expect(ingredients.prisma.preset.findFirst).not.toHaveBeenCalled();
   });
+  it.each([
+    { references: ['person', 'person'] },
+    { audioReferences: ['voice', 'voice'] },
+    { videoReferences: ['driver', 'driver'] },
+    { audioReferences: ['person'] },
+    { references: Array.from({ length: 10 }, (_, index) => `image-${index}`) },
+  ])(
+    'rejects duplicate or overflowing positional arrays before lookup',
+    async (overrides) => {
+      const { input, ingredients } = fixture();
+      await expect(
+        compileSubmittedAdPreset({
+          ...input,
+          dto: { ...input.dto, ...overrides },
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'REFERENCE_ROLE_MISMATCH' },
+      });
+      expect(ingredients.prisma.preset.findFirst).not.toHaveBeenCalled();
+    },
+  );
+  it.each([{ endFrame: 'end' }, { maskId: 'mask' }, { editMask: 'mask' }])(
+    'rejects dedicated frames or masks for presets before lookup',
+    async (overrides) => {
+      const { input, ingredients } = fixture();
+      await expect(
+        compileSubmittedAdPreset({
+          ...input,
+          dto: { ...input.dto, ...overrides },
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'UNSUPPORTED_REFERENCE_ROLE' },
+      });
+      expect(ingredients.prisma.preset.findFirst).not.toHaveBeenCalled();
+    },
+  );
 });

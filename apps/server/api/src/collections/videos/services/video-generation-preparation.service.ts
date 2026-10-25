@@ -9,7 +9,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
+import {
+  compileSubmittedAdPreset,
+  resolveAdPresetBriefReferences,
+} from '@api/collections/videos/services/ad-preset-submit.util';
 import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import {
   assertAudioReferencesSupported,
@@ -725,7 +728,7 @@ export class VideoGenerationPreparationService {
         motion: params.createVideoDto.cameraMovement,
         objective: params.generationHarness.enhancedPrompt,
         referenceIds: params.referenceIds,
-        references: params.runReferences,
+        references: resolveAdPresetBriefReferences(params),
         resolution: params.createVideoDto.resolution,
         scene: params.createVideoDto.scene,
         seed: params.createVideoDto.seed,

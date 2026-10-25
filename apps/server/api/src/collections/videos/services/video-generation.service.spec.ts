@@ -483,7 +483,8 @@ describe('VideoGenerationService', () => {
       baseDto({
         text: undefined,
         model: COMPILED_MODEL_MINIMAX,
-        references: ['person'],
+        references: ['person', 'location'],
+        videoReferences: ['driver'],
         audioReferences: ['voice'],
         adPreset: {
           presetId: adPresetId(AD_PRESETS[0].key),
@@ -494,6 +495,8 @@ describe('VideoGenerationService', () => {
             dialogue,
             referenceRoles: [
               { token: '@Image1', role: 'person' },
+              { token: '@Image2', role: 'location' },
+              { token: '@Video1', role: 'facial_driver' },
               { token: '@Audio1', role: 'voiceover' },
             ],
           },
@@ -505,7 +508,18 @@ describe('VideoGenerationService', () => {
     expect(dispatch.duration).toBe(7);
     expect(dispatch.prompt.split(dialogue)).toHaveLength(2);
     expect(dispatch.prompt).toContain('no unchanged-audio guarantee');
-    expect(dispatch.reference_audio_urls).toHaveLength(1);
+    expect(dispatch.reference_audio_urls).toEqual([
+      'https://media.example/synthetic-voice.mp3',
+    ]);
+    expect(dispatch.reference_video_urls).toEqual([
+      'https://s3.example.com/videos/driver?signed=true',
+    ]);
+    expect(dispatch.reference_image_urls).toEqual([
+      `${REFERENCE_INGREDIENTS_ENDPOINT}/images/person`,
+      `${REFERENCE_INGREDIENTS_ENDPOINT}/images/location`,
+    ]);
+    expect(dispatch).not.toHaveProperty('first_frame_image');
+    expect(dispatch).not.toHaveProperty('last_frame_image');
     expect(dispatch).not.toHaveProperty('generate_audio');
     expect(enhancementService.enhance).toHaveBeenCalledWith(
       expect.objectContaining({ harness: false, brandMode: 'raw' }),

@@ -28,6 +28,28 @@ async function referencesErrorsFor(referenceCount: number) {
 }
 
 describe('CreateVideoDto', () => {
+  it.each(['maskId', 'editMask'])(
+    'rejects %s on a preset request before whitelist stripping',
+    async (field) => {
+      await expect(
+        resolvedRequest(new ValidationPipe(), {
+          adPreset: {},
+          [field]: entityId(1),
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          errors: expect.arrayContaining([
+            {
+              property: field,
+              constraints: {
+                isEmpty: 'Ad presets do not support edit-mask token bindings',
+              },
+            },
+          ]),
+        },
+      });
+    },
+  );
   it('should be defined', () => {
     expect(CreateVideoDto).toBeDefined();
   });

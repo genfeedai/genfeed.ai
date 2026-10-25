@@ -151,6 +151,17 @@ export class CreateVideoDto extends CreateIngredientDto {
   })
   readonly adPreset?: AdPresetSubmission;
 
+  // Retain unsupported mask inputs for explicit preset validation instead of whitelist stripping.
+  @ValidateIf((dto: CreateVideoDto) => dto.adPreset !== undefined)
+  @IsEmpty({ message: 'Ad presets do not support edit-mask token bindings' })
+  @ApiHideProperty()
+  readonly maskId?: unknown;
+
+  @ValidateIf((dto: CreateVideoDto) => dto.adPreset !== undefined)
+  @IsEmpty({ message: 'Ad presets do not support edit-mask token bindings' })
+  @ApiHideProperty()
+  readonly editMask?: unknown;
+
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MinLength(1)
