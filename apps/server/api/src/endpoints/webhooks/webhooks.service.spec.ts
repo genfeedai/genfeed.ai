@@ -1308,7 +1308,7 @@ describe('WebhooksService', () => {
 
     it('posts a storyboard generation with its storyboard context', async () => {
       const storyboard = {
-        layoutPath: '/org/acme/studio/storyboard/run-1',
+        layoutPath: '/org/acme/storyboard/run-1',
         runId: 'run-1',
         title: 'Steam shots',
       };

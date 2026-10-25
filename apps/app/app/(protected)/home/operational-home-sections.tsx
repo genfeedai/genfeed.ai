@@ -968,8 +968,7 @@ export default function OperationalHomeSections({
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
   );
-  // Workspace Activity is the operator surface for this feed (same list as
-  // /overview/activities, registered under the workspace switcher).
+  // Workspace Activity is the operator surface for this feed.
   const activityHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.ACTIVITY)
     : brandSetupHref;

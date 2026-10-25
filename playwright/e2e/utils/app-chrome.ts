@@ -14,9 +14,10 @@ export const E2E_BRAND_BASE = `/${E2E_ORG_SLUG}/${E2E_BRAND_SLUG}`;
 
 /**
  * Templates is a view of the Workflows page, not a route of its own
- * (`/automation/workflows?view=templates`).
+ * (`/automation/workflows/templates`).
  */
-export const WORKFLOW_TEMPLATES_ROUTE = `${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates`;
+export const WORKFLOW_TEMPLATES_ROUTE =
+  APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES;
 
 export function brandPath(path: string = APP_ROUTES.ROOT): string {
   return createBrandAppRoute(E2E_ORG_SLUG, E2E_BRAND_SLUG, path);

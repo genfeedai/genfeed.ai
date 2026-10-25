@@ -101,7 +101,7 @@ describe('StoryboardRunsPage', () => {
     expect(within(row).getByText(/^Edited /)).toBeVisible();
     expect(
       within(row).getByRole('link', { name: 'Open Proof-led hook' }),
-    ).toHaveAttribute('href', '/acme/northstar/studio/storyboard/run-1');
+    ).toHaveAttribute('href', '/acme/northstar/storyboard/run-1');
   });
 
   it('raises runs that need the creator above the full list', () => {
@@ -146,10 +146,7 @@ describe('StoryboardRunsPage', () => {
     for (const link of screen.getAllByRole('link', {
       name: /New storyboard|Choose a video/,
     }))
-      expect(link).toHaveAttribute(
-        'href',
-        '/acme/northstar/studio/storyboard/new',
-      );
+      expect(link).toHaveAttribute('href', '/acme/northstar/storyboard/new');
   });
 
   it('creates a storyboard from a preset in one click and opens it', async () => {
@@ -165,7 +162,7 @@ describe('StoryboardRunsPage', () => {
 
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith(
-        '/acme/northstar/studio/storyboard/run-new',
+        '/acme/northstar/storyboard/run-new',
       ),
     );
     expect(mocks.create).toHaveBeenCalledWith(

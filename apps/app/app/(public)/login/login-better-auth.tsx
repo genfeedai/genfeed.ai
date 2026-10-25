@@ -47,6 +47,7 @@ import {
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
+import { useIsGoogleSignInAvailable } from '../use-is-google-sign-in-available';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
 import { useTurnstileToken } from '../use-turnstile-token';
 
@@ -114,6 +115,7 @@ export default function LoginBetterAuth({
   const translate = useTranslations('common');
   const searchParams = useSearchParams();
   const isDesktop = useIsDesktopClient();
+  const isGoogleSignInAvailable = useIsGoogleSignInAvailable();
   const isMagicLinkAvailable = useIsMagicLinkAvailable();
   const { getCaptchaFetchOptions } = useTurnstileToken();
 
@@ -690,17 +692,21 @@ export default function LoginBetterAuth({
         <AuthActionSurface
           actions={
             <>
-              <Button
-                type="button"
-                variant={ButtonVariant.SECONDARY}
-                onClick={() => handleSocialSignIn('google')}
-                icon={<GoogleColorIcon className="size-4" aria-hidden="true" />}
-                isLoading={isSocialSubmitting}
-                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-                withWrapper={false}
-              >
-                {translate('loginForm.google')}
-              </Button>
+              {isGoogleSignInAvailable ? (
+                <Button
+                  type="button"
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={() => handleSocialSignIn('google')}
+                  icon={
+                    <GoogleColorIcon className="size-4" aria-hidden="true" />
+                  }
+                  isLoading={isSocialSubmitting}
+                  className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                  withWrapper={false}
+                >
+                  {translate('loginForm.google')}
+                </Button>
+              ) : null}
 
               {isMagicLinkAvailable ? (
                 <Button

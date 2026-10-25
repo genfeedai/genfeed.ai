@@ -208,9 +208,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
           },
         }),
       );
-      await page.goto(
-        new URL('/test-org/brand-1/studio/playground', baseURL).href,
-      );
+      await page.goto(new URL('/test-org/brand-1/playground', baseURL).href);
       await expect(await openAccountCredits(page)).toContainText('500');
       await page.keyboard.press('Escape');
       await page.screenshot({
@@ -270,9 +268,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
         path: testInfo.outputPath(`electron-${failure}-local.png`),
         fullPage: true,
       });
-      await page.goto(
-        new URL('/test-org/brand-1/studio/playground', baseURL).href,
-      );
+      await page.goto(new URL('/test-org/brand-1/playground', baseURL).href);
       await expect(await openAccountCredits(page)).toHaveCount(0);
       await page.keyboard.press('Escape');
       const walletBeforeRecovery = walletRequests;

@@ -53,6 +53,7 @@ import {
  */
 const FOLDER_COMPATIBLE_ROUTES = new Set<string>([
   ...LIBRARY_ASSET_ROUTES,
+  APP_ROUTES.LIBRARY.IMPORTED,
   APP_ROUTES.LIBRARY.RECENT,
   APP_ROUTES.LIBRARY.STARRED,
   APP_ROUTES.LIBRARY.TRASH,
@@ -186,7 +187,7 @@ export default function LibrarySidebarNav() {
     const params = new URLSearchParams(
       targetPath === APP_ROUTES.LIBRARY.REFERENCES ? '' : searchParamsString,
     );
-    for (const key of ['place', 'shelf', 'page']) params.delete(key);
+    params.delete('page');
     new URLSearchParams(targetSearch).forEach((value, key) => {
       params.set(key, value);
     });

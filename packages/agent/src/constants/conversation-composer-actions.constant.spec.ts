@@ -41,7 +41,7 @@ describe('conversation composer action registry', () => {
         name: 'create',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.STUDIO.ROOT,
+          route: APP_ROUTES.STUDIO.PLAYGROUND,
         }),
       },
       {

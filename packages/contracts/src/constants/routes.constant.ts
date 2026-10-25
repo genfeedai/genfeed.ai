@@ -138,9 +138,10 @@ export const APP_ROUTES = {
     CAMPAIGNS_NEW: '/automation/campaigns/new',
     /**
      * Pipeline canvas library (merged former /workflows surface). Templates is
-     * a view of this page: `WORKFLOWS?view=templates`.
+     * its own path beside the library.
      */
     WORKFLOWS: '/automation/workflows',
+    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
     WORKFLOWS_NEW: '/automation/workflows/new',
   },
   DISCOVERY: {
@@ -157,38 +158,41 @@ export const APP_ROUTES = {
     TRENDS: '/discovery/trends',
   },
   /**
-   * Legacy long-form editor aliases retained for existing deep links. New
-   * operator navigation uses the type-aware `/publishing/posts/{id}` route built
-   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR, which is the
-   * Remotion project canvas.
+   * Prefix of the retired long-form editor aliases (`/edit/article/{id}`,
+   * `/edit/newsletter/{id}`). Long-form editing uses `/publishing/posts/{id}`.
+   * Distinct from STUDIO.EDITOR (`/editor`), the Remotion project canvas.
    */
   EDIT: {
-    ARTICLE: '/edit/article',
-    NEWSLETTER: '/edit/newsletter',
     ROOT: '/edit',
   },
   LIBRARY: {
     /**
-     * Canonical library home — the unified asset browser with no filter seeded.
-     * Bare ROOT redirects here. The Library has three orthogonal axes: type
-     * (`?categories=`), shelf (`?shelf=`), and folder
-     * (`?folder=`); this route is all three unset.
+     * Canonical library home — the unified asset browser with nothing seeded.
+     * Bare ROOT redirects here. Which view you are in is the path: this
+     * route, a type (`/library/images`), a place (`/library/trash`) or a shelf
+     * (`/library/shelf/approved`). Folder, search and the other filters are
+     * query params on top.
      */
     ASSETS: '/library/assets',
     /**
-     * Type-seeded entry points into the same browser. They are shareable deep
-     * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
-     * is a filter chip, so the sidebar never lists them.
+     * Type routes over the same browser. They are shareable deep links (see
+     * `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`); clearing the type chip moves to
+     * All assets.
      */
-    AVATARS: '/library/assets?categories=AVATAR',
+    AVATARS: '/library/avatars',
     CAPTIONS: '/library/captions',
-    GIFS: '/library/assets?categories=GIF',
-    IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
-    MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
+    GIFS: '/library/gifs',
+    IMAGES: '/library/images',
+    /**
+     * Uploaded and imported assets, apart from generated output. The browser
+     * seeds the origin axis (`UPLOADED`, `IMPORTED`) like a type preset does.
+     */
+    IMPORTED: '/library/imported',
+    MUSIC: '/library/music',
     /** #5502 Library home: what needs attention, linking into Assets filters. */
     OVERVIEW: '/library/overview',
     /** Assets touched most recently, newest first. */
-    RECENT: '/library/assets?place=recent',
+    RECENT: '/library/recent',
     /**
      * #5502 reusable identities (characters today; locations, styles and
      * products via #6012) that generations reference by name.
@@ -200,9 +204,9 @@ export const APP_ROUTES = {
      * `${SHELF}/needs-review`. A shelf is a saved query, not a location.
      */
     SHELF: '/library/shelf',
-    STARRED: '/library/assets?place=starred',
-    TRASH: '/library/assets?place=trash',
-    VIDEOS: '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
+    STARRED: '/library/starred',
+    TRASH: '/library/trash',
+    VIDEOS: '/library/videos',
     VOICES: '/library/voices',
   },
   MESSAGES: {
@@ -239,14 +243,6 @@ export const APP_ROUTES = {
     ROOT: '/onboarding',
     SUCCESS: '/onboarding/success',
     SUMMARY: '/onboarding/summary',
-  },
-  OVERVIEW: {
-    /**
-     * Legacy activity list. Workspace Activity is the operator surface
-     * (`WORKSPACE.ACTIVITY`); this path stays registered under the workspace
-     * switcher so old bookmarks still resolve.
-     */
-    ACTIVITIES: '/overview/activities',
   },
   PUBLISHING: {
     /**
@@ -290,7 +286,13 @@ export const APP_ROUTES = {
   },
   SETTINGS: {
     AGENT: '/settings/agent',
+    AGENT_CONTEXT: '/settings/agent/context',
+    AGENT_LEARNING: '/settings/agent/learning',
+    AGENT_RECEIPTS: '/settings/agent/receipts',
     BRAND_KIT: '/settings/brand-kit',
+    BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
+    BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
+    BRAND_KIT_VOICE: '/settings/brand-kit/voice',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
@@ -349,31 +351,32 @@ export const APP_ROUTES = {
     USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
-  /**
-   * Studio is a production surface only. One-off "make me an image/video"
-   * generation lives in the Agent (`AGENT.NEW`) — the standalone
-   * image/video/avatar/music tabs were retired.
-   */
   /** #5502 native app catalog; installation is per organization membership. */
   PLUGINS: {
     ROOT: '/plugins',
   },
+  /**
+   * The former Studio apps. Each is its own top-level product root
+   * (`/turbo`, `/storyboard`, ...) with no Studio parent, so a bare `/studio`
+   * is not a route; the old `/studio/<app>` paths are gone, not redirected.
+   * These are production surfaces only: one-off "make me an image/video" generation
+   * lives in the Agent (`AGENT.NEW`).
+   */
   STUDIO: {
-    MOTION: '/studio/motion',
-    TURBO: '/studio/turbo',
-    TURBO_NEW: '/studio/turbo/new',
-    CLIPS: '/studio/clips',
-    CLIPS_NEW: '/studio/clips/new',
-    EDITOR: '/studio/editor',
-    EDITOR_NEW: '/studio/editor/new',
+    CLIPS: '/clips',
+    CLIPS_NEW: '/clips/new',
+    EDITOR: '/editor',
+    EDITOR_NEW: '/editor/new',
+    MOTION: '/motion',
     /**
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.
      */
-    PLAYGROUND: '/studio/playground',
-    ROOT: '/studio',
-    STORYBOARD: '/studio/storyboard',
-    STORYBOARD_NEW: '/studio/storyboard/new',
+    PLAYGROUND: '/playground',
+    STORYBOARD: '/storyboard',
+    STORYBOARD_NEW: '/storyboard/new',
+    TURBO: '/turbo',
+    TURBO_NEW: '/turbo/new',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
@@ -406,9 +409,24 @@ export const APP_ROUTE_PREFIXES = {
   PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
   PUBLISHING: APP_ROUTES.PUBLISHING.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
-  STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
+  PLAYGROUND: APP_ROUTES.STUDIO.PLAYGROUND,
+  STORYBOARD: APP_ROUTES.STUDIO.STORYBOARD,
+  TURBO: APP_ROUTES.STUDIO.TURBO,
+  MOTION: APP_ROUTES.STUDIO.MOTION,
+  CLIPS: APP_ROUTES.STUDIO.CLIPS,
+  EDITOR: APP_ROUTES.STUDIO.EDITOR,
 } as const;
+
+/** Product roots of the former Studio apps, in app-rail order. */
+export const STUDIO_APP_ROUTE_PREFIXES = [
+  APP_ROUTE_PREFIXES.PLAYGROUND,
+  APP_ROUTE_PREFIXES.STORYBOARD,
+  APP_ROUTE_PREFIXES.TURBO,
+  APP_ROUTE_PREFIXES.MOTION,
+  APP_ROUTE_PREFIXES.CLIPS,
+  APP_ROUTE_PREFIXES.EDITOR,
+] as const;
 
 export const APP_ROUTE_TEMPLATES = {
   BRAND: '/:orgSlug/:brandSlug',
@@ -487,7 +505,7 @@ export function createBrandAppRoute(
  * Parent layouts sit above `[orgSlug]/[brandSlug]`, so `useParams()` there
  * cannot see the current brand. Parse the URL instead.
  */
-const RESERVED_APP_ROOT_SEGMENTS = new Set(
+export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
   [
     ...Object.values(APP_ROUTE_PREFIXES).map(
       (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
@@ -513,6 +531,15 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'v1',
   ].filter(Boolean),
 );
+
+/**
+ * Whether `slug` collides with a top-level app segment. Organization slugs and
+ * brand handles share the first URL segment with these roots, so neither may
+ * take one.
+ */
+export function isReservedAppRootSegment(slug: string): boolean {
+  return RESERVED_APP_ROOT_SEGMENTS.has(slug.trim().toLowerCase());
+}
 
 export function parseScopedAppPath(pathname: string): {
   brandSlug: string;

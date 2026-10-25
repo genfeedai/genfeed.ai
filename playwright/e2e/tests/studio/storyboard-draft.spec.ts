@@ -44,7 +44,7 @@ async function previewResponse(file: string) {
     contentType: 'image/png',
   };
 }
-const base = '/test-org/brand-1/studio/storyboard';
+const base = '/test-org/brand-1/storyboard';
 
 /**
  * Plan fields live in the run's context sidebar. Below xl it is a drawer, and
@@ -504,7 +504,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
     .poll(() => editorSources)
     .toEqual(['coffee-clip-1', 'coffee-clip-2']);
   await expect.poll(() => editorRead).toBe(true);
-  await expect(page).toHaveURL(/\/studio\/editor\/coffee-editor$/);
+  await expect(page).toHaveURL(/\/editor\/coffee-editor$/);
   const timelineClips = page.getByRole('button', {
     name: 'Timeline clip',
     exact: true,
@@ -603,7 +603,7 @@ test('creates an unpaid brief draft and saves added shots through the real route
   await page
     .getByRole('button', { name: 'Save storyboard', exact: true })
     .click();
-  await expect(page).toHaveURL(/\/studio\/storyboard\/new-coffee$/);
+  await expect(page).toHaveURL(/\/storyboard\/new-coffee$/);
   await openStoryboardTab(page, 'Details');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     'A new coffee story',

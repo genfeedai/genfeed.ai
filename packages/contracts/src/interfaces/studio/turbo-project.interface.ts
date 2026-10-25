@@ -16,7 +16,7 @@ import type { TurboIdea, TurboIdeaFormat } from './turbo-idea.interface';
 /** Idea-generation choices of an idea project. */
 export interface ITurboProjectIdeaSettings {
   formats: TurboIdeaFormat[];
-  /** Ideas per format. */
+  /** Total ideas, spread across the formats. */
   count: number;
   angle?: string;
 }

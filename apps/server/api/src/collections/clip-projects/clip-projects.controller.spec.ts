@@ -1207,7 +1207,7 @@ describe('ClipProjectsController', () => {
     handoffWorkflowService.createEditorHandoff.mockResolvedValue({
       clipProjectId: projectId,
       clipResultId: 'clip-result-1',
-      editorPath: '/studio/editor/editor-project-1',
+      editorPath: '/editor/editor-project-1',
       editorProjectId: 'editor-project-1',
       videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
     });
@@ -1230,7 +1230,7 @@ describe('ClipProjectsController', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        editorPath: '/studio/editor/editor-project-1',
+        editorPath: '/editor/editor-project-1',
         editorProjectId: 'editor-project-1',
       }),
     );

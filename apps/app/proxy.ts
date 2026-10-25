@@ -16,6 +16,7 @@ import {
   ONBOARDING_STEPS,
   parseScopedAppPath,
   resolveForcedOnboardingHref,
+  STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants';
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -146,7 +147,7 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
   APP_ROUTE_PREFIXES.PUBLISHING.slice(1),
   APP_ROUTE_PREFIXES.DISCOVERY.slice(1),
-  APP_ROUTE_PREFIXES.STUDIO.slice(1),
+  ...STUDIO_APP_ROUTE_PREFIXES.map((prefix) => prefix.slice(1)),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
 
@@ -853,8 +854,8 @@ const ORG_ROOT_APP_PREFIXES = [
   'library',
   'publishing',
   'settings',
-  'studio',
   'workspace',
+  ...STUDIO_APP_ROUTE_PREFIXES.map((prefix) => prefix.slice(1)),
 ] as const;
 
 function createOrgScopedCanonicalPath(

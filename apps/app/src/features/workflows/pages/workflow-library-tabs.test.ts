@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { workflowCollectionHeaderTabs } from './workflow-library-tabs';
 
 describe('workflowCollectionHeaderTabs', () => {
-  it('points Library and Templates at the same workflows surface', () => {
+  it('points Library and Templates at sibling paths', () => {
     const href = (path: string) => `/acme/moonrise${path}`;
     const tabs = workflowCollectionHeaderTabs(href).tabs;
 
@@ -15,7 +15,7 @@ describe('workflowCollectionHeaderTabs', () => {
         matchMode: 'exact',
       },
       {
-        href: href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates`),
+        href: href(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
         id: 'templates',
         label: 'Templates',
         matchMode: 'exact',

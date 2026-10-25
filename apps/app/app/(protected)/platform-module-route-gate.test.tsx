@@ -5,7 +5,7 @@ import PlatformModuleRouteGate from './platform-module-route-gate';
 const state = vi.hoisted(() => ({
   flags: {} as Record<string, boolean>,
   isSuperAdmin: false,
-  pathname: '/acme/brand/studio/playground',
+  pathname: '/acme/brand/playground',
 }));
 
 vi.mock('next/navigation', () => ({
@@ -35,7 +35,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
   beforeEach(() => {
     state.flags = { studio: true };
     state.isSuperAdmin = false;
-    state.pathname = '/acme/brand/studio/playground';
+    state.pathname = '/acme/brand/playground';
   });
 
   it('renders a module route while its flag is on', () => {
@@ -61,28 +61,28 @@ describe('PlatformModuleRouteGate (#5468)', () => {
 
   it('blocks disabled Clips creation for regular users', () => {
     state.flags = { clips: false };
-    state.pathname = '/acme/brand/studio/clips/new';
+    state.pathname = '/acme/brand/clips/new';
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
   });
 
   it('preserves superadmin inspection of disabled Clips creation', () => {
     state.flags = { clips: false };
     state.isSuperAdmin = true;
-    state.pathname = '/acme/brand/studio/clips/new';
+    state.pathname = '/acme/brand/clips/new';
     renderGate();
     expect(screen.getByText('module content')).toBeInTheDocument();
   });
 
   it('answers 404 on an app whose own flag is off', () => {
     state.flags = { studio: true, motion: false };
-    state.pathname = '/acme/brand/studio/motion';
+    state.pathname = '/acme/brand/motion';
 
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
   });
 
   it('keeps other apps open when one app is off', () => {
     state.flags = { studio: true, motion: false };
-    state.pathname = '/acme/brand/studio/storyboard/new';
+    state.pathname = '/acme/brand/storyboard/new';
 
     renderGate();
 
@@ -91,7 +91,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
 
   it('keeps Motion open when only the studio module is off', () => {
     state.flags = { studio: false, motion: true };
-    state.pathname = '/acme/brand/studio/motion';
+    state.pathname = '/acme/brand/motion';
 
     renderGate();
 
@@ -101,7 +101,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
   it('lets a superadmin open an app that is off', () => {
     state.flags = { studio: true, editor: false };
     state.isSuperAdmin = true;
-    state.pathname = '/acme/~/studio/editor/new';
+    state.pathname = '/acme/~/editor/new';
 
     renderGate();
 

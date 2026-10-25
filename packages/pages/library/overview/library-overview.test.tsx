@@ -68,15 +68,15 @@ describe('LibraryOverview (#5502)', () => {
     expect(screen.getByText('3 assets waiting for a decision.')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Review assets' })).toHaveAttribute(
       'href',
-      '/acme/brand-x/library/assets?shelf=needs-review',
+      '/acme/brand-x/library/shelf/needs-review',
     );
     expect(screen.getByRole('link', { name: 'Open recent' })).toHaveAttribute(
       'href',
-      '/acme/brand-x/library/assets?place=recent',
+      '/acme/brand-x/library/recent',
     );
     expect(screen.getByRole('link', { name: 'Open starred' })).toHaveAttribute(
       'href',
-      '/acme/brand-x/library/assets?place=starred',
+      '/acme/brand-x/library/starred',
     );
     expect(
       screen.getByRole('link', { name: 'Open references' }),
@@ -100,7 +100,7 @@ describe('LibraryOverview (#5502)', () => {
     render(<LibraryOverview />);
     expect(screen.getByRole('link', { name: 'Open failed' })).toHaveAttribute(
       'href',
-      '/acme/brand-x/library/assets?shelf=failed',
+      '/acme/brand-x/library/shelf/failed',
     );
   });
 

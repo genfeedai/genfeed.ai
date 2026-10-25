@@ -8,17 +8,20 @@ vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
   default: () => <div data-testid="review-actions" />,
 }));
 
-function makeIngredient(status: IngredientStatus): IIngredient {
+function makeIngredient(
+  status: IngredientStatus,
+  origin: IngredientOrigin = IngredientOrigin.GENERATED,
+): IIngredient {
   return {
     id: 'ingredient-1',
-    origin: IngredientOrigin.GENERATED,
+    origin,
     status,
     tags: [],
   } as unknown as IIngredient;
 }
 
 describe('IngredientTileOverlays', () => {
-  it('shows the origin badge and review actions on a completed tile', () => {
+  it('shows review actions but no origin badge on a completed generated tile', () => {
     render(
       <IngredientTileOverlays
         ingredient={makeIngredient(IngredientStatus.GENERATED)}
@@ -27,32 +30,53 @@ describe('IngredientTileOverlays', () => {
       />,
     );
 
-    expect(screen.getByText('Generated')).toBeInTheDocument();
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
     expect(screen.getByTestId('review-actions')).toBeInTheDocument();
   });
 
-  it('hides the origin badge and review actions on a failed tile', () => {
+  it('badges a completed upload so it is not mistaken for generated output', () => {
     render(
       <IngredientTileOverlays
-        ingredient={makeIngredient(IngredientStatus.FAILED)}
+        ingredient={makeIngredient(
+          IngredientStatus.UPLOADED,
+          IngredientOrigin.UPLOADED,
+        )}
         isReviewEnabled
         onReviewUpdated={vi.fn()}
       />,
     );
 
-    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
+    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+  });
+
+  it('hides the origin badge and review actions on a failed tile', () => {
+    render(
+      <IngredientTileOverlays
+        ingredient={makeIngredient(
+          IngredientStatus.FAILED,
+          IngredientOrigin.UPLOADED,
+        )}
+        isReviewEnabled
+        onReviewUpdated={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Uploaded')).not.toBeInTheDocument();
     expect(screen.queryByTestId('review-actions')).not.toBeInTheDocument();
   });
 
   it('hides the origin badge while the tile is still generating', () => {
     render(
       <IngredientTileOverlays
-        ingredient={makeIngredient(IngredientStatus.PROCESSING)}
+        ingredient={makeIngredient(
+          IngredientStatus.PROCESSING,
+          IngredientOrigin.UPLOADED,
+        )}
         isReviewEnabled
         onReviewUpdated={vi.fn()}
       />,
     );
 
-    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
+    expect(screen.queryByText('Uploaded')).not.toBeInTheDocument();
   });
 });

@@ -222,13 +222,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin may edit any live brand's handle.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
-      line: 93,
+      line: 97,
     },
     // #6120: brand relocation source lookup may live in another organization;
     // assertCanRelocate authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
-      line: 123,
+      line: 131,
     },
     // #7016: unchanged relocation preview, after extracting the async status controller; assertCanRelocate authorizes both tenants.
     {

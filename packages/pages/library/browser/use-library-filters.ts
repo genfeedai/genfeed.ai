@@ -38,10 +38,6 @@ const ORIGIN_CHOICES: LibraryFilterChoice[] = INGREDIENT_ORIGIN_ORDER.map(
   }),
 );
 
-function withCount(label: string, count: number | undefined): string {
-  return typeof count === 'number' ? `${label} (${count})` : label;
-}
-
 /**
  * One reading of the filter axes for both surfaces that show them: the
  * Filters menu (every choice) and the chip row (only what is applied).
@@ -84,7 +80,7 @@ export function useLibraryFilters({
 >): LibraryFilterModel {
   const translate = useTranslations('pages.library.browser.toolbar');
   const statusValue = place === LibraryPlace.TRASH ? 'trash' : (shelf ?? 'all');
-  // Recent and Starred compose with a shelf; Trash replaces them.
+  // Recent and Starred are places of their own; a shelf or Trash replaces them.
   const placeValue =
     place === LibraryPlace.RECENT || place === LibraryPlace.STARRED
       ? place
@@ -97,6 +93,14 @@ export function useLibraryFilters({
     ];
 
     for (const shelfKey of LIBRARY_SHELF_ORDER) {
+      // Uploads and imports have their own page, not a status here.
+      if (
+        shelfKey === LibraryShelf.REFERENCES &&
+        statusValue !== LibraryShelf.REFERENCES
+      ) {
+        continue;
+      }
+
       const count = shelfCounts?.[shelfKey];
       if (
         shelfKey === LibraryShelf.GENERATING &&
@@ -107,13 +111,15 @@ export function useLibraryFilters({
       }
 
       choices.push({
-        label: withCount(LIBRARY_SHELF_LABELS[shelfKey], count),
+        count,
+        label: LIBRARY_SHELF_LABELS[shelfKey],
         value: shelfKey,
       });
     }
 
     choices.push({
-      label: withCount(translate('statusTrash'), trashedCount),
+      count: trashedCount,
+      label: translate('statusTrash'),
       value: 'trash',
     });
 
@@ -125,7 +131,9 @@ export function useLibraryFilters({
   const tagChoices = useMemo(
     () =>
       tagOptions.map((tag) => ({
-        label: withCount(tag.label, tag.assetCount),
+        count: tag.assetCount,
+        isLiteral: true,
+        label: tag.label,
         value: tag.id,
       })),
     [tagOptions],

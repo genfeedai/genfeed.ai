@@ -47,7 +47,7 @@ export const RETIRED_BATCH_NAMES: ReadonlyArray<{
   },
   { pattern: /\bstudio_batch\b/gu, replacement: 'turbo' },
   { pattern: /\b(?:studioBatch|StudioBatch)\w*/gu, replacement: 'studioTurbo' },
-  { pattern: /\/studio\/batch\b/gu, replacement: '/studio/turbo' },
+  { pattern: /\/studio\/batch\b/gu, replacement: '/turbo' },
   {
     pattern: /\b(?:pages|services|interfaces)\/batch(?![-\w])/gu,
     replacement: 'pages/turbo, services/turbo or interfaces/turbo',

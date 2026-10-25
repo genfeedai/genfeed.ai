@@ -70,11 +70,11 @@ describe('GenerationActionCanvas', () => {
       />,
     );
 
-    const editorLinks = container.querySelectorAll('a[href*="/studio/editor"]');
+    const editorLinks = container.querySelectorAll('a[href*="/editor"]');
     expect(editorLinks).toHaveLength(1);
     expect(editorLinks[0]).toHaveAttribute(
       'href',
-      '/default/default/studio/editor/new?video=video-1',
+      '/default/default/editor/new?video=video-1',
     );
   });
 

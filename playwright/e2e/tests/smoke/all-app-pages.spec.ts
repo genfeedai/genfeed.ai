@@ -162,9 +162,14 @@ const protectedRouteBuckets: RouteBucket[] = [
     protectedRoutes,
     (route) =>
       route === '/test-org/brand-1' ||
-      /^\/test-org\/brand-1\/(agent|discovery|messages|overview|platforms|publishing|studio|tasks|workflows|workspace)(\/|$)/.test(
+      /^\/test-org\/brand-1\/(agent|discovery|messages|overview|platforms|publishing|tasks|workflows|workspace)(\/|$)/.test(
         route,
       ),
+  ),
+  routeBucket('protected studio apps', protectedRoutes, (route) =>
+    /^\/test-org\/brand-1\/(clips|editor|motion|playground|storyboard|turbo)(\/|$)/.test(
+      route,
+    ),
   ),
   routeBucket('protected brand settings', protectedRoutes, (route) =>
     route.startsWith('/test-org/brand-1/settings'),

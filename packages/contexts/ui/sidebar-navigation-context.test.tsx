@@ -74,10 +74,10 @@ describe('SidebarNavigationProvider', () => {
 
   it.each([
     [
-      '/acme/brand/studio/storyboard',
-      '/studio',
-      '/studio/storyboard',
-      'Storyboard',
+      '/acme/brand/storyboard/new',
+      '/storyboard',
+      '/storyboard/new',
+      'New storyboard',
     ],
     [
       '/acme/brand/analytics/insights',

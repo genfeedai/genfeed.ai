@@ -73,7 +73,7 @@ describe('generation result recovery and navigation', () => {
     renderPanel({ generationType: 'video', isImage: false, status: 'done' });
     expect(screen.getByRole('link', { name: 'editResult' })).toHaveAttribute(
       'href',
-      '/acme/brand/studio/editor/new?video=asset-1',
+      '/acme/brand/editor/new?video=asset-1',
     );
   });
 });

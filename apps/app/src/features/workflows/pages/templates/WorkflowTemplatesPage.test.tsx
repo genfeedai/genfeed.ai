@@ -549,7 +549,7 @@ describe('WorkflowTemplatesPage', () => {
       })[0],
     ).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows?view=templates&template=first',
+      '/demo/FUDNEWS/automation/workflows/templates?template=first',
     );
     expect(mocks.copyFeatured).not.toHaveBeenCalled();
 
@@ -685,13 +685,13 @@ describe('WorkflowTemplatesPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows?view=templates',
+      '/demo/FUDNEWS/automation/workflows/templates',
     );
     expect(
       within(all).getByRole('link', { name: 'Use template' }),
     ).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows?view=templates&template=tpl-1',
+      '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);

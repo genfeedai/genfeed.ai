@@ -8,7 +8,11 @@ import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-sur
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  STUDIO_APP_ROUTE_PREFIXES,
+} from '@genfeedai/contracts/constants';
 import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import {
   Calendar,
@@ -63,6 +67,28 @@ function createPageHelpAction(help: PageHelpContent): SuggestedAction {
     prompt: `Explain this page to me: "${help.title}". ${help.body} Tell me what I can do here and suggest the single best next step for my brand, then offer to do it.`,
   };
 }
+
+// Every former Studio app (`/turbo`, `/storyboard`, ...) shares one context.
+const STUDIO_PAGE_CONTEXT: PageContextConfig = {
+  placeholder: 'Ask about this asset...',
+  suggestedActions: [
+    {
+      icon: createElement(Sparkles, {
+        className: 'size-5 text-foreground/50',
+      }),
+      label: 'Next step',
+      prompt:
+        'Summarize the best next step for the asset I am viewing right now.',
+    },
+    {
+      icon: createElement(Paintbrush, {
+        className: 'size-5 text-foreground/50',
+      }),
+      label: 'Variations',
+      prompt: 'Suggest variations or remixes I should try for this asset.',
+    },
+  ],
+};
 
 const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
   [APP_ROUTES.ANALYTICS.ROOT]: {
@@ -361,23 +387,6 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.OVERVIEW.ACTIVITIES]: {
-    placeholder: 'Ask about recent activity...',
-    suggestedActions: [
-      {
-        icon: createElement(ChartColumn, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Summary',
-        prompt: 'Give me a summary of recent content activity',
-      },
-      {
-        icon: createElement(Search, { className: 'size-5 text-foreground/50' }),
-        label: 'Engage',
-        prompt: 'Search for posts I should engage with',
-      },
-    ],
-  },
   [APP_ROUTES.WORKSPACE.ROOT]: {
     placeholder: 'What would you like to do?',
     suggestedActions: [
@@ -576,26 +585,9 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.STUDIO.ROOT]: {
-    placeholder: 'Ask about this asset...',
-    suggestedActions: [
-      {
-        icon: createElement(Sparkles, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Next step',
-        prompt:
-          'Summarize the best next step for the asset I am viewing right now.',
-      },
-      {
-        icon: createElement(Paintbrush, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Variations',
-        prompt: 'Suggest variations or remixes I should try for this asset.',
-      },
-    ],
-  },
+  ...Object.fromEntries(
+    STUDIO_APP_ROUTE_PREFIXES.map((prefix) => [prefix, STUDIO_PAGE_CONTEXT]),
+  ),
 };
 
 const DEFAULT_CONTEXT: PageContextConfig = {

@@ -20,7 +20,7 @@ describe('workspace shell URL restoration', () => {
 
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/studio/storyboard',
+        pathname: '/acme/moonrise/storyboard',
         searchParams: new URLSearchParams({ thread: 'thread-1' }),
       }),
     ).toMatchObject({
@@ -38,8 +38,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/~/messages',
     '/acme/~/discovery/overview',
     '/acme/moonrise/settings/skills',
-    '/acme/moonrise/overview/activities',
-    '/acme/moonrise/studio/storyboard',
+    '/acme/moonrise/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/automation/workflows',
     '/acme/moonrise/workspace/inbox/all',
