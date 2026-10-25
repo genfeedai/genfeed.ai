@@ -656,10 +656,7 @@ describe('AppLayout', () => {
 
     render(
       <AppLayout topbarComponent={TopbarMock}>
-        <Container
-          description="Create keys for headless clients and MCP servers."
-          label="API Keys"
-        >
+        <Container label="API Keys">
           <div>Page controls</div>
         </Container>
       </AppLayout>,
@@ -668,9 +665,6 @@ describe('AppLayout', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'API Keys' }),
     ).toHaveClass('sr-only');
-    expect(
-      screen.queryByText('Create keys for headless clients and MCP servers.'),
-    ).not.toBeInTheDocument();
     expect(screen.getByText('Page controls')).toBeInTheDocument();
   });
 });

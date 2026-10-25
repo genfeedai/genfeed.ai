@@ -14,7 +14,6 @@ export default function PageHeader({
   backRoute,
   onBack,
   title,
-  description,
   icon,
   actions,
   className,
@@ -54,17 +53,10 @@ export default function PageHeader({
           {hasCanonicalBreadcrumb ? (
             <h1 className="sr-only">{title}</h1>
           ) : icon ? (
-            <ContainerTitle
-              title={title}
-              description={description}
-              icon={icon}
-            />
+            <ContainerTitle title={title} icon={icon} />
           ) : (
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-              {description && (
-                <p className="text-sm text-foreground/70 mt-1">{description}</p>
-              )}
             </div>
           )}
         </div>

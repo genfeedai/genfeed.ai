@@ -6,7 +6,6 @@ export interface PageHeaderProps {
   backRoute?: string;
   onBack?: () => void;
   title: string;
-  description?: string;
   icon?: IconComponent;
   actions?: ReactNode;
   className?: string;

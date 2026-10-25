@@ -34,19 +34,11 @@ describe('PageHeader', () => {
   it('keeps only an accessible title when the shell owns page identity', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
-    render(
-      <PageHeader
-        title="Library"
-        description="Browse reusable assets across your workspace."
-      />,
-    );
+    render(<PageHeader title="Library" />);
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Library' }),
     ).toHaveClass('sr-only');
-    expect(
-      screen.queryByText('Browse reusable assets across your workspace.'),
-    ).not.toBeInTheDocument();
   });
 
   it('renders back navigation as one link without a nested button', () => {
