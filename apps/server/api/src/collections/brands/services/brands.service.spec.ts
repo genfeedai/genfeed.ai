@@ -2076,7 +2076,7 @@ describe('BrandsService', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
 
-    it('splits a large idea count into batches that each fit one reply', async () => {
+    it('generates a large idea count in several calls that each fit one reply', async () => {
       delegate.findFirst.mockResolvedValue({
         agentConfig: { voice: { tone: 'bold' } },
         id: brandId,
