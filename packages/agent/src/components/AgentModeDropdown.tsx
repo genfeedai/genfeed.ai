@@ -79,7 +79,7 @@ export function AgentModeDropdown({
   const triggerLabel = translate('triggerAria', { mode: active.label });
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           ariaLabel={triggerLabel}

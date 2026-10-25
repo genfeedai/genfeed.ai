@@ -119,22 +119,6 @@ describe('GenerationSetupSectionChips', () => {
     expect(screen.getByRole('menuitem', { name: '5s' })).toBeInTheDocument();
   });
 
-  it('ends the row with the trailing slot, after the last chip', () => {
-    render(
-      <GenerationSetupSectionChips
-        {...props}
-        trailing={<span data-testid="end-of-row" />}
-      />,
-    );
-
-    const row = screen.getByTestId('generation-setup-section-chips');
-    const end = screen.getByTestId('end-of-row');
-    expect(
-      row.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(row).not.toContainElement(end);
-  });
-
   it('keeps the labels in the tooltip, and folds the chips into a More setup menu', () => {
     render(<GenerationSetupSectionChips {...props} showPresets />);
 

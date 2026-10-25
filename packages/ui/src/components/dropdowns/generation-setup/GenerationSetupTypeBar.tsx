@@ -65,7 +65,7 @@ export default function GenerationSetupTypeBar({
 
   return (
     <TooltipProvider delayDuration={200}>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             ariaLabel={translate('generationTypeTrigger', {

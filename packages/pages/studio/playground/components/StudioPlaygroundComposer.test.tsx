@@ -186,7 +186,6 @@ vi.mock('@ui/dropdowns/generation-setup/GenerationSetupSectionChips', () => ({
       <div data-testid="generation-setup-section-chips">
         {props.afterModel as React.ReactNode}
         {props.outputControls as React.ReactNode}
-        {props.trailing as React.ReactNode}
       </div>
     );
   },
@@ -2162,11 +2161,12 @@ describe('StudioPlaygroundComposer', () => {
       const generationControls = within(
         screen.getByRole('group', { name: 'Generation controls' }),
       );
+      // Enhance sits with the other tools, not next to Generate.
       expect(
-        generationControls.getByRole('button', { name: 'Enhance prompt' }),
+        promptTools.getByRole('button', { name: 'Enhance prompt' }),
       ).not.toHaveTextContent('Enhance prompt');
       expect(
-        promptTools.queryByRole('button', { name: 'Enhance prompt' }),
+        generationControls.queryByRole('button', { name: 'Enhance prompt' }),
       ).not.toBeInTheDocument();
       expect(
         promptTools.getByRole('button', { name: 'Setup' }),

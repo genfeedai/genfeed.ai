@@ -148,7 +148,7 @@ export default function PromptBarReferenceControls({
         />
       ) : null}
 
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             ariaLabel={triggerLabel ?? translate('addContext')}
