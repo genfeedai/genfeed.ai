@@ -1,11 +1,13 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { MediaDeliveryGrant } from '@genfeedai/contracts/interfaces';
 import { Image } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
 import {
   isStudioPreviewPending,
   useStudioPendingPreviews,
 } from '@pages/studio/playground/hooks/useStudioPendingPreviews';
 import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
+import { toStudioPlaygroundJob } from '@pages/studio/playground/utils/studio-playground-asset';
 import type { IngredientsService } from '@services/content/ingredients.service';
 import { MediaPreviewBatchService } from '@services/content/media-preview-batch.service';
 import { renderHook } from '@testing-library/react';
@@ -63,6 +65,22 @@ describe('isStudioPreviewPending', () => {
     ).toBe(true);
   });
 
+  it.each(['PENDING', 'FAILED'] as const)(
+    'observes a restored video with a placeholder URL and a %s delivery grant',
+    (state) => {
+      const job = toStudioPlaygroundJob(
+        new Video({
+          id: 'ing-1',
+          mediaDelivery: grant(state),
+          status: IngredientStatus.GENERATED,
+        }),
+      );
+
+      expect(job?.url).toContain('/placeholders/');
+      expect(job && isStudioPreviewPending(job)).toBe(true);
+    },
+  );
+
   it('ignores deleted assets and terminal unsupported previews', () => {
     expect(
       isStudioPreviewPending({
@@ -85,9 +103,23 @@ describe('isStudioPreviewPending', () => {
     ).toBe(false);
   });
 
-  it('ignores assets that already have a URL, are still generating or failed', () => {
+  it('ignores ready delivery, legacy URLs, and generations that are still pending or failed', () => {
     expect(
-      isStudioPreviewPending({ ...pendingJob, url: 'https://cdn/p.png' }),
+      isStudioPreviewPending({
+        ...pendingJob,
+        url: 'https://cdn/legacy',
+        ingredient: new Image({ id: 'ing-1' }),
+      }),
+    ).toBe(false);
+    expect(
+      isStudioPreviewPending({
+        ...pendingJob,
+        url: 'https://cdn/p.png',
+        ingredient: new Image({
+          id: 'ing-1',
+          mediaDelivery: grant('READY', 'https://cdn/p.png'),
+        }),
+      }),
     ).toBe(false);
     expect(
       isStudioPreviewPending({
@@ -130,10 +162,15 @@ describe('useStudioPendingPreviews', () => {
     'observes backend recovery after reload for a %s without retrying a failed render',
     async (type) => {
       vi.useFakeTimers();
+      const ingredient =
+        type === 'video'
+          ? new Video({ id: 'ing-1', mediaDelivery: grant('FAILED') })
+          : new Image({ id: 'ing-1', mediaDelivery: grant('FAILED') });
       const job: StudioPlaygroundJob = {
         ...pendingJob,
         type,
-        ingredient: new Image({ id: 'ing-1', mediaDelivery: grant('FAILED') }),
+        ingredient,
+        url: ingredient.thumbnailUrl,
       };
       const read = vi
         .fn()
@@ -284,7 +321,16 @@ describe('useStudioPendingPreviews', () => {
   it('does not poll when nothing is pending, and stops on unmount', async () => {
     vi.useFakeTimers();
     const idle = vi.fn();
-    renderPreviews(idle, [{ ...pendingJob, url: 'https://cdn/p.png' }]);
+    renderPreviews(idle, [
+      {
+        ...pendingJob,
+        url: 'https://cdn/p.png',
+        ingredient: new Image({
+          id: 'ing-1',
+          mediaDelivery: grant('READY', 'https://cdn/p.png'),
+        }),
+      },
+    ]);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(idle).not.toHaveBeenCalled();
 

@@ -13,8 +13,9 @@ function pollDelayMs(attempt: number): number {
 /** A failed delivery attempt may still recover through the worker's retries. */
 export function isStudioPreviewPending(job: StudioPlaygroundJob): boolean {
   const grant = job.ingredient?.mediaDelivery;
+  // Legacy video models may supply a placeholder URL while delivery is pending.
+  // Only the authorized grant proves that the protected preview is ready.
   return (
-    !job.url &&
     !job.ingredient?.isDeleted &&
     grant?.id === (job.ingredientId ?? job.id) &&
     grant?.purpose === 'preview' &&
