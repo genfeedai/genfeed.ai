@@ -3310,6 +3310,55 @@ test('committed proactive acceptance sources match the frozen manifest before al
   const repo = await realpath(new URL('../..', import.meta.url));
   await verifyDedicatedSources(repo, 'agent-production', {});
 });
+test('dedicated proactive frozen sources reject registrar rollback and independent input mutations', async (t) => {
+  const root = await fixture(t);
+  for (const entry of AGENT_PRODUCTION_FILES) {
+    const file = path.join(root, entry.path);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(
+      file,
+      await readFile(new URL(`../../${entry.path}`, import.meta.url)),
+    );
+  }
+  await verifyDedicatedSources(root, 'agent-production', {});
+
+  const workerFile = path.join(root, AGENT_PRODUCTION_FILES[1].path);
+  const approved = await readFile(workerFile, 'utf8');
+  const registration = '    await module.get(BullRegistrar).register();\n';
+  assert.equal(approved.split(registration).length, 2);
+  await writeFile(workerFile, approved.replace(registration, ''));
+  await assert.rejects(verifyDedicatedSources(root, 'agent-production', {}), {
+    code: 'SOURCE_HASH_MISMATCH',
+  });
+  await writeFile(workerFile, approved);
+
+  for (const [index, entry] of AGENT_PRODUCTION_FILES.entries()) {
+    const file = path.join(root, entry.path);
+    const original = await readFile(file);
+    for (const kind of ['changed', 'missing', 'symlinked']) {
+      await rm(file);
+      if (kind === 'changed') await writeFile(file, 'changed proactive source');
+      if (kind === 'symlinked') {
+        const target = path.join(root, `proactive-source-target-${index}.ts`);
+        await writeFile(target, original);
+        await symlink(target, file);
+      }
+      const code =
+        kind === 'missing'
+          ? 'ENOENT'
+          : kind === 'changed'
+            ? 'SOURCE_HASH_MISMATCH'
+            : 'UNSAFE_SOURCE';
+      await assert.rejects(
+        verifyDedicatedSources(root, 'agent-production', {}),
+        { code },
+      );
+      if (kind !== 'missing') await rm(file);
+      await writeFile(file, original);
+    }
+    await verifyDedicatedSources(root, 'agent-production', {});
+  }
+});
 test('prepared owner revisions retain only the exact approved source hashes', () => {
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -3329,7 +3378,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
-    'f62ff61a5c689d25d18803c0492fe5711c91abf4a697ba15207927e6b1f2a9f9',
+    '6bc1211fbd53a10d94a9349022d39ac2995b23bf3e24b978a2de99b097abeb1f',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
