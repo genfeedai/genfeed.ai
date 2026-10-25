@@ -118,18 +118,6 @@ describe('findSubmitButtons', () => {
     ]);
   });
 
-  it('finds the inline reply box and the new-post Post button on X', () => {
-    document.body.innerHTML = `
-      <button data-testid="tweetButtonInline">Reply</button>
-      <button data-testid="tweetButton">Post</button>`;
-
-    expect(
-      findSubmitButtons(platforms.twitter).map((button) =>
-        button.getAttribute('data-testid'),
-      ),
-    ).toEqual(['tweetButtonInline', 'tweetButton']);
-  });
-
   it('finds Threads Post by its label inside the reply box form', () => {
     document.body.innerHTML = `
       <section>

@@ -431,8 +431,7 @@ export const platforms: Record<string, PlatformConfig> = {
       postContainer: 'article[data-testid="tweet"]',
       postIdentifier: 'article',
       replyTextarea: '[data-testid="tweetTextarea_0"]',
-      submitButton:
-        '[data-testid="tweetButtonInline"], [data-testid="tweetButton"]',
+      submitButton: '[data-testid="tweetButtonInline"]',
       postAuthor: ['[data-testid="User-Name"] a', '[data-testid="User-Name"]'],
       postText: ['[data-testid="tweetText"]'],
     },
