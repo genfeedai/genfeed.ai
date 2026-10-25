@@ -713,6 +713,8 @@ export interface PromptTemplateVariables extends Record<string, unknown> {
   width: number;
   height: number;
   resolution: string;
+  subject?: string;
+  action?: string;
   mood?: string;
   style?: string;
   camera?: string;

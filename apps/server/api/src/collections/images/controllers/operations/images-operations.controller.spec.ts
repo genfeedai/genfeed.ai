@@ -522,6 +522,10 @@ describe('ImagesOperationsController', () => {
               id: mockPromptId,
               original: 'Test prompt',
             }),
+            patch: vi.fn().mockResolvedValue({
+              id: mockPromptId,
+              original: 'Test prompt',
+            }),
           },
         },
         {

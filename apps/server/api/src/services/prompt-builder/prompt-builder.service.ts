@@ -12,11 +12,16 @@ import type {
   PromptTemplateVariables,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
 import {
+  slotsUsedByTemplate,
+  structuredPromptFromSource,
+} from '@api/services/prompt-builder/utils/structured-prompt.util';
+import {
   ContentTemplateKey,
   ModelCategory,
   ModelProvider,
   PromptTemplateKey,
 } from '@genfeedai/contracts';
+import { renderStructuredPrompt } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -87,6 +92,12 @@ export class PromptBuilderService {
 
     // Only add optional fields if they have values
     // This ensures {{#if mood}} and similar conditionals work correctly
+    if (params.subject) {
+      variables.subject = params.subject;
+    }
+    if (params.action) {
+      variables.action = params.action;
+    }
     if (params.mood) {
       variables.mood = params.mood;
     }
@@ -152,6 +163,35 @@ export class PromptBuilderService {
     }
 
     return variables;
+  }
+
+  /**
+   * Fold the structured slots (subject, camera, lighting, mood ...) into the
+   * prompt as plain prose. Media models read natural captions, so the slots are
+   * written as sentences rather than tags or JSON. A slot the resolved template
+   * already places (`{{mood}}`) is left to the template.
+   */
+  private renderStructuredSlots(
+    params: PromptBuilderParams,
+    promptText: string,
+    templateContent: string | undefined,
+  ): string {
+    const isVideo = params.modelCategory === ModelCategory.VIDEO;
+    if (!isVideo && params.modelCategory !== ModelCategory.IMAGE) {
+      return promptText;
+    }
+    const { prompt } = renderStructuredPrompt(
+      // `avoid` travels as the provider's negative prompt, not in the prose.
+      { ...structuredPromptFromSource(params), avoid: undefined },
+      {
+        // Video models generate audio unless the request turns it off.
+        hasAudio: isVideo && (params.isAudioEnabled ?? true),
+        lead: promptText,
+        skip: slotsUsedByTemplate(templateContent),
+        target: 'prose',
+      },
+    );
+    return prompt;
   }
 
   /**
@@ -237,6 +277,7 @@ export class PromptBuilderService {
       let promptText: string = params.prompt;
       let templateKey: string | undefined;
       let templateVersion: number | undefined;
+      let templateContent: string | undefined;
 
       // Build template variables (needed for both template and brand context)
       const variables = this.buildTemplateVariables(params);
@@ -297,6 +338,7 @@ export class PromptBuilderService {
               variables,
             );
             templateVersion = template.version || 1;
+            templateContent = template.content;
 
             // Track template usage
             await this.templatesService.updateMetadata(keyToTry, {
@@ -321,6 +363,14 @@ export class PromptBuilderService {
             },
           );
         }
+      }
+
+      if (params.useTemplate !== false) {
+        promptText = this.renderStructuredSlots(
+          params,
+          promptText,
+          templateContent,
+        );
       }
 
       const brandingMode = this.resolveBrandingMode(params);

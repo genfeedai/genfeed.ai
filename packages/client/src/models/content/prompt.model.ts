@@ -17,6 +17,16 @@ export class Prompt extends BaseEntity implements IPrompt {
   declare public style?: string;
   declare public mood?: string;
   declare public camera?: string;
+  declare public scene?: string;
+  declare public subject?: string;
+  declare public action?: string;
+  declare public cameraMovement?: string;
+  declare public lens?: string;
+  declare public lighting?: string;
+  declare public sounds?: string[];
+  declare public speech?: string;
+  declare public renderedPrompt?: string;
+  declare public renderTarget?: string;
   declare public fontFamily?: string;
   declare public blacklists?: string[];
   declare public tags?: ITag[];

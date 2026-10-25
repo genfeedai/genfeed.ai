@@ -6,4 +6,5 @@ export * from './media-prompt';
 export * from './persuasion/viral-psychology';
 export * from './platforms/x-algorithm';
 export * from './registry';
+export * from './structured-prompt';
 export * from './types';

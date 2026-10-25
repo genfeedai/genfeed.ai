@@ -9,10 +9,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const PROMPT_SCALAR_FIELDS = [
+  'action',
   'articleId',
   'blacklists',
   'brandId',
   'camera',
+  'cameraMovement',
   'category',
   'duration',
   'enhanced',
@@ -20,12 +22,16 @@ const PROMPT_SCALAR_FIELDS = [
   'ingredientId',
   'isFavorite',
   'isSkipEnhancement',
+  'lens',
+  'lighting',
   'model',
   'mood',
   'organizationId',
   'original',
   'ratio',
   'reference',
+  'renderTarget',
+  'renderedPrompt',
   'resolution',
   'scene',
   'scope',
@@ -34,6 +40,7 @@ const PROMPT_SCALAR_FIELDS = [
   'speech',
   'status',
   'style',
+  'subject',
   'userId',
 ] as const;
 

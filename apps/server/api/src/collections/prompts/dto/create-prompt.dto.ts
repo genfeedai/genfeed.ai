@@ -78,6 +78,36 @@ export class CreatePromptDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({ required: false })
+  readonly subject?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({ required: false })
+  readonly action?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({ required: false })
+  readonly cameraMovement?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({ required: false })
+  readonly lens?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({ required: false })
+  readonly lighting?: string;
+
+  @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly fontFamily?: string;
 

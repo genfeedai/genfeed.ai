@@ -238,6 +238,105 @@ describe('PromptBuilderService', () => {
       );
     });
 
+    describe('structured slots', () => {
+      const sentPrompt = (): string =>
+        (replicateBuilder.buildPrompt as ReturnType<typeof vi.fn>).mock
+          .calls[0][2];
+
+      it('writes the slots into the prompt as prose when no template places them', async () => {
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...baseParams,
+          camera: 'wide angle',
+          lighting: 'golden hour',
+          subject: 'a hiker',
+        });
+
+        expect(sentPrompt()).toBe(
+          'a sunset over mountains. A hiker. Camera: wide angle. Lighting: golden hour.',
+        );
+      });
+
+      it('leaves a slot to the template that already places it', async () => {
+        (
+          templatesService.getPromptByKey as ReturnType<typeof vi.fn>
+        ).mockResolvedValueOnce({
+          content: '{{{prompt}}} in a {{mood}} mood',
+          isActive: true,
+          version: 1,
+        });
+        (
+          templatesService.renderPrompt as ReturnType<typeof vi.fn>
+        ).mockReturnValueOnce('a sunset over mountains in a calm mood');
+
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...baseParams,
+          lens: '35mm',
+          mood: 'calm',
+        });
+
+        expect(sentPrompt()).toBe(
+          'a sunset over mountains in a calm mood. Lens: 35mm.',
+        );
+      });
+
+      it('keeps audio slots for video unless audio is turned off', async () => {
+        const video: PromptBuilderParams = {
+          ...baseParams,
+          modelCategory: ModelCategory.VIDEO,
+          sounds: ['wind'],
+        };
+
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, video);
+        expect(sentPrompt()).toBe('a sunset over mountains. Audio: wind.');
+
+        vi.mocked(replicateBuilder.buildPrompt).mockClear();
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...video,
+          isAudioEnabled: false,
+        });
+        expect(sentPrompt()).toBe('a sunset over mountains');
+      });
+
+      it('never renders audio slots for images', async () => {
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...baseParams,
+          sounds: ['wind'],
+          speech: 'hello',
+        });
+
+        expect(sentPrompt()).toBe('a sunset over mountains');
+      });
+
+      it('sends the avoid list as a negative prompt, not as prose', async () => {
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...baseParams,
+          blacklist: ['text'],
+        });
+
+        expect(sentPrompt()).toBe('a sunset over mountains');
+      });
+
+      it('leaves the prompt alone when templates are off', async () => {
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...baseParams,
+          camera: 'wide angle',
+          useTemplate: false,
+        });
+
+        expect(sentPrompt()).toBe('a sunset over mountains');
+      });
+
+      it('leaves text models alone', async () => {
+        await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
+          ...baseParams,
+          camera: 'wide angle',
+          modelCategory: ModelCategory.TEXT,
+        });
+
+        expect(sentPrompt()).toBe('a sunset over mountains');
+      });
+    });
+
     it('should not include optional fields when empty', async () => {
       (
         templatesService.getPromptByKey as ReturnType<typeof vi.fn>

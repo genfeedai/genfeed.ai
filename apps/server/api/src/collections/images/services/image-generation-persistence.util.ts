@@ -13,6 +13,10 @@ import { imageGenerationPromptSettings } from '@api/collections/images/services/
 import type { ImagesService } from '@api/collections/images/services/images.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import {
+  promptRenderRecord,
+  promptSlotColumns,
+} from '@api/collections/prompts/utils/prompt-slots.util';
 import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
@@ -76,6 +80,7 @@ export async function resolveGenerationPrompt(
   createImageDto: CreateImageDto,
   model: string,
   promptOriginalText: string,
+  style?: string,
 ): Promise<ImageGenerationResolvedPrompt> {
   const submittedPromptId = isEntityId(createImageDto.promptId)
     ? createImageDto.promptId
@@ -110,6 +115,10 @@ export async function resolveGenerationPrompt(
             original: promptOriginalText,
             status: PromptStatus.PROCESSING,
             userId: user.userId ?? user.id,
+            ...promptSlotColumns({
+              ...createImageDto,
+              style: style ?? createImageDto.style,
+            }),
           }),
         );
 }
@@ -151,7 +160,7 @@ function buildLegacyImagePromptInput(
     references: referenceImageUrls,
     scene: createImageDto.scene,
     seed: createImageDto.seed,
-    style: style || createImageDto.style || 'realistic',
+    style: style || createImageDto.style,
     tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
     useTemplate: createImageDto.useTemplate,
   };
@@ -211,6 +220,7 @@ export async function persistImageDocuments(
     createImageDto,
     model,
     promptOriginalText,
+    style,
   );
 
   let providerInput: Record<string, unknown> | undefined =
@@ -250,6 +260,12 @@ export async function persistImageDocuments(
     generationHarness.enhancedPrompt = compiledPrompt;
   }
   if (providerInput) providerInput.prompt = generationHarness.enhancedPrompt;
+
+  // Keep the text the model was sent next to the slots it was rendered from.
+  await dependencies.promptsService.patch(
+    promptData.id,
+    promptRenderRecord(generationHarness.enhancedPrompt),
+  );
 
   const { metadataData, ingredientData } =
     await dependencies.sharedService.createMediaDocuments(user, {

@@ -4,6 +4,7 @@ import type {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/contracts';
+import type { PromptRenderTarget } from '@genfeedai/harness';
 
 export class PromptEntity extends BaseEntity {
   declare readonly organizationId: string | null;
@@ -21,6 +22,11 @@ export class PromptEntity extends BaseEntity {
   declare readonly mood?: string;
   declare readonly camera?: string;
   declare readonly scene?: string;
+  declare readonly subject?: string;
+  declare readonly action?: string;
+  declare readonly cameraMovement?: string;
+  declare readonly lens?: string;
+  declare readonly lighting?: string;
   declare readonly fontFamily?: string;
   declare readonly blacklists?: string[];
   declare readonly sounds?: string[];
@@ -36,6 +42,10 @@ export class PromptEntity extends BaseEntity {
   declare readonly seed?: number;
   declare readonly reference?: string;
   declare readonly speech?: string;
+
+  /** The prose sent to the model for the slots above, and what it was rendered for. */
+  declare readonly renderedPrompt?: string;
+  declare readonly renderTarget?: PromptRenderTarget;
 
   declare readonly isSkipEnhancement: boolean;
 

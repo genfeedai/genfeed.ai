@@ -268,6 +268,24 @@ export class CreateImageDto extends CreateIngredientDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({
+    description: 'Who or what the image is about',
+    required: false,
+  })
+  readonly subject?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({
+    description: 'What the subject does',
+    required: false,
+  })
+  readonly action?: string;
+
+  @IsString()
+  @IsOptional()
   @ApiProperty({
     description: 'The lighting for image generation',
     required: false,

@@ -969,6 +969,32 @@ describe('VideoGenerationService', () => {
     );
   });
 
+  it('stores the structured slots and the text the model was sent on the prompt', async () => {
+    const { service, promptsService } = createService();
+
+    await service.generateVideo(
+      buildUser(),
+      baseDto({
+        action: 'walking through rain',
+        cameraMovement: 'slow push in',
+        lighting: 'neon glow',
+        subject: 'a courier',
+      }),
+      buildRequest(),
+    );
+
+    expect(promptsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'walking through rain',
+        cameraMovement: 'slow push in',
+        lighting: 'neon glow',
+        renderTarget: 'prose',
+        renderedPrompt: expect.any(String),
+        subject: 'a courier',
+      }),
+    );
+  });
+
   // Finding 4 — a single credit calculation feeds authorization and deduction.
   describe('credit accounting (finding 4)', () => {
     it('never deducts directly — deduction is owned by CreditsInterceptor', async () => {

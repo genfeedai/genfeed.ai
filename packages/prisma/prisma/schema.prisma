@@ -2564,6 +2564,16 @@ model Prompt {
   mood              String?
   camera            String?
   scene             String?
+  // Structured slots. `style`, `mood`, `camera`, `scene`, `speech`, `sounds` and
+  // `blacklists` above are slots too: together they are the editable record of the
+  // prompt, and `renderedPrompt` is the prose the model was sent for them.
+  subject           String?
+  action            String?
+  cameraMovement    String?
+  lens              String?
+  lighting          String?
+  renderedPrompt    String?
+  renderTarget      String?
   fontFamily        String?
   blacklists        String[]        @default([])
   sounds            String[]        @default([])

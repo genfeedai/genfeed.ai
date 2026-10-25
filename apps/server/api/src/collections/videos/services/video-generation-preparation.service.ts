@@ -7,6 +7,10 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import {
+  promptRenderRecord,
+  promptSlotColumns,
+} from '@api/collections/prompts/utils/prompt-slots.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
@@ -330,7 +334,11 @@ export class VideoGenerationPreparationService {
       preparedText: generationHarness.enhancedPrompt,
     });
     const promptInput = promptParams as PromptInput;
-    const promptData = await this.createGenerationPrompt(resolved, promptText);
+    const promptData = await this.createGenerationPrompt(
+      resolved,
+      promptText,
+      generationHarness.enhancedPrompt,
+    );
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
         origin: IngredientOrigin.GENERATED,
@@ -460,23 +468,19 @@ export class VideoGenerationPreparationService {
   private createGenerationPrompt(
     resolved: ResolvedVideoGenerationRequest,
     promptText: string,
+    sentPrompt: string,
   ) {
     const { createVideoDto, user } = resolved;
     return this.promptsService.create(
       new PromptEntity({
-        blacklists: createVideoDto.blacklist,
         brandId: resolved.brand.id,
-        camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
-        mood: createVideoDto.mood,
         organizationId: user.organizationId,
         original: promptText,
-        scene: createVideoDto.scene,
-        sounds: createVideoDto.sounds,
-        speech: createVideoDto.speech,
         status: PromptStatus.PROCESSING,
-        style: createVideoDto.style,
         userId: user.userId ?? user.id,
+        ...promptSlotColumns(createVideoDto),
+        ...promptRenderRecord(sentPrompt),
       }),
     );
   }

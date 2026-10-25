@@ -16,6 +16,8 @@ export interface PromptBuilderParams {
   modelInputSchema?: Record<string, unknown>;
 
   // Creative elements (for AI model prompts)
+  subject?: string;
+  action?: string;
   mood?: string;
   style?: string;
   camera?: string;
@@ -113,41 +115,4 @@ export interface PromptBuilderParams {
   /** Provider model variant, e.g. MusicGen's 'melody' | 'large' | 'stereo-large'. */
   modelVersion?: string;
   classifierFreeGuidance?: number;
-}
-
-/**
- * Universal JSON prompt structure
- * Shared across providers that support structured prompts
- */
-export interface JsonPrompt {
-  text: string;
-  elements: {
-    mood?: string;
-    style?: string;
-    camera?: string;
-    cameraMovement?: string;
-    lens?: string;
-    scene?: string;
-    lighting?: string;
-    sounds?: string;
-    speech?: string;
-    brand?: {
-      label: string;
-      description?: string;
-      text?: string;
-      primaryColor?: string;
-      secondaryColor?: string;
-    };
-    branding?: {
-      tone?: string;
-      voice?: string;
-      audience?: string;
-      values?: string[];
-      taglines?: string[];
-      hashtags?: string[];
-      messagingPillars?: string[];
-      doNotSoundLike?: string[];
-      sampleOutput?: string;
-    };
-  };
 }

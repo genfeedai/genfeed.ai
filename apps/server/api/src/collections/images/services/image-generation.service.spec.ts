@@ -724,7 +724,11 @@ describe('ImageGenerationService', () => {
         }),
         buildRequest(),
       );
-      expect(promptsService.patch).not.toHaveBeenCalled();
+      expect(promptsService.patch).toHaveBeenCalledTimes(1);
+      expect(promptsService.patch).toHaveBeenCalledWith(promptId, {
+        renderTarget: 'prose',
+        renderedPrompt: expect.any(String),
+      });
       expect(promptsService.create).not.toHaveBeenCalled();
       expect(enhancementService.enhance).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -733,6 +737,32 @@ describe('ImageGenerationService', () => {
           requestedSkillSlugs: ['cinema'],
         }),
       );
+    });
+
+    it('stores the structured slots and the text the model was sent', async () => {
+      const { service, promptsService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          camera: 'wide angle',
+          lighting: 'golden hour',
+          subject: 'a fox',
+        }),
+        buildRequest(),
+      );
+
+      expect(promptsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          camera: 'wide angle',
+          lighting: 'golden hour',
+          subject: 'a fox',
+        }),
+      );
+      expect(promptsService.patch).toHaveBeenCalledWith('prompt-doc', {
+        renderTarget: 'prose',
+        renderedPrompt: expect.any(String),
+      });
     });
 
     it('reuses a submitted prompt document instead of creating a duplicate', async () => {

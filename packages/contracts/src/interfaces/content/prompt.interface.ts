@@ -27,6 +27,17 @@ export interface IPrompt extends IBaseEntity {
   style?: string;
   mood?: string;
   camera?: string;
+  scene?: string;
+  /** Structured slots; `renderedPrompt` is the prose sent to the model for them. */
+  subject?: string;
+  action?: string;
+  cameraMovement?: string;
+  lens?: string;
+  lighting?: string;
+  sounds?: string[];
+  speech?: string;
+  renderedPrompt?: string;
+  renderTarget?: string;
   fontFamily?: string;
   blacklists?: string[];
   tags?: ITag[];

@@ -18,4 +18,20 @@ export {
   X_PUBLIC_METRIC_WEIGHTS,
 } from '../platforms/x-algorithm';
 export * from '../registry';
+export type {
+  PromptRenderOptions,
+  PromptRenderTarget,
+  RenderedPrompt,
+  StructuredPrompt,
+  StructuredPromptListSlot,
+  StructuredPromptSlot,
+  StructuredPromptTextSlot,
+} from '../structured-prompt';
+export {
+  hasStructuredPrompt,
+  normalizeStructuredPrompt,
+  renderStructuredPrompt,
+  STRUCTURED_PROMPT_LIST_SLOTS,
+  STRUCTURED_PROMPT_TEXT_SLOTS,
+} from '../structured-prompt';
 export * from '../types';

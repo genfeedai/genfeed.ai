@@ -503,6 +503,24 @@ export class CreateVideoDto extends CreateIngredientDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({
+    description: 'Who or what the video is about',
+    required: false,
+  })
+  readonly subject?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(400)
+  @ApiProperty({
+    description: 'What the subject does',
+    required: false,
+  })
+  readonly action?: string;
+
+  @IsString()
+  @IsOptional()
   @ApiProperty({
     description: 'The lighting for video generation',
     required: false,
