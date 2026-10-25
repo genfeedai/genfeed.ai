@@ -9,7 +9,6 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import {
-  confirmGenerationSpend,
   mockGenerationQuote,
   selectAdvancedModel,
 } from '../../utils/generation-setup';
@@ -358,7 +357,6 @@ test('a rejected submit keeps the prompt for another attempt', async ({
 
   await editor.fill('Keep this prompt after a rejected submit');
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
-  await confirmGenerationSpend(page);
 
   await expect.poll(() => admissions).toBe(1);
   expect(generationWrites).toHaveLength(1);

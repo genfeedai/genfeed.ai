@@ -71,7 +71,7 @@ import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/playground/hooks/useStudioLooks';
-import { useStudioSpendConfirmation } from '@pages/studio/playground/hooks/useStudioSpendConfirmation';
+import { useStudioSpendQuote } from '@pages/studio/playground/hooks/useStudioSpendQuote';
 import {
   buildStudioAvatarRequest,
   resolveStudioAvatarScript,
@@ -202,13 +202,13 @@ export default function StudioPlaygroundComposer({
     onSettingsChange,
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
-  const { confirmSpend, isQuoting } = useStudioSpendConfirmation();
+  const { isQuoting, quoteSpend } = useStudioSpendQuote();
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
-  // Nothing is spent before the operator has seen and confirmed the amount.
+  // The price is quoted by the server first; a price it cannot confirm submits nothing.
   const guardedSubmit = () => {
     if (isSubmitBlocked || !canSubmitStudioGeneration()) return;
-    confirmSpend(
+    quoteSpend(
       { modelKey: settings.modelKey, models, source: spendSource },
       (options) => onSubmitRef.current(options),
     );
@@ -490,7 +490,7 @@ export default function StudioPlaygroundComposer({
   const guardedDraftSubmit = () => {
     if (!draftSettings || isSubmitBlocked || !canSubmitStudioGeneration())
       return;
-    confirmSpend(
+    quoteSpend(
       {
         modelKey: draftSettings.modelKey,
         models,
@@ -582,8 +582,6 @@ export default function StudioPlaygroundComposer({
                 ? 0
                 : crunSpendQuote.credits,
             isByok: crunSpendQuote.billingMode === 'byok',
-            isStillCurrent: () =>
-              crunQuote?.getCurrentQuote()?.quoteId === crunSpendQuote.quoteId,
             kind: 'known',
           }
         : { kind: 'unpriced' }
