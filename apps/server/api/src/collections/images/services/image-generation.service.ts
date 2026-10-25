@@ -343,6 +343,7 @@ export class ImageGenerationService {
         promptOriginalText,
         user,
         personaId,
+        grantedAvatarOwners,
         referenceIds,
         referenceImageUrls,
         placeholderScope,

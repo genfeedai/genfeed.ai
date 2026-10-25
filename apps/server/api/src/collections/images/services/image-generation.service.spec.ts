@@ -222,6 +222,7 @@ const createService = () => {
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
     findAll: vi.fn().mockResolvedValue({ docs: [] }),
+    findByIds: vi.fn().mockResolvedValue([]),
     findOne: vi.fn().mockResolvedValue({
       id: 'ing-0',
       status: IngredientStatus.PROCESSING,
@@ -1399,6 +1400,34 @@ describe('ImageGenerationService', () => {
       const dispatched = replicateService.generateTextToImage.mock.calls[0][1];
       expect(dispatched.image_input).toEqual([sameTenantUrl]);
       expect(JSON.stringify(dispatched)).not.toContain(foreignId);
+    });
+
+    it('links lineage only to references that are ingredients of the organization', async () => {
+      const { service, imagesService, ingredientsService, sharedService } =
+        createService();
+      mockTenantIngredients(ingredientsService, [
+        { id: sameTenantId, organizationId: ORG },
+      ]);
+      imagesService.findByIds.mockResolvedValue([{ id: sameTenantId }]);
+      const brandAssetId = testId('reference', 9);
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          model: FAL_MODEL,
+          references: [sameTenantId, brandAssetId],
+        }),
+        buildRequest(),
+      );
+
+      expect(imagesService.findByIds).toHaveBeenCalledWith(
+        [sameTenantId, brandAssetId],
+        ORG,
+      );
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ sourceIds: [sameTenantId] }),
+      );
     });
 
     it('does not dispatch a foreign-organization reference id to the provider', async () => {
