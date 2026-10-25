@@ -38,7 +38,8 @@ hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
   need it.
 - Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`.
 - Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP).
-- About 10 GB of free disk (15 GB recommended); a fresh install measured about 9.5 GB.
+- At least 15 GB of free disk: the v0.2.15 app image alone is 9.15 GB, plus about
+  0.6 GB for PostgreSQL, and generated media needs more on top.
 - RAM: no minimum is published. Tested on 8 CPU / 15 GiB.
 - Debian 13 provides Compose v2 in its
   [`docker-compose` package](https://packages.debian.org/trixie/docker-compose).

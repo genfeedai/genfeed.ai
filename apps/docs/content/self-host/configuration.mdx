@@ -100,8 +100,8 @@ The login wall protects the REST API on port `3010` as well as the web UI.
 
 | `BETTER_AUTH_ENABLED` | Requests to the API                                                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `true`                | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role.              |
-| `false` (default)     | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
+| `true` (default)      | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role.              |
+| `false`               | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
 
 `X-Forwarded-For` is not trusted unless `TRUST_PROXY` names your proxy, so a
 remote client cannot pass as a local one by sending a header.
