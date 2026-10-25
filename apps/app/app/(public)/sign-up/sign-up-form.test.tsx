@@ -9,6 +9,7 @@ import SignUpForm from './sign-up-form';
 
 const authClientMocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
+  isGoogleSignInAvailable: vi.fn(),
   isMagicLinkAvailable: vi.fn(),
   magicLink: vi.fn(),
   signUpEmail: vi.fn(),
@@ -16,6 +17,7 @@ const authClientMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@genfeedai/auth-client', () => ({
+  isGoogleSignInAvailable: authClientMocks.isGoogleSignInAvailable,
   isMagicLinkAvailable: authClientMocks.isMagicLinkAvailable,
   signIn: {
     magicLink: authClientMocks.magicLink,
@@ -106,6 +108,8 @@ describe('SignUpForm', () => {
     authClientMocks.social.mockResolvedValue({});
     authClientMocks.isMagicLinkAvailable.mockReset();
     authClientMocks.isMagicLinkAvailable.mockReturnValue(true);
+    authClientMocks.isGoogleSignInAvailable.mockReset();
+    authClientMocks.isGoogleSignInAvailable.mockReturnValue(true);
     authClientMocks.signUpEmail.mockReset();
     authClientMocks.signUpEmail.mockResolvedValue({
       data: { token: 'session-token' },
@@ -155,6 +159,17 @@ describe('SignUpForm', () => {
     render(<SignUpForm />);
 
     expect(screen.queryByRole('link', { name: 'Magic Link' })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Email & password' }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides Google when the deployment has no Google OAuth credentials', () => {
+    authClientMocks.isGoogleSignInAvailable.mockReturnValue(false);
+
+    render(<SignUpForm />);
+
+    expect(screen.queryByRole('button', { name: 'Google' })).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Email & password' }),
     ).toBeInTheDocument();
