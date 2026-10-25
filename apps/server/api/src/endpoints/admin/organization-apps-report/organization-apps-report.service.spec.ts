@@ -111,9 +111,9 @@ describe('OrganizationAppsReportService', () => {
       isReleased: false,
       isVisible: false,
     });
-    expect(newOrg?.apps.clips.isVisible).toBe(false);
+    expect(newOrg?.apps.clipper.isVisible).toBe(false);
     expect(previewOrg?.apps.analytics.isReleased).toBe(true);
-    expect(previewOrg?.apps.clips.isReleased).toBe(true);
+    expect(previewOrg?.apps.clipper.isReleased).toBe(true);
     expect(report.releaseFlags.release_publishing).toBe(true);
     expect(report.releaseFlags.release_analytics).toBe(false);
   });

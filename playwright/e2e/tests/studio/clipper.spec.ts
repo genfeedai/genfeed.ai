@@ -383,7 +383,7 @@ test.describe('Clip Factory', () => {
       new RegExp(`${CLIPPER_URL}/${MOCK_PROJECT_ID}`),
     );
     await expect(
-      authenticatedPage.getByRole('heading', { name: /clipper ready/i }),
+      authenticatedPage.getByRole('heading', { name: /clips ready/i }),
     ).toBeVisible();
   });
 
@@ -829,7 +829,7 @@ test.describe('Clip Factory', () => {
     ]);
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: /clipper ready/i }),
+      authenticatedPage.getByRole('heading', { name: /clips ready/i }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByText('Edited Hook Title'),

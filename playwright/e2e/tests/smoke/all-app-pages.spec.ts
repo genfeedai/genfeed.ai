@@ -167,7 +167,7 @@ const protectedRouteBuckets: RouteBucket[] = [
       ),
   ),
   routeBucket('protected studio apps', protectedRoutes, (route) =>
-    /^\/test-org\/brand-1\/(clips|editor|motion|playground|storyboard|turbo)(\/|$)/.test(
+    /^\/test-org\/brand-1\/(clipper|editor|motion|playground|storyboard|turbo)(\/|$)/.test(
       route,
     ),
   ),

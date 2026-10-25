@@ -1044,7 +1044,7 @@
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/clipper-projects/services/raw-cut-clip.service.spec.ts",
-      "fingerprint": "3a4ced4d7f38e279477e",
+      "fingerprint": "10bc0306611dbddba915",
       "message": "Property 'captionContent' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 'captionContent' does not exist on type 'IEditorRenderJobParams'.",
       "workspace": "api"
     },
@@ -1052,16 +1052,16 @@
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/clipper-projects/services/raw-cut-clip.service.spec.ts",
-      "fingerprint": "7aa3ab380ad0ccdf8be5",
-      "message": "Property 'inputPath' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 'inputPath' does not exist on type 'IEditorRenderJobParams'.",
+      "fingerprint": "e4cc6b1a1bf0a50e3c9b",
+      "message": "Property 's3Key' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 's3Key' does not exist on type 'IEditorRenderJobParams'.",
       "workspace": "api"
     },
     {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/clipper-projects/services/raw-cut-clip.service.spec.ts",
-      "fingerprint": "dc8b4700fdf4827a0f87",
-      "message": "Property 's3Key' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 's3Key' does not exist on type 'IEditorRenderJobParams'.",
+      "fingerprint": "f01b9dfea2f6c3e6bb7e",
+      "message": "Property 'inputPath' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 'inputPath' does not exist on type 'IEditorRenderJobParams'.",
       "workspace": "api"
     },
     {
@@ -4180,7 +4180,7 @@
       "code": 2614,
       "count": 1,
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.test.tsx",
-      "fingerprint": "fa7602680832cac49bc7",
+      "fingerprint": "05863e7ecd9dff5559ed",
       "message": "Module '\"./HighlightReviewCard\"' has no exported member 'IHighlight'. Did you mean to use 'import IHighlight from \"./HighlightReviewCard\"' instead?",
       "workspace": "app"
     },
