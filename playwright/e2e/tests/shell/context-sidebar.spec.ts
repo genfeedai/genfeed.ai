@@ -211,7 +211,7 @@ test.describe('Context sidebar — selection driven', () => {
     ).toBeVisible();
   });
 
-  test('opens the mobile drawer on a tap and deselects when dismissed', async ({
+  test('opens the shared mobile Context panel on a tap and deselects when dismissed', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 844, width: 390 });
@@ -220,8 +220,12 @@ test.describe('Context sidebar — selection driven', () => {
     const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
     await card.getByText(ASSET_PROMPT).click();
 
-    const drawer = authenticatedPage.getByRole('dialog', { name: 'Image' });
+    const drawer = authenticatedPage.getByRole('dialog', { name: 'Agent' });
     await expect(drawer).toBeVisible();
+    await expect(drawer.getByTestId('workspace-panel-header')).toHaveCount(1);
+    await expect(
+      drawer.getByRole('tab', { exact: true, name: 'Context' }),
+    ).toHaveAttribute('aria-selected', 'true');
     await expect(
       drawer.getByTestId('studio-playground-inspector'),
     ).toBeVisible();

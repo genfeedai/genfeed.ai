@@ -127,6 +127,7 @@ test.describe('Agent dock', () => {
     await page.getByTestId('topbar-agent-dock-toggle').click();
 
     const dock = page.getByRole('region', { name: 'Agent' });
+    await page.getByTestId('workspace-panel-more').click();
     await page.getByTestId('workspace-panel-full-page').click();
 
     await expect(page).toHaveURL(/\/agent(\/|$)/);
@@ -147,7 +148,8 @@ test.describe('Agent dock', () => {
 
     const sheet = page.getByRole('dialog', { name: 'Agent' });
     await expect(sheet).toBeVisible();
-    await sheet.getByRole('button', { name: 'Close agent' }).click();
+    await expect(sheet.getByTestId('workspace-panel-header')).toHaveCount(1);
+    await sheet.getByTestId('workspace-panel-close').click();
     await expect(sheet).toHaveCount(0);
   });
 });
