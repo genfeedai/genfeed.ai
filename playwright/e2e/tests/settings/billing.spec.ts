@@ -36,34 +36,9 @@ test.describe('Billing Settings', () => {
         level: 1,
         name: 'Credits',
       }),
-    ).toBeAttached();
+    ).toBeVisible();
     // Community builds never read a wallet balance.
     expect(creditReads).toEqual([]);
-  });
-
-  test('should keep the credits route when the billing API fails', async ({
-    authenticatedPage,
-  }) => {
-    const settingsPage = new SettingsPage(authenticatedPage);
-
-    await authenticatedPage.route(
-      '**/api.genfeed.ai/billing/**',
-      async (route) => {
-        await route.fulfill({
-          body: JSON.stringify({
-            errors: [{ title: 'Internal Server Error' }],
-          }),
-          contentType: 'application/json',
-          status: 500,
-        });
-      },
-    );
-
-    await settingsPage.goToBilling();
-
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.SETTINGS.CREDITS}`),
-    );
   });
 
   test('should open the credits route on a mobile viewport', async ({

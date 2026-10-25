@@ -125,12 +125,17 @@ test.describe('Billing Settings (Cloud)', () => {
   });
 
   test.describe('Error Handling', () => {
-    test('should handle billing API errors', async ({ authenticatedPage }) => {
+    test('should explain a failed credit balance read', async ({
+      authenticatedPage,
+    }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
+      let creditReads = 0;
 
+      await mockActiveSubscription(authenticatedPage, { credits: 500 });
       await authenticatedPage.route(
-        '**/api.genfeed.ai/billing/**',
+        '**/v1/subscriptions/current/credits',
         async (route) => {
+          creditReads += 1;
           await route.fulfill({
             body: JSON.stringify({
               errors: [{ title: 'Internal Server Error' }],
@@ -146,6 +151,12 @@ test.describe('Billing Settings (Cloud)', () => {
       await expect(authenticatedPage).toHaveURL(
         new RegExp(`${APP_ROUTES.SETTINGS.CREDITS}`),
       );
+      await expect(
+        settingsPage.canvas.getByText(
+          'Your credit balance could not be loaded.',
+        ),
+      ).toBeVisible();
+      expect(creditReads).toBeGreaterThan(0);
     });
   });
 

@@ -232,7 +232,7 @@ test.describe('Personal Settings', () => {
           level: 1,
           name: 'Credits',
         }),
-      ).toBeAttached();
+      ).toBeVisible();
     });
   });
 

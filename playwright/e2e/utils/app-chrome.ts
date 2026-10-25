@@ -65,19 +65,27 @@ export async function openAccountCredits(page: Page): Promise<Locator> {
   return page.getByTestId('account-credits');
 }
 
+const PHONE_MAX_WIDTH = 768;
+
 /**
  * Asserts the account menu shows no credit wallet block, then closes it. The
  * app rail (and with it the account menu) is not mounted on phone widths, so
- * there the block can only be absent and nothing is opened.
+ * there the block can only be absent and nothing is opened. On wider
+ * viewports the menu must exist, so a missing button fails instead of
+ * passing vacuously.
  */
 export async function expectNoAccountCredits(page: Page): Promise<void> {
-  const accountMenuButton = page
-    .getByTestId('app-rail-account')
-    .getByRole('button', { name: 'Open account menu' });
-  if (await accountMenuButton.isVisible()) {
-    await expect(await openAccountCredits(page)).toHaveCount(0);
-    await page.keyboard.press('Escape');
+  const isPhone = (page.viewportSize()?.width ?? Infinity) < PHONE_MAX_WIDTH;
+  if (isPhone) {
+    await expect(page.getByTestId('account-credits')).toHaveCount(0);
     return;
   }
-  await expect(page.getByTestId('account-credits')).toHaveCount(0);
+
+  await expect(
+    page
+      .getByTestId('app-rail-account')
+      .getByRole('button', { name: 'Open account menu' }),
+  ).toBeVisible();
+  await expect(await openAccountCredits(page)).toHaveCount(0);
+  await page.keyboard.press('Escape');
 }
