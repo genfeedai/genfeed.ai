@@ -233,10 +233,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
           </div>
         )}
         {notice && <p role="status">{notice}</p>}
-        <div
-          className="flex flex-wrap gap-2"
-          hidden={isFreshIdeasDraft}
-        >
+        <div className="flex flex-wrap gap-2" hidden={isFreshIdeasDraft}>
           {steps.map((step) => (
             <Button
               key={step}
