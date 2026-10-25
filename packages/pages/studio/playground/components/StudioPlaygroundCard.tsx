@@ -175,7 +175,22 @@ export default function StudioPlaygroundCard({
   // A failure belongs to the URL and retry revision it happened under, so a
   // successful Inspector retry (a new revision) brings the tile back.
   const [failedMediaKey, setFailedMediaKey] = useState<string | null>(null);
-  const mediaKey = job.url ? `${previewRevision}\u0001${job.url}` : null;
+  const delivery = job.ingredient?.mediaDelivery;
+  // Inspector recovery carries a revision for protected media, not a stored URL.
+  // Mount the shared tile so it can obtain its own current authorized grant.
+  const retrySource =
+    previewRevision > 0 &&
+    !job.ingredient?.isDeleted &&
+    delivery?.id === job.ingredient?.id &&
+    delivery?.id === (job.ingredientId ?? job.id) &&
+    delivery?.purpose === 'preview' &&
+    delivery.state !== 'UNSUPPORTED'
+      ? delivery.id
+      : undefined;
+  const mediaSource = job.url || retrySource;
+  const mediaKey = mediaSource
+    ? `${previewRevision}\u0001${mediaSource}`
+    : null;
   const [isCancelling, setIsCancelling] = useState(false);
   const cancelGeneration = async () => {
     setIsCancelling(true);

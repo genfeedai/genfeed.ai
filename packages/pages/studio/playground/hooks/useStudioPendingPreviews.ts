@@ -10,18 +10,18 @@ function pollDelayMs(attempt: number): number {
   return Math.min(30_000, 2_000 * 2 ** Math.min(attempt, 4));
 }
 
-/**
- * A saved asset whose preview the API has not issued yet. The grid card shows
- * "Preview unavailable" for these and never asks again, while the Library
- * re-reads until the watermarked preview is ready.
- */
+/** A failed delivery attempt may still recover through the worker's retries. */
 export function isStudioPreviewPending(job: StudioPlaygroundJob): boolean {
+  const grant = job.ingredient?.mediaDelivery;
   return (
     !job.url &&
+    !job.ingredient?.isDeleted &&
+    grant?.id === (job.ingredientId ?? job.id) &&
+    grant?.purpose === 'preview' &&
     job.status !== IngredientStatus.FAILED &&
     job.status !== IngredientStatus.PROCESSING &&
     job.status !== IngredientStatus.DRAFT &&
-    job.ingredient?.mediaDelivery?.state === 'PENDING'
+    (grant.state === 'PENDING' || grant.state === 'FAILED')
   );
 }
 
@@ -32,10 +32,9 @@ interface UseStudioPendingPreviewsParams {
 }
 
 /**
- * Re-reads the authorized preview of every grid asset still pending, which
- * also asks the API to prepare it, and hands each ready URL back to its card.
- * It stops per asset on a ready, failed or unsupported grant, and overall
- * after a bounded number of attempts.
+ * Observes bounded backend recovery and hands ready authorized URLs to cards.
+ * The batch service may prepare pending variants; failed ones are read only.
+ * Unsupported variants stop immediately, without retrying their render.
  */
 export function useStudioPendingPreviews({
   getIngredientsService,
@@ -73,15 +72,16 @@ export function useStudioPendingPreviews({
         if (controller.signal.aborted) return;
         grants.forEach((grant, index) => {
           const job = remaining[index];
-          if (!grant) return;
+          if (
+            !grant ||
+            grant.id !== (job.ingredientId ?? job.id) ||
+            grant.purpose !== 'preview'
+          )
+            return;
           if (grant.state === 'READY' && grant.url) {
             settledIds.add(job.id);
             recoverPreview(job, grant.url);
-          } else if (
-            grant.state === 'FAILED' ||
-            grant.state === 'UNSUPPORTED'
-          ) {
-            // Terminal: the card keeps its fallback and the Inspector offers Retry.
+          } else if (grant.state === 'UNSUPPORTED') {
             settledIds.add(job.id);
           }
         });

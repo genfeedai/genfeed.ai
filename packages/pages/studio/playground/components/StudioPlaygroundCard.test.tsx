@@ -3,7 +3,13 @@ import {
   IngredientStatus,
   ViewType,
 } from '@genfeedai/contracts';
-import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  IVideo,
+  MediaDeliveryGrant,
+} from '@genfeedai/contracts/interfaces';
+import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
 import type {
   MasonryImageProps,
   MasonryVideoProps,
@@ -407,6 +413,118 @@ describe('StudioPlaygroundCard', () => {
       'fallback',
     );
   });
+
+  it.each(['video', 'image-edit'] as const)(
+    'remounts a URL-less protected %s after successful Inspector recovery',
+    (type) => {
+      const mediaDelivery: MediaDeliveryGrant = {
+        expiresAt: null,
+        id: 'protected-asset',
+        purpose: 'preview',
+        state: 'FAILED',
+        url: null,
+      };
+      const ingredient =
+        type === 'video'
+          ? new Video({
+              id: mediaDelivery.id,
+              mediaDelivery,
+              status: IngredientStatus.GENERATED,
+            })
+          : new IngredientImage({
+              id: mediaDelivery.id,
+              mediaDelivery,
+              status: IngredientStatus.GENERATED,
+            });
+      const job = {
+        ...generatedJob,
+        id: ingredient.id,
+        ingredientId: ingredient.id,
+        ingredient,
+        type,
+        url: undefined,
+      };
+      const props = {
+        assetActions: buildAssetActions(),
+        job,
+        onReprompt: vi.fn(),
+        onSelect: vi.fn(),
+        view: ViewType.GRID,
+      } satisfies ComponentProps<typeof StudioPlaygroundCard>;
+      const { rerender } = render(<StudioPlaygroundCard {...props} />);
+      expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+
+      rerender(<StudioPlaygroundCard {...props} previewRevision={1} />);
+
+      const preview =
+        type === 'video'
+          ? screen.getByTestId('shared-masonry-video')
+          : screen.getByTestId('shared-masonry-image');
+      expect(preview).toBeInTheDocument();
+      const tileProps =
+        type === 'video'
+          ? masonryMocks.video.mock.calls.at(-1)?.[0]
+          : masonryMocks.image.mock.calls.at(-1)?.[0];
+      expect(tileProps?.previewRetryRevision).toBe(1);
+      expect(ingredient.mediaDelivery).toEqual(mediaDelivery);
+      expect(ingredient.ingredientUrl).toBe('');
+      expect(job.url).toBeUndefined();
+      expect(props.onReprompt).not.toHaveBeenCalled();
+
+      act(() => tileProps?.onMediaError?.());
+      expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+    },
+  );
+
+  it.each(['deleted', 'unsupported', 'foreign', 'cancelled'] as const)(
+    'does not remount a URL-less %s asset on an Inspector revision',
+    (state) => {
+      const mediaDelivery: MediaDeliveryGrant = {
+        expiresAt: null,
+        id: state === 'foreign' ? 'another-asset' : 'protected-asset',
+        purpose: 'preview',
+        state: state === 'unsupported' ? 'UNSUPPORTED' : 'FAILED',
+        url: null,
+      };
+      const ingredient = new Video({
+        id: 'protected-asset',
+        isDeleted: state === 'deleted',
+        mediaDelivery,
+        status: IngredientStatus.GENERATED,
+      });
+      render(
+        <StudioPlaygroundCard
+          assetActions={buildAssetActions()}
+          job={{
+            ...generatedJob,
+            id: ingredient.id,
+            ingredientId: ingredient.id,
+            ingredient,
+            status:
+              state === 'cancelled'
+                ? IngredientStatus.FAILED
+                : IngredientStatus.GENERATED,
+            type: 'video',
+            url: undefined,
+          }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          previewRevision={1}
+          view={ViewType.GRID}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('shared-masonry-video'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('studio-asset-protected-asset'),
+      ).toHaveAttribute(
+        'data-asset-media-state',
+        state === 'cancelled' ? 'failed' : 'fallback',
+      );
+    },
+  );
 
   it('shows the fallback immediately when a generated asset has no url', () => {
     render(
