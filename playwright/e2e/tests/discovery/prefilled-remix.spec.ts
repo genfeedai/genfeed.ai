@@ -457,7 +457,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     });
     await expect(reviewLink).toHaveAttribute(
       'href',
-      /\/publishing\/posts\?view=approvals&run=review-batch-1$/,
+      /\/publishing\/approvals\/review-batch-1$/,
     );
     await reviewLink.click();
     await expect(

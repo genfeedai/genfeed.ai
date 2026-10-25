@@ -144,7 +144,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/posts?view=approvals',
+              route: '/publishing/approvals',
             },
             arguments: 'post-1',
           })
@@ -176,7 +176,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/posts?view=calendar',
+              route: '/publishing/calendar',
             },
             arguments: 'post-1',
           })
@@ -209,9 +209,7 @@ vi.mock('@genfeedai/agent', () => ({
         name,
         requiredScope: 'brand',
         route:
-          name === 'publish'
-            ? '/publishing/posts?view=approvals'
-            : '/publishing/remix',
+          name === 'publish' ? '/publishing/approvals' : '/publishing/remix',
       };
     }
     if (name === 'workflow') {
@@ -1196,7 +1194,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/publishing/posts?view=approvals',
+      '/acme/moonrise/publishing/approvals',
     );
   });
 
@@ -1351,7 +1349,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/publishing/posts?view=approvals'),
+      expect.stringContaining('/publishing/approvals'),
     );
   });
 

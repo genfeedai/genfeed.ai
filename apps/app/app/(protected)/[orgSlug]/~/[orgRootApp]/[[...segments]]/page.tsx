@@ -9,6 +9,7 @@ import {
   LibraryPlace,
   PageScope,
   parseLibraryShelf,
+  ViewType,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -27,10 +28,11 @@ import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
 import LibraryOverview from '@pages/library/overview/library-overview';
+import PublishingDeskViewToggle from '@pages/posts/library/publishing-desk-view-toggle';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
@@ -45,6 +47,7 @@ import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
+import { resolveLegacyPublishingViewPath } from '../../../[brandSlug]/publishing/posts/legacy-view-redirect';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
@@ -363,13 +366,38 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'posts') {
+      const legacyViewPath = resolveLegacyPublishingViewPath(
+        (await searchParams) ?? {},
+      );
+
+      if (legacyViewPath) {
+        permanentRedirect(createOrganizationAppRoute(orgSlug, legacyViewPath));
+      }
+
       const postsListPage = await renderPostsListPage({
-        approvals: <ReviewQueueContent />,
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
       });
 
       return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
+    }
+
+    if (publishingSegments.length === 1 && section === 'calendar') {
+      return (
+        <PublishingLayoutContent>
+          <PublishingDeskViewToggle activeView={ViewType.CALENDAR} />
+          <ContentCalendarPage embedded />
+        </PublishingLayoutContent>
+      );
+    }
+
+    if (section === 'approvals' && publishingSegments.length <= 3) {
+      return (
+        <PublishingLayoutContent>
+          <PublishingDeskViewToggle activeView={ViewType.APPROVALS} />
+          <ReviewQueueContent />
+        </PublishingLayoutContent>
+      );
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

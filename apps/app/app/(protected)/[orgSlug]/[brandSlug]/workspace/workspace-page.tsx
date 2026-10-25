@@ -4,7 +4,7 @@ import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/task
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { createFilterHref } from '@helpers/navigation/filter-href.helper';
+import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TabsProps } from '@props/ui/navigation/tabs.props';
@@ -212,11 +212,10 @@ function WorkspacePageContentContent({
           ) : (
             <Badge variant="outline">{count}</Badge>
           ),
-          href: createFilterHref(
-            href('/workspace/inbox'),
+          href: createPathViewHref(
+            href(`/workspace/inbox/${option.id}`),
             inboxSearch,
             'view',
-            option.id,
           ),
           id: option.id,
           label: option.label,

@@ -11,7 +11,6 @@ import type { MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
-  PUBLISHING_POSTS_QUERY_KEYS,
   STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants';
 import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
@@ -36,7 +35,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createElement, useEffect, useMemo } from 'react';
 
 interface PageContextConfig {
@@ -497,7 +496,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.PUBLISHING.REVIEW]: {
+  [APP_ROUTES.PUBLISHING.APPROVALS]: {
     placeholder: 'Ask about content review...',
     suggestedActions: [
       {
@@ -676,19 +675,12 @@ export function useAgentPageContext(
   pageHelp?: PageHelpContent | null,
 ): PageContextConfig {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const postsView = searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW);
   const { selectedBrand } = useBrand();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
-  const contextPathname = useMemo(() => {
-    const normalized = normalizeAgentContextPathname(pathname);
-    // Calendar and approvals are Posts views, so their context keys on the
-    // view query rather than a path of their own.
-    if (normalized !== APP_ROUTES.PUBLISHING.POSTS) return normalized;
-    if (postsView === 'calendar') return APP_ROUTES.PUBLISHING.CALENDAR;
-    if (postsView === 'approvals') return APP_ROUTES.PUBLISHING.REVIEW;
-    return normalized;
-  }, [pathname, postsView]);
+  const contextPathname = useMemo(
+    () => normalizeAgentContextPathname(pathname),
+    [pathname],
+  );
 
   const config = useMemo(() => {
     const base = getContextForRoute(contextPathname);

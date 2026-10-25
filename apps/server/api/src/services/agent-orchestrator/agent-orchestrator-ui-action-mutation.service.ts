@@ -7,6 +7,7 @@ import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestr
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
+import { buildApprovedMutationOutcome } from '@api/services/agent-orchestrator/tools/mutation-approval-outcome';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
@@ -170,6 +171,7 @@ export class AgentOrchestratorUiActionMutationService {
       status,
       result,
       resolvedCard,
+      args,
     );
   }
 
@@ -342,8 +344,13 @@ export class AgentOrchestratorUiActionMutationService {
     status: 'approved' | 'declined',
     result: AgentToolResult,
     resolvedCard: AgentUiAction,
+    args: Record<string, unknown>,
   ) {
     const { context, threadId } = params;
+    const outcome =
+      status === 'approved'
+        ? buildApprovedMutationOutcome(toolName, args, result)
+        : null;
     const digest = createHash('sha256')
       .update(
         [
@@ -367,14 +374,18 @@ export class AgentOrchestratorUiActionMutationService {
         status === 'declined'
           ? 'Action declined. Nothing was executed.'
           : result.success
-            ? 'Approved action completed.'
+            ? (outcome?.content ?? 'Approved action completed.')
             : `Approved action failed: ${result.error ?? 'Please retry later.'}`,
       context,
       messageId,
       model: params.model,
       result: {
         ...result,
-        nextActions: [resolvedCard, ...(result.nextActions ?? [])],
+        nextActions: [
+          resolvedCard,
+          ...(outcome?.nextActions ?? []),
+          ...(result.nextActions ?? []),
+        ],
       },
       threadId,
       eventIdempotencyKey: `mutation-result:${approvalId}:${status}`,

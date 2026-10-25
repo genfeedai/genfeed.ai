@@ -85,10 +85,7 @@ describe('ClipWorkflowRunCard', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open human review queue →' }),
-    ).toHaveAttribute(
-      'href',
-      '/test-org/test-brand/publishing/posts?view=approvals',
-    );
+    ).toHaveAttribute('href', '/test-org/test-brand/publishing/approvals');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Open Supervised Review' }),
@@ -96,7 +93,7 @@ describe('ClipWorkflowRunCard', () => {
 
     await waitFor(() => {
       expect(locationMock.href).toBe(
-        '/publishing/posts?view=approvals&run=batch-123&item=item-456',
+        '/publishing/approvals/batch-123/item-456',
       );
     });
   });

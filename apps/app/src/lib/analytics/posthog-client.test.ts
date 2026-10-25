@@ -171,14 +171,14 @@ describe('initAnalytics', () => {
     const capturedAt = new Date('2026-07-15T00:00:00.000Z');
     const originalProperties = {
       $current_url:
-        'https://app.genfeed.ai/acme/brand/publishing/review?title=Secret%20Post&description=xyz',
+        'https://app.genfeed.ai/acme/brand/publishing/approvals?title=Secret%20Post&description=xyz',
       $pathname: '/acme/brand/publishing/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $prev_pageview_pathname:
         '/acme/brand/editor/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $referrer: 'https://app.genfeed.ai/acme/brand/publishing/x?title=leak',
       $set_once: {
         $initial_current_url:
-          'https://app.genfeed.ai/acme/brand/publishing/review?title=Secret%20Post',
+          'https://app.genfeed.ai/acme/brand/publishing/approvals?title=Secret%20Post',
       },
       title: 'Secret Post — Genfeed',
       utm_term: 'a secret search phrase',
@@ -238,13 +238,13 @@ describe('initAnalytics', () => {
     expect(scrubbed.properties).not.toBe(originalProperties);
     // Tenant slugs templatized, ids collapsed — on top-level and nested bags.
     expect(props.$current_url).toBe(
-      'https://app.genfeed.ai/:org/:brand/publishing/review',
+      'https://app.genfeed.ai/:org/:brand/publishing/approvals',
     );
     expect(props.$pathname).toBe('/:org/:brand/publishing/:id');
     expect(props.$prev_pageview_pathname).toBe('/:org/:brand/editor/:id');
     expect(
       (props.$set_once as Record<string, unknown>).$initial_current_url,
-    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/review');
+    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/approvals');
   });
 
   it('before_send keeps the project token and distinct id PostHog routes by', async () => {
@@ -284,11 +284,11 @@ describe('initAnalytics', () => {
     const scrubbed = config.before_send({
       $set: {
         $current_url:
-          'https://app.genfeed.ai/acme/brand/publishing/review?title=Confidential',
+          'https://app.genfeed.ai/acme/brand/publishing/approvals?title=Confidential',
       },
       $set_once: {
         $initial_current_url:
-          'https://app.genfeed.ai/acme/brand/publishing/review?title=Confidential',
+          'https://app.genfeed.ai/acme/brand/publishing/approvals?title=Confidential',
         $initial_utm_campaign:
           '  HTTPS://app.genfeed.ai/acme/brand?document=confidential',
         $initial_utm_content:
@@ -308,10 +308,10 @@ describe('initAnalytics', () => {
     });
 
     expect(scrubbed.$set.$current_url).toBe(
-      'https://app.genfeed.ai/:org/:brand/publishing/review',
+      'https://app.genfeed.ai/:org/:brand/publishing/approvals',
     );
     expect(scrubbed.$set_once.$initial_current_url).toBe(
-      'https://app.genfeed.ai/:org/:brand/publishing/review',
+      'https://app.genfeed.ai/:org/:brand/publishing/approvals',
     );
     expect(scrubbed.$set_once.$initial_utm_campaign).toBe(
       'https://app.genfeed.ai/:org/:brand',

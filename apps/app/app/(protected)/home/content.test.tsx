@@ -798,7 +798,7 @@ describe('OperationalHomeContent', () => {
       within(needsYou).getByRole('link', {
         name: 'Attention queue',
       }),
-    ).toHaveAttribute('href', '/acme/moonrise/publishing/posts?view=approvals');
+    ).toHaveAttribute('href', '/acme/moonrise/publishing/approvals');
     expect(needsYou).not.toHaveTextContent('{count} more waiting');
     expect(
       within(needsYou).queryByRole('link', {
@@ -815,7 +815,7 @@ describe('OperationalHomeContent', () => {
       queue.getByRole('link', { name: 'Open Review item_1' }),
     ).toHaveAttribute(
       'href',
-      '/acme/moonrise/publishing/posts?view=approvals&run=turbo_run_1&item=item_1',
+      '/acme/moonrise/publishing/approvals/turbo_run_1/item_1',
     );
     expect(queue.getByRole('button', { name: 'Approve' })).toHaveClass(
       'size-8',

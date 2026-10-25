@@ -980,7 +980,7 @@ export const testRoutes = {
   billing: '/billing',
   calendar: {
     articles: '/publishing/posts?type=article',
-    posts: '/publishing/posts?view=calendar',
+    posts: '/publishing/calendar',
   },
   editor: '/editor',
   generation: {
