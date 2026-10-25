@@ -113,6 +113,7 @@ function FilterMenuFacetItem({
             >
               {visibleOptions.map((option) => (
                 <DropdownMenuRadioItem
+                  className={option.isLiteral ? 'normal-case' : undefined}
                   count={option.count}
                   key={option.value}
                   value={option.value}
@@ -128,6 +129,7 @@ function FilterMenuFacetItem({
               return (
                 <DropdownMenuCheckboxItem
                   checked={isChecked}
+                  className={option.isLiteral ? 'normal-case' : undefined}
                   count={option.count}
                   disabled={isLimitReached && !isChecked}
                   key={option.value}

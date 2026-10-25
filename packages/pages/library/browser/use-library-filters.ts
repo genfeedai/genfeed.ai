@@ -124,6 +124,7 @@ export function useLibraryFilters({
     () =>
       tagOptions.map((tag) => ({
         count: tag.assetCount,
+        isLiteral: true,
         label: tag.label,
         value: tag.id,
       })),

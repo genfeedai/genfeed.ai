@@ -122,6 +122,7 @@ export default function LibraryFiltersMenu({
       onChange: onCharactersChange,
       options: characterOptions.map((character) => ({
         icon: <CharacterAvatar character={character} />,
+        isLiteral: true,
         label: character.label,
         value: character.id,
       })),

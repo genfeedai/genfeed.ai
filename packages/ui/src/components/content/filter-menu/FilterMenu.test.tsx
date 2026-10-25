@@ -87,6 +87,30 @@ describe('FilterMenu', () => {
     expect(screen.getByRole('menuitemradio', { name: 'All' })).toBeVisible();
   });
 
+  it('shows user-authored option text as typed', async () => {
+    const user = userEvent.setup();
+    renderMenu([
+      {
+        key: 'tags',
+        label: 'Tags',
+        onChange: vi.fn(),
+        options: [
+          { isLiteral: true, label: 'spring sale', value: 'spring' },
+          { label: 'Image', value: 'image' },
+        ],
+        selection: 'multiple',
+        values: [],
+      },
+    ]);
+    await openFacet(user, /Tags/);
+    expect(
+      await screen.findByRole('menuitemcheckbox', { name: 'spring sale' }),
+    ).toHaveClass('normal-case');
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Image' }),
+    ).not.toHaveClass('normal-case');
+  });
+
   it('reports the chosen value of a single facet', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
