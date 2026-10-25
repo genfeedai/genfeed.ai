@@ -232,6 +232,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automation/runs/:id': 'Run',
   '/:orgSlug/:brandSlug/automation/workflows/new': 'New Workflow',
   '/:orgSlug/:brandSlug/automation/workflows': 'Workflows',
+  '/:orgSlug/:brandSlug/automation/workflows/templates': 'Templates',
   '/:orgSlug/:brandSlug/messages/reply-drip': 'Reply drip',
   '/:orgSlug/:brandSlug/messages/replies': 'Replies',
   '/:orgSlug/:brandSlug/automation/runs': 'Runs',
@@ -1028,6 +1029,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automation/content-runs',
       '/:orgSlug/:brandSlug/automation/content-runs/:runId',
       '/:orgSlug/:brandSlug/automation/workflows',
+      '/:orgSlug/:brandSlug/automation/workflows/templates',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/automation',

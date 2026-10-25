@@ -125,6 +125,17 @@ describe('app next.config', () => {
     },
   );
 
+  it('moves the workflow templates view into the path and keeps the query', async () => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: 'https://example.com/acme/brand/automation/workflows?view=templates&template=t1',
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    const target = new URL(response.headers.get('location') ?? '');
+    expect(target.pathname).toBe('/acme/brand/automation/workflows/templates');
+    expect(target.searchParams.get('template')).toBe('t1');
+  });
+
   it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
     const response = await unstable_getResponseFromNextConfig({
       url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',

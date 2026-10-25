@@ -335,10 +335,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
       within(screen.getByTestId('plugins-workflows')).getByRole('link', {
         name: 'Open workflow library',
       }),
-    ).toHaveAttribute(
-      'href',
-      '/acme/moonrise/automation/workflows?view=templates',
-    );
+    ).toHaveAttribute('href', '/acme/moonrise/automation/workflows/templates');
 
     mocks.brand.settings = {
       hasOrganizationBilling: true,

@@ -138,9 +138,10 @@ export const APP_ROUTES = {
     CAMPAIGNS_NEW: '/automation/campaigns/new',
     /**
      * Pipeline canvas library (merged former /workflows surface). Templates is
-     * a view of this page: `WORKFLOWS?view=templates`.
+     * its own path beside the library.
      */
     WORKFLOWS: '/automation/workflows',
+    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
     WORKFLOWS_NEW: '/automation/workflows/new',
   },
   DISCOVERY: {

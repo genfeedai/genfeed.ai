@@ -24,7 +24,7 @@ describe('page help routing', () => {
       'automationWorkflows',
     );
     expect(
-      resolvePageHelpKey('/acme/brand/automation/workflows', 'view=templates'),
+      resolvePageHelpKey('/acme/brand/automation/workflows/templates'),
     ).toBe('automationTemplates');
     expect(resolvePageHelpKey('/acme/brand/automation/workflows')).toBe(
       'automationWorkflows',

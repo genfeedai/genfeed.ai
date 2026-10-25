@@ -404,7 +404,7 @@ function OrganizationPluginsCatalog() {
                           ? createBrandAppRoute(
                               orgSlug,
                               brandSlug,
-                              `${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates`,
+                              APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
                             )
                           : createOrganizationAppRoute(
                               orgSlug,

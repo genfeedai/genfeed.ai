@@ -199,6 +199,12 @@ const filterRouteRedirects: AppRedirect[] = [
       permanent: true,
     })),
   ),
+  ...FILTER_ROUTE_SCOPES.map((prefix) => ({
+    destination: `${prefix}/automation/workflows/templates`,
+    has: [{ key: 'view', type: 'query' as const, value: 'templates' }],
+    permanent: true,
+    source: `${prefix}/automation/workflows`,
+  })),
   ...LIBRARY_TYPE_PRESET_QUERIES.flatMap(([source, presetQuery]) =>
     FILTER_ROUTE_SCOPES.flatMap((prefix) => [
       {

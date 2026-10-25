@@ -51,7 +51,7 @@ test.describe('Workflow templates & executions interactions', () => {
     });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\?view=templates$/,
+      /\/automation\/workflows\/templates$/,
     );
     await expect(
       authenticatedPage.getByRole('link', { name: 'Templates' }).first(),
@@ -292,7 +292,7 @@ test.describe('Workflow templates & executions interactions', () => {
     });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\?view=templates/,
+      /\/automation\/workflows\/templates/,
     );
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
