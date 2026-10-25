@@ -1,5 +1,6 @@
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { AdWatchedAdvertisersCoreModule } from '@api/collections/ad-watched-advertisers/ad-watched-advertisers-core.module';
+import { AutonomousProducerInstallModule } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { GoogleAdsTransparencyProvider } from '@api/services/paid-creative-research/providers/google-ads-transparency.provider';
 import { MetaAdLibraryProvider } from '@api/services/paid-creative-research/providers/meta-ad-library.provider';
@@ -32,6 +33,7 @@ export const PaidCreativeResearchModule = createServiceModule(
       AdPerformanceModule,
       AdWatchedAdvertisersCoreModule,
       ApifyModule,
+      AutonomousProducerInstallModule,
       ResearchAccessModule,
     ],
     additionalProviders: [

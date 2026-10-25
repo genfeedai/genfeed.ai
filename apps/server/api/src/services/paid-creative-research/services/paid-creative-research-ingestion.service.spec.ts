@@ -1,5 +1,7 @@
 import type { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
+import type { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   PaidCreativeProviderAdapter,
   PaidCreativeReadiness,
@@ -11,7 +13,7 @@ import {
 } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import type { NormalizedPaidCreativeRecord } from '@genfeedai/integrations/ads';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { ServiceUnavailableException } from '@nestjs/common';
+import { HttpException, ServiceUnavailableException } from '@nestjs/common';
 
 const READY: PaidCreativeReadiness = {
   available: true,
@@ -46,12 +48,17 @@ function buildCreative(
 
 type Harness = {
   access: { decide: ReturnType<typeof vi.fn> };
+  autonomousProducerInstallService: {
+    installOnOptIn: ReturnType<typeof vi.fn>;
+  };
   adPerformanceService: {
     markResearchSnapshotStale: ReturnType<typeof vi.fn>;
     replaceResearchSnapshot: ReturnType<typeof vi.fn>;
   };
   adWatchedAdvertisersService: {
     findAllByAccount: ReturnType<typeof vi.fn>;
+    claimManualPoll: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     recordIngestionResult: ReturnType<typeof vi.fn>;
   };
   adapter: {
@@ -78,8 +85,13 @@ function buildHarness(
       .mockResolvedValue({ applied: true, recordCount: 1 }),
   };
   const adWatchedAdvertisersService = {
+    claimManualPoll: vi.fn().mockResolvedValue(true),
     findAllByAccount: vi.fn().mockResolvedValue(watched),
+    findOne: vi.fn().mockResolvedValue(watched[0] ?? null),
     recordIngestionResult: vi.fn().mockResolvedValue(null),
+  };
+  const autonomousProducerInstallService = {
+    installOnOptIn: vi.fn().mockResolvedValue({}),
   };
   const providerRegistry = {
     getReadiness: vi.fn().mockReturnValue([]),
@@ -95,6 +107,7 @@ function buildHarness(
 
   return {
     access,
+    autonomousProducerInstallService,
     adPerformanceService,
     adWatchedAdvertisersService,
     adapter,
@@ -109,6 +122,7 @@ function buildHarness(
       } as unknown as LoggerService,
       providerRegistry as unknown as PaidCreativeProviderRegistry,
       access as never,
+      autonomousProducerInstallService as unknown as AutonomousProducerInstallService,
     ),
   };
 }
@@ -424,6 +438,135 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
     expect(
       harness.adWatchedAdvertisersService.findAllByAccount,
     ).toHaveBeenCalledWith('org-1', 'brand-1', 'tiktok');
+  });
+
+  describe('pollWatchedAdvertiser', () => {
+    it('ingests the advertiser inside the caller organization', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+
+      const result = await harness.service.pollWatchedAdvertiser(
+        'org-1',
+        'watch-1',
+        { brandId: 'brand-1' },
+      );
+
+      expect(harness.adWatchedAdvertisersService.findOne).toHaveBeenCalledWith({
+        id: 'watch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      expect(result).toMatchObject({
+        advertiserId: 'watch-1',
+        status: 'success',
+      });
+    });
+
+    it('does not reveal an advertiser that belongs to another brand', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+
+      await expect(
+        harness.service.pollWatchedAdvertiser('org-1', 'watch-1', {
+          brandId: 'brand-2',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown advertiser', async () => {
+      const harness = buildHarness([]);
+
+      await expect(
+        harness.service.pollWatchedAdvertiser('org-1', 'missing'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    describe('daily polling opt-in', () => {
+      const principal = {
+        isApiKey: false,
+        organizationId: 'org-1',
+        scopes: [],
+        userId: 'user-1',
+      };
+
+      it('installs the daily workflow after a successful poll', async () => {
+        const harness = buildHarness([META_ADVERTISER]);
+
+        await harness.service.pollWatchedAdvertiser('org-1', 'watch-1', {
+          principal,
+        });
+
+        expect(
+          harness.autonomousProducerInstallService.installOnOptIn,
+        ).toHaveBeenCalledWith({
+          organizationId: 'org-1',
+          principal,
+          producer: 'paidCreativeResearch',
+        });
+      });
+
+      it('does not install when the poll was blocked or the caller is unknown', async () => {
+        const blocked = buildHarness([META_ADVERTISER]);
+        blocked.access.decide.mockResolvedValue({
+          isAllowed: false,
+          reason: 'research_paid_access_required',
+        });
+        await blocked.service.pollWatchedAdvertiser('org-1', 'watch-1', {
+          principal,
+        });
+        const anonymous = buildHarness([META_ADVERTISER]);
+        await anonymous.service.pollWatchedAdvertiser('org-1', 'watch-1');
+
+        expect(
+          blocked.autonomousProducerInstallService.installOnOptIn,
+        ).not.toHaveBeenCalled();
+        expect(
+          anonymous.autonomousProducerInstallService.installOnOptIn,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('returns the poll result when the install fails', async () => {
+        const harness = buildHarness([META_ADVERTISER]);
+        harness.autonomousProducerInstallService.installOnOptIn.mockRejectedValue(
+          new Error('install failed'),
+        );
+
+        const result = await harness.service.pollWatchedAdvertiser(
+          'org-1',
+          'watch-1',
+          { principal },
+        );
+
+        expect(result.status).toBe('success');
+      });
+    });
+
+    it('claims the poll before fetching and refuses when the claim is lost', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+      harness.adWatchedAdvertisersService.claimManualPoll.mockResolvedValue(
+        false,
+      );
+
+      await expect(
+        harness.service.pollWatchedAdvertiser('org-1', 'watch-1'),
+      ).rejects.toBeInstanceOf(HttpException);
+      expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+    });
+
+    it('claims with the cooldown before it fetches', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+
+      await harness.service.pollWatchedAdvertiser('org-1', 'watch-1');
+
+      expect(
+        harness.adWatchedAdvertisersService.claimManualPoll,
+      ).toHaveBeenCalledWith('watch-1', 'org-1', 10 * 60 * 1000);
+      expect(
+        harness.adWatchedAdvertisersService.claimManualPoll.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        harness.adapter.fetchCreatives.mock.invocationCallOrder[0],
+      );
+    });
   });
 
   it('completes the run when freshness bookkeeping itself fails', async () => {

@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -43,6 +43,10 @@ const BLOCKER_LABELS: Record<string, string> = {
     'Google publishes no ad API. Ingestion stays off until its contract is verified against reviewed fixtures.',
   paid_creative_apify_token_missing:
     'The archive scraper credential is not configured on this deployment.',
+  paid_creative_snapshot_write_failed:
+    'The archive responded but the result could not be saved. Try again.',
+  paid_creative_source_unavailable:
+    'The archive could not be reached on the last poll. Try again shortly.',
   research_collection_start_unreconciled:
     "We couldn't confirm whether this collection started. It's safe to retry.",
   research_paid_access_required:
@@ -61,20 +65,41 @@ const FRESHNESS_LABELS: Record<string, string> = {
   empty: 'No creatives found',
   fresh: 'Fresh',
   stale: 'Stale',
-  unavailable: 'Not polled',
+  unavailable: 'Unavailable',
 };
 
 function describeBlocker(blocker: string): string {
   return BLOCKER_LABELS[blocker] || blocker;
 }
 
+/**
+ * `unavailable` is the column default, so a row that was never polled and a
+ * row whose last poll was blocked would otherwise read the same.
+ */
+function describeFreshness(advertiser: AdWatchedAdvertiser): string {
+  if (
+    advertiser.freshnessState === 'unavailable' &&
+    !advertiser.lastAttemptedAt
+  ) {
+    return 'Not polled yet';
+  }
+  if (advertiser.freshnessState === 'unavailable') {
+    return 'Last poll blocked';
+  }
+  return (
+    FRESHNESS_LABELS[advertiser.freshnessState] || advertiser.freshnessState
+  );
+}
+
 function AdvertiserRow({
   advertiser,
   isBusy,
+  onPoll,
   onRemove,
 }: {
   advertiser: AdWatchedAdvertiser;
   isBusy: boolean;
+  onPoll: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
   const translate = useTranslations('pages.adsResearch.watchlist');
@@ -90,10 +115,7 @@ function AdvertiserRow({
           <span className="uppercase tracking-[0.14em]">
             {advertiser.platform}
           </span>
-          <span>
-            {FRESHNESS_LABELS[advertiser.freshnessState] ||
-              advertiser.freshnessState}
-          </span>
+          <span>{describeFreshness(advertiser)}</span>
           {typeof advertiser.lastSnapshotRecordCount === 'number' ? (
             <span>
               {translate('creatives', {
@@ -111,14 +133,26 @@ function AdvertiserRow({
           ) : null}
         </div>
       </div>
-      <Button
-        ariaLabel={`Stop watching ${advertiser.advertiserHandle}`}
-        disabled={isBusy}
-        icon={<Trash2 className="size-4" />}
-        size={ButtonSize.ICON}
-        variant={ButtonVariant.GHOST}
-        onClick={() => onRemove(advertiser.id)}
-      />
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          ariaLabel={`Poll ${advertiser.advertiserHandle} now`}
+          disabled={isBusy}
+          icon={<RefreshCw className="size-4" />}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          onClick={() => onPoll(advertiser.id)}
+        >
+          {isBusy ? 'Polling…' : 'Poll now'}
+        </Button>
+        <Button
+          ariaLabel={`Stop watching ${advertiser.advertiserHandle}`}
+          disabled={isBusy}
+          icon={<Trash2 className="size-4" />}
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          onClick={() => onRemove(advertiser.id)}
+        />
+      </div>
     </li>
   );
 }
@@ -135,6 +169,7 @@ export type AdsResearchWatchlistPanelProps = {
     advertiserHandle: string;
     platform: AdWatchlistPlatform;
   }) => void;
+  onPoll: (id: string) => void;
   onRemove: (id: string) => void;
 };
 
@@ -155,6 +190,7 @@ export function AdsResearchWatchlistPanel({
   loadError,
   readiness,
   onAdd,
+  onPoll,
   onRemove,
 }: AdsResearchWatchlistPanelProps) {
   const translate = useTranslations('pages.adsResearch.watchlist');
@@ -250,6 +286,7 @@ export function AdsResearchWatchlistPanel({
               key={advertiser.id}
               advertiser={advertiser}
               isBusy={busyId === advertiser.id}
+              onPoll={onPoll}
               onRemove={onRemove}
             />
           ))}
