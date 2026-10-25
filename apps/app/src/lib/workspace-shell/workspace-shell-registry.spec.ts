@@ -304,10 +304,14 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('has no standalone editor route left in the inventory', () => {
-    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor/new')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/acme/~/editor')).toBeNull();
+  it('no longer resolves the Editor under the retired /studio prefix', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor/new'),
+    ).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/studio/editor')).toBeNull();
   });
 
   it('keeps contextual Remix as an action deep-link (Discovery + Publishing switcher)', () => {
