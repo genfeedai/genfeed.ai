@@ -10,6 +10,8 @@ import {
   createPlatformHomeRoute,
   getOrgSwitchHref,
   isPersonalSettingsPath,
+  isReservedAppRootSegment,
+  RESERVED_APP_ROOT_SEGMENTS,
   isUserFacingAppPathname,
   parseScopedAppPath,
   withPlatformQuery,
@@ -338,5 +340,34 @@ describe('routes.constant', () => {
         `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
       ),
     ).toBe('/acme/coffee/settings/brand-kit?tab=voice');
+  });
+
+  describe('reserved app root segments', () => {
+    it('reserves every top-level app route, including the former Studio apps', () => {
+      for (const prefix of Object.values(APP_ROUTE_PREFIXES)) {
+        const root = prefix.replace(/^\//, '').split('/')[0] ?? '';
+        expect(isReservedAppRootSegment(root), root).toBe(true);
+      }
+      for (const app of [
+        'clips',
+        'editor',
+        'motion',
+        'playground',
+        'storyboard',
+        'turbo',
+      ]) {
+        expect(RESERVED_APP_ROOT_SEGMENTS.has(app), app).toBe(true);
+      }
+    });
+
+    it('matches regardless of case and surrounding whitespace', () => {
+      expect(isReservedAppRootSegment(' Turbo ')).toBe(true);
+    });
+
+    it('leaves ordinary slugs alone', () => {
+      expect(isReservedAppRootSegment('acme')).toBe(false);
+      expect(isReservedAppRootSegment('turbo-2')).toBe(false);
+      expect(isReservedAppRootSegment('')).toBe(false);
+    });
   });
 });

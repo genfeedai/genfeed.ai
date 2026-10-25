@@ -5,7 +5,11 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isCloudDeployment } from '@genfeedai/config';
-import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
+import {
+  BRAND_HANDLE_RESERVED_MESSAGE,
+  BRAND_HANDLE_TAKEN_MESSAGE,
+  isReservedAppRootSegment,
+} from '@genfeedai/contracts/constants';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
@@ -102,6 +106,10 @@ export async function assertBrandHandleAvailable(
     }
   } else {
     await verifyBrandAccess(brandsService, brandId, user);
+  }
+
+  if (isReservedAppRootSegment(slug)) {
+    throw new ConflictException(BRAND_HANDLE_RESERVED_MESSAGE);
   }
 
   if (!(await brandsService.isSlugAvailable(slug, brandId))) {

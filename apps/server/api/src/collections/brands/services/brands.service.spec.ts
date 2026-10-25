@@ -290,6 +290,22 @@ describe('BrandsService', () => {
       expect(createInput.data.agentConfig).toBeUndefined();
     });
 
+    it.each(['turbo', 'Clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'rejects the reserved app route name "%s" as an explicit handle',
+      async (slug) => {
+        await expect(
+          service.create({
+            ...createBrandDto,
+            organizationId: 'org-1',
+            slug,
+            userId: 'user-1',
+          }),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(delegate.create).not.toHaveBeenCalled();
+      },
+    );
+
     it('retries with a deterministic suffix when two creates race on the same slug', async () => {
       const collision = {
         code: 'P2002',
@@ -2213,6 +2229,18 @@ describe('BrandsService', () => {
       expect(crossOrgFlags).toEqual([true, true]);
     });
 
+    it.each(['turbo', 'clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'is never free for the reserved app route name "%s"',
+      async (slug) => {
+        delegate.findFirst.mockResolvedValue(null);
+
+        await expect(service.isSlugAvailable(slug, 'brand_1')).resolves.toBe(
+          false,
+        );
+        expect(delegate.findFirst).not.toHaveBeenCalled();
+      },
+    );
+
     it('is taken when any other brand holds it, deleted or in another organization', async () => {
       delegate.findFirst.mockResolvedValue({ id: 'brand_deleted' });
 
@@ -2295,6 +2323,18 @@ describe('BrandsService', () => {
         BadRequestException,
       );
     });
+
+    it.each(['turbo', 'clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'never hands out the reserved app route name "%s"',
+      async (name) => {
+        delegate.findFirst.mockResolvedValue(null);
+
+        const slug = await service.generateUniqueSlug(name);
+
+        expect(slug).toBe(`${name}-2`);
+        expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+      },
+    );
   });
 
   describe('updateAgentConfig', () => {

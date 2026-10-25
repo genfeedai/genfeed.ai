@@ -505,7 +505,7 @@ export function createBrandAppRoute(
  * Parent layouts sit above `[orgSlug]/[brandSlug]`, so `useParams()` there
  * cannot see the current brand. Parse the URL instead.
  */
-const RESERVED_APP_ROOT_SEGMENTS = new Set(
+export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
   [
     ...Object.values(APP_ROUTE_PREFIXES).map(
       (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
@@ -531,6 +531,15 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'v1',
   ].filter(Boolean),
 );
+
+/**
+ * Whether `slug` collides with a top-level app segment. Organization slugs and
+ * brand handles share the first URL segment with these roots, so neither may
+ * take one.
+ */
+export function isReservedAppRootSegment(slug: string): boolean {
+  return RESERVED_APP_ROOT_SEGMENTS.has(slug.trim().toLowerCase());
+}
 
 export function parseScopedAppPath(pathname: string): {
   brandSlug: string;
