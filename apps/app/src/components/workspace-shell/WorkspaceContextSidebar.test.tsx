@@ -4,6 +4,7 @@ import type { ContextSidebarContextValue } from '@genfeedai/props/ui/context-sid
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Drawer, DrawerContent } from '@ui/primitives/drawer';
 import { describe, expect, it, vi } from 'vitest';
+import WorkspaceAgentContext from './WorkspaceAgentContext';
 import {
   WorkspaceContextSidebarDrawerBody,
   WorkspaceContextSidebarRail,
@@ -122,7 +123,7 @@ describe('right sidebar single topbar guard', () => {
     (root) => listSources(path.join(repoRoot, root)),
   );
 
-  it('has the shell host the rail without a second topbar', () => {
+  it('has the shell host selected context without a second topbar', () => {
     const shell = readFileSync(
       path.join(
         repoRoot,
@@ -131,9 +132,22 @@ describe('right sidebar single topbar guard', () => {
       'utf8',
     );
 
-    expect(shell).toMatch(
-      /<WorkspaceContextSidebarRail[^>]*\bisTopbarHosted\b/s,
+    expect(shell).toMatch(/<WorkspaceAgentContext\b/);
+
+    render(
+      <WorkspaceAgentContext
+        contextSidebar={buildContextSidebar()}
+        pageLabel="Assets"
+        referenceCount={1}
+        scopeLabel="Moonrise"
+      />,
     );
+
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByTestId('context-sidebar-close')).toBeNull();
+    const title = screen.getByTestId('context-sidebar-title');
+    expect(title).toHaveTextContent('Launch still');
+    expect(title.closest('.border-b')).toBeNull();
   });
 
   it('keeps the context-sidebar close control in the rail header only', () => {
