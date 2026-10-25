@@ -19,22 +19,57 @@ vi.mock(
   }),
 );
 
+function renderedType(): string | null {
+  return screen.getByTestId('models-content').textContent;
+}
+
 describe('ModelsCatalogRoute', () => {
   beforeEach(() => {
     mockSearchParams.current = new URLSearchParams();
   });
 
-  it('shows the full catalog without a type filter', () => {
+  it('shows the unfiltered catalog without a type', () => {
     render(<ModelsCatalogRoute />);
 
-    expect(screen.getByTestId('models-content')).toHaveTextContent('all');
+    expect(renderedType()).toBe('all');
   });
 
-  it('passes the ?type= filter through to the catalog list', () => {
-    mockSearchParams.current = new URLSearchParams('type=video');
+  it.each([
+    ['image', 'image'],
+    ['video', 'video'],
+    ['music', 'music'],
+    ['images', 'image'],
+    ['videos', 'video'],
+  ])('passes the catalog group %s through as %s', (query, expected) => {
+    mockSearchParams.current = new URLSearchParams({ type: query });
 
     render(<ModelsCatalogRoute />);
 
-    expect(screen.getByTestId('models-content')).toHaveTextContent('video');
+    expect(renderedType()).toBe(expected);
+  });
+
+  it.each(['trainings', 'custom-models', 'unknown', ''])(
+    'falls back to the unfiltered catalog for type=%s instead of switching surfaces',
+    (query) => {
+      mockSearchParams.current = new URLSearchParams({ type: query });
+
+      render(<ModelsCatalogRoute />);
+
+      expect(renderedType()).toBe('all');
+    },
+  );
+
+  it('follows query changes and clears back to the full catalog', () => {
+    mockSearchParams.current = new URLSearchParams({ type: 'video' });
+    const { rerender } = render(<ModelsCatalogRoute />);
+    expect(renderedType()).toBe('video');
+
+    mockSearchParams.current = new URLSearchParams({ type: 'image' });
+    rerender(<ModelsCatalogRoute />);
+    expect(renderedType()).toBe('image');
+
+    mockSearchParams.current = new URLSearchParams();
+    rerender(<ModelsCatalogRoute />);
+    expect(renderedType()).toBe('all');
   });
 });
