@@ -155,4 +155,51 @@ describe('QuickActionsMenu', () => {
     fireEvent.click(screen.getByText('Reframe to Portrait'));
     expect(onActionClick).toHaveBeenCalledWith(reframe);
   });
+
+  it('lists submenus first, then a divider, then plain actions at every level', async () => {
+    const mixed = [
+      { id: 'details', label: 'See Details', onClick: vi.fn() },
+      {
+        id: 'portrait',
+        label: 'Reframe to Portrait',
+        onClick: vi.fn(),
+        sectionLabel: 'Transform',
+      },
+      {
+        id: 'upscale',
+        label: 'Upscale',
+        onClick: vi.fn(),
+        sectionLabel: 'Transform',
+      },
+    ];
+    render(
+      <QuickActionsMenu
+        actions={mixed}
+        isMenuOpen={true}
+        setIsMenuOpen={vi.fn()}
+        onActionClick={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    });
+    const rootItems = screen
+      .getAllByRole('menuitem')
+      .map((item) => item.textContent);
+    expect(rootItems).toEqual(['Transform', 'See Details']);
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Transform' }), {
+      key: 'ArrowRight',
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Upscale')).toBeInTheDocument();
+    });
+    const nested = screen
+      .getAllByRole('menuitem')
+      .map((item) => item.textContent);
+    expect(nested.indexOf('Reframe')).toBeLessThan(nested.indexOf('Upscale'));
+    expect(screen.getAllByRole('separator')).toHaveLength(2);
+  });
 });

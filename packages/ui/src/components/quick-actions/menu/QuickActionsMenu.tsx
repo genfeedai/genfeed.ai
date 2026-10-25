@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -19,7 +20,18 @@ import {
   QUICK_ACTION_TRIGGER_CLASS,
   QUICK_ACTION_TRIGGER_SIZE_CLASS,
 } from '@ui/quick-actions/quick-actions.constants';
-import { EllipsisVertical } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  ClipboardCheck,
+  Crop,
+  EllipsisVertical,
+  Library,
+  type LucideIcon,
+  MessageSquareText,
+  Sparkles,
+  Stamp,
+  TriangleAlert,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 const SIZE_CLASSES = {
@@ -43,6 +55,34 @@ const NESTED_ACTION_GROUPS = [
   { key: 'convert', ids: ['convert-to-video', 'gif', 'convert-to-preset'] },
   { key: 'prompt', ids: ['copy-prompt', 'prompt', 'use-prompt'] },
 ];
+
+/** Every submenu trigger carries an icon, like the actions beside it. */
+const SUBMENU_ICONS: Record<string, LucideIcon> = {
+  Branding: Stamp,
+  Danger: TriangleAlert,
+  Library,
+  Review: ClipboardCheck,
+  Transform: Sparkles,
+  convert: ArrowRightLeft,
+  prompt: MessageSquareText,
+  reframe: Crop,
+};
+
+function SubmenuTrigger({
+  iconKey,
+  label,
+}: {
+  iconKey: string;
+  label: string;
+}) {
+  const Icon = SUBMENU_ICONS[iconKey];
+  return (
+    <DropdownMenuSubTrigger className="text-xs font-medium">
+      {Icon ? <Icon className="size-4 shrink-0" /> : null}
+      <span className="flex-1 text-left">{label}</span>
+    </DropdownMenuSubTrigger>
+  );
+}
 
 function ActionItem({
   action,
@@ -71,6 +111,10 @@ function ActionItem({
   );
 }
 
+/**
+ * One level of the menu: submenus first, a divider, then the plain actions.
+ * Every level follows the same order so folders and actions never interleave.
+ */
 function SectionActions({
   actions,
   onActionClick,
@@ -79,41 +123,41 @@ function SectionActions({
   onActionClick: QuickActionsMenuProps['onActionClick'];
 }) {
   const translate = useTranslations('ui.quickActions.groups');
-  const renderedGroups = new Set<string>();
-  return actions.map((action) => {
-    const group = NESTED_ACTION_GROUPS.find((candidate) =>
-      candidate.ids.includes(action.id),
-    );
-    if (!group)
-      return (
+  const groups = NESTED_ACTION_GROUPS.map((group) => ({
+    ...group,
+    children: actions.filter((action) => group.ids.includes(action.id)),
+  })).filter((group) => group.children.length > 0);
+  const nestedIds = new Set(groups.flatMap((group) => group.ids));
+  const leaves = actions.filter((action) => !nestedIds.has(action.id));
+
+  return (
+    <>
+      {groups.map((group) => (
+        <DropdownMenuSub key={group.key}>
+          <SubmenuTrigger iconKey={group.key} label={translate(group.key)} />
+          <DropdownMenuSubContent collisionPadding={8}>
+            {group.children.map((child) => (
+              <ActionItem
+                key={child.id}
+                action={child}
+                onActionClick={onActionClick}
+              />
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      ))}
+      {groups.length > 0 && leaves.length > 0 ? (
+        <DropdownMenuSeparator />
+      ) : null}
+      {leaves.map((action) => (
         <ActionItem
           key={action.id}
           action={action}
           onActionClick={onActionClick}
         />
-      );
-    if (renderedGroups.has(group.key)) return null;
-    renderedGroups.add(group.key);
-    const children = actions.filter((candidate) =>
-      group.ids.includes(candidate.id),
-    );
-    return (
-      <DropdownMenuSub key={group.key}>
-        <DropdownMenuSubTrigger className="text-xs font-medium">
-          {translate(group.key)}
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent collisionPadding={8}>
-          {children.map((child) => (
-            <ActionItem
-              key={child.id}
-              action={child}
-              onActionClick={onActionClick}
-            />
-          ))}
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-    );
-  });
+      ))}
+    </>
+  );
 }
 
 export default function QuickActionsMenu({
@@ -169,18 +213,9 @@ export default function QuickActionsMenu({
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        {directActions.map((action) => (
-          <ActionItem
-            key={action.id}
-            action={action}
-            onActionClick={onActionClick}
-          />
-        ))}
         {Array.from(sections, ([label, sectionActions]) => (
           <DropdownMenuSub key={label}>
-            <DropdownMenuSubTrigger className="text-xs font-medium">
-              {label}
-            </DropdownMenuSubTrigger>
+            <SubmenuTrigger iconKey={label} label={label} />
             <DropdownMenuSubContent collisionPadding={8}>
               <SectionActions
                 actions={sectionActions}
@@ -188,6 +223,16 @@ export default function QuickActionsMenu({
               />
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+        ))}
+        {sections.size > 0 && directActions.length > 0 ? (
+          <DropdownMenuSeparator />
+        ) : null}
+        {directActions.map((action) => (
+          <ActionItem
+            key={action.id}
+            action={action}
+            onActionClick={onActionClick}
+          />
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
