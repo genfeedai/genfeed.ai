@@ -7,6 +7,7 @@ const MIN_HEIGHT_PX = 24;
 const MAX_HEIGHT_PX = 48;
 const MAX_CLIMB = 8;
 const LABEL_SEARCH_DEPTH = 8;
+const COMPOSER_SEARCH_DEPTH = 12;
 
 function isRowFlex(element: Element): boolean {
   const style = getComputedStyle(element);
@@ -21,11 +22,11 @@ function isRowFlex(element: Element): boolean {
  * it. Climb to the ancestor that is a direct child of a row, and put the group
  * there. Nothing is moved or wrapped, so the site's own rendering is untouched.
  */
-export function findRowAnchor(submit: Element): Element {
+export function findRowAnchor(submit: Element, boundary?: Element): Element {
   let current = submit;
   for (let step = 0; step < MAX_CLIMB; step += 1) {
     const parent = current.parentElement;
-    if (!parent || parent === document.body) {
+    if (!parent || parent === document.body || current === boundary) {
       break;
     }
     if (isRowFlex(parent)) {
@@ -58,17 +59,57 @@ function hasGroup(anchor: Element): boolean {
   );
 }
 
+/**
+ * The nearest ancestor of a submit button that also holds the reply box: the
+ * composer it belongs to. Null for a button that is not part of one, which is
+ * when that ancestor is the whole page or holds another submit button too.
+ */
+export function findComposerScope(
+  submit: Element,
+  platform: PlatformConfig,
+): Element | null {
+  const { replyTextarea } = platform.selectors;
+  let scope = submit.parentElement;
+  for (
+    let depth = 0;
+    scope && depth < COMPOSER_SEARCH_DEPTH;
+    depth += 1, scope = scope.parentElement
+  ) {
+    if (scope.querySelector(replyTextarea)) {
+      const isPageWide = scope === document.body;
+      const submits = platform.selectors.submitButton
+        ? scope.querySelectorAll(platform.selectors.submitButton).length
+        : 1;
+      return isPageWide || submits > 1 ? null : scope;
+    }
+  }
+  return null;
+}
+
+// The group mounted for each submit button, so a re-render that moves the
+// button's row replaces the group instead of adding a second one.
+const mountedGroups = new WeakMap<Element, HTMLElement>();
+
 /** Puts the Genfeed group on the row of a submit button, once. */
 export function mountGenfeedGroup(
   submit: Element,
   groups: MenuGroupSpec[],
+  boundary?: Element,
 ): HTMLElement | null {
-  const anchor = findRowAnchor(submit);
+  const anchor = findRowAnchor(submit, boundary);
+  const existing = mountedGroups.get(submit);
+  if (existing?.isConnected) {
+    if (existing.nextElementSibling === anchor) {
+      return null;
+    }
+    existing.remove();
+  }
   if (!anchor.parentElement || hasGroup(anchor)) {
     return null;
   }
   const group = createGenfeedGroup({ groups, skin: measureSkin(submit) });
   anchor.parentElement.insertBefore(group, anchor);
+  mountedGroups.set(submit, group);
   return group;
 }
 
