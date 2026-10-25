@@ -411,7 +411,10 @@ export class BrandGenerationService {
       first < batchSizes.length;
       first += TURBO_IDEA_BATCH_CONCURRENCY
     ) {
-      const group = batchSizes.slice(first, first + TURBO_IDEA_BATCH_CONCURRENCY);
+      const group = batchSizes.slice(
+        first,
+        first + TURBO_IDEA_BATCH_CONCURRENCY,
+      );
       const results = await Promise.all(
         group.map((size, offset) => {
           // Parallel batches cannot see each other, so each takes its own lane.

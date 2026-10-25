@@ -2104,9 +2104,13 @@ describe('BrandsService', () => {
 
       // 50 ideas at no more than 9 per reply takes 6 calls.
       expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(6);
-      const sizes = llmDispatcher.chatCompletion.mock.calls.map(
-        ([request]: [{ messages: { content: string }[] }]) =>
-          Number(/generate (\d+) distinct/.exec(request.messages[0].content)?.[1]),
+      const requests = llmDispatcher.chatCompletion.mock.calls as [
+        { messages: { content: string }[] },
+      ][];
+      const sizes = requests.map(([request]) =>
+        Number(
+          /generate (\d+) distinct/.exec(request.messages[0].content)?.[1],
+        ),
       );
       expect(sizes.reduce((total, size) => total + size, 0)).toBe(50);
       expect(Math.max(...sizes)).toBeLessThanOrEqual(9);

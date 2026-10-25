@@ -23,7 +23,7 @@ describe('Turbo project settings', () => {
         unknown: true,
       }),
     ).toEqual({
-      ideas: { angle: 'Summer', count: 9, formats: ['image'] },
+      ideas: { angle: 'Summer', count: 40, formats: ['image'] },
       schedule: {
         targets: [
           {
@@ -35,6 +35,15 @@ describe('Turbo project settings', () => {
         timezone: 'Europe/Paris',
       },
     });
+  });
+
+  it('clamps an idea count to the sanity bounds', () => {
+    expect(
+      parseTurboProjectSettings({ ideas: { count: 500 } })?.ideas?.count,
+    ).toBe(200);
+    expect(
+      parseTurboProjectSettings({ ideas: { count: 1 } })?.ideas?.count,
+    ).toBe(3);
   });
 
   it('replaces only the sections an update carries', () => {
