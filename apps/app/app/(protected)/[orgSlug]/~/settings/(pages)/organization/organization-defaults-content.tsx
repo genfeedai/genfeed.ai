@@ -5,6 +5,7 @@ import Spinner from '@ui/primitives/spinner';
 import OrganizationAutomationCard from './organization-automation-card';
 import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
 import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
+import OrganizationMcpApprovalCard from './organization-mcp-approval-card';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
 export default function SettingsOrganizationDefaultsPage() {
@@ -24,6 +25,7 @@ export default function SettingsOrganizationDefaultsPage() {
       <OrganizationGenerationDefaultsCard />
       <OrganizationPublishingCapsCard />
       <OrganizationAutomationCard />
+      <OrganizationMcpApprovalCard />
     </div>
   );
 }

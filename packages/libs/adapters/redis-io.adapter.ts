@@ -1,5 +1,8 @@
 import type { Server as HttpServer } from 'node:http';
-import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
+import {
+  getGenfeedCorsOrigins,
+  shouldAllowLocalCorsOrigins,
+} from '@libs/config/cors.config';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   buildIoRedisClientOptions,
@@ -72,6 +75,7 @@ export class RedisIoAdapter extends IoAdapter {
     // on the production app) even though its REST calls were allowed. Sharing
     // one source of truth keeps the two layers from diverging again.
     const chromeExtensionId = this.configAccessor.get('CHROME_EXTENSION_ID');
+    const nodeEnv = this.configAccessor.get('NODE_ENV');
     const serverOptions: Partial<ServerOptions> = {
       cors: {
         credentials: true,
@@ -81,7 +85,9 @@ export class RedisIoAdapter extends IoAdapter {
             chromeExtensionId.length > 0
               ? chromeExtensionId
               : undefined,
-          isDevelopment: process.env.NODE_ENV === 'development',
+          isDevelopment: shouldAllowLocalCorsOrigins(
+            typeof nodeEnv === 'string' ? nodeEnv : undefined,
+          ),
         }),
       },
       // #2517 item 4 — transport compression. Agent chat fan-out (tool
