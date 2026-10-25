@@ -687,6 +687,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
       slotMaxTime: '24:00:00',
       slotMinTime: '00:00:00',
       snapDuration: '00:15:00',
+      timeZone: timezone,
     }),
     [
       events,
@@ -699,6 +700,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
       handleDatesSet,
       onDateClick,
       isDragEnabled,
+      timezone,
     ],
   );
 
