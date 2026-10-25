@@ -349,6 +349,7 @@
       "title": "Approval queue"
     },
     "inbox": {
+      "needsYou": "Needs you",
       "ariaLabel": "Pending approvals",
       "totalLabel": "approvals",
       "noPreview": "No preview",
@@ -379,7 +380,17 @@
       "approved": "Approved",
       "mcpApproved": "Approved. The MCP client runs it the next time it asks.",
       "rejected": "Rejected",
-      "decisionFailed": "Could not save this decision."
+      "decisionFailed": "Could not save this decision.",
+      "selected": "selected",
+      "selectAll": "Select all {count}",
+      "clearSelection": "Clear",
+      "bulkApproveTitle": "{count, plural, one {Approve # request?} other {Approve # requests?}}",
+      "bulkRejectTitle": "{count, plural, one {Reject # request?} other {Reject # requests?}}",
+      "bulkApproveMessage": "{credits, plural, =0 {These requests run as asked the next time their client or workflow continues.} other {These requests run as asked. They use an estimated # credits in total.}}",
+      "bulkRejectMessage": "{count, plural, one {This request is rejected and will not run.} other {These requests are rejected and will not run.}}",
+      "bulkApproved": "{count, plural, one {Approved # request} other {Approved # requests}}",
+      "bulkRejected": "{count, plural, one {Rejected # request} other {Rejected # requests}}",
+      "bulkPartial": "Decided {count}, {failed} could not be saved"
     },
     "assignment": {
       "unavailable": "Unavailable member",
@@ -497,6 +508,7 @@
       "notSynced": "Not synced"
     },
     "queue": {
+      "draftsTitle": "Batch drafts",
       "batchOption": "{id} · {count} items",
       "batchOptionWithStatus": "{id} · {count} items · {status}",
       "batchStatus": {

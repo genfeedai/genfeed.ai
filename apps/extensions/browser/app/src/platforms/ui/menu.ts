@@ -39,6 +39,10 @@ const TRIGGER_CSS = `
   .trigger:hover, .trigger[aria-expanded="true"] {
     background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
+  .trigger.native { border-color: transparent; background: var(--gf-bg); color: var(--gf-fg); }
+  .trigger.native:hover, .trigger.native[aria-expanded="true"] {
+    background: var(--gf-bg); filter: brightness(0.9);
+  }
   .trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .trigger svg { display: block; width: 20px; height: 20px; }
 `;
@@ -196,8 +200,8 @@ function buildMenu(groups: MenuGroupSpec[], onActivate: () => void): BuiltMenu {
 }
 
 /**
- * The Genfeed control next to a site's submit button: one outline logo button
- * that opens a grouped menu. The button and the menu each live in their own
+ * The Genfeed control next to a site's submit button: one logo button, in the
+ * host button's own colours, that opens a grouped menu. The button and the menu each live in their own
  * shadow root. The menu is attached to `document.body` while it is open, so
  * the site's stacking, clipping and opacity (X dims the disabled Reply
  * container) cannot touch it.
@@ -211,11 +215,15 @@ export function createGenfeedGroup({
   if (skin) {
     host.style.setProperty('--gf-height', `${skin.height}px`);
     host.style.setProperty('--gf-radius', `${skin.radius}px`);
+    if (skin.background && skin.color) {
+      host.style.setProperty('--gf-bg', skin.background);
+      host.style.setProperty('--gf-fg', skin.color);
+    }
   }
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
-  trigger.className = 'trigger';
+  trigger.className = skin?.background ? 'trigger native' : 'trigger';
   trigger.title = 'Genfeed';
   trigger.setAttribute('aria-label', 'Genfeed actions');
   trigger.setAttribute('aria-haspopup', 'menu');

@@ -42,25 +42,72 @@ export interface PublishingApprovalsRouteOptions {
   approval?: string | null;
   /** Approval queue filter, e.g. `ready`. */
   filter?: string | null;
-  /** Review item to focus. */
+  /** Review item to focus; opens within `run` when one is given. */
   item?: string | null;
   /** Turbo run to open. */
   run?: string | null;
 }
 
-/** #5502 deep link into the Posts approval view. */
+/**
+ * Deep link into the approvals queue: `/publishing/approvals`, then the Turbo
+ * run and the item as path segments. The filter and the review inbox gate stay
+ * query params. An item without a run has no path of its own, so it rides as
+ * `?item=`.
+ */
 export function createPublishingApprovalsRoute({
   approval,
   filter,
   item,
   run,
 }: PublishingApprovalsRouteOptions = {}): string {
-  const params = new URLSearchParams({ view: 'approvals' });
-  if (run) params.set('run', run);
+  let path: string = APP_ROUTES.PUBLISHING.APPROVALS;
+  const params = new URLSearchParams();
+  if (run) {
+    path += `/${encodeURIComponent(run)}`;
+    if (item) path += `/${encodeURIComponent(item)}`;
+  } else if (item) {
+    params.set('item', item);
+  }
   if (filter) params.set('filter', filter);
-  if (item) params.set('item', item);
   if (approval) params.set('approval', approval);
-  return `${APP_ROUTES.PUBLISHING.POSTS}?${params.toString()}`;
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+export interface PublishingApprovalsPath {
+  /** Pathname up to and including the `approvals` segment, scope included. */
+  basePath: string;
+  item: string | null;
+  run: string | null;
+}
+
+/**
+ * Inverse of {@link createPublishingApprovalsRoute} for a scoped pathname
+ * (`/acme/brand/publishing/approvals/run-1/item-2`). A pathname outside the
+ * approvals queue comes back unchanged with no run and no item.
+ */
+export function parsePublishingApprovalsPath(
+  pathname: string,
+): PublishingApprovalsPath {
+  const segments = pathname.split('/').filter(Boolean);
+  const publishingIndex = segments.lastIndexOf('publishing');
+  const approvalsIndex = publishingIndex + 1;
+  if (publishingIndex === -1 || segments[approvalsIndex] !== 'approvals') {
+    return { basePath: pathname, item: null, run: null };
+  }
+  const decode = (segment: string | undefined): string | null => {
+    if (!segment) return null;
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return segment;
+    }
+  };
+  return {
+    basePath: `/${segments.slice(0, approvalsIndex + 1).join('/')}`,
+    item: decode(segments[approvalsIndex + 2]),
+    run: decode(segments[approvalsIndex + 1]),
+  };
 }
 
 /** Build a canonical Posts library deep link with lifecycle filters. */

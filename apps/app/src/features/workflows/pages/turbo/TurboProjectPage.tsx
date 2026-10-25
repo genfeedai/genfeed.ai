@@ -219,7 +219,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
           )}
           {project.reviewTurboRunId && (
             <Button asChild variant={ButtonVariant.LINK}>
-              <Link href={href(APP_ROUTES.PUBLISHING.REVIEW)}>
+              <Link href={href(APP_ROUTES.PUBLISHING.APPROVALS)}>
                 {t('reviewInbox')}
               </Link>
             </Button>

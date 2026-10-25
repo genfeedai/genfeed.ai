@@ -26,6 +26,7 @@ import {
   TextActionSession,
 } from '~platforms/text-action-session';
 import {
+  findComposerScope,
   findSubmitButtons,
   mayContainSubmit,
   mountGenfeedGroup,
@@ -83,17 +84,21 @@ function initializePlatformIntegration(): void {
 
     attachSourceButton(currentPlatform);
 
-    // With no post open (a new post or the home composer) only the draft
-    // actions apply, so the menu drops the ones that read a post.
+    // The compose modal and the home composer have no post in the URL; the
+    // group still belongs beside their Post button, with only the draft
+    // actions, since the others read a post.
     const postId = currentPlatform.extractPostId();
-    if (!postId && !currentPlatform.hasNewPostComposer) {
-      return;
-    }
     const postUrl = postId
       ? currentPlatform.constructPostUrl(postId)
       : undefined;
 
     for (const submit of findSubmitButtons(currentPlatform)) {
+      const boundary = currentPlatform.scopeToComposer
+        ? findComposerScope(submit, currentPlatform)
+        : null;
+      if (currentPlatform.scopeToComposer && !boundary) {
+        continue;
+      }
       mountGenfeedGroup(
         submit,
         buildMenuGroups({
@@ -102,6 +107,7 @@ function initializePlatformIntegration(): void {
           platformName,
           postUrl,
         }),
+        boundary ?? undefined,
       );
     }
   }

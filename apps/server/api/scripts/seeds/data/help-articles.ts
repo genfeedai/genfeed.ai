@@ -583,7 +583,7 @@ with notes.</p>
 <h2>Open the queue</h2>
 <p>Go to <strong>Publishing &rarr; Posts</strong> and switch the view to
 <strong>Approvals</strong>
-(<code>/{orgSlug}/{brandSlug}/publishing/posts?view=approvals</code>). The
+(<code>/{orgSlug}/{brandSlug}/publishing/approvals</code>). The
 <strong>Approval queue</strong> opens on items that are <strong>Ready</strong>.
 Items waiting for review also appear on the home screen under
 <strong>Attention queue</strong>, with <strong>Approve</strong> and

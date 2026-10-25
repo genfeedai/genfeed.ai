@@ -38,8 +38,12 @@ export interface PlatformConfig {
   };
   // Visible text of the submit button, for sites that give it no stable selector
   submitButtonLabels?: string[];
-  // Whether the Genfeed button also goes on a new-post composer, not only on a reply to a post
-  hasNewPostComposer?: boolean;
+  /**
+   * Only mount beside a submit button that sits in a composer (an ancestor
+   * that also holds the reply box), and never above that composer. Keeps stray
+   * or hidden submit buttons from getting a group.
+   */
+  scopeToComposer?: boolean;
   // How an image or video can be attached to this site's reply box; text-only when absent
   mediaReply?: MediaReplyConfig;
   // Function to extract post ID from URL or element
@@ -422,16 +426,18 @@ export const platforms: Record<string, PlatformConfig> = {
 
       return null;
     },
-    hasNewPostComposer: true,
     hostnames: ['twitter.com', 'x.com'],
     name: 'Twitter/X',
     platform: Platform.TWITTER,
+    scopeToComposer: true,
     selectors: {
       actionsContainer: '[role="group"]',
       postContainer: 'article[data-testid="tweet"]',
       postIdentifier: 'article',
       replyTextarea: '[data-testid="tweetTextarea_0"]',
-      submitButton: '[data-testid="tweetButtonInline"]',
+      // Inline reply and home composer, and the compose modal's Post button.
+      submitButton:
+        '[data-testid="tweetButtonInline"], [data-testid="tweetButton"]',
       postAuthor: ['[data-testid="User-Name"] a', '[data-testid="User-Name"]'],
       postText: ['[data-testid="tweetText"]'],
     },

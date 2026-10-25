@@ -863,6 +863,14 @@
         "description": "Your rail follows your organization's order until you arrange your own. Reset puts it back.",
         "label": "Rail"
       },
+      "mcpApproval": {
+        "cardTitle": "MCP approvals",
+        "description": "Choose whether your credit-spending requests from MCP clients wait in the approvals queue. This only takes effect when your organization allows it.",
+        "label": "Require approval for MCP requests",
+        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+        "organizationRequired": "Your organization requires approval, so this stays on. An owner or admin can change that in organization settings.",
+        "saveError": "Could not save your MCP approval setting."
+      },
       "agentMode": {
         "description": "The default mode a new Agent thread starts in. Change it for one thread from the mode dropdown in the prompt bar.",
         "fieldAriaLabel": "Default agent mode",
@@ -1053,6 +1061,18 @@
         "description": "Read your images and videos for required text, logos and products before they can be approved.",
         "cost": "Costs about $0.005 per image, charged in credits."
       }
+    },
+    "organizationMcpApproval": {
+      "title": "MCP approvals",
+      "description": "Choose whether credit-spending requests from MCP clients wait in the approvals queue. You own the credit pool, so this stays on until an owner or admin turns it off.",
+      "label": "Require approval for MCP requests",
+      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+      "risk": "Members who also turn this off for themselves can spend your organization's credits from an MCP client without anyone approving first.",
+      "adminOnly": "Only owners and admins can change this setting.",
+      "loading": "Loading settings…",
+      "saving": "Saving…",
+      "saved": "Setting saved.",
+      "saveFailed": "Could not save the setting. Try again."
     },
     "organizationCustomModels": {
       "title": "Custom Models",

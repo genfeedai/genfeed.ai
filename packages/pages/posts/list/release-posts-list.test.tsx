@@ -242,22 +242,6 @@ describe('ReleasePostsList selection from the release URL param', () => {
     expect(setRefresh).not.toHaveBeenCalled();
   });
 
-  it('keeps the calendar and approvals views when a source is in the URL', () => {
-    searchParams = new URLSearchParams('view=calendar&source=extension');
-
-    render(
-      <ReleasePostsList
-        calendar={<div>Calendar content</div>}
-        scope={PageScope.PUBLISHING}
-        search=""
-        sort="createdAt: -1"
-      />,
-    );
-
-    expect(screen.getByText('Calendar content')).toBeInTheDocument();
-    expect(screen.queryByTestId('captured-list')).not.toBeInTheDocument();
-  });
-
   it('puts the source in the URL, resetting page and release, and drops it for all sources', () => {
     searchParams = new URLSearchParams(
       'page=3&release=release-2&sort=createdAt%3A+1',
@@ -302,58 +286,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
     );
   });
 
-  it('keeps the parent view selector while rendering the calendar content', () => {
-    searchParams = new URLSearchParams('view=calendar&account=a&account=b');
-    render(
-      <ReleasePostsList
-        scope={PageScope.PUBLISHING}
-        search=""
-        sort="createdAt: -1"
-        calendar={<div>Calendar content</div>}
-      />,
-    );
-    expect(screen.getByText('Calendar content')).toBeInTheDocument();
-    expect(setLeadingNode).toHaveBeenLastCalledWith(null);
-    expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
-    const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
-    render(toggle);
-    act(() => screen.getByRole('radio', { name: 'viewToggle.list' }).click());
-    expect(replaceMock).toHaveBeenCalledWith(
-      '/genfeed-ai/paperclip/publishing/posts?account=a&account=b',
-      { scroll: false },
-    );
-  });
-
-  it('renders the approval queue as a Posts view and clears its selection on leave', () => {
-    searchParams = new URLSearchParams(
-      'view=approvals&account=a&run=batch-1&filter=ready&item=item-1',
-    );
-    setLeadingNode.mockClear();
-    render(
-      <ReleasePostsList
-        approvals={<div>Approval queue content</div>}
-        scope={PageScope.ORGANIZATION}
-        search=""
-        sort="createdAt: -1"
-      />,
-    );
-    expect(screen.getByText('Approval queue content')).toBeInTheDocument();
-    expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
-    // The queue owns the toolbar while its view is open.
-    expect(setLeadingNode).not.toHaveBeenCalledWith(expect.anything());
-    const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
-    render(toggle);
-    expect(
-      screen.getByRole('radio', { name: 'viewToggle.approvals' }),
-    ).toBeChecked();
-    act(() => screen.getByRole('radio', { name: 'viewToggle.list' }).click());
-    expect(replaceMock).toHaveBeenLastCalledWith(
-      '/genfeed-ai/paperclip/publishing/posts?account=a',
-      { scroll: false },
-    );
-  });
-
-  it('offers no approvals view without a queue', () => {
+  it('offers calendar and approvals as routes beside the display modes', () => {
     searchParams = new URLSearchParams('');
     render(
       <ReleasePostsList
@@ -364,9 +297,11 @@ describe('ReleasePostsList selection from the release URL param', () => {
     );
     const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
     render(toggle);
+    expect(screen.getByRole('radio', { name: 'list' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'calendar' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('radio', { name: 'viewToggle.approvals' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('radio', { name: 'approvals' }),
+    ).toBeInTheDocument();
   });
 
   it.each([false, true])(

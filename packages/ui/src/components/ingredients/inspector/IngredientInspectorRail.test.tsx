@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IngredientInspectorRail from './IngredientInspectorRail';
 
 vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
@@ -103,6 +103,13 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   ),
 }));
 
+const useIngredientGenerationCost = vi.fn();
+
+vi.mock('./use-ingredient-generation-cost', () => ({
+  useIngredientGenerationCost: (...args: unknown[]) =>
+    useIngredientGenerationCost(...args),
+}));
+
 vi.mock('./IngredientTagsControl', () => ({
   default: ({ ingredient }: { ingredient: { id: string } }) => (
     <div data-testid="tags-control">{ingredient.id}</div>
@@ -142,6 +149,10 @@ const ingredient = {
 } as IIngredient;
 
 describe('IngredientInspectorRail', () => {
+  beforeEach(() => {
+    useIngredientGenerationCost.mockReturnValue(null);
+  });
+
   it('uses the refreshed authorized preview and keeps pending originals hidden', () => {
     const { rerender } = render(
       <IngredientInspectorRail
@@ -385,5 +396,61 @@ describe('IngredientInspectorRail', () => {
     render(<IngredientInspectorRail ingredient={ingredient} />);
 
     expect(screen.queryByText('Origin')).not.toBeInTheDocument();
+  });
+
+  describe('credits', () => {
+    const generated = {
+      ...ingredient,
+      origin: IngredientOrigin.GENERATED,
+    } as IIngredient;
+
+    it('shows what a settled generation cost', () => {
+      useIngredientGenerationCost.mockReturnValue({
+        credits: 1234.5,
+        status: 'settled',
+      });
+      render(<IngredientInspectorRail ingredient={generated} />);
+
+      expect(
+        screen.getByText('Credits').closest('div')?.querySelector('dd'),
+      ).toHaveTextContent('1,234.5');
+      expect(useIngredientGenerationCost).toHaveBeenCalledWith('asset-1', true);
+    });
+
+    it('marks the figure while the generation is still running', () => {
+      useIngredientGenerationCost.mockReturnValue({
+        credits: 60,
+        status: 'reserved',
+      });
+      render(<IngredientInspectorRail ingredient={generated} />);
+
+      expect(
+        screen.getByText('Credits').closest('div')?.querySelector('dd'),
+      ).toHaveTextContent('60 (running)');
+    });
+
+    it('omits the row when nothing was charged', () => {
+      useIngredientGenerationCost.mockReturnValue({
+        credits: null,
+        status: null,
+      });
+      render(<IngredientInspectorRail ingredient={generated} />);
+
+      expect(screen.queryByText('Credits')).not.toBeInTheDocument();
+    });
+
+    it('does not ask for a cost on an asset that was not generated', () => {
+      render(
+        <IngredientInspectorRail
+          ingredient={{ ...ingredient, origin: IngredientOrigin.UPLOADED }}
+        />,
+      );
+
+      expect(useIngredientGenerationCost).toHaveBeenCalledWith(
+        'asset-1',
+        false,
+      );
+      expect(screen.queryByText('Credits')).not.toBeInTheDocument();
+    });
   });
 });

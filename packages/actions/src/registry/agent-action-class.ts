@@ -160,3 +160,25 @@ export function resolveEffectiveMutationPolicy(
   }
   return 'direct';
 }
+
+/**
+ * Credit spenders a workflow can fan out from into publishing, so a missing
+ * approval there would reach people, not only spend credits.
+ */
+const MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES = new Set<string>([
+  'execute_workflow',
+]);
+
+/**
+ * Whether the "Require approval for MCP requests" setting may waive the
+ * approvals queue for this tool. Only plain credit spenders qualify (media and
+ * content generation): the call still runs the credit balance check and quote.
+ * Outbound, brand-context and other gated writes stay queued however the
+ * setting is configured.
+ */
+export function isMcpApprovalSkippable(toolName: string): boolean {
+  return (
+    getAgentActionClass(toolName) === AGENT_ACTION_CLASS.CREDIT_SPENDING &&
+    !MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES.has(toolName)
+  );
+}

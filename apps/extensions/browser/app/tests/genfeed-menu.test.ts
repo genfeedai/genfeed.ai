@@ -85,6 +85,32 @@ describe('Genfeed button group', () => {
     expect(host.style.getPropertyValue('--gf-radius')).toBe('8px');
   });
 
+  it("takes the host button's fill and a readable mark colour", () => {
+    const host = createGenfeedGroup({
+      groups: groups(item()),
+      skin: {
+        height: 36,
+        radius: 18,
+        background: 'rgb(239, 243, 244)',
+        color: '#0f1419',
+      },
+    });
+
+    expect(host.style.getPropertyValue('--gf-bg')).toBe('rgb(239, 243, 244)');
+    expect(host.style.getPropertyValue('--gf-fg')).toBe('#0f1419');
+    expect(trigger(host).classList.contains('native')).toBe(true);
+  });
+
+  it('keeps the Genfeed theme when the host button has no fill', () => {
+    const host = createGenfeedGroup({
+      groups: groups(item()),
+      skin: { height: 36, radius: 18 },
+    });
+
+    expect(host.style.getPropertyValue('--gf-bg')).toBe('');
+    expect(trigger(host).classList.contains('native')).toBe(false);
+  });
+
   it('opens the menu on document.body, outside the host page container', () => {
     const host = mount(groups(item()));
 
