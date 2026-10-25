@@ -77,7 +77,7 @@ type BrandKitSection = 'voice' | 'strategy' | 'visual';
 
 function brandHref(section?: BrandKitSection): string {
   if (!section) return APP_ROUTES.SETTINGS.ROOT;
-  return `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=${section}`;
+  return `${APP_ROUTES.SETTINGS.BRAND_KIT}/${section}`;
 }
 
 function buildFieldDefs(): Record<string, FieldDef[]> {

@@ -1,13 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { Suspense } from 'react';
-import BrandAgentSettingsPage from './content';
+import AgentDefaults from './agent-defaults';
 
 export const generateMetadata = createPageMetadata('Agent settings');
 
 export default function BrandAgentSettingsRoute() {
-  return (
-    <Suspense fallback={null}>
-      <BrandAgentSettingsPage />
-    </Suspense>
-  );
+  return <AgentDefaults />;
 }

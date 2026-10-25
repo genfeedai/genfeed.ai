@@ -77,7 +77,7 @@ describe('brand-settings-agent-page', () => {
     expect(screen.getByText('Identity card')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Writing voice' })).toHaveAttribute(
       'href',
-      '/acme/acme/settings/brand-kit?tab=voice',
+      '/acme/acme/settings/brand-kit/voice',
     );
   });
 

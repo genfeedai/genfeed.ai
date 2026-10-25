@@ -292,7 +292,13 @@ export const APP_ROUTES = {
   },
   SETTINGS: {
     AGENT: '/settings/agent',
+    AGENT_CONTEXT: '/settings/agent/context',
+    AGENT_LEARNING: '/settings/agent/learning',
+    AGENT_RECEIPTS: '/settings/agent/receipts',
     BRAND_KIT: '/settings/brand-kit',
+    BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
+    BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
+    BRAND_KIT_VOICE: '/settings/brand-kit/voice',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',

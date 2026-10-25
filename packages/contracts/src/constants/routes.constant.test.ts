@@ -303,7 +303,7 @@ describe('routes.constant', () => {
     expect(
       createOrganizationAppRoute(
         'acme',
-        `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
+        APP_ROUTES.SETTINGS.BRAND_KIT_VOICE,
       ),
     ).toBe('/acme/~/settings/brands');
     expect(
@@ -335,8 +335,8 @@ describe('routes.constant', () => {
       createBrandAppRoute(
         'acme',
         'coffee',
-        `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
+        APP_ROUTES.SETTINGS.BRAND_KIT_VOICE,
       ),
-    ).toBe('/acme/coffee/settings/brand-kit?tab=voice');
+    ).toBe('/acme/coffee/settings/brand-kit/voice');
   });
 });
