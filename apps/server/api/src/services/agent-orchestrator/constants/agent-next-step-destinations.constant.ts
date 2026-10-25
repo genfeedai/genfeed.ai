@@ -85,7 +85,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   review_queue: {
     ctaLabel: 'Open reviews',
-    href: APP_ROUTES.PUBLISHING.REVIEW,
+    href: APP_ROUTES.PUBLISHING.APPROVALS,
     label: 'Reviews',
   },
   settings: {
@@ -95,7 +95,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   studio: {
     ctaLabel: 'Open studio',
-    href: APP_ROUTES.STUDIO.ROOT,
+    href: APP_ROUTES.STUDIO.PLAYGROUND,
     label: 'Studio',
   },
   workflows: {

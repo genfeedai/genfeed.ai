@@ -36,6 +36,7 @@ export * from '@serializers/configs/content/fanvue-schedule.config';
 export * from '@serializers/configs/content/fanvue-subscriber.config';
 export * from '@serializers/configs/content/fanvue-sync-log.config';
 export * from '@serializers/configs/content/ingredient.config';
+export * from '@serializers/configs/content/ingredient-generation-cost.config';
 export * from '@serializers/configs/content/insight.config';
 export * from '@serializers/configs/content/knowledge-source.config';
 export * from '@serializers/configs/content/knowledge-source-version.config';

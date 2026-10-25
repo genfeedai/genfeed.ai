@@ -82,8 +82,10 @@ account. To run a single-user workspace with no login wall instead, set
 | `BETTER_AUTH_TRUSTED_ORIGINS`     | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in                                                                   |
 | `BETTER_AUTH_SECRET`              | Generated                                               | Leave empty to let the container generate one and keep it at `/data/.better-auth-secret`     |
 
-The email and password accounts live in the local database and need no mail
-provider, but the login page itself offers only Google and Magic Link. See
+The login page offers **Email / Password** by default. Those accounts live in
+the local database and need no mail provider. **Magic Link** appears only when
+`RESEND_API_KEY` is set, and **Google** sign-in works only when
+`GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` are set. See
 [Create the first user](/self-host/installation#create-the-first-user) for how
 to create the first account. Add email or Google sign-in for the features that
 need them:
@@ -98,8 +100,8 @@ The login wall protects the REST API on port `3010` as well as the web UI.
 
 | `BETTER_AUTH_ENABLED` | Requests to the API                                                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `true`                | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role.              |
-| `false` (default)     | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
+| `true` (default)      | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role.              |
+| `false`               | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
 
 `X-Forwarded-For` is not trusted unless `TRUST_PROXY` names your proxy, so a
 remote client cannot pass as a local one by sending a header.

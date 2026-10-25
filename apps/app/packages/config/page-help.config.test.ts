@@ -24,21 +24,26 @@ describe('page help routing', () => {
       'automationWorkflows',
     );
     expect(
-      resolvePageHelpKey('/acme/brand/automation/workflows', 'view=templates'),
+      resolvePageHelpKey('/acme/brand/automation/workflows/templates'),
     ).toBe('automationTemplates');
     expect(resolvePageHelpKey('/acme/brand/automation/workflows')).toBe(
       'automationWorkflows',
     );
   });
 
-  it('resolves the calendar from the Posts desk calendar view', () => {
+  it('resolves the calendar and approvals from their own routes', () => {
+    expect(resolvePageHelpKey('/acme/brand/publishing/calendar')).toBe(
+      'publishingCalendar',
+    );
+    expect(resolvePageHelpKey('/acme/brand/publishing/approvals')).toBe(
+      'publishingApprovalQueue',
+    );
     expect(
-      resolvePageHelpKey('/acme/brand/publishing/posts', 'view=calendar'),
-    ).toBe('publishingCalendar');
+      resolvePageHelpKey('/acme/brand/publishing/approvals/run-1/item-1'),
+    ).toBe('publishingApprovalQueue');
     expect(resolvePageHelpKey('/acme/brand/publishing/posts')).toBe(
       'publishingPosts',
     );
-    expect(resolvePageHelpKey('/acme/brand/publishing/calendar')).toBeNull();
   });
 
   it('returns null for pages without help copy', () => {

@@ -9,6 +9,8 @@ export const BRAND_HANDLE_MAX_LENGTH = 48;
 export const BRAND_HANDLE_FORMAT_MESSAGE =
   'Handle must be 2-48 lowercase letters or numbers, separated by single hyphens.';
 export const BRAND_HANDLE_TAKEN_MESSAGE = 'This handle is already taken.';
+export const BRAND_HANDLE_RESERVED_MESSAGE =
+  'This handle is reserved. Choose a different one.';
 
 /** Accepts what people type: a leading `@`, surrounding spaces, capitals. */
 export function normalizeBrandHandle(value: string): string {

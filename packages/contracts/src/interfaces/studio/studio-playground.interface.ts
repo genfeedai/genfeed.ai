@@ -100,7 +100,7 @@ export type ProviderVariant = 'secondary' | 'accent';
 
 /**
  * Asset kinds the consolidated Studio playground can produce. Type is composer
- * state, never a URL segment — `/studio/playground` is the only route.
+ * state, never a URL segment — `/playground` is the only route.
  */
 export type StudioPlaygroundType =
   | 'image'

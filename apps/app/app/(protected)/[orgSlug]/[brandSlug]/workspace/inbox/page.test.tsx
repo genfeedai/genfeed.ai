@@ -1,59 +1,48 @@
 import WorkspaceInboxPage, * as PageModule from '@app/(protected)/[orgSlug]/[brandSlug]/workspace/inbox/page';
-import WorkspaceInboxRoute from '@app/(protected)/[orgSlug]/[brandSlug]/workspace/inbox/WorkspaceInboxRoute';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const navigation = vi.hoisted(() => ({ query: new URLSearchParams() }));
-vi.mock('next/navigation', () => ({
-  useParams: () => ({}),
-  useSearchParams: () => navigation.query,
-  usePathname: () => '/',
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    prefetch: vi.fn(),
+const navigation = vi.hoisted(() => ({
+  permanentRedirect: vi.fn((destination: string) => {
+    throw new Error(`PERMANENT:${destination}`);
+  }),
+  redirect: vi.fn((destination: string) => {
+    throw new Error(`TEMPORARY:${destination}`);
   }),
 }));
-vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-page',
-  () => ({
-    default: ({
-      defaultInboxView,
-      section,
-    }: {
-      defaultInboxView: string;
-      section: string;
-    }) => (
-      <div data-testid="workspace-page">
-        {section}:{defaultInboxView}
-      </div>
-    ),
-  }),
-);
+vi.mock('next/navigation', () => ({
+  permanentRedirect: navigation.permanentRedirect,
+  redirect: navigation.redirect,
+}));
+
 runPageModuleTests('app/(protected)/workspace/inbox/page', PageModule);
 
+async function openInbox(search: Record<string, string | string[]>) {
+  return WorkspaceInboxPage({
+    params: Promise.resolve({ brandSlug: 'moon', orgSlug: 'acme' }),
+    searchParams: Promise.resolve(search),
+  });
+}
+
 describe('WorkspaceInboxPage', () => {
-  it('renders a synchronous page shell', () => {
-    navigation.query = new URLSearchParams();
-    render(<WorkspaceInboxPage />);
-    expect(screen.getByTestId('workspace-page')).toHaveTextContent(
-      'inbox:unread',
+  beforeEach(() => vi.clearAllMocks());
+
+  it('opens the unread view for the bare inbox', async () => {
+    await expect(openInbox({})).rejects.toThrow(
+      'TEMPORARY:/acme/moon/workspace/inbox/unread',
     );
   });
-  it.each([
-    ['view=nope', 'unread'],
-    ['view=all', 'all'],
-    ['view=recent', 'recent'],
-    ['view=all&view=recent', 'unread'],
-  ])('keeps the parsing of %s', (query, expected) => {
-    navigation.query = new URLSearchParams(query);
-    render(<WorkspaceInboxRoute />);
-    expect(screen.getByTestId('workspace-page')).toHaveTextContent(
-      `inbox:${expected}`,
+
+  it('keeps filters when opening the unread view', async () => {
+    await expect(openInbox({ taskId: 't1' })).rejects.toThrow(
+      'TEMPORARY:/acme/moon/workspace/inbox/unread?taskId=t1',
     );
+  });
+
+  it('drops a retired ?view= param instead of redirecting permanently', async () => {
+    await expect(openInbox({ taskId: 't1', view: 'all' })).rejects.toThrow(
+      'TEMPORARY:/acme/moon/workspace/inbox/unread?taskId=t1',
+    );
+    expect(navigation.permanentRedirect).not.toHaveBeenCalled();
   });
 });

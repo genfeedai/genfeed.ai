@@ -169,14 +169,12 @@ describe('media.constant', () => {
     describe('studio production surfaces', () => {
       // The per-media-type tabs are retired; every surviving Studio surface is
       // video-first and one-off generation happens in the Agent.
-      it.each([
-        '/studio',
-        '/studio/storyboard',
-        '/studio/clips',
-        '/studio/turbo',
-      ])('should return VIDEO for %s', (pathname) => {
-        expect(getCategoryFromRoute(pathname)).toBe(IngredientCategory.VIDEO);
-      });
+      it.each(['/studio', '/storyboard', '/clips', '/turbo'])(
+        'should return VIDEO for %s',
+        (pathname) => {
+          expect(getCategoryFromRoute(pathname)).toBe(IngredientCategory.VIDEO);
+        },
+      );
     });
 
     describe('legacy routes', () => {
@@ -246,7 +244,7 @@ describe('media.constant', () => {
   describe('getConfigForRoute', () => {
     describe('standard routes', () => {
       it('should return video config for studio production surfaces', () => {
-        const config = getConfigForRoute('/studio/storyboard');
+        const config = getConfigForRoute('/storyboard');
 
         expect(config.assetType).toBe('video');
         expect(config.buttons?.camera).toBe(true);

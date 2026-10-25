@@ -17,6 +17,7 @@ import {
   getTenantContext,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
+import { BadRequestException } from '@nestjs/common';
 
 describe('OrganizationsService', () => {
   const organizationDelegate = {
@@ -347,6 +348,48 @@ describe('OrganizationsService', () => {
       await expect(service.generateUniqueSlug('!!')).rejects.toThrow(
         'Label too short to generate a valid slug',
       );
+    });
+
+    it.each([
+      'turbo',
+      'clips',
+      'editor',
+      'motion',
+      'playground',
+      'storyboard',
+      'agent',
+    ])('never hands out the reserved app route name "%s"', async (name) => {
+      organizationDelegate.findFirst.mockResolvedValue(null);
+
+      const slug = await service.generateUniqueSlug(name);
+
+      expect(slug).toBe(`${name}-2`);
+      expect(organizationDelegate.findFirst).toHaveBeenCalledTimes(1);
+      expect(organizationDelegate.findFirst).toHaveBeenCalledWith({
+        where: { slug: `${name}-2` },
+      });
+    });
+  });
+
+  describe('reserved app route names', () => {
+    it.each(['turbo', 'Clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'rejects "%s" as an explicit slug on create',
+      async (slug) => {
+        await expect(
+          service.create({ label: 'Acme', slug, userId: 'user_1' } as never),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(organizationDelegate.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects a reserved slug on patch before looking it up', async () => {
+      await expect(service.patch('org_1', { slug: 'turbo' })).rejects.toThrow(
+        'Slug "turbo" is reserved',
+      );
+
+      expect(organizationDelegate.findFirst).not.toHaveBeenCalled();
+      expect(organizationDelegate.update).not.toHaveBeenCalled();
     });
   });
 

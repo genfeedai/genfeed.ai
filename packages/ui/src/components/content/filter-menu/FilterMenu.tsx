@@ -103,7 +103,7 @@ function FilterMenuFacetItem({
             />
           </div>
         ) : null}
-        <div className="max-h-72 overflow-y-auto py-1">
+        <div className="max-h-80 overflow-y-auto py-1">
           {facet.options.length === 0 ? (
             <DropdownMenuItem disabled>{facet.emptyLabel}</DropdownMenuItem>
           ) : facet.selection === 'single' ? (
@@ -113,7 +113,8 @@ function FilterMenuFacetItem({
             >
               {visibleOptions.map((option) => (
                 <DropdownMenuRadioItem
-                  className="gap-2"
+                  className={option.isLiteral ? 'normal-case' : undefined}
+                  count={option.count}
                   key={option.value}
                   value={option.value}
                 >
@@ -128,7 +129,8 @@ function FilterMenuFacetItem({
               return (
                 <DropdownMenuCheckboxItem
                   checked={isChecked}
-                  className="gap-2"
+                  className={option.isLiteral ? 'normal-case' : undefined}
+                  count={option.count}
                   disabled={isLimitReached && !isChecked}
                   key={option.value}
                   onCheckedChange={(checked) =>

@@ -1466,11 +1466,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       const previewOption = referencePreviewUrl
         ? { referencePreviewUrl }
         : undefined;
-      const pinnedOption = submitOptions?.pinnedModelKey
-        ? { pinnedModelKey: submitOptions.pinnedModelKey }
-        : undefined;
       if (type === 'image-edit') {
-        const editOptions = { ...previewOption, ...pinnedOption };
+        const editOptions = { ...previewOption, ...submitOptions };
         isSubmitInFlightRef.current = true;
         const submission = (
           Object.keys(editOptions).length
@@ -1516,7 +1513,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         },
         {
           ...(previewOption ?? {}),
-          ...(pinnedOption ?? {}),
+          ...submitOptions,
           originalText: prompt,
           ...(promptAuthor ? { promptAuthor } : {}),
           ...(crunModel

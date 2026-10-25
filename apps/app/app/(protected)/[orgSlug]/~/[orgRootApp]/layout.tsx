@@ -12,10 +12,15 @@ import type {
 
 const SCOPES: Readonly<Record<string, IntlMessageTree>> = {
   automation,
+  clips: studio,
+  editor: studio,
   library,
   messages,
+  motion: studio,
+  playground: studio,
   publishing,
-  studio,
+  storyboard: studio,
+  turbo: studio,
 };
 
 export default async function OrganizationAppIntlLayout({

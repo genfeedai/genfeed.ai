@@ -157,10 +157,26 @@ describe('LibraryBrowserToolbar', () => {
       screen.queryByRole('menuitemradio', { name: 'Generating' }),
     ).not.toBeInTheDocument();
     expect(
-      await screen.findByRole('menuitemradio', { name: 'Needs review (2)' }),
+      await screen.findByRole('menuitemradio', { name: /^Needs review\s*2$/ }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('menuitemradio', { name: 'Failed (3)' }));
+    await user.click(
+      screen.getByRole('menuitemradio', { name: /^Failed\s*3$/ }),
+    );
     expect(onStatusChange).toHaveBeenCalledWith(LibraryShelf.FAILED);
+  });
+
+  it('leaves uploads and imports out of the status filter, they have their own page', async () => {
+    renderToolbar({
+      shelfCounts: { [LibraryShelf.REFERENCES]: 5 },
+    });
+    await openFilters(/^Status/);
+
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'Trash' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', { name: /^Imported/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('sends Trash and All through the same status filter', async () => {
@@ -169,7 +185,7 @@ describe('LibraryBrowserToolbar', () => {
     renderToolbar({ onStatusChange, trashedCount: 4 });
     const user = await openFilters(/^Status/);
     await user.click(
-      await screen.findByRole('menuitemradio', { name: 'Trash (4)' }),
+      await screen.findByRole('menuitemradio', { name: /^Trash\s*4$/ }),
     );
     expect(onStatusChange).toHaveBeenCalledWith('trash');
   });
@@ -339,10 +355,10 @@ describe('LibraryBrowserToolbar', () => {
       const user = await openFilters(/^Tags/);
 
       expect(
-        await screen.findByRole('menuitemcheckbox', { name: 'S1E12 (14)' }),
+        await screen.findByRole('menuitemcheckbox', { name: /^S1E12\s*14$/ }),
       ).toBeChecked();
       expect(
-        screen.getByRole('menuitemcheckbox', { name: 'Launch (3)' }),
+        screen.getByRole('menuitemcheckbox', { name: /^Launch\s*3$/ }),
       ).not.toBeChecked();
       // A tag without a count is still listed, just unlabelled by one.
       expect(
@@ -350,7 +366,7 @@ describe('LibraryBrowserToolbar', () => {
       ).toBeInTheDocument();
 
       await user.click(
-        screen.getByRole('menuitemcheckbox', { name: 'Launch (3)' }),
+        screen.getByRole('menuitemcheckbox', { name: /^Launch\s*3$/ }),
       );
 
       expect(onTagsChange).toHaveBeenCalledWith(['t1', 't2']);

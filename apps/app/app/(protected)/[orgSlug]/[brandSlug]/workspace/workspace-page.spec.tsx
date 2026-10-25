@@ -714,7 +714,7 @@ describe('WorkspacePageContent', () => {
     // Inbox tabs are org/brand-scoped via useOrgUrl().href() (#2182).
     expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox?view=unread',
+      '/acme-org/acme-creator/workspace/inbox/unread',
     );
     expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
       'data-state',
@@ -722,11 +722,11 @@ describe('WorkspacePageContent', () => {
     );
     expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox?view=recent',
+      '/acme-org/acme-creator/workspace/inbox/recent',
     );
     expect(screen.getByRole('link', { name: /all/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox?view=all',
+      '/acme-org/acme-creator/workspace/inbox/all',
     );
 
     expect(screen.getByText('Review launch draft')).toBeInTheDocument();

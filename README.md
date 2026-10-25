@@ -1,6 +1,6 @@
 # Genfeed.ai
 
-**The open-source content agent.**
+**The open-source content engine your agent can run. Self-host it free or use Cloud.**
 
 Create on-brand videos, images and posts, then review and publish to your
 connected channels. Work in Genfeed or connect the AI agent you already use.
@@ -8,6 +8,20 @@ connected channels. Work in Genfeed or connect the AI agent you already use.
 [![CI](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml?query=branch%3Amaster)
 [![Release](https://img.shields.io/github/v/release/genfeedai/genfeed.ai?label=release)](https://github.com/genfeedai/genfeed.ai/releases/latest)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
+
+<!-- TODO(demo): add the pinned demo video/GIF here (brief in → agent drafts →
+waits for approval → publishes). Real footage only; no mock media. -->
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
+Needs Docker Compose v2 and Node.js 24. The wizard asks for your
+[OpenRouter API key](https://openrouter.ai/keys), verifies the release bundle,
+and starts it. Install guide: [genfeed.ai/self-hosted](https://genfeed.ai/self-hosted)
+· [docs.genfeed.ai](https://docs.genfeed.ai/self-host/installation).
+
+If Genfeed is useful, a ⭐ on GitHub helps others find it.
 
 > [!WARNING]
 > Genfeed is `0.x` and under active development. Breaking changes ship with an
@@ -20,11 +34,12 @@ hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
 ## Requirements (Community)
 
 - Docker Engine with the Docker Compose v2 plugin (`docker compose version`), or
-  Docker Desktop. Both the 3-command block below and `npx @genfeedai/create`
+  Docker Desktop. Both `npx @genfeedai/create` and the release bundle below
   need it.
 - Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`.
-- Free host ports 3000 (web), 3010 (API) and 3014 (MCP).
-- About 10 GB of free disk (15 GB recommended); a fresh install measured about 9.5 GB.
+- Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP).
+- At least 15 GB of free disk: the v0.2.15 app image alone is 9.15 GB, plus about
+  0.6 GB for PostgreSQL, and generated media needs more on top.
 - RAM: no minimum is published. Tested on 8 CPU / 15 GiB.
 - Debian 13 provides Compose v2 in its
   [`docker-compose` package](https://packages.debian.org/trixie/docker-compose).
@@ -36,10 +51,26 @@ See [troubleshooting](docs/self-hosting.md#troubleshooting) if the app logs
 
 ## Quick start (Community)
 
+**One command (recommended):**
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
+It prompts for your OpenRouter key, then downloads, checksums, and starts the
+release bundle. Checksums, auth, providers, and upgrades:
+[self-hosting guide](docs/self-hosting.md).
+
+**Release bundle (no Node.js):** set `OPENROUTER_API_KEY` in `.env` to a real
+key from [openrouter.ai/keys](https://openrouter.ai/keys) **before** starting.
+The container exits at start without it.
+
 ```bash
 curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
 tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
-cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
+cp .env.example .env
+# Edit .env: set OPENROUTER_API_KEY to your real OpenRouter key, then:
+docker compose --env-file .env -f compose.yml up -d
 ```
 
 | Surface    | Local URL               |
@@ -47,30 +78,28 @@ cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
 | Web UI     | `http://localhost:3000` |
 | REST API   | `http://localhost:3010` |
 | MCP server | `http://localhost:3014` |
+| WebSocket  | `ws://localhost:3011` (live agent replies; keep it reachable) |
 
 The bundle pins the image for its release, applies Prisma migrations, and seeds
 one local workspace. No Genfeed Cloud account is required.
 
 For a first generation, do these in order:
 
-1. Set `OPENROUTER_API_KEY` in `.env` to a real key from
-   [openrouter.ai/keys](https://openrouter.ai/keys). Text generation and the
-   agent need it. Without it the install-readiness check reports text
-   generation as not ready. Then restart with the same `docker compose up -d`
-   command so the container reads the new value.
-2. Open `http://localhost:3000` and create your account. Sign-up is on by
-   default (`BETTER_AUTH_ENABLED=true` in `.env`), so the first visitor can
-   register. No email provider is needed for email/password.
+1. Make sure `OPENROUTER_API_KEY` in `.env` is a real key (the `npx` wizard
+   sets it for you). Text generation and the agent need it, and the container
+   refuses to start with an empty or placeholder value. If you change `.env`
+   later, recreate with the same `docker compose up -d` command so the
+   container reads the new value.
+2. Open `http://localhost:3000/sign-up` and create your account with
+   **Email & password**. Sign-up is on by default (`BETTER_AUTH_ENABLED=true`
+   in `.env`), and no email provider is needed. The new account gets its own
+   organization and brand.
 3. Complete onboarding, then start a task or generation.
 
 Keys are checked for real. **Settings → API Keys** validates each provider key
 against the provider before saving, so placeholder text is rejected there.
 Keys in `.env` are never accepted as placeholders either: an empty or
 template value counts as not configured.
-
-`npx @genfeedai/create my-genfeed` downloads, checksums, and starts the same
-bundle. Checksums, auth, providers, and upgrades:
-[self-hosting guide](docs/self-hosting.md).
 
 ### Let your coding agent install it
 
@@ -82,14 +111,16 @@ Install Genfeed — the open-source content agent — on this machine, then conn
 it to yourself over MCP.
 
 1. Check Docker Engine with Compose v2 is available.
-2. Start the Community bundle:
+2. Download the Community bundle:
    curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
    tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
-   cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
-3. Wait for http://localhost:3000 to answer. Sign-up is open by default; the
-   seed also creates one organization (slug `default`) and brand. Put a real
-   OpenRouter key in `.env` as `OPENROUTER_API_KEY` and restart before
-   generating.
+   cp .env.example .env
+3. Ask me for my OpenRouter API key and set it in `.env` as
+   `OPENROUTER_API_KEY` (a real key; the container exits at start without
+   it). Then start the stack:
+   docker compose --env-file .env -f compose.yml up -d
+   Wait for http://localhost:3000 to answer. Sign-up is open by default; the
+   seed also creates one organization (slug `default`) and brand.
 4. For Claude Code, register its dedicated content connector:
    claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
 5. Open /mcp, select genfeed and complete browser OAuth. For other clients,
@@ -102,7 +133,7 @@ Docs index for agents: https://docs.genfeed.ai/llms.txt
 ````
 
 Already on the hosted product? Skip installation and authorize with browser OAuth.
-Claude uses `https://mcp.genfeed.ai/mcp/claude` for brands, drafts, existing assets, scheduling and analytics; create media in [Genfeed Playground](https://app.genfeed.ai/studio/playground). Other clients use `https://mcp.genfeed.ai/mcp` for the full toolset.
+Claude uses `https://mcp.genfeed.ai/mcp/claude` for brands, drafts, existing assets, scheduling and analytics; create media in [Genfeed Playground](https://app.genfeed.ai/playground). Other clients use `https://mcp.genfeed.ai/mcp` for the full toolset.
 
 The standard MCP preset is approval-first: an agent can generate, draft, and schedule, but
 publishing waits for a human. What each surface exposes and why is in

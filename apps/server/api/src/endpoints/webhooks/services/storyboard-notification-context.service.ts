@@ -65,7 +65,7 @@ export class StoryboardNotificationContextService {
       return {
         layoutPath:
           orgSlug && brandSlug
-            ? `/${encodeURIComponent(orgSlug)}/${encodeURIComponent(brandSlug)}/studio/storyboard/${encodeURIComponent(runId)}`
+            ? `/${encodeURIComponent(orgSlug)}/${encodeURIComponent(brandSlug)}/storyboard/${encodeURIComponent(runId)}`
             : undefined,
         runId,
         title,

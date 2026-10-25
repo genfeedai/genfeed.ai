@@ -56,7 +56,7 @@ describe('brand-scoped durable storyboard loading', () => {
     mocks.serviceLoads.mockReset();
     mocks.userId = 'user';
     mocks.sessionOrg = 'org';
-    window.history.replaceState({}, '', '/org/brand-one/studio/storyboard/run');
+    window.history.replaceState({}, '', '/org/brand-one/storyboard/run');
   });
   it('passes brand, run and cancellation signal and hides an old-brand response', async () => {
     let resolveOld:
@@ -118,7 +118,7 @@ describe('brand-scoped durable storyboard loading', () => {
     const transport = result.current.transport;
     if (!transport) throw new Error('Missing captured transport');
     unmount();
-    window.history.replaceState({}, '', '/org/brand-two/studio/playground');
+    window.history.replaceState({}, '', '/org/brand-two/playground');
     const serviceLoads = mocks.serviceLoads.mock.calls.length;
     const saved = await transport.write('plan', 1, {
       plan: { ...run.config.plan, title: 'Detached title' },
@@ -150,7 +150,7 @@ describe('brand-scoped durable storyboard loading', () => {
         window.history.replaceState(
           {},
           '',
-          '/other-org/brand-one/studio/storyboard/run',
+          '/other-org/brand-one/storyboard/run',
         );
       const run = persistedRun();
       await expect(

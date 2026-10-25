@@ -14,7 +14,7 @@ export type TurboPresetId =
 export interface TurboPreset {
   /** Creative angle saved on the draft (max 300 chars). */
   angle: string;
-  /** Ideas per format (3 to 9). */
+  /** Total ideas, spread across the formats (at least 3). */
   count: number;
   formats: readonly TurboIdeaFormat[];
   icon: LucideIcon;

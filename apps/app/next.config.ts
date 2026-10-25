@@ -9,6 +9,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   PERSONAL_SETTINGS_CHILD_SEGMENTS,
+  STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
@@ -90,7 +91,7 @@ const resolvedApiBaseUrl = (
 const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.WORKSPACE,
   APP_ROUTE_PREFIXES.AGENT,
-  APP_ROUTE_PREFIXES.STUDIO,
+  ...STUDIO_APP_ROUTE_PREFIXES,
   APP_ROUTE_PREFIXES.PUBLISHING,
   APP_ROUTE_PREFIXES.ANALYTICS,
   APP_ROUTE_PREFIXES.AUTOMATION,
@@ -177,9 +178,6 @@ const LIBRARY_TYPE_PRESET_QUERIES = [
 
 const filterRouteRedirects: AppRedirect[] = [
   ...[
-    ['/workspace/inbox/all', '/workspace/inbox?view=all'],
-    ['/workspace/inbox/recent', '/workspace/inbox?view=recent'],
-    ['/workspace/inbox/unread', '/workspace/inbox?view=unread'],
     ['/settings/models/all', '/settings/models?type=all'],
     ['/settings/models/images', '/settings/models?type=images'],
     ['/settings/models/videos', '/settings/models?type=videos'],
@@ -216,57 +214,6 @@ const filterRouteRedirects: AppRedirect[] = [
     ]),
   ),
 ];
-
-const adminFilterRouteRedirects = [
-  ['/admin/automation/models/active', '/admin/automation/models?type=active'],
-  ['/admin/automation/models/all', '/admin/automation/models?type=all'],
-  ['/admin/automation/models/image', '/admin/automation/models?type=image'],
-  ['/admin/automation/models/video', '/admin/automation/models?type=video'],
-  ['/admin/automation/models/music', '/admin/automation/models?type=music'],
-  ['/admin/automation/models/text', '/admin/automation/models?type=text'],
-  ['/admin/automation/models/other', '/admin/automation/models?type=other'],
-  [
-    '/admin/content/ingredients/videos',
-    '/admin/content/ingredients?assetType=videos',
-  ],
-  [
-    '/admin/content/ingredients/images',
-    '/admin/content/ingredients?assetType=images',
-  ],
-  [
-    '/admin/content/ingredients/gifs',
-    '/admin/content/ingredients?assetType=gifs',
-  ],
-  [
-    '/admin/content/ingredients/musics',
-    '/admin/content/ingredients?assetType=musics',
-  ],
-  [
-    '/admin/content/ingredients/avatars',
-    '/admin/content/ingredients?assetType=avatars',
-  ],
-  [
-    '/admin/content/ingredients/voices',
-    '/admin/content/ingredients?assetType=voices',
-  ],
-  [
-    '/admin/content/ingredients/ingredients',
-    '/admin/content/ingredients?assetType=ingredients',
-  ],
-  ['/admin/configuration/tags/all', '/admin/configuration/tags?filter=all'],
-  [
-    '/admin/configuration/tags/default',
-    '/admin/configuration/tags?filter=default',
-  ],
-  [
-    '/admin/configuration/tags/organization',
-    '/admin/configuration/tags?filter=organization',
-  ],
-  [
-    '/admin/configuration/tags/account',
-    '/admin/configuration/tags?filter=account',
-  ],
-].map(([source, destination]) => ({ source, destination, permanent: true }));
 
 const config = createAppNextConfig({
   // Defense in depth alongside app/robots.txt/route.ts and root metadata: the
@@ -317,55 +264,7 @@ const config = createAppNextConfig({
       source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
     },
 
-    // The agent onboarding conversation was replaced by the single
-    // `/onboarding` page. Keep bookmarked and emailed links working.
-    {
-      destination: APP_ROUTES.ONBOARDING.ROOT,
-      permanent: false,
-      source: createOrganizationAppRoute(
-        ':orgSlug',
-        '/agent/onboarding/:path*',
-      ),
-    },
-    {
-      destination: APP_ROUTES.ONBOARDING.ROOT,
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        '/agent/onboarding/:path*',
-      ),
-    },
     ...filterRouteRedirects,
-    ...adminFilterRouteRedirects,
-    // Market trends moved from Analytics (own-content measurement) to
-    // Discovery. Keep bookmarked and agent-emitted links working.
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${APP_ROUTES.DISCOVERY.TRENDS}/:path*`,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        '/analytics/trends/:path*',
-      ),
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.TREND_TURNOVER,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        '/analytics/trend-turnover',
-      ),
-    },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
       destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
@@ -427,8 +326,8 @@ const config = createAppNextConfig({
       ),
     })),
     // Complete-path homes: bare `/[app]` → a named child. Library's home is
-    // the asset browser, not an overview tile grid. Studio has no root: each
-    // Studio tool is its own app (#5502).
+    // the asset browser, not an overview tile grid. The former Studio apps
+    // have no parent: each is its own app (#5502).
     ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT),

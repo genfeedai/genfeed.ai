@@ -2,8 +2,9 @@
 
 import { cn } from '@genfeedai/helpers';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
-import { Check, ChevronRight, Minus } from 'lucide-react';
-import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
+import { Check, ChevronRight } from 'lucide-react';
+import type { ComponentPropsWithRef, HTMLAttributes, ReactNode } from 'react';
+import { Badge } from './badge';
 import { overlayMenuSurfaceClassName } from './field-control';
 
 const DropdownMenu: typeof DropdownMenuPrimitive.Root =
@@ -138,29 +139,61 @@ function DropdownMenuItem({
 }
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 
+const selectableItemClassName =
+  'group dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[state=checked]:font-medium';
+
+interface SelectableItemContentProps {
+  children: ReactNode;
+  /** Right-aligned number badge, e.g. how many results the option holds. */
+  count?: number;
+}
+
+/**
+ * Label, then one trailing slot: the count badge while the row is unselected,
+ * the check in its place once it is. A single slot keeps both in one
+ * right-aligned column with no gap between them.
+ */
+function SelectableItemContent({
+  children,
+  count,
+}: SelectableItemContentProps) {
+  return (
+    <>
+      <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>
+      <span className="flex h-5 min-w-5 shrink-0 items-center justify-center">
+        {typeof count === 'number' ? (
+          <Badge
+            className="min-w-5 justify-center tabular-nums group-data-[state=checked]:hidden"
+            variant="secondary"
+          >
+            {count}
+          </Badge>
+        ) : null}
+        <DropdownMenuPrimitive.ItemIndicator>
+          <Check aria-hidden="true" className="size-3.5" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+    </>
+  );
+}
+
 function DropdownMenuCheckboxItem({
   ref,
   className,
   children,
   checked,
+  count,
   ...props
-}: ComponentPropsWithRef<typeof DropdownMenuPrimitive.CheckboxItem>) {
+}: ComponentPropsWithRef<typeof DropdownMenuPrimitive.CheckboxItem> &
+  Pick<SelectableItemContentProps, 'count'>) {
   return (
     <DropdownMenuPrimitive.CheckboxItem
       ref={ref}
-      className={cn(
-        'dropdown-case relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        className,
-      )}
+      className={cn(selectableItemClassName, className)}
       checked={checked}
       {...props}
     >
-      <span className="absolute left-2 flex size-3.5 items-center justify-center">
-        <DropdownMenuPrimitive.ItemIndicator>
-          <Check className="size-4" />
-        </DropdownMenuPrimitive.ItemIndicator>
-      </span>
-      {children}
+      <SelectableItemContent count={count}>{children}</SelectableItemContent>
     </DropdownMenuPrimitive.CheckboxItem>
   );
 }
@@ -171,23 +204,17 @@ function DropdownMenuRadioItem({
   ref,
   className,
   children,
+  count,
   ...props
-}: ComponentPropsWithRef<typeof DropdownMenuPrimitive.RadioItem>) {
+}: ComponentPropsWithRef<typeof DropdownMenuPrimitive.RadioItem> &
+  Pick<SelectableItemContentProps, 'count'>) {
   return (
     <DropdownMenuPrimitive.RadioItem
       ref={ref}
-      className={cn(
-        'dropdown-case relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        className,
-      )}
+      className={cn(selectableItemClassName, className)}
       {...props}
     >
-      <span className="absolute left-2 flex size-3.5 items-center justify-center">
-        <DropdownMenuPrimitive.ItemIndicator>
-          <Minus className="size-2 fill-current" />
-        </DropdownMenuPrimitive.ItemIndicator>
-      </span>
-      {children}
+      <SelectableItemContent count={count}>{children}</SelectableItemContent>
     </DropdownMenuPrimitive.RadioItem>
   );
 }

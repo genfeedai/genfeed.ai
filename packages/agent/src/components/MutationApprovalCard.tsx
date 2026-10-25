@@ -1,3 +1,7 @@
+import {
+  MutationApprovalPostPreviews,
+  readPostPreviews,
+} from '@genfeedai/agent/components/MutationApprovalPostPreviews';
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentUiAction,
@@ -64,6 +68,7 @@ export function MutationApprovalCard({
 }: MutationApprovalCardProps): ReactElement {
   const translate = useTranslations('agent.mutationApproval');
   const approval = readApproval(action.data);
+  const postPreviews = readPostPreviews(action.data);
   const request = useAgentUiActionRequest(onUiAction, { isVoidSuccess: false });
   const [now, setNow] = useState(Date.now);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -198,6 +203,9 @@ export function MutationApprovalCard({
       <p className="whitespace-pre-wrap break-words text-sm font-medium text-foreground">
         {approval.summary}
       </p>
+      {postPreviews.length > 0 && (
+        <MutationApprovalPostPreviews previews={postPreviews} />
+      )}
       {approval.items.length > 0 && (
         <dl className="mt-3 space-y-2">
           {keyListItems(approval.items, (item) => JSON.stringify(item)).map(

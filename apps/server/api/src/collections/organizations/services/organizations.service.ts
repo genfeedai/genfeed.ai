@@ -23,7 +23,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { OrganizationCategory } from '@genfeedai/contracts';
-import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
+import {
+  applyExpertPublishApprovalDefault,
+  isReservedAppRootSegment,
+} from '@genfeedai/contracts/constants';
 import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -148,10 +151,13 @@ export class OrganizationsService extends BaseService<
       typeof normalizedDto.label === 'string' && normalizedDto.label.trim()
         ? normalizedDto.label.trim()
         : 'organization';
+    const requestedSlug =
+      typeof normalizedDto.slug === 'string' ? normalizedDto.slug.trim() : '';
+    if (requestedSlug) {
+      this.assertSlugNotReserved(requestedSlug);
+    }
     const preferredSlug =
-      typeof normalizedDto.slug === 'string' && normalizedDto.slug.trim()
-        ? normalizedDto.slug.trim()
-        : await this.generateUniqueSlug(label);
+      requestedSlug || (await this.generateUniqueSlug(label));
     const allocationBase = slugAllocationBase(preferredSlug);
 
     let organization: OrganizationDocument | undefined;
@@ -222,6 +228,7 @@ export class OrganizationsService extends BaseService<
     updateDto: Partial<UpdateOrganizationDto>,
   ): Promise<OrganizationDocument> {
     if (updateDto.slug) {
+      this.assertSlugNotReserved(updateDto.slug);
       const existing = await this.findBySlug(updateDto.slug);
       if (existing && existing.id.toString() !== id) {
         throw new BadRequestException(
@@ -470,6 +477,18 @@ export class OrganizationsService extends BaseService<
   }
 
   /**
+   * The slug is the first URL segment, shared with the top-level app routes
+   * (`/turbo`, `/clips`, ...), so those names can never be an organization.
+   */
+  private assertSlugNotReserved(slug: string): void {
+    if (isReservedAppRootSegment(slug)) {
+      throw new BadRequestException(
+        `Slug "${slug}" is reserved. Choose a different one.`,
+      );
+    }
+  }
+
+  /**
    * Find an organization by its slug
    */
   async findBySlug(slug: string): Promise<OrganizationDocument | null> {
@@ -500,7 +519,10 @@ export class OrganizationsService extends BaseService<
       if (excludeOrgId) {
         filter.id = { not: excludeOrgId };
       }
-      if (!(await this.prisma.organization.findFirst({ where: filter }))) {
+      if (
+        !isReservedAppRootSegment(candidate) &&
+        !(await this.prisma.organization.findFirst({ where: filter }))
+      ) {
         break;
       }
       candidate = `${base}-${counter}`;

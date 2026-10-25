@@ -583,7 +583,7 @@ with notes.</p>
 <h2>Open the queue</h2>
 <p>Go to <strong>Publishing &rarr; Posts</strong> and switch the view to
 <strong>Approvals</strong>
-(<code>/{orgSlug}/{brandSlug}/publishing/posts?view=approvals</code>). The
+(<code>/{orgSlug}/{brandSlug}/publishing/approvals</code>). The
 <strong>Approval queue</strong> opens on items that are <strong>Ready</strong>.
 Items waiting for review also appear on the home screen under
 <strong>Attention queue</strong>, with <strong>Approve</strong> and
@@ -637,7 +637,7 @@ main place to generate.</p>
 <h2>Open the Playground</h2>
 <p>Select your brand, open <strong>Studio</strong>, then
 <strong>Playground</strong>
-(<code>/{orgSlug}/{brandSlug}/studio/playground</code>). It is described as one
+(<code>/{orgSlug}/{brandSlug}/playground</code>). It is described as one
 prompt bar for every asset type, enriched with your brand. Everything you
 generate appears on the page.</p>
 

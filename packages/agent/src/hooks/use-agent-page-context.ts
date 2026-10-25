@@ -11,7 +11,7 @@ import type { MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
-  PUBLISHING_POSTS_QUERY_KEYS,
+  STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants';
 import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import {
@@ -35,7 +35,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createElement, useEffect, useMemo } from 'react';
 
 interface PageContextConfig {
@@ -67,6 +67,28 @@ function createPageHelpAction(help: PageHelpContent): SuggestedAction {
     prompt: `Explain this page to me: "${help.title}". ${help.body} Tell me what I can do here and suggest the single best next step for my brand, then offer to do it.`,
   };
 }
+
+// Every former Studio app (`/turbo`, `/storyboard`, ...) shares one context.
+const STUDIO_PAGE_CONTEXT: PageContextConfig = {
+  placeholder: 'Ask about this asset...',
+  suggestedActions: [
+    {
+      icon: createElement(Sparkles, {
+        className: 'size-5 text-foreground/50',
+      }),
+      label: 'Next step',
+      prompt:
+        'Summarize the best next step for the asset I am viewing right now.',
+    },
+    {
+      icon: createElement(Paintbrush, {
+        className: 'size-5 text-foreground/50',
+      }),
+      label: 'Variations',
+      prompt: 'Suggest variations or remixes I should try for this asset.',
+    },
+  ],
+};
 
 const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
   [APP_ROUTES.ANALYTICS.ROOT]: {
@@ -474,7 +496,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.PUBLISHING.REVIEW]: {
+  [APP_ROUTES.PUBLISHING.APPROVALS]: {
     placeholder: 'Ask about content review...',
     suggestedActions: [
       {
@@ -580,26 +602,9 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.STUDIO.ROOT]: {
-    placeholder: 'Ask about this asset...',
-    suggestedActions: [
-      {
-        icon: createElement(Sparkles, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Next step',
-        prompt:
-          'Summarize the best next step for the asset I am viewing right now.',
-      },
-      {
-        icon: createElement(Paintbrush, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Variations',
-        prompt: 'Suggest variations or remixes I should try for this asset.',
-      },
-    ],
-  },
+  ...Object.fromEntries(
+    STUDIO_APP_ROUTE_PREFIXES.map((prefix) => [prefix, STUDIO_PAGE_CONTEXT]),
+  ),
 };
 
 const DEFAULT_CONTEXT: PageContextConfig = {
@@ -670,19 +675,12 @@ export function useAgentPageContext(
   pageHelp?: PageHelpContent | null,
 ): PageContextConfig {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const postsView = searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW);
   const { selectedBrand } = useBrand();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
-  const contextPathname = useMemo(() => {
-    const normalized = normalizeAgentContextPathname(pathname);
-    // Calendar and approvals are Posts views, so their context keys on the
-    // view query rather than a path of their own.
-    if (normalized !== APP_ROUTES.PUBLISHING.POSTS) return normalized;
-    if (postsView === 'calendar') return APP_ROUTES.PUBLISHING.CALENDAR;
-    if (postsView === 'approvals') return APP_ROUTES.PUBLISHING.REVIEW;
-    return normalized;
-  }, [pathname, postsView]);
+  const contextPathname = useMemo(
+    () => normalizeAgentContextPathname(pathname),
+    [pathname],
+  );
 
   const config = useMemo(() => {
     const base = getContextForRoute(contextPathname);

@@ -154,6 +154,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/assets': 'Assets',
+  '/:orgSlug/:brandSlug/library/imported': 'Imported',
   '/:orgSlug/:brandSlug/library/overview': 'Overview',
   '/:orgSlug/:brandSlug/library/references': 'References',
   '/:orgSlug/:brandSlug/settings/brand-kit': 'Brand Kit',
@@ -183,6 +184,10 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automation/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automation/library/:type': ':type',
   '/:orgSlug/:brandSlug/publishing/posts': 'Posts',
+  '/:orgSlug/:brandSlug/publishing/calendar': 'Calendar',
+  '/:orgSlug/:brandSlug/publishing/approvals': 'Approvals',
+  '/:orgSlug/:brandSlug/publishing/approvals/:run': 'Run',
+  '/:orgSlug/:brandSlug/publishing/approvals/:run/:item': 'Item',
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Content',
   '/:orgSlug/:brandSlug/publishing/campaigns': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'New Campaign',
@@ -203,6 +208,10 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/ads': 'Ads',
   '/:orgSlug/~/publishing/campaigns/:id/edit': 'Edit',
   '/:orgSlug/~/publishing/posts': 'Posts',
+  '/:orgSlug/~/publishing/calendar': 'Calendar',
+  '/:orgSlug/~/publishing/approvals': 'Approvals',
+  '/:orgSlug/~/publishing/approvals/:run': 'Run',
+  '/:orgSlug/~/publishing/approvals/:run/:item': 'Item',
   '/:orgSlug/~/publishing/posts/:id': 'Content',
   '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
   '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',
@@ -215,23 +224,24 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/settings/knowledge': 'Knowledge',
   '/:orgSlug/:brandSlug/settings/usage': 'Usage',
   // Studio tools are apps (#5502): the app is the root, its home the leaf.
-  '/:orgSlug/:brandSlug/studio/playground': 'Canvas',
-  '/:orgSlug/:brandSlug/studio/storyboard': 'Runs',
-  '/:orgSlug/:brandSlug/studio/motion': 'Compositions',
-  '/:orgSlug/:brandSlug/studio/clips': 'Projects',
-  '/:orgSlug/:brandSlug/studio/turbo': 'Projects',
-  '/:orgSlug/:brandSlug/studio/turbo/new': 'New project',
-  '/:orgSlug/:brandSlug/studio/clips/new': 'New project',
-  '/:orgSlug/:brandSlug/studio/storyboard/new': 'New storyboard',
-  '/:orgSlug/:brandSlug/studio/storyboard/:runId': 'Run',
-  '/:orgSlug/:brandSlug/studio/clips/:projectId': 'Project',
-  '/:orgSlug/:brandSlug/studio/editor': 'Projects',
-  '/:orgSlug/:brandSlug/studio/editor/:id': 'Project',
+  '/:orgSlug/:brandSlug/playground': 'Canvas',
+  '/:orgSlug/:brandSlug/storyboard': 'Runs',
+  '/:orgSlug/:brandSlug/motion': 'Compositions',
+  '/:orgSlug/:brandSlug/clips': 'Projects',
+  '/:orgSlug/:brandSlug/turbo': 'Projects',
+  '/:orgSlug/:brandSlug/turbo/new': 'New project',
+  '/:orgSlug/:brandSlug/clips/new': 'New project',
+  '/:orgSlug/:brandSlug/storyboard/new': 'New storyboard',
+  '/:orgSlug/:brandSlug/storyboard/:runId': 'Run',
+  '/:orgSlug/:brandSlug/clips/:projectId': 'Project',
+  '/:orgSlug/:brandSlug/editor': 'Projects',
+  '/:orgSlug/:brandSlug/editor/:id': 'Project',
   '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
   '/:orgSlug/:brandSlug/automation/workflows/:id': 'Workflow',
   '/:orgSlug/:brandSlug/automation/runs/:id': 'Run',
   '/:orgSlug/:brandSlug/automation/workflows/new': 'New Workflow',
   '/:orgSlug/:brandSlug/automation/workflows': 'Workflows',
+  '/:orgSlug/:brandSlug/automation/workflows/templates': 'Templates',
   '/:orgSlug/:brandSlug/messages/reply-drip': 'Reply drip',
   '/:orgSlug/:brandSlug/messages/replies': 'Replies',
   '/:orgSlug/:brandSlug/automation/runs': 'Runs',
@@ -250,8 +260,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/settings/api-keys': 'API Keys',
   '/:orgSlug/~/settings/integrations': 'Integrations',
   '/:orgSlug/~/settings/models/:type': ':type',
-  '/:orgSlug/~/studio/editor': 'Projects',
-  '/:orgSlug/~/studio/editor/:id': 'Project',
+  '/:orgSlug/~/editor': 'Projects',
+  '/:orgSlug/~/editor/:id': 'Project',
 
   '/admin': 'Dashboard',
   '/admin/settings/ai': 'AI',
@@ -280,6 +290,10 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   // Content desk lives under Posts, not Overview.
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
   '/:orgSlug/~/publishing/posts/:id': 'Posts',
+  '/:orgSlug/:brandSlug/publishing/approvals/:run': 'Approvals',
+  '/:orgSlug/:brandSlug/publishing/approvals/:run/:item': 'Approvals',
+  '/:orgSlug/~/publishing/approvals/:run': 'Approvals',
+  '/:orgSlug/~/publishing/approvals/:run/:item': 'Approvals',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/:id': 'Campaigns',
@@ -307,6 +321,11 @@ const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/posts',
   '/:orgSlug/~/publishing/posts/:id': '/publishing/posts',
+  '/:orgSlug/:brandSlug/publishing/approvals/:run': '/publishing/approvals',
+  '/:orgSlug/:brandSlug/publishing/approvals/:run/:item':
+    '/publishing/approvals',
+  '/:orgSlug/~/publishing/approvals/:run': '/publishing/approvals',
+  '/:orgSlug/~/publishing/approvals/:run/:item': '/publishing/approvals',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/:id': '/publishing/campaigns',
@@ -345,30 +364,6 @@ function humanizeBreadcrumbLabel(value: string): string {
     .join(' ');
 }
 
-/** Studio tools are apps. */
-const STUDIO_APP_SEGMENTS = Object.freeze({
-  clips: 'clips',
-  editor: 'editor',
-  motion: 'motion',
-  playground: 'playground',
-  storyboard: 'storyboard',
-  turbo: 'turbo',
-} as const satisfies Readonly<Record<string, string>>);
-
-function getCanonicalAppSegment(canonicalUrl: string): string {
-  const appSegment = getCanonicalRootSegment(canonicalUrl);
-  if (appSegment !== 'studio') {
-    return appSegment;
-  }
-
-  const segments = canonicalUrl.split('/').filter(Boolean);
-  const toolSegment = segments[segments.indexOf('studio') + 1] ?? '';
-  return (
-    STUDIO_APP_SEGMENTS[toolSegment as keyof typeof STUDIO_APP_SEGMENTS] ??
-    toolSegment
-  );
-}
-
 function getCanonicalRootSegment(canonicalUrl: string): string {
   if (canonicalUrl === '/') {
     return 'workspace';
@@ -404,7 +399,7 @@ function getDefaultBreadcrumbLeafLabel(canonicalUrl: string): string {
 function getRouteBreadcrumbMetadata(
   canonicalUrl: string,
 ): WorkspaceShellBreadcrumbMetadata {
-  const appSegment = getCanonicalAppSegment(canonicalUrl);
+  const appSegment = getCanonicalRootSegment(canonicalUrl);
   const rootLabel =
     BREADCRUMB_ROOT_LABELS[appSegment as keyof typeof BREADCRUMB_ROOT_LABELS] ??
     humanizeBreadcrumbLabel(appSegment);
@@ -735,6 +730,10 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/publishing/overview',
       '/:orgSlug/~/publishing/posts',
       '/:orgSlug/~/publishing/posts/:id',
+      '/:orgSlug/~/publishing/calendar',
+      '/:orgSlug/~/publishing/approvals',
+      '/:orgSlug/~/publishing/approvals/:run',
+      '/:orgSlug/~/publishing/approvals/:run/:item',
       '/:orgSlug/~/publishing/campaigns',
       '/:orgSlug/~/publishing/campaigns/new',
       '/:orgSlug/~/publishing/campaigns/compare',
@@ -757,13 +756,13 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/~/studio/editor',
-      '/:orgSlug/~/studio/editor/projects',
-      '/:orgSlug/~/studio/editor/new',
-      '/:orgSlug/~/studio/editor/:id',
+      '/:orgSlug/~/editor',
+      '/:orgSlug/~/editor/projects',
+      '/:orgSlug/~/editor/new',
+      '/:orgSlug/~/editor/:id',
     ],
     {
-      fallback: '/:orgSlug/~/studio/editor',
+      fallback: '/:orgSlug/~/editor',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'organization',
@@ -868,21 +867,21 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/studio/turbo',
-      '/:orgSlug/:brandSlug/studio/turbo/new',
-      '/:orgSlug/:brandSlug/studio/turbo/:projectId',
-      '/:orgSlug/:brandSlug/studio/clips',
-      '/:orgSlug/:brandSlug/studio/clips/new',
-      '/:orgSlug/:brandSlug/studio/clips/:projectId',
-      '/:orgSlug/:brandSlug/studio/playground',
-      '/:orgSlug/:brandSlug/studio/motion',
-      '/:orgSlug/:brandSlug/studio/storyboard',
-      '/:orgSlug/:brandSlug/studio/storyboard/new',
-      '/:orgSlug/:brandSlug/studio/storyboard/:runId',
+      '/:orgSlug/:brandSlug/turbo',
+      '/:orgSlug/:brandSlug/turbo/new',
+      '/:orgSlug/:brandSlug/turbo/:projectId',
+      '/:orgSlug/:brandSlug/clips',
+      '/:orgSlug/:brandSlug/clips/new',
+      '/:orgSlug/:brandSlug/clips/:projectId',
+      '/:orgSlug/:brandSlug/playground',
+      '/:orgSlug/:brandSlug/motion',
+      '/:orgSlug/:brandSlug/storyboard',
+      '/:orgSlug/:brandSlug/storyboard/new',
+      '/:orgSlug/:brandSlug/storyboard/:runId',
     ],
     {
       adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/studio/playground',
+      fallback: '/:orgSlug/:brandSlug/playground',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -908,12 +907,12 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/studio/editor',
-      '/:orgSlug/:brandSlug/studio/editor/new',
-      '/:orgSlug/:brandSlug/studio/editor/:id',
+      '/:orgSlug/:brandSlug/editor',
+      '/:orgSlug/:brandSlug/editor/new',
+      '/:orgSlug/:brandSlug/editor/:id',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/studio/editor',
+      fallback: '/:orgSlug/:brandSlug/editor',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -926,6 +925,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/library',
       '/:orgSlug/:brandSlug/library/assets',
+      '/:orgSlug/:brandSlug/library/imported',
       '/:orgSlug/:brandSlug/library/overview',
       '/:orgSlug/:brandSlug/library/references',
       '/:orgSlug/:brandSlug/library/trash',
@@ -954,6 +954,10 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing/overview',
       '/:orgSlug/:brandSlug/publishing/posts',
       '/:orgSlug/:brandSlug/publishing/posts/:id',
+      '/:orgSlug/:brandSlug/publishing/calendar',
+      '/:orgSlug/:brandSlug/publishing/approvals',
+      '/:orgSlug/:brandSlug/publishing/approvals/:run',
+      '/:orgSlug/:brandSlug/publishing/approvals/:run/:item',
       '/:orgSlug/:brandSlug/publishing/campaigns',
       '/:orgSlug/:brandSlug/publishing/campaigns/new',
       '/:orgSlug/:brandSlug/publishing/campaigns/compare',
@@ -1028,6 +1032,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automation/content-runs',
       '/:orgSlug/:brandSlug/automation/content-runs/:runId',
       '/:orgSlug/:brandSlug/automation/workflows',
+      '/:orgSlug/:brandSlug/automation/workflows/templates',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/automation',

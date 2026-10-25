@@ -12,9 +12,11 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import type { TurboIdeasEditorProps } from './turbo-project.types';
 
 const FORMATS: TurboIdeaFormat[] = ['image', 'video', 'avatar'];
+const MIN_IDEAS = 3;
 export default function TurboIdeasEditor({
   canGenerate,
   isAvatarReady,
@@ -26,6 +28,7 @@ export default function TurboIdeasEditor({
   onNameChange,
 }: TurboIdeasEditorProps) {
   const t = useTranslations('pages.turboProjects');
+  const [countDraft, setCountDraft] = useState<string | null>(null);
   const formats = settings.formats.map((format) => t(format)).join(' + ');
   return (
     <div className="flex max-w-2xl flex-col gap-4">
@@ -85,19 +88,16 @@ export default function TurboIdeasEditor({
               <Input
                 aria-label={t('ideaCount')}
                 type="number"
-                min={3}
-                max={9}
-                value={settings.count}
+                min={MIN_IDEAS}
+                value={countDraft ?? settings.count}
                 disabled={disabled}
-                onChange={(event) =>
-                  onChange({
-                    ...settings,
-                    count: Math.min(
-                      9,
-                      Math.max(3, Number(event.target.value) || 3),
-                    ),
-                  })
-                }
+                onChange={(event) => {
+                  // Keep what is typed, so "20" is not clamped to "3" on the way.
+                  setCountDraft(event.target.value);
+                  const count = Number.parseInt(event.target.value, 10);
+                  if (count >= MIN_IDEAS) onChange({ ...settings, count });
+                }}
+                onBlur={() => setCountDraft(null)}
               />
             </Field>
             <Field label={t('angle')}>

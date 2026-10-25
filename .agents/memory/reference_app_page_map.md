@@ -84,5 +84,5 @@ here. A few facts aren't visible from the route list alone and are worth keeping
   `/publish/remix` remains a canonical Publish child route for typed handoffs.
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
-- `Turbo` (`/studio/turbo`, renamed from Batch in #5936) is Studio internal navigation when the Studio capability is enabled.
+- `Turbo` (`/turbo`, renamed from Batch in #5936) is Studio internal navigation when the Studio capability is enabled.
 - Creation starts in the Agent. Focused `/edit/:type/:id` artifact editors belong to Publish, while the Remotion project editor is Studio's `Edit` surface.

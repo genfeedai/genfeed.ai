@@ -73,62 +73,45 @@ export class IngredientGenerationCancellationService {
       ingredient,
       isQuoteGroup,
     );
-    if (isQuoteGroup) {
-      if (!confirmedCancellation) return ingredient;
-      const claimed = await this.ingredientsService.patchAll(
-        {
-          id: ingredient.id,
-          organizationId: input.organizationId,
-          isDeleted: false,
-          status: IngredientStatus.PROCESSING,
-        },
-        {
-          generationError: GENERATION_CANCELLED_BY_USER,
-          status: IngredientStatus.FAILED,
-          isGenerationFailureConfirmed: true,
-        },
-      );
-      if (claimed.modifiedCount === 1) {
+    if (isQuoteGroup && !confirmedCancellation) return ingredient;
+    // Provider completion may win while cancellation is in flight. Only the
+    // request that still owns PROCESSING may fail the row and publish failure.
+    const claimed = await this.ingredientsService.patchAll(
+      {
+        id: ingredient.id,
+        organizationId: input.organizationId,
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      {
+        generationError: GENERATION_CANCELLED_BY_USER,
+        status: IngredientStatus.FAILED,
+        ...(isQuoteGroup ? { isGenerationFailureConfirmed: true } : {}),
+      },
+    );
+    if (claimed.modifiedCount === 1) {
+      if (isQuoteGroup) {
         await persistQuoteGroupFailure(
           this.ingredientsService.prisma,
           ingredient.id,
           input.organizationId,
         );
-        await this.failedGenerationService.notifyFailedGeneration({
-          ingredientId: ingredient.id,
-          organizationId: input.organizationId,
-          userId: input.userId,
-          websocketMessage: GENERATION_CANCELLED_BY_USER,
-          websocketMethod: 'publishMediaFailed',
-          websocketUrl: this.websocketPathFor(ingredient),
-        });
       }
-      return (
-        (await this.ingredientsService.findOne(
-          scopedWhere(input.organizationId, { id: input.id }),
-          [PopulatePatterns.metadataFull],
-        )) ?? ingredient
-      );
-    }
-
-    await this.failedGenerationService.handleFailedGeneration(
-      this.ingredientsService,
-      {
-        ingredientId: ingredient.id.toString(),
+      await this.failedGenerationService.notifyFailedGeneration({
+        ingredientId: ingredient.id,
         organizationId: input.organizationId,
         userId: input.userId,
         websocketMessage: GENERATION_CANCELLED_BY_USER,
         websocketMethod: 'publishMediaFailed',
         websocketUrl: this.websocketPathFor(ingredient),
-      },
+      });
+    }
+    return (
+      (await this.ingredientsService.findOne(
+        scopedWhere(input.organizationId, { id: input.id }),
+        [PopulatePatterns.metadataFull],
+      )) ?? ingredient
     );
-
-    const cancelled = await this.ingredientsService.findOne(
-      scopedWhere(input.organizationId, { id: input.id }),
-      [PopulatePatterns.metadataFull],
-    );
-
-    return cancelled ?? { ...ingredient, status: IngredientStatus.FAILED };
   }
 
   private async cancelProviderJob(

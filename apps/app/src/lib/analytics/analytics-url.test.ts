@@ -39,9 +39,9 @@ describe('normalizeAnalyticsPathname', () => {
   });
 
   it('collapses uuid, numeric, and cuid-like id segments to :id', () => {
-    expect(
-      normalizeAnalyticsPathname(`/acme/brand/studio/editor/${UUID}`),
-    ).toBe('/:org/:brand/studio/editor/:id');
+    expect(normalizeAnalyticsPathname(`/acme/brand/editor/${UUID}`)).toBe(
+      '/:org/:brand/editor/:id',
+    );
     expect(normalizeAnalyticsPathname('/acme/brand/publishing/1234567')).toBe(
       '/:org/:brand/publishing/:id',
     );
@@ -70,9 +70,9 @@ describe('normalizeAnalyticsPathname', () => {
   it('defensively strips any query or hash that slips in', () => {
     expect(
       normalizeAnalyticsPathname(
-        '/acme/brand/publishing/review?title=Secret#x',
+        '/acme/brand/publishing/approvals?title=Secret#x',
       ),
-    ).toBe('/:org/:brand/publishing/review');
+    ).toBe('/:org/:brand/publishing/approvals');
   });
 });
 
@@ -80,9 +80,9 @@ describe('sanitizeAnalyticsUrl', () => {
   it('drops the query string and hash from an absolute URL, keeping origin', () => {
     expect(
       sanitizeAnalyticsUrl(
-        'https://app.genfeed.ai/acme/brand/publishing/review?title=My%20Secret%20Post&description=xyz',
+        'https://app.genfeed.ai/acme/brand/publishing/approvals?title=My%20Secret%20Post&description=xyz',
       ),
-    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/review');
+    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/approvals');
   });
 
   it('normalizes ids inside an absolute URL path', () => {
@@ -94,9 +94,9 @@ describe('sanitizeAnalyticsUrl', () => {
   });
 
   it('sanitizes a path-relative value', () => {
-    expect(
-      sanitizeAnalyticsUrl(`/acme/brand/studio/editor/${UUID}?zoom=2`),
-    ).toBe('/:org/:brand/studio/editor/:id');
+    expect(sanitizeAnalyticsUrl(`/acme/brand/editor/${UUID}?zoom=2`)).toBe(
+      '/:org/:brand/editor/:id',
+    );
   });
 
   it('degrades malformed or empty input safely without throwing', () => {
@@ -108,7 +108,7 @@ describe('sanitizeAnalyticsUrl', () => {
   it('never lets a query string survive on any value', () => {
     const values = [
       'https://app.genfeed.ai/acme/brand/publishing/x?title=Leak',
-      '/acme/brand/publishing/review?description=Leak',
+      '/acme/brand/publishing/approvals?description=Leak',
     ];
     for (const value of values) {
       expect(sanitizeAnalyticsUrl(value)).not.toContain('?');

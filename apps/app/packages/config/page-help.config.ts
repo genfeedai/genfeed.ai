@@ -18,6 +18,8 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'automationContentRuns', prefix: APP_ROUTES.AUTOMATION.CONTENT_RUNS },
   { key: 'publishingOverview', prefix: APP_ROUTES.PUBLISHING.OVERVIEW },
   { key: 'publishingPosts', prefix: APP_ROUTES.PUBLISHING.POSTS },
+  { key: 'publishingCalendar', prefix: APP_ROUTES.PUBLISHING.CALENDAR },
+  { key: 'publishingApprovalQueue', prefix: APP_ROUTES.PUBLISHING.APPROVALS },
   { key: 'publishingCampaigns', prefix: APP_ROUTES.PUBLISHING.CAMPAIGNS },
   { key: 'publishingRemix', prefix: APP_ROUTES.PUBLISHING.REMIX },
   { key: 'analyticsOverview', prefix: APP_ROUTES.ANALYTICS.OVERVIEW },
@@ -71,20 +73,7 @@ export function resolvePageHelpKey(
     new URLSearchParams(search).get('place') === 'trash'
   )
     return 'libraryTrash';
-  if (
-    path === APP_ROUTES.PUBLISHING.POSTS &&
-    new URLSearchParams(search).get('view') === 'calendar'
-  )
-    return 'publishingCalendar';
-  if (
-    path === APP_ROUTES.PUBLISHING.POSTS &&
-    new URLSearchParams(search).get('view') === 'approvals'
-  )
-    return 'publishingApprovalQueue';
-  if (
-    path === APP_ROUTES.AUTOMATION.WORKFLOWS &&
-    new URLSearchParams(search).get('view') === 'templates'
-  )
+  if (path === APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)
     return 'automationTemplates';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {

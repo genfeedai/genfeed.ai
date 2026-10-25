@@ -254,9 +254,7 @@ describe('DiscoveryRemixProvider', () => {
     expect(mocks.startBrandRemixRun).toHaveBeenCalledWith('run-1', {
       expectedRevision: 2,
     });
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/acme/northstar/studio/storyboard/run-1',
-    );
+    expect(mocks.push).toHaveBeenCalledWith('/acme/northstar/storyboard/run-1');
   });
 
   it('does not start generation when the saved concept is incomplete', async () => {

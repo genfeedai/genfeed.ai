@@ -15,9 +15,9 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * suite never hangs or hard-fails on a missing control.
  */
 
-const EDITOR_LIST = '/test-org/brand-1/studio/editor';
-const EDITOR_NEW = '/test-org/brand-1/studio/editor/new';
-const EDITOR_DETAIL = '/test-org/brand-1/studio/editor/test-project-id';
+const EDITOR_LIST = '/test-org/brand-1/editor';
+const EDITOR_NEW = '/test-org/brand-1/editor/new';
+const EDITOR_DETAIL = '/test-org/brand-1/editor/test-project-id';
 
 test.describe('Studio Editor — Interactions', () => {
   test.setTimeout(90_000);
@@ -30,7 +30,7 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     const newProjectLink = authenticatedPage
-      .locator('a[href*="studio/editor/new"]')
+      .locator('a[href*="editor/new"]')
       .first();
     await expect(newProjectLink).toBeVisible({ timeout: 15_000 });
 
@@ -52,14 +52,12 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     const newProjectLink = authenticatedPage
-      .locator('a[href*="studio/editor/new"]')
+      .locator('a[href*="editor/new"]')
       .first();
     await newProjectLink.click({ timeout: 10_000 }).catch(() => {});
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/studio\/editor(?:\/new|\/[^/]+)?$/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/editor(?:\/new|\/[^/]+)?$/);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -157,7 +155,7 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     await expect(
-      authenticatedPage.locator('a[href*="studio/editor/new"]').first(),
+      authenticatedPage.locator('a[href*="editor/new"]').first(),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -173,7 +171,7 @@ test.describe('Studio Editor — Interactions', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
     await expect(
-      authenticatedPage.locator('a[href*="studio/editor/new"]').first(),
+      authenticatedPage.locator('a[href*="editor/new"]').first(),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

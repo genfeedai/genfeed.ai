@@ -145,7 +145,7 @@ describe('PostDetailNeedsYou', () => {
     render(
       <PostDetailNeedsYou
         isPublished={false}
-        onReviewHref="/publishing/review"
+        onReviewHref="/publishing/approvals"
         post={buildPost({
           reviewTurboRunId: 'batch-1',
           reviewDecision: ReviewDecision.UNSET,
@@ -156,7 +156,7 @@ describe('PostDetailNeedsYou', () => {
 
     expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
       'href',
-      '/publishing/review',
+      '/publishing/approvals',
     );
   });
 
@@ -164,7 +164,7 @@ describe('PostDetailNeedsYou', () => {
     const { container } = render(
       <PostDetailNeedsYou
         isPublished={false}
-        onReviewHref="/publishing/review"
+        onReviewHref="/publishing/approvals"
         post={buildPost({
           reviewDecision: ReviewDecision.UNSET,
           targetExecutionState: TargetExecutionState.DRAFT,
@@ -179,7 +179,7 @@ describe('PostDetailNeedsYou', () => {
     const { container } = render(
       <PostDetailNeedsYou
         isPublished={false}
-        onReviewHref="/publishing/review"
+        onReviewHref="/publishing/approvals"
         post={buildPost({
           reviewTurboRunId: 'batch-1',
           reviewDecision: ReviewDecision.REJECTED,

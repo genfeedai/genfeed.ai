@@ -35,6 +35,7 @@ import {
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
+import { useIsGoogleSignInAvailable } from '../use-is-google-sign-in-available';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
 import { useTurnstileToken } from '../use-turnstile-token';
 
@@ -73,6 +74,7 @@ export default function SignUpBetterAuth({
 }: SignUpBetterAuthProps) {
   const translate = useTranslations('common');
   const searchParams = useSearchParams();
+  const isGoogleSignInAvailable = useIsGoogleSignInAvailable();
   const isMagicLinkAvailable = useIsMagicLinkAvailable();
   const { getCaptchaFetchOptions } = useTurnstileToken();
 
@@ -414,17 +416,19 @@ export default function SignUpBetterAuth({
     >
       <div className="w-full space-y-6">
         <div className="space-y-3">
-          <Button
-            type="button"
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => handleSocialSignUp('google')}
-            icon={<GoogleColorIcon className="size-4" aria-hidden="true" />}
-            isLoading={isSocialSubmitting}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            Google
-          </Button>
+          {isGoogleSignInAvailable ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => handleSocialSignUp('google')}
+              icon={<GoogleColorIcon className="size-4" aria-hidden="true" />}
+              isLoading={isSocialSubmitting}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              Google
+            </Button>
+          ) : null}
 
           {isMagicLinkAvailable ? (
             <Button
