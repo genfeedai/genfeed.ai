@@ -312,12 +312,14 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
-    key === 'title'
-      ? 'Generate'
-      : key === 'description'
-        ? 'One prompt bar for every asset type, enriched with your brand.'
-        : key,
+  useTranslations: () => (key: string, values?: Record<string, string>) =>
+    key === 'referenceMentionNotice'
+      ? `Attached but not mentioned: ${values?.tokens}. They will still be included.`
+      : key === 'title'
+        ? 'Generate'
+        : key === 'description'
+          ? 'One prompt bar for every asset type, enriched with your brand.'
+          : key,
 }));
 
 vi.mock(

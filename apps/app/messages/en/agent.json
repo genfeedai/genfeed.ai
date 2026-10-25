@@ -527,5 +527,9 @@
   },
   "threadView": {
     "scrollToLatest": "Scroll to latest message"
+  },
+  "referenceMentions": {
+    "empty": "No matching references or characters",
+    "listLabel": "References and characters"
   }
 }

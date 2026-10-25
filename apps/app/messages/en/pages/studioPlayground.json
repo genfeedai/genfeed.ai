@@ -338,5 +338,6 @@
     "savedLooks": "Saved looks"
   },
   "audioReference": "Audio reference",
-  "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video."
+  "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video.",
+  "referenceMentionNotice": "Attached but not mentioned: {tokens}. They will still be included."
 }

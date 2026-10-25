@@ -6,6 +6,7 @@ import type { StudioReferenceMentionListProps } from '@genfeedai/props/studio/st
 import { Button } from '@ui/primitives/button';
 import { AudioLines, ImageIcon, User, Video } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useImperativeHandle, useState } from 'react';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,6 +24,7 @@ export default function StudioReferenceMentionList({
   command,
   ref,
 }: StudioReferenceMentionListProps) {
+  const translate = useTranslations('agent.referenceMentions');
   const [selectedIndex, setSelectedIndex] = useState(0);
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
@@ -45,14 +47,14 @@ export default function StudioReferenceMentionList({
 
   return (
     <div
-      aria-label="References and characters"
+      aria-label={translate('listLabel')}
       className="max-h-64 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-border bg-background shadow-lg"
       data-testid="studio-reference-mention-list"
       role="listbox"
     >
       {!items.length ? (
         <p className="px-3 py-2 text-xs text-muted-foreground">
-          No matching references or characters
+          {translate('empty')}
         </p>
       ) : (
         items.map((item, index) => {

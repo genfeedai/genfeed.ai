@@ -3038,9 +3038,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                           className="text-xs text-muted-foreground"
                           data-testid="studio-reference-mention-notice"
                         >
-                          Attached but not mentioned:{' '}
-                          {referenceValidation.unusedTokens.join(', ')}. They
-                          will still be included.
+                          {translate('referenceMentionNotice', {
+                            tokens: referenceValidation.unusedTokens.join(', '),
+                          })}
                         </p>
                       ) : null}
                       {draftSaveStatus === 'error' ||
