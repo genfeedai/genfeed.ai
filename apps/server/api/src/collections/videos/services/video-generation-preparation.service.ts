@@ -37,6 +37,7 @@ import {
   pickVideoModelPreference,
 } from '@api/collections/videos/services/video-generation-model.util';
 import {
+  createMissingPromptIdException,
   hasStoredPromptId,
   requireVideoPromptInput,
   resolveInlinePromptText,
@@ -97,22 +98,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-export const MISSING_PROMPT_ID_DETAIL =
-  'Prompt resolution requires a prompt ID';
 export {
   assertSeedanceReferenceVideoDuration,
   MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
-
-export function createMissingPromptIdException(): HttpException {
-  return new HttpException(
-    {
-      detail: MISSING_PROMPT_ID_DETAIL,
-      title: 'Prompt validation failed',
-    },
-    HttpStatus.BAD_REQUEST,
-  );
-}
 
 @Injectable()
 export class VideoGenerationPreparationService {
