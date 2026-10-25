@@ -21,7 +21,7 @@ describe('buildApprovedMutationOutcome', () => {
         creditsUsed: 6,
         ctas: [
           {
-            href: '/publishing/posts?view=approvals&run=run-1',
+            href: '/publishing/approvals/run-1',
             label: 'Open approval queue',
           },
         ],
