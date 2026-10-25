@@ -1,5 +1,5 @@
-import { classifyGenerationFailure } from '@genfeedai/utils/media/generation-failure.util';
 import { describe, expect, it } from 'vitest';
+import { classifyGenerationFailure } from './generation-failure.util';
 
 describe('classifyGenerationFailure', () => {
   it('names a provider copyright block', () => {
