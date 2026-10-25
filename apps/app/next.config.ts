@@ -177,9 +177,6 @@ const LIBRARY_TYPE_PRESET_QUERIES = [
 
 const filterRouteRedirects: AppRedirect[] = [
   ...[
-    ['/workspace/inbox/all', '/workspace/inbox?view=all'],
-    ['/workspace/inbox/recent', '/workspace/inbox?view=recent'],
-    ['/workspace/inbox/unread', '/workspace/inbox?view=unread'],
     ['/settings/models/all', '/settings/models?type=all'],
     ['/settings/models/images', '/settings/models?type=images'],
     ['/settings/models/videos', '/settings/models?type=videos'],

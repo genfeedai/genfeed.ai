@@ -8,6 +8,7 @@ import type {
   AdsResearchPlatform,
   AdsResearchResponse,
   AdsResearchWorkflowResult,
+  AdWatchedAdvertiserPollResult,
   AdWatchlistPlatformReadiness,
   CampaignLaunchPrep,
 } from '@genfeedai/contracts/interfaces';
@@ -92,6 +93,15 @@ export class AdsResearchService extends HTTPBaseService {
   > {
     return await this.instance
       .get<AdWatchlistPlatformReadiness[]>('watchlist-readiness')
+      .then((res) => res.data);
+  }
+
+  /** Poll one watched advertiser now, outside the scheduled workflow. */
+  public async pollWatchedAdvertiser(
+    id: string,
+  ): Promise<AdWatchedAdvertiserPollResult> {
+    return await this.instance
+      .post<AdWatchedAdvertiserPollResult>(`watchlist/${id}/poll`)
       .then((res) => res.data);
   }
 

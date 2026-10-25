@@ -301,7 +301,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result).toMatchObject({
       structuredContent: {
         nextStepUrl: expect.stringContaining(
-          '/publishing/posts?view=approvals&approval=mcp_approval%3Aapr-1',
+          '/publishing/approvals?approval=mcp_approval%3Aapr-1',
         ),
       },
     });

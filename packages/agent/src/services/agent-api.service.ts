@@ -116,6 +116,7 @@ export class AgentApiService extends AgentBaseApiService {
     null,
     this,
   );
+  getTurboRun = workflowsApi.getTurboRun.bind(null, this);
 
   // Review inbox
   resolveReviewInboxItem = reviewInboxApi.resolveReviewInboxItem.bind(

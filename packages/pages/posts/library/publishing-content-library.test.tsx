@@ -444,47 +444,34 @@ describe('PublishingContentLibrary', () => {
     ).toBeVisible();
   });
 
-  it('renders the approval queue as a Posts view that owns the toolbar', () => {
-    mocks.search = 'view=approvals&run=batch-1&item=item-9';
-    mocks.setFiltersNode.mockClear();
-    mocks.setLeadingNode.mockClear();
-
-    render(
-      <PublishingContentLibrary
-        approvals={<div>Approval queue content</div>}
-        calendar={<div>Calendar content</div>}
-      />,
-    );
-
-    expect(screen.getByText('Approval queue content')).toBeVisible();
-    expect(screen.queryByText('Calendar content')).not.toBeInTheDocument();
-    expect(mocks.setFiltersNode).not.toHaveBeenCalledWith(expect.anything());
-    expect(mocks.setLeadingNode).not.toHaveBeenCalledWith(expect.anything());
+  it('offers calendar and approvals as routes of their own beside the display modes', () => {
+    render(<PublishingContentLibrary />);
 
     const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
     render(toggle);
-    expect(
-      screen.getByRole('radio', { name: 'viewToggle.approvals' }),
-    ).toBeChecked();
-    fireEvent.click(screen.getByRole('radio', { name: 'List' }));
-    // Leaving approvals drops the queue's Turbo run and item selection.
-    expect(mocks.replace.mock.calls.at(-1)?.[0]).toBe(
-      '/acme/main/publishing/posts?view=list',
+    expect(screen.getByRole('radio', { name: 'list' })).toBeChecked();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'approvals' }));
+    expect(mocks.push).toHaveBeenLastCalledWith(
+      '/acme/main/publishing/approvals',
+    );
+
+    fireEvent.click(screen.getByRole('radio', { name: 'calendar' }));
+    expect(mocks.push).toHaveBeenLastCalledWith(
+      '/acme/main/publishing/calendar',
     );
   });
 
-  it('hides the approvals view when no queue is provided', () => {
-    mocks.search = 'view=approvals';
+  it('keeps board and grid as display modes of the Posts route', () => {
     render(<PublishingContentLibrary />);
 
-    expect(screen.getByText('3 posts')).toBeVisible();
-  });
+    const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
+    render(toggle);
+    fireEvent.click(screen.getByRole('radio', { name: 'board' }));
 
-  it('retains the view selector around calendar content', () => {
-    mocks.search = 'view=calendar';
-    render(<PublishingContentLibrary calendar={<div>Calendar content</div>} />);
-    expect(screen.getByText('Calendar content')).toBeVisible();
-    expect(mocks.setViewToggleNode).toHaveBeenCalled();
+    expect(mocks.replace.mock.calls.at(-1)?.[0]).toBe(
+      '/acme/main/publishing/posts?view=board',
+    );
   });
 
   it('shows the combination empty state when URL filters match no rows', () => {
