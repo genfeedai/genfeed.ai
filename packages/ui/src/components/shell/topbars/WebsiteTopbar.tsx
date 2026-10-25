@@ -182,24 +182,25 @@ export default function WebsiteTopbar() {
       <a href={EnvironmentService.apps.app}>Open Genfeed</a>
     </ButtonTracked>
   ) : (
-    <div className="grid grid-cols-2 gap-3">
+    // Stacked, not side by side: the agent label is too wide for half a phone row.
+    <div className="flex flex-col gap-3">
+      <ConnectAgentButton
+        label="Connect your agent"
+        variant={ButtonVariant.SECONDARY}
+        className="h-12 w-full whitespace-nowrap text-sm uppercase"
+        trackingAction="connect_agent_mobile_menu"
+        trackingName="topbar_cta_click"
+      />
       <ButtonTracked
         asChild
         size={ButtonSize.PUBLIC}
         variant={ButtonVariant.SECONDARY}
-        className="h-12 w-full text-sm uppercase"
+        className="h-12 w-full whitespace-nowrap text-sm uppercase"
         trackingData={{ action: 'log_in_mobile_menu' }}
         trackingName="topbar_cta_click"
       >
         <a href={`${EnvironmentService.apps.app}/login`}>Log in</a>
       </ButtonTracked>
-      <ConnectAgentButton
-        label="Connect your agent"
-        variant={ButtonVariant.SECONDARY}
-        className="h-12 w-full text-sm uppercase"
-        trackingAction="connect_agent_mobile_menu"
-        trackingName="topbar_cta_click"
-      />
     </div>
   );
 
