@@ -35,6 +35,7 @@ export * from '@serializers/attributes/content/fanvue-earnings.attributes';
 export * from '@serializers/attributes/content/fanvue-schedule.attributes';
 export * from '@serializers/attributes/content/fanvue-subscriber.attributes';
 export * from '@serializers/attributes/content/fanvue-sync-log.attributes';
+export * from '@serializers/attributes/content/ingredient-generation-cost.attributes';
 export * from '@serializers/attributes/content/insight.attributes';
 export * from '@serializers/attributes/content/knowledge-source.attributes';
 export * from '@serializers/attributes/content/knowledge-source-version.attributes';
