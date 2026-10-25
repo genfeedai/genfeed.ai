@@ -7,7 +7,7 @@
     "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@plasmohq/storage": "1.15.0",
-    "@sentry/browser": "11.8.0",
+    "@sentry/browser": "11.9.0",
     "axios": "1.20.0",
     "plasmo": "0.90.5",
     "react": "19.3.1",

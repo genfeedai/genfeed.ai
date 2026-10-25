@@ -17,7 +17,7 @@
   },
   "description": "Unified CLI for Genfeed.ai - Generate, schedule, analyze, and publish AI content from your terminal",
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
+    "@biomejs/biome": "2.6.3",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/errors": "workspace:*",

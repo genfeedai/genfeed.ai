@@ -57,7 +57,7 @@
   },
   "description": "GenFeed \u2014 Electron native app for content creation",
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
+    "@biomejs/biome": "2.6.3",
     "@electron/notarize": "3.1.2",
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-prisma": "workspace:*",
@@ -66,8 +66,8 @@
     "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2",
     "electron": "45.0.0",
-    "electron-builder": "26.15.3",
-    "electron-updater": "6.8.9",
+    "electron-builder": "26.18.0",
+    "electron-updater": "6.8.11",
     "esbuild": "0.28.2",
     "typescript": "6.0.3",
     "@genfeedai/contracts": "workspace:*"
