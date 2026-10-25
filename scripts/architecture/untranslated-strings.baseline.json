@@ -492,7 +492,6 @@
     "packages/ui/src/components/marketing/PricingStrip.tsx": 8,
     "packages/ui/src/components/masonry/image/MasonryImageMediaArea.tsx": 3,
     "packages/ui/src/components/masonry/shared/MasonryBrandLogo.tsx": 2,
-    "packages/ui/src/components/masonry/shared/MasonryConfirmBridge.tsx": 2,
     "packages/ui/src/components/masonry/video/MasonryVideoMediaArea.tsx": 1,
     "packages/ui/src/components/menus/organization-switcher/OrganizationSwitcher.tsx": 1,
     "packages/ui/src/components/menus/shared/MenuShared.tsx": 1,

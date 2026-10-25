@@ -66,6 +66,9 @@ async function mockVideoMedia(page: Page): Promise<void> {
   });
 }
 
+/** The price sits on the action: "Extend · 100 credits". */
+const EXTEND_BUTTON_NAME = /^Extend · [\d,]+ credits$/;
+
 /** One active, organization-enabled video model, so Extend can confirm. */
 async function mockVideoModels(page: Page): Promise<void> {
   const fulfillModels = async (route: Route): Promise<void> => {
@@ -370,15 +373,12 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await transform
       .getByRole('menuitem', { exact: true, name: 'Extend' })
       .click();
-    const dialog = authenticatedPage.getByRole('dialog');
-    await expect(
-      dialog.getByRole('heading', {
-        name: 'Extend Video',
-        exact: true,
-        level: 2,
-      }),
-    ).toBeVisible();
-    await dialog.getByRole('button', { exact: true, name: 'Extend' }).click();
+    const dialog = authenticatedPage.getByRole('dialog', {
+      name: 'Extend video',
+      exact: true,
+    });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: EXTEND_BUTTON_NAME }).click();
 
     await expect
       .poll(() => extendBodies)
@@ -402,12 +402,12 @@ test.describe('Studio Generate — video results and composer drafts', () => {
       .getByRole('button', { name: 'Extend video', exact: true })
       .click();
     const dialog = authenticatedPage.getByRole('dialog', {
-      name: 'Extend Video',
+      name: 'Extend video',
       exact: true,
     });
     await expect(dialog).toBeVisible();
     expect(extendBodies).toEqual([]);
-    await dialog.getByRole('button', { name: 'Extend', exact: true }).click();
+    await dialog.getByRole('button', { name: EXTEND_BUTTON_NAME }).click();
     await expect.poll(() => extendBodies.length).toBe(1);
     await expectLinkedToSource(authenticatedPage, EXTENDED_ID);
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });

@@ -1,7 +1,6 @@
 'use client';
 
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   VideoUpscaleModelOption,
   VideoUpscaleSelection,
@@ -126,7 +125,7 @@ export default function VideoUpscaleConfirmControls({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-border p-4">
+    <div className="space-y-3">
       <FormControl label={translate('upscaleModelLabel')}>
         <Select value={selectedModel.key} onValueChange={handleModelChange}>
           <SelectTrigger>
@@ -176,10 +175,6 @@ export default function VideoUpscaleConfirmControls({
           </Select>
         </FormControl>
       </div>
-
-      <p className="text-sm text-muted-foreground" aria-live="polite">
-        {translate('quotedCharge', { cost: formatNumberWithCommas(cost) })}
-      </p>
     </div>
   );
 }

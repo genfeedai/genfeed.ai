@@ -131,6 +131,7 @@ function MasonryVideoTile({
       onMouseEnter={() => !isInteractionBlocked && handleMouseHover(true)}
       onMouseLeave={(e) => !isInteractionBlocked && handleMouseHover(false, e)}
       data-masonry-item="true"
+      data-ingredient-id={video.id}
       data-state={isHovered ? 'hovered' : 'idle'}
       className={cn(
         'relative block w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
@@ -244,38 +245,42 @@ function MasonryVideoTile({
     </div>
   );
 
+  const confirmBridge =
+    isActionsEnabled && actions ? (
+      <MasonryConfirmBridge
+        upscaleConfirmData={
+          transformActions ? null : actions.upscaleConfirmData
+        }
+        executeUpscale={actions.executeUpscale}
+        clearUpscaleConfirm={actions.clearUpscaleConfirm}
+        extendConfirmData={transformActions ? null : actions.extendConfirmData}
+        executeExtend={actions.executeExtend}
+        clearExtendConfirm={actions.clearExtendConfirm}
+      />
+    ) : null;
+
   // Wrap with drag/drop if enabled
   if (isDragEnabled && onUpdateParent) {
     return (
-      <DropZoneIngredient
-        ingredient={video as IIngredient}
-        onDrop={handleIngredientDrop}
-        isEnabled={!video.parent}
-      >
-        <DraggableIngredient ingredient={video as IIngredient}>
-          {content}
-        </DraggableIngredient>
-      </DropZoneIngredient>
+      <>
+        <DropZoneIngredient
+          ingredient={video as IIngredient}
+          onDrop={handleIngredientDrop}
+          isEnabled={!video.parent}
+        >
+          <DraggableIngredient ingredient={video as IIngredient}>
+            {content}
+          </DraggableIngredient>
+        </DropZoneIngredient>
+        {confirmBridge}
+      </>
     );
   }
 
   return (
     <>
       {content}
-      {isActionsEnabled && actions && (
-        <MasonryConfirmBridge
-          upscaleConfirmData={
-            transformActions ? null : actions.upscaleConfirmData
-          }
-          executeUpscale={actions.executeUpscale}
-          clearUpscaleConfirm={actions.clearUpscaleConfirm}
-          extendConfirmData={
-            transformActions ? null : actions.extendConfirmData
-          }
-          executeExtend={actions.executeExtend}
-          clearExtendConfirm={actions.clearExtendConfirm}
-        />
-      )}
+      {confirmBridge}
     </>
   );
 }

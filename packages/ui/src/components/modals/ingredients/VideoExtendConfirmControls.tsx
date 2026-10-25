@@ -1,7 +1,5 @@
 'use client';
 
-import { hasNativeExtend } from '@genfeedai/contracts/constants';
-import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   VideoExtendModelOption,
   VideoExtendSelection,
@@ -75,7 +73,6 @@ export default function VideoExtendConfirmControls({
         : null,
     [duration, model],
   );
-  const isNative = hasNativeExtend(model?.key ?? '');
 
   useEffect(() => {
     if (!model || duration === undefined || cost === null) {
@@ -146,13 +143,6 @@ export default function VideoExtendConfirmControls({
           trailing={null}
         />
       </PromptBarComposer>
-
-      <p className="text-sm text-muted-foreground" aria-live="polite">
-        {translate('summary', {
-          cost: formatNumberWithCommas(cost),
-          mode: translate(isNative ? 'nativeMode' : 'fabricatedMode'),
-        })}
-      </p>
     </div>
   );
 }
