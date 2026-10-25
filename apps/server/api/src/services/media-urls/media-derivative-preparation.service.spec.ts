@@ -12,6 +12,8 @@ import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
+vi.mock('axios', async (original) => original());
+
 vi.mock('@sentry/nestjs', () => ({
   captureException: vi.fn(),
 }));
