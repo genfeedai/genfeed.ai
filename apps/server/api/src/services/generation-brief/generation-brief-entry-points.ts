@@ -34,7 +34,7 @@ export const GENERATION_BRIEF_GENERATIVE_ENTRY_POINTS: readonly GenerationBriefG
       id: 'studio-video',
       marker: 'runVideoGenerationBrief',
       source:
-        'apps/server/api/src/collections/videos/services/video-generation-preparation.service.ts',
+        'apps/server/api/src/collections/videos/services/video-generation-brief.util.ts',
       surface: 'studio',
     },
     {

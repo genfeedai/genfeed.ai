@@ -144,7 +144,7 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     marker: 'runVideoGenerationBrief',
     path: 'generation-brief',
     smoke: 'video',
-    source: `${API}/collections/videos/services/video-generation-preparation.service.ts`,
+    source: `${API}/collections/videos/services/video-generation-brief.util.ts`,
   },
   {
     enumRefs: { IngredientCategory: ['IMAGE', 'VIDEO'] },
