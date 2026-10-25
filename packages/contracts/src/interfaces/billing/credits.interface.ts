@@ -16,6 +16,7 @@ export interface ICreditsBreakdown {
   total: number;
   planLimit: number;
   cycleTotal?: number;
+  cycleUsed?: number;
   remainingPercent?: number;
   cycleStartAt?: string;
   cycleEndAt?: string;

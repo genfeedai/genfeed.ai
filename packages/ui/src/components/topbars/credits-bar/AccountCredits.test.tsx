@@ -20,7 +20,7 @@ vi.mock(
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
+import AccountCredits from '@ui/topbars/credits-bar/AccountCredits';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -29,20 +29,24 @@ const {
   mockLoggerError,
   mockLoggerWarn,
   mockRefreshCreditsBreakdown,
-  mockSubscribe,
-  mockUnsubscribe,
-  socketState,
+  breakdownState,
 } = vi.hoisted(() => ({
   mockGetCreditsService: vi.fn(),
   mockGetTopbarBalances: vi.fn(),
   mockLoggerError: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockRefreshCreditsBreakdown: vi.fn(),
-  mockSubscribe: vi.fn(),
-  mockUnsubscribe: vi.fn(),
-  socketState: { isReady: true },
+  breakdownState: {
+    value: null as { cycleUsed?: number; planLimit: number } | null,
+  },
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({ accessState: { lowCreditThreshold: 590 } }),
+  }),
+);
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org_1' }),
 }));
@@ -76,7 +80,7 @@ vi.mock(
     useSubscription: () => {
       runtimeMocks.subscription();
       return {
-        creditsBreakdown: null,
+        creditsBreakdown: breakdownState.value,
         refreshCreditsBreakdown: mockRefreshCreditsBreakdown,
       };
     },
@@ -87,14 +91,6 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ orgHref: (path: string) => `/genfeed${path}` }),
 }));
 
-vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
-  useSocketManager: () => ({
-    isReady: socketState.isReady,
-    subscribe: mockSubscribe,
-    unsubscribe: mockUnsubscribe,
-  }),
-}));
-
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: mockLoggerError,
@@ -102,7 +98,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('./CreditsBarTrigger', () => ({
+vi.mock('./CreditsMenuSection', () => ({
   default: ({
     balance,
     billingHref,
@@ -110,6 +106,9 @@ vi.mock('./CreditsBarTrigger', () => ({
     isLoading,
     planLimit,
     planUsagePercent,
+    planUsed,
+    extraBalance,
+    lowCreditThreshold,
   }: {
     balance: number | null;
     billingHref: string;
@@ -117,12 +116,18 @@ vi.mock('./CreditsBarTrigger', () => ({
     isLoading?: boolean;
     planLimit: number;
     planUsagePercent: number;
+    planUsed: number;
+    extraBalance: number;
+    lowCreditThreshold: number | null;
   }) => (
     <div
       data-testid="credits-trigger"
       data-loading={isLoading ? 'true' : 'false'}
       data-plan-limit={planLimit}
       data-plan-usage={planUsagePercent}
+      data-plan-used={planUsed}
+      data-extra={extraBalance}
+      data-low-threshold={lowCreditThreshold ?? 'unknown'}
     >
       <span data-testid="credits-balance">{fullBalance}</span>
       <span data-testid="credits-numeric">{balance ?? 'unknown'}</span>
@@ -170,7 +175,7 @@ function renderBar() {
 
   const utils = render(
     <QueryClientProvider client={queryClient}>
-      <TopbarCreditsBar />
+      <AccountCredits />
     </QueryClientProvider>,
   );
 
@@ -179,13 +184,13 @@ function renderBar() {
     rerender: () =>
       utils.rerender(
         <QueryClientProvider client={queryClient}>
-          <TopbarCreditsBar />
+          <AccountCredits />
         </QueryClientProvider>,
       ),
   };
 }
 
-describe('TopbarCreditsBar', () => {
+describe('AccountCredits', () => {
   beforeEach(() => {
     runtimeMocks.snapshot = { status: 'web', context: null };
     vi.clearAllMocks();
@@ -196,7 +201,7 @@ describe('TopbarCreditsBar', () => {
       getTopbarBalances: mockGetTopbarBalances,
     });
     mockGetTopbarBalances.mockResolvedValue(balanceResponse(42));
-    socketState.isReady = true;
+    breakdownState.value = null;
   });
 
   it('uses the authoritative cloud wallet without mounting the web plan cache', async () => {
@@ -226,30 +231,35 @@ describe('TopbarCreditsBar', () => {
     );
   });
 
-  it('subscribes to live balance events only once the socket is ready', async () => {
-    socketState.isReady = false;
-    const { rerender } = renderBar();
+  it('counts spend against the plan when extra credits keep the balance above it', async () => {
+    mockGetTopbarBalances.mockResolvedValue(balanceResponse(10_171));
+    breakdownState.value = { cycleUsed: 1_629, planLimit: 5_900 };
+
+    renderBar();
 
     await waitFor(() => {
-      expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent('10171');
     });
-    // Before the socket manager exists, subscribe() is a silent no-op — the
-    // bar would never receive live balance updates. It must wait instead.
-    expect(mockSubscribe).not.toHaveBeenCalled();
-
-    socketState.isReady = true;
-    rerender();
-
-    await waitFor(() => {
-      expect(mockSubscribe).toHaveBeenCalledWith(
-        '/credits/org_1',
-        expect.any(Function),
-      );
-    });
-    expect(mockSubscribe).toHaveBeenCalledWith(
-      '/organizations/org_1',
-      expect.any(Function),
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-plan-used',
+      '1629',
     );
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-extra',
+      '5900',
+    );
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-low-threshold',
+      '590',
+    );
+  });
+
+  it('refreshes the wallet when the menu section mounts', async () => {
+    renderBar();
+
+    await waitFor(() => {
+      expect(mockRefreshCreditsBreakdown).toHaveBeenCalled();
+    });
   });
 
   it('loads topbar balances without logging an error', async () => {
@@ -548,18 +558,4 @@ describe('TopbarCreditsBar', () => {
       expect(screen.getByTestId('credits-balance')).toHaveTextContent('—');
     },
   );
-
-  it('reconciles invalid socket balances without publishing a false zero', async () => {
-    mockGetTopbarBalances.mockResolvedValue(balanceResponse(42));
-    renderBar();
-    await waitFor(() =>
-      expect(screen.getByTestId('credits-numeric')).toHaveTextContent('42'),
-    );
-    const handler = mockSubscribe.mock.calls.find(
-      ([topic]) => topic === '/credits/org_1',
-    )?.[1];
-    act(() => handler({ balance: Number.NaN }));
-    expect(screen.getByTestId('credits-numeric')).toHaveTextContent('42');
-    await waitFor(() => expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2));
-  });
 });

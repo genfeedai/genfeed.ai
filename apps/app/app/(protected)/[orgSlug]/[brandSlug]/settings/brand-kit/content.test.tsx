@@ -7,9 +7,9 @@ import BrandKitPage from './content';
 
 const mocks = vi.hoisted(() => ({
   role: 'owner',
-  search: '',
+  pathname: '/acme/acme/settings/brand-kit',
   capture: vi.fn(),
-  replace: vi.fn(),
+  push: vi.fn(),
   upload: vi.fn(),
   revisionContent: {
     id: 'draft-1',
@@ -43,9 +43,9 @@ const mocks = vi.hoisted(() => ({
   } satisfies IBrandKitDraft,
 }));
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(mocks.search),
-  usePathname: () => '/acme/acme/settings/brand-kit',
-  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => mocks.pathname,
+  useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/acme${path}` }),
@@ -147,7 +147,7 @@ vi.mock('@ui/layout/container/Container', async () => {
 describe('Brand Kit workspace', () => {
   beforeEach(() => {
     mocks.role = 'owner';
-    mocks.search = '';
+    mocks.pathname = '/acme/acme/settings/brand-kit';
   });
 
   it('keeps four sections, a local preview and focused revision review without a duplicate page heading', () => {
@@ -203,7 +203,7 @@ describe('Brand Kit workspace', () => {
   it.each(['voice', 'strategy'] as const)(
     'keeps the live %s editor outside the closed versioned snapshot',
     (tab) => {
-      mocks.search = `tab=${tab}`;
+      mocks.pathname = `/acme/acme/settings/brand-kit/${tab}`;
       render(<BrandKitPage />);
       expect(screen.getByText('Writing editor')).toBeInTheDocument();
       expect(screen.queryByText('Versioned editor')).not.toBeInTheDocument();
@@ -228,7 +228,7 @@ describe('Brand Kit workspace', () => {
   );
 
   it('keeps the visual revision save bar outside the snapshot', () => {
-    mocks.search = 'tab=visual';
+    mocks.pathname = '/acme/acme/settings/brand-kit/visual';
     render(<BrandKitPage />);
     expect(
       screen.queryByRole('button', { name: 'Versioned identity snapshot' }),
@@ -239,5 +239,15 @@ describe('Brand Kit workspace', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'Unsaved revision changes',
     );
+  });
+
+  it.each([
+    ['Writing voice', '/acme/acme/settings/brand-kit/voice'],
+    ['Overview', '/acme/acme/settings/brand-kit'],
+  ])('navigates to a path, not a query param, for the %s tab', (name, href) => {
+    mocks.pathname = '/acme/acme/settings/brand-kit/visual';
+    render(<BrandKitPage />);
+    fireEvent.mouseDown(screen.getByRole('tab', { name }), { button: 0 });
+    expect(mocks.push).toHaveBeenCalledWith(href, { scroll: false });
   });
 });

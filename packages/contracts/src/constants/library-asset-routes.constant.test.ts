@@ -102,7 +102,7 @@ describe('library-asset-routes.constant', () => {
   describe('createLibraryAssetRoute', () => {
     it('appends the asset deep-link query when an id is given', () => {
       expect(createLibraryAssetRoute(IngredientCategory.IMAGE, 'ing_123')).toBe(
-        `${APP_ROUTES.LIBRARY.IMAGES}&${LIBRARY_ASSET_QUERY_KEY}=ing_123`,
+        `${APP_ROUTES.LIBRARY.IMAGES}?${LIBRARY_ASSET_QUERY_KEY}=ing_123`,
       );
     });
 
@@ -117,7 +117,7 @@ describe('library-asset-routes.constant', () => {
 
     it('encodes ids that are not URL-safe', () => {
       expect(createLibraryAssetRoute(IngredientCategory.IMAGE, 'a b/c')).toBe(
-        `${APP_ROUTES.LIBRARY.IMAGES}&${LIBRARY_ASSET_QUERY_KEY}=a+b%2Fc`,
+        `${APP_ROUTES.LIBRARY.IMAGES}?${LIBRARY_ASSET_QUERY_KEY}=a+b%2Fc`,
       );
     });
 

@@ -387,23 +387,6 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.OVERVIEW.ACTIVITIES]: {
-    placeholder: 'Ask about recent activity...',
-    suggestedActions: [
-      {
-        icon: createElement(ChartColumn, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Summary',
-        prompt: 'Give me a summary of recent content activity',
-      },
-      {
-        icon: createElement(Search, { className: 'size-5 text-foreground/50' }),
-        label: 'Engage',
-        prompt: 'Search for posts I should engage with',
-      },
-    ],
-  },
   [APP_ROUTES.WORKSPACE.ROOT]: {
     placeholder: 'What would you like to do?',
     suggestedActions: [

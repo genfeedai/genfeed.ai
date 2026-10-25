@@ -174,7 +174,7 @@ describe('BrandSettingsAgentContextPage', () => {
     ).toBeInTheDocument();
     expect(
       within(voice).getByRole('link', { name: 'Open Brand voice' }),
-    ).toHaveAttribute('href', '/acme/brand/settings/brand-kit?tab=voice');
+    ).toHaveAttribute('href', '/acme/brand/settings/brand-kit/voice');
     expect(
       within(voice).getByRole('link', { name: 'Run interview' }),
     ).toHaveAttribute('href', '/acme/brand/settings/brand-kit/guided-setup');

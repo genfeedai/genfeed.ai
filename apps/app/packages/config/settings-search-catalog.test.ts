@@ -159,15 +159,15 @@ describe('resolveSettingsSearchHref', () => {
         {
           description: 'Brand voice',
           group: 'Brand',
-          href: '/settings/brand-kit?tab=voice',
-          id: 'brand:/settings/brand-kit?tab=voice',
+          href: '/settings/brand-kit/voice',
+          id: 'brand:/settings/brand-kit/voice',
           keywords: ['voice'],
           label: 'Brand voice',
           scope: SettingsSurface.BRAND,
         },
         { brandSlug: 'fud-news', orgSlug: 'demo' },
       ),
-    ).toBe('/demo/fud-news/settings/brand-kit?tab=voice');
+    ).toBe('/demo/fud-news/settings/brand-kit/voice');
   });
 
   it('returns null when org or brand context is missing', () => {

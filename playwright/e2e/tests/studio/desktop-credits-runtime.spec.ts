@@ -14,7 +14,7 @@ import type {
 import type { BrowserContext, Page } from '@playwright/test';
 import { test as authenticatedTest, expect } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
-import { brandPath } from '../../utils/app-chrome';
+import { brandPath, openAccountCredits } from '../../utils/app-chrome';
 import {
   assertNoErrorBoundaryFallback,
   expectNoErrorOverlay,
@@ -424,7 +424,8 @@ for (const theme of ['light', 'dark'] as const)
         await generate.press('Escape');
         await expect(summary).toHaveCount(0);
         releaseWallet();
-        await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
+        await expect(await openAccountCredits(page)).toHaveCount(0);
+        await page.keyboard.press('Escape');
         await expect(generate).toBeDisabled();
         await expect(generate).toHaveAttribute('aria-disabled', 'true');
         await prompt.focus();
@@ -517,7 +518,8 @@ for (const mode of [
           ? 'This Studio generator requires a server connection'
           : 'Cost context unavailable',
       );
-      await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
+      await expect(await openAccountCredits(page)).toHaveCount(0);
+      await page.keyboard.press('Escape');
       expect(walletRequests).toBe(0);
       expect(desktopNetwork.walletRequests).toBe(0);
       await expect(summary).not.toContainText('Estimated');

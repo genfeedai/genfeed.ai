@@ -45,6 +45,8 @@ describe('CreditsUtilsService', () => {
   const creditTransactionsService = {
     createTransactionEntry: vi.fn(),
     findOne: vi.fn(),
+    getLatestTransactionBeforeDate: vi.fn(),
+    getOrganizationTransactionsInRange: vi.fn(),
   };
   const organizationSettingsService = {
     findOne: vi.fn(),
@@ -601,6 +603,76 @@ describe('CreditsUtilsService', () => {
       expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
         organizationId: 'org_1',
       });
+    });
+  });
+
+  describe('getCycleRemainingMetrics', () => {
+    const cycleStart = new Date('2026-10-01T00:00:00.000Z');
+    const cycleEnd = new Date('2026-11-01T00:00:00.000Z');
+
+    it('reports spend from the ledger even when a top-up keeps the balance above the plan', async () => {
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        { balanceAfter: 0 },
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [
+          { amount: 5900, balanceAfter: 5900, category: 'reset' },
+          { amount: 4000, balanceAfter: 9900, category: 'add' },
+          { amount: 1500, balanceAfter: 8400, category: 'deduct' },
+          { amount: 300, balanceAfter: 8700, category: 'refund' },
+          { amount: 20, balanceAfter: 8700, category: 'byok-usage' },
+        ],
+      );
+
+      const metrics = await buildService().getCycleRemainingMetrics(
+        'org_1',
+        cycleStart,
+        cycleEnd,
+        8700,
+      );
+
+      expect(metrics.cycleUsed).toBe(1200);
+      expect(metrics.cycleTotal).toBe(10200);
+    });
+
+    it('ignores spend from before the latest reset', async () => {
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        { balanceAfter: 100 },
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [
+          { amount: 50, balanceAfter: 50, category: 'deduct' },
+          { amount: 5900, balanceAfter: 5900, category: 'reset' },
+          { amount: 100, balanceAfter: 5800, category: 'deduct' },
+        ],
+      );
+
+      const metrics = await buildService().getCycleRemainingMetrics(
+        'org_1',
+        cycleStart,
+        cycleEnd,
+        5800,
+      );
+
+      expect(metrics.cycleUsed).toBe(100);
+    });
+
+    it('never reports negative usage when refunds outweigh spend', async () => {
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        null,
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [{ amount: 40, balanceAfter: 40, category: 'refund' }],
+      );
+
+      const metrics = await buildService().getCycleRemainingMetrics(
+        'org_1',
+        cycleStart,
+        cycleEnd,
+        40,
+      );
+
+      expect(metrics.cycleUsed).toBe(0);
     });
   });
 

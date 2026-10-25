@@ -6,10 +6,7 @@ import {
 } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  createArtifactEditorRoute,
-} from '@genfeedai/contracts/constants';
+import { createArtifactEditorRoute } from '@genfeedai/contracts/constants';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
@@ -241,7 +238,9 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         }}
       />
       <LazyModalNewsletter
-        onCreated={(id) => push(href(`${APP_ROUTES.EDIT.NEWSLETTER}/${id}`))}
+        onCreated={(id) =>
+          push(href(createArtifactEditorRoute('newsletter', id)))
+        }
       />
       <LazyModalPost
         isComposer

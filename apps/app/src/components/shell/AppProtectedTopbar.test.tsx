@@ -263,8 +263,8 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   },
 }));
 
-vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
-  default: () => <div data-testid="topbar-credits-bar">Credits</div>,
+vi.mock('@ui/topbars/credits-bar/CreditsLiveSync', () => ({
+  default: () => <span data-testid="credits-live-sync" />,
 }));
 
 vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
@@ -352,7 +352,6 @@ describe('AppProtectedTopbar', () => {
     });
     const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
-    const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
     expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3', 'md:px-3');
@@ -363,12 +362,7 @@ describe('AppProtectedTopbar', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      breadcrumbs.compareDocumentPosition(credits) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // Credits are the first visible control in the right-side cluster.
-    expect(
-      credits.compareDocumentPosition(activityMenu) &
+      breadcrumbs.compareDocumentPosition(activityMenu) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
@@ -377,17 +371,18 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('links Plugins to the app catalog, right after the credits balance', () => {
+  it('links Plugins to the app catalog, right before the activity menu', () => {
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
     const apps = screen.getByRole('link', { name: 'Plugins' });
-    const credits = screen.getByTestId('topbar-credits-bar');
+    const activityMenu = screen.getByTestId('notification-inbox');
 
     expect(apps).toHaveAttribute('href', '/acme/~/plugins');
     expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
     expect(apps).not.toHaveAttribute('aria-current');
     expect(
-      credits.compareDocumentPosition(apps) & Node.DOCUMENT_POSITION_FOLLOWING,
+      apps.compareDocumentPosition(activityMenu) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -439,21 +434,18 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('credits-live-sync')).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-apps-link')).not.toBeInTheDocument();
   });
 
-  it('places credits first in the right-side control cluster', () => {
+  it('keeps the wallet synced but shows no credit balance in the topbar', () => {
     render(<AppProtectedTopbar />);
 
     const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
-    const credits = screen.getByTestId('topbar-credits-bar');
 
-    expect(
-      credits.compareDocumentPosition(activityMenu) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(screen.getByTestId('credits-live-sync')).toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-credits-trigger')).toBeNull();
     expect(
       activityMenu.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
