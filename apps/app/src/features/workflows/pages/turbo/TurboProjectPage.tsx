@@ -62,6 +62,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
         <p role={error ? 'alert' : 'status'}>{error || t('loading')}</p>
       </Container>
     );
+  const projectName = project.name;
   const ideas = project.kind === TurboProjectKind.IDEAS;
   const draft = project.status === TurboProjectStatus.DRAFT;
   const settings = project.settings.ideas ?? {
@@ -108,7 +109,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
       const next = await service.create({
         brandId,
         kind: TurboProjectKind.IDEAS,
-        name: project.name,
+        name: projectName,
       });
       await service.update(next.id, { settings: { ideas: settings } });
       await service.generateIdeas(next.id, settings);
