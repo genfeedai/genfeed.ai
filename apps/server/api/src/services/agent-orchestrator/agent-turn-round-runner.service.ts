@@ -68,6 +68,10 @@ function isTerminalResultTool(
   );
 }
 
+const APPROVAL_PENDING_TERMINAL_CONTENT =
+  'Review the details and approve to continue.';
+const APPROVAL_PENDING_RESULT_SUMMARY = 'Waiting for your approval';
+
 function getTerminalToolContent(
   toolName: CuratedActionName,
   parameters: Record<string, unknown>,
@@ -415,6 +419,7 @@ export class AgentTurnRoundRunnerService {
     });
     let terminalToolName: CuratedActionName | undefined;
     let terminalToolParams: Record<string, unknown> = {};
+    let isAwaitingApproval = false;
 
     for (const toolCall of toolCalls) {
       if (strategy.onBeforeTool) {
@@ -631,6 +636,18 @@ export class AgentTurnRoundRunnerService {
       if (result.requiresConfirmation) {
         state.reviewRequired = true;
       }
+      // A pending mutation approval is the end of the turn: nothing runs until
+      // the user decides, so a further model round would only keep the thread
+      // "Working" beside a card that is waiting on them (or retry the tool).
+      if (
+        result.success &&
+        result.approvalStatus === 'pending' &&
+        result.nextActions?.length
+      ) {
+        isAwaitingApproval = true;
+        terminalToolName = toolName;
+        terminalToolParams = toolParams;
+      }
       this.recordRiskLevel(state, result.riskLevel);
 
       // Generation tools may bill themselves (dynamic amount). Do not also
@@ -665,6 +682,9 @@ export class AgentTurnRoundRunnerService {
         error: result.error,
         parameters: toolParams,
         ...buildToolResultSummary(toolName, modelVisibleResult),
+        ...(result.success && result.approvalStatus === 'pending'
+          ? { resultSummary: APPROVAL_PENDING_RESULT_SUMMARY }
+          : {}),
         status: result.success ? 'completed' : 'failed',
         toolName,
       };
@@ -733,10 +753,9 @@ export class AgentTurnRoundRunnerService {
       isCancelled: false,
       ...(terminalToolName
         ? {
-            terminalContent: getTerminalToolContent(
-              terminalToolName,
-              terminalToolParams,
-            ),
+            terminalContent: isAwaitingApproval
+              ? APPROVAL_PENDING_TERMINAL_CONTENT
+              : getTerminalToolContent(terminalToolName, terminalToolParams),
             terminalToolName,
           }
         : {}),
