@@ -1746,6 +1746,9 @@ model Setting {
   // #4672 saved default agent mode ('auto' | 'manual' | 'plan') applied to
   // new agent threads; see `AgentThreadMode` in @genfeedai/contracts.
   agentMode                        String                     @default("manual")
+  // Member half of "Require approval for MCP requests"; see
+  // OrganizationSetting.isMcpApprovalRequired. On by default.
+  isMcpApprovalRequired            Boolean                    @default(true)
   dashboardPreferences             Json                       @default("{\"scopes\":{}}")
   isDeleted                        Boolean                    @default(false)
   createdAt                        DateTime                   @default(now())
@@ -1833,6 +1836,10 @@ model OrganizationSetting {
   isBreakoutResponsesEnabled     Boolean           @default(false)
   isBreakoutAutoPublishEnabled   Boolean           @default(false)
   isBrandVisionChecksEnabled     Boolean           @default(false)
+  // Organization half of "Require approval for MCP requests". On by default; an MCP
+  // generation skips the approvals queue only when this and the member's own
+  // Setting.isMcpApprovalRequired are both off. The org owns the credit pool.
+  isMcpApprovalRequired          Boolean           @default(true)
   fleetEvaluationPolicy          Json              @default("{}")
   byokKeys                       Json              @default("{}")
   createdAt                      DateTime          @default(now())
