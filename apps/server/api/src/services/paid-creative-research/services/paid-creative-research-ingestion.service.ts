@@ -36,16 +36,6 @@ const DEFAULT_CREATIVE_LIMIT = 50;
  */
 const MANUAL_POLL_COOLDOWN_MS = 10 * 60 * 1000;
 
-/**
- * `unavailable` outcomes recorded after an archive actor may already have run,
- * so a repeat poll is not free. Every other `unavailable` code is recorded
- * before any actor starts (access, platform and readiness gates).
- */
-const SPEND_POSSIBLE_ERROR_CODES: ReadonlySet<string> = new Set([
-  'paid_creative_source_unavailable',
-  'research_collection_start_unreconciled',
-]);
-
 export type WatchedAdvertiserScope = {
   advertiserHandle: string;
   advertiserName?: string | null;
@@ -114,9 +104,9 @@ export class PaidCreativeResearchIngestionService {
    * Poll one watched advertiser on demand, outside the scheduled workflow.
    *
    * Scoped to the caller's organization (and brand when the session has one).
-   * A previous attempt that was blocked before any archive actor started can
-   * be retried at once; one that may have run an actor (success, error, or a
-   * failed fetch) is rate-limited because it spent money.
+   * Any attempt, including a blocked or failed one, starts a 10-minute
+   * cooldown: a fetch that fails can still have spent an archive actor, and
+   * the claim is taken before the fetch so concurrent requests cannot all run.
    */
   async pollWatchedAdvertiser(
     organizationId: string,
@@ -139,10 +129,7 @@ export class PaidCreativeResearchIngestionService {
     const isClaimed = await this.adWatchedAdvertisersService.claimManualPoll(
       advertiser.id,
       organizationId,
-      {
-        cooldownMs: MANUAL_POLL_COOLDOWN_MS,
-        spendPossibleErrorCodes: [...SPEND_POSSIBLE_ERROR_CODES],
-      },
+      MANUAL_POLL_COOLDOWN_MS,
     );
     if (!isClaimed) {
       throw new HttpException(

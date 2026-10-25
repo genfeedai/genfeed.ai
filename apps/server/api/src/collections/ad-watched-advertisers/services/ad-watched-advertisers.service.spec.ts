@@ -481,16 +481,11 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
   });
 
   describe('claimManualPoll', () => {
-    const options = {
-      cooldownMs: 600_000,
-      spendPossibleErrorCodes: ['paid_creative_source_unavailable'],
-    };
-
     it('claims in one scoped conditional update so concurrent polls cannot all pass', async () => {
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(
-        service.claimManualPoll('advertiser-4', 'org-1', options),
+        service.claimManualPoll('advertiser-4', 'org-1', 600_000),
       ).resolves.toBe(true);
 
       expect(delegate.updateMany).toHaveBeenCalledWith({
@@ -502,13 +497,6 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
           OR: [
             { lastAttemptedAt: null },
             { lastAttemptedAt: { lt: expect.any(Date) } },
-            {
-              lastIngestionErrorCode: {
-                not: null,
-                notIn: ['paid_creative_source_unavailable'],
-              },
-              lastIngestionStatus: 'unavailable',
-            },
           ],
         },
       });
@@ -518,7 +506,7 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
       delegate.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        service.claimManualPoll('advertiser-4', 'org-1', options),
+        service.claimManualPoll('advertiser-4', 'org-1', 600_000),
       ).resolves.toBe(false);
     });
   });

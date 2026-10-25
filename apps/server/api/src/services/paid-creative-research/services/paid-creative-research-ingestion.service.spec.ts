@@ -483,20 +483,14 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
     });
 
-    it('claims with the cooldown and the codes that may have spent an actor', async () => {
+    it('claims with the cooldown before it fetches', async () => {
       const harness = buildHarness([META_ADVERTISER]);
 
       await harness.service.pollWatchedAdvertiser('org-1', 'watch-1');
 
       expect(
         harness.adWatchedAdvertisersService.claimManualPoll,
-      ).toHaveBeenCalledWith('watch-1', 'org-1', {
-        cooldownMs: 10 * 60 * 1000,
-        spendPossibleErrorCodes: [
-          'paid_creative_source_unavailable',
-          'research_collection_start_unreconciled',
-        ],
-      });
+      ).toHaveBeenCalledWith('watch-1', 'org-1', 10 * 60 * 1000);
       expect(
         harness.adWatchedAdvertisersService.claimManualPoll.mock
           .invocationCallOrder[0],
