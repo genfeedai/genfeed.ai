@@ -41,6 +41,12 @@ const {
   },
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({ accessState: { lowCreditThreshold: 590 } }),
+  }),
+);
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org_1' }),
 }));
@@ -102,6 +108,7 @@ vi.mock('./CreditsMenuSection', () => ({
     planUsagePercent,
     planUsed,
     extraBalance,
+    lowCreditThreshold,
   }: {
     balance: number | null;
     billingHref: string;
@@ -111,6 +118,7 @@ vi.mock('./CreditsMenuSection', () => ({
     planUsagePercent: number;
     planUsed: number;
     extraBalance: number;
+    lowCreditThreshold: number | null;
   }) => (
     <div
       data-testid="credits-trigger"
@@ -119,6 +127,7 @@ vi.mock('./CreditsMenuSection', () => ({
       data-plan-usage={planUsagePercent}
       data-plan-used={planUsed}
       data-extra={extraBalance}
+      data-low-threshold={lowCreditThreshold ?? 'unknown'}
     >
       <span data-testid="credits-balance">{fullBalance}</span>
       <span data-testid="credits-numeric">{balance ?? 'unknown'}</span>
@@ -238,6 +247,10 @@ describe('AccountCredits', () => {
     expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
       'data-extra',
       '5900',
+    );
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-low-threshold',
+      '590',
     );
   });
 

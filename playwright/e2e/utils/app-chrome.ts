@@ -3,7 +3,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Default mocked-auth workspace used by app-core fixtures.
@@ -60,5 +60,6 @@ export async function openAccountCredits(page: Page): Promise<Locator> {
     .getByTestId('app-rail-account')
     .getByRole('button', { name: 'Open account menu' })
     .click();
+  await expect(page.getByRole('menu')).toBeVisible();
   return page.getByTestId('account-credits');
 }

@@ -11,14 +11,17 @@ import { DropdownMenuSeparator } from '@ui/primitives/dropdown-menu';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
-/** Matches LowCreditsBanner — warning tone below this. */
-export const LOW_CREDITS_THRESHOLD = 1000;
 const BALANCE_UNAVAILABLE_LABEL = 'Balance unavailable';
 
 type Props = {
   billingHref: string;
   balance: number | null;
   fullBalance: string;
+  /**
+   * Server-computed, relative to the organization's plan or pack (same source
+   * as LowCreditsBanner). Null means unknown: no ordinary low warning.
+   */
+  lowCreditThreshold: number | null;
   /** True while an unknown balance is loading — no red zero flash. */
   isLoading?: boolean;
   visibleProviderSegments: ITopbarBalanceSegment[];
@@ -30,6 +33,7 @@ type Props = {
 
 function getBalanceSeverity(
   balance: number | null,
+  lowCreditThreshold: number | null,
   isLoading: boolean,
 ): 'critical' | 'warning' | 'healthy' | 'loading' | 'unavailable' {
   if (isLoading) {
@@ -41,7 +45,7 @@ function getBalanceSeverity(
   if (balance <= 0) {
     return 'critical';
   }
-  if (balance < LOW_CREDITS_THRESHOLD) {
+  if (lowCreditThreshold !== null && balance < lowCreditThreshold) {
     return 'warning';
   }
   return 'healthy';
@@ -56,6 +60,7 @@ export default function CreditsMenuSection({
   balance,
   fullBalance,
   isLoading = false,
+  lowCreditThreshold,
   visibleProviderSegments,
   planLimit,
   planUsed,
@@ -64,7 +69,7 @@ export default function CreditsMenuSection({
 }: Props) {
   const href = billingHref || '/settings/credits';
   const unit = EnvironmentService.CREDITS_LABEL;
-  const severity = getBalanceSeverity(balance, isLoading);
+  const severity = getBalanceSeverity(balance, lowCreditThreshold, isLoading);
   const isLoadingState = severity === 'loading';
   const isUnavailable = severity === 'unavailable';
   const isCritical = severity === 'critical';

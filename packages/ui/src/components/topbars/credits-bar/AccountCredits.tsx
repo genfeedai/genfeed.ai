@@ -1,6 +1,7 @@
 'use client';
 
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import {
   APP_ROUTES,
   formatCreditBalanceExact,
@@ -28,6 +29,7 @@ function AccountCreditsContent({
   refreshCreditsBreakdown,
 }: AccountCreditsPlanProps) {
   const { orgHref } = useOrgUrl();
+  const { accessState } = useAccessState();
   const runtime = useDesktopRuntimeContext();
   const showCredits = shouldShowCreditsNav(
     getDesktopCreditsVisibility(runtime),
@@ -89,6 +91,9 @@ function AccountCreditsContent({
         extraBalance={extraBalance}
         fullBalance={fullBalance}
         isLoading={isLoading}
+        lowCreditThreshold={coerceFiniteBalance(
+          accessState?.lowCreditThreshold,
+        )}
         planLimit={planLimit}
         planUsagePercent={planUsagePercent}
         planUsed={planUsed}

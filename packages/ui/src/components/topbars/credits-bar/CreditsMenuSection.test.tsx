@@ -23,6 +23,7 @@ const defaultProps = {
   billingHref: '/test-org/~/settings/credits',
   extraBalance: 0,
   fullBalance: '0',
+  lowCreditThreshold: 1_000 as number | null,
   planLimit: 0,
   planUsagePercent: 0,
   planUsed: 0,
@@ -79,6 +80,7 @@ describe('CreditsMenuSection', () => {
         {...defaultProps}
         balance={42}
         fullBalance="42"
+        lowCreditThreshold={50}
         planLimit={100}
         planUsagePercent={58}
         planUsed={58}
@@ -92,6 +94,22 @@ describe('CreditsMenuSection', () => {
     expect(
       screen.getByText('Running low. Top up before generations stall.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows no low warning when the server threshold is unknown', () => {
+    render(
+      <CreditsMenuSection
+        {...defaultProps}
+        balance={42}
+        fullBalance="42"
+        lowCreditThreshold={null}
+      />,
+    );
+
+    expect(screen.getByTestId('account-credits')).toHaveAttribute(
+      'data-severity',
+      'healthy',
+    );
   });
 
   it('stays neutral while loading instead of flashing critical zero', () => {
