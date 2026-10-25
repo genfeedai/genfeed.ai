@@ -79,4 +79,74 @@ describe('mutation approval summary', () => {
       { label: 'Option', value: 'None' },
     ]);
   });
+
+  describe('create_post previews', () => {
+    it('hands the card the draft per target and keeps only the remaining details as items', () => {
+      const card = buildMutationApprovalCard(
+        'apr-1',
+        'create_post',
+        {
+          content: 'Ship it.',
+          mediaUrls: ['https://cdn.example.com/a.png'],
+          scheduledAt: '2026-10-26T09:00:00Z',
+          targets: [
+            {
+              caption: 'X version',
+              credentialId: 'cred-x',
+              platform: 'twitter',
+            },
+            { credentialId: 'cred-li', platform: 'linkedin' },
+          ],
+        },
+        context,
+      );
+
+      expect(card.data?.postPreviews).toEqual([
+        {
+          caption: 'X version',
+          credentialId: 'cred-x',
+          mediaUrls: ['https://cdn.example.com/a.png'],
+          platform: 'twitter',
+        },
+        {
+          caption: 'Ship it.',
+          credentialId: 'cred-li',
+          mediaUrls: ['https://cdn.example.com/a.png'],
+          platform: 'linkedin',
+        },
+      ]);
+      expect(card.data?.items).toEqual([
+        { label: 'Scheduled at', value: '2026-10-26T09:00:00Z' },
+      ]);
+    });
+
+    it('falls back to the platform list and drops duplicates', () => {
+      const card = buildMutationApprovalCard(
+        'apr-1',
+        'create_post',
+        { content: 'Hello', platform: 'twitter', platforms: ['twitter', 'x'] },
+        context,
+      );
+
+      expect(card.data?.postPreviews).toEqual([
+        { caption: 'Hello', mediaUrls: [], platform: 'twitter' },
+        { caption: 'Hello', mediaUrls: [], platform: 'x' },
+      ]);
+    });
+
+    it('keeps the generic list when there is nothing to preview', () => {
+      const card = buildMutationApprovalCard(
+        'apr-1',
+        'create_post',
+        { contentId: 'content-1', platforms: ['twitter'] },
+        context,
+      );
+
+      expect(card.data?.postPreviews).toBeUndefined();
+      expect(card.data?.items).toEqual([
+        { label: 'Content id', value: 'content-1' },
+        { label: 'Platforms', value: 'twitter' },
+      ]);
+    });
+  });
 });
