@@ -177,7 +177,6 @@ const LIBRARY_TYPE_PRESET_QUERIES = [
 
 const filterRouteRedirects: AppRedirect[] = [
   ...[
-    ['/settings/models/all', '/settings/models'],
     ['/library/trash', '/library/assets?place=trash'],
     ['/library/shelf/generating', '/library/assets?shelf=generating'],
     ['/library/shelf/unsorted', '/library/assets?shelf=unsorted'],
@@ -190,14 +189,6 @@ const filterRouteRedirects: AppRedirect[] = [
       source: `${prefix}${source}`,
       destination: `${prefix}${destination}`,
       permanent: true,
-    })),
-  ),
-  ...['trainings', 'custom-models'].flatMap((type) =>
-    FILTER_ROUTE_SCOPES.map((prefix) => ({
-      destination: `${prefix}/settings/models/${type}`,
-      has: [{ key: 'type', type: 'query' as const, value: type }],
-      permanent: true,
-      source: `${prefix}/settings/models`,
     })),
   ),
   ...LIBRARY_TYPE_PRESET_QUERIES.flatMap(([source, presetQuery]) =>
