@@ -577,8 +577,8 @@ export function waitForRegistryContent(
   packageSpec,
   expectedDigest,
   {
-    attempts = 10,
-    delaySeconds = 3,
+    attempts = 40,
+    delaySeconds = 8,
     npmViewFn = npmView,
     packRegistryVersionFn = packRegistryVersion,
     sleepFn = (seconds) => run('sleep', [String(seconds)]),
