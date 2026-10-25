@@ -1,5 +1,6 @@
 import {
   isSerializationFailure,
+  retryTransactionStart,
   runSerializableWithRetry,
 } from '@api/collections/workflows/utils/serializable-retry.util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -168,4 +169,57 @@ describe('runSerializableWithRetry', () => {
   ])('preserves existing known serialization representations: %j', (error) => {
     expect(isSerializationFailure(error)).toBe(true);
   });
+});
+
+describe('retryTransactionStart', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('retries a transaction-start timeout until the transaction starts', async () => {
+    const run = vi
+      .fn()
+      .mockRejectedValueOnce(
+        prismaError(
+          'P2028',
+          'Transaction API error: Unable to start a transaction in the given time.',
+        ),
+      )
+      .mockResolvedValueOnce('claimed');
+
+    const promise = retryTransactionStart(run);
+    await vi.runAllTimersAsync();
+
+    await expect(promise).resolves.toBe('claimed');
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after the attempt limit with the original error', async () => {
+    const error = prismaError('P2028', 'Unable to start a transaction');
+    const run = vi.fn().mockRejectedValue(error);
+
+    const promise = retryTransactionStart(run);
+    const assertion = expect(promise).rejects.toBe(error);
+    await vi.runAllTimersAsync();
+
+    await assertion;
+    expect(run).toHaveBeenCalledTimes(5);
+  });
+
+  it.each([
+    prismaError('P2028', 'Transaction API error: commit timeout'),
+    prismaError('P2034', 'write conflict'),
+  ])(
+    'does not retry a failure after the transaction started: %s',
+    async (error) => {
+      const run = vi.fn().mockRejectedValue(error);
+
+      await expect(retryTransactionStart(run)).rejects.toBe(error);
+      expect(run).toHaveBeenCalledTimes(1);
+    },
+  );
 });

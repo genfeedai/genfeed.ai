@@ -3,6 +3,7 @@ import {
   WORKFLOW_NODE_CLAIM_HEARTBEAT_MS,
   WORKFLOW_NODE_CLAIM_LEASE_MS,
 } from '@api/collections/workflows/services/workflow-executor.constants';
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -82,13 +83,15 @@ export class WorkflowNodeClaimService {
     if (!onClaimed) {
       return this.tryClaimWithClient(this.prisma, params);
     }
-    return this.prisma.$transaction(async (tx) => {
-      const outcome = await this.tryClaimWithClient(tx, params);
-      if (outcome.action === 'claimed') {
-        await onClaimed(tx, outcome.lease);
-      }
-      return outcome;
-    });
+    return retryTransactionStart(() =>
+      this.prisma.$transaction(async (tx) => {
+        const outcome = await this.tryClaimWithClient(tx, params);
+        if (outcome.action === 'claimed') {
+          await onClaimed(tx, outcome.lease);
+        }
+        return outcome;
+      }),
+    );
   }
 
   private async tryClaimWithClient(

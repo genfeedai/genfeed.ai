@@ -61,6 +61,34 @@ export function isTransactionStartFailure(error: unknown): boolean {
   );
 }
 
+/**
+ * Retries only the failure to obtain a transaction. The callback never ran, so
+ * re-running it is safe for any isolation level, including callers whose own
+ * conflict handling must not see the pool-pressure error.
+ */
+export async function retryTransactionStart<T>(
+  run: () => Promise<T>,
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await run();
+    } catch (error: unknown) {
+      if (
+        !isTransactionStartFailure(error) ||
+        attempt >= MAX_SERIALIZABLE_ATTEMPTS
+      ) {
+        throw error;
+      }
+      await new Promise((resolve) =>
+        setTimeout(
+          resolve,
+          TRANSACTION_START_BACKOFF_MS * attempt * (1 + Math.random()),
+        ),
+      );
+    }
+  }
+}
+
 export async function runSerializableWithRetry<T>(
   prisma: SerializableClient,
   callback: (transaction: Prisma.TransactionClient) => Promise<T>,

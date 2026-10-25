@@ -2,6 +2,7 @@ import { isCreditTransactionConflict } from '@api/collections/credits/services/c
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
 import { readWorkflowFalCompletionEvidence } from '@api/collections/credits/services/workflow-fal-completion-evidence.util';
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import {
@@ -760,9 +761,11 @@ export class WorkflowGenerationBillingService {
   ): Promise<T> {
     for (let attempt = 0; ; attempt += 1) {
       try {
-        return await this.prisma.$transaction(operation, {
-          isolationLevel: 'Serializable',
-        });
+        return await retryTransactionStart(() =>
+          this.prisma.$transaction(operation, {
+            isolationLevel: 'Serializable',
+          }),
+        );
       } catch (error: unknown) {
         if (attempt >= 2 || !isCreditTransactionConflict(error)) throw error;
         this.logger.warn('Retrying workflow funding transaction conflict');
