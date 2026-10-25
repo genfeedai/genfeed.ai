@@ -214,7 +214,7 @@ describe('Remix now panel', () => {
         };
       if (message.event === 'sourceRemixStudioUrl')
         return {
-          data: `https://app.genfeed.ai/acme/moonrise/studio/storyboard/${REMIX_RUN}`,
+          data: `https://app.genfeed.ai/acme/moonrise/storyboard/${REMIX_RUN}`,
           success: true,
         };
       return { success: false };
@@ -225,7 +225,7 @@ describe('Remix now panel', () => {
     fireEvent.click(open);
     await waitFor(() =>
       expect(chrome.tabs.create).toHaveBeenCalledWith({
-        url: `https://app.genfeed.ai/acme/moonrise/studio/storyboard/${REMIX_RUN}`,
+        url: `https://app.genfeed.ai/acme/moonrise/storyboard/${REMIX_RUN}`,
       }),
     );
   });

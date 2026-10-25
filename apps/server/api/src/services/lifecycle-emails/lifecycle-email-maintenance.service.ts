@@ -483,7 +483,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     const organizationPath = encodeURIComponent(organizationSlug);
     return {
       destinationUrl: destinationBrand
-        ? `${this.appUrl()}/${organizationPath}/${encodeURIComponent(destinationBrand.slug)}/${missingConnection ? 'settings/connected-accounts' : 'studio/playground'}`
+        ? `${this.appUrl()}/${organizationPath}/${encodeURIComponent(destinationBrand.slug)}/${missingConnection ? 'settings/connected-accounts' : 'playground'}`
         : `${this.appUrl()}/${organizationPath}`,
       missingConnection,
     };

@@ -193,7 +193,7 @@ describe('ChannelMessageDispatcherService', () => {
           cdnUrl: 'https://cdn.example.com/i.png',
           ingredient: { id: 'ingredient-2' },
           storyboard: {
-            layoutPath: '/org/brand/studio/storyboard/run-1',
+            layoutPath: '/org/brand/storyboard/run-1',
             runId: 'run-1',
             title: 'Steam shots',
           },
@@ -207,7 +207,7 @@ describe('ChannelMessageDispatcherService', () => {
       'https://cdn.example.com/i.png',
       expect.objectContaining({ id: 'ingredient-2' }),
       {
-        layoutPath: '/org/brand/studio/storyboard/run-1',
+        layoutPath: '/org/brand/storyboard/run-1',
         runId: 'run-1',
         title: 'Steam shots',
       },

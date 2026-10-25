@@ -233,7 +233,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
       within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
         name: 'Open Playground',
       }),
-    ).toHaveAttribute('href', '/acme/moonrise/studio/playground');
+    ).toHaveAttribute('href', '/acme/moonrise/playground');
     await user.click(card('storyboard'));
     await user.click(
       within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
@@ -248,7 +248,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
     render(<OrganizationPluginsPage />);
     expect(
       screen.getByRole('link', { name: 'Open Playground' }),
-    ).toHaveAttribute('href', '/acme/~/studio/playground');
+    ).toHaveAttribute('href', '/acme/~/playground');
   });
 
   it('explains a failed install without showing the app as installed', async () => {

@@ -5,7 +5,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
- * E2E Tests for YouTube → AI Clip Factory (/studio/clips)
+ * E2E Tests for YouTube → AI Clip Factory (/clips)
  *
  * All clip-project and clip-result API requests are mocked.
  */
@@ -65,7 +65,7 @@ function jsonApiProject(
 
 /**
  * Mirrors the clip-results poll interval in the progress-step effect of
- * `apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/useStudioClipsPage.ts`.
+ * `apps/app/app/(protected)/[orgSlug]/[brandSlug]/clips/useStudioClipsPage.ts`.
  * Waits below are derived from it with headroom so a loaded CI runner cannot
  * turn "the app is a little slow" into a test failure.
  */

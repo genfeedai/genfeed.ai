@@ -29,7 +29,7 @@ function collectRouteValues(value: unknown): string[] {
 
 describe('routes.constant', () => {
   it('hard-cuts the Studio home to Playground without an old route alias', () => {
-    expect(APP_ROUTES.STUDIO.PLAYGROUND).toBe('/studio/playground');
+    expect(APP_ROUTES.STUDIO.PLAYGROUND).toBe('/playground');
     expect('GENERATE' in APP_ROUTES.STUDIO).toBe(false);
     expect(collectRouteValues(APP_ROUTES)).not.toContain('/studio/generate');
   });
@@ -85,9 +85,9 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
     expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
-    expect(APP_ROUTES.STUDIO.EDITOR).toBe('/studio/editor');
-    expect(APP_ROUTES.STUDIO.TURBO).toBe('/studio/turbo');
-    expect(APP_ROUTES.STUDIO.TURBO_NEW).toBe('/studio/turbo/new');
+    expect(APP_ROUTES.STUDIO.EDITOR).toBe('/editor');
+    expect(APP_ROUTES.STUDIO.TURBO).toBe('/turbo');
+    expect(APP_ROUTES.STUDIO.TURBO_NEW).toBe('/turbo/new');
   });
 
   it('reclaims Publish Campaigns without moving Automate Programs', () => {
@@ -236,9 +236,9 @@ describe('routes.constant', () => {
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
     ).toBe('/genfeed-ai/paperclip/workspace/overview');
-    expect(
-      createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/storyboard'),
-    ).toBe('/genfeed-ai/paperclip/studio/storyboard');
+    expect(createBrandAppRoute('genfeed-ai', 'paperclip', 'storyboard')).toBe(
+      '/genfeed-ai/paperclip/storyboard',
+    );
     expect(createBrandAppRoute('genfeed-ai', 'paperclip')).toBe(
       '/genfeed-ai/paperclip',
     );

@@ -94,7 +94,7 @@ test.describe('Core Content Loop', () => {
 
     await studioPage.gotoSurface('storyboard');
 
-    await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard/);
+    await expect(authenticatedPage).toHaveURL(/\/storyboard/);
     const breadcrumb = authenticatedPage.getByRole('navigation', {
       name: 'Breadcrumb',
     });
@@ -104,7 +104,7 @@ test.describe('Core Content Loop', () => {
     await authenticatedPage
       .getByRole('link', { name: 'New storyboard' })
       .click();
-    await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard\/new$/);
+    await expect(authenticatedPage).toHaveURL(/\/storyboard\/new$/);
     await expect(
       authenticatedPage.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);

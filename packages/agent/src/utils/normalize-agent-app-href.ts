@@ -6,6 +6,7 @@ import {
   isPersonalSettingsPath,
   LIBRARY_ASSET_QUERY_KEY,
   parseScopedAppPath,
+  STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants';
 
 /**
@@ -61,7 +62,7 @@ export function normalizeAgentAppHref(
       APP_ROUTE_PREFIXES.ANALYTICS,
       APP_ROUTE_PREFIXES.AUTOMATION,
       APP_ROUTE_PREFIXES.DISCOVERY,
-      APP_ROUTE_PREFIXES.STUDIO,
+      ...STUDIO_APP_ROUTE_PREFIXES,
     ];
     if (
       !explicitScope.orgSlug &&

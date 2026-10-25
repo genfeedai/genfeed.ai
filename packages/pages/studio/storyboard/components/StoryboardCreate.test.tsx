@@ -203,7 +203,7 @@ describe('Storyboard shared composer', () => {
     );
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith(
-        '/org/brand-a/studio/storyboard/saved-storyboard',
+        '/org/brand-a/storyboard/saved-storyboard',
       ),
     );
   });

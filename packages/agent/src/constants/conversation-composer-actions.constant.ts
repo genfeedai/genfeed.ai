@@ -22,7 +22,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Create',
     name: 'create',
     requiredScope: 'brand',
-    route: APP_ROUTES.STUDIO.ROOT,
+    route: APP_ROUTES.STUDIO.PLAYGROUND,
   },
   {
     description: 'Remix existing content',

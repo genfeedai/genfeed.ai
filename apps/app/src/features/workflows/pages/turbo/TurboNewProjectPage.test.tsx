@@ -292,9 +292,7 @@ describe('TurboNewProjectPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith(
-        '/acme/moonrise/studio/turbo/run-1',
-      ),
+      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
     );
     expect(mocks.create).toHaveBeenLastCalledWith({
       brandId: 'brand-1',

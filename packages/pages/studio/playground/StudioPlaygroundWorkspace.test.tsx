@@ -296,7 +296,7 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/default/default/studio/playground',
+  usePathname: () => '/default/default/playground',
   useSearchParams: () => new URLSearchParams(mocks.searchParams.value),
 }));
 

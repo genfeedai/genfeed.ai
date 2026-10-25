@@ -39,9 +39,9 @@ describe('normalizeAnalyticsPathname', () => {
   });
 
   it('collapses uuid, numeric, and cuid-like id segments to :id', () => {
-    expect(
-      normalizeAnalyticsPathname(`/acme/brand/studio/editor/${UUID}`),
-    ).toBe('/:org/:brand/studio/editor/:id');
+    expect(normalizeAnalyticsPathname(`/acme/brand/editor/${UUID}`)).toBe(
+      '/:org/:brand/editor/:id',
+    );
     expect(normalizeAnalyticsPathname('/acme/brand/publishing/1234567')).toBe(
       '/:org/:brand/publishing/:id',
     );
@@ -94,9 +94,9 @@ describe('sanitizeAnalyticsUrl', () => {
   });
 
   it('sanitizes a path-relative value', () => {
-    expect(
-      sanitizeAnalyticsUrl(`/acme/brand/studio/editor/${UUID}?zoom=2`),
-    ).toBe('/:org/:brand/studio/editor/:id');
+    expect(sanitizeAnalyticsUrl(`/acme/brand/editor/${UUID}?zoom=2`)).toBe(
+      '/:org/:brand/editor/:id',
+    );
   });
 
   it('degrades malformed or empty input safely without throwing', () => {

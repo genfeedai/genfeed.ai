@@ -110,7 +110,7 @@ describe('typed asset Storyboard entry', () => {
         'source',
       ]);
       expect(mocks.push).toHaveBeenCalledWith(
-        '/entry-org/entry-brand/studio/storyboard/entry-run',
+        '/entry-org/entry-brand/storyboard/entry-run',
       );
     },
   );

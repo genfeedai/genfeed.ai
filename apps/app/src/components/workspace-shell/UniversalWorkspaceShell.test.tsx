@@ -739,7 +739,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('returns focus to the asset after closing its sidebar', () => {
-    navigation.pathname = '/acme/moonrise/studio/playground';
+    navigation.pathname = '/acme/moonrise/playground';
     render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -900,7 +900,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
-    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.pathname = '/acme/moonrise/storyboard';
     navigation.searchParams = new URLSearchParams();
     agentState.threads[0].brandId = 'brand-previous';
 
@@ -964,7 +964,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('keeps a conversation created from Studio out of the canonical URL', () => {
-    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.pathname = '/acme/moonrise/storyboard';
     navigation.searchParams = new URLSearchParams();
     agentState.activeThreadId = null;
 
@@ -1138,7 +1138,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('restores a registered overlay above the canvas from a direct URL load', () => {
-    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.pathname = '/acme/moonrise/storyboard';
     navigation.searchParams = new URLSearchParams({
       overlay: 'workflow-picker',
     });
@@ -1178,9 +1178,7 @@ describe('UniversalWorkspaceShell', () => {
     // Loaded straight from a URL, not pushed by this session: dismissal
     // replaces the overlay params rather than assuming an owned history entry.
     expect(router.back).not.toHaveBeenCalled();
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/studio/storyboard',
-    );
+    expect(router.replace).toHaveBeenCalledWith('/acme/moonrise/storyboard');
   });
 
   it('dispatches publish only as a trusted brand-scoped review route', () => {
@@ -1315,7 +1313,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/studio/playground?sourceArtifact=ingredient%3Aingredient-1',
+      '/acme/moonrise/playground?sourceArtifact=ingredient%3Aingredient-1',
     );
   });
 

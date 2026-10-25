@@ -91,19 +91,19 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
-    ['/acme/moonrise/studio/playground', 'Playground', 'Canvas'],
-    ['/acme/moonrise/studio/motion', 'Motion', 'Compositions'],
-    ['/acme/moonrise/studio/turbo', 'Turbo', 'Projects'],
-    ['/acme/moonrise/studio/turbo/new', 'Turbo', 'New project'],
-    ['/acme/moonrise/studio/clips', 'Clips', 'Projects'],
-    ['/acme/moonrise/studio/clips/new', 'Clips', 'New project'],
-    ['/acme/moonrise/studio/clips/project-1', 'Clips', 'Project'],
-    ['/acme/moonrise/studio/storyboard', 'Storyboard', 'Runs'],
-    ['/acme/moonrise/studio/storyboard/new', 'Storyboard', 'New storyboard'],
-    ['/acme/moonrise/studio/storyboard/run-1', 'Storyboard', 'Run'],
-    ['/acme/moonrise/studio/editor', 'Editor', 'Projects'],
-    ['/acme/moonrise/studio/editor/project-1', 'Editor', 'Project'],
-    ['/acme/~/studio/editor', 'Editor', 'Projects'],
+    ['/acme/moonrise/playground', 'Playground', 'Canvas'],
+    ['/acme/moonrise/motion', 'Motion', 'Compositions'],
+    ['/acme/moonrise/turbo', 'Turbo', 'Projects'],
+    ['/acme/moonrise/turbo/new', 'Turbo', 'New project'],
+    ['/acme/moonrise/clips', 'Clips', 'Projects'],
+    ['/acme/moonrise/clips/new', 'Clips', 'New project'],
+    ['/acme/moonrise/clips/project-1', 'Clips', 'Project'],
+    ['/acme/moonrise/storyboard', 'Storyboard', 'Runs'],
+    ['/acme/moonrise/storyboard/new', 'Storyboard', 'New storyboard'],
+    ['/acme/moonrise/storyboard/run-1', 'Storyboard', 'Run'],
+    ['/acme/moonrise/editor', 'Editor', 'Projects'],
+    ['/acme/moonrise/editor/project-1', 'Editor', 'Project'],
+    ['/acme/~/editor', 'Editor', 'Projects'],
     ['/acme/~/plugins', 'Plugins', 'Plugins'],
     ['/acme/moonrise/discovery/trends', 'Discovery', 'Trends'],
     [
@@ -191,9 +191,9 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/settings/knowledge', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/agent/receipts', 'canvas'],
     ['/:orgSlug/:brandSlug/library/references', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/turbo', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/turbo/new', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
+    ['/:orgSlug/:brandSlug/turbo', 'canvas'],
+    ['/:orgSlug/:brandSlug/turbo/new', 'canvas'],
+    ['/:orgSlug/:brandSlug/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
     ['/:orgSlug/:brandSlug/platforms/:platform', 'canvas'],
     ['/:orgSlug/~/settings/subscription', 'canvas'],
@@ -273,7 +273,7 @@ describe('workspace shell trusted registry', () => {
   it('activates the Studio adapter across production surfaces only', () => {
     for (const surface of ['clips', 'storyboard', 'turbo', 'turbo/project-1']) {
       expect(
-        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${surface}`),
+        resolveWorkspaceShellRoute(`/acme/moonrise/${surface}`),
       ).toMatchObject({
         adapter: { key: 'studio-specialized', status: 'ready' },
         mode: 'canvas',
@@ -291,13 +291,14 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('resolves the Editor surface in brand and organization scope', () => {
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor')).toMatchObject({
+      mode: 'canvas',
+      surfaceKey: 'studio-editor',
+    });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor'),
+      resolveWorkspaceShellRoute('/acme/moonrise/editor/project-1'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-editor' });
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor/project-1'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-editor' });
-    expect(resolveWorkspaceShellRoute('/acme/~/studio/editor')).toMatchObject({
+    expect(resolveWorkspaceShellRoute('/acme/~/editor')).toMatchObject({
       scope: 'organization',
       surfaceKey: 'studio-editor',
     });

@@ -97,7 +97,7 @@ test.describe('Logout Flow', () => {
       const isOnProtectedPage =
         url.includes('/login') ||
         url.includes('/sign-in') ||
-        url.includes('/studio');
+        url.includes(APP_ROUTES.STUDIO.PLAYGROUND);
 
       expect(isOnProtectedPage).toBe(true);
     });

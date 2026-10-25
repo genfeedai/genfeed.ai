@@ -159,8 +159,8 @@ export const APP_ROUTES = {
   /**
    * Legacy long-form editor aliases retained for existing deep links. New
    * operator navigation uses the type-aware `/publishing/posts/{id}` route built
-   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR, which is the
-   * Remotion project canvas.
+   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR (`/editor`), which
+   * is the Remotion project canvas.
    */
   EDIT: {
     ARTICLE: '/edit/article',
@@ -351,31 +351,32 @@ export const APP_ROUTES = {
     USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
-  /**
-   * Studio is a production surface only. One-off "make me an image/video"
-   * generation lives in the Agent (`AGENT.NEW`) — the standalone
-   * image/video/avatar/music tabs were retired.
-   */
   /** #5502 native app catalog; installation is per organization membership. */
   PLUGINS: {
     ROOT: '/plugins',
   },
+  /**
+   * The former Studio apps. Each is its own top-level product root
+   * (`/turbo`, `/storyboard`, ...) with no Studio parent, so a bare `/studio`
+   * is not a route. Old `/studio/<app>` paths redirect here. These are
+   * production surfaces only: one-off "make me an image/video" generation
+   * lives in the Agent (`AGENT.NEW`).
+   */
   STUDIO: {
-    MOTION: '/studio/motion',
-    TURBO: '/studio/turbo',
-    TURBO_NEW: '/studio/turbo/new',
-    CLIPS: '/studio/clips',
-    CLIPS_NEW: '/studio/clips/new',
-    EDITOR: '/studio/editor',
-    EDITOR_NEW: '/studio/editor/new',
+    CLIPS: '/clips',
+    CLIPS_NEW: '/clips/new',
+    EDITOR: '/editor',
+    EDITOR_NEW: '/editor/new',
+    MOTION: '/motion',
     /**
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.
      */
-    PLAYGROUND: '/studio/playground',
-    ROOT: '/studio',
-    STORYBOARD: '/studio/storyboard',
-    STORYBOARD_NEW: '/studio/storyboard/new',
+    PLAYGROUND: '/playground',
+    STORYBOARD: '/storyboard',
+    STORYBOARD_NEW: '/storyboard/new',
+    TURBO: '/turbo',
+    TURBO_NEW: '/turbo/new',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
@@ -408,9 +409,24 @@ export const APP_ROUTE_PREFIXES = {
   PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
   PUBLISHING: APP_ROUTES.PUBLISHING.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
-  STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
+  PLAYGROUND: APP_ROUTES.STUDIO.PLAYGROUND,
+  STORYBOARD: APP_ROUTES.STUDIO.STORYBOARD,
+  TURBO: APP_ROUTES.STUDIO.TURBO,
+  MOTION: APP_ROUTES.STUDIO.MOTION,
+  CLIPS: APP_ROUTES.STUDIO.CLIPS,
+  EDITOR: APP_ROUTES.STUDIO.EDITOR,
 } as const;
+
+/** Product roots of the former Studio apps, in app-rail order. */
+export const STUDIO_APP_ROUTE_PREFIXES = [
+  APP_ROUTE_PREFIXES.PLAYGROUND,
+  APP_ROUTE_PREFIXES.STORYBOARD,
+  APP_ROUTE_PREFIXES.TURBO,
+  APP_ROUTE_PREFIXES.MOTION,
+  APP_ROUTE_PREFIXES.CLIPS,
+  APP_ROUTE_PREFIXES.EDITOR,
+] as const;
 
 export const APP_ROUTE_TEMPLATES = {
   BRAND: '/:orgSlug/:brandSlug',

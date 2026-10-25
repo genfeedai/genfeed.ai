@@ -72,7 +72,7 @@ test.describe('Dashboard Navigation', () => {
       await dashboardPage.waitForPageLoad();
 
       await dashboardPage.navigateToStudio();
-      await expect(authenticatedPage).toHaveURL(/studio|g\//);
+      await expect(authenticatedPage).toHaveURL(/storyboard|g\//);
     });
 
     test('should navigate to Activities', async ({ authenticatedPage }) => {
@@ -96,7 +96,7 @@ test.describe('Dashboard Navigation', () => {
       await dashboardPage.waitForPageLoad();
 
       await dashboardPage.navigateToEditor();
-      await expect(authenticatedPage).toHaveURL(/studio\/editor/);
+      await expect(authenticatedPage).toHaveURL(/\/editor/);
     });
 
     test('should navigate to Settings', async ({ authenticatedPage }) => {
@@ -166,7 +166,7 @@ test.describe('Dashboard Navigation', () => {
       await dashboardPage.waitForPageLoad();
 
       await dashboardPage.navigateToStudio();
-      await expect(authenticatedPage).toHaveURL(/studio|g\//);
+      await expect(authenticatedPage).toHaveURL(/storyboard|g\//);
 
       await authenticatedPage.goBack();
       await expect(authenticatedPage).toHaveURL(/workspace|overview/);

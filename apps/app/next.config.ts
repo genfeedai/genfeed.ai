@@ -9,6 +9,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   PERSONAL_SETTINGS_CHILD_SEGMENTS,
+  STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
@@ -90,7 +91,7 @@ const resolvedApiBaseUrl = (
 const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.WORKSPACE,
   APP_ROUTE_PREFIXES.AGENT,
-  APP_ROUTE_PREFIXES.STUDIO,
+  ...STUDIO_APP_ROUTE_PREFIXES,
   APP_ROUTE_PREFIXES.PUBLISHING,
   APP_ROUTE_PREFIXES.ANALYTICS,
   APP_ROUTE_PREFIXES.AUTOMATION,
@@ -155,6 +156,38 @@ function appHomeRedirects(
 type AppRedirect = Awaited<
   ReturnType<NonNullable<NextConfig['redirects']>>
 >[number];
+
+/**
+ * The former Studio apps moved from `/studio/<app>` to `/<app>`. Keep
+ * bookmarked, emailed and agent-emitted links working in every scope: the
+ * unscoped product path, and the brand route. The brand rule also matches the
+ * org scope, where `~` takes the `:brandSlug` position. Each app gets its own
+ * rule; there is deliberately no broad `/studio/*` wildcard, and a bare
+ * `/studio` stays a 404.
+ */
+const studioAppRedirects: AppRedirect[] = STUDIO_APP_ROUTE_PREFIXES.flatMap(
+  (appRoot) => [
+    {
+      destination: `${appRoot}/:path*`,
+      permanent: true,
+      source: `/studio${appRoot}/:path*`,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${appRoot}/:path*`,
+      ),
+      permanent: true,
+      // `v1` is the API prefix, never an organization (see appHomeRedirects).
+      source: createBrandAppRoute(
+        ':orgSlug((?!v1(?:/|$))[^/]+)',
+        ':brandSlug',
+        `/studio${appRoot}/:path*`,
+      ),
+    },
+  ],
+);
 
 const FILTER_ROUTE_SCOPES = [
   '',
@@ -336,6 +369,7 @@ const config = createAppNextConfig({
         '/agent/onboarding/:path*',
       ),
     },
+    ...studioAppRedirects,
     ...filterRouteRedirects,
     ...adminFilterRouteRedirects,
     // Market trends moved from Analytics (own-content measurement) to
@@ -427,8 +461,8 @@ const config = createAppNextConfig({
       ),
     })),
     // Complete-path homes: bare `/[app]` → a named child. Library's home is
-    // the asset browser, not an overview tile grid. Studio has no root: each
-    // Studio tool is its own app (#5502).
+    // the asset browser, not an overview tile grid. The former Studio apps
+    // have no parent: each is its own app (#5502).
     ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT),

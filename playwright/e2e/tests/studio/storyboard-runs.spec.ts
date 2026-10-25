@@ -149,7 +149,7 @@ test.describe('Storyboard runs', () => {
       await fulfillJson(route, runDocument(current));
     });
 
-    await page.goto(`${BRAND_BASE}/studio/storyboard`);
+    await page.goto(`${BRAND_BASE}/storyboard`);
 
     const row = page
       .getByTestId('storyboard-run-row')
@@ -162,7 +162,7 @@ test.describe('Storyboard runs', () => {
       .getByRole('link', { name: `Open ${TITLE}` })
       .click();
 
-    await expect(page).toHaveURL(new RegExp(`/studio/storyboard/${RUN_ID}$`));
+    await expect(page).toHaveURL(new RegExp(`/storyboard/${RUN_ID}$`));
     const recipe = page.getByRole('region', { name: 'Run recipe' });
     await expect(recipe).toBeVisible();
     await expect(page.getByRole('region', { name: 'Remix run' })).toBeVisible();
@@ -192,7 +192,7 @@ test.describe('Storyboard runs', () => {
       },
     );
 
-    await page.goto(`${BRAND_BASE}/studio/storyboard`);
+    await page.goto(`${BRAND_BASE}/storyboard`);
 
     // An empty brand lands on the first-run onboarding (#6693): preset cards
     // plus the remix and from-scratch choices, not a bare empty message.
@@ -209,7 +209,7 @@ test.describe('Storyboard runs', () => {
       onboarding.getByRole('link', { name: 'Choose a video' }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'New storyboard' }).first().click();
-    await expect(page).toHaveURL(/\/studio\/storyboard\/new$/);
+    await expect(page).toHaveURL(/\/storyboard\/new$/);
     await expect(
       page.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);

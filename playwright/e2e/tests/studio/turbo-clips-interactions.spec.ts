@@ -5,7 +5,7 @@ import {
   expectNoErrorOverlay,
 } from '../../utils/route-assertions';
 
-const CLIPS_ROUTE = '/test-org/brand-1/studio/clips';
+const CLIPS_ROUTE = '/test-org/brand-1/clips';
 const CLIPS_PROJECT_ID = '000000000000000000009876';
 const YOUTUBE_URL = 'https://www.youtube.com/watch?v=abc12345678';
 

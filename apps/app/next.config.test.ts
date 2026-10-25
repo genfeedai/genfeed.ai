@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
@@ -523,7 +522,7 @@ describe('app next.config', () => {
   });
 
   it('keeps no legacy redirect surface for the retired studio tabs', async () => {
-    // The one-off tabs came back as `/studio/playground`, so the 28 legacy
+    // The one-off tabs came back as `/playground`, so the 28 legacy
     // `/studio/<type>` rules were hard-cut rather than repointed — there is no
     // redirect table to maintain for them.
     const redirects = (await config.redirects?.()) ?? [];
@@ -538,13 +537,81 @@ describe('app next.config', () => {
 
   it('does not define a broad studio wildcard redirect', async () => {
     const redirects = await config.redirects?.();
-    const studioWildcards = redirects?.filter(
-      (redirect) =>
-        redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO) &&
-        redirect.source.includes(':path*'),
+    const studioWildcards = redirects?.filter((redirect) =>
+      /\/studio\/:path\*$/.test(redirect.source),
     );
 
     expect(studioWildcards).toEqual([]);
+  });
+
+  it.each([
+    ['/studio/turbo', '/turbo'],
+    ['/studio/turbo/new?tab=ideas', '/turbo/new'],
+    ['/acme/brand/studio/turbo/abc123?tab=ideas', '/acme/brand/turbo/abc123'],
+    ['/acme/brand/studio/storyboard', '/acme/brand/storyboard'],
+    ['/acme/brand/studio/storyboard/run-1', '/acme/brand/storyboard/run-1'],
+    ['/acme/brand/studio/playground', '/acme/brand/playground'],
+    ['/acme/brand/studio/motion', '/acme/brand/motion'],
+    ['/acme/brand/studio/clips/new', '/acme/brand/clips/new'],
+    ['/acme/brand/studio/editor/project-1', '/acme/brand/editor/project-1'],
+    ['/acme/~/studio/editor/project-1', '/acme/~/editor/project-1'],
+    ['/acme/~/studio/playground', '/acme/~/playground'],
+  ])(
+    'permanently redirects the old Studio app path %s to %s',
+    async (source, pathname) => {
+      const response = await unstable_getResponseFromNextConfig({
+        url: `https://example.com${source}`,
+        nextConfig: { redirects: config.redirects },
+      });
+      expect(response.status).toBe(308);
+      const target = new URL(response.headers.get('location') ?? '');
+      expect(target.pathname).toBe(pathname);
+      new URL(`https://example.com${source}`).searchParams.forEach(
+        (entry, name) => {
+          expect(target.searchParams.get(name)).toBe(entry);
+        },
+      );
+    },
+  );
+
+  it.each([
+    '/studio',
+    '/acme/brand/studio',
+    '/acme/brand/studio/models',
+    '/v1/tags/studio/turbo',
+  ])(
+    'leaves %s alone: no Studio parent and no API path capture',
+    async (source) => {
+      const response = await unstable_getResponseFromNextConfig({
+        url: `https://example.com${source}`,
+        nextConfig: { redirects: config.redirects },
+      });
+
+      expect(response.status).not.toBe(308);
+    },
+  );
+
+  it('keeps the old Studio app redirects exact per app', async () => {
+    const redirects = (await config.redirects?.()) ?? [];
+    const studioSources = redirects
+      .map((redirect) => redirect.source)
+      .filter((source) => source.includes('/studio/'));
+
+    expect(studioSources.sort()).toEqual(
+      [
+        ...[
+          'clips',
+          'editor',
+          'motion',
+          'playground',
+          'storyboard',
+          'turbo',
+        ].flatMap((app) => [
+          `/studio/${app}/:path*`,
+          `/:orgSlug((?!v1(?:/|$))[^/]+)/:brandSlug/studio/${app}/:path*`,
+        ]),
+      ].sort(),
+    );
   });
 
   it('sends X-Robots-Tag: noindex, nofollow on every studio route', async () => {
