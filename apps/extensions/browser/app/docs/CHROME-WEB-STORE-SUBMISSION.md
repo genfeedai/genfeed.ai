@@ -1,78 +1,157 @@
 # Chrome Web Store Submission
 
-Last updated: 2026-04-01
+Everything the Developer Dashboard asks for, ready to paste, plus the order to do it in. The extension has never been published. Items marked **Owner** need the Genfeed Google account, a payment card or a reviewer account, and cannot be done from CI.
 
-## Status
+## Order of work
 
-- Automated tests: `11` files, `84` tests, all passing
-- Production build: passes with `bun run build`
-- Packaged zip: `4.52 MB` via `bun run package`
-- Privacy policy: [`../PRIVACY.md`](../PRIVACY.md)
-- Permission rationale: [`../PERMISSIONS.md`](../PERMISSIONS.md)
+**If a store item already exists** (a draft, a pending review or an earlier listing), skip steps 1, 3 and 4. Copy the existing Item ID and the public key from the item's **Package** tab, then continue at step 5. Check the item's status and any reviewer feedback in the dashboard first. As of 2026-10-25 the update service reports no public item for the ID in this repo's manifest, so an existing item would have a different ID.
 
-## Listing Copy
+1. **Owner**: register the developer account and pay the one-time fee at <https://chrome.google.com/webstore/devconsole>. Two-step verification must be on. The developer email cannot be changed afterwards.
+2. Package a build without submitting. Run the `Browser Extension - Package and Submit` workflow from `master` with `submit` off, and download the `browser-extension-build` artifact (`chrome-mv3-prod.zip`).
+3. **Owner**: in the dashboard choose **Add new item** and upload that ZIP. Do not submit yet. The upload creates the item and its permanent ID.
+4. **Owner**: open the item's **Package** tab and copy the **Item ID** and the **public key**. Send both to the release thread.
+5. Release thread: put the public key in `package.json` under `manifest.key`, set `CHROME_EXTENSION_ID` on the API (CORS rejects the extension without it), so local builds get the store's ID (the submitted package never carries the key). See [Extension ID](#extension-id-and-api-access).
+6. **Owner**: fill the Store listing, Privacy, Distribution and Test instructions tabs from this page.
+7. **Owner**: create the OAuth credentials and the `EXTENSION_SUBMIT_KEYS` secret (see [Publishing keys](#publishing-keys)).
+8. Tag `extension-browser-v<package version>` from `master`. The workflow tests, builds, validates the secret and submits.
 
-### Name
+## Extension ID and API access
 
-GenFeed
+The Chrome Web Store assigns the ID when the item is first uploaded, and the public key the dashboard shows is what keeps a local build on that same ID. The `manifest.key` currently in `package.json` was generated locally and gives the ID `djbmffnmdeekbejpfhammiijhdpjegcp`. That is **not** the store's ID unless the store happens to use the same key, so do not put it in `CHROME_EXTENSION_ID` or in the secret until step 4 confirms it.
 
-### Short Description
+The API only allows `chrome-extension://<CHROME_EXTENSION_ID>` as a CORS origin in production (`packages/libs/config/cors.config.ts`); with the variable unset the extension gets no access. The `extId` in `EXTENSION_SUBMIT_KEYS` must be the same 32-letter ID.
 
-Generate AI replies, save inspiration, and draft social content across X, YouTube, Instagram, Reddit, TikTok, Facebook, and LinkedIn.
+The dashboard rejects an uploaded package whose manifest has a `key` field ("key field is not allowed in manifest"). The key is for development builds only, so the packaging workflow removes it from `chrome-mv3-prod.zip` and fails if it is still there. Keep it in `package.json` for local builds, and never add it to a package you upload by hand.
 
-### Detailed Description
+## Listing
 
-Genfeed.ai brings your content workflow directly into the browser. Draft contextual replies, save posts for inspiration, and generate supporting media without leaving the page you are already on.
+| Field | Value |
+| --- | --- |
+| Name | GenFeed |
+| Category | Productivity |
+| Language | English |
+| Summary (max 132 characters) | Write, rewrite and reply to posts with your Genfeed brand voice on X, LinkedIn, Reddit, Threads and more. Save sources for later. |
+| Privacy policy URL | <https://genfeed.ai/privacy> (has a Browser Extension section) |
+| Homepage URL | <https://genfeed.ai> |
+| Support URL | <https://genfeed.ai/contact> |
 
-The extension supports X, YouTube, Instagram, Reddit, Facebook, TikTok, and LinkedIn. It uses your authenticated Genfeed.ai account to generate platform-aware replies, rewrite ideas, and capture source material for later use inside the Genfeed workspace.
+### Description
 
-Key capabilities:
+```
+Genfeed brings your content workflow into the page you are already on.
 
-- Generate AI-assisted replies from the current post context
-- Save posts, videos, and discussions as inspiration
-- Rewrite or expand content ideas without switching tabs
-- Keep the same workflow across major social platforms
+Next to the Reply button on X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok and YouTube, Genfeed adds one small logo button. Open it to:
 
-## Store Assets
+• Generate a reply from the post you are reading
+• Proofread what you have typed
+• Rewrite it in your own voice
+• Reply with an image, a video or a GIF
+• Generate an image for the post
+• Save the post as a source for later
 
-### Available
+Genfeed only fills the reply box. You read it, edit it and post it yourself. Nothing is published for you.
 
-- Extension icons are generated in the packaged build
-- Privacy policy markdown exists and is ready to publish or link
-- Permission justification exists and is ready for reviewer notes
+Right-click anywhere on the web to remix a page, add it to your Genfeed Knowledge or save it as a source. The side panel keeps your saved sources, your library and analytics for the posts you published on X and LinkedIn.
 
-### Still Needed
+You need a Genfeed account. The extension signs in with your existing Genfeed session and uses your brand voice and workspace.
 
-- Chrome Web Store screenshots for the popup and sidepanel flows
-- Optional promo tiles / marquee art if the team wants them
-- Final public privacy policy URL if the store listing should link to a hosted page instead of repo markdown
+Optional: if you install the Genfeed local bridge on your own computer, Genfeed can fall back to your own Claude Code, Codex or Gemini CLI when the cloud service is unavailable. It is off unless you turn it on.
 
-## Permission Summary
+Genfeed is not affiliated with X, LinkedIn, Reddit, Meta, TikTok or Google.
+```
 
-Current packaged manifest requests:
+## Privacy tab
 
-- `storage`
-- `cookies`
-- `tabs`
-- `scripting`
-- `activeTab`
-- `sidePanel`
-- Host access for X/Twitter, YouTube, Instagram, Reddit, Facebook, TikTok, LinkedIn, and `api.genfeed.ai`
+**Single purpose**
 
-Use [`../PERMISSIONS.md`](../PERMISSIONS.md) as the reviewer-facing justification.
+> Draft, rewrite and reply to social media posts with Genfeed AI, and save web pages as sources in the user's Genfeed workspace.
 
-## Manual Validation Still Required
+**Permission justifications** (paste one per field; the reviewer-facing detail is in [`../PERMISSIONS.md`](../PERMISSIONS.md))
 
-These steps were not completed in this QA pass because they require a live signed-in browser session and/or production telemetry access:
+| Permission | Justification |
+| --- | --- |
+| `storage` | Keeps the login session, settings and unsent drafts in the browser. |
+| `activeTab` | When the user picks "Save source to Genfeed", "Remix" or "Add to Genfeed Knowledge" from the right-click menu, reads the page or selection the user chose. |
+| `scripting` | Runs the capture above on the active tab, only after that click. |
+| `contextMenus` | Adds the three right-click items: Remix with GenFeed, Save source to Genfeed, Add to Genfeed Knowledge. |
+| `sidePanel` | Shows the Genfeed side panel for sources, library and analytics. |
+| `tabs` | Reads the active tab's URL and title to save the right source, and watches tab navigation on X and LinkedIn to confirm a post the user published. Also opens Genfeed links. |
+| `downloads` | Saves a generated image or video from the user's library to disk, after the user clicks Download. |
+| `nativeMessaging` | Optional. Talks to the Genfeed local bridge the user installed themselves. Off by default. |
+| Host access: X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok, YouTube | Adds the Genfeed button beside the reply box and reads the post the user is replying to. |
+| Host access: `genfeed.ai`, `app.genfeed.ai`, `api.genfeed.ai` | Signs the user in and sends requests to the Genfeed API. |
 
-1. Load `build/chrome-mv3-prod` in Chrome and complete Better Auth sign-in against production.
-2. Verify the popup and sidepanel stay authenticated after token sync.
-3. Trigger a controlled runtime failure and confirm it appears in the extension Sentry project.
-4. Capture Chrome Web Store screenshots from the authenticated popup and sidepanel states.
+**Remote code**: No. All code ships in the package.
 
-## Recommended Submission Bundle
+**Data usage** (proposed answers, confirm against the privacy policy before submitting)
 
-- Packaged artifact from `bun run package`
-- Hosted privacy policy URL or published markdown page
-- Permission justification from [`../PERMISSIONS.md`](../PERMISSIONS.md)
-- Screenshots from real authenticated extension flows
+- Personally identifiable information: yes. Name and email from the user's Genfeed account.
+- Authentication information: yes. The Genfeed session token.
+- Website content: yes. The text of the post the user replies to, the draft they ask Genfeed to rewrite, and pages or selections they choose to save.
+- User activity: yes. On X and LinkedIn, a post or reply the user publishes (its text, link, author handle and date) is recorded in their Genfeed workspace so publication analytics can find it.
+- Not collected: health, financial, location, personal communications, web history.
+
+**Certifications**: data is not sold or transferred to third parties outside the approved use cases, not used for purposes unrelated to the single purpose, and not used for creditworthiness or lending.
+
+## Test instructions
+
+Reviewers need a working account. **Owner**: create a dedicated reviewer account with one organization and one brand, and paste its credentials into the dashboard's Test instructions field. Do not reuse a personal account.
+
+```
+1. Open https://app.genfeed.ai and sign in with the reviewer account below. Keep the tab open.
+2. Click the GenFeed toolbar icon. The popup should show the signed-in workspace.
+3. Open https://x.com, open any post and click Reply. A small outline GenFeed logo button appears beside the Reply button. Click it for the menu.
+4. Choose "Generate reply". The reply box is filled. Nothing is posted.
+5. Right-click any page and choose "Save source to Genfeed". The side panel opens with the saved source.
+
+Reviewer account: <email> / <password>
+```
+
+## Store assets
+
+| Asset | Size | Status |
+| --- | --- | --- |
+| Store icon | 128 x 128 | Generated by Plasmo from `assets/icon.png` (500 x 500) |
+| Screenshots | 1280 x 800, 1 to 5 | **Owner**: capture from a signed-in browser, see [Screenshots](#screenshots) |
+| Small promo tile | 440 x 280 | Optional |
+| Marquee | 1400 x 560 | Optional |
+
+### Screenshots
+
+Capture real states from a signed-in browser. Do not submit mock-ups of X or LinkedIn. Suggested set:
+
+1. The Genfeed button beside Reply on X, menu open.
+2. The reply box filled with a generated reply.
+3. Proofread preview card in the composer.
+4. The right-click menu on a web page.
+5. The side panel with saved sources.
+
+## Publishing keys
+
+`EXTENSION_SUBMIT_KEYS` is a GitHub Actions secret holding Plasmo BPP JSON, Chrome only:
+
+```json
+{
+  "chrome": {
+    "clientId": "...",
+    "clientSecret": "...",
+    "refreshToken": "...",
+    "extId": "<32-letter item ID from the Package tab>"
+  }
+}
+```
+
+1. In Google Cloud, create a project, set up the OAuth consent screen as External, add the publishing Google account as a test user, then publish the app.
+2. Enable the [Chrome Web Store API](https://console.developers.google.com/apis/library/chromewebstore.googleapis.com).
+3. Create an OAuth client ID of type **Desktop app** at <https://console.developers.google.com/apis/credentials> and download it as `key.json`.
+4. In the folder with `key.json`, run `npx gcp-refresh-token` and approve the consent screen with the Google account that owns the store item. `key.json` now has `clientId`, `clientSecret` and `refreshToken`.
+5. Add the JSON above as the repository secret `EXTENSION_SUBMIT_KEYS`.
+
+Source: the [Plasmo token guide](https://github.com/PlasmoHQ/chrome-webstore-api/blob/main/token.md) and Google's [Chrome Web Store API guide](https://developer.chrome.com/docs/webstore/using-api).
+
+## Known risks for review
+
+- **Development hosts in the production manifest.** `host_permissions` still lists `*.genfeed.localhost`. They do nothing for users but a reviewer can flag unused hosts. Removing them needs a production-only manifest.
+- **Broad host access.** Eight social platforms plus the Genfeed hosts. Each is justified above, and the extension only reads a post when the user opens the menu.
+- **Selectors on live pages.** Threads, Instagram, TikTok, YouTube and Facebook have not been checked on live pages. Run the platform checks in [`TESTING-GUIDE.md`](./TESTING-GUIDE.md) before submitting.
+- **Version.** The package version is `1.0.0`, so the first tag is `extension-browser-v1.0.0`. It is independent of the product release tags.

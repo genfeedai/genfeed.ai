@@ -6,7 +6,7 @@ export const BRAND_OFFERING_SUBJECT_LOCK: Record<BrandOfferingKind, string> = {
   service:
     'This brand is a service. Depict the person and the outcome. Do not invent a device, bottle, package, or gadget the user did not name.',
   software:
-    'This brand is software. Depict the person and the feeling the outcome changes. Do not invent a device, bottle, package, or gadget. For hiring or recruiting, the feeling is finding the right person or being chosen.',
+    'This brand is software. Depict the person and the feeling the outcome changes. Do not invent a device, bottle, package, or gadget.',
   unknown: 'Do not invent a physical product the user did not name.',
 };
 
@@ -56,16 +56,30 @@ export function classifyBrandOffering(text: string): BrandOfferingKind {
   return 'unknown';
 }
 
+/** Added only when the user's own prompt is about hiring, never from the brand alone. */
+export const RECRUITING_SUBJECT_LOCK =
+  'For hiring or recruiting, the feeling is finding the right person or being chosen.';
+
 export function brandOfferingSubjectLock(kind: BrandOfferingKind): string {
   return BRAND_OFFERING_SUBJECT_LOCK[kind];
+}
+
+export function resolveMediaSubjectLock(
+  userPrompt: string,
+  corpus: string,
+): string {
+  const kind = classifyBrandOffering(corpus);
+  return kind === 'software' && RECRUITING_OFFERING.test(userPrompt)
+    ? `${brandOfferingSubjectLock(kind)} ${RECRUITING_SUBJECT_LOCK}`
+    : brandOfferingSubjectLock(kind);
 }
 
 export function lockMediaUserPrompt(
   userPrompt: string,
   corpus: string,
 ): string {
-  const lock = brandOfferingSubjectLock(classifyBrandOffering(corpus));
   const trimmed = userPrompt.trim();
+  const lock = resolveMediaSubjectLock(trimmed, corpus);
   return trimmed.length > 0 ? `${lock}\n\n${trimmed}` : lock;
 }
 

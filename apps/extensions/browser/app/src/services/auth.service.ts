@@ -1,5 +1,5 @@
 import { Storage } from '@plasmohq/storage';
-import { apiEndpoint, authCookieOrigins } from '~services/environment.service';
+import { apiEndpoint } from '~services/environment.service';
 import { logger } from '~utils/logger.util';
 
 // The credential stays on this device: chrome.storage.sync would replicate it
@@ -428,14 +428,6 @@ class AuthService {
   async hasOrganizationContext(forceRefresh = false): Promise<boolean> {
     const context = await this.getAuthContext(forceRefresh);
     return Boolean(context?.organization?.id);
-  }
-
-  debugCookies(): void {
-    for (const origin of authCookieOrigins) {
-      chrome.cookies.getAll({ url: origin }, (_cookies) => {
-        // Debug callback - intentionally empty
-      });
-    }
   }
 
   async getTokenInfo(): Promise<TokenInfo | null> {

@@ -54,6 +54,22 @@ const privacyPolicySections = [
     shortLabel: 'Google',
     title: 'Google and YouTube Data',
   },
+  {
+    content: [
+      'The Genfeed Chrome extension adds a Genfeed button next to the reply box on X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok and YouTube. It fills the reply box and you post it yourself. It reads a page only when you use a feature and does not record the sites you visit.',
+      'When you generate a reply, proofread or rewrite a draft, make an image, video or GIF, or save a page as a source, the extension sends the text you are working on, the author and URL of the post or page, and your brand voice to the Genfeed API over HTTPS. On X and LinkedIn it also records the text, link, author handle and date of a post or reply you publish, so Genfeed can show analytics for it. If you turn on the optional local fallback, that text goes to the Genfeed bridge on your own computer instead.',
+      'The extension keeps your session, settings, saved-source lists and unsent drafts in Chrome extension storage. Removing the extension or clearing its data deletes them. Crash reports go to Sentry without request bodies, cookies, user information or AI inputs and outputs.',
+      'We do not sell this data or use it for advertising. The use of information received from Chrome APIs adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements. To delete data in your Genfeed account, delete it in the app or contact privacy@genfeed.ai.',
+    ],
+    links: [
+      {
+        href: 'https://developer.chrome.com/docs/webstore/program-policies/user-data-faq',
+        label: 'Chrome Web Store User Data Policy',
+      },
+    ],
+    shortLabel: 'Extension',
+    title: 'Browser Extension',
+  },
 ];
 
 const privacyRights = [

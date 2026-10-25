@@ -19,7 +19,9 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import TurboIdeasEditor from './TurboIdeasEditor';
@@ -27,6 +29,7 @@ import TurboProjectItemCard from './TurboProjectItemCard';
 import TurboSchedule from './TurboSchedule';
 import TurboWorkflowInputs from './TurboWorkflowInputs';
 import type { TurboProjectPageProps } from './turbo-project.types';
+import { createTurboProjectsApi } from './turbo-projects-api';
 import { isBrandReadyForTurbo } from './turbo-readiness';
 import { useTurboProject } from './useTurboProject';
 
@@ -35,6 +38,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
   const locale = useLocale();
   const { brandId, selectedBrand, credentials } = useBrand();
   const { href } = useOrgUrl();
+  const router = useRouter();
   const isIdeasEnabled = useFeatureFlag('turbo_ideas');
   const {
     project,
@@ -49,27 +53,31 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
     images: IngredientsService.getInstance('images', token),
     videos: IngredientsService.getInstance('videos', token),
   }));
+  const getService = useAuthedService(createTurboProjectsApi);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isRerunning, setIsRerunning] = useState(false);
   if (!project)
     return (
       <Container label={t('title')}>
         <p role={error ? 'alert' : 'status'}>{error || t('loading')}</p>
       </Container>
     );
+  const projectName = project.name;
   const ideas = project.kind === TurboProjectKind.IDEAS;
   const draft = project.status === TurboProjectStatus.DRAFT;
   const settings = project.settings.ideas ?? {
     formats: ['image' as const],
     count: 6,
   };
-  const readiness = isBrandReadyForTurbo(
-    selectedBrand,
-    credentials,
-    settings.formats,
-  );
+  const readiness = isBrandReadyForTurbo(selectedBrand, settings.formats);
+  const isAvatarReady = isBrandReadyForTurbo(selectedBrand, ['avatar']).ready;
   const blocked = isSaving || hasUnsavedChanges;
+  const isFreshIdeasDraft = ideas && draft && !(project.items ?? []).length;
   const items = project.items ?? [];
   const quote = project.quote;
+  // A pending quote already has its own accept button.
+  const canRequestQuote =
+    draft && items.length > 0 && !(ideas && quote && !quote.acceptedAt);
   const canGenerate = !ideas || (isIdeasEnabled && readiness.ready);
   const steps = [
     ideas ? TurboProjectStep.IDEAS : TurboProjectStep.INPUTS,
@@ -84,6 +92,36 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
       }
       return itemId ? api.retry(projectId, itemId) : api.start(projectId);
     });
+  }
+  /** Generate ideas and price them in one write so the quote is waiting. */
+  function generateAndQuote() {
+    if (blocked || !readiness.ready) return;
+    void write(async (api) => {
+      await api.generateIdeas(projectId, settings);
+      await api.quote(projectId);
+      return api.get(projectId);
+    });
+  }
+  /** Repeat the last run's settings on a fresh project, then open it. */
+  async function runAgain() {
+    if (!brandId || isRerunning || blocked) return;
+    setIsRerunning(true);
+    setNotice(null);
+    try {
+      const service = await getService();
+      const next = await service.create({
+        brandId,
+        kind: TurboProjectKind.IDEAS,
+        name: projectName,
+      });
+      await service.update(next.id, { settings: { ideas: settings } });
+      await service.generateIdeas(next.id, settings);
+      await service.quote(next.id);
+      router.push(href(`${APP_ROUTES.STUDIO.TURBO}/${next.id}`));
+    } catch {
+      setNotice(t('runAgainFailed'));
+      setIsRerunning(false);
+    }
   }
   function acceptQuote() {
     if (!quote) return;
@@ -144,26 +182,41 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
       }
     >
       <div className="flex flex-col gap-6">
-        <Field label={t('name')}>
-          <Input
-            aria-label={t('name')}
-            value={project.name}
-            maxLength={120}
-            onChange={(event) => {
-              if (event.target.value.trim())
-                void update({ name: event.target.value });
-            }}
-          />
-        </Field>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <span>{formatEnumLabel(project.status)}</span>
+        {!isFreshIdeasDraft && (
+          <Field label={t('name')}>
+            <Input
+              aria-label={t('name')}
+              value={project.name}
+              maxLength={120}
+              onChange={(event) => {
+                if (event.target.value.trim())
+                  void update({ name: event.target.value });
+              }}
+            />
+          </Field>
+        )}
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          {!isFreshIdeasDraft && <span>{formatEnumLabel(project.status)}</span>}
           <span role="status">
             {isSaving
               ? t('saving')
               : hasUnsavedChanges
                 ? t('unsaved')
-                : t('saved')}
+                : isFreshIdeasDraft
+                  ? null
+                  : t('saved')}
           </span>
+          {ideas && !draft && (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              icon={<RefreshCw aria-hidden="true" />}
+              isDisabled={blocked || !isIdeasEnabled || !readiness.ready}
+              isLoading={isRerunning}
+              onClick={() => void runAgain()}
+            >
+              {t('runAgain')}
+            </Button>
+          )}
           {project.reviewTurboRunId && (
             <Button asChild variant={ButtonVariant.LINK}>
               <Link href={href(APP_ROUTES.PUBLISHING.REVIEW)}>
@@ -184,7 +237,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
           </div>
         )}
         {notice && <p role="status">{notice}</p>}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" hidden={isFreshIdeasDraft}>
           {steps.map((step) => (
             <Button
               key={step}
@@ -206,18 +259,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
               {readiness.reasons.map((reason) => (
                 <li key={reason}>
                   <Button asChild variant={ButtonVariant.LINK}>
-                    <Link
-                      href={href(
-                        reason.includes('connected')
-                          ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
-                          : reason.includes('reference') ||
-                              reason.includes('tone')
-                            ? APP_ROUTES.SETTINGS.BRANDS
-                            : APP_ROUTES.SETTINGS.AGENT,
-                      )}
-                    >
-                      {reason}
-                    </Link>
+                    <Link href={href(APP_ROUTES.SETTINGS.AGENT)}>{reason}</Link>
                   </Button>
                 </li>
               ))}
@@ -226,20 +268,20 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
         )}
         {draft && project.step === TurboProjectStep.IDEAS && (
           <TurboIdeasEditor
+            isAvatarReady={isAvatarReady}
+            name={project.name}
             settings={settings}
             canGenerate={!blocked && readiness.ready}
             disabled={!isIdeasEnabled}
             onChange={(next) => void update({ settings: { ideas: next } })}
-            onGenerate={() => {
-              if (!blocked && readiness.ready)
-                void write((api) => api.generateIdeas(projectId, settings));
-            }}
+            onGenerate={generateAndQuote}
+            onNameChange={(name) => void update({ name })}
           />
         )}
         {draft && project.step === TurboProjectStep.INPUTS && (
           <TurboWorkflowInputs disabled={blocked} onUpload={upload} />
         )}
-        {draft && items.length > 0 && (
+        {canRequestQuote && (
           <Button
             isDisabled={blocked || !canGenerate}
             onClick={() => requestStart()}

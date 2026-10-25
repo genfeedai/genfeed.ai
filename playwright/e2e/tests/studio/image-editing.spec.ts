@@ -10,7 +10,6 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import {
-  confirmGenerationSpend,
   mockGenerationQuote,
   selectAdvancedModel,
 } from '../../utils/generation-setup';
@@ -260,7 +259,6 @@ for (const { model, editing } of [
       fullPage: true,
     });
     await page.getByRole('button', { name: 'Generate', exact: true }).click();
-    await confirmGenerationSpend(page);
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toMatchObject({
       data: {

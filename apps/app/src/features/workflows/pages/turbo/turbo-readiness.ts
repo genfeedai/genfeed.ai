@@ -1,11 +1,4 @@
-import type { CredentialPlatform } from '@genfeedai/contracts';
-import type {
-  IBrand,
-  ICredential,
-  TurboIdeaFormat,
-} from '@genfeedai/contracts/interfaces';
-
-const SHORT_FORM_PLATFORMS: string[] = ['tiktok', 'instagram', 'youtube'];
+import type { IBrand, TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
 
 export interface BrandReadinessResult {
   ready: boolean;
@@ -13,22 +6,21 @@ export interface BrandReadinessResult {
 }
 
 /**
- * Checks whether a brand has the minimum configuration required to generate Turbo ideas.
+ * Whether a brand can generate Turbo ideas for the requested formats.
  *
- * Required for all formats:
- *  - Brand voice tone is set (agentConfig.voice.tone)
- *  - At least one reference image
- *  - At least one short-form social credential connected (TikTok / Instagram / YouTube)
+ * Image and video generation need nothing beyond a selected brand: brand
+ * references fall back to the logo (or none) and the brand voice falls back to
+ * its defaults. A connected social account is only needed to schedule, which
+ * the Schedule step checks.
  *
- * Additional requirements when `formats` includes 'avatar':
- *  - defaultAvatarIngredientId is set (the generation path only threads the
- *    avatar ingredient id into the HeyGen payload; a photo-only avatar config
- *    cannot drive avatar generation, so it is not accepted here)
- *  - defaultVoiceId is set
+ * Avatar needs:
+ *  - defaultAvatarIngredientId (the generation path only threads the avatar
+ *    ingredient id into the HeyGen payload; a photo-only avatar config cannot
+ *    drive avatar generation, so it is not accepted here)
+ *  - defaultVoiceId
  */
 export function isBrandReadyForTurbo(
   brand: IBrand | null | undefined,
-  credentials: ICredential[],
   formats?: TurboIdeaFormat[],
 ): BrandReadinessResult {
   const reasons: string[] = [];
@@ -37,39 +29,11 @@ export function isBrandReadyForTurbo(
     return { ready: false, reasons: ['No brand selected'] };
   }
 
-  // Voice tone check
-  const hasVoiceTone = Boolean(brand.agentConfig?.voice?.tone?.trim());
-  if (!hasVoiceTone) {
-    reasons.push('Brand voice tone is not configured');
-  }
-
-  // Reference image check
-  const hasReferenceImage = (brand.references?.length ?? 0) >= 1;
-  if (!hasReferenceImage) {
-    reasons.push('At least one brand reference image is required');
-  }
-
-  // Short-form social credential check — case-insensitive
-  const hasShortFormSocial = credentials.some((cred) =>
-    SHORT_FORM_PLATFORMS.includes(
-      (cred.platform as string).toLowerCase() as CredentialPlatform,
-    ),
-  );
-  if (!hasShortFormSocial) {
-    reasons.push(
-      'A connected TikTok, Instagram, or YouTube account is required',
-    );
-  }
-
-  // Avatar-specific requirements
   if (formats?.includes('avatar')) {
-    const hasAvatar = Boolean(brand.agentConfig?.defaultAvatarIngredientId);
-    if (!hasAvatar) {
+    if (!brand.agentConfig?.defaultAvatarIngredientId) {
       reasons.push('A default avatar is required for avatar generation');
     }
-
-    const hasVoice = Boolean(brand.agentConfig?.defaultVoiceId);
-    if (!hasVoice) {
+    if (!brand.agentConfig?.defaultVoiceId) {
       reasons.push('A default voice is required for avatar generation');
     }
   }

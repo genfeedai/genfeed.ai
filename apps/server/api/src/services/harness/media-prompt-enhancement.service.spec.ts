@@ -239,7 +239,8 @@ describe('MediaPromptEnhancementService', () => {
       actorUserId: 'user',
       organizationId: input.organizationId,
       brandId: input.brandId,
-      userPrompt: `${brandOfferingSubjectLock('unknown')}\n\n${input.prompt.trim()}`,
+      userPrompt: input.prompt.trim(),
+      subjectRule: brandOfferingSubjectLock('unknown'),
       promptId: undefined,
       model: input.model,
       contentType: input.contentType,
@@ -543,7 +544,7 @@ describe('MediaPromptEnhancementService', () => {
       ).rejects.toThrow('generate without brand');
     });
   });
-  it('locks a software brand before the cinematic rewrite sees the prompt', async () => {
+  it('hands a software brand lock to the cinematic rewrite as a rule, not as the prompt', async () => {
     const { service, harness, promptEnhancement } = setup();
     const identity =
       'A recruiting software platform with an ATS and CRM for candidates.';
@@ -561,17 +562,53 @@ describe('MediaPromptEnhancementService', () => {
       prompt: 'Open on the product.',
     });
     const sent = promptEnhancement.enhance.mock.calls[0]?.[0] as {
+      subjectRule?: string;
       userPrompt?: string;
     };
-    expect(
-      sent.userPrompt?.startsWith(brandOfferingSubjectLock('software')),
-    ).toBe(true);
-    expect(sent.userPrompt).toContain('Open on the product.');
+    expect(sent.userPrompt).toBe('Open on the product.');
+    expect(sent.subjectRule).toBe(brandOfferingSubjectLock('software'));
+    expect(sent.subjectRule).not.toContain('finding the right person');
     expect(sent.userPrompt).not.toContain(identity);
-    expect(receipt.enhancedPrompt).toContain(
+    // A video prompt never carries the lock text itself.
+    expect(receipt.enhancedPrompt).not.toContain(
       brandOfferingSubjectLock('software'),
     );
-    expect(receipt.enhancedPrompt).toContain(identity);
+  });
+
+  it('adds the hiring feeling only when the prompt is about hiring', async () => {
+    const { service, harness, promptEnhancement } = setup();
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: ['public-pack'],
+      systemDirectives: ['A recruiting software platform with an ATS.'],
+      styleDirectives: [],
+      guardrails: [],
+      sources: [],
+      metadata: { contentType: 'video' },
+    });
+    await service.enhance({
+      ...input,
+      contentType: 'video',
+      prompt: 'A hiring manager meets a candidate.',
+    });
+    expect(promptEnhancement.enhance.mock.calls[0]?.[0]).toMatchObject({
+      subjectRule: expect.stringContaining('finding the right person'),
+    });
+  });
+
+  it('passes the user creative direction to the rewrite', async () => {
+    const { service, promptEnhancement } = setup();
+    const creativeDirection = {
+      durationSeconds: 10,
+      lines: ['Camera movement: static'],
+    };
+    await service.enhance({
+      ...input,
+      contentType: 'video',
+      creativeDirection,
+    });
+    expect(promptEnhancement.enhance.mock.calls[0]?.[0]).toMatchObject({
+      creativeDirection,
+    });
   });
 
   it('folds existing harness guidance locally without sending it to the text enhancer', async () => {
@@ -602,7 +639,8 @@ describe('MediaPromptEnhancementService', () => {
       actorUserId: 'user',
       organizationId: input.organizationId,
       brandId: 'selected-brand',
-      userPrompt: `${brandOfferingSubjectLock('unknown')}\n\n${input.prompt.trim()}`,
+      userPrompt: input.prompt.trim(),
+      subjectRule: brandOfferingSubjectLock('unknown'),
       contentType: 'video',
       model: input.model,
     });

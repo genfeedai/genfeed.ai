@@ -139,6 +139,7 @@ export default function GenerationSetupOutputMenu({
           value={`x${setup.values.outputs}`}
         >
           <GenerationSetupSubmenuList
+            isMenuKeptOpen
             label={translate('outputs')}
             onReset={
               (setup.sources.outputs ?? 'agent') === 'agent'

@@ -25,19 +25,20 @@ export const CONTENT_ICON_CLASS = 'size-4 shrink-0';
 export const SHELL_ICON_SVG_CLASS = '[&_svg]:size-3.5';
 
 /** Leading prompt-bar chip (Agent mode, Studio type): icon + label + chevron. */
-export const PROMPT_BAR_CHIP_CLASS = 'h-8 shrink-0 gap-1.5 px-2 text-xs';
+export const PROMPT_BAR_CHIP_CLASS =
+  'h-8 shrink-0 gap-1.5 px-2 text-xs text-foreground';
 
 /**
  * Prompt-bar chips share one size at every width: labelled while the leading
- * group (a `@container/prompt-bar`, see `PromptBarToolbar`) is at least 660px
+ * group (a `@container/prompt-bar`, see `PromptBarToolbar`) is at least 760px
  * wide, then every chip keeps its icon and drops its label together, with the
  * same 44px touch target (`::after`) that icon buttons carry.
  */
 export const PROMPT_BAR_CHIP_FIT_CLASS =
-  "@max-[659px]/prompt-bar:relative @max-[659px]/prompt-bar:w-8 @max-[659px]/prompt-bar:justify-center @max-[659px]/prompt-bar:px-0 @max-[659px]/prompt-bar:after:absolute @max-[659px]/prompt-bar:after:-inset-1.5 @max-[659px]/prompt-bar:after:content-['']";
+  "@max-[759px]/prompt-bar:relative @max-[759px]/prompt-bar:w-8 @max-[759px]/prompt-bar:justify-center @max-[759px]/prompt-bar:px-0 @max-[759px]/prompt-bar:after:absolute @max-[759px]/prompt-bar:after:-inset-1.5 @max-[759px]/prompt-bar:after:content-['']";
 
-/** Label (and chevron) of a prompt-bar chip; hidden with the rest below 660px. */
-export const PROMPT_BAR_CHIP_LABEL_CLASS = '@max-[659px]/prompt-bar:hidden';
+/** Label (and chevron) of a prompt-bar chip; hidden with the rest below 760px. */
+export const PROMPT_BAR_CHIP_LABEL_CLASS = '@max-[759px]/prompt-bar:hidden';
 
 /** Setup chips fold into the More setup menu when the tools group is narrower than this. */
 export const PROMPT_BAR_SETUP_FOLD_CLASS = '@max-[339px]/prompt-bar:hidden';

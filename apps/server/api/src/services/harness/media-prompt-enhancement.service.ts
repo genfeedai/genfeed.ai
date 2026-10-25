@@ -7,6 +7,7 @@ import { GenerationHarnessSettingsService } from '@api/services/harness/generati
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { collectKnowledgeReceipts } from '@api/services/harness/harness-context-sources.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
+import type { MediaCreativeDirection } from '@api/services/prompt-enhancement/media-prompt-output.util';
 import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
@@ -23,7 +24,7 @@ import {
   type ContentHarnessBrief,
   selectMediaKnowledgeSources,
 } from '@genfeedai/harness';
-import { lockMediaUserPrompt } from '@genfeedai/helpers/brand/brand-offering.helper';
+import { resolveMediaSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -42,6 +43,8 @@ export interface MediaPromptEnhancementInput {
   promptId?: string;
   requestedSkillSlugs?: string[];
   contentType: 'image' | 'video';
+  /** The user's explicit Studio picks, bound into the enhanced prompt. */
+  creativeDirection?: MediaCreativeDirection;
   model?: string;
   harness?: boolean;
   /**
@@ -175,7 +178,7 @@ export class MediaPromptEnhancementService {
       });
       if (!brief) throw new Error('Harness brief is unavailable');
       stage = 'provider';
-      const subjectLock = lockMediaUserPrompt(
+      const subjectLock = resolveMediaSubjectLock(
         input.prompt,
         brandOfferingCorpus(snapshot, brief, input.prompt),
       );
@@ -183,7 +186,11 @@ export class MediaPromptEnhancementService {
         actorUserId: input.actorUserId,
         organizationId: input.organizationId,
         brandId: input.brandId,
-        userPrompt: subjectLock,
+        userPrompt: input.prompt.trim(),
+        subjectRule: subjectLock,
+        ...(input.creativeDirection
+          ? { creativeDirection: input.creativeDirection }
+          : {}),
         promptId: input.promptId,
         ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
         model: input.model,
@@ -191,7 +198,7 @@ export class MediaPromptEnhancementService {
       });
       stage = 'response';
       const enhancedPrompt = buildMediaPromptFromHarness(result, brief, {
-        subjectLock: subjectLock.split('\n\n')[0] ?? subjectLock,
+        subjectLock,
       });
       const knowledgeReceipts = collectKnowledgeReceipts(
         selectMediaKnowledgeSources(brief),

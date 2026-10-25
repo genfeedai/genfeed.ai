@@ -6,6 +6,7 @@ import {
   type ModelCapabilityCategory,
 } from '@genfeedai/contracts/constants';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
+import { isAutoStudioModelKey } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { PromptsService } from '@services/content/prompts.service';
@@ -238,7 +239,8 @@ export function useStudioPromptEnhancement({
           brandId,
           category: promptCategory,
           isSkipEnhancement: false,
-          model: modelKey || undefined,
+          // Auto is a UI sentinel, not a model the API accepts.
+          model: isAutoStudioModelKey(modelKey) ? undefined : modelKey,
           original: text,
           ...(requestedSkillSlugs.length > 0 ? { requestedSkillSlugs } : {}),
         }),
