@@ -199,6 +199,7 @@ describe('ToolRegistryService', () => {
     searchArticles: ReturnType<typeof vi.fn>;
     createArticleDraft: ReturnType<typeof vi.fn>;
     createApproval: ReturnType<typeof vi.fn>;
+    isApprovalRequired: ReturnType<typeof vi.fn>;
     approveSocialDraft: ReturnType<typeof vi.fn>;
     assignSocialConversation: ReturnType<typeof vi.fn>;
     createSocialReplyDraft: ReturnType<typeof vi.fn>;
@@ -237,6 +238,7 @@ describe('ToolRegistryService', () => {
             assignSocialConversation: vi
               .fn()
               .mockResolvedValue({ assignedOwnerId: 'user-2', id: 'conv-1' }),
+            isApprovalRequired: vi.fn().mockResolvedValue(true),
             createApproval: vi.fn().mockImplementation((toolName: string) =>
               Promise.resolve({
                 id: 'apr-1',

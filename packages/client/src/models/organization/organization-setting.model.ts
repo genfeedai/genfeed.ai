@@ -29,6 +29,7 @@ export class OrganizationSetting
   declare public isBreakoutResponsesEnabled?: boolean;
   declare public isBreakoutAutoPublishEnabled?: boolean;
   declare public isBrandVisionChecksEnabled?: boolean;
+  declare public isMcpApprovalRequired?: boolean;
   declare public isFleetNsfwVisible: boolean;
 
   declare public isWebhookEnabled: boolean;
