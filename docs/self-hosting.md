@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Docker Engine with the Docker Compose v2 plugin (`docker compose version`), or
+- Docker Engine 28+ with the Docker Compose v2 plugin (`docker compose version`), or
   Docker Desktop. Both the release bundle and `npx @genfeedai/create` need it.
 - Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`
 - Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP);
@@ -133,13 +133,26 @@ To try a sample workflow and tell us how the install went, follow
 
 ### Agent chat shows "Reconnecting"
 
-Check that the `genfeed` service publishes `127.0.0.1:3011:3011` and that the browser can
-reach `ws://localhost:3011/socket.io/`. Older release bundles omitted this
-mapping. Upgrade the bundle or add `"127.0.0.1:${SELFHOSTED_WS_PORT:-3011}:3011"` under
-`services.genfeed.ports`, then recreate the stack with the same Compose command
-used to start it. A reload can reveal completed replies even while the socket
-is unreachable; verify the connection by sending a prompt and then a correction
-in the same conversation without reloading. Both turns should be accepted live.
+For an HTTP installation opened in a browser on the Docker host with the default
+ports, check that the `genfeed` service publishes `127.0.0.1:3011:3011` and that
+the browser can reach `ws://localhost:3011/socket.io/`. Older release bundles
+omitted this mapping. Upgrade the bundle or add
+`"127.0.0.1:${SELFHOSTED_WS_PORT:-3011}:3011"` under `services.genfeed.ports`, then
+recreate the stack with the same Compose command used to start it.
+
+For HTTPS, reverse-proxy, or custom-endpoint installations, use the browser's
+network tools to check the configured browser-reachable socket endpoint, such as
+`wss://ws.genfeed.example.com/socket.io/`, rather than the default localhost URL.
+The proxy must forward only `/socket.io/` with WebSocket upgrade support. When
+the browser runs on another machine, `localhost` refers to that browser's
+machine, not the Docker host; use the server's secure proxied endpoint. Build a
+custom image with a matching `NEXT_PUBLIC_WS_ENDPOINT` (for example,
+`https://ws.genfeed.example.com`); changing it only in `.env` does not update the
+browser bundle. See [Reverse proxy and HTTPS](https://docs.genfeed.ai/self-host/reverse-proxy).
+
+A reload can reveal completed replies even while the socket is unreachable;
+verify the connection by sending a prompt and then a correction in the same
+conversation without reloading. Both turns should be accepted live.
 
 ### `P1001: Can't reach database server at postgres:5432`
 
