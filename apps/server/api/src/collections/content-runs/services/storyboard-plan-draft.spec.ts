@@ -7,6 +7,7 @@ import {
 } from '@api/collections/content-runs/services/storyboard-plan-draft';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -256,6 +257,14 @@ describe('StoryboardPlanDraftService', () => {
       expect.objectContaining({
         response_format: expect.objectContaining({ type: 'json_schema' }),
       }),
+    );
+  });
+
+  it('uses a model with a zero-data-retention endpoint', async () => {
+    const { service, chatCompletion } = build(JSON.stringify(output));
+    await service.draft(request());
+    expect(chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({ model: LLM_DEFAULTS.productTextFallback }),
     );
   });
 

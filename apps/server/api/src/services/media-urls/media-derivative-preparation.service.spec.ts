@@ -10,6 +10,13 @@ import { ConfigService } from '@libs/config/config.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
+import {
+  AxiosError,
+  AxiosHeaders,
+  type InternalAxiosRequestConfig,
+} from 'axios';
+
+vi.mock('axios', async (original) => original());
 
 vi.mock('@sentry/nestjs', () => ({
   captureException: vi.fn(),
@@ -41,6 +48,22 @@ const data = {
   sourceIdentity: mediaSourceIdentity(source),
   purpose: 'preview' as const,
 };
+
+function filesFailure(status: number, body: unknown): AxiosError<unknown> {
+  return new AxiosError(
+    `Request failed with status code ${status}`,
+    undefined,
+    undefined,
+    undefined,
+    {
+      config: { headers: new AxiosHeaders() },
+      data: body,
+      headers: {},
+      status,
+      statusText: 'Refused',
+    },
+  );
+}
 
 async function setup() {
   const prisma = {
@@ -163,17 +186,148 @@ describe('protected derivative preparation', () => {
     expect(queue.add).toHaveBeenCalledOnce();
   });
 
-  it('does not redownload or render an already ready variant', async () => {
-    const { service, prisma, files, queue } = await setup();
-    prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
+  it.each(['READY', 'UNSUPPORTED'])(
+    'does not enqueue, reopen or render an unchanged %s variant',
+    async (state) => {
+      const { service, prisma, files, queue } = await setup();
+      prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
+        id: testId('variant', 1),
+        state,
+      });
+      prisma.mediaDeliveryVariant.findFirst.mockResolvedValue({ state });
+      await service.enqueue(data.organizationId, source.id);
+      await service.process(data);
+      await service.enqueue(data.organizationId, source.id);
+      await service.process(data);
+      expect(queue.add).not.toHaveBeenCalled();
+      expect(files.watermarkExport).not.toHaveBeenCalled();
+      expect(prisma.mediaDeliveryVariant.updateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { message: 'Unsupported media dimensions' },
+    'Unsupported media dimensions',
+  ])(
+    'keeps an explicit unsupported-dimensions refusal terminal',
+    async (body) => {
+      const { service, prisma, files, queue } = await setup();
+      files.watermarkExport.mockRejectedValue(filesFailure(400, body));
+
+      await expect(service.process(data)).resolves.toBeUndefined();
+      expect(prisma.mediaDeliveryVariant.updateMany).toHaveBeenLastCalledWith({
+        data: {
+          failureCode: 'UNSUPPORTED_DIMENSIONS',
+          state: 'UNSUPPORTED',
+          storageKey: null,
+        },
+        where: {
+          ingredientId: source.id,
+          isDeleted: false,
+          organizationId: data.organizationId,
+          policyVersion: 1,
+          purpose: 'preview',
+          sourceIdentity: data.sourceIdentity,
+        },
+      });
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(files.copyInS3).not.toHaveBeenCalled();
+
+      prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
+        id: testId('variant', 1),
+        state: 'UNSUPPORTED',
+      });
+      prisma.mediaDeliveryVariant.findFirst.mockResolvedValue({
+        state: 'UNSUPPORTED',
+      });
+      const writes = prisma.mediaDeliveryVariant.updateMany.mock.calls.length;
+      for (let access = 0; access < 2; access += 1) {
+        await service.enqueue(data.organizationId, source.id);
+        await service.process(data);
+      }
+      expect(queue.add).not.toHaveBeenCalled();
+      expect(files.watermarkExport).toHaveBeenCalledOnce();
+      expect(prisma.mediaDeliveryVariant.updateMany).toHaveBeenCalledTimes(
+        writes,
+      );
+    },
+  );
+
+  it('allows a new source identity after an unsupported variant', async () => {
+    const { service, issuer, prisma, queue } = await setup();
+    prisma.mediaDeliveryVariant.upsert.mockResolvedValueOnce({
       id: testId('variant', 1),
-      state: 'READY',
+      state: 'UNSUPPORTED',
     });
-    prisma.mediaDeliveryVariant.findFirst.mockResolvedValue({ state: 'READY' });
     await service.enqueue(data.organizationId, source.id);
-    await service.process(data);
     expect(queue.add).not.toHaveBeenCalled();
-    expect(files.watermarkExport).not.toHaveBeenCalled();
+
+    const revised = { ...source, version: 2 };
+    issuer.readSources.mockResolvedValue([revised]);
+    await service.enqueue(data.organizationId, source.id);
+    expect(queue.add).toHaveBeenCalledWith(
+      'prepare',
+      { ...data, sourceIdentity: mediaSourceIdentity(revised) },
+      expect.any(Object),
+    );
+  });
+
+  it.each([
+    filesFailure(400, { message: 'Invalid stored object key' }),
+    filesFailure(400, {
+      message: 'Unsupported media dimensions: extra detail',
+    }),
+    filesFailure(400, { message: ['Unsupported media dimensions'] }),
+    filesFailure(401, { message: 'Unauthorized' }),
+    filesFailure(403, { message: 'Forbidden' }),
+    filesFailure(404, { message: 'Stored object not found' }),
+    filesFailure(429, { message: 'Watermark rendering is busy' }),
+    filesFailure(500, { message: 'Unsupported media dimensions' }),
+    filesFailure(503, { message: 'Renderer unavailable' }),
+    new AxiosError('Connection reset', 'ECONNRESET'),
+    new Error('Unsupported media dimensions'),
+  ])('preserves failure handling for other errors: %s', async (error) => {
+    const { service, prisma, files } = await setup();
+    files.watermarkExport.mockRejectedValue(error);
+    await expect(service.process(data)).rejects.toBe(error);
+    expect(prisma.mediaDeliveryVariant.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          failureCode: 'PREPARATION_FAILED',
+          state: 'FAILED',
+          storageKey: null,
+        },
+      }),
+    );
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ tags: { queue: 'media-delivery' } }),
+    );
+  });
+
+  it('does not classify a storage-copy error as a renderer refusal', async () => {
+    const { service, issuer, prisma, files } = await setup();
+    issuer.hasPublicPermission.mockResolvedValue(true);
+    const error = filesFailure(400, {
+      message: 'Unsupported media dimensions',
+    });
+    files.copyInS3.mockRejectedValue(error);
+    await expect(
+      service.process({ ...data, purpose: 'public-share' }),
+    ).rejects.toBe(error);
+    expect(prisma.mediaDeliveryVariant.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          failureCode: 'PREPARATION_FAILED',
+          state: 'FAILED',
+          storageKey: null,
+        },
+      }),
+    );
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ tags: { queue: 'media-delivery' } }),
+    );
   });
 
   it('reuses an existing protected preview for public derivatives without another original download', async () => {
@@ -252,6 +406,36 @@ describe('protected derivative preparation', () => {
       expect.objectContaining({
         extra: expect.objectContaining({ ingredientId: source.id }),
         tags: { queue: 'media-delivery' },
+      }),
+    );
+  });
+
+  it('reports the files service status and reason when a render is refused', async () => {
+    const { service, files } = await setup();
+    files.watermarkExport.mockRejectedValue(
+      new AxiosError(
+        'Request failed with status code 400',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        {
+          config: {} as InternalAxiosRequestConfig,
+          data: { message: 'Source object is not a supported image' },
+          headers: {},
+          status: 400,
+          statusText: 'Bad Request',
+        },
+      ),
+    );
+    await expect(service.process(data)).rejects.toThrow('status code 400');
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        extra: expect.objectContaining({
+          filesReason: 'Source object is not a supported image',
+          filesStatus: 400,
+          ingredientId: source.id,
+        }),
       }),
     );
   });

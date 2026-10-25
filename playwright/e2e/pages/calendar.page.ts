@@ -263,14 +263,13 @@ export class CalendarPage {
   }
 
   async assertPostsTabActive(): Promise<void> {
-    // The calendar is the unified Posts desk's calendar view
-    // (`/publishing/posts?view=calendar`); assert it is still in calendar
-    // view and not filtered to one of the other content types (excluding
+    // The calendar is its own route under Publishing
+    // (`/publishing/calendar`); assert it is not filtered to one of the
+    // other content types (excluding
     // only 'article' let 'newsletter' through as "posts tab active" too).
     await expect(this.page).toHaveURL(
       (url) =>
-        url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
-        url.searchParams.get('view') === 'calendar' &&
+        url.pathname.endsWith(APP_ROUTES.PUBLISHING.CALENDAR) &&
         url.searchParams.get('type') !== 'article' &&
         url.searchParams.get('type') !== 'newsletter',
     );
@@ -284,8 +283,7 @@ export class CalendarPage {
   async assertSocialPostsFilterActive(): Promise<void> {
     await expect(this.page).toHaveURL(
       (url) =>
-        url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
-        url.searchParams.get('view') === 'calendar' &&
+        url.pathname.endsWith(APP_ROUTES.PUBLISHING.CALENDAR) &&
         url.searchParams.get('type') === 'post',
     );
   }
@@ -293,8 +291,7 @@ export class CalendarPage {
   async assertArticlesTabActive(): Promise<void> {
     await expect(this.page).toHaveURL(
       (url) =>
-        url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
-        url.searchParams.get('view') === 'calendar' &&
+        url.pathname.endsWith(APP_ROUTES.PUBLISHING.CALENDAR) &&
         url.searchParams.get('type') === 'article',
     );
     await expect(this.mainContent.first()).toBeVisible();

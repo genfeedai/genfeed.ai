@@ -36,7 +36,7 @@
     "start": "cd .. && nest start files",
     "start:debug": "cd .. && nest start files --debug --watch",
     "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start files --watch",
-    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/files/main",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=1536 --expose-gc ../dist/apps/files/main",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",

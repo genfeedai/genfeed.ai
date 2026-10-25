@@ -26,7 +26,7 @@
     "start": "cd .. && nest start notifications",
     "start:debug": "cd .. && nest start notifications --debug --watch",
     "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
-    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/notifications/main",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=320 --expose-gc ../dist/apps/notifications/main",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",

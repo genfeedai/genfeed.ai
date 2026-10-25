@@ -5,6 +5,7 @@ import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.ser
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { PaidCreativeResearchIngestionService } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { getTenantContext } from '@libs/prisma/tenant-context';
@@ -19,6 +20,7 @@ describe('AdsResearchController', () => {
   let controller: AdsResearchController;
   let discoveryService: { discover: ReturnType<typeof vi.fn> };
   let providerRegistry: { getReadiness: ReturnType<typeof vi.fn> };
+  let ingestionService: { pollWatchedAdvertiser: ReturnType<typeof vi.fn> };
   let service: {
     createRemixWorkflow: ReturnType<typeof vi.fn>;
     generateAdPack: ReturnType<typeof vi.fn>;
@@ -99,6 +101,16 @@ describe('AdsResearchController', () => {
           useValue: { find: vi.fn().mockResolvedValue([]), findOne: vi.fn() },
         },
         {
+          provide: PaidCreativeResearchIngestionService,
+          useValue: {
+            pollWatchedAdvertiser: vi.fn().mockResolvedValue({
+              advertiserId: 'watched-1',
+              recordCount: 3,
+              status: 'success',
+            }),
+          },
+        },
+        {
           provide: PaidCreativeProviderRegistry,
           useValue: {
             getReadiness: vi.fn().mockReturnValue([
@@ -127,11 +139,39 @@ describe('AdsResearchController', () => {
     controller = module.get(AdsResearchController);
     discoveryService = module.get(AdsDiscoveryService);
     providerRegistry = module.get(PaidCreativeProviderRegistry);
+    ingestionService = module.get(PaidCreativeResearchIngestionService);
     service = module.get(AdsResearchService);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('pollWatchedAdvertiser', () => {
+    it('polls the advertiser inside the caller organization and brand', async () => {
+      const result = await controller.pollWatchedAdvertiser(
+        mockUser,
+        testId('watched'),
+      );
+
+      expect(ingestionService.pollWatchedAdvertiser).toHaveBeenCalledWith(
+        organizationId,
+        expect.any(String),
+        {
+          brandId,
+          principal: expect.objectContaining({ organizationId, userId }),
+        },
+      );
+      expect(result).toMatchObject({ recordCount: 3, status: 'success' });
+    });
+
+    it('rejects a malformed advertiser id before polling', async () => {
+      await expect(
+        controller.pollWatchedAdvertiser(mockUser, 'not an id!'),
+      ).rejects.toThrow('id is invalid');
+
+      expect(ingestionService.pollWatchedAdvertiser).not.toHaveBeenCalled();
+    });
   });
 
   describe('listAds', () => {

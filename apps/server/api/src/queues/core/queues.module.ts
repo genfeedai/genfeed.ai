@@ -49,6 +49,9 @@ import { Module } from '@nestjs/common';
   imports: [
     OrganizationModuleAccessModule,
     BullModule.forRootAsync({
+      // Workers also import this root; all roots must defer consumer discovery
+      // until the worker entrypoint has completed application initialization.
+      extraOptions: { manualRegistration: true },
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {

@@ -12,6 +12,7 @@ Workflow execution, state management, and cross-content type operations.
 
 import { FoldersModule } from '@api/collections/folders/folders.module';
 import { AdminGenerationReviewsController } from '@api/collections/ingredients/controllers/admin-generation-reviews.controller';
+import { IngredientGenerationCostController } from '@api/collections/ingredients/controllers/ingredient-generation-cost.controller';
 import { IngredientPerceptionController } from '@api/collections/ingredients/controllers/ingredient-perception.controller';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
@@ -20,6 +21,7 @@ import { IngredientsTagsController } from '@api/collections/ingredients/controll
 import { AdminGenerationReviewsService } from '@api/collections/ingredients/services/admin-generation-reviews.service';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientGenerationCostService } from '@api/collections/ingredients/services/ingredient-generation-cost.service';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientTagsService } from '@api/collections/ingredients/services/ingredient-tags.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -40,6 +42,7 @@ import { Module } from '@nestjs/common';
     IngredientsOperationsController,
     IngredientsRelationshipsController,
     IngredientExportsController,
+    IngredientGenerationCostController,
     IngredientPerceptionController,
     IngredientsTagsController,
   ],
@@ -68,6 +71,7 @@ import { Module } from '@nestjs/common';
     IngredientCharacterFilterService,
     IngredientExportService,
     IngredientGenerationCancellationService,
+    IngredientGenerationCostService,
     IngredientLineageService,
     IngredientTagsService,
     IngredientsService,

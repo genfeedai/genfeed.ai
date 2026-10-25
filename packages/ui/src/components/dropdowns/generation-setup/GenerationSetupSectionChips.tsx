@@ -37,6 +37,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { TooltipProvider } from '@ui/primitives/tooltip';
+import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
 import {
   Bookmark,
   Clock3,
@@ -272,6 +273,7 @@ export default function GenerationSetupSectionChips(
                 : 'w-[min(16rem,calc(100vw-2rem))] py-1'
             }
             collisionPadding={16}
+            onCloseAutoFocus={keepFocusOnSwitch}
             side="top"
             sideOffset={8}
             // Keep the menu on screen when the chip sits near the right edge.
@@ -300,6 +302,7 @@ export default function GenerationSetupSectionChips(
             'max-h-[min(560px,var(--radix-popover-content-available-height,70vh))]',
           )}
           collisionPadding={16}
+          onCloseAutoFocus={keepFocusOnSwitch}
           side="top"
           sideOffset={8}
         >

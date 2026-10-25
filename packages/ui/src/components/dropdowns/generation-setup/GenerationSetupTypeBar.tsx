@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { TooltipProvider } from '@ui/primitives/tooltip';
+import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
 import { ChevronDown, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -99,6 +100,7 @@ export default function GenerationSetupTypeBar({
           align="start"
           aria-label={translate('type')}
           className="w-44"
+          onCloseAutoFocus={keepFocusOnSwitch}
           side="top"
           sideOffset={8}
         >

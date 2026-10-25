@@ -431,6 +431,23 @@ export function useAgentFullPage({
         isCacheFresh: isThreadDataFresh,
       });
 
+      const threadRequest = plan.shouldFetchThread
+        ? apiService.getThread(threadId, controller.signal)
+        : null;
+      const reportHydrationFailure = (error: unknown) => {
+        // Snapshot validation can reject malformed ids before the thread read
+        // returns its 404. Resolve existence from that read, while keeping the
+        // requests parallel and preserving its auth/operational failures.
+        if (threadRequest) {
+          void threadRequest.then(
+            () => reportLoadFailure(error),
+            reportLoadFailure,
+          );
+        } else {
+          reportLoadFailure(error);
+        }
+      };
+
       const canHydrate = captureAgentStreamHydration(threadId);
       const hydrationFlight =
         existingFlight ??
@@ -470,7 +487,7 @@ export function useAgentFullPage({
       // unreported — this catch covers that path. `reportLoadFailure` is
       // dedup-guarded, so it is harmless if a chain below also fires it.
       if (hydrationFlight) {
-        messagesRequest.catch(reportLoadFailure);
+        messagesRequest.catch(reportHydrationFailure);
       }
 
       const snapshotRequest =
@@ -531,12 +548,8 @@ export function useAgentFullPage({
                 error: readSnapshotRunError(snapshot),
               }));
           })
-          .catch(reportLoadFailure);
+          .catch(reportHydrationFailure);
       }
-
-      const threadRequest = plan.shouldFetchThread
-        ? apiService.getThread(threadId, controller.signal)
-        : null;
 
       if (threadRequest && snapshotRequest) {
         Promise.all([threadRequest, messagesRequest, snapshotRequest])
@@ -584,7 +597,7 @@ export function useAgentFullPage({
             });
             setDraftAgentMode(thread.mode ?? DEFAULT_AGENT_THREAD_MODE);
           })
-          .catch(reportLoadFailure);
+          .catch(reportHydrationFailure);
       } else if (threadRequest) {
         threadRequest
           .then((thread) => {

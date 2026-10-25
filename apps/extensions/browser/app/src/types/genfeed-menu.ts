@@ -28,10 +28,16 @@ export interface MenuGroupSpec {
   label?: string;
 }
 
-/** Size and shape of the host site's own button, so ours sits level with it. */
+/**
+ * Size, shape and colour of the host site's own button, so ours sits level with
+ * it and looks native. `background` and `color` are absent when the host button
+ * has no solid fill, and the trigger falls back to the Genfeed theme.
+ */
 export interface ButtonSkin {
   height: number;
   radius: number;
+  background?: string;
+  color?: string;
 }
 
 export interface GenfeedGroupOptions {

@@ -286,6 +286,7 @@ describe('content mandatory selected-data regressions', () => {
       service as never,
       {} as never,
       {} as never,
+      {} as never,
     );
     expect(await selectedRead(() => c.listAds(actor, selectedBrand))).toEqual([
       tenantRows[1],

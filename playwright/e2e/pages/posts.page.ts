@@ -260,7 +260,7 @@ export class PostsPage {
   }
 
   async gotoReview(): Promise<void> {
-    await this.page.goto(brandPath(APP_ROUTES.PUBLISHING.REVIEW));
+    await this.page.goto(brandPath(APP_ROUTES.PUBLISHING.APPROVALS));
     await this.waitForPageLoad();
   }
 

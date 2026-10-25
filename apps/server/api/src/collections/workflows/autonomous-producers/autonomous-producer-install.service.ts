@@ -16,6 +16,9 @@ export const AUTONOMOUS_PRODUCER_TEMPLATES = {
     'agent-campaign-trigger-evaluation',
   ],
   contentEngine: ['content-engine-production'],
+  // The first successful on-demand competitor poll is the opt-in: the daily
+  // check starts only for an organization that has already polled once.
+  paidCreativeResearch: ['paid-creative-research-ingestion'],
 } as const satisfies Record<string, readonly string[]>;
 
 export type AutonomousProducer = keyof typeof AUTONOMOUS_PRODUCER_TEMPLATES;

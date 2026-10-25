@@ -60,6 +60,12 @@ export class VideoGenerationService {
     runReferences?: readonly GenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
     if (createVideoDto.model?.startsWith('crun/')) {
+      if (createVideoDto.adPreset)
+        throw new BadRequestException({
+          code: 'UNSUPPORTED_MODEL',
+          message:
+            'The model has no reviewed ad preset audio-reference capability.',
+        });
       if (
         onPlaceholderCreated ||
         placeholderScope ||

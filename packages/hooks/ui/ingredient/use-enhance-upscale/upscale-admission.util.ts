@@ -30,8 +30,8 @@ export function isKnownTransformCost(cost: unknown): cost is number {
 
 export function getUpscaleAdmission(
   ingredient: IIngredient,
-  imageEditModels: readonly IModel[],
-  videoEditModels: readonly IModel[],
+  imageUpscaleModels: readonly IModel[],
+  videoUpscaleModels: readonly IModel[],
 ): {
   availability: IngredientActionAvailability;
   confirmation?: Omit<UpscaleConfirmData, 'ingredient'>;
@@ -41,7 +41,7 @@ export function getUpscaleAdmission(
     return {
       availability: { isAvailable: false, reason: 'sourceUnavailable' },
     };
-  const models = isVideo ? videoEditModels : imageEditModels;
+  const models = isVideo ? videoUpscaleModels : imageUpscaleModels;
   const topaz = models.find(
     (model) =>
       model.key ===
