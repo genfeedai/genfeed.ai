@@ -100,6 +100,31 @@ describe('measureSkin', () => {
   });
 });
 
+describe('measureSkin colours', () => {
+  const skinOf = (background: string) => {
+    document.body.innerHTML = `<button id="b" style="background-color: ${background}">Post</button>`;
+    return measureSkin(document.getElementById('b') as Element);
+  };
+
+  it("uses a dark mark on X's white Post button", () => {
+    expect(skinOf('rgb(239, 243, 244)')).toMatchObject({
+      background: 'rgb(239, 243, 244)',
+      color: '#0f1419',
+    });
+  });
+
+  it('uses a white mark on a dark or blue Post button', () => {
+    expect(skinOf('rgb(15, 20, 25)').color).toBe('#ffffff');
+    expect(skinOf('rgb(10, 102, 194)').color).toBe('#ffffff');
+  });
+
+  it('copies no colours from a transparent button', () => {
+    const skin = skinOf('transparent');
+    expect(skin.background).toBeUndefined();
+    expect(skin.color).toBeUndefined();
+  });
+});
+
 describe('mountGenfeedGroup', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
