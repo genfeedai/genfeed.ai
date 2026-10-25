@@ -12,6 +12,7 @@ async function setup() {
       tone: 'Candid',
       assetIds: ['asset-1'],
     }),
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi
       .fn()
       .mockImplementation(

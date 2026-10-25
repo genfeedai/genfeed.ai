@@ -226,6 +226,7 @@ export * from './hooks/use-topbar-balances.interface';
 export * from './hooks/use-visible-polling.interface';
 export * from './ingredients/image-to-video.interface';
 export * from './ingredients/ingredient.interface';
+export * from './ingredients/ingredient-generation-cost.interface';
 export * from './ingredients/ingredient-lineage.interface';
 export * from './ingredients/library-assets-refresh.interface';
 export * from './ingredients/library-summary.interface';
