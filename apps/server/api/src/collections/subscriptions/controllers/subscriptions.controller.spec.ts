@@ -259,6 +259,7 @@ describe('SubscriptionsController', () => {
       };
       const cycleMetrics = {
         cycleTotal: 1500,
+        cycleUsed: 500,
         remainingPercent: 66.67,
       };
 
@@ -313,6 +314,7 @@ describe('SubscriptionsController', () => {
         mockCreditsUtilsService.getCycleRemainingMetrics,
       ).not.toHaveBeenCalled();
       expect(result.data.cycleTotal).toBe(420);
+      expect(result.data.cycleUsed).toBe(0);
       expect(result.data.remainingPercent).toBe(100);
     });
 

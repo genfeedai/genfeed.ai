@@ -510,7 +510,7 @@ export class AgentMediaTextGenerationService {
               contentFormat: 'newsletter',
               ctas: [
                 {
-                  href: `/edit/newsletter/${newsletterId}`,
+                  href: `/publishing/posts/${newsletterId}`,
                   label: 'Open newsletter',
                 },
               ],

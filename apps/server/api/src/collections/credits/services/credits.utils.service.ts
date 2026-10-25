@@ -1,6 +1,7 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { publishAvailableBalance } from '@api/collections/credits/services/credit-balance-event.util';
+import { computeCycleCredits } from '@api/collections/credits/services/credit-cycle-metrics.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -37,6 +38,7 @@ import type {
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
+  ICycleRemainingMetrics,
   IDeductCreditsOptions,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
@@ -819,10 +821,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     cycleStartAt: Date,
     cycleEndAt: Date,
     currentBalance: number,
-  ): Promise<{
-    cycleTotal: number;
-    remainingPercent: number;
-  }> {
+  ): Promise<ICycleRemainingMetrics> {
     const previousTransaction =
       await this.creditTransactionsService.getLatestTransactionBeforeDate(
         organizationId,
@@ -836,40 +835,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         cycleEndAt,
       );
 
-    const latestResetIndex = cycleTransactions.reduce(
-      (latest, transaction, i) => {
-        return transaction.category === CreditTransactionCategory.RESET
-          ? i
-          : latest;
-      },
-      -1,
+    const { cycleTotal, cycleUsed } = computeCycleCredits(
+      previousTransaction?.balanceAfter ?? 0,
+      cycleTransactions,
     );
-
-    let baseBalance = previousTransaction?.balanceAfter ?? 0;
-    let startIndex = 0;
-
-    if (latestResetIndex >= 0) {
-      baseBalance = cycleTransactions[latestResetIndex]?.balanceAfter ?? 0;
-      startIndex = latestResetIndex + 1;
-    }
-
-    const inflowCategories = new Set<CreditTransactionCategory>([
-      CreditTransactionCategory.ADD,
-      CreditTransactionCategory.REFUND,
-      CreditTransactionCategory.ROLLOVER,
-    ]);
-
-    const inflows = cycleTransactions
-      .slice(startIndex)
-      .filter(
-        (transaction) =>
-          transaction.category !== undefined &&
-          inflowCategories.has(transaction.category) &&
-          transaction.amount > 0,
-      )
-      .reduce((sum, transaction) => sum + transaction.amount, 0);
-
-    const cycleTotal = Math.max(0, baseBalance + inflows);
     const remainingPercentRaw =
       cycleTotal > 0 ? (currentBalance / cycleTotal) * 100 : 0;
     const remainingPercent = Math.max(
@@ -877,7 +846,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       Math.min(100, Math.round(remainingPercentRaw * 100) / 100),
     );
 
-    return { cycleTotal, remainingPercent };
+    return { cycleTotal, cycleUsed, remainingPercent };
   }
 
   async resetOrganizationCredits(

@@ -1160,7 +1160,7 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
         expect.objectContaining({
           assetId: 'ingredient-1',
           primaryCta: {
-            href: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ingredient-1',
+            href: '/library/images?asset=ingredient-1',
             label: 'View in Library',
           },
         }),

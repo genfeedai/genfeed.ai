@@ -23,14 +23,6 @@ const repoRoot = path.resolve(appDir, '../..');
  */
 const GUARDED_ORG_SLUG = ':orgSlug((?!v1(?:/|$))[^/]+)';
 
-/** The test redirect helper may join repeated keys; production emits both. */
-function categoryValues(target: URL): string[] {
-  return target.searchParams
-    .getAll('categories')
-    .flatMap((value) => value.split(','))
-    .filter((value) => value.length > 0);
-}
-
 describe('app next.config', () => {
   it.each([
     { bundle: '', cloud: '1', expected: false, name: 'hosted web' },
@@ -56,32 +48,25 @@ describe('app next.config', () => {
   });
 
   it.each([
-    [
-      '/acme/~/library/shelf/approved?folder=f1&view=list',
-      '/acme/~/library/assets',
-      'shelf',
-      'approved',
-    ],
+    '/admin/automation/models/image?organization=o1',
+    '/admin/content/ingredients/images?search=hero',
+    '/admin/configuration/tags/account?search=hero',
   ])(
-    'preserves context when redirecting %s',
-    async (source, pathname, key, value) => {
+    'does not redirect the retired admin route with query %s',
+    async (source) => {
       const response = await unstable_getResponseFromNextConfig({
         url: `https://example.com${source}`,
         nextConfig: { redirects: config.redirects },
       });
-      expect(response.status).toBe(308);
-      const target = new URL(response.headers.get('location') ?? '');
-      expect(target.pathname).toBe(pathname);
-      expect(target.searchParams.get(key)).toBe(value);
-      new URL(`https://example.com${source}`).searchParams.forEach(
-        (entry, name) => {
-          expect(target.searchParams.get(name)).toBe(entry);
-        },
-      );
+      expect(response.status).not.toBe(307);
+      expect(response.status).not.toBe(308);
     },
   );
 
   it.each([
+    '/acme/brand/edit/article/a1',
+    '/acme/brand/edit/newsletter/n1',
+    '/acme/brand/overview/activities',
     '/acme/~/agent/onboarding',
     '/acme/brand/agent/onboarding/thread-1',
     '/acme/brand/analytics/trends',
@@ -96,30 +81,6 @@ describe('app next.config', () => {
     });
     expect(response.status).not.toBe(307);
     expect(response.status).not.toBe(308);
-  });
-
-  it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
-    const response = await unstable_getResponseFromNextConfig({
-      url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',
-      nextConfig: { redirects: config.redirects },
-    });
-    expect(response.status).toBe(308);
-    const target = new URL(response.headers.get('location') ?? '');
-    expect(target.pathname).toBe('/acme/brand/library/assets');
-    expect(categoryValues(target)).toEqual(['IMAGE', 'GIF']);
-    expect(target.searchParams.get('folder')).toBe('f1');
-  });
-
-  it('applies the type preset only when the old route omits categories', async () => {
-    const response = await unstable_getResponseFromNextConfig({
-      url: 'https://example.com/acme/brand/library/videos?folder=f1',
-      nextConfig: { redirects: config.redirects },
-    });
-    expect(response.status).toBe(308);
-    const target = new URL(response.headers.get('location') ?? '');
-    expect(target.pathname).toBe('/acme/brand/library/assets');
-    expect(categoryValues(target)).toEqual(['VIDEO', 'VIDEO_EDIT']);
-    expect(target.searchParams.get('folder')).toBe('f1');
   });
 
   it('keeps the API proxy open for bounded campaign generation', () => {
@@ -295,11 +256,12 @@ describe('app next.config', () => {
           entry.source.startsWith(`${prefix}/workspace/inbox`),
         ),
       ).toBe(false);
-      expect(redirects).toContainEqual({
-        source: `${prefix}/library/shelf/approved`,
-        destination: `${prefix}/library/assets?shelf=approved`,
-        permanent: true,
-      });
+      // Library places, shelves and types are real routes, never redirected.
+      expect(
+        redirects?.some((entry) =>
+          entry.source.startsWith(`${prefix}/library/`),
+        ),
+      ).toBe(false);
     },
   );
 
