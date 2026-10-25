@@ -1,7 +1,7 @@
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
-import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import { ClipperAvatarBillingService } from '@api/collections/clipper-projects/services/clipper-avatar-billing.service';
+import { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
+import { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
@@ -33,25 +33,25 @@ function createMockDeps() {
     findOne: vi.fn(),
   };
 
-  const clipAvatarBilling = {
+  const clipperAvatarBilling = {
     release: vi.fn().mockResolvedValue(undefined),
     settle: vi.fn().mockResolvedValue(undefined),
   };
 
-  const clipLibraryLinkService = {
+  const clipperLibraryLinkService = {
     linkReadyClip: vi.fn().mockResolvedValue({
-      clipResultId: 'clip-1',
+      clipperResultId: 'clip-1',
       ingredientId: 'ingredient-1',
       status: 'linked',
     }),
   };
 
-  const clipProjectsService = {
+  const clipperProjectsService = {
     patch: vi.fn(),
     reconcileTerminalState: vi.fn(),
   };
 
-  const clipResultsService = {
+  const clipperResultsService = {
     findByProject: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
@@ -74,10 +74,10 @@ function createMockDeps() {
   };
 
   return {
-    clipAvatarBilling,
-    clipLibraryLinkService,
-    clipProjectsService,
-    clipResultsService,
+    clipperAvatarBilling,
+    clipperLibraryLinkService,
+    clipperProjectsService,
+    clipperResultsService,
     ingredientsService,
     logger,
     metadataService,
@@ -98,13 +98,22 @@ describe('HeygenWebhookService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeygenWebhookService,
-        { provide: ClipAvatarBillingService, useValue: deps.clipAvatarBilling },
         {
-          provide: ClipLibraryLinkService,
-          useValue: deps.clipLibraryLinkService,
+          provide: ClipperAvatarBillingService,
+          useValue: deps.clipperAvatarBilling,
         },
-        { provide: ClipProjectsService, useValue: deps.clipProjectsService },
-        { provide: ClipResultsService, useValue: deps.clipResultsService },
+        {
+          provide: ClipperLibraryLinkService,
+          useValue: deps.clipperLibraryLinkService,
+        },
+        {
+          provide: ClipperProjectsService,
+          useValue: deps.clipperProjectsService,
+        },
+        {
+          provide: ClipperResultsService,
+          useValue: deps.clipperResultsService,
+        },
         { provide: IngredientsService, useValue: deps.ingredientsService },
         { provide: LoggerService, useValue: deps.logger },
         { provide: MetadataService, useValue: deps.metadataService },
@@ -160,7 +169,7 @@ describe('HeygenWebhookService', () => {
       id: body.callback_id,
     });
     deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await service.handleCallback(body);
 
@@ -187,7 +196,7 @@ describe('HeygenWebhookService', () => {
     );
     deps.metadataService.findOne.mockResolvedValue({ id: body.callback_id });
     deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await expect(service.handleCallback(body)).resolves.not.toThrow();
 
@@ -202,7 +211,7 @@ describe('HeygenWebhookService', () => {
 
     deps.metadataService.findOne.mockResolvedValue({ id: body.callback_id });
     deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await service.handleCallback(body);
 
@@ -224,7 +233,7 @@ describe('HeygenWebhookService', () => {
     expect(deps.logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('no callback_id'),
     );
-    expect(deps.clipResultsService.findOne).not.toHaveBeenCalled();
+    expect(deps.clipperResultsService.findOne).not.toHaveBeenCalled();
     expect(deps.metadataService.findOne).not.toHaveBeenCalled();
   });
 
@@ -236,7 +245,7 @@ describe('HeygenWebhookService', () => {
     };
 
     deps.metadataService.findOne.mockResolvedValue(null);
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
     deps.ingredientsService.findOne.mockResolvedValue(null);
 
     await service.handleCallback(body);
@@ -262,7 +271,7 @@ describe('HeygenWebhookService', () => {
 
     deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await service.handleCallback(body);
 
@@ -284,7 +293,7 @@ describe('HeygenWebhookService', () => {
 
       deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
       deps.metadataService.patch.mockResolvedValue({});
-      deps.clipResultsService.findOne.mockResolvedValue(null);
+      deps.clipperResultsService.findOne.mockResolvedValue(null);
 
       await service.handleCallback(body);
 
@@ -308,7 +317,7 @@ describe('HeygenWebhookService', () => {
 
     deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await service.handleCallback(body);
 
@@ -326,7 +335,7 @@ describe('HeygenWebhookService', () => {
 
     const dbError = new Error('Database connection lost');
     deps.metadataService.findOne.mockRejectedValue(dbError);
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await expect(service.handleCallback(body)).rejects.toThrow(
       'Database connection lost',
@@ -344,17 +353,17 @@ describe('HeygenWebhookService', () => {
 
     deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockRejectedValue(new Error('Write failed'));
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
 
     await expect(service.handleCallback(body)).rejects.toThrow('Write failed');
   });
 
   it('should update a clip result and complete the parent project when the final clip succeeds', async () => {
-    const clipResultId = testId('metadata');
+    const clipperResultId = testId('metadata');
     const projectId = testId('metadata');
     const body: HeygenWebhookPayload = {
       event_data: {
-        callback_id: clipResultId,
+        callback_id: clipperResultId,
         duration: 7.4,
         url: 'https://cdn.heygen.com/clip.mp4',
         video_id: 'provider-job-1',
@@ -362,119 +371,125 @@ describe('HeygenWebhookService', () => {
       event_type: 'avatar_video.success',
     };
 
-    deps.clipResultsService.findOne.mockResolvedValue({
-      id: clipResultId,
+    deps.clipperResultsService.findOne.mockResolvedValue({
+      id: clipperResultId,
       organizationId: 'org-1',
       projectId,
     });
-    deps.clipResultsService.findByProject.mockResolvedValue([
+    deps.clipperResultsService.findByProject.mockResolvedValue([
       { status: 'completed' },
       { status: 'failed' },
     ]);
-    deps.clipResultsService.patch.mockResolvedValue({});
-    deps.clipProjectsService.reconcileTerminalState.mockResolvedValue({});
+    deps.clipperResultsService.patch.mockResolvedValue({});
+    deps.clipperProjectsService.reconcileTerminalState.mockResolvedValue({});
 
     await service.handleCallback(body);
 
-    expect(deps.clipResultsService.patch).toHaveBeenCalledWith(clipResultId, {
-      providerJobId: 'provider-job-1',
-      status: 'completed',
-      videoUrl: 'https://cdn.heygen.com/clip.mp4',
-    });
-    expect(deps.clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
-      clipResultId,
+    expect(deps.clipperResultsService.patch).toHaveBeenCalledWith(
+      clipperResultId,
+      {
+        providerJobId: 'provider-job-1',
+        status: 'completed',
+        videoUrl: 'https://cdn.heygen.com/clip.mp4',
+      },
+    );
+    expect(deps.clipperLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
+      clipperResultId,
       organizationId: 'org-1',
     });
     // The clip's hold settles to the seconds HeyGen rendered.
-    expect(deps.clipAvatarBilling.settle).toHaveBeenCalledWith(
-      clipResultId,
+    expect(deps.clipperAvatarBilling.settle).toHaveBeenCalledWith(
+      clipperResultId,
       'org-1',
       7.4,
     );
-    expect(deps.clipAvatarBilling.release).not.toHaveBeenCalled();
+    expect(deps.clipperAvatarBilling.release).not.toHaveBeenCalled();
     expect(
-      deps.clipProjectsService.reconcileTerminalState,
+      deps.clipperProjectsService.reconcileTerminalState,
     ).toHaveBeenCalledWith(projectId, 'org-1');
   });
 
   it('settles a clip at its estimate when HeyGen reports no duration', async () => {
-    const clipResultId = testId('metadata');
-    deps.clipResultsService.findOne.mockResolvedValue({
-      id: clipResultId,
+    const clipperResultId = testId('metadata');
+    deps.clipperResultsService.findOne.mockResolvedValue({
+      id: clipperResultId,
       organizationId: 'org-1',
       projectId: testId('metadata'),
     });
 
     await service.handleCallback({
       event_data: {
-        callback_id: clipResultId,
+        callback_id: clipperResultId,
         url: 'https://cdn.heygen.com/clip.mp4',
         video_id: 'provider-job-1',
       },
       event_type: 'avatar_video.success',
     });
 
-    expect(deps.clipAvatarBilling.settle).toHaveBeenCalledWith(
-      clipResultId,
+    expect(deps.clipperAvatarBilling.settle).toHaveBeenCalledWith(
+      clipperResultId,
       'org-1',
       undefined,
     );
   });
 
   it('returns the clip hold when HeyGen reports the clip failed', async () => {
-    const clipResultId = testId('metadata');
-    deps.clipResultsService.findOne.mockResolvedValue({
-      id: clipResultId,
+    const clipperResultId = testId('metadata');
+    deps.clipperResultsService.findOne.mockResolvedValue({
+      id: clipperResultId,
       organizationId: 'org-1',
       projectId: testId('metadata'),
     });
 
     await service.handleCallback({
       event_data: {
-        callback_id: clipResultId,
+        callback_id: clipperResultId,
         error: 'Generation timed out',
         video_id: 'provider-job-1',
       },
       event_type: 'avatar_video.failed',
     });
 
-    expect(deps.clipAvatarBilling.release).toHaveBeenCalledWith(
-      clipResultId,
+    expect(deps.clipperAvatarBilling.release).toHaveBeenCalledWith(
+      clipperResultId,
       'org-1',
     );
-    expect(deps.clipAvatarBilling.settle).not.toHaveBeenCalled();
+    expect(deps.clipperAvatarBilling.settle).not.toHaveBeenCalled();
   });
 
   it('should fail the parent project when the final clip fails', async () => {
-    const clipResultId = testId('metadata');
+    const clipperResultId = testId('metadata');
     const projectId = testId('metadata');
     const body: HeygenWebhookPayload = {
       event_data: {
-        callback_id: clipResultId,
+        callback_id: clipperResultId,
         error: 'Generation timed out',
         video_id: 'provider-job-1',
       },
       event_type: 'avatar_video.failed',
     };
 
-    deps.clipResultsService.findOne.mockResolvedValue({
-      id: clipResultId,
+    deps.clipperResultsService.findOne.mockResolvedValue({
+      id: clipperResultId,
       projectId,
     });
-    deps.clipResultsService.findByProject.mockResolvedValue([
+    deps.clipperResultsService.findByProject.mockResolvedValue([
       { status: 'failed' },
     ]);
-    deps.clipResultsService.patch.mockResolvedValue({});
-    deps.clipProjectsService.reconcileTerminalState.mockResolvedValue({});
+    deps.clipperResultsService.patch.mockResolvedValue({});
+    deps.clipperProjectsService.reconcileTerminalState.mockResolvedValue({});
 
     await service.handleCallback(body);
 
-    expect(deps.clipResultsService.patch).toHaveBeenCalledWith(clipResultId, {
-      providerJobId: 'provider-job-1',
-      status: 'failed',
-    });
+    expect(deps.clipperResultsService.patch).toHaveBeenCalledWith(
+      clipperResultId,
+      {
+        providerJobId: 'provider-job-1',
+        status: 'failed',
+      },
+    );
     expect(
-      deps.clipProjectsService.reconcileTerminalState,
+      deps.clipperProjectsService.reconcileTerminalState,
     ).toHaveBeenCalledWith(projectId, undefined);
   });
 
@@ -489,7 +504,7 @@ describe('HeygenWebhookService', () => {
       event_type: 'avatar_video.success',
     };
 
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
     deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.ingredientsService.findOne.mockResolvedValue({
       id: 'ingredient-legacy',
@@ -512,7 +527,7 @@ describe('HeygenWebhookService', () => {
   it('passes the clip duration HeyGen reports to settlement', async () => {
     const ingredientId = testId('ingredient');
     const metadataId = testId('linkedMetadata');
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
     deps.metadataService.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: metadataId });
@@ -556,7 +571,7 @@ describe('HeygenWebhookService', () => {
       event_type: 'avatar_video.success',
     };
 
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.clipperResultsService.findOne.mockResolvedValue(null);
     deps.metadataService.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: metadataId });

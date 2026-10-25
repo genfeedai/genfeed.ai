@@ -98,7 +98,11 @@ describe('MCP toolset profiles', () => {
   });
 
   it('builds directory from default minus generation, clips, and ui', () => {
-    expect(DIRECTORY_EXCLUDED_TOOLSETS).toEqual(['clips', 'generation', 'ui']);
+    expect(DIRECTORY_EXCLUDED_TOOLSETS).toEqual([
+      'clipper',
+      'generation',
+      'ui',
+    ]);
     expect(DIRECTORY_MCP_PROFILE_TOOLSETS).toEqual(
       DEFAULT_MCP_PROFILE_TOOLSETS.filter(
         (name) => !DIRECTORY_EXCLUDED_TOOLSETS.includes(name),
@@ -114,7 +118,7 @@ describe('MCP toolset profiles', () => {
     }
     expect(
       directoryTools.some(
-        (tool) => tool.toolset === 'generation' || tool.toolset === 'clips',
+        (tool) => tool.toolset === 'generation' || tool.toolset === 'clipper',
       ),
     ).toBe(false);
     expect(directoryTools.map((tool) => tool.name)).not.toContain('generate');

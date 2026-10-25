@@ -401,7 +401,7 @@ describe('ClientService (MCP) domain clients', () => {
         data: { data: { id: 'project-1', status: 'analyzing' } },
       });
 
-      const result = await service.analyzeClipProject({
+      const result = await service.analyzeClipperProject({
         language: 'en',
         maxClips: 5,
         minViralityScore: 70,
@@ -410,7 +410,7 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/clip-projects/analyze',
+        '/clipper-projects/analyze',
         {
           language: 'en',
           maxClips: 5,
@@ -427,7 +427,7 @@ describe('ClientService (MCP) domain clients', () => {
         data: { data: { id: 'project-2' } },
       });
 
-      await service.createClipProjectFromYoutube({
+      await service.createClipperProjectFromYoutube({
         avatarId: 'avatar-1',
         avatarProvider: 'heygen',
         voiceId: 'voice-1',
@@ -435,7 +435,7 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/clip-projects/from-youtube',
+        '/clipper-projects/from-youtube',
         expect.objectContaining({
           avatarId: 'avatar-1',
           avatarProvider: 'heygen',
@@ -450,10 +450,10 @@ describe('ClientService (MCP) domain clients', () => {
         data: { data: { highlights: [{ id: 'h1' }] } },
       });
 
-      const result = await service.getClipHighlights('project-1');
+      const result = await service.getClipperHighlights('project-1');
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-        '/clip-projects/project-1/highlights',
+        '/clipper-projects/project-1/highlights',
       );
       expect(result).toEqual({ highlights: [{ id: 'h1' }] });
     });
@@ -463,10 +463,10 @@ describe('ClientService (MCP) domain clients', () => {
         data: { data: { id: 'project-1', status: 'ready' } },
       });
 
-      const result = await service.getClipProject('project-1');
+      const result = await service.getClipperProject('project-1');
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-        '/clip-projects/project-1',
+        '/clipper-projects/project-1',
       );
       expect(result).toEqual({ id: 'project-1', status: 'ready' });
     });
@@ -488,7 +488,7 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/clip-projects/project-1/generate',
+        '/clipper-projects/project-1/generate',
         {
           avatarId: 'avatar-1',
           avatarProvider: undefined,
@@ -522,9 +522,9 @@ describe('ClientService (MCP) domain clients', () => {
         data: { data: [{ id: 'project-1' }] },
       });
 
-      const result = await service.listClipProjects();
+      const result = await service.listClipperProjects();
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/clip-projects', {
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/clipper-projects', {
         params: { 'page[limit]': 10, 'page[offset]': 0 },
       });
       expect(result).toEqual([{ id: 'project-1' }]);

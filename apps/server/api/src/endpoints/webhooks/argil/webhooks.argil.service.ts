@@ -1,9 +1,9 @@
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
 import {
-  ClipResultsService,
+  ClipperResultsService,
   type ProviderTerminalTransitionInput,
-} from '@api/collections/clip-results/clip-results.service';
+} from '@api/collections/clipper-results/clipper-results.service';
 import type { ArgilWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -13,9 +13,9 @@ type JsonRecord = Record<string, unknown>;
 @Injectable()
 export class ArgilWebhookService {
   constructor(
-    private readonly clipLibraryLinkService: ClipLibraryLinkService,
-    private readonly clipProjectsService: ClipProjectsService,
-    private readonly clipResultsService: ClipResultsService,
+    private readonly clipperLibraryLinkService: ClipperLibraryLinkService,
+    private readonly clipperProjectsService: ClipperProjectsService,
+    private readonly clipperResultsService: ClipperResultsService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -28,10 +28,10 @@ export class ArgilWebhookService {
       );
     }
 
-    const clipResult = await this.clipResultsService.findOne({
+    const clipperResult = await this.clipperResultsService.findOne({
       id: callbackId,
     });
-    if (!clipResult) {
+    if (!clipperResult) {
       this.loggerService.warn('ArgilWebhookService callback target not found', {
         callbackId,
         videoId,
@@ -39,7 +39,7 @@ export class ArgilWebhookService {
       return;
     }
 
-    const record = clipResult as unknown as JsonRecord;
+    const record = clipperResult as unknown as JsonRecord;
     const providerName = this.readString(record.providerName);
     const providerJobId = this.readString(record.providerJobId);
     if (providerName !== 'argil' || providerJobId !== videoId) {
@@ -79,15 +79,15 @@ export class ArgilWebhookService {
     }
 
     const transitioned =
-      await this.clipResultsService.transitionProviderTerminal({
-        clipResultId: callbackId,
+      await this.clipperResultsService.transitionProviderTerminal({
+        clipperResultId: callbackId,
         providerJobId: videoId,
         providerName: 'argil',
         ...transition,
       });
     if (transition.status === 'completed' && organizationId) {
-      await this.clipLibraryLinkService.linkReadyClip({
-        clipResultId: callbackId,
+      await this.clipperLibraryLinkService.linkReadyClip({
+        clipperResultId: callbackId,
         organizationId,
       });
     }
@@ -99,7 +99,7 @@ export class ArgilWebhookService {
       return;
     }
 
-    await this.clipProjectsService.reconcileTerminalState(
+    await this.clipperProjectsService.reconcileTerminalState(
       projectId,
       organizationId,
     );

@@ -16,7 +16,7 @@ export type AppContext =
   | 'storyboard'
   | 'turbo'
   | 'motion'
-  | 'clips'
+  | 'clipper'
   | 'editor'
   | 'automation'
   | 'analytics';

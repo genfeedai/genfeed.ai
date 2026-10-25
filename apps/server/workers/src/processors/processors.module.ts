@@ -20,7 +20,7 @@ import { LlmCostSettlementProcessor } from '@workers/processors/api/queues/llm-c
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
-import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
+import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
@@ -58,7 +58,7 @@ import { MediaTextDecisionsModule } from '@api/services/media-text-decisions/med
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
-import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
+import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
@@ -113,7 +113,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => AgentCampaignsModule),
     forwardRef(() => AgentStrategiesModule),
     forwardRef(() => ArticlesModule),
-    forwardRef(() => ClipProjectsCoreModule),
+    forwardRef(() => ClipperProjectsCoreModule),
     forwardRef(() => ContentPerformanceModule),
     forwardRef(() => ContentRunsModule),
     forwardRef(() => ContextsModule),
@@ -128,7 +128,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OutreachCampaignsModule),
     forwardRef(() => PostsModule),
-    PublicClipToolStoreModule,
+    PublicClipperToolStoreModule,
     forwardRef(() => ReplyBotConfigsModule),
     forwardRef(() => SocialInboxModule),
     forwardRef(() => VoicesModule),

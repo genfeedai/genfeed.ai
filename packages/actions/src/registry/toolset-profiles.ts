@@ -33,14 +33,14 @@ export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
 ];
 
 /**
- * Toolsets the directory profile never exposes. `generation` and `clips`
+ * Toolsets the directory profile never exposes. `generation` and `clipper`
  * are the image/video/audio tools directory review rejects
  * (https://claude.com/docs/connectors/building/review-criteria). `ui` is the
  * in-product widget and ticket card toolset (no MCP tools today); excluding
  * it keeps a later MCP widget off the directory URL.
  */
 export const DIRECTORY_EXCLUDED_TOOLSETS: readonly ToolsetName[] = [
-  'clips',
+  'clipper',
   'generation',
   'ui',
 ];

@@ -309,10 +309,10 @@ describe('OrganizationPluginsPage (#7842)', () => {
   });
 
   it('lists an app once it is released in Admin → Flags', () => {
-    mocks.flags = { ...RELEASED_FLAGS, release_clips: true };
+    mocks.flags = { ...RELEASED_FLAGS, release_clipper: true };
     render(<OrganizationPluginsPage />);
 
-    expect(card('clips')).toBeInTheDocument();
+    expect(card('clipper')).toBeInTheDocument();
     expect(screen.queryByTestId('plugins-app-motion')).toBeNull();
   });
 

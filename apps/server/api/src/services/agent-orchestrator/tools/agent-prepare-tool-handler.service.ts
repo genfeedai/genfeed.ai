@@ -1,7 +1,7 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
-import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
+import { resolveClipperIdentity } from '@api/collections/clipper-projects/services/clipper-identity-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
@@ -13,7 +13,7 @@ import {
   AGENT_NEXT_STEP_DESTINATIONS,
   isAgentNextStepDestinationKey,
 } from '@api/services/agent-orchestrator/constants/agent-next-step-destinations.constant';
-import type { ClipWorkflowSummary } from '@api/services/agent-orchestrator/interfaces/agent-prepare-clip-workflow.interface';
+import type { ClipperWorkflowSummary } from '@api/services/agent-orchestrator/interfaces/agent-prepare-clipper-workflow.interface';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -28,7 +28,7 @@ import {
 } from '@genfeedai/contracts';
 import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type {
-  AgentClipRunIdentity,
+  AgentClipperRunIdentity,
   AgentNextStepOption,
   AgentToolResult,
   AgentUiActionCta,
@@ -58,10 +58,10 @@ interface AgentMembersServiceLike {
  * next-step suggestions).
  * Extracted from AgentToolExecutorService per #519.
  */
-function toClipWorkflowSummary(
+function toClipperWorkflowSummary(
   doc: Record<string, unknown>,
   fallbackId?: string,
-): ClipWorkflowSummary {
+): ClipperWorkflowSummary {
   return {
     description:
       typeof doc.description === 'string' ? doc.description : undefined,
@@ -74,7 +74,7 @@ function toClipWorkflowSummary(
   };
 }
 
-function buildClipRunSteps(mergeGeneratedVideos: boolean) {
+function buildClipperRunSteps(mergeGeneratedVideos: boolean) {
   return [
     {
       id: 'generate',
@@ -377,12 +377,12 @@ export class AgentPrepareToolHandler {
     };
   }
 
-  private resolveClipWorkflowIdentity(
+  private resolveClipperWorkflowIdentity(
     params: Record<string, unknown>,
     brand: unknown,
     organizationSettings: unknown,
-  ): AgentClipRunIdentity {
-    return resolveClipIdentity({
+  ): AgentClipperRunIdentity {
+    return resolveClipperIdentity({
       avatarId:
         readOptionalString(params.avatarId) ??
         readOptionalString(params.heygenAvatarId),
@@ -396,8 +396,8 @@ export class AgentPrepareToolHandler {
     });
   }
 
-  private buildClipIdentityInputValues(
-    identity: AgentClipRunIdentity,
+  private buildClipperIdentityInputValues(
+    identity: AgentClipperRunIdentity,
   ): Record<string, unknown> {
     const values: Record<string, unknown> = {
       avatarRef: identity.avatarRef,
@@ -435,7 +435,7 @@ export class AgentPrepareToolHandler {
     return values;
   }
 
-  async prepareClipWorkflowRun(
+  async prepareClipperWorkflowRun(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
@@ -454,12 +454,12 @@ export class AgentPrepareToolHandler {
           organizationId: ctx.organizationId,
         })
       : null;
-    const identity = this.resolveClipWorkflowIdentity(
+    const identity = this.resolveClipperWorkflowIdentity(
       params,
       currentBrand,
       orgSettings,
     );
-    const identityInputValues = this.buildClipIdentityInputValues(identity);
+    const identityInputValues = this.buildClipperIdentityInputValues(identity);
     const requestedWorkflowId = (
       params.workflowId as string | undefined
     )?.trim();
@@ -478,7 +478,7 @@ export class AgentPrepareToolHandler {
     );
     const mergeGeneratedVideos = Boolean(params.mergeGeneratedVideos ?? true);
 
-    const workflowSelection = await this.resolveClipWorkflowSelection(
+    const workflowSelection = await this.resolveClipperWorkflowSelection(
       requestedWorkflowId,
       ctx.organizationId,
     );
@@ -504,7 +504,7 @@ export class AgentPrepareToolHandler {
       nextActions: [
         {
           brandId: selectedBrandId ?? undefined,
-          clipRun: {
+          clipperRun: {
             autonomousMode,
             durationSeconds,
             format: 'landscape',
@@ -523,9 +523,9 @@ export class AgentPrepareToolHandler {
             prompt,
             requireStepConfirmation,
           },
-          clipRunState: {
+          clipperRunState: {
             brandId: selectedBrandId ?? '',
-            clipProjectId: selectedWorkflow ?? `clip-${Date.now()}`,
+            clipperProjectId: selectedWorkflow ?? `clip-${Date.now()}`,
             currentStep: 'generate',
             identity,
             modes: {
@@ -542,14 +542,14 @@ export class AgentPrepareToolHandler {
             },
             organizationId: ctx.organizationId,
             status: 'idle' as const,
-            steps: buildClipRunSteps(mergeGeneratedVideos),
+            steps: buildClipperRunSteps(mergeGeneratedVideos),
           },
           description: identity.isComplete
             ? 'Generate a 30-second landscape clip, optionally merge multiple clips, then reframe to portrait for Instagram.'
             : 'Clip identity defaults are incomplete. Add the missing avatar or voice defaults before generating.',
-          id: `clip-workflow-run-${Date.now()}`,
+          id: `clipper-workflow-run-${Date.now()}`,
           title: 'Run Clip Workflow (X → IG)',
-          type: 'clip_workflow_run_card' as const,
+          type: 'clipper_workflow_run_card' as const,
           workflowDescription: workflowList.find(
             (wf) => wf.id === selectedWorkflow,
           )?.description,
@@ -563,14 +563,14 @@ export class AgentPrepareToolHandler {
     };
   }
 
-  private async resolveClipWorkflowSelection(
+  private async resolveClipperWorkflowSelection(
     requestedWorkflowId: string | undefined,
     organizationId: string,
   ): Promise<
     | { error: string }
     | {
         selectedWorkflow: string | undefined;
-        workflowList: ClipWorkflowSummary[];
+        workflowList: ClipperWorkflowSummary[];
       }
   > {
     const workflows = await this.workflowsService.findAll(
@@ -586,7 +586,7 @@ export class AgentPrepareToolHandler {
 
     const workflowList =
       workflows.docs?.map((w: unknown) =>
-        toClipWorkflowSummary(w as Record<string, unknown>),
+        toClipperWorkflowSummary(w as Record<string, unknown>),
       ) ?? [];
 
     let selectedWorkflow = requestedWorkflowId;
@@ -608,7 +608,7 @@ export class AgentPrepareToolHandler {
       }
 
       workflowList.unshift(
-        toClipWorkflowSummary(
+        toClipperWorkflowSummary(
           workflow as unknown as Record<string, unknown>,
           selectedWorkflow,
         ),

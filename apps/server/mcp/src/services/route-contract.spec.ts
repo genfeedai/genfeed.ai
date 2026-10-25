@@ -112,25 +112,25 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/social-inbox/controllers/social-inbox.controller.ts',
     prefix: 'messages',
   },
-  clipProjects: {
-    file: 'collections/clip-projects/clip-projects.controller.ts',
-    prefix: 'clip-projects',
+  clipperProjects: {
+    file: 'collections/clipper-projects/clipper-projects.controller.ts',
+    prefix: 'clipper-projects',
   },
   editorProjects: {
     file: 'collections/editor-projects/editor-projects.controller.ts',
     prefix: 'editor-projects',
   },
-  clipProjectGeneration: {
-    file: 'collections/clip-projects/clip-project-generation.controller.ts',
-    prefix: 'clip-projects',
+  clipperProjectGeneration: {
+    file: 'collections/clipper-projects/clipper-project-generation.controller.ts',
+    prefix: 'clipper-projects',
   },
-  clipProjectIngestion: {
-    file: 'collections/clip-projects/clip-project-ingestion.controller.ts',
-    prefix: 'clip-projects',
+  clipperProjectIngestion: {
+    file: 'collections/clipper-projects/clipper-project-ingestion.controller.ts',
+    prefix: 'clipper-projects',
   },
-  clipProjectHighlights: {
-    file: 'collections/clip-projects/clip-project-highlights.controller.ts',
-    prefix: 'clip-projects',
+  clipperProjectHighlights: {
+    file: 'collections/clipper-projects/clipper-project-highlights.controller.ts',
+    prefix: 'clipper-projects',
   },
   postGroups: {
     file: 'collections/post-groups/controllers/post-groups.controller.ts',
@@ -557,38 +557,38 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Post',
     sub: 'analyze',
-    controller: 'clipProjectIngestion',
-    tools: ['analyze_clip_project'],
+    controller: 'clipperProjectIngestion',
+    tools: ['analyze_clipper_project'],
   },
   {
     method: 'Post',
     sub: 'from-youtube',
-    controller: 'clipProjectIngestion',
-    tools: ['create_clip_project_from_youtube'],
+    controller: 'clipperProjectIngestion',
+    tools: ['create_clipper_project_from_youtube'],
   },
   {
     method: 'Get',
     sub: ':projectId/highlights',
-    controller: 'clipProjectHighlights',
-    tools: ['get_clip_highlights'],
+    controller: 'clipperProjectHighlights',
+    tools: ['get_clipper_highlights'],
   },
   {
     method: 'Post',
     sub: ':projectId/generate',
-    controller: 'clipProjectGeneration',
-    tools: ['generate_clips'],
+    controller: 'clipperProjectGeneration',
+    tools: ['run_clipper'],
   },
   {
     method: 'Get',
     sub: ':id',
-    controller: 'clipProjects',
-    tools: ['get_clip_project'],
+    controller: 'clipperProjects',
+    tools: ['get_clipper_project'],
   },
   {
     method: 'Get',
     sub: '',
-    controller: 'clipProjects',
-    tools: ['list_clip_projects'],
+    controller: 'clipperProjects',
+    tools: ['list_clipper_projects'],
   },
   {
     method: 'Post',

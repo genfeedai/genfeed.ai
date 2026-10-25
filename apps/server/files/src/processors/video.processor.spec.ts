@@ -152,7 +152,7 @@ describe('VideoProcessor', () => {
   let remotionRenderJobService: {
     process: ReturnType<typeof vi.fn>;
   };
-  let clipReferenceFrameExtractionService: {
+  let clipperReferenceFrameExtractionService: {
     extract: ReturnType<typeof vi.fn>;
   };
   let ffmpegService: MockFFmpegService;
@@ -212,7 +212,7 @@ describe('VideoProcessor', () => {
     remotionRenderJobService = {
       process: vi.fn().mockResolvedValue({ success: true }),
     };
-    clipReferenceFrameExtractionService = {
+    clipperReferenceFrameExtractionService = {
       extract: vi.fn().mockResolvedValue({
         candidates: [],
         diagnostics: [],
@@ -234,7 +234,7 @@ describe('VideoProcessor', () => {
       redisService,
       loggerService as unknown as never,
       remotionRenderJobService as never,
-      clipReferenceFrameExtractionService as never,
+      clipperReferenceFrameExtractionService as never,
       ytDlpService as never,
     );
   });
@@ -396,7 +396,9 @@ describe('VideoProcessor', () => {
 
       await processor.process(job);
 
-      expect(clipReferenceFrameExtractionService.extract).toHaveBeenCalledWith({
+      expect(
+        clipperReferenceFrameExtractionService.extract,
+      ).toHaveBeenCalledWith({
         organizationId: 'org-123',
         projectId: 'test-ingredient-123',
         sourceUrl: 'https://www.youtube.com/watch?v=test',
@@ -1467,7 +1469,7 @@ describe('VideoProcessor', () => {
       expect(s3Service.deleteFile).not.toHaveBeenCalledWith(ownedKey);
       expect(s3Service.deleteFile).toHaveBeenCalledWith(
         expect.stringMatching(
-          /^clip-sources\/org-123\/test-ingredient-123\/[\w-]+\/source\.mp4$/,
+          /^clipper-sources\/org-123\/test-ingredient-123\/[\w-]+\/source\.mp4$/,
         ),
       );
     });

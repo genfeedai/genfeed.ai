@@ -11,9 +11,9 @@ import {
   getOrgSwitchHref,
   isPersonalSettingsPath,
   isReservedAppRootSegment,
-  RESERVED_APP_ROOT_SEGMENTS,
   isUserFacingAppPathname,
   parseScopedAppPath,
+  RESERVED_APP_ROOT_SEGMENTS,
   withPlatformQuery,
 } from './routes.constant';
 
@@ -346,7 +346,7 @@ describe('routes.constant', () => {
         expect(isReservedAppRootSegment(root), root).toBe(true);
       }
       for (const app of [
-        'clips',
+        'clipper',
         'editor',
         'motion',
         'playground',

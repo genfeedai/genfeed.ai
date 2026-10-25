@@ -117,17 +117,17 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('executes clip generation and hook review through persisted workflow nodes', () => {
-    const generation = readSourceOf('ClipGenerationService', {
+    const generation = readSourceOf('ClipperGenerationService', {
       root: API_SRC,
     });
     const approval = readSourceOf('HookClipApprovalService', {
       root: API_SRC,
     });
-    const clipModule = readSourceOf('ClipProjectsModule', { root: API_SRC });
+    const clipModule = readSourceOf('ClipperProjectsModule', { root: API_SRC });
 
-    expect(generation).toContain('buildClipGenerationWorkflowDefinition');
+    expect(generation).toContain('buildClipperGenerationWorkflowDefinition');
     expect(generation).toContain('startWorkflow');
-    expect(generation).toContain("'clip.generation.generate-one'");
+    expect(generation).toContain("'clipper.generation.generate-one'");
     expect(generation).not.toContain('ClipOrchestratorService');
     expect(approval).toContain('submitReviewGateApproval');
     expect(approval).not.toContain('claimConfirmation');
@@ -135,18 +135,23 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('executes clip continuity as queued action nodes without Redis polling', () => {
-    const continuity = readSourceOf('ClipContinuityWorkflowService', {
+    const continuity = readSourceOf('ClipperContinuityWorkflowService', {
       root: API_SRC,
     });
-    const definition = readSourceOf('buildClipContinuityWorkflowDefinition', {
-      root: API_SRC,
-    });
+    const definition = readSourceOf(
+      'buildClipperContinuityWorkflowDefinition',
+      {
+        root: API_SRC,
+      },
+    );
     const workflowQueue = readSourceOf('WorkflowExecutionQueueService', {
       root: API_SRC,
     });
 
     expect(continuity).toContain('queueSystemWorkflow');
-    expect(continuity).toContain('CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT');
+    expect(continuity).toContain(
+      'CLIPPER_CONTINUITY_ACTION_IDS.PERSIST_REPORT',
+    );
     expect(continuity).not.toContain('@Interval');
     expect(continuity).not.toContain('ClipOrchestratorStateStore');
     expect(definition).toContain("actionId: 'videoQa'");

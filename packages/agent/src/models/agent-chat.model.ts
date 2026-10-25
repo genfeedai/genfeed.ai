@@ -1,5 +1,5 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
-import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
+import type { ClipperRunCardState } from '@genfeedai/agent/models/clipper-run-card.model';
 import type {
   AgentThreadMode,
   AgentThreadStatus,
@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
-  AgentClipRunIdentity,
+  AgentClipperRunIdentity,
   AgentDashboardOperation,
   AgentGenerationActionParams,
   AgentPublishTargetProposal,
@@ -190,8 +190,8 @@ export interface AgentUiAction {
     | 'generation_action_card'
     | 'ingredient_picker_card'
     | 'workflow_trigger_card'
-    | 'clip_workflow_run_card'
-    | 'clip_run_card'
+    | 'clipper_workflow_run_card'
+    | 'clipper_run_card'
     | 'ingredient_alternatives_card'
     | 'schedule_post_card'
     | 'engagement_opportunity_card'
@@ -266,11 +266,11 @@ export interface AgentUiAction {
     description?: string;
     status?: string;
   }[];
-  clipRun?: {
+  clipperRun?: {
     autonomousMode?: boolean;
     durationSeconds?: number;
     format?: 'landscape' | 'portrait' | 'square';
-    identity?: AgentClipRunIdentity;
+    identity?: AgentClipperRunIdentity;
     inputValues?: Record<string, unknown>;
     mergeGeneratedVideos?: boolean;
     model?: string;
@@ -359,7 +359,7 @@ export interface AgentUiAction {
   textContent?: string;
   textActions?: string[];
   nextSteps?: AgentNextStepOption[];
-  clipRunState?: ClipRunCardState;
+  clipperRunState?: ClipperRunCardState;
   /** Exact source versions whose passages grounded this generated output. */
   knowledgeReceipts?: KnowledgeReceipt[];
   /** Branded-generation receipt behind this written proposal. */

@@ -5,12 +5,12 @@ import type { ToolParameterSchema } from '../interfaces/tool-definition.interfac
 // the tool definition. Other surfaces retain their canonical documentation.
 const TOOL_DOCUMENTATION = new Map([
   [
-    'analyze_clip_project',
+    'analyze_clipper_project',
     {
       original:
-        'Analyze a YouTube video for viral highlights: downloads audio, transcribes, and LLM-detects segments. Analysis does not charge credits. Poll with get_clip_project or get_clip_highlights.',
+        'Analyze a YouTube video for viral highlights: downloads audio, transcribes, and LLM-detects segments. Analysis does not charge credits. Poll with get_clipper_project or get_clipper_highlights.',
       concise:
-        'Find viral highlights in a YouTube video via audio download, transcription and LLM analysis. Free; poll get_clip_project or get_clip_highlights.',
+        'Find viral highlights in a YouTube video via audio download, transcription and LLM analysis. Free; poll get_clipper_project or get_clipper_highlights.',
     },
   ],
   [
@@ -77,12 +77,12 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'create_clip_project_from_youtube',
+    'create_clipper_project_from_youtube',
     {
       original:
-        'Create a clip project from a YouTube URL and run the AI clip factory async. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clip_project.',
+        'Create a clip project from a YouTube URL and run the AI clip factory async. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clipper_project.',
       concise:
-        'Start an async YouTube clip project. HeyGen avatar holds use estimated per-clip seconds and settle to rendered length. HeyGen/Argil require avatarId+voiceId; GenfeedAI requires a brand character reference. Poll get_clip_project.',
+        'Start an async YouTube clip project. HeyGen avatar holds use estimated per-clip seconds and settle to rendered length. HeyGen/Argil require avatarId+voiceId; GenfeedAI requires a brand character reference. Poll get_clipper_project.',
     },
   ],
   [
@@ -158,7 +158,7 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'generate_clips',
+    'run_clipper',
     {
       original:
         'Generate clips from selected highlights. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.',
@@ -257,12 +257,12 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'get_clip_highlights',
+    'get_clipper_highlights',
     {
       original:
         "Get the detected highlights for a clip project after analysis. Returns the highlights array plus the project's current status.",
       concise:
-        'Read detected clip-project highlights and current status after analysis.',
+        'Read detected clipper-project highlights and current status after analysis.',
     },
   ],
   [

@@ -70,7 +70,7 @@ describe('operations/admin', () => {
         generatedAt: '2026-10-17T00:00:00.000Z',
         organizations: [{ id }],
         pagination: { limit: 100, page, pages: 2, total: 101 },
-        releaseFlags: { release_clips: true },
+        releaseFlags: { release_clipper: true },
       },
     });
     mockAdminGet
@@ -80,7 +80,7 @@ describe('operations/admin', () => {
     const result = await readOrganizationAppsReport();
 
     expect(result.organizations).toEqual([{ id: 'org_1' }, { id: 'org_2' }]);
-    expect(result.releaseFlags).toEqual({ release_clips: true });
+    expect(result.releaseFlags).toEqual({ release_clipper: true });
     expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/admin/organization-apps?page=2&limit=100');
   });
 

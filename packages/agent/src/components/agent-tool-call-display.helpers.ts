@@ -50,7 +50,7 @@ export const TOOL_LABELS: Record<string, string> = {
   list_x_account_activity: 'X Account Activity',
   open_studio_handoff: 'Open in Studio',
   pause_outreach_sequence: 'Pause outreach sequence',
-  prepare_clip_workflow_run: 'Prepare Clip Run',
+  prepare_clipper_workflow_run: 'Prepare Clip Run',
   prepare_generation: 'Prepare Generation',
   prepare_workflow_trigger: 'Prepare Workflow Trigger',
   rate_content: 'Rate Content',

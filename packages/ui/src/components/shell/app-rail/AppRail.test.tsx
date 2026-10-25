@@ -29,7 +29,7 @@ const featureFlags = vi.hoisted(() => ({
   discovery: true,
   studio: true,
   turbo: true,
-  clips: true,
+  clipper: true,
   editor: true,
   motion: true,
   storyboard: true,
@@ -143,7 +143,7 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
       storyboard: 'storyboard',
       turbo: 'turbo',
       motion: 'motion',
-      clips: 'clips',
+      clipper: 'clipper',
       editor: 'editor',
       library: 'library',
       publishing: 'publishing',
@@ -199,7 +199,7 @@ const LAUNCHER_APP_IDS = [
   'storyboard',
   'turbo',
   'motion',
-  'clips',
+  'clipper',
   'editor',
   'automation',
   'messages',
@@ -257,7 +257,7 @@ describe('AppRail', () => {
       'Go to Storyboard',
       'Go to Turbo',
       'Go to Motion',
-      'Go to Clips',
+      'Go to Clipper',
       'Go to Editor',
       'Go to Automation',
       'Go to Messages',
@@ -602,14 +602,14 @@ describe('AppRail', () => {
     render(
       <AppRail
         orgSlug="acme"
-        installedAppIds={['playground', 'clips', 'discovery', 'automation']}
+        installedAppIds={['playground', 'clipper', 'discovery', 'automation']}
         moduleAccess={{
           automation: { isAllowed: false, reason: 'unreleased' },
-          clips: { isAllowed: false, reason: 'unreleased' },
+          clipper: { isAllowed: false, reason: 'unreleased' },
           discovery: { isAllowed: false, reason: 'subscription-required' },
           playground: { isAllowed: true, reason: null },
         }}
-        pinnedAppIds={['clips', 'discovery', 'storyboard', 'playground']}
+        pinnedAppIds={['clipper', 'discovery', 'storyboard', 'playground']}
       />,
     );
     // Clips and Automation are unreleased, Discovery needs a plan and
@@ -818,7 +818,7 @@ describe('AppRail', () => {
       screen.getByRole('link', { name: 'Playground' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Discovery' })).toBeInTheDocument();
-    for (const label of ['Automation', 'Messages', 'Clips', 'Turbo']) {
+    for (const label of ['Automation', 'Messages', 'Clipper', 'Turbo']) {
       expect(
         screen.queryByRole('link', { name: label }),
       ).not.toBeInTheDocument();
@@ -907,7 +907,7 @@ describe('AppRail', () => {
           hasPaidModuleSubscription: true,
           moduleOverrides: {
             automation: true,
-            clips: true,
+            clipper: true,
             editor: true,
             messages: true,
             motion: true,
@@ -974,7 +974,7 @@ describe('AppRail', () => {
     featureFlags.storyboard = false;
     featureFlags.turbo = false;
     featureFlags.motion = false;
-    featureFlags.clips = false;
+    featureFlags.clipper = false;
     featureFlags.editor = false;
     featureFlags.automation = false;
     featureFlags.messages = false;
@@ -996,7 +996,13 @@ describe('AppRail', () => {
     expect(
       screen.queryByRole('link', { name: 'Playground' }),
     ).not.toBeInTheDocument();
-    for (const label of ['Storyboard', 'Turbo', 'Motion', 'Clips', 'Editor']) {
+    for (const label of [
+      'Storyboard',
+      'Turbo',
+      'Motion',
+      'Clipper',
+      'Editor',
+    ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
@@ -1004,12 +1010,12 @@ describe('AppRail', () => {
   });
 
   it('hides one app when its own module switch is off', () => {
-    featureFlags.clips = false;
+    featureFlags.clipper = false;
 
     render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
 
     expect(
-      screen.queryByRole('link', { name: 'Clips' }),
+      screen.queryByRole('link', { name: 'Clipper' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Editor' })).toBeInTheDocument();
   });
@@ -1357,7 +1363,7 @@ describe('AppRail', () => {
       'Workspace',
       'Agent',
       'Playground',
-      'Clips',
+      'Clipper',
       'Library',
       'Discovery',
       'Publishing',
@@ -1377,12 +1383,12 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/clips/project-1"
+        currentPath="/acme/my-brand/clipper/project-1"
         pinnedAppIds={LAUNCHER_APP_IDS}
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Clips' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Clipper' })).toHaveAttribute(
       'aria-current',
       'page',
     );

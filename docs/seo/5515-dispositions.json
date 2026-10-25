@@ -1018,7 +1018,7 @@
     },
     {
       "fingerprint": "cd526111d6e314464348b0c95b425cf5ee766cedc46d467616e5859798717b74",
-      "url": "https://genfeed.ai/tools/youtube-clips",
+      "url": "https://genfeed.ai/tools/youtube-clipper",
       "rule": "title_length",
       "severity": "warning",
       "observed": {
@@ -1028,7 +1028,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/tools/youtube-clips/page.tsx"
+      "source": "apps/website/app/(public)/tools/youtube-clipper/page.tsx"
     },
     {
       "fingerprint": "6dde02c21d87cab3f86ec81607e263ee3b172ba9af02fb57ea69777c39295b59",
@@ -1151,7 +1151,7 @@
     },
     {
       "fingerprint": "dfb90ea00362a41dceb1a27563433eb6d2330b56eeab08241cd1514968ce19db",
-      "url": "https://genfeed.ai/tools/youtube-clips",
+      "url": "https://genfeed.ai/tools/youtube-clipper",
       "rule": "thin_content",
       "severity": "warning",
       "observed": "140 words",

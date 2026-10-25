@@ -1,6 +1,6 @@
 ---
 title: Argil Integration
-description: 'Connect Argil to Genfeed, configure signed callbacks, select Argil Atom in Studio Clips, and verify avatar-video generation in production.'
+description: 'Connect Argil to Genfeed, configure signed callbacks, select Argil Atom in Clipper, and verify avatar-video generation in production.'
 ---
 
 # Argil
@@ -13,13 +13,13 @@ Genfeed registers the provider as `argil` and the initial model as
 ## What the integration supports
 
 - Argil Atom video projects using `ARGIL_ATOM`.
-- One Argil moment per selected Studio Clips highlight.
+- One Argil moment per selected Clipper highlight.
 - Argil avatar and voice identifiers supplied by the user.
 - Organization BYOK with a self-hosted environment fallback.
 - Asynchronous success and failure callbacks.
 - Status reads for an existing Argil video ID.
 
-The model registry advertises `16:9` and `9:16`. The initial Studio Clips path
+The model registry advertises `16:9` and `9:16`. The initial Clipper path
 renders vertical `9:16` video. Reference images, avatar creation, avatar
 training, B-roll, music, and Argil editor features are outside this integration.
 
@@ -69,9 +69,9 @@ reconciles the owning clip project idempotently.
 If `GENFEEDAI_WEBHOOKS_URL` is not publicly reachable or the webhook secret is
 missing, callback delivery cannot complete the normal production path.
 
-## Generate with Studio Clips
+## Generate with Clipper
 
-1. Open a brand's **Studio → Clips** workflow.
+1. Open a brand's **Clipper** workflow.
 2. Select **Avatar** as the result mode.
 3. Select **Argil** as the avatar provider.
 4. Enter the Argil avatar ID and voice ID.

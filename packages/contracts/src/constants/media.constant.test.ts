@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { IngredientFormat } from '..';
 import {
-  CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
-  CLIP_REFERENCE_FRAME_MAX_CANDIDATES,
+  CLIPPER_REFERENCE_FRAME_JOB_TIMEOUT_MS,
+  CLIPPER_REFERENCE_FRAME_MAX_CANDIDATES,
   DEFAULT_LABELS,
   VIDEO_DIMENSIONS,
   VIDEO_FORMAT_DIMENSIONS,
@@ -63,8 +63,8 @@ describe('media.constant', () => {
 
   describe('clip reference frame limits', () => {
     it('keeps the job budget above the source download timeout', () => {
-      expect(CLIP_REFERENCE_FRAME_MAX_CANDIDATES).toBe(5);
-      expect(CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS).toBeGreaterThan(
+      expect(CLIPPER_REFERENCE_FRAME_MAX_CANDIDATES).toBe(5);
+      expect(CLIPPER_REFERENCE_FRAME_JOB_TIMEOUT_MS).toBeGreaterThan(
         YT_DLP_PROCESS_TIMEOUT_MS,
       );
     });

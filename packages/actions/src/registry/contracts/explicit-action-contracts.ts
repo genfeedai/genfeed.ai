@@ -9,7 +9,7 @@ import { getAutomationActionContract } from './automation-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
 import { getBreakoutResponseActionContract } from './breakout-response-action-contracts';
 import { getCampaignOutreachActionContract } from './campaign-outreach-action-contracts';
-import { getClipActionContract } from './clip-action-contracts';
+import { getClipActionContract } from './clipper-action-contracts';
 import { getContentLearningActionContract } from './content-learning-action-contracts';
 import { getContentOptimizationActionContract } from './content-optimization-action-contracts';
 import { getContentPipelineActionContract } from './content-pipeline-action-contracts';
@@ -40,7 +40,7 @@ import { getTwitterPipelineActionContract } from './twitter-pipeline-action-cont
 import { getVisualCodeActionContract } from './visual-code-action-contracts';
 import { getWorkflowNodeActionContract } from './workflow-node-action-contracts';
 import { getWorkspaceTaskActionContract } from './workspace-task-action-contracts';
-import { getYoutubeClipActionContract } from './youtube-clip-action-contracts';
+import { getYoutubeClipActionContract } from './youtube-clipper-action-contracts';
 
 const CONTRACT_RESOLVERS = [
   getEmailProductSignalsActionContract,

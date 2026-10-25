@@ -1,0 +1,439 @@
+import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import {
+  type ClipperGenerationInput,
+  ClipperGenerationService,
+} from '@api/collections/clipper-projects/services/clipper-generation.service';
+import { CLIPPER_HOOK_REVIEW_NODE_ID } from '@api/collections/clipper-projects/services/clipper-generation-workflow-definition';
+import { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
+import type { WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type {
+  HookClipApprovalAction,
+  HookClipApprovalStatus,
+} from '@genfeedai/contracts/interfaces';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+
+export interface SubmitHookClipDecisionInput {
+  action: HookClipApprovalAction;
+  organizationId: string;
+  projectId: string;
+  userId: string;
+  feedback?: string;
+}
+
+type HookWorkflowState = {
+  attempt: number;
+  execution: WorkflowExecutionDocument;
+  feedback?: string;
+  hookClipperResultId?: string;
+  lastAction?: HookClipApprovalAction;
+  remainingClipCount: number;
+  request: ClipperGenerationInput;
+  state: HookClipApprovalStatus['state'];
+  workflowId: string;
+};
+
+@Injectable()
+export class HookClipApprovalService {
+  constructor(
+    private readonly clipperResultsService: ClipperResultsService,
+    private readonly clipperGenerationService: ClipperGenerationService,
+    private readonly clipperProjectsService: ClipperProjectsService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
+  ) {}
+
+  async getStatus(
+    projectId: string,
+    organizationId: string,
+  ): Promise<HookClipApprovalStatus> {
+    const state = await this.resolveWorkflowState(projectId, organizationId);
+    return state ? this.toStatus(state) : this.emptyStatus();
+  }
+
+  async submitDecision(
+    input: SubmitHookClipDecisionInput,
+  ): Promise<HookClipApprovalStatus> {
+    const state = await this.resolveWorkflowState(
+      input.projectId,
+      input.organizationId,
+    );
+    if (state?.state !== 'awaiting_confirmation') {
+      throw new BadRequestException(
+        'The hook clip is not awaiting an operator decision.',
+      );
+    }
+
+    if (input.action === 'request_changes') {
+      return this.requestChanges(state, input);
+    }
+    if (input.action === 'reject') {
+      return this.reject(state, input);
+    }
+    return this.approve(state, input);
+  }
+
+  isProjectReconciliationBlocked(status: HookClipApprovalStatus): boolean {
+    return [
+      'awaiting_confirmation',
+      'failed',
+      'generating_hook',
+      'rejected',
+      'resuming',
+    ].includes(status.state);
+  }
+
+  private async approve(
+    state: HookWorkflowState,
+    input: SubmitHookClipDecisionInput,
+  ): Promise<HookClipApprovalStatus> {
+    await this.requireWorkflowExecutor().submitReviewGateApproval(
+      state.workflowId,
+      state.execution.id,
+      input.userId,
+      input.organizationId,
+      CLIPPER_HOOK_REVIEW_NODE_ID,
+      true,
+    );
+    await this.clipperProjectsService.patch(
+      input.projectId,
+      {
+        clipperHookReviewFeedback: input.feedback ?? null,
+        clipperHookReviewLastAction: 'approve',
+        error: null,
+        status: 'generating',
+      },
+      [],
+      input.organizationId,
+    );
+    return this.getStatus(input.projectId, input.organizationId);
+  }
+
+  private async requestChanges(
+    state: HookWorkflowState,
+    input: SubmitHookClipDecisionInput,
+  ): Promise<HookClipApprovalStatus> {
+    const reason = input.feedback?.trim() || 'Hook revision requested.';
+    await this.requireWorkflowExecutor().submitReviewGateApproval(
+      state.workflowId,
+      state.execution.id,
+      input.userId,
+      input.organizationId,
+      CLIPPER_HOOK_REVIEW_NODE_ID,
+      false,
+      reason,
+    );
+    if (state.hookClipperResultId) {
+      await this.clipperResultsService.patch(
+        state.hookClipperResultId,
+        { isDeleted: true },
+        [],
+        input.organizationId,
+      );
+    }
+    await this.clipperProjectsService.patch(
+      input.projectId,
+      { error: null, status: 'generating' },
+      [],
+      input.organizationId,
+    );
+
+    try {
+      await this.clipperGenerationService.generateClips(
+        this.withRevisionGuidance(state.request, reason),
+        {
+          attempt: state.attempt + 1,
+          feedback: reason,
+          lastAction: 'request_changes',
+        },
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Hook revision workflow failed to start.';
+      await this.clipperProjectsService.patch(
+        input.projectId,
+        { error: message, progress: 100, status: 'failed' },
+        [],
+        input.organizationId,
+      );
+    }
+    return this.getStatus(input.projectId, input.organizationId);
+  }
+
+  private async reject(
+    state: HookWorkflowState,
+    input: SubmitHookClipDecisionInput,
+  ): Promise<HookClipApprovalStatus> {
+    const reason = input.feedback?.trim() || 'Hook clip rejected by reviewer.';
+    await this.requireWorkflowExecutor().submitReviewGateApproval(
+      state.workflowId,
+      state.execution.id,
+      input.userId,
+      input.organizationId,
+      CLIPPER_HOOK_REVIEW_NODE_ID,
+      false,
+      reason,
+    );
+    await this.clipperProjectsService.patch(
+      input.projectId,
+      {
+        clipperHookReviewFeedback: reason,
+        clipperHookReviewLastAction: 'reject',
+        error: reason,
+        progress: 100,
+        status: 'failed',
+      },
+      [],
+      input.organizationId,
+    );
+    return {
+      attempt: state.attempt,
+      feedback: reason,
+      ...(state.hookClipperResultId
+        ? { hookClipperResultId: state.hookClipperResultId }
+        : {}),
+      lastAction: 'reject',
+      remainingClipCount: state.remainingClipCount,
+      state: 'rejected',
+    };
+  }
+
+  private async resolveWorkflowState(
+    projectId: string,
+    organizationId: string,
+  ): Promise<HookWorkflowState | undefined> {
+    const project = await this.clipperProjectsService.findOne({
+      id: projectId,
+      isDeleted: false,
+      organizationId,
+    });
+    const workflowExecutionId = this.readString(project?.workflowExecutionId);
+    if (!project || !workflowExecutionId) {
+      return undefined;
+    }
+
+    const execution = await this.requireWorkflowExecutions().findOne({
+      id: workflowExecutionId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!execution) {
+      return undefined;
+    }
+    const request = this.resolveGenerationRequest(execution);
+    if (!this.isHookReviewRequired(request)) {
+      return undefined;
+    }
+
+    const hookClipperResultId = this.resolveHookClipperResultId(execution);
+    const attempt = this.readPositiveInteger(
+      execution.metadata?.clipperHookReviewAttempt ??
+        project.clipperHookReviewAttempt,
+      1,
+    );
+    const feedback = this.readString(
+      execution.metadata?.clipperHookReviewFeedback ??
+        project.clipperHookReviewFeedback,
+    );
+    const lastAction = this.readAction(
+      execution.metadata?.clipperHookReviewLastAction ??
+        project.clipperHookReviewLastAction,
+    );
+    const workflowId = this.readString(execution.workflowId);
+    if (!workflowId) {
+      throw new Error('Clip workflow execution has no workflow identity');
+    }
+
+    let state: HookClipApprovalStatus['state'];
+    if (String(execution.status) === WorkflowExecutionStatus.FAILED) {
+      state = lastAction === 'reject' ? 'rejected' : 'failed';
+    } else if (!hookClipperResultId) {
+      state = 'generating_hook';
+    } else {
+      const hookResult = await this.clipperResultsService.findOne({
+        id: hookClipperResultId,
+        isDeleted: false,
+        organizationId,
+        projectId,
+      });
+      const hookStatus = this.readString(hookResult?.status);
+      if (hookStatus === 'failed' || hookStatus === 'degraded') {
+        state = 'failed';
+      } else if (this.hasPendingReview(execution)) {
+        state =
+          hookStatus === 'completed'
+            ? 'awaiting_confirmation'
+            : 'generating_hook';
+      } else if (
+        String(execution.status) === WorkflowExecutionStatus.COMPLETED
+      ) {
+        state = 'approved';
+      } else {
+        state = 'resuming';
+      }
+    }
+
+    return {
+      attempt,
+      execution,
+      ...(feedback ? { feedback } : {}),
+      ...(hookClipperResultId ? { hookClipperResultId } : {}),
+      ...(lastAction ? { lastAction } : {}),
+      remainingClipCount: request.highlights.length - 1,
+      request,
+      state,
+      workflowId,
+    };
+  }
+
+  private hasPendingReview(execution: WorkflowExecutionDocument): boolean {
+    const pending = execution.metadata?.pendingApproval;
+    return (
+      pending !== null &&
+      typeof pending === 'object' &&
+      !Array.isArray(pending) &&
+      (pending as Record<string, unknown>).nodeId ===
+        CLIPPER_HOOK_REVIEW_NODE_ID
+    );
+  }
+
+  private withRevisionGuidance(
+    input: ClipperGenerationInput,
+    feedback: string,
+  ): ClipperGenerationInput {
+    const hookIndex = this.resolveHookIndex(input);
+    return {
+      ...input,
+      highlights: input.highlights.map((highlight, index) =>
+        index === hookIndex
+          ? {
+              ...highlight,
+              summary: `${highlight.summary}\nRevision guidance: ${feedback}`,
+            }
+          : highlight,
+      ),
+    };
+  }
+
+  private readGenerationInput(value: unknown): ClipperGenerationInput {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Clip workflow execution has no generation request');
+    }
+    const request = value as Partial<ClipperGenerationInput>;
+    if (
+      !Array.isArray(request.highlights) ||
+      typeof request.orgId !== 'string' ||
+      typeof request.projectId !== 'string' ||
+      typeof request.userId !== 'string'
+    ) {
+      throw new Error('Clip workflow execution has an invalid request');
+    }
+    return request as ClipperGenerationInput;
+  }
+
+  private resolveGenerationRequest(
+    execution: WorkflowExecutionDocument,
+  ): ClipperGenerationInput {
+    if (execution.inputValues?.request) {
+      return this.readGenerationInput(execution.inputValues.request);
+    }
+    const plan = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === 'plan-generation',
+    );
+    const output = this.readRecord(plan?.output);
+    const baseInput = this.readRecord(output.baseInput);
+    return this.readGenerationInput(baseInput.request);
+  }
+
+  private resolveHookClipperResultId(
+    execution: WorkflowExecutionDocument,
+  ): string | undefined {
+    const hookDispatch = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === 'generate-hook',
+    );
+    const output = this.readRecord(hookDispatch?.output);
+    const first = Array.isArray(output.results) ? output.results[0] : undefined;
+    const childResult = this.readRecord(this.readRecord(first).result);
+    return this.readFirstString(childResult.clipperResultIds);
+  }
+
+  private isHookReviewRequired(input: ClipperGenerationInput): boolean {
+    return (
+      (input.hookApprovalRequired ??
+        ((input.mode ?? 'avatar') === 'avatar' &&
+          input.highlights.length > 1)) &&
+      input.highlights.length > 1
+    );
+  }
+
+  private resolveHookIndex(input: ClipperGenerationInput): number {
+    const index = input.highlights.findIndex(
+      (highlight) => highlight.clip_type.toLowerCase() === 'hook',
+    );
+    return index >= 0 ? index : 0;
+  }
+
+  private readAction(value: unknown): HookClipApprovalAction | undefined {
+    return value === 'approve' ||
+      value === 'request_changes' ||
+      value === 'reject'
+      ? value
+      : undefined;
+  }
+
+  private readFirstString(value: unknown): string | undefined {
+    return Array.isArray(value) ? this.readString(value[0]) : undefined;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readPositiveInteger(value: unknown, fallback: number): number {
+    return Number.isInteger(value) && Number(value) > 0
+      ? Number(value)
+      : fallback;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private emptyStatus(): HookClipApprovalStatus {
+    return { attempt: 0, remainingClipCount: 0, state: 'not_required' };
+  }
+
+  private toStatus(state: HookWorkflowState): HookClipApprovalStatus {
+    return {
+      attempt: state.attempt,
+      ...(state.feedback ? { feedback: state.feedback } : {}),
+      ...(state.hookClipperResultId
+        ? { hookClipperResultId: state.hookClipperResultId }
+        : {}),
+      ...(state.lastAction ? { lastAction: state.lastAction } : {}),
+      remainingClipCount: state.remainingClipCount,
+      state: state.state,
+    };
+  }
+
+  private requireWorkflowExecutor(): WorkflowExecutorService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow executor is unavailable');
+    }
+    return this.moduleRef.get(WorkflowExecutorService, { strict: false });
+  }
+
+  private requireWorkflowExecutions(): WorkflowExecutionsService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow executions service is unavailable');
+    }
+    return this.moduleRef.get(WorkflowExecutionsService, { strict: false });
+  }
+}

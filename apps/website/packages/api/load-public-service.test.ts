@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const instance = { createPublicYoutubeClip: vi.fn() };
+const instance = { createPublicYoutubeClipper: vi.fn() };
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: { getInstance: () => instance },

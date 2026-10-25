@@ -1,0 +1,234 @@
+import type {
+  ClipperGenerationMode,
+  GenerateClipperHighlightPayload,
+  GenerateClipsParams,
+} from '@mcp/services/client/clipper.client';
+import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
+
+export const CLIPPER_PROJECTS_TOOL_NAMES = new Set([
+  'analyze_clipper_project',
+  'create_clipper_project_from_youtube',
+  'get_clipper_highlights',
+  'get_clipper_project',
+  'run_clipper',
+  'list_clipper_projects',
+]);
+
+/**
+ * Clip-projects MCP handlers (issue #1245). Each entry is a thin proxy to the
+ * live `clipper-projects` API via {@link ClientService}; org scoping and credit
+ * checks are enforced API-side. Writes (analyze / create / generate) are routed
+ * through the approval gate in `tool-registry.service.ts`, so this handler only
+ * runs for a create/generate once a reviewer has approved it.
+ */
+export function handleClipperProjectsTool(
+  client: ClientService,
+  name: string,
+  args: Record<string, unknown>,
+) {
+  const handlers: Record<
+    string,
+    (
+      args: Record<string, unknown>,
+    ) => Promise<{ content: Array<{ text: string; type: 'text' }> }>
+  > = {
+    analyze_clipper_project: async (a) => {
+      const result = await client.analyzeClipperProject({
+        language: optionalString(a, 'language'),
+        maxClips: optionalNumber(a, 'maxClips'),
+        minViralityScore: optionalNumber(a, 'minViralityScore'),
+        name: optionalString(a, 'name'),
+        youtubeUrl: requiredString(a, 'youtubeUrl'),
+      });
+
+      return textDataResult('Started clip analysis', result);
+    },
+    create_clipper_project_from_youtube: async (a) => {
+      const avatarId = optionalString(a, 'avatarId');
+      const avatarProvider = optionalString(a, 'avatarProvider') ?? 'heygen';
+      const brandId = optionalString(a, 'brandId');
+      const voiceId = optionalString(a, 'voiceId');
+      if (avatarProvider === 'genfeedai' && !brandId) {
+        throw new Error(
+          'brandId is required for a GenfeedAI managed clip factory',
+        );
+      }
+      if (
+        avatarProvider !== 'genfeedai' &&
+        !brandId &&
+        (!avatarId || !voiceId)
+      ) {
+        throw new Error(
+          'avatarId and voiceId, or a brandId with saved defaults, are required for HeyGen and Argil clip factories',
+        );
+      }
+      const result = await client.createClipperProjectFromYoutube({
+        avatarId,
+        avatarProvider,
+        brandId,
+        language: optionalString(a, 'language'),
+        maxClips: optionalNumber(a, 'maxClips'),
+        minViralityScore: optionalNumber(a, 'minViralityScore'),
+        name: optionalString(a, 'name'),
+        voiceId,
+        youtubeUrl: requiredString(a, 'youtubeUrl'),
+      });
+
+      return textDataResult('Started clip factory from YouTube', result);
+    },
+    run_clipper: async (a) => {
+      const result = await client.generateClips(generateClipsParams(a));
+
+      return textDataResult('Started clip generation', result);
+    },
+    get_clipper_highlights: async (a) => {
+      const result = await client.getClipperHighlights(
+        requiredString(a, 'projectId'),
+      );
+
+      return textDataResult('Clip highlights', result);
+    },
+    get_clipper_project: async (a) => {
+      const result = await client.getClipperProject(
+        requiredString(a, 'projectId'),
+      );
+
+      return textDataResult('Clip project', result);
+    },
+    list_clipper_projects: async (a) => {
+      const result = await client.listClipperProjects({
+        limit: optionalNumber(a, 'limit'),
+        offset: optionalNumber(a, 'offset'),
+      });
+
+      return {
+        structuredContent: { data: result },
+        content: [
+          {
+            text:
+              result.length > 0
+                ? `Found ${result.length} clip projects:\n\n${formatToolData(result)}`
+                : 'No clip projects found.',
+            type: 'text' as const,
+          },
+        ],
+      };
+    },
+  };
+
+  const handler = handlers[name];
+  if (!handler) throw new Error(`Unknown clip projects tool: ${name}`);
+  return handler(args);
+}
+
+function generateClipsParams(
+  args: Record<string, unknown>,
+): GenerateClipsParams {
+  const mode = generationMode(args);
+  const avatarId = optionalString(args, 'avatarId');
+  const voiceId = optionalString(args, 'voiceId');
+
+  // Avatar-mode inputs are enforced here rather than in the tool's JSON schema
+  // because raw-cut needs neither identity field.
+  if (mode === 'avatar' && (!avatarId || !voiceId)) {
+    throw new Error('avatarId and voiceId are required for avatar mode');
+  }
+
+  return {
+    avatarId,
+    avatarProvider: optionalString(args, 'avatarProvider'),
+    editedHighlights: editedHighlights(args),
+    mode,
+    projectId: requiredString(args, 'projectId'),
+    selectedHighlightIds: requiredStringArray(args, 'selectedHighlightIds'),
+    voiceId,
+  };
+}
+
+function generationMode(args: Record<string, unknown>): ClipperGenerationMode {
+  const value = args.mode;
+  if (value === undefined || value === null) {
+    return 'avatar';
+  }
+  if (value !== 'avatar' && value !== 'raw-cut') {
+    throw new Error('mode must be "avatar" or "raw-cut"');
+  }
+  return value;
+}
+
+function editedHighlights(
+  args: Record<string, unknown>,
+): GenerateClipperHighlightPayload[] {
+  const value = args.editedHighlights;
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error('editedHighlights must be a non-empty array');
+  }
+
+  return value.map((entry, index) => {
+    if (entry === null || typeof entry !== 'object') {
+      throw new Error(`editedHighlights[${index}] must be an object`);
+    }
+    const record = entry as Record<string, unknown>;
+    return {
+      id: requiredString(record, 'id'),
+      summary: requiredString(record, 'summary'),
+      title: requiredString(record, 'title'),
+    };
+  });
+}
+
+function textDataResult(label: string, data: unknown) {
+  return {
+    structuredContent: { data },
+    content: [
+      {
+        text: `${label}:\n\n${formatToolData(data)}`,
+        type: 'text' as const,
+      },
+    ],
+  };
+}
+
+function requiredString(args: Record<string, unknown>, key: string): string {
+  const value = args[key];
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${key} is required`);
+  }
+  return value;
+}
+
+function optionalString(
+  args: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = args[key];
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+function optionalNumber(
+  args: Record<string, unknown>,
+  key: string,
+): number | undefined {
+  const value = args[key];
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function requiredStringArray(
+  args: Record<string, unknown>,
+  key: string,
+): string[] {
+  const value = args[key];
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((item) => typeof item !== 'string')
+  ) {
+    throw new Error(`${key} must be a non-empty array of strings`);
+  }
+  return value.map((item) => (item as string).trim()).filter(Boolean);
+}

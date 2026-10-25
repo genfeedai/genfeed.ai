@@ -688,7 +688,7 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
-    delegate: 'clipProject',
+    delegate: 'clipperProject',
     table: 'clip_projects',
     brandField: 'brandId',
     orgField: 'organizationId',

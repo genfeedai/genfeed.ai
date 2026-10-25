@@ -4,7 +4,7 @@ export const APP_DISPLAY_LABELS = Object.freeze({
   agent: 'Agent',
   analytics: 'Analytics',
   automation: 'Automation',
-  clips: 'Clips',
+  clipper: 'Clipper',
   discovery: 'Discovery',
   editor: 'Editor',
   library: 'Library',

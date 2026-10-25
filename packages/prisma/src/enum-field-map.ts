@@ -1258,7 +1258,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'brandedGenerationReceipts',
       'campaignPaidActivations',
       'campaigns',
-      'clipProjects',
+      'clipperProjects',
       'contentLearningAccounts',
       'contentLearningBaselines',
       'contentLearningBrandPreferences',
@@ -1789,7 +1789,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       workflowExecution: 'workflowExecutionId',
     },
   },
-  ClipProject: {
+  ClipperProject: {
     allFields: [
       'brand',
       'brandId',
@@ -1826,7 +1826,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       workflowExecution: 'workflowExecutionId',
     },
   },
-  ClipResult: {
+  ClipperResult: {
     allFields: [
       'createdAt',
       'data',
@@ -3871,7 +3871,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'brandVoices',
       'captions',
       'children',
-      'clipResults',
+      'clipperResults',
       'editorProjectVideos',
       'mediaModerations',
       'mediaPerceptions',
@@ -5394,8 +5394,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'campaignTargets',
       'campaigns',
       'captions',
-      'clipProjects',
-      'clipResults',
+      'clipperProjects',
+      'clipperResults',
       'contentLearningAccounts',
       'contentLearningBaselines',
       'contentLearningBrandPreferences',
@@ -8486,8 +8486,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'campaignPaidActivations',
       'campaigns',
       'captions',
-      'clipProjects',
-      'clipResults',
+      'clipperProjects',
+      'clipperResults',
       'contentLearningConsents',
       'contentLearningDatasets',
       'contentLearningExperiments',
@@ -8889,8 +8889,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   WorkflowExecution: {
     allFields: [
       'cancelRequestedAt',
-      'clipContinuityProject',
-      'clipGenerationProject',
+      'clipperContinuityProject',
+      'clipperGenerationProject',
       'completedAt',
       'costEstimate',
       'createdAt',

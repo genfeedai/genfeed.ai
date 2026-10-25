@@ -261,8 +261,8 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: true,
       openWorldHint: true,
     },
-    name: 'get_clip_project',
-    title: 'Get Clip Project',
+    name: 'get_clipper_project',
+    title: 'Get Clipper Project',
   },
   {
     annotations: {
@@ -339,7 +339,14 @@ const AUDITED_READ_PRESENTATIONS = [
 >;
 
 const FROZEN_MCP_PRESENTATIONS = [
-  ['analyze_clip_project', 'Analyze Clip Project', false, true, false, false],
+  [
+    'analyze_clipper_project',
+    'Analyze Clipper Project',
+    false,
+    true,
+    false,
+    false,
+  ],
   ['analyze_performance', 'Analyze Performance', true, false, true, false],
   ['approve_social_draft', 'Approve Social Draft', false, true, false, true],
   [
@@ -436,8 +443,8 @@ const FROZEN_MCP_PRESENTATIONS = [
   ['create_brand_from_url', 'Create Brand From Url', false, true, false, false],
   ['create_chat', 'Create Chat', false, true, false, false],
   [
-    'create_clip_project_from_youtube',
-    'Create Clip Project From Youtube',
+    'create_clipper_project_from_youtube',
+    'Create Clipper Project From Youtube',
     false,
     true,
     false,
@@ -494,7 +501,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ['find_tools', 'Find Tools', true, false, true, false],
   ['fork_skill', 'Fork Skill', false, true, false, false],
   ['generate', 'Generate', false, false, false, true],
-  ['generate_clips', 'Generate Clips', false, true, false, true],
+  ['run_clipper', 'Run Clipper', false, true, false, true],
   ['generate_content', 'Generate Content', false, true, false, true],
   [
     'generate_turbo_content',
@@ -530,8 +537,15 @@ const FROZEN_MCP_PRESENTATIONS = [
   ['get_brand_context', 'Get Brand Context', false, false, false, true],
   ['get_brand_scan_status', 'Get Brand Scan Status', true, false, true, false],
   ['get_brands', 'Get Brands', true, false, true, false],
-  ['get_clip_highlights', 'Get Clip Highlights', true, false, true, false],
-  ['get_clip_project', 'Get Clip Project', false, true, true, true],
+  [
+    'get_clipper_highlights',
+    'Get Clipper Highlights',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_clipper_project', 'Get Clipper Project', false, true, true, true],
   [
     'get_connection_status',
     'Get Connection Status',
@@ -730,7 +744,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  ['list_clip_projects', 'List Clip Projects', true, false, true, false],
+  ['list_clipper_projects', 'List Clipper Projects', true, false, true, false],
   [
     'list_google_ads_campaigns',
     'List Google Ads Campaigns',
@@ -1195,7 +1209,8 @@ describe('MCP tool annotations', () => {
         tool.name === 'list_ads_research' ||
         tool.name === 'list_social_conversations' ||
         tool.name === 'get_brand_context' ||
-        tool.name === 'get_clip_project' ||
+        tool.name === 'get_clipper_project' ||
+        tool.name === 'run_clipper' ||
         tool.name === 'get_instagram_inspiration_detail' ||
         tool.name === 'list_instagram_inspiration' ||
         tool.name === 'search_knowledge' ||
@@ -1271,7 +1286,7 @@ describe('MCP tool annotations', () => {
       readOnlyHint: false,
     });
     expect(tool?.mutationPolicy).toBe('direct');
-    expect(tool?.toolset).toBe('clips');
+    expect(tool?.toolset).toBe('clipper');
     expect(tool?.creditCost).toBe(0);
   });
 

@@ -119,8 +119,8 @@ export function toolCreditPricingFor(
     };
   }
   if (
-    name === 'create_clip_project_from_youtube' ||
-    name === 'generate_clips'
+    name === 'create_clipper_project_from_youtube' ||
+    name === 'run_clipper'
   ) {
     return {
       ...avatarClipCreditRange(),
@@ -238,8 +238,8 @@ export function estimateToolCreditCost(
   }
   // A clip's hold is priced from its script when it dispatches.
   if (
-    name === 'create_clip_project_from_youtube' ||
-    name === 'generate_clips'
+    name === 'create_clipper_project_from_youtube' ||
+    name === 'run_clipper'
   ) {
     return null;
   }

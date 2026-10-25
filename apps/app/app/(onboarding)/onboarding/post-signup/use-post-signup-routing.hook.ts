@@ -6,7 +6,7 @@ import {
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import {
   parseBrandOsPreviewToken,
-  parsePublicYoutubeClipToken,
+  parsePublicYoutubeClipperToken,
 } from '@app/(public)/auth-callback-url';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
+  APP_ROUTES,
   createBrandAppRoute,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
@@ -26,7 +27,7 @@ import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
-import { ClipProjectsService } from '@services/content/clip-projects.service';
+import { ClipperProjectsService } from '@services/content/clipper-projects.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -77,7 +78,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
   const hasBrandOsHandoff = Boolean(
     parseBrandOsPreviewToken(requestedBrandOsTokenParam) ||
-      parsePublicYoutubeClipToken(requestedClipToolTokenParam),
+      parsePublicYoutubeClipperToken(requestedClipToolTokenParam),
   );
   const retryBrandOsHandoff = useCallback(() => {
     calledRef.current = false;
@@ -410,7 +411,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         }
       }
 
-      const clipToolToken = parsePublicYoutubeClipToken(
+      const clipToolToken = parsePublicYoutubeClipperToken(
         requestedClipToolTokenParam,
       );
       if (clipToolToken) {
@@ -440,21 +441,21 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             return;
           }
 
-          const claimed = await ClipProjectsService.getInstance(
+          const claimed = await ClipperProjectsService.getInstance(
             token,
-          ).claimPublicYoutubeClip({
+          ).claimPublicYoutubeClipper({
             brandId: brand.id,
             previewToken: clipToolToken,
           });
           captureAnalyticsEvent(
-            ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED,
+            ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED,
             { source: 'public_preview' },
           );
           redirectTo(
             createBrandAppRoute(
               organization.slug,
               brand.slug,
-              `/clips/${claimed.projectId}`,
+              `${APP_ROUTES.STUDIO.CLIPPER}/${claimed.projectId}`,
             ),
           );
           return;

@@ -23,15 +23,15 @@ import { ArticleAnalyticsService } from '@api/collections/articles/services/arti
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
-import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
-import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
-import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
-import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
-import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
-import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import { ClipperGenerationService } from '@api/collections/clipper-projects/services/clipper-generation.service';
+import { ClipperGenerationRequestService } from '@api/collections/clipper-projects/services/clipper-generation-request.service';
+import { ClipperIdentityResolutionService } from '@api/collections/clipper-projects/services/clipper-identity-resolution.service';
+import { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
+import { HighlightRewriteService } from '@api/collections/clipper-projects/services/highlight-rewrite.service';
+import { HookClipApprovalService } from '@api/collections/clipper-projects/services/hook-clipper-approval.service';
+import { RawCutClipService } from '@api/collections/clipper-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@api/collections/clipper-projects/services/raw-cut-clip-completion.service';
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
@@ -188,7 +188,7 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
-import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
+import { PublicClipperToolStoreService } from '@api/services/public-clipper-tool/public-clipper-tool-store.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -287,11 +287,11 @@ const WORKER_DOMAIN_SERVICES = [
   CampaignDiscoveryService,
   CampaignExecutorService,
   CampaignWinnerExtractionService,
-  ClipGenerationRequestService,
-  ClipGenerationService,
-  ClipIdentityResolutionService,
-  ClipLibraryLinkService,
-  ClipProjectsService,
+  ClipperGenerationRequestService,
+  ClipperGenerationService,
+  ClipperIdentityResolutionService,
+  ClipperLibraryLinkService,
+  ClipperProjectsService,
   ContentEngineService,
   ContentGeoOptimizerHandler,
   ContentOrchestrationService,
@@ -363,7 +363,7 @@ const WORKER_DOMAIN_SERVICES = [
   PostRepurposeService,
   PostGroupsService,
   PostsService,
-  PublicClipToolStoreService,
+  PublicClipperToolStoreService,
   RssSourcesService,
   PublishEventWebhookService,
   PublisherFactoryService,

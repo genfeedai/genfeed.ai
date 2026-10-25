@@ -43,11 +43,11 @@ export const ORGANIZATION_MODULES = {
     requiresSubscription: false,
     platformFlagKey: 'motion',
   },
-  clips: {
-    label: 'Clips',
+  clipper: {
+    label: 'Clipper',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    platformFlagKey: 'clips',
+    platformFlagKey: 'clipper',
   },
   turbo: {
     label: 'Turbo',
@@ -102,7 +102,7 @@ export const organizationModuleOverridesSchema = z.strictObject({
   publishing: z.boolean().optional(),
   analytics: z.boolean().optional(),
   motion: z.boolean().optional(),
-  clips: z.boolean().optional(),
+  clipper: z.boolean().optional(),
   turbo: z.boolean().optional(),
   editor: z.boolean().optional(),
   automation: z.boolean().optional(),

@@ -223,7 +223,7 @@ describe('direct product route module admission inventory', () => {
             findUnique: vi.fn().mockResolvedValue({
               moduleOverrides: {
                 motion: false,
-                clips: false,
+                clipper: false,
                 turbo: false,
                 editor: false,
               },

@@ -71,7 +71,7 @@ function createMockLogger() {
 }
 
 const definition: SystemWorkflowGraphDefinition = {
-  canonicalId: 'clip-hook-review',
+  canonicalId: 'clipper-hook-review',
   definition: {
     edges: [],
     nodes: [

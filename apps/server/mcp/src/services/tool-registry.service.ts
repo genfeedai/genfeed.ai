@@ -65,9 +65,9 @@ import {
   handleAnalyticsTool,
 } from '@mcp/tools/analytics.tool';
 import {
-  CLIP_PROJECTS_TOOL_NAMES,
-  handleClipProjectsTool,
-} from '@mcp/tools/clip-projects.tool';
+  CLIPPER_PROJECTS_TOOL_NAMES,
+  handleClipperProjectsTool,
+} from '@mcp/tools/clipper-projects.tool';
 import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
@@ -210,7 +210,7 @@ type ExecutorKind =
   | 'ads-gateway'
   | 'account-management'
   | 'social-messages'
-  | 'clip-projects'
+  | 'clipper-projects'
   | 'editor'
   | 'storyboard-capabilities'
   | 'remix'
@@ -521,7 +521,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (isAdsGatewayTool(name)) return 'ads-gateway';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
-    if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (CLIPPER_PROJECTS_TOOL_NAMES.has(name)) return 'clipper-projects';
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
@@ -603,8 +603,8 @@ export class ToolRegistryService implements OnModuleInit {
         );
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
-      case 'clip-projects':
-        return handleClipProjectsTool(this.clientService, name, args);
+      case 'clipper-projects':
+        return handleClipperProjectsTool(this.clientService, name, args);
       case 'editor':
         return handleEditorTool(this.clientService, name, args);
       case 'storyboard-capabilities':

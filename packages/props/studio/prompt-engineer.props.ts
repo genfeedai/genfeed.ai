@@ -9,7 +9,7 @@ export interface StudioTool {
   href: string;
 }
 
-export interface ClipReference {
+export interface ClipperReference {
   name: string;
   sizeInMB: number;
   origin: 'upload' | 'sample';
@@ -89,7 +89,7 @@ export interface SampleClip {
 }
 
 export interface UploadState {
-  descriptor: ClipReference;
+  descriptor: ClipperReference;
   file?: File;
 }
 

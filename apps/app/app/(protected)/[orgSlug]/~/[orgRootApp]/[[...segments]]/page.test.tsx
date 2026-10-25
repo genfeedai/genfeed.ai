@@ -537,7 +537,7 @@ describe('OrgRootAppPage', () => {
     },
   );
 
-  it.each([['playground'], ['storyboard'], ['turbo'], ['motion'], ['clips']])(
+  it.each([['playground'], ['storyboard'], ['turbo'], ['motion'], ['clipper']])(
     'serves no child routes under the org %s entry',
     async (orgRootApp) => {
       await expect(
@@ -559,7 +559,7 @@ describe('OrgRootAppPage', () => {
     ['storyboard', '/acme/moonrise/storyboard'],
     ['turbo', '/acme/moonrise/turbo'],
     ['motion', '/acme/moonrise/motion'],
-    ['clips', '/acme/moonrise/clips'],
+    ['clipper', '/acme/moonrise/clipper'],
   ])(
     'opens the %s app in the persisted last-used brand (#4671)',
     async (segment, destination) => {

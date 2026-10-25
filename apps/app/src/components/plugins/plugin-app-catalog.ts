@@ -32,8 +32,8 @@ export const PLUGIN_APP_CATALOG: Record<
     category: 'automate',
     tone: 'info',
   },
-  clips: {
-    thumbnailSrc: '/plugins/clips.webp',
+  clipper: {
+    thumbnailSrc: '/plugins/clipper.webp',
     art: 'trim',
     category: 'create',
     tone: 'warning',

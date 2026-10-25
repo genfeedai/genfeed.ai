@@ -26,7 +26,7 @@ export const TOOLSET_NAMES = [
   'analytics',
   'articles',
   'brand',
-  'clips',
+  'clipper',
   'content',
   'core',
   'engagement',
@@ -95,7 +95,7 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
     description:
       'Clip project creation, analysis, and highlight extraction from source video, plus opening finished videos in the Studio Editor.',
     isAlwaysOn: false,
-    name: 'clips',
+    name: 'clipper',
   },
   {
     description:

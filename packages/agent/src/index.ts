@@ -31,7 +31,7 @@ export {
   DynamicChart,
   DynamicTable,
 } from '@genfeedai/agent/components/blocks';
-export { ClipRunCard } from '@genfeedai/agent/components/ClipRunCard';
+export { ClipperRunCard } from '@genfeedai/agent/components/ClipperRunCard';
 export {
   type ConversationComposerShellContextValue,
   ConversationComposerShellProvider,
@@ -137,10 +137,10 @@ export type {
 export type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 // Models
 export type {
-  ClipRunCardState,
-  ClipRunModes,
-  ClipRunStep,
-} from '@genfeedai/agent/models/clip-run-card.model';
+  ClipperRunCardState,
+  ClipperRunModes,
+  ClipperRunStep,
+} from '@genfeedai/agent/models/clipper-run-card.model';
 export type {
   ConversationComposerActionDefinition,
   ConversationComposerActionInvocation,

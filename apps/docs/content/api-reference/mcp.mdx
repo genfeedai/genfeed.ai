@@ -331,7 +331,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
 | No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 26 tools. |
-| `?profile=directory` | The same bounded selection, with `generation`, `clips`, and `ui` excluded. This profile does not imply directory approval. |
+| `?profile=directory` | The same bounded selection, with `generation`, `clipper`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
 To expose the available content journey, including generation and analytics,
@@ -368,7 +368,7 @@ http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler
 | `brand` | `create_brand_from_url`, `get_brand_scan_status`, brand identity, completeness, publishing readiness, the brand interview flow, and the `get_brand_context` snapshot. |
 | `ads` | Meta, Google, and TikTok ad account, campaign, and insight tools. |
 | `inspiration` | Instagram and TikTok inspiration and top-performer discovery. |
-| `clips` | Clip project creation, analysis, and highlight extraction from source video. |
+| `clipper` | Clip project creation, analysis, and highlight extraction from source video. |
 | `knowledge` | Capture, search, and manage brand knowledge sources. |
 | `agent-chat` | Chat with the account and coordinate work across agents: send messages, list and transfer conversations, and request assets from another agent. |
 | `skills-pro` | Verify and install Skills Pro packs. |

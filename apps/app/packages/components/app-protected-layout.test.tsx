@@ -1168,7 +1168,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/discovery/ads', 'Discovery', 'Ads'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
-    ['/org-123/brand-123/clips', 'Clips', 'Projects'],
+    ['/org-123/brand-123/clipper', 'Clipper', 'Projects'],
     ['/org-123/brand-123/discovery/trends', 'Discovery', 'Trends'],
     [
       '/org-123/brand-123/discovery/trends/detail/trend-1',
@@ -1806,28 +1806,31 @@ describe('AppProtectedLayout', () => {
   });
 
   it('updates an app nav without discarding existing project content', () => {
-    mockStudioNav.appsWithSecondPage.add('clips');
-    mockPathname.value = '/clips/project-123';
+    mockStudioNav.appsWithSecondPage.add('clipper');
+    mockPathname.value = '/clipper/project-123';
     mockBrandState.settings.hasOrganizationBilling = true;
     // Release preview isolates the module switch from the #5502 release gate.
     mockBrandState.settings.isReleasePreviewEnabled = true;
-    mockBrandState.settings.moduleOverrides = { clips: true };
+    mockBrandState.settings.moduleOverrides = { clipper: true };
     const { rerender } = render(
       <AppProtectedLayout>
         <div>Existing clips</div>
       </AppProtectedLayout>,
     );
     expect(appSidebarSpy.mock.lastCall?.[0]).toEqual(
-      expect.objectContaining({ currentApp: 'clips', sectionLabel: 'Clips' }),
+      expect.objectContaining({
+        currentApp: 'clipper',
+        sectionLabel: 'Clipper',
+      }),
     );
     expect(
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/clips', '/clips/archive']);
+    ).toEqual(['/clipper', '/clipper/archive']);
     mockBrandState.settings = {
       ...mockBrandState.settings,
-      moduleOverrides: { clips: false },
+      moduleOverrides: { clipper: false },
     };
     rerender(
       <AppProtectedLayout>
@@ -1874,7 +1877,7 @@ describe('AppProtectedLayout', () => {
 
     for (const otherHref of [
       '/playground',
-      '/clips',
+      '/clipper',
       '/turbo',
       '/motion',
       '/editor',

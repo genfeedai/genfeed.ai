@@ -757,8 +757,8 @@ contentLearningOperations ContentLearningOperation[]
   leads                     Lead[]                    @relation("lead_user")
   outreachCampaigns         OutreachCampaign[]
   captions                  Caption[]
-  clipProjects              ClipProject[]
-  clipResults               ClipResult[]
+  clipperProjects              ClipperProject[]
+  clipperResults               ClipperResult[]
   personaAssignments        Persona[]                 @relation("persona_assigned_members")
   mcpApprovals              McpApproval[]
   brandInterviews           BrandInterview[]
@@ -922,8 +922,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   streaks                       Streak[]
   presets                       Preset[]
   captions                      Caption[]
-  clipProjects                  ClipProject[]
-  clipResults                   ClipResult[]
+  clipperProjects                  ClipperProject[]
+  clipperResults                   ClipperResult[]
   editorProjects                EditorProject[]
   projects                      Project[]
   forecasts                     Forecast[]
@@ -1152,7 +1152,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   distributions              Distribution[]
   watchlists                 Watchlist[]
   presets                    Preset[]
-  clipProjects               ClipProject[]
+  clipperProjects               ClipperProject[]
   editorProjects             EditorProject[]
   contentPerformances        ContentPerformance[]
   contentPlanItems           ContentPlanItem[]
@@ -2456,7 +2456,7 @@ model Ingredient {
   trackedLinkContent        TrackedLink[]
   taskLinkedOutputs         Task[]                     @relation("task_linked_outputs")
   taskApprovedOutputs       Task[]                     @relation("task_approved_outputs")
-  clipResults               ClipResult[]               @relation("clip_result_ingredient")
+  clipperResults               ClipperResult[]               @relation("clipper_result_ingredient")
   workflowNodeContinuations WorkflowNodeContinuation[]
   mediaPerceptions          MediaPerception[]
   mediaModerations          MediaModeration[]
@@ -5380,8 +5380,8 @@ model WorkflowExecution {
   destinationAgentTransfer AgentTransfer?
   agentPublishAudits       AgentPublishAudit[]
   agentUntrustedContentAudits AgentUntrustedContentAudit[]
-  clipGenerationProject    ClipProject?                  @relation("clip_generation_workflow_execution")
-  clipContinuityProject    ClipProject?                  @relation("clip_continuity_workflow_execution")
+  clipperGenerationProject    ClipperProject?                  @relation("clipper_generation_workflow_execution")
+  clipperContinuityProject    ClipperProject?                  @relation("clipper_continuity_workflow_execution")
 
   trigger String?
 
@@ -6974,7 +6974,7 @@ model Caption {
   @@map("captions")
 }
 
-model ClipProject {
+model ClipperProject {
   id                            String             @id @default(cuid())
   organizationId                String
   organization                  Organization       @relation(fields: [organizationId], references: [id])
@@ -6983,11 +6983,11 @@ model ClipProject {
   userId                        String?
   user                          User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   workflowExecutionId           String?            @unique
-  workflowExecution             WorkflowExecution? @relation("clip_generation_workflow_execution", fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  workflowExecution             WorkflowExecution? @relation("clipper_generation_workflow_execution", fields: [workflowExecutionId], references: [id], onDelete: SetNull)
   continuityWorkflowExecutionId String?            @unique
-  continuityWorkflowExecution   WorkflowExecution? @relation("clip_continuity_workflow_execution", fields: [continuityWorkflowExecutionId], references: [id], onDelete: SetNull)
+  continuityWorkflowExecution   WorkflowExecution? @relation("clipper_continuity_workflow_execution", fields: [continuityWorkflowExecutionId], references: [id], onDelete: SetNull)
   continuityQaStatus            String             @default("not-required")
-  results                       ClipResult[]
+  results                       ClipperResult[]
   status                        String             @default("pending")
   progress                      Int                @default(0)
   error                         String?
@@ -7007,16 +7007,16 @@ model ClipProject {
   @@map("clip_projects")
 }
 
-model ClipResult {
+model ClipperResult {
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   userId         String?
   user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   projectId      String?
-  project        ClipProject? @relation(fields: [projectId, organizationId], references: [id, organizationId])
+  project        ClipperProject? @relation(fields: [projectId, organizationId], references: [id, organizationId])
   ingredientId   String?
-  ingredient     Ingredient?  @relation("clip_result_ingredient", fields: [ingredientId], references: [id], onDelete: SetNull)
+  ingredient     Ingredient?  @relation("clipper_result_ingredient", fields: [ingredientId], references: [id], onDelete: SetNull)
   providerJobId  String?
   generationProvider Json?
   viralityScore  Float?

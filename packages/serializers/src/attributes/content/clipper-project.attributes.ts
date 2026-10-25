@@ -1,0 +1,27 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const clipperProjectAttributes = createEntityAttributes([
+  'userId',
+  'organizationId',
+  'brandId',
+  'name',
+  'draft',
+  'source',
+  'sourceVideoUrl',
+  'sourceVideoS3Key',
+  'videoMetadata',
+  'transcriptText',
+  'transcriptSrt',
+  'transcriptSegments',
+  'referenceFrames',
+  'language',
+  'status',
+  'progress',
+  'settings',
+  'error',
+  'readiness',
+  'readyClipCount',
+  'failedClipCount',
+  'pendingClipCount',
+  'terminalAt',
+]);

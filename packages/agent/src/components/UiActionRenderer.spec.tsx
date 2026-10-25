@@ -12,7 +12,7 @@ const cardPropsSpies = vi.hoisted(() => ({
   brandIdentityConfirmation: vi.fn(),
   brandInterviewOffer: vi.fn(),
   brandVoiceProfile: vi.fn(),
-  clipWorkflowRun: vi.fn(),
+  clipperWorkflowRun: vi.fn(),
   completionSummary: vi.fn(),
   contentPreview: vi.fn(),
   generationAction: vi.fn(),
@@ -81,10 +81,10 @@ vi.mock('@genfeedai/agent/components/BrandVoiceProfileCard', () => ({
   },
 }));
 
-vi.mock('@genfeedai/agent/components/ClipWorkflowRunCard', () => ({
-  ClipWorkflowRunCard: (props: Record<string, unknown>) => {
-    cardPropsSpies.clipWorkflowRun(props);
-    return <div data-testid="clip-workflow-run-card" />;
+vi.mock('@genfeedai/agent/components/ClipperWorkflowRunCard', () => ({
+  ClipperWorkflowRunCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.clipperWorkflowRun(props);
+    return <div data-testid="clipper-workflow-run-card" />;
   },
 }));
 
@@ -284,9 +284,9 @@ const apiServiceCases = [
     testId: 'workflow-trigger-card',
   },
   {
-    actionType: 'clip_workflow_run_card',
-    spy: cardPropsSpies.clipWorkflowRun,
-    testId: 'clip-workflow-run-card',
+    actionType: 'clipper_workflow_run_card',
+    spy: cardPropsSpies.clipperWorkflowRun,
+    testId: 'clipper-workflow-run-card',
   },
   {
     actionType: 'ingredient_alternatives_card',

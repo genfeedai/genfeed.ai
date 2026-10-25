@@ -14,17 +14,17 @@ import {
 import { ALL_TOOLS, getToolByName } from './tool-registry';
 
 const MCP_QUEUED_WRITES = [
-  'analyze_clip_project',
+  'analyze_clipper_project',
   'approve_social_draft',
   'control_scheduled_release',
   'create_ad_remix_workflow',
   'create_article_draft',
   'publish_article',
-  'create_clip_project_from_youtube',
+  'create_clipper_project_from_youtube',
   'create_instagram_remix_workflow',
   'create_post',
   'create_scheduled_release',
-  'generate_clips',
+  'run_clipper',
   'generate_turbo_content',
   'install_skills_pro_skill',
   'post_social_reply',
@@ -70,7 +70,7 @@ describe('mutation policy map', () => {
     expect(getToolByName('open_in_editor')).toMatchObject({
       creditCost: 0,
       mutationPolicy: 'direct',
-      toolset: 'clips',
+      toolset: 'clipper',
     });
     expect(isReadOnlyToolName('open_in_editor')).toBe(false);
     expect(toolRequiresMutationPolicy('open_in_editor')).toBe(true);

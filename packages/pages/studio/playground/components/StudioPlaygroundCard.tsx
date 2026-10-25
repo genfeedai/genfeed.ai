@@ -307,7 +307,7 @@ export default function StudioPlaygroundCard({
       <Link
         className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         href={href(
-          `${APP_ROUTES.STUDIO.CLIPS_NEW}?video=${job.ingredient?.id}`,
+          `${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${job.ingredient?.id}`,
         )}
       >
         <Scissors aria-hidden="true" className="size-3.5" />

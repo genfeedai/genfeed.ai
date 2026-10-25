@@ -28,12 +28,12 @@ import type {
   PersonaResponse,
 } from '@mcp/services/client/client.types';
 import {
-  type AnalyzeClipProjectParams,
-  ClipsClient,
-  type CreateClipProjectFromYoutubeParams,
+  type AnalyzeClipperProjectParams,
+  ClipperClient,
+  type CreateClipperProjectFromYoutubeParams,
   type GenerateClipsParams,
-  type ListClipProjectsParams,
-} from '@mcp/services/client/clips.client';
+  type ListClipperProjectsParams,
+} from '@mcp/services/client/clipper.client';
 import { ContentClient } from '@mcp/services/client/content.client';
 import {
   EditorClient,
@@ -135,7 +135,7 @@ export class ClientService {
   private readonly media: MediaClient;
   private readonly analytics: AnalyticsClient;
   private readonly content: ContentClient;
-  private readonly clips: ClipsClient;
+  private readonly clipper: ClipperClient;
   private readonly editor: EditorClient;
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
@@ -159,7 +159,7 @@ export class ClientService {
     this.media = new MediaClient(this.base);
     this.analytics = new AnalyticsClient(this.base);
     this.content = new ContentClient(this.base);
-    this.clips = new ClipsClient(this.base);
+    this.clipper = new ClipperClient(this.base);
     this.editor = new EditorClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
@@ -342,34 +342,34 @@ export class ClientService {
 
   // ── Clip projects (analyze / factory / highlights / generate / read) ──
 
-  analyzeClipProject(
-    params: AnalyzeClipProjectParams,
+  analyzeClipperProject(
+    params: AnalyzeClipperProjectParams,
   ): Promise<Record<string, unknown>> {
-    return this.clips.analyzeClipProject(params);
+    return this.clipper.analyzeClipperProject(params);
   }
 
-  createClipProjectFromYoutube(
-    params: CreateClipProjectFromYoutubeParams,
+  createClipperProjectFromYoutube(
+    params: CreateClipperProjectFromYoutubeParams,
   ): Promise<Record<string, unknown>> {
-    return this.clips.createClipProjectFromYoutube(params);
+    return this.clipper.createClipperProjectFromYoutube(params);
   }
 
-  getClipHighlights(projectId: string): Promise<Record<string, unknown>> {
-    return this.clips.getClipHighlights(projectId);
+  getClipperHighlights(projectId: string): Promise<Record<string, unknown>> {
+    return this.clipper.getClipperHighlights(projectId);
   }
 
-  getClipProject(projectId: string): Promise<Record<string, unknown>> {
-    return this.clips.getClipProject(projectId);
+  getClipperProject(projectId: string): Promise<Record<string, unknown>> {
+    return this.clipper.getClipperProject(projectId);
   }
 
   generateClips(params: GenerateClipsParams): Promise<Record<string, unknown>> {
-    return this.clips.generateClips(params);
+    return this.clipper.generateClips(params);
   }
 
-  listClipProjects(
-    params: ListClipProjectsParams = {},
+  listClipperProjects(
+    params: ListClipperProjectsParams = {},
   ): Promise<Array<Record<string, unknown>>> {
-    return this.clips.listClipProjects(params);
+    return this.clipper.listClipperProjects(params);
   }
 
   openInEditor(params: OpenInEditorParams): Promise<Record<string, unknown>> {

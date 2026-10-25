@@ -349,7 +349,7 @@ test('core CLI and sharding consume the same canonical selectors', () => {
   assert.ok(
     args.includes('playwright/e2e/tests/shell/page-context-contract.spec.ts'),
   );
-  assert.ok(args.includes('playwright/e2e/tests/studio/clips.spec.ts'));
+  assert.ok(args.includes('playwright/e2e/tests/studio/clipper.spec.ts'));
   assert.ok(args.includes('--project=app-core'));
 });
 

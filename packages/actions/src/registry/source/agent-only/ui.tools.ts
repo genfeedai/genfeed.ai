@@ -112,7 +112,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Prepare a guided clip run card for X/Twitter-first video creation. Creates a conversation card with step controls for generate -> optional merge -> portrait reframe -> publish handoff. Use when users ask for 30-second clips, AI clone videos, or multi-step workflow-controlled video runs.',
-    name: 'prepare_clip_workflow_run',
+    name: 'prepare_clipper_workflow_run',
     parameters: {
       properties: {
         autonomousMode: {

@@ -1137,8 +1137,8 @@
           "label": "Motion",
           "description": "Create and render motion projects."
         },
-        "clips": {
-          "label": "Clips",
+        "clipper": {
+          "label": "Clipper",
           "description": "Turn long videos and audio into clips."
         },
         "turbo": {
@@ -2634,8 +2634,8 @@
       "label": "Motion",
       "description": "Compose animated visuals."
     },
-    "clips": {
-      "label": "Clips",
+    "clipper": {
+      "label": "Clipper",
       "description": "Cut highlights from long videos."
     },
     "editor": {

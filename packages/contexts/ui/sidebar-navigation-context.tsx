@@ -63,7 +63,7 @@ function stripOrgPrefix(path: string): string {
       'storyboard',
       'turbo',
       'motion',
-      'clips',
+      'clipper',
       'editor',
       'settings',
       'agent',

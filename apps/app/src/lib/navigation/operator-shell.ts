@@ -28,7 +28,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'storyboard',
   'turbo',
   'motion',
-  'clips',
+  'clipper',
   'editor',
   'settings',
   'agents',

@@ -106,9 +106,9 @@ describe('TurboRunReviewService.getReviewInboxSummary', () => {
           continuityQa: {
             clips: [],
             completedAt: '2026-08-12T10:59:00.000Z',
-            projectId: 'clip-project-1',
+            projectId: 'clipper-project-1',
             referenceAssetIds: { character: [], product: [] },
-            runId: 'clip-run-1',
+            runId: 'clipper-run-1',
             schemaVersion: 1,
             status: 'skipped',
             summary: {
@@ -135,7 +135,7 @@ describe('TurboRunReviewService.getReviewInboxSummary', () => {
     expect(summary.recentItems).toHaveLength(1);
     expect(summary.recentItems[0]?.id).toBe('ready-new');
     expect(summary.recentItems[0]?.continuityQa).toMatchObject({
-      runId: 'clip-run-1',
+      runId: 'clipper-run-1',
       status: 'skipped',
     });
   });

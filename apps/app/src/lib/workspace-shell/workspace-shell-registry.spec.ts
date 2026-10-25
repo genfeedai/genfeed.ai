@@ -96,9 +96,9 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/motion', 'Motion', 'Compositions'],
     ['/acme/moonrise/turbo', 'Turbo', 'Projects'],
     ['/acme/moonrise/turbo/new', 'Turbo', 'New project'],
-    ['/acme/moonrise/clips', 'Clips', 'Projects'],
-    ['/acme/moonrise/clips/new', 'Clips', 'New project'],
-    ['/acme/moonrise/clips/project-1', 'Clips', 'Project'],
+    ['/acme/moonrise/clipper', 'Clipper', 'Projects'],
+    ['/acme/moonrise/clipper/new', 'Clipper', 'New project'],
+    ['/acme/moonrise/clipper/project-1', 'Clipper', 'Project'],
     ['/acme/moonrise/storyboard', 'Storyboard', 'Runs'],
     ['/acme/moonrise/storyboard/new', 'Storyboard', 'New storyboard'],
     ['/acme/moonrise/storyboard/run-1', 'Storyboard', 'Run'],
@@ -193,7 +193,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/library/references', 'canvas'],
     ['/:orgSlug/:brandSlug/turbo', 'canvas'],
     ['/:orgSlug/:brandSlug/turbo/new', 'canvas'],
-    ['/:orgSlug/:brandSlug/clips', 'canvas'],
+    ['/:orgSlug/:brandSlug/clipper', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
     ['/:orgSlug/:brandSlug/platforms/:platform', 'canvas'],
     ['/:orgSlug/~/settings/subscription', 'canvas'],
@@ -253,7 +253,12 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('activates the Studio adapter across production surfaces only', () => {
-    for (const surface of ['clips', 'storyboard', 'turbo', 'turbo/project-1']) {
+    for (const surface of [
+      'clipper',
+      'storyboard',
+      'turbo',
+      'turbo/project-1',
+    ]) {
       expect(
         resolveWorkspaceShellRoute(`/acme/moonrise/${surface}`),
       ).toMatchObject({

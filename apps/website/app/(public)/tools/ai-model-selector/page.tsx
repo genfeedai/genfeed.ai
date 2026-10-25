@@ -73,7 +73,7 @@ export default async function AiModelSelectorPage(): Promise<React.ReactElement>
           </Link>
           <Link
             className="underline underline-offset-4"
-            href="/tools/youtube-clips"
+            href="/tools/youtube-clipper"
           >
             YouTube clips
           </Link>

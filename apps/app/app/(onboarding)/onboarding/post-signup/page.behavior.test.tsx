@@ -16,7 +16,7 @@ const {
   captureAnalyticsEventMock,
   captureBrandOsFunnelStageMock,
   claimBrandOsPreviewMock,
-  claimPublicYoutubeClipMock,
+  claimPublicYoutubeClipperMock,
   claimReferralMock,
   createCheckoutSessionMock,
   currentUserState,
@@ -36,7 +36,7 @@ const {
   captureAnalyticsEventMock: vi.fn(),
   captureBrandOsFunnelStageMock: vi.fn(),
   claimBrandOsPreviewMock: vi.fn(),
-  claimPublicYoutubeClipMock: vi.fn(),
+  claimPublicYoutubeClipperMock: vi.fn(),
   claimReferralMock: vi.fn(),
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
@@ -68,7 +68,8 @@ const {
 vi.mock('@/lib/analytics', () => ({
   ANALYTICS_EVENTS: {
     CHECKOUT_STARTED: 'checkout_started',
-    PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED: 'public_youtube_clip_project_claimed',
+    PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED:
+      'public_youtube_clipper_project_claimed',
     SIGNUP_COMPLETED: 'signup_completed',
   },
   captureAnalyticsEvent: captureAnalyticsEventMock,
@@ -180,10 +181,10 @@ vi.mock('@services/social/brands.service', () => ({
   },
 }));
 
-vi.mock('@services/content/clip-projects.service', () => ({
-  ClipProjectsService: {
+vi.mock('@services/content/clipper-projects.service', () => ({
+  ClipperProjectsService: {
     getInstance: vi.fn(() => ({
-      claimPublicYoutubeClip: claimPublicYoutubeClipMock,
+      claimPublicYoutubeClipper: claimPublicYoutubeClipperMock,
     })),
   },
 }));
@@ -231,7 +232,7 @@ describe('PostSignupPage behavior', () => {
     captureAnalyticsEventMock.mockReset();
     captureBrandOsFunnelStageMock.mockReset();
     claimBrandOsPreviewMock.mockReset();
-    claimPublicYoutubeClipMock.mockReset();
+    claimPublicYoutubeClipperMock.mockReset();
     claimReferralMock.mockReset();
     recordSignupAttributionMock.mockReset();
     recordSignupAttributionMock.mockResolvedValue(undefined);
@@ -280,8 +281,8 @@ describe('PostSignupPage behavior', () => {
       id: 'brand-1',
       status: 'claimed',
     });
-    claimPublicYoutubeClipMock.mockResolvedValue({
-      projectId: 'clip-project-1',
+    claimPublicYoutubeClipperMock.mockResolvedValue({
+      projectId: 'clipper-project-1',
       status: 'claimed',
     });
     claimReferralMock.mockResolvedValue({
@@ -365,21 +366,23 @@ describe('PostSignupPage behavior', () => {
     expect(locationState.href).toBe('/acme/acme-brand/settings/brand-kit');
   });
 
-  it('claims an opaque clip-tool token and routes into the Studio project', async () => {
+  it('claims an opaque clipper-tool token and routes into the Studio project', async () => {
     const token = 'b'.repeat(43);
     searchParamsState.value = new URLSearchParams({ clipToolToken: token });
 
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(claimPublicYoutubeClipMock).toHaveBeenCalledWith({
+      expect(claimPublicYoutubeClipperMock).toHaveBeenCalledWith({
         brandId: 'brand-1',
         previewToken: token,
       });
     });
-    expect(locationState.href).toBe('/acme/acme-brand/clips/clip-project-1');
+    expect(locationState.href).toBe(
+      '/acme/acme-brand/clipper/clipper-project-1',
+    );
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
-      'public_youtube_clip_project_claimed',
+      'public_youtube_clipper_project_claimed',
       { source: 'public_preview' },
     );
   });

@@ -162,7 +162,7 @@ describe('extension API route contract', () => {
         '/ai/improve-tweet',
         '/ai/generate',
         '/posts/save',
-        '/clip-projects/analyze',
+        '/clipper-projects/analyze',
         '/videos/create',
         '/auth/validate',
         // The legacy source-import routes were hard-cut for Imported sources (#5859).

@@ -193,7 +193,7 @@ export function WorkspaceOverviewSidebar({
                             className="text-xs text-foreground/55"
                           >
                             <p>
-                              {translate('clipContinuitySummary', {
+                              {translate('clipperContinuitySummary', {
                                 character: clip.character.verdict,
                                 index: clip.clipIndex + 1,
                                 outfit: clip.outfit.verdict,

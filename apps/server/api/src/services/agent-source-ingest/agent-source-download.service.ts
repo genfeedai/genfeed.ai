@@ -8,7 +8,7 @@ import type {
   AgentSourceJobObservation,
 } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/contracts/constants';
+import { CLIPPER_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -352,7 +352,7 @@ export class AgentSourceDownloadService {
       await onJobQueued?.(expectedJobId);
       await this.enqueueYoutube(url, ingredientId, context, baseUrl);
     }
-    const deadline = Date.now() + CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS;
+    const deadline = Date.now() + CLIPPER_AUDIO_EXTRACTION_JOB_TIMEOUT_MS;
     let requeuedMissingJob = false;
     while (Date.now() < deadline) {
       let envelope: Record<string, unknown>;

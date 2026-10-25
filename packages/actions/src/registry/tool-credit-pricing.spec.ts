@@ -213,19 +213,19 @@ describe('tool credit pricing', () => {
         mode: 'fixed',
       },
     });
-    const analysis = pricingOf('analyze_clip_project');
+    const analysis = pricingOf('analyze_clipper_project');
     expect(analysis).toEqual({ amount: 0, mode: 'fixed' });
     expect(
       isSpendingCreditPricing(
         analysis,
-        getToolByName('analyze_clip_project')?.creditCost ?? 0,
+        getToolByName('analyze_clipper_project')?.creditCost ?? 0,
       ),
     ).toBe(false);
     // A HeyGen avatar clip is held per second; raw-cut holds nothing.
     const avatarV = SELF_HOSTED_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_V,
     );
-    for (const name of ['generate_clips', 'create_clip_project_from_youtube']) {
+    for (const name of ['run_clipper', 'create_clipper_project_from_youtube']) {
       expect(pricingOf(name)).toEqual({
         maximum: avatarV && 'costPerUnit' in avatarV ? avatarV.costPerUnit : -1,
         minimum: 0,

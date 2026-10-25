@@ -32,8 +32,8 @@
       "label": "Storyboard",
       "description": "Multi-scene storyboard runs with characters and per-scene generation."
     },
-    "clips": {
-      "label": "Clips",
+    "clipper": {
+      "label": "Clipper",
       "description": "Long-form video ingestion, highlight detection and short clip generation."
     },
     "turbo": {
@@ -104,8 +104,8 @@
       "label": "Release Motion",
       "description": "Animated visuals authored as code."
     },
-    "release_clips": {
-      "label": "Release Clips",
+    "release_clipper": {
+      "label": "Release Clipper",
       "description": "Highlights cut from long videos and audio."
     },
     "release_editor": {

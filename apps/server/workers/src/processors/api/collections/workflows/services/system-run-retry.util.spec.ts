@@ -24,7 +24,7 @@ describe('isRetryableSystemRunError', () => {
   });
 
   it.each([
-    'System workflow clip.factory failed',
+    'System workflow clipper.factory failed',
     'Unknown system workflow: nope.nope',
     'Nodes failed: publish: Forbidden',
     'Nodes failed: load: Brand brand-1 not found',

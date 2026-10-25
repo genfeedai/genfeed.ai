@@ -4,7 +4,7 @@ import {
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type {
-  AgentClipRunIdentity,
+  AgentClipperRunIdentity,
   GenerationExecutionDimensions,
 } from '@genfeedai/contracts/interfaces';
 
@@ -45,7 +45,7 @@ export function buildAgentGenerationRequestBody({
   brandId?: string;
   duration?: number;
   endFrame?: string;
-  identity?: AgentClipRunIdentity;
+  identity?: AgentClipperRunIdentity;
   modelKey?: string;
   outputs?: number;
   prioritize?: RouterPriority;

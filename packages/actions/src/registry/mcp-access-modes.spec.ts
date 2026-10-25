@@ -89,7 +89,7 @@ describe('Claude MCP access policy', () => {
     for (const name of CLAUDE_MCP_TOOL_NAMES) {
       expect(catalog.has(name), name).toBe(true);
       expect([
-        'clips',
+        'clipper',
         'visual-code',
         'workflows',
         'inspiration',

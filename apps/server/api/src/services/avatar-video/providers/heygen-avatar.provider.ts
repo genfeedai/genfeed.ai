@@ -94,7 +94,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
         speech: { provider: 'heygen', externalVoiceId: voice.voiceId },
         submissionId: input.callbackId,
       };
-      const persisted = await this.prisma.clipResult.updateMany({
+      const persisted = await this.prisma.clipperResult.updateMany({
         where: {
           id: input.callbackId,
           organizationId: input.organizationId,
@@ -199,7 +199,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
             })
           : null;
       const clip = !ingredient
-        ? await this.prisma.clipResult.findFirst({
+        ? await this.prisma.clipperResult.findFirst({
             where: { providerJobId: jobId, organizationId, isDeleted: false },
             select: { generationProvider: true },
           })

@@ -82,7 +82,7 @@ describe('OrganizationAppsReportService', () => {
         settings: {
           isReleasePreviewEnabled: true,
           moduleOverrides: {},
-          releasedItemIds: ['clips'],
+          releasedItemIds: ['clipper'],
           subscriptionTier: null,
         },
         slug: 'preview-org',

@@ -5,12 +5,12 @@ import {
   expectNoErrorOverlay,
 } from '../../utils/route-assertions';
 
-const CLIPS_ROUTE = '/test-org/brand-1/clips';
-const CLIPS_PROJECT_ID = '000000000000000000009876';
+const CLIPPER_ROUTE = '/test-org/brand-1/clipper';
+const CLIPPER_PROJECT_ID = '000000000000000000009876';
 const YOUTUBE_URL = 'https://www.youtube.com/watch?v=abc12345678';
 
 async function openSourceImport(page: Page): Promise<void> {
-  await assertRouteRenders(page, `${CLIPS_ROUTE}/new`);
+  await assertRouteRenders(page, `${CLIPPER_ROUTE}/new`);
   await expect(page.getByLabel(/youtube url/i)).toBeVisible();
 }
 
@@ -21,7 +21,7 @@ test.describe('Studio clip source import — deep interactions', () => {
     authenticatedPage: page,
   }) => {
     const draftRequests: string[] = [];
-    await page.route('**/clip-projects/drafts', async (route) => {
+    await page.route('**/clipper-projects/drafts', async (route) => {
       draftRequests.push(route.request().method());
       await route.fulfill({
         json: { message: 'Unexpected draft creation' },
@@ -29,7 +29,7 @@ test.describe('Studio clip source import — deep interactions', () => {
       });
     });
     await openSourceImport(page);
-    await expect(page).toHaveURL(new RegExp(`${CLIPS_ROUTE}/new$`));
+    await expect(page).toHaveURL(new RegExp(`${CLIPPER_ROUTE}/new$`));
     await expect(
       page.getByRole('heading', { name: /import a clip source/i }),
     ).toBeVisible();
@@ -64,16 +64,16 @@ test.describe('Studio clip source import — deep interactions', () => {
   }) => {
     const requests: Record<string, unknown>[] = [];
     const generationRequests: string[] = [];
-    await page.route('**/clip-projects/analyze', async (route) => {
+    await page.route('**/clipper-projects/analyze', async (route) => {
       requests.push(route.request().postDataJSON());
       await route.fulfill({
-        json: { projectId: CLIPS_PROJECT_ID, status: 'analyzing' },
+        json: { projectId: CLIPPER_PROJECT_ID, status: 'analyzing' },
         status: 202,
       });
     });
     for (const path of [
-      '**/clip-projects/from-youtube',
-      '**/clip-projects/*/generate',
+      '**/clipper-projects/from-youtube',
+      '**/clipper-projects/*/generate',
     ]) {
       await page.route(path, async (route) => {
         generationRequests.push(route.request().url());
@@ -83,30 +83,30 @@ test.describe('Studio clip source import — deep interactions', () => {
         });
       });
     }
-    await page.route(`**/clip-projects/${CLIPS_PROJECT_ID}`, (route) =>
+    await page.route(`**/clipper-projects/${CLIPPER_PROJECT_ID}`, (route) =>
       route.fulfill({
         json: {
           data: {
-            id: CLIPS_PROJECT_ID,
-            type: 'clip-projects',
+            id: CLIPPER_PROJECT_ID,
+            type: 'clipper-projects',
             attributes: { status: 'analyzing', sourceVideoUrl: YOUTUBE_URL },
           },
         },
       }),
     );
     await page.route(
-      `**/clip-projects/${CLIPS_PROJECT_ID}/highlights`,
+      `**/clipper-projects/${CLIPPER_PROJECT_ID}/highlights`,
       (route) =>
         route.fulfill({
           json: {
-            projectId: CLIPS_PROJECT_ID,
+            projectId: CLIPPER_PROJECT_ID,
             highlights: [],
             status: 'analyzing',
           },
         }),
     );
     await page.route(
-      `**/clip-projects/${CLIPS_PROJECT_ID}/hook-approval`,
+      `**/clipper-projects/${CLIPPER_PROJECT_ID}/hook-approval`,
       (route) =>
         route.fulfill({
           json: { attempt: 0, remainingClipCount: 0, state: 'not_required' },
@@ -116,7 +116,7 @@ test.describe('Studio clip source import — deep interactions', () => {
     await page.getByLabel(/youtube url/i).fill(YOUTUBE_URL);
     await page.getByRole('button', { name: /import & transcribe/i }).click();
     await expect(page).toHaveURL(
-      new RegExp(`${CLIPS_ROUTE}/${CLIPS_PROJECT_ID}$`),
+      new RegExp(`${CLIPPER_ROUTE}/${CLIPPER_PROJECT_ID}$`),
     );
     await expect(
       page

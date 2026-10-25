@@ -57,7 +57,7 @@ describe('agent readiness metadata', () => {
       'https://genfeed.ai/tools/ai-model-selector',
     );
     expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
-      'https://genfeed.ai/tools/youtube-clips',
+      'https://genfeed.ai/tools/youtube-clipper',
     );
     expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
       'https://genfeed.ai/tools/youtube-long-form',

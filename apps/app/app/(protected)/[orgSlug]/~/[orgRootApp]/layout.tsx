@@ -12,7 +12,7 @@ import type {
 
 const SCOPES: Readonly<Record<string, IntlMessageTree>> = {
   automation,
-  clips: studio,
+  clipper: studio,
   editor: studio,
   library,
   messages,

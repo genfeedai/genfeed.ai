@@ -1,6 +1,6 @@
 import type { VideoEaseCurve, VideoTransition } from '@genfeedai/contracts';
 import type {
-  ClipReferenceFrameSet,
+  ClipperReferenceFrameSet,
   IEditorRenderCorrelation,
   IEditorRenderJobParams,
 } from '@genfeedai/contracts/interfaces';
@@ -258,7 +258,7 @@ export interface JobProgress {
 
 export interface JobResult {
   success: boolean;
-  referenceFrames?: ClipReferenceFrameSet;
+  referenceFrames?: ClipperReferenceFrameSet;
   jobId?: string;
   jobType?: string;
   outputPath?: string;

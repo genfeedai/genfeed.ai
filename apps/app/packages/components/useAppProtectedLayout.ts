@@ -138,7 +138,7 @@ export function useAppProtectedLayout(
   // Dense studio canvases + mission-control runs: hide shell low-credits strip
   // so it does not steal vertical space under fixed chrome.
   const suppressShellLowCreditsBanner =
-    /^\/(clips|storyboard)(?:\/|$)/.test(pathname) ||
+    /^\/(clipper|storyboard)(?:\/|$)/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);

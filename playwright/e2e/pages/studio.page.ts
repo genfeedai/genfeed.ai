@@ -13,7 +13,7 @@ import { expect } from '@playwright/test';
  *
  * @module studio.page
  */
-export type StudioSurface = 'storyboard' | 'clips' | 'batch' | 'fastlane';
+export type StudioSurface = 'storyboard' | 'clipper' | 'batch' | 'fastlane';
 
 export class StudioPage {
   readonly page: Page;

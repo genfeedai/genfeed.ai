@@ -20,7 +20,7 @@ export type ToolUiActionType =
   | 'trending_topics_card'
   | 'review_gate_card'
   | 'studio_handoff_card'
-  | 'clip_workflow_run_card'
+  | 'clipper_workflow_run_card'
   | 'workflow_trigger_card'
   | 'image_transform_card'
   | 'schedule_post_card'

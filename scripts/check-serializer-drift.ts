@@ -543,12 +543,12 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'user',
   ],
   'camera:ElementCamera': ['category', 'isPlatformDefault'],
-  'clip-project:ClipProject': [
+  'clipper-project:ClipperProject': [
     'transcriptSegments',
     'transcriptSrt',
     'videoMetadata',
   ],
-  'clip-result:ClipResult': [
+  'clipper-result:ClipperResult': [
     'clipType',
     'index',
     'providerName',

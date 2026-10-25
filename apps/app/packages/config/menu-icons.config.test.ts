@@ -46,7 +46,7 @@ const RAIL_MEANING: Record<string, string> = {
   agent: 'rail:agent',
   analytics: 'analytics',
   automation: 'workflows',
-  clips: 'clips',
+  clipper: 'clipper',
   editor: 'editor',
   library: 'ingredients',
   motion: 'motion',

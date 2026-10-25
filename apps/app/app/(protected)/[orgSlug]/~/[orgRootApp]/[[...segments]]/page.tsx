@@ -63,7 +63,7 @@ const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
 
 /** Org entries of the brand-scoped former Studio apps, by route segment. */
 const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
-  clips: APP_ROUTES.STUDIO.CLIPS,
+  clipper: APP_ROUTES.STUDIO.CLIPPER,
   motion: APP_ROUTES.STUDIO.MOTION,
   playground: APP_ROUTES.STUDIO.PLAYGROUND,
   storyboard: APP_ROUTES.STUDIO.STORYBOARD,

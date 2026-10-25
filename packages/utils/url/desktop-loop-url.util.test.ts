@@ -5,7 +5,7 @@ import type {
 } from '@genfeedai/props/trends/trends-page.props';
 import {
   buildAgentPromptHref,
-  buildClipDraftAgentHref,
+  buildClipperDraftAgentHref,
   buildPostAnalyticsHref,
   buildSourcePostVariationsHref,
   buildTrendAgentHref,
@@ -22,7 +22,7 @@ describe('desktop-loop-url.util', () => {
   });
 
   it('keeps signed clip media URLs out of Agent prompts', () => {
-    const href = buildClipDraftAgentHref({
+    const href = buildClipperDraftAgentHref({
       description: 'A launch clip',
       ingredientId: 'ingredient-1',
       mediaUrl: 'https://storage.example/clip.mp4?X-Goog-Signature=secret',

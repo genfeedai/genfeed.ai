@@ -51,7 +51,7 @@ const UI_ACTION_MAP: Partial<
   list_review_queue: 'review_gate_card',
   open_studio_handoff: 'studio_handoff_card',
   pause_outreach_sequence: 'outreach_sequence_control_card',
-  prepare_clip_workflow_run: 'clip_workflow_run_card',
+  prepare_clipper_workflow_run: 'clipper_workflow_run_card',
   prepare_generation: 'generation_action_card',
   prepare_workflow_trigger: 'workflow_trigger_card',
   rename_brand: 'brand_identity_confirmation_card',

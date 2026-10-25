@@ -310,9 +310,9 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
         ],
         completedAt: '2026-01-01T00:59:00.000Z',
         modelKey: 'openai/gpt-4.1-mini',
-        projectId: 'clip-project-task',
+        projectId: 'clipper-project-task',
         referenceAssetIds: { character: ['face-1'], product: [] },
-        runId: 'clip-run-task',
+        runId: 'clipper-run-task',
         schemaVersion: 1,
         status: 'completed',
         summary: {
@@ -664,12 +664,12 @@ describe('WorkspacePageContent', () => {
                 ],
                 completedAt: '2026-01-01T04:59:00.000Z',
                 modelKey: 'openai/gpt-4.1-mini',
-                projectId: 'clip-project-1',
+                projectId: 'clipper-project-1',
                 referenceAssetIds: {
                   character: ['face-1'],
                   product: [],
                 },
-                runId: 'clip-run-1',
+                runId: 'clipper-run-1',
                 schemaVersion: 1,
                 status: 'completed',
                 summary: {

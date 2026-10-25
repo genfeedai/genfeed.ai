@@ -63,7 +63,7 @@ const ORIGINAL_NAMES = [
   'replyDrip',
   'socialIntelligence',
   'socialWarmup',
-  'studioClips',
+  'studioClipper',
   'studioEditor',
   'studioEditorLock',
   'studioMotion',

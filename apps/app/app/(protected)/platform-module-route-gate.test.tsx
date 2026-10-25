@@ -60,15 +60,15 @@ describe('PlatformModuleRouteGate (#5468)', () => {
   });
 
   it('blocks disabled Clips creation for regular users', () => {
-    state.flags = { clips: false };
-    state.pathname = '/acme/brand/clips/new';
+    state.flags = { clipper: false };
+    state.pathname = '/acme/brand/clipper/new';
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
   });
 
   it('preserves superadmin inspection of disabled Clips creation', () => {
-    state.flags = { clips: false };
+    state.flags = { clipper: false };
     state.isSuperAdmin = true;
-    state.pathname = '/acme/brand/clips/new';
+    state.pathname = '/acme/brand/clipper/new';
     renderGate();
     expect(screen.getByText('module content')).toBeInTheDocument();
   });

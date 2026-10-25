@@ -780,7 +780,7 @@ describe('UploadService', () => {
 
       const result = await service.uploadToS3('test-key', 'videos', {
         type: 'url',
-        url: 'https://example.com/clips/12345',
+        url: 'https://example.com/clipper/12345',
       });
 
       expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalled();

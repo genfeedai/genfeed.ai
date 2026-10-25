@@ -343,7 +343,7 @@ describe('AppProtectedRail', () => {
           automation: false,
           messages: false,
           discovery: true,
-          clips: false,
+          clipper: false,
         }),
       }),
     );
@@ -364,7 +364,7 @@ describe('AppProtectedRail', () => {
         installedAppIds: ['playground', 'turbo'],
         moduleAccess: expect.objectContaining({
           playground: { isAllowed: true, reason: null },
-          clips: { isAllowed: false, reason: 'unreleased' },
+          clipper: { isAllowed: false, reason: 'unreleased' },
         }),
       }),
     );
@@ -383,13 +383,13 @@ describe('AppProtectedRail', () => {
     brandContextState.settings = {
       hasOrganizationBilling: true,
       isReleasePreviewEnabled: true,
-      moduleOverrides: { clips: true },
+      moduleOverrides: { clipper: true },
     };
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         moduleAccess: expect.objectContaining({
-          clips: { isAllowed: true, reason: null },
+          clipper: { isAllowed: true, reason: null },
         }),
       }),
     );
@@ -401,20 +401,20 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         moduleAccess: expect.objectContaining({
-          clips: { isAllowed: false, reason: 'unreleased' },
+          clipper: { isAllowed: false, reason: 'unreleased' },
         }),
       }),
     );
   });
 
   it('highlights from the current pathname', () => {
-    mockPathname.value = '/acme/brand/clips';
+    mockPathname.value = '/acme/brand/clipper';
 
     render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
 
     expect(screen.getByTestId('app-rail')).toBeInTheDocument();
     expect(appRailSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ currentPath: '/acme/brand/clips' }),
+      expect.objectContaining({ currentPath: '/acme/brand/clipper' }),
     );
   });
 

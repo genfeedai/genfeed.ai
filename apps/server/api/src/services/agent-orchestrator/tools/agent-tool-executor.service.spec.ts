@@ -4706,7 +4706,7 @@ describe('AgentToolExecutorService', () => {
     expect(turboRunService.processTurboRun).not.toHaveBeenCalled();
   });
 
-  it('should return clip_workflow_run_card from prepare_clip_workflow_run', async () => {
+  it('should return clipper_workflow_run_card from prepare_clipper_workflow_run', async () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findAll.mockResolvedValue({
@@ -4721,7 +4721,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'prepare_clip_workflow_run',
+      'prepare_clipper_workflow_run',
       {
         durationSeconds: 30,
         mergeGeneratedVideos: true,
@@ -4735,9 +4735,9 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(result.nextActions).toHaveLength(1);
-    expect(result.nextActions?.[0].type).toBe('clip_workflow_run_card');
+    expect(result.nextActions?.[0].type).toBe('clipper_workflow_run_card');
     expect(result.nextActions?.[0].workflowId).toBe(testId('clipworkflow'));
-    expect(result.nextActions?.[0].clipRun).toEqual(
+    expect(result.nextActions?.[0].clipperRun).toEqual(
       expect.objectContaining({
         durationSeconds: 30,
         format: 'landscape',
@@ -4746,7 +4746,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should resolve brand HeyGen defaults for prepare_clip_workflow_run', async () => {
+  it('should resolve brand HeyGen defaults for prepare_clipper_workflow_run', async () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
@@ -4759,7 +4759,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      'prepare_clip_workflow_run',
+      'prepare_clipper_workflow_run',
       {
         prompt: 'Generate a defaulted clip',
       },
@@ -4771,7 +4771,7 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     const action = result.nextActions?.[0];
-    expect(action?.clipRun?.identity).toEqual(
+    expect(action?.clipperRun?.identity).toEqual(
       expect.objectContaining({
         avatarId: 'brand-avatar-1',
         isComplete: true,
@@ -4779,7 +4779,7 @@ describe('AgentToolExecutorService', () => {
         voiceId: 'brand-voice-1',
       }),
     );
-    expect(action?.clipRun?.inputValues).toEqual(
+    expect(action?.clipperRun?.inputValues).toEqual(
       expect.objectContaining({
         avatarId: 'brand-avatar-1',
         heygenAvatarId: 'brand-avatar-1',
@@ -4788,7 +4788,7 @@ describe('AgentToolExecutorService', () => {
         voiceId: 'brand-voice-1',
       }),
     );
-    expect(action?.clipRunState).toEqual(
+    expect(action?.clipperRunState).toEqual(
       expect.objectContaining({
         identity: expect.objectContaining({
           avatarId: 'brand-avatar-1',
@@ -4823,7 +4823,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      'prepare_clip_workflow_run',
+      'prepare_clipper_workflow_run',
       {
         prompt: 'Generate a mixed-default clip',
       },
@@ -4833,7 +4833,7 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    const identity = result.nextActions?.[0].clipRun?.identity;
+    const identity = result.nextActions?.[0].clipperRun?.identity;
     expect(identity).toEqual(
       expect.objectContaining({
         avatarId: 'brand-avatar-2',
@@ -4851,7 +4851,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      'prepare_clip_workflow_run',
+      'prepare_clipper_workflow_run',
       {
         prompt: 'Generate a clip without defaults',
       },
@@ -4865,14 +4865,14 @@ describe('AgentToolExecutorService', () => {
     expect(action?.description).toContain(
       'Clip identity defaults are incomplete',
     );
-    expect(action?.clipRun?.identity).toEqual(
+    expect(action?.clipperRun?.identity).toEqual(
       expect.objectContaining({
         isComplete: false,
         missing: ['avatar', 'voice'],
         source: 'missing',
       }),
     );
-    expect(action?.clipRun?.inputValues).toEqual(
+    expect(action?.clipperRun?.inputValues).toEqual(
       expect.objectContaining({
         identityStatus: 'missing_identity',
         missingIdentity: ['avatar', 'voice'],

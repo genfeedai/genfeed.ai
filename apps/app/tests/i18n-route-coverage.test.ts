@@ -1162,7 +1162,7 @@ describe('all current route namespace delivery', () => {
             'storyboard',
             'turbo',
             'motion',
-            'clips',
+            'clipper',
             'editor',
             'messages',
             'publishing',

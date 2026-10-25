@@ -22,4 +22,4 @@ export const BRAND_FROM_URL_CREDIT_COST = 1;
 export const BRAND_INTERVIEW_CREDIT_COST = 10;
 
 /** Schema maximum for highlight and clip counts on the clip tools. */
-export const CLIP_HIGHLIGHT_COUNT_MAXIMUM = 30;
+export const CLIPPER_HIGHLIGHT_COUNT_MAXIMUM = 30;

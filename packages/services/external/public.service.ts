@@ -8,7 +8,7 @@ import type {
   IBrandOsPreviewRequest,
   IPaginatedResponse,
   IPlatformFlags,
-  IPublicYoutubeClipToolSession,
+  IPublicYoutubeClipperToolSession,
   IPublicYoutubeLongFormToolResult,
   IQueryParams,
   PublicYoutubeLongFormOutputType,
@@ -186,18 +186,18 @@ export class PublicService extends HTTPBaseService {
       .then((res) => deserializeResource<IBrandOsPreview>(res.data));
   }
 
-  public async createPublicYoutubeClip(
+  public async createPublicYoutubeClipper(
     youtubeUrl: string,
     idempotencyKey: string,
-  ): Promise<IPublicYoutubeClipToolSession> {
+  ): Promise<IPublicYoutubeClipperToolSession> {
     return await this.instance
       .post<JsonApiResponseDocument>(
-        'youtube-clips',
+        'youtube-clipper',
         { youtubeUrl },
         { headers: { 'Idempotency-Key': idempotencyKey } },
       )
       .then((res) =>
-        deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+        deserializeResource<IPublicYoutubeClipperToolSession>(res.data),
       );
   }
 
@@ -215,26 +215,29 @@ export class PublicService extends HTTPBaseService {
       );
   }
 
-  public async getPublicYoutubeClip(
+  public async getPublicYoutubeClipper(
     previewToken: string,
-  ): Promise<IPublicYoutubeClipToolSession> {
+  ): Promise<IPublicYoutubeClipperToolSession> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`youtube-clips/${previewToken}`)
+      .get<JsonApiResponseDocument>(`youtube-clipper/${previewToken}`)
       .then((res) =>
-        deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+        deserializeResource<IPublicYoutubeClipperToolSession>(res.data),
       );
   }
 
-  public async requestPublicYoutubeClipPreview(
+  public async requestPublicYoutubeClipperPreview(
     previewToken: string,
     recommendationId?: string,
-  ): Promise<IPublicYoutubeClipToolSession> {
+  ): Promise<IPublicYoutubeClipperToolSession> {
     return await this.instance
-      .post<JsonApiResponseDocument>(`youtube-clips/${previewToken}/preview`, {
-        ...(recommendationId ? { recommendationId } : {}),
-      })
+      .post<JsonApiResponseDocument>(
+        `youtube-clipper/${previewToken}/preview`,
+        {
+          ...(recommendationId ? { recommendationId } : {}),
+        },
+      )
       .then((res) =>
-        deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+        deserializeResource<IPublicYoutubeClipperToolSession>(res.data),
       );
   }
 

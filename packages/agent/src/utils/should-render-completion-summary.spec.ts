@@ -54,7 +54,7 @@ describe('shouldRenderCompletionSummary', () => {
       shouldRenderCompletionSummary(completion(), [
         {
           id: 'clip-1',
-          type: 'clip_run_card',
+          type: 'clipper_run_card',
           title: 'Clip ready',
         },
       ]),

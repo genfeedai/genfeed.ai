@@ -1,0 +1,71 @@
+import { describe, expect, it } from 'vitest';
+
+import { mapClipperProjectSummary } from './map-clipper-project-summary';
+
+describe('mapClipperProjectSummary', () => {
+  it('flattens JSON:API attributes into a list card model', () => {
+    expect(
+      mapClipperProjectSummary({
+        attributes: {
+          brandId: 'brand-1',
+          createdAt: '2026-08-20T10:00:00.000Z',
+          name: 'Podcast ep 12',
+          readyClipCount: 8,
+          settings: { mode: 'raw-cut' },
+          sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          status: 'completed',
+        },
+        id: 'project-1',
+      }),
+    ).toEqual({
+      brandId: 'brand-1',
+      createdAt: '2026-08-20T10:00:00.000Z',
+      failedClipCount: 0,
+      id: 'project-1',
+      isDraft: false,
+      mode: 'raw-cut',
+      name: 'Podcast ep 12',
+      pendingClipCount: 0,
+      progress: 0,
+      readyClipCount: 8,
+      sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      status: 'completed',
+    });
+  });
+
+  it('titles unnamed projects from the YouTube source', () => {
+    expect(
+      mapClipperProjectSummary({
+        id: 'project-2',
+        sourceVideoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        status: 'analyzing',
+      }),
+    ).toMatchObject({
+      id: 'project-2',
+      name: 'YouTube · dQw4w9WgXcQ',
+      status: 'analyzing',
+    });
+  });
+
+  it('marks drafts and previews the YouTube link saved in the draft', () => {
+    expect(
+      mapClipperProjectSummary({
+        attributes: {
+          draft: {
+            sourceKind: 'youtube',
+            youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          },
+          name: 'Clip draft — 2026-09-28',
+          status: 'draft',
+        },
+        id: 'draft-1',
+      }),
+    ).toMatchObject({
+      id: 'draft-1',
+      isDraft: true,
+      name: 'Clip draft — 2026-09-28',
+      sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      status: 'draft',
+    });
+  });
+});

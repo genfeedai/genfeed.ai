@@ -141,14 +141,14 @@ function fixture() {
     },
   });
 }
-const CLIP_DURATION_QUOTE = {
+const CLIPPER_DURATION_QUOTE = {
   estimatedSeconds: 2,
   snapshot: photoAnimationSnapshot(2),
 };
 const ACCEPTED_CLIP_PRICE = {
   billingMode: 'platform' as const,
-  credits: CLIP_DURATION_QUOTE.snapshot.credits,
-  durationQuote: CLIP_DURATION_QUOTE,
+  credits: CLIPPER_DURATION_QUOTE.snapshot.credits,
+  durationQuote: CLIPPER_DURATION_QUOTE,
   modelKey: 'heygen/avatar',
 };
 describe('canonical generated still to avatar boundary', () => {
@@ -228,7 +228,7 @@ describe('canonical generated still to avatar boundary', () => {
       'operation',
       expect.objectContaining({ key: 'scene-video-1' }),
       undefined,
-      CLIP_DURATION_QUOTE,
+      CLIPPER_DURATION_QUOTE,
     );
     // Accepted work is charged only once the provider output is usable.
     expect(billing.settle).not.toHaveBeenCalled();

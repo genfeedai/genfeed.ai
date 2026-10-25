@@ -1,6 +1,6 @@
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
-import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
+import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { LinksModule } from '@api/collections/links/links.module';
@@ -24,16 +24,16 @@ import { PublicPlatformFlagsController } from '@api/endpoints/public/controllers
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
-import { PublicYoutubeClipsController } from '@api/endpoints/public/controllers/youtube-clips/public-youtube-clips.controller';
+import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
 import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
-import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
+import { PublicYoutubeClipperService } from '@api/endpoints/public/services/public-youtube-clipper.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
-import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
+import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
@@ -51,14 +51,14 @@ import { Module } from '@nestjs/common';
     PublicPostsController,
     PublicRSSController,
     PublicVideosController,
-    PublicYoutubeClipsController,
+    PublicYoutubeClipperController,
     PublicYoutubeLongFormController,
   ],
   exports: [],
   imports: [
     ArticlesModule,
     BrandsCoreModule,
-    ClipProjectsCoreModule,
+    ClipperProjectsCoreModule,
     FilesClientModule,
     MediaUrlsModule,
     FileQueueModule,
@@ -72,14 +72,14 @@ import { Module } from '@nestjs/common';
     PlatformSettingsModule,
     PostsModule,
     ReferralsModule,
-    PublicClipToolStoreModule,
+    PublicClipperToolStoreModule,
     VideosModule,
     WorkflowsModule,
   ],
   providers: [
     NewsletterImportFeedService,
     PublicMediaService,
-    PublicYoutubeClipsService,
+    PublicYoutubeClipperService,
     RssService,
   ],
 })

@@ -240,7 +240,7 @@ describe('WorkflowExecutionProcessor', () => {
         type: 'system-run',
         organizationModuleContext: {
           organizationId: 'org-1',
-          moduleId: 'clips',
+          moduleId: 'clipper',
         },
         systemRun: {
           input: {
@@ -509,10 +509,10 @@ describe('WorkflowExecutionProcessor', () => {
             type: 'system-run',
             systemRun: {
               input: {
-                actionType: 'clip.factory',
-                canonicalId: 'clip.factory',
+                actionType: 'clipper.factory',
+                canonicalId: 'clipper.factory',
                 organizationId: 'org-1',
-                source: 'clip-analysis-completion',
+                source: 'clipper-analysis-completion',
               },
             },
           },
@@ -528,10 +528,10 @@ describe('WorkflowExecutionProcessor', () => {
 
     it('resolves the queued canonical identity through the system workflow runner', async () => {
       const input = {
-        actionType: 'clip-continuity',
-        canonicalId: 'clip-continuity:v1:1',
+        actionType: 'clipper-continuity',
+        canonicalId: 'clipper-continuity:v1:1',
         organizationId: 'org-1',
-        source: 'clip-generation-completion',
+        source: 'clipper-generation-completion',
       };
 
       await expect(
@@ -569,10 +569,10 @@ describe('WorkflowExecutionProcessor', () => {
         userId: 'user-1',
       });
       const input = {
-        actionType: 'clip.factory',
-        canonicalId: 'clip.factory',
+        actionType: 'clipper.factory',
+        canonicalId: 'clipper.factory',
         organizationId: 'org-1',
-        source: 'clip-analysis-completion',
+        source: 'clipper-analysis-completion',
       };
 
       await expect(
@@ -646,10 +646,10 @@ describe('WorkflowExecutionProcessor', () => {
         new Error('QA provider ETIMEDOUT'),
       );
       const input = {
-        actionType: 'clip-continuity',
-        canonicalId: 'clip.continuity',
+        actionType: 'clipper-continuity',
+        canonicalId: 'clipper.continuity',
         organizationId: 'org-1',
-        source: 'clip-generation-completion',
+        source: 'clipper-generation-completion',
         userId: 'user-1',
       };
 
@@ -659,7 +659,7 @@ describe('WorkflowExecutionProcessor', () => {
             {
               systemRun: {
                 failureWorkflow: {
-                  canonicalId: 'clip.continuity.failure',
+                  canonicalId: 'clipper.continuity.failure',
                   inputValues: { projectId: 'project-1' },
                 },
                 input,
@@ -681,10 +681,10 @@ describe('WorkflowExecutionProcessor', () => {
         new Error('QA failed'),
       );
       const input = {
-        actionType: 'clip-continuity',
-        canonicalId: 'clip.continuity',
+        actionType: 'clipper-continuity',
+        canonicalId: 'clipper.continuity',
         organizationId: 'org-1',
-        source: 'clip-generation-completion',
+        source: 'clipper-generation-completion',
         userId: 'user-1',
       };
 
@@ -694,7 +694,7 @@ describe('WorkflowExecutionProcessor', () => {
             {
               systemRun: {
                 failureWorkflow: {
-                  canonicalId: 'clip.continuity.failure',
+                  canonicalId: 'clipper.continuity.failure',
                   inputValues: {
                     projectId: 'project-1',
                     workflowError: 'stale queued error',
@@ -709,33 +709,33 @@ describe('WorkflowExecutionProcessor', () => {
         ),
       ).rejects.toThrow('QA failed');
       expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
-        actionType: 'clip.continuity.failure',
-        canonicalId: 'clip.continuity.failure',
+        actionType: 'clipper.continuity.failure',
+        canonicalId: 'clipper.continuity.failure',
         inputValues: { projectId: 'project-1', workflowError: 'QA failed' },
         metadata: {
-          failedCanonicalId: 'clip.continuity',
+          failedCanonicalId: 'clipper.continuity',
           failedJobId: 'job-1',
         },
         organizationId: 'org-1',
-        source: 'workflow-failure:clip.continuity',
+        source: 'workflow-failure:clipper.continuity',
         userId: 'user-1',
       });
     });
 
     describe('when compensation also fails (#6655)', () => {
       const input = {
-        actionType: 'clip.analysis',
-        canonicalId: 'clip.analysis',
+        actionType: 'clipper.analysis',
+        canonicalId: 'clipper.analysis',
         inputValues: { job: { orgId: 'org-1', projectId: 'project-1' } },
         organizationId: 'org-1',
-        source: 'clip-analysis',
+        source: 'clipper-analysis',
         userId: 'user-1',
       };
       const job = () =>
         createMockJob({
           systemRun: {
             failureWorkflow: {
-              canonicalId: 'clip.analysis.failure',
+              canonicalId: 'clipper.analysis.failure',
               inputValues: input.inputValues,
             },
             input,
@@ -758,7 +758,7 @@ describe('WorkflowExecutionProcessor', () => {
         );
 
         await expect(processor.process(job() as never)).rejects.toThrow(
-          'System workflow clip.analysis and registered failure workflow clip.analysis.failure both failed',
+          'System workflow clipper.analysis and registered failure workflow clipper.analysis.failure both failed',
         );
 
         expect(
@@ -771,8 +771,8 @@ describe('WorkflowExecutionProcessor', () => {
           'WorkflowExecutionProcessor workflow and failure workflow both failed',
           expect.any(AggregateError),
           {
-            canonicalId: 'clip.analysis',
-            failureCanonicalId: 'clip.analysis.failure',
+            canonicalId: 'clipper.analysis',
+            failureCanonicalId: 'clipper.analysis.failure',
             isSettled: true,
             jobId: 'job-1',
             organizationId: 'org-1',
@@ -792,7 +792,7 @@ describe('WorkflowExecutionProcessor', () => {
         expect(mockLogger.error).toHaveBeenCalledWith(
           'WorkflowExecutionProcessor terminal failure settlement failed',
           expect.any(Error),
-          { canonicalId: 'clip.analysis', jobId: 'job-1' },
+          { canonicalId: 'clipper.analysis', jobId: 'job-1' },
         );
         expect(mockLogger.error).toHaveBeenCalledWith(
           'WorkflowExecutionProcessor workflow and failure workflow both failed',
@@ -907,7 +907,7 @@ describe('WorkflowExecutionProcessor', () => {
                 type: 'system-run',
                 systemRun: {
                   input,
-                  failureWorkflow: { canonicalId: 'clip.analysis.failure' },
+                  failureWorkflow: { canonicalId: 'clipper.analysis.failure' },
                 },
               },
               { opts: { attempts: 3 } },

@@ -59,7 +59,7 @@ describe('native apps catalog (#5502)', () => {
 
   it('opens Edit and Clip in their specialist apps', () => {
     expect(NATIVE_SECONDARY_APPS.editor.contextualEntries).toEqual(['edit']);
-    expect(NATIVE_SECONDARY_APPS.clips.contextualEntries).toEqual(['clip']);
+    expect(NATIVE_SECONDARY_APPS.clipper.contextualEntries).toEqual(['clip']);
   });
 
   it('rejects unknown and inherited ids', () => {
@@ -167,8 +167,8 @@ describe('isWorkflowLibraryVisible', () => {
 describe('normalizeInstalledAppIds', () => {
   it('drops unknown and duplicate installed ids in stored order', () => {
     expect(
-      normalizeInstalledAppIds(['turbo', 'studio', 7, 'turbo', 'clips']),
-    ).toEqual(['turbo', 'clips']);
+      normalizeInstalledAppIds(['turbo', 'studio', 7, 'turbo', 'clipper']),
+    ).toEqual(['turbo', 'clipper']);
     expect(normalizeInstalledAppIds(null)).toEqual([]);
   });
 });

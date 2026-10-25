@@ -124,7 +124,7 @@ locals {
   # ALB. (Tune api/workers cpu up if boot/throughput needs it — these are lean
   # starting points.)
   # desired=0 keeps the service + task def defined (code stays, flip on anytime)
-  # but runs zero tasks => ~$0. Bots/clips are built but unused, so they're parked
+  # but runs zero tasks => ~$0. Bots/clipper are built but unused, so they're parked
   # at 0. Core set (api + its boot-required deps files/mcp/notifications, +
   # workers) runs at 1.
   services = {

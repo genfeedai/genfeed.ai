@@ -90,9 +90,9 @@ export const PAGE_MARKETING_ASSETS = {
     alt: 'A precision brushed-aluminum creative tool chest opened on a black workbench, camera lens, microphone and tactile media frames fitted into distinct compartments',
     src: cdnAsset('/assets/site/pages/tools.webp'),
   },
-  '/tools/youtube-clips': {
+  '/tools/youtube-clipper': {
     alt: 'A cinematic strip of unmarked film passes through a clean silver cutting gate and becomes three portrait-format photographic frames',
-    src: cdnAsset('/assets/site/pages/tools-youtube-clips.webp'),
+    src: cdnAsset('/assets/site/pages/tools-youtube-clipper.webp'),
   },
   '/tools/youtube-long-form': {
     alt: 'Photoreal cinema camera and softly lit storytelling storyboard of unmarked photographic frames arranged in a wide horizontal arc on a dark studio desk',

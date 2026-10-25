@@ -1,4 +1,4 @@
-import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { RawCutClipCompletionService } from '@api/collections/clipper-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -740,10 +740,10 @@ describe('VideoCompletionService', () => {
     const subscribeCallback = (redisService.subscribe as vi.Mock).mock
       .calls[0][1];
     const event = {
-      ingredientId: 'clip-result-1',
+      ingredientId: 'clipper-result-1',
       organizationId: mockOrganizationId,
       result: {
-        jobId: 'raw-cut-trim-clip-result-1',
+        jobId: 'raw-cut-trim-clipper-result-1',
         jobType: 'clip-trim',
       },
       status: 'completed',
@@ -765,10 +765,10 @@ describe('VideoCompletionService', () => {
     const subscribeCallback = (redisService.subscribe as vi.Mock).mock
       .calls[0][1];
     await subscribeCallback({
-      ingredientId: 'clip-result-1',
+      ingredientId: 'clipper-result-1',
       organizationId: mockOrganizationId.toString(),
       result: {
-        jobId: 'raw-cut-trim-clip-result-1',
+        jobId: 'raw-cut-trim-clipper-result-1',
       },
       status: Status.COMPLETED,
       timestamp: new Date().toISOString(),

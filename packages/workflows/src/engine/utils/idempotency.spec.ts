@@ -15,7 +15,7 @@ describe('deriveWorkflowActionIdempotencyKey', () => {
   it('does not fabricate a key for actions with no idempotency policy', () => {
     expect(
       deriveWorkflowActionIdempotencyKey({
-        actionId: 'youtube.clip.read-session',
+        actionId: 'youtube.clipper.read-session',
         executionId: 'execution-1',
         nodeId: 'read-session-1',
       }),

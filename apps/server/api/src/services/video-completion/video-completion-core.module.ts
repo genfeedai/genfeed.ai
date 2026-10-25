@@ -1,4 +1,4 @@
-import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
+import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -11,7 +11,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [VideoCompletionService],
   imports: [
-    ClipProjectsCoreModule,
+    ClipperProjectsCoreModule,
     EditorProjectsModule,
     FileQueueModule,
     IngredientsModule,

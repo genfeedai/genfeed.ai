@@ -2,8 +2,8 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
-import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
+import { ClipperProjectsModule } from '@api/collections/clipper-projects/clipper-projects.module';
+import { ClipperResultsModule } from '@api/collections/clipper-results/clipper-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -88,8 +88,8 @@ import { Module } from '@nestjs/common';
     AssetsModule,
     BotGatewayModule,
     BrandsModule,
-    ClipProjectsModule,
-    ClipResultsModule,
+    ClipperProjectsModule,
+    ClipperResultsModule,
     CommonModule,
     CreditsModule,
     EvaluationsModule,

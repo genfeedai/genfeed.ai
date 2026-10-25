@@ -1,7 +1,7 @@
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
-import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import { ClipperAvatarBillingService } from '@api/collections/clipper-projects/services/clipper-avatar-billing.service';
+import { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
+import { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
@@ -18,10 +18,10 @@ export class HeygenWebhookService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly clipAvatarBilling: ClipAvatarBillingService,
-    private readonly clipLibraryLinkService: ClipLibraryLinkService,
-    private readonly clipProjectsService: ClipProjectsService,
-    private readonly clipResultsService: ClipResultsService,
+    private readonly clipperAvatarBilling: ClipperAvatarBillingService,
+    private readonly clipperLibraryLinkService: ClipperLibraryLinkService,
+    private readonly clipperProjectsService: ClipperProjectsService,
+    private readonly clipperResultsService: ClipperResultsService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -108,12 +108,12 @@ export class HeygenWebhookService {
         return;
       }
 
-      const clipResult = await this.clipResultsService.findOne({
+      const clipperResult = await this.clipperResultsService.findOne({
         id: callbackId,
       });
 
-      if (clipResult) {
-        const projectId = this.readString(clipResult.projectId);
+      if (clipperResult) {
+        const projectId = this.readString(clipperResult.projectId);
 
         if (!projectId) {
           this.loggerService.warn(`${url} clip result missing project id`, {
@@ -122,11 +122,11 @@ export class HeygenWebhookService {
           return;
         }
 
-        await this.handleClipResultCallback(
+        await this.handleClipperResultCallback(
           projectId,
           callbackId,
           body,
-          this.readString(clipResult.organizationId),
+          this.readString(clipperResult.organizationId),
         );
         return;
       }
@@ -263,9 +263,9 @@ export class HeygenWebhookService {
     );
   }
 
-  private async handleClipResultCallback(
+  private async handleClipperResultCallback(
     projectId: string,
-    clipResultId: string,
+    clipperResultId: string,
     body: HeygenWebhookPayload,
     organizationId?: string,
   ): Promise<void> {
@@ -273,42 +273,45 @@ export class HeygenWebhookService {
     const providerJobId = body.event_data?.video_id;
 
     if (videoUrl) {
-      await this.clipResultsService.patch(clipResultId, {
+      await this.clipperResultsService.patch(clipperResultId, {
         providerJobId,
         status: 'completed',
         videoUrl,
       });
       if (organizationId) {
         // The clip's hold settles to the seconds HeyGen rendered.
-        await this.clipAvatarBilling.settle(
-          clipResultId,
+        await this.clipperAvatarBilling.settle(
+          clipperResultId,
           organizationId,
           this.readDuration(body),
         );
-        await this.clipLibraryLinkService.linkReadyClip({
-          clipResultId,
+        await this.clipperLibraryLinkService.linkReadyClip({
+          clipperResultId,
           organizationId,
         });
       }
     } else if (this.isFailureEvent(body.event_type)) {
-      await this.clipResultsService.patch(clipResultId, {
+      await this.clipperResultsService.patch(clipperResultId, {
         providerJobId,
         status: 'failed',
       });
       if (organizationId)
-        await this.clipAvatarBilling.release(clipResultId, organizationId);
+        await this.clipperAvatarBilling.release(
+          clipperResultId,
+          organizationId,
+        );
     } else {
       this.loggerService.log(
-        `${this.constructorName}.handleClipResultCallback ignoring non-terminal event`,
+        `${this.constructorName}.handleClipperResultCallback ignoring non-terminal event`,
         {
-          clipResultId,
+          clipperResultId,
           eventType: body.event_type,
         },
       );
       return;
     }
 
-    await this.clipProjectsService.reconcileTerminalState(
+    await this.clipperProjectsService.reconcileTerminalState(
       projectId,
       organizationId,
     );

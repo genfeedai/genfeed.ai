@@ -25,7 +25,7 @@ export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
 export * from './channel-capabilities.contract';
 export * from './channel-repurpose.contract';
-export * from './clip-highlight-detection.contract';
+export * from './clipper-highlight-detection.contract';
 export * from './content-geo-optimization.contract';
 export * from './content-intelligence-generation.contract';
 export * from './content-learning-generation.contract';

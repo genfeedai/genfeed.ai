@@ -122,7 +122,7 @@ const STANDALONE_CASES: Array<[string, Partial<AgentUiAction>]> = [
 const API_SERVICE_GATED_TYPES = [
   'generation_action_card',
   'workflow_trigger_card',
-  'clip_workflow_run_card',
+  'clipper_workflow_run_card',
   'ingredient_alternatives_card',
   'workflow_execute_card',
   'voice_clone_card',
@@ -159,9 +159,9 @@ describe('UiActionRenderer dispatch matrix', () => {
     expect(getByRole('status').textContent).toContain('mystery_card');
   });
 
-  it('renders nothing for clip_run_card without run state', () => {
+  it('renders nothing for clipper_run_card without run state', () => {
     const { container } = render(
-      <UiActionRenderer action={makeAction('clip_run_card')} />,
+      <UiActionRenderer action={makeAction('clipper_run_card')} />,
     );
 
     expect(container.firstChild).toBeNull();

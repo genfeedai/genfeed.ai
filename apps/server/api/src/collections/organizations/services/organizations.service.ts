@@ -478,7 +478,7 @@ export class OrganizationsService extends BaseService<
 
   /**
    * The slug is the first URL segment, shared with the top-level app routes
-   * (`/turbo`, `/clips`, ...), so those names can never be an organization.
+   * (`/turbo`, `/clipper`, ...), so those names can never be an organization.
    */
   private assertSlugNotReserved(slug: string): void {
     if (isReservedAppRootSegment(slug)) {

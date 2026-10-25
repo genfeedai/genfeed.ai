@@ -1,4 +1,4 @@
-import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+import { ClipperWorkflowRunCard } from '@genfeedai/agent/components/ClipperWorkflowRunCard';
 import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
 import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
@@ -84,17 +84,19 @@ describe('Workflow card route handoffs', () => {
     unmountExecute();
 
     const clipAction: AgentUiAction = {
-      clipRun: {
+      clipperRun: {
         autonomousMode: false,
         requireStepConfirmation: true,
       },
-      id: 'clip-action',
+      id: 'clipper-action',
       title: 'Clip workflow run',
-      type: 'clip_workflow_run_card',
+      type: 'clipper_workflow_run_card',
       workflowId: 'wf-3',
     };
 
-    render(<ClipWorkflowRunCard action={clipAction} apiService={apiService} />);
+    render(
+      <ClipperWorkflowRunCard action={clipAction} apiService={apiService} />,
+    );
 
     await user.click(screen.getByRole('button', { name: /run next step/i }));
 

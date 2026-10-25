@@ -13,7 +13,7 @@ export const RELEASE_ITEM_IDS = [
   'analytics',
   'turbo',
   'motion',
-  'clips',
+  'clipper',
   'editor',
   'automation',
   'messages',

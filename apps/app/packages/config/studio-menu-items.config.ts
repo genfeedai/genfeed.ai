@@ -22,7 +22,7 @@ export const STUDIO_APP_IDS = [
   'storyboard',
   'turbo',
   'motion',
-  'clips',
+  'clipper',
   'editor',
 ] as const satisfies readonly AppContext[];
 
@@ -78,13 +78,13 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       solid: SquarePlay,
     },
   ],
-  clips: [
+  clipper: [
     {
       group: '',
-      href: APP_ROUTES.STUDIO.CLIPS,
-      label: APP_DISPLAY_LABELS.clips,
-      organizationModule: 'clips',
-      matchPaths: [APP_ROUTES.STUDIO.CLIPS, APP_ROUTES.STUDIO.CLIPS_NEW],
+      href: APP_ROUTES.STUDIO.CLIPPER,
+      label: APP_DISPLAY_LABELS.clipper,
+      organizationModule: 'clipper',
+      matchPaths: [APP_ROUTES.STUDIO.CLIPPER, APP_ROUTES.STUDIO.CLIPPER_NEW],
       outline: GalleryHorizontalStart,
       solid: GalleryHorizontalStart,
     },
@@ -104,7 +104,7 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
 };
 
 const STUDIO_APP_ROOTS: Readonly<Record<StudioAppId, string>> = {
-  clips: APP_ROUTES.STUDIO.CLIPS,
+  clipper: APP_ROUTES.STUDIO.CLIPPER,
   editor: APP_ROUTES.STUDIO.EDITOR,
   motion: APP_ROUTES.STUDIO.MOTION,
   playground: APP_ROUTES.STUDIO.PLAYGROUND,
@@ -112,7 +112,7 @@ const STUDIO_APP_ROOTS: Readonly<Record<StudioAppId, string>> = {
   turbo: APP_ROUTES.STUDIO.TURBO,
 };
 
-/** The Studio app that owns a product path such as `/clips/new`. */
+/** The Studio app that owns a product path such as `/clipper/new`. */
 export function getStudioAppForPath(
   productPath: string,
 ): StudioAppId | undefined {

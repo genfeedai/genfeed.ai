@@ -2,10 +2,10 @@ import { ArticlesController } from '@api/collections/articles/controllers/articl
 import { ArticlesTrafficController } from '@api/collections/articles/controllers/articles-traffic.controller';
 import { BotActivitiesController } from '@api/collections/bot-activities/controllers/bot-activities.controller';
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
-import { ClipProjectGenerationController } from '@api/collections/clip-projects/clip-project-generation.controller';
-import { ClipProjectHighlightsController } from '@api/collections/clip-projects/clip-project-highlights.controller';
-import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
-import { ClipResultsController } from '@api/collections/clip-results/clip-results.controller';
+import { ClipperProjectGenerationController } from '@api/collections/clipper-projects/clipper-project-generation.controller';
+import { ClipperProjectHighlightsController } from '@api/collections/clipper-projects/clipper-project-highlights.controller';
+import { ClipperProjectsController } from '@api/collections/clipper-projects/clipper-projects.controller';
+import { ClipperResultsController } from '@api/collections/clipper-results/clipper-results.controller';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import { PatternsController } from '@api/collections/content-intelligence/controllers/patterns.controller';
 import { PlaybooksController } from '@api/collections/content-intelligence/controllers/playbooks.controller';
@@ -124,33 +124,33 @@ export const TENANT_READ_CONTENT_ROUTES = [
     policy: 'selected',
   },
   {
-    controller: ClipProjectsController,
+    controller: ClipperProjectsController,
     handler: 'findOne',
-    route: '/v1/clip-projects/{id}',
+    route: '/v1/clipper-projects/{id}',
     policy: 'mutating',
   },
   {
-    controller: ClipProjectHighlightsController,
+    controller: ClipperProjectHighlightsController,
     handler: 'getHighlights',
-    route: '/v1/clip-projects/{projectId}/highlights',
+    route: '/v1/clipper-projects/{projectId}/highlights',
     policy: 'selected',
   },
   {
-    controller: ClipProjectGenerationController,
+    controller: ClipperProjectGenerationController,
     handler: 'getHookClipApproval',
-    route: '/v1/clip-projects/{projectId}/hook-approval',
+    route: '/v1/clipper-projects/{projectId}/hook-approval',
     policy: 'selected',
   },
   {
-    controller: ClipResultsController,
+    controller: ClipperResultsController,
     handler: 'findAll',
-    route: '/v1/clip-results',
+    route: '/v1/clipper-results',
     policy: 'selected',
   },
   {
-    controller: ClipResultsController,
+    controller: ClipperResultsController,
     handler: 'findOne',
-    route: '/v1/clip-results/{id}',
+    route: '/v1/clipper-results/{id}',
     policy: 'selected',
   },
   {

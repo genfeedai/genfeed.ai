@@ -15,8 +15,8 @@ export type AgentUiActionType =
   | 'generation_action_card'
   | 'ingredient_picker_card'
   | 'workflow_trigger_card'
-  | 'clip_workflow_run_card'
-  | 'clip_run_card'
+  | 'clipper_workflow_run_card'
+  | 'clipper_run_card'
   | 'ingredient_alternatives_card'
   | 'schedule_post_card'
   | 'engagement_opportunity_card'
@@ -424,23 +424,23 @@ export interface AgentIngredientItem {
   title?: string;
 }
 
-export type AgentClipRunIdentityField = 'avatar' | 'voice';
+export type AgentClipperRunIdentityField = 'avatar' | 'voice';
 
-export type AgentClipRunIdentitySource =
+export type AgentClipperRunIdentitySource =
   | 'brand'
   | 'explicit'
   | 'missing'
   | 'organization';
 
-export interface AgentClipRunIdentity {
+export interface AgentClipperRunIdentity {
   avatarRef?: HeyGenAvatarRef;
   voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
   avatarProvider?: string;
   isComplete: boolean;
   label: string;
-  missing: AgentClipRunIdentityField[];
-  source: AgentClipRunIdentitySource;
+  missing: AgentClipperRunIdentityField[];
+  source: AgentClipperRunIdentitySource;
   useIdentity: boolean;
   voiceId?: string;
   voiceProvider?: string;
@@ -515,18 +515,18 @@ export interface AgentUiAction extends AgentUiActionBase {
     status?: string;
   }[];
   outputVariants?: AgentUiActionOutputVariant[];
-  clipRun?: {
+  clipperRun?: {
     autonomousMode?: boolean;
     durationSeconds?: number;
     format?: 'landscape' | 'portrait' | 'square';
-    identity?: AgentClipRunIdentity;
+    identity?: AgentClipperRunIdentity;
     inputValues?: Record<string, unknown>;
     mergeGeneratedVideos?: boolean;
     model?: string;
     prompt?: string;
     requireStepConfirmation?: boolean;
   };
-  clipRunState?: Record<string, unknown>;
+  clipperRunState?: Record<string, unknown>;
   alternatives?: {
     label: string;
     prompt: string;

@@ -1,0 +1,62 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import { SelectClipperReferenceFrameDto } from '@api/collections/clipper-projects/dto/select-clipper-reference-frame.dto';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { ClipperProjectSerializer } from '@genfeedai/serializers';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+
+@AutoSwagger()
+@ApiTags('clipper-projects')
+@ApiBearerAuth()
+@FeatureFlag('clipper')
+@OrganizationModule('clipper')
+@Controller('clipper-projects')
+@UseGuards(RolesGuard)
+export class ClipperProjectReferenceFramesController {
+  constructor(
+    readonly _loggerService: LoggerService,
+    private readonly clipperProjectsService: ClipperProjectsService,
+  ) {}
+
+  @Put(':projectId/reference-frame')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    description:
+      'Select an available source-video reference-frame candidate for this clip project.',
+    summary: 'Select a clip reference frame',
+  })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async selectReferenceFrame(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+    @Body() dto: SelectClipperReferenceFrameDto,
+  ): Promise<JsonApiSingleResponse> {
+    const data = await this.clipperProjectsService.selectReferenceFrame(
+      projectId,
+      user.organizationId,
+      dto.candidateId,
+    );
+
+    return serializeSingle(request, ClipperProjectSerializer, data);
+  }
+}

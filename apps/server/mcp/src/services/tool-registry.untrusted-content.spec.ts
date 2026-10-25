@@ -26,9 +26,9 @@ const routes = [
     method: 'listSocialConversations',
   },
   {
-    name: 'create_clip_project_from_youtube',
+    name: 'create_clipper_project_from_youtube',
     args: { youtubeUrl: 'https://youtube.com/watch?v=test', brandId: 'brand' },
-    method: 'createClipProjectFromYoutube',
+    method: 'createClipperProjectFromYoutube',
   },
 ];
 describe('native MCP untrusted-result integration', () => {
@@ -39,7 +39,7 @@ describe('native MCP untrusted-result integration', () => {
     searchArticles: vi.fn(),
     getSocialConversation: vi.fn(),
     listSocialConversations: vi.fn(),
-    createClipProjectFromYoutube: vi.fn(),
+    createClipperProjectFromYoutube: vi.fn(),
     isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(),
     resolveApproval: vi.fn(),
@@ -72,16 +72,16 @@ describe('native MCP untrusted-result integration', () => {
     client.searchArticles.mockResolvedValue([raw]);
     client.getSocialConversation.mockResolvedValue(raw);
     client.listSocialConversations.mockResolvedValue({ conversations: [raw] });
-    client.createClipProjectFromYoutube.mockResolvedValue(raw);
+    client.createClipperProjectFromYoutube.mockResolvedValue(raw);
     client.createApproval.mockResolvedValue({
       id: 'approval',
-      toolName: 'create_clip_project_from_youtube',
+      toolName: 'create_clipper_project_from_youtube',
       status: 'PENDING',
       arguments: routes[3].args,
     });
     client.resolveApproval.mockResolvedValue({
       id: 'approval',
-      toolName: 'create_clip_project_from_youtube',
+      toolName: 'create_clipper_project_from_youtube',
       status: 'APPROVED',
       arguments: routes[3].args,
     });
@@ -104,7 +104,7 @@ describe('native MCP untrusted-result integration', () => {
     async ({ name, args, method }) => {
       const service = registry();
       const result =
-        name === 'create_clip_project_from_youtube'
+        name === 'create_clipper_project_from_youtube'
           ? await service.handleToolCall({
               name: 'resolve_approval',
               arguments: { approvalId: 'approval', decision: 'approve' },
@@ -186,13 +186,13 @@ describe('native MCP untrusted-result integration', () => {
       name: routes[3].name,
       arguments: routes[3].args,
     });
-    expect(client.createClipProjectFromYoutube).not.toHaveBeenCalled();
+    expect(client.createClipperProjectFromYoutube).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
     await service.handleToolCall({
       name: 'resolve_approval',
       arguments: { approvalId: 'declined', decision: 'decline' },
     });
-    expect(client.createClipProjectFromYoutube).not.toHaveBeenCalled();
+    expect(client.createClipperProjectFromYoutube).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
     client.resolveApproval
       .mockResolvedValueOnce({
@@ -212,7 +212,7 @@ describe('native MCP untrusted-result integration', () => {
         arguments: { approvalId: 'approval', decision: 'approve' },
       }),
     ]);
-    expect(client.createClipProjectFromYoutube).toHaveBeenCalledTimes(1);
+    expect(client.createClipperProjectFromYoutube).toHaveBeenCalledTimes(1);
     expect(client.evaluateMcpToolResult).toHaveBeenCalledTimes(1);
   });
 });

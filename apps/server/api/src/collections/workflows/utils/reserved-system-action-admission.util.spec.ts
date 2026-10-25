@@ -1,7 +1,7 @@
 import {
-  buildClipAnalysisWorkflowDefinition,
-  CLIP_ANALYSIS_ACTION_IDS,
-} from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
+  buildClipperAnalysisWorkflowDefinition,
+  CLIPPER_ANALYSIS_ACTION_IDS,
+} from '@api/collections/clipper-projects/services/clipper-analysis-workflow-definition';
 import {
   buildHiddenSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
@@ -15,7 +15,7 @@ import type { ExecutionContext } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 function fixture() {
-  const definition = buildClipAnalysisWorkflowDefinition();
+  const definition = buildClipperAnalysisWorkflowDefinition();
   const pin = buildWorkflowVersionDefinition(definition.definition);
   const row = {
     workflowVersion: {
@@ -53,7 +53,7 @@ function fixture() {
   const input = {
     context,
     nodeId: 'prepare-source',
-    actionId: CLIP_ANALYSIS_ACTION_IDS.PREPARE_SOURCE,
+    actionId: CLIPPER_ANALYSIS_ACTION_IDS.PREPARE_SOURCE,
   };
   const definitions = new Map([[definition.canonicalId, definition]]);
   return {

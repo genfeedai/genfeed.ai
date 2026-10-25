@@ -74,7 +74,7 @@ export const FREE_PUBLIC_TOOLS = [
   {
     description:
       'Extract a timestamped transcript from a public YouTube video, find three short-form clip opportunities, and render one preview free.',
-    path: '/tools/youtube-clips',
+    path: '/tools/youtube-clipper',
     title: 'YouTube transcript to clips',
   },
 ] as const;

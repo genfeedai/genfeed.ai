@@ -60,7 +60,7 @@ describe('OrganizationModuleAccessService', () => {
         select: { isReleasePreviewEnabled: true, releasedItemIds: true },
       },
     );
-    await expect(customer.service.isReleased('org-1', 'clips')).resolves.toBe(
+    await expect(customer.service.isReleased('org-1', 'clipper')).resolves.toBe(
       false,
     );
   });
@@ -81,12 +81,12 @@ describe('OrganizationModuleAccessService', () => {
 
   it('releases everything to an organization on release preview', async () => {
     const preview = createService(true, {});
-    await expect(preview.service.isReleased('org-1', 'clips')).resolves.toBe(
+    await expect(preview.service.isReleased('org-1', 'clipper')).resolves.toBe(
       true,
     );
     const missing = createService(false, {});
     missing.prisma.organizationSetting.findUnique.mockResolvedValue(null);
-    await expect(missing.service.isReleased('org-1', 'clips')).resolves.toBe(
+    await expect(missing.service.isReleased('org-1', 'clipper')).resolves.toBe(
       false,
     );
   });
@@ -144,7 +144,7 @@ describe('OrganizationModuleAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
-  it.each(['motion', 'clips', 'editor', 'automation', 'messages'] as const)(
+  it.each(['motion', 'clipper', 'editor', 'automation', 'messages'] as const)(
     'refuses new %s work on cloud until it is released',
     async (moduleId) => {
       const { service, paidAccess } = createService();

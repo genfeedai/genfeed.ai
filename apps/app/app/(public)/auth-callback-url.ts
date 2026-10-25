@@ -67,7 +67,7 @@ export function resolveOAuthLoginErrorMessage(
   return null;
 }
 const BRAND_OS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
-const PUBLIC_YOUTUBE_CLIP_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const PUBLIC_YOUTUBE_CLIPPER_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 function getExplicitAuthCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,
@@ -86,11 +86,13 @@ export function parseBrandOsPreviewToken(value?: string | null): string | null {
   return token && BRAND_OS_TOKEN_PATTERN.test(token) ? token : null;
 }
 
-export function parsePublicYoutubeClipToken(
+export function parsePublicYoutubeClipperToken(
   value?: string | null,
 ): string | null {
   const token = value?.trim();
-  return token && PUBLIC_YOUTUBE_CLIP_TOKEN_PATTERN.test(token) ? token : null;
+  return token && PUBLIC_YOUTUBE_CLIPPER_TOKEN_PATTERN.test(token)
+    ? token
+    : null;
 }
 
 function buildPostSignupCallbackURL(
@@ -105,7 +107,7 @@ function buildPostSignupCallbackURL(
   const brandOsToken = parseBrandOsPreviewToken(
     searchParams.get('brandOsToken'),
   );
-  const clipToolToken = parsePublicYoutubeClipToken(
+  const clipToolToken = parsePublicYoutubeClipperToken(
     searchParams.get('clipToolToken'),
   );
   const referralCode = parseReferralCode(searchParams.get('ref'));
@@ -175,7 +177,7 @@ export function getAuthCallbackURL(
   if (
     options.includeOnboardingHandoffParams ||
     parseBrandOsPreviewToken(searchParams.get('brandOsToken')) ||
-    parsePublicYoutubeClipToken(searchParams.get('clipToolToken'))
+    parsePublicYoutubeClipperToken(searchParams.get('clipToolToken'))
   ) {
     return buildPostSignupCallbackURL(searchParams, options.signupAttribution);
   }

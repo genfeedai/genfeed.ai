@@ -60,7 +60,7 @@ vi.mock('next-intl', async () => {
             loadFailed: 'Could not load module settings. Try again.',
             modules: {
               turbo: { label: 'Turbo' },
-              clips: { label: 'Clips' },
+              clipper: { label: 'Clipper' },
               editor: { label: 'Editor' },
               motion: { label: 'Motion' },
               discovery: { label: 'Discovery' },
@@ -108,7 +108,7 @@ describe('credit-based module creation gate', () => {
       screen.getByRole('link', { name: 'Organization modules' }),
     ).toHaveAttribute('href', '/acme/~/settings/general');
   });
-  it.each(['clips', 'editor', 'motion'] as const)(
+  it.each(['clipper', 'editor', 'motion'] as const)(
     'shows %s as not released on cloud without release preview',
     (moduleId) => {
       state.settings = {
@@ -127,9 +127,9 @@ describe('credit-based module creation gate', () => {
     state.settings = {
       hasOrganizationBilling: true,
       isReleasePreviewEnabled: true,
-      moduleOverrides: { clips: true },
+      moduleOverrides: { clipper: true },
     };
-    render(view('clips'));
+    render(view('clipper'));
     expect(state.created).toHaveBeenCalledTimes(1);
   });
   it('mounts enabled credit-based work without subscription or balance signals', () => {

@@ -40,7 +40,7 @@ describe('app rail registry', () => {
       'storyboard',
       'turbo',
       'motion',
-      'clips',
+      'clipper',
       'editor',
       'automation',
       'messages',
@@ -72,8 +72,8 @@ describe('app rail registry', () => {
       '/acme/selected/turbo',
       '/acme/selected/editor',
     ]);
-    expect(getAppRailHref(app('clips'), { orgSlug: 'acme' })).toBe(
-      '/acme/~/clips',
+    expect(getAppRailHref(app('clipper'), { orgSlug: 'acme' })).toBe(
+      '/acme/~/clipper',
     );
     expect(
       getAppRailHref(app('agent'), { ...scope, brandSlug: 'routed' }),
@@ -95,8 +95,8 @@ describe('app rail registry', () => {
   });
 
   it('identifies nested product routes without inventing a source app for settings', () => {
-    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/clips')).toBe(
-      'clips',
+    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/clipper')).toBe(
+      'clipper',
     );
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/turbo/new')).toBe(
       'turbo',
@@ -114,7 +114,7 @@ describe('app rail registry', () => {
   });
 
   it('maps a route to the module flag that gates it (#5468)', () => {
-    expect(getAppRailFlagKeyForPath('/acme/brand/clips')).toBe('clips');
+    expect(getAppRailFlagKeyForPath('/acme/brand/clipper')).toBe('clipper');
     expect(getAppRailFlagKeyForPath('/acme/brand/motion')).toBe('motion');
     expect(getAppRailFlagKeyForPath('/acme/brand/playground')).toBe('studio');
     expect(getAppRailFlagKeyForPath('/acme/~/messages/replies')).toBe(
@@ -132,15 +132,20 @@ describe('app rail registry', () => {
   it('gives each Studio tool its own module switch, apart from the studio module', () => {
     expect(
       Object.fromEntries(
-        ['playground', 'storyboard', 'turbo', 'motion', 'clips', 'editor'].map(
-          (id) => [
-            id,
-            APP_RAIL_REGISTRY.find((app) => app.id === id)?.visibilityFlagKey,
-          ],
-        ),
+        [
+          'playground',
+          'storyboard',
+          'turbo',
+          'motion',
+          'clipper',
+          'editor',
+        ].map((id) => [
+          id,
+          APP_RAIL_REGISTRY.find((app) => app.id === id)?.visibilityFlagKey,
+        ]),
       ),
     ).toEqual({
-      clips: 'clips',
+      clipper: 'clipper',
       editor: 'editor',
       motion: 'motion',
       playground: 'studio',
@@ -150,15 +155,15 @@ describe('app rail registry', () => {
   });
 
   it('turns an app off only when its own platform switch is off', () => {
-    const clips = APP_RAIL_REGISTRY.find((app) => app.id === 'clips');
-    if (!clips) throw new Error('missing clips rail app');
-    expect(isAppRailItemEnabled(clips, { clips: true }, true)).toBe(true);
-    expect(isAppRailItemEnabled(clips, { clips: false }, true)).toBe(false);
+    const clipper = APP_RAIL_REGISTRY.find((app) => app.id === 'clipper');
+    if (!clipper) throw new Error('missing clipper rail app');
+    expect(isAppRailItemEnabled(clipper, { clipper: true }, true)).toBe(true);
+    expect(isAppRailItemEnabled(clipper, { clipper: false }, true)).toBe(false);
     expect(
-      isAppRailItemEnabled(clips, { clips: true, studio: false }, true),
+      isAppRailItemEnabled(clipper, { clipper: true, studio: false }, true),
     ).toBe(true);
-    expect(isAppRailItemEnabled(clips, {}, true)).toBe(false);
-    expect(isAppRailItemEnabled(clips, {}, false)).toBe(true);
+    expect(isAppRailItemEnabled(clipper, {}, true)).toBe(false);
+    expect(isAppRailItemEnabled(clipper, {}, false)).toBe(true);
   });
 
   it('answers whether the app behind a path is on', () => {

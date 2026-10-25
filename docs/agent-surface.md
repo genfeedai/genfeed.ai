@@ -136,7 +136,7 @@ not domain logic. Ten specialized dispatch groups live in
 | `scheduler`          | Scheduled release create / get / update / control                    |
 | `workflow-control`   | Duplicate, inspect, runs, schedules, system-workflow install         |
 | `agent-chat`         | Chats, messages, agent-run list / get / retry / cancel               |
-| `clip-projects`      | YouTube clip projects, highlights, clip generation                   |
+| `clipper-projects`      | YouTube clip projects, highlights, clip generation                   |
 | `social-messages`    | Conversations, reply drafts, approvals, replies, DMs, triage         |
 | `account-management` | Account info, brands, job status                                     |
 | `ads-gateway`        | Cross-provider ad and ad-set insights                                |

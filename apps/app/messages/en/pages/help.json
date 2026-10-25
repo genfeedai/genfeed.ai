@@ -119,8 +119,8 @@
     "title": "Storyboard",
     "body": "Build multi-frame video: interpolate stills, script scenes from generated images, or merge finished clips."
   },
-  "studioClips": {
-    "title": "Clips",
+  "studioClipper": {
+    "title": "Clipper",
     "body": "Cut long videos into short clips with captions. Pick moments manually or let the agent find them."
   },
   "studioTurbo": {

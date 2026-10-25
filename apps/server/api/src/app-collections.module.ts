@@ -25,8 +25,8 @@ import { BrandInterviewModule } from '@api/collections/brands/brand-interview/br
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CampaignsModule } from '@api/collections/campaigns/campaigns.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
-import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
-import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
+import { ClipperProjectsModule } from '@api/collections/clipper-projects/clipper-projects.module';
+import { ClipperResultsModule } from '@api/collections/clipper-results/clipper-results.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { ContentPlanItemsModule } from '@api/collections/content-plan-items/content-plan-items.module';
@@ -157,9 +157,9 @@ import { Module } from '@nestjs/common';
     OutreachCampaignsModule,
     CampaignsModule,
     CaptionsModule,
-    ClipProjectsModule,
+    ClipperProjectsModule,
     EditorProjectsModule,
-    ClipResultsModule,
+    ClipperResultsModule,
     ContentPlanItemsModule,
     ContentPlansModule,
     ContentIntelligenceModule,

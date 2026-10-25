@@ -1,7 +1,7 @@
 import articles from '../../messages/en/pages/articles.json';
 import generationReceipts from '../../messages/en/pages/generationReceipts.json';
 import library from '../../messages/en/pages/library.json';
-import studioClips from '../../messages/en/pages/studioClips.json';
+import studioClipper from '../../messages/en/pages/studioClipper.json';
 import studioEditor from '../../messages/en/pages/studioEditor.json';
 import studioEditorLock from '../../messages/en/pages/studioEditorLock.json';
 import studioMotion from '../../messages/en/pages/studioMotion.json';
@@ -17,7 +17,7 @@ const messages = {
     review: library.review,
     tags: library.tags,
   },
-  studioClips,
+  studioClipper,
   studioStoryboard,
   studioEditorLock,
   studioPlayground,

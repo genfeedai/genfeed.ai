@@ -8,7 +8,7 @@ export type NativeSecondaryAppId =
   | 'storyboard'
   | 'turbo'
   | 'motion'
-  | 'clips'
+  | 'clipper'
   | 'editor'
   | 'automation'
   | 'messages'

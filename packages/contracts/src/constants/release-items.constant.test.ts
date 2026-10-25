@@ -23,11 +23,11 @@ describe('release items', () => {
     expect(DEFAULT_PLATFORM_FLAGS.motion).toBe(true);
     const parsed = parsePlatformFlags({
       release_turbo: true,
-      release_clips: 'yes',
+      release_clipper: 'yes',
       studio: false,
     });
     expect(parsed.release_turbo).toBe(true);
-    expect(parsed.release_clips).toBe(false);
+    expect(parsed.release_clipper).toBe(false);
     expect(parsed.release_motion).toBe(false);
     expect(parsed.studio).toBe(false);
     expect(parsed.library).toBe(true);
@@ -46,9 +46,13 @@ describe('release items', () => {
   it('opens only the items granted to one organization', () => {
     const granted = { ...CLOUD, releasedItemIds: ['motion'] };
     expect(isReleaseItemVisible('motion', granted, {})).toBe(true);
-    expect(isReleaseItemVisible('clips', granted, {})).toBe(false);
+    expect(isReleaseItemVisible('clipper', granted, {})).toBe(false);
     expect(
-      isReleaseItemVisible('clips', { ...CLOUD, releasedItemIds: 'clips' }, {}),
+      isReleaseItemVisible(
+        'clipper',
+        { ...CLOUD, releasedItemIds: 'clipper' },
+        {},
+      ),
     ).toBe(false);
   });
 

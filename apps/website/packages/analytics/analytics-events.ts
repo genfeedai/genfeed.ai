@@ -19,12 +19,12 @@ export const WEBSITE_ANALYTICS_EVENTS = {
   CONNECT_AGENT: 'connect_agent',
   CTA_CLICK: 'cta_click',
   START_SIGNUP: 'start_signup',
-  YOUTUBE_CLIP_ANALYSIS_COMPLETED: 'youtube_clip_analysis_completed',
-  YOUTUBE_CLIP_AUTH_HANDOFF: 'youtube_clip_auth_handoff',
-  YOUTUBE_CLIP_PREVIEW_COMPLETED: 'youtube_clip_preview_completed',
-  YOUTUBE_CLIP_PREVIEW_REQUESTED: 'youtube_clip_preview_requested',
-  YOUTUBE_CLIP_TOOL_SUBMITTED: 'youtube_clip_tool_submitted',
-  YOUTUBE_CLIP_TOOL_VIEWED: 'youtube_clip_tool_viewed',
+  YOUTUBE_CLIPPER_ANALYSIS_COMPLETED: 'youtube_clipper_analysis_completed',
+  YOUTUBE_CLIPPER_AUTH_HANDOFF: 'youtube_clipper_auth_handoff',
+  YOUTUBE_CLIPPER_PREVIEW_COMPLETED: 'youtube_clipper_preview_completed',
+  YOUTUBE_CLIPPER_PREVIEW_REQUESTED: 'youtube_clipper_preview_requested',
+  YOUTUBE_CLIPPER_TOOL_SUBMITTED: 'youtube_clipper_tool_submitted',
+  YOUTUBE_CLIPPER_TOOL_VIEWED: 'youtube_clipper_tool_viewed',
   YOUTUBE_LONG_FORM_COMPLETED: 'youtube_long_form_completed',
   YOUTUBE_LONG_FORM_SUBMITTED: 'youtube_long_form_submitted',
   YOUTUBE_LONG_FORM_VIEWED: 'youtube_long_form_viewed',
@@ -74,23 +74,23 @@ export interface WebsiteAnalyticsEventProperties {
   [WEBSITE_ANALYTICS_EVENTS.CTA_CLICK]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.START_SIGNUP]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.VIEW_PRICING]: WebsiteCtaPayload;
-  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_ANALYSIS_COMPLETED]: {
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIPPER_ANALYSIS_COMPLETED]: {
     readonly outcome: 'failed' | 'ready';
   };
-  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_AUTH_HANDOFF]: {
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIPPER_AUTH_HANDOFF]: {
     readonly authMode: 'sign_in' | 'sign_up';
   };
-  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_PREVIEW_COMPLETED]: {
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIPPER_PREVIEW_COMPLETED]: {
     readonly outcome: 'failed' | 'ready';
   };
-  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_PREVIEW_REQUESTED]: {
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIPPER_PREVIEW_REQUESTED]: {
     readonly recommendationRank: 1 | 2 | 3;
   };
-  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_TOOL_SUBMITTED]: {
-    readonly surface: 'youtube_clips';
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIPPER_TOOL_SUBMITTED]: {
+    readonly surface: 'youtube_clipper';
   };
-  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_TOOL_VIEWED]: {
-    readonly surface: 'youtube_clips';
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIPPER_TOOL_VIEWED]: {
+    readonly surface: 'youtube_clipper';
   };
   [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_COMPLETED]: {
     readonly outcome: 'failed' | 'ready';

@@ -67,7 +67,7 @@ export default function ToolsContent(): React.ReactElement {
             </div>
             <Link
               className="text-sm font-semibold text-primary hover:underline"
-              href="/tools/youtube-clips"
+              href="/tools/youtube-clipper"
             >
               Try the free tool &rarr;
             </Link>

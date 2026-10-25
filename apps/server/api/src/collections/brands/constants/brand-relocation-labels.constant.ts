@@ -45,7 +45,7 @@ export const RELOCATION_RESOURCE_LABELS: Record<
   brandMemory: { singular: 'brand memory', plural: 'brand memories' },
   campaignTarget: { singular: 'campaign target', plural: 'campaign targets' },
   caption: { singular: 'caption', plural: 'captions' },
-  clipProject: { singular: 'clip project', plural: 'clip projects' },
+  clipperProject: { singular: 'clip project', plural: 'clip projects' },
   contentPerformance: {
     singular: 'content performance record',
     plural: 'content performance records',

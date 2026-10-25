@@ -12,7 +12,7 @@ export interface BootstrapOptions {
   /** App name (e.g., 'api', 'files', 'mcp', 'notifications') */
   app:
     | 'api'
-    | 'clips'
+    | 'clipper'
     | 'discord'
     | 'fanvue'
     | 'files'

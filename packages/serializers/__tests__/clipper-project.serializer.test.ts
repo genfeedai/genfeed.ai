@@ -1,0 +1,84 @@
+import { ClipperProjectSerializer } from '@serializers/server/content/clipper-project.serializer';
+import { describe, expect, it } from 'vitest';
+
+describe('ClipperProjectSerializer reference-frame contract', () => {
+  type SerializedResource = {
+    data: { id: string; type: string; attributes: Record<string, unknown> };
+  };
+
+  it('exposes versioned reference-frame state when present', () => {
+    const referenceFrames = {
+      candidates: [
+        {
+          diagnostics: [],
+          id: 'frame-1',
+          status: 'available',
+          storageKey: 'organizations/org-1/clips/project-1/frame-1.jpg',
+          timestampSeconds: 12.5,
+        },
+      ],
+      diagnostics: [],
+      schemaVersion: 1,
+      selectedCandidateId: null,
+      status: 'ready',
+    };
+
+    const output = ClipperProjectSerializer.serialize({
+      id: 'project-1',
+      referenceFrames,
+      status: 'analyzed',
+    }) as SerializedResource;
+
+    expect(output.data.type).toBe('clipper-project');
+    expect(output.data.attributes.referenceFrames).toEqual(referenceFrames);
+  });
+
+  it('omits reference-frame state for legacy projects', () => {
+    const output = ClipperProjectSerializer.serialize({
+      id: 'project-legacy',
+      status: 'analyzed',
+    }) as SerializedResource;
+
+    expect('referenceFrames' in output.data.attributes).toBe(false);
+  });
+
+  it('exposes the durable source lifecycle without upload credentials', () => {
+    const source = {
+      fingerprint: 'sha256:source-1',
+      flow: 'quick',
+      ingredientId: 'ingredient-1',
+      kind: 'upload',
+      maxRetries: 3,
+      retryCount: 0,
+      schemaVersion: 1,
+      status: 'queued',
+      updatedAt: '2026-08-26T12:00:00.000Z',
+    };
+
+    const output = ClipperProjectSerializer.serialize({
+      id: 'project-upload',
+      source,
+      status: 'pending',
+    }) as SerializedResource;
+
+    expect(output.data.attributes.source).toEqual(source);
+    expect(JSON.stringify(output)).not.toContain('uploadUrl');
+  });
+
+  it('exposes the draft form state of a draft project', () => {
+    const draft = {
+      sourceKind: 'youtube',
+      updatedAt: '2026-09-28T12:00:00.000Z',
+      youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+    };
+
+    const output = ClipperProjectSerializer.serialize({
+      draft,
+      id: 'project-draft',
+      status: 'draft',
+    }) as SerializedResource;
+
+    expect(output.data.attributes.draft).toEqual(draft);
+    expect(output.data.attributes.status).toBe('draft');
+  });
+});

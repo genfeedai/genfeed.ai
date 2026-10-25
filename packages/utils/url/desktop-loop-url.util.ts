@@ -1,6 +1,6 @@
 import { isSourcePostVariationPlatform, Platform } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IClipDraftHandoff } from '@genfeedai/contracts/interfaces';
+import type { IClipperDraftHandoff } from '@genfeedai/contracts/interfaces';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -31,7 +31,7 @@ export function buildAgentPromptHref(prompt: string): string {
  * pre-attached. Writing now starts in the Agent, so the same context travels as
  * a prompt instead of query params on a form.
  */
-export function buildClipDraftAgentHref(clip: IClipDraftHandoff): string {
+export function buildClipperDraftAgentHref(clip: IClipperDraftHandoff): string {
   const prompt = [
     'Draft a social post for this generated clip.',
     `Title: "${clip.title}".`,

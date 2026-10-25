@@ -1,5 +1,5 @@
 {
-  "clipContinuitySummary": "Clip {index}: character {character}, outfit {outfit}, product {product}",
+  "clipperContinuitySummary": "Clip {index}: character {character}, outfit {outfit}, product {product}",
   "continuityStatus": "Continuity: {status}",
   "evidenceNumber": "Evidence {number}",
   "inspector": {

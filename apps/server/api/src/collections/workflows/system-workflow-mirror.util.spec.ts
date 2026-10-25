@@ -12,7 +12,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import { describe, expect, it, vi } from 'vitest';
 
 const definition: SystemWorkflowGraphDefinition = {
-  canonicalId: 'clip-hook-review',
+  canonicalId: 'clipper-hook-review',
   definition: {
     edges: [],
     nodes: [

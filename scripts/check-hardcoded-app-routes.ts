@@ -71,7 +71,7 @@ const ROUTE_ROOTS = [
   'admin',
   'agent',
   'analytics',
-  'clips',
+  'clipper',
   'compose',
   'discover',
   'editor',

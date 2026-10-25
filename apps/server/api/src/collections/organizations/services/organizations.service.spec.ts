@@ -352,7 +352,7 @@ describe('OrganizationsService', () => {
 
     it.each([
       'turbo',
-      'clips',
+      'clipper',
       'editor',
       'motion',
       'playground',
@@ -372,16 +372,20 @@ describe('OrganizationsService', () => {
   });
 
   describe('reserved app route names', () => {
-    it.each(['turbo', 'Clips', 'editor', 'motion', 'playground', 'storyboard'])(
-      'rejects "%s" as an explicit slug on create',
-      async (slug) => {
-        await expect(
-          service.create({ label: 'Acme', slug, userId: 'user_1' } as never),
-        ).rejects.toThrow(BadRequestException);
+    it.each([
+      'turbo',
+      'Clipper',
+      'editor',
+      'motion',
+      'playground',
+      'storyboard',
+    ])('rejects "%s" as an explicit slug on create', async (slug) => {
+      await expect(
+        service.create({ label: 'Acme', slug, userId: 'user_1' } as never),
+      ).rejects.toThrow(BadRequestException);
 
-        expect(organizationDelegate.create).not.toHaveBeenCalled();
-      },
-    );
+      expect(organizationDelegate.create).not.toHaveBeenCalled();
+    });
 
     it('rejects a reserved slug on patch before looking it up', async () => {
       await expect(service.patch('org_1', { slug: 'turbo' })).rejects.toThrow(

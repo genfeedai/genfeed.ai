@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  clipHighlightDetectionSchema,
-  createLenientClipHighlightDetectionSchema,
-} from '../../src/api-types/contracts/clip-highlight-detection.contract';
+  clipperHighlightDetectionSchema,
+  createLenientClipperHighlightDetectionSchema,
+} from '../../src/api-types/contracts/clipper-highlight-detection.contract';
 import { createLenientPromptOptimizationSchema } from '../../src/api-types/contracts/prompt-optimization.contract';
 import { createLenientTrendContentIdeasSchema } from '../../src/api-types/contracts/trend-content-ideas.contract';
 
@@ -20,7 +20,7 @@ const clip = (overrides: Record<string, unknown> = {}) => ({
 describe('lenient clip highlights', () => {
   it('keeps valid clips, truncates long titles and drops bad durations', () => {
     const onDropped = vi.fn();
-    const schema = createLenientClipHighlightDetectionSchema(onDropped);
+    const schema = createLenientClipperHighlightDetectionSchema(onDropped);
     const result = schema.safeParse({
       highlights: [
         clip(),
@@ -40,13 +40,13 @@ describe('lenient clip highlights', () => {
   });
   it('fails when every clip is invalid', () => {
     expect(
-      createLenientClipHighlightDetectionSchema().safeParse({
+      createLenientClipperHighlightDetectionSchema().safeParse({
         highlights: [clip({ end_time: 5 }), clip({ summary: '' })],
       }).success,
     ).toBe(false);
   });
   it('fails on an invalid envelope', () => {
-    const schema = createLenientClipHighlightDetectionSchema();
+    const schema = createLenientClipperHighlightDetectionSchema();
     expect(schema.safeParse({ highlights: [clip()], extra: 1 }).success).toBe(
       false,
     );
@@ -55,20 +55,21 @@ describe('lenient clip highlights', () => {
   });
   it('still accepts an empty list', () => {
     expect(
-      createLenientClipHighlightDetectionSchema().safeParse({ highlights: [] })
-        .success,
+      createLenientClipperHighlightDetectionSchema().safeParse({
+        highlights: [],
+      }).success,
     ).toBe(true);
   });
   it('keeps the strict item schema in the emitted JSON schema', async () => {
     const { z } = await import('zod');
     const lenient = z.toJSONSchema(
-      createLenientClipHighlightDetectionSchema(),
+      createLenientClipperHighlightDetectionSchema(),
       {
         io: 'output',
         unrepresentable: 'any',
       },
     ) as { properties: { highlights: { items?: { properties?: object } } } };
-    const strict = z.toJSONSchema(clipHighlightDetectionSchema, {
+    const strict = z.toJSONSchema(clipperHighlightDetectionSchema, {
       io: 'output',
       unrepresentable: 'any',
     }) as { properties: { highlights: { items?: { properties?: object } } } };

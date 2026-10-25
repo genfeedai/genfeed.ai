@@ -78,9 +78,9 @@ export const EDITORIAL_OG_ARTWORKS = {
   tools: { headline: ['Make', 'more content'], route: '/tools' },
   'use-cases': { headline: ['Made for', 'your work'], route: '/use-cases' },
   vs: { headline: ['Choose your', 'content OS'], route: '/vs' },
-  'youtube-clips': {
+  'youtube-clipper': {
     headline: ['Long video', 'Great clips'],
-    route: '/tools/youtube-clips',
+    route: '/tools/youtube-clipper',
   },
   'youtube-long-form': {
     headline: ['Video to', 'written content'],

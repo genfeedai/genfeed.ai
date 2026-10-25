@@ -329,12 +329,12 @@ describe('MembersService installed apps (#5502)', () => {
 
   it('reads the caller membership in its organization and drops unknown ids', async () => {
     prisma.member.findFirst.mockResolvedValue({
-      installedAppIds: ['turbo', 'retired', 'turbo', 'clips'],
+      installedAppIds: ['turbo', 'retired', 'turbo', 'clipper'],
     });
 
     await expect(
       service.findInstalledAppIds('org-1', 'user-1'),
-    ).resolves.toEqual(['turbo', 'clips']);
+    ).resolves.toEqual(['turbo', 'clipper']);
     expect(prisma.member.findFirst).toHaveBeenCalledWith({
       orderBy: { createdAt: 'asc' },
       select: { installedAppIds: true },
@@ -401,7 +401,7 @@ describe('MembersService installed apps (#5502)', () => {
       service.setAppInstalled('org-1', 'user-1', 'turbo', true),
     ).resolves.toEqual(['turbo']);
     await expect(
-      service.setAppInstalled('org-1', 'user-1', 'clips', false),
+      service.setAppInstalled('org-1', 'user-1', 'clipper', false),
     ).resolves.toEqual(['turbo']);
     expect(tx.member.update).not.toHaveBeenCalled();
   });

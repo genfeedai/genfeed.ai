@@ -215,7 +215,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       priority: 0.9,
-      url: 'https://genfeed.ai/tools/youtube-clips',
+      url: 'https://genfeed.ai/tools/youtube-clipper',
     },
     {
       changeFrequency: 'weekly',

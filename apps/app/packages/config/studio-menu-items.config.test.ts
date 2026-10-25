@@ -25,7 +25,7 @@ describe('Studio app menus (#5502)', () => {
       'Storyboard',
       'Turbo',
       'Motion',
-      'Clips',
+      'Clipper',
       'Editor',
     ]);
     expect(STUDIO_APP_MENU_ITEMS.turbo[0].href).toBe('/turbo');
@@ -33,7 +33,7 @@ describe('Studio app menus (#5502)', () => {
   });
 
   it('resolves nested Studio routes to their app and nothing else', () => {
-    expect(getStudioAppForPath('/clips/project-1')).toBe('clips');
+    expect(getStudioAppForPath('/clipper/project-1')).toBe('clipper');
     expect(getStudioAppForPath('/editor/new')).toBe('editor');
     expect(getStudioAppForPath('/turbo/new')).toBe('turbo');
     expect(getStudioAppForPath('/storyboard/run-1')).toBe('storyboard');

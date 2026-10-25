@@ -64,13 +64,13 @@ describe('HeygenAvatarProvider', () => {
   const prisma = {
     metadata: { findMany: vi.fn().mockResolvedValue([{ id: 'metadata-1' }]) },
     ingredient: { findFirst: vi.fn() },
-    clipResult: { updateMany: vi.fn(), findFirst: vi.fn() },
+    clipperResult: { updateMany: vi.fn(), findFirst: vi.fn() },
   };
 
   beforeEach(async () => {
     prisma.ingredient.findFirst.mockResolvedValue(null);
-    prisma.clipResult.findFirst.mockResolvedValue(null);
-    prisma.clipResult.updateMany.mockResolvedValue({ count: 1 });
+    prisma.clipperResult.findFirst.mockResolvedValue(null);
+    prisma.clipperResult.updateMany.mockResolvedValue({ count: 1 });
     byokService = { resolveApiKey: vi.fn(), lookupApiKeyWithIdentity: vi.fn() };
     apiKeyHelperService = { getApiKey: vi.fn() };
     httpService = { get: vi.fn() };
@@ -114,7 +114,7 @@ describe('HeygenAvatarProvider', () => {
   describe('generateVideo', () => {
     const input = {
       avatarId: 'avatar-1',
-      callbackId: 'clip-result-1',
+      callbackId: 'clipper-result-1',
       organizationId: 'org-1',
       script: 'Create this clip',
       userId: 'user-1',
@@ -123,9 +123,9 @@ describe('HeygenAvatarProvider', () => {
 
     it('freezes the clip receipt before dispatching its native look', async () => {
       await provider.generateVideo(input);
-      expect(prisma.clipResult.updateMany).toHaveBeenCalledWith({
+      expect(prisma.clipperResult.updateMany).toHaveBeenCalledWith({
         where: {
-          id: 'clip-result-1',
+          id: 'clipper-result-1',
           organizationId: 'org-1',
           isDeleted: false,
         },
@@ -137,12 +137,12 @@ describe('HeygenAvatarProvider', () => {
         },
       });
       expect(
-        prisma.clipResult.updateMany.mock.invocationCallOrder[0],
+        prisma.clipperResult.updateMany.mock.invocationCallOrder[0],
       ).toBeLessThan(
         heygenService.generateNativeAvatarVideo.mock.invocationCallOrder[0],
       );
       expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
-        'clip-result-1',
+        'clipper-result-1',
         avatarRef,
         { voiceId: 'voice-1', inputText: 'Create this clip' },
         'byok-xyz',
@@ -155,7 +155,7 @@ describe('HeygenAvatarProvider', () => {
     it('renders in the requested format instead of forcing portrait', async () => {
       await provider.generateVideo({ ...input, aspectRatio: '16:9' });
       expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
-        'clip-result-1',
+        'clipper-result-1',
         avatarRef,
         { voiceId: 'voice-1', inputText: 'Create this clip' },
         'byok-xyz',
@@ -246,7 +246,7 @@ describe('HeygenAvatarProvider', () => {
         referenceImageUrl: 'https://cdn.example.com/reference.jpg',
       });
       expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
-        'clip-result-1',
+        'clipper-result-1',
         'https://cdn.example.com/reference.jpg',
         { voiceId: 'voice-1', inputText: 'Create this clip' },
         'org-1',
@@ -259,7 +259,7 @@ describe('HeygenAvatarProvider', () => {
     });
 
     it('does not submit without a durable provenance receipt', async () => {
-      prisma.clipResult.updateMany.mockResolvedValueOnce({ count: 0 });
+      prisma.clipperResult.updateMany.mockResolvedValueOnce({ count: 0 });
       expect((await provider.generateVideo(input)).status).toBe('failed');
       expect(heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
     });
@@ -413,9 +413,9 @@ describe('HeygenAvatarProvider', () => {
       connection: connection.binding,
       avatar: avatarRef,
       speech: { provider: 'heygen', externalVoiceId: 'voice-1' },
-      submissionId: 'clip-result-1',
+      submissionId: 'clipper-result-1',
     };
-    prisma.clipResult.findFirst.mockResolvedValueOnce({
+    prisma.clipperResult.findFirst.mockResolvedValueOnce({
       generationProvider: receipt,
     });
     byokService.lookupApiKeyWithIdentity.mockResolvedValue({

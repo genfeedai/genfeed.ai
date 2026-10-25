@@ -1,12 +1,12 @@
 import {
-  buildClipContinuityQaWorkflowDefinition,
-  buildClipContinuityWorkflowDefinition,
-} from '@api/collections/clip-projects/services/clip-continuity-workflow-definition';
+  buildClipperContinuityQaWorkflowDefinition,
+  buildClipperContinuityWorkflowDefinition,
+} from '@api/collections/clipper-projects/services/clipper-continuity-workflow-definition';
 import {
-  buildClipFactoryWorkflowDefinition,
-  buildClipGenerationChildWorkflowDefinition,
-} from '@api/collections/clip-projects/services/clip-factory-workflow-definition';
-import { buildClipGenerationWorkflowDefinition } from '@api/collections/clip-projects/services/clip-generation-workflow-definition';
+  buildClipperFactoryWorkflowDefinition,
+  buildClipperGenerationChildWorkflowDefinition,
+} from '@api/collections/clipper-projects/services/clipper-factory-workflow-definition';
+import { buildClipperGenerationWorkflowDefinition } from '@api/collections/clipper-projects/services/clipper-generation-workflow-definition';
 import {
   buildRssItemWorkflowDefinition,
   buildRssSourceWorkflowDefinition,
@@ -78,7 +78,7 @@ import {
 } from './system-workflow-runner.service';
 
 const definition: SystemWorkflowGraphDefinition = {
-  canonicalId: 'clip-hook-review',
+  canonicalId: 'clipper-hook-review',
   definition: {
     edges: [],
     nodes: [
@@ -96,10 +96,10 @@ const definition: SystemWorkflowGraphDefinition = {
 describe('SystemWorkflowRunnerService definitions', () => {
   const service = new SystemWorkflowRunnerService({} as never, {} as never);
   const mismatchedInput = {
-    actionType: 'clip-hook-review',
+    actionType: 'clipper-hook-review',
     canonicalId: 'different-workflow',
     organizationId: 'org-1',
-    source: 'clip-generation',
+    source: 'clipper-generation',
     userId: 'user-1',
   };
 
@@ -180,7 +180,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     runner.registerWorkflow(definition);
 
     expect(() => runner.onApplicationBootstrap()).toThrow(
-      'System workflow action executors missing: clip-hook-review:youtube.resolve-source',
+      'System workflow action executors missing: clipper-hook-review:youtube.resolve-source',
     );
   });
 
@@ -616,7 +616,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     const { runner } = createRunner();
     const handler = vi.fn().mockResolvedValue(undefined);
     const input = {
-      canonicalId: 'clip.analysis',
+      canonicalId: 'clipper.analysis',
       inputValues: { job: { projectId: 'project-1' } },
       organizationId: 'org-1',
     };
@@ -625,9 +625,9 @@ describe('SystemWorkflowRunnerService definitions', () => {
       runner.terminalFailures.settle(input, 'compensation failed'),
     ).resolves.toBe(false);
 
-    runner.terminalFailures.register('clip.analysis', handler);
+    runner.terminalFailures.register('clipper.analysis', handler);
     expect(() =>
-      runner.terminalFailures.register('clip.analysis', handler),
+      runner.terminalFailures.register('clipper.analysis', handler),
     ).toThrow('Duplicate system workflow terminal failure handler');
 
     await expect(
@@ -644,7 +644,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     'agent.turn.execute',
     'agent.thread.ui-action',
     'agent.thread.input-response',
-    'clip-hook-review',
+    'clipper-hook-review',
   ])('sets safe queue attempts for %s', async (canonicalId) => {
     const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
     const createExecution = vi
@@ -675,7 +675,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
       { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     const options = queueSystemWorkflow.mock.calls[0][2];
-    if (canonicalId === 'clip-hook-review') {
+    if (canonicalId === 'clipper-hook-review') {
       expect(options).not.toHaveProperty('attempts');
     } else {
       expect(options.attempts).toBe(1);
@@ -686,7 +686,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     ['agent.turn.execute', 'agent'],
     ['agent.thread.ui-action', 'agent'],
     ['agent.thread.input-response', 'agent'],
-    ['clip-hook-review', 'agent'],
+    ['clipper-hook-review', 'agent'],
   ])(
     'keeps %s from source %s off the platform queue (#5162)',
     async (canonicalId, source) => {
@@ -2165,11 +2165,11 @@ describe('registered outbound campaign module admission', () => {
 
 describe('registered Clips module admission', () => {
   const definitions = [
-    buildClipFactoryWorkflowDefinition(),
-    buildClipGenerationWorkflowDefinition(),
-    buildClipGenerationChildWorkflowDefinition(),
-    buildClipContinuityWorkflowDefinition(),
-    buildClipContinuityQaWorkflowDefinition(),
+    buildClipperFactoryWorkflowDefinition(),
+    buildClipperGenerationWorkflowDefinition(),
+    buildClipperGenerationChildWorkflowDefinition(),
+    buildClipperContinuityWorkflowDefinition(),
+    buildClipperContinuityQaWorkflowDefinition(),
   ];
   it.each(
     definitions.flatMap((graph) =>
@@ -2218,7 +2218,7 @@ describe('registered Clips module admission', () => {
               })
             : runner.runWithRegisteredWorkflowModule(input, provider),
       ).rejects.toThrow('Clips disabled or unavailable');
-      expect(assertAccess).toHaveBeenCalledWith('org-1', 'clips');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'clipper');
       expect(resolve).not.toHaveBeenCalled();
       expect(mirror).not.toHaveBeenCalled();
       expect(createExecution).not.toHaveBeenCalled();
@@ -2229,12 +2229,12 @@ describe('registered Clips module admission', () => {
 
   it.each([
     {
-      graph: buildClipGenerationChildWorkflowDefinition(),
+      graph: buildClipperGenerationChildWorkflowDefinition(),
       nodeId: 'finalize-child',
       allowed: false,
     },
     {
-      graph: buildClipContinuityWorkflowDefinition(),
+      graph: buildClipperContinuityWorkflowDefinition(),
       nodeId: 'persist-continuity-report',
       allowed: true,
     },

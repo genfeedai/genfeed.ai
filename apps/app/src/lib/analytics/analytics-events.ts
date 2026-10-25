@@ -50,7 +50,8 @@ export const ANALYTICS_EVENTS = {
   GENERATION_STARTED: 'generation_started',
   ONBOARDING_COMPLETED: 'onboarding_completed',
   POST_PUBLISHED: 'post_published',
-  PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED: 'public_youtube_clip_project_claimed',
+  PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED:
+    'public_youtube_clipper_project_claimed',
   SIGNUP_COMPLETED: 'signup_completed',
   SIGNUP_STARTED: 'signup_started',
   STUDIO_EDITOR_OPENED: 'studio_editor_opened',
@@ -73,9 +74,9 @@ export type ExpertOnboardingAnalyticsStep =
 /** Whether an Expert Path step was finished or deferred to a workspace task. */
 export type ExpertOnboardingAnalyticsAction = 'completed' | 'skipped';
 
-export type ClipAnalyticsFlow = 'quick' | 'review';
-export type ClipAnalyticsMode = 'avatar' | 'raw-cut';
-export type ClipAnalyticsSourceKind = 'library' | 'upload' | 'youtube';
+export type ClipperAnalyticsFlow = 'quick' | 'review';
+export type ClipperAnalyticsMode = 'avatar' | 'raw-cut';
+export type ClipperAnalyticsSourceKind = 'library' | 'upload' | 'youtube';
 
 export type ConnectGenfeedStep =
   | 'client_selected'
@@ -255,15 +256,15 @@ export interface AnalyticsEventProperties {
     readonly surface: StudioEditorSurface;
   };
   [ANALYTICS_EVENTS.GENERATION_STARTED]: {
-    readonly clipFlow?: ClipAnalyticsFlow;
-    readonly clipMode?: ClipAnalyticsMode;
-    readonly clipSourceKind?: ClipAnalyticsSourceKind;
+    readonly clipFlow?: ClipperAnalyticsFlow;
+    readonly clipperMode?: ClipperAnalyticsMode;
+    readonly clipperSourceKind?: ClipperAnalyticsSourceKind;
     readonly generationType: GenerationType;
   };
   [ANALYTICS_EVENTS.GENERATION_COMPLETED]: {
-    readonly clipFlow?: ClipAnalyticsFlow;
-    readonly clipMode?: ClipAnalyticsMode;
-    readonly clipSourceKind?: ClipAnalyticsSourceKind;
+    readonly clipFlow?: ClipperAnalyticsFlow;
+    readonly clipperMode?: ClipperAnalyticsMode;
+    readonly clipperSourceKind?: ClipperAnalyticsSourceKind;
     readonly generationType: GenerationType;
     readonly outcome: AnalyticsOutcome;
   };
@@ -271,7 +272,7 @@ export interface AnalyticsEventProperties {
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
     readonly platform: string;
   };
-  [ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED]: {
+  [ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED]: {
     readonly source: 'public_preview';
   };
   [ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH]: {

@@ -334,15 +334,21 @@ describe('Genfeed action registry', () => {
     ).toBe(true);
   });
 
-  it('owns the atomic clip-generation graph actions', () => {
-    expect(getActionDefinition('clip.generation.generate-one')).toBeDefined();
-    expect(getActionDefinition('clip.generation.plan')).toBeDefined();
-    expect(getActionDefinition('clip.handoff.prepare-publish')).toBeDefined();
-    expect(getActionDefinition('clip.handoff.create-editor')).toBeDefined();
-    expect(getActionDefinition('clip.handoff.link-library')).toBeDefined();
-    expect(getActionDefinition('clip.continuity.begin')).toBeDefined();
-    expect(getActionDefinition('clip.continuity.fail')).toBeDefined();
-    expect(getActionDefinition('clip.continuity.persist-report')).toBeDefined();
+  it('owns the atomic clipper-generation graph actions', () => {
+    expect(
+      getActionDefinition('clipper.generation.generate-one'),
+    ).toBeDefined();
+    expect(getActionDefinition('clipper.generation.plan')).toBeDefined();
+    expect(
+      getActionDefinition('clipper.handoff.prepare-publish'),
+    ).toBeDefined();
+    expect(getActionDefinition('clipper.handoff.create-editor')).toBeDefined();
+    expect(getActionDefinition('clipper.handoff.link-library')).toBeDefined();
+    expect(getActionDefinition('clipper.continuity.begin')).toBeDefined();
+    expect(getActionDefinition('clipper.continuity.fail')).toBeDefined();
+    expect(
+      getActionDefinition('clipper.continuity.persist-report'),
+    ).toBeDefined();
   });
 
   it('owns the batch project idea dispatch actions with closed job contracts', () => {
@@ -365,7 +371,7 @@ describe('Genfeed action registry', () => {
 
   it('publishes exact public YouTube clip session boundaries', () => {
     expect(
-      getActionDefinition('youtube.clip.create-session')?.inputSchema,
+      getActionDefinition('youtube.clipper.create-session')?.inputSchema,
     ).toMatchObject({
       additionalProperties: false,
       properties: {
@@ -380,7 +386,7 @@ describe('Genfeed action registry', () => {
       type: 'object',
     });
     expect(
-      getActionDefinition('youtube.clip.read-session')?.outputSchema,
+      getActionDefinition('youtube.clipper.read-session')?.outputSchema,
     ).toMatchObject({
       additionalProperties: false,
       required: [
@@ -396,7 +402,7 @@ describe('Genfeed action registry', () => {
       type: 'object',
     });
     expect(
-      getActionDefinition('clip.analysis.prepare-source')?.inputSchema,
+      getActionDefinition('clipper.analysis.prepare-source')?.inputSchema,
     ).toMatchObject({
       additionalProperties: false,
       required: ['job'],

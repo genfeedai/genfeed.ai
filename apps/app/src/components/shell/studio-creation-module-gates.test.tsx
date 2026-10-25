@@ -1,4 +1,4 @@
-import ClipsNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/clips/new/page';
+import ClipperNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/clipper/new/page';
 import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/page';
 import TurboNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/turbo/new/page';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -33,7 +33,7 @@ vi.mock('@/features/workflows/pages/turbo/TurboNewProjectPage', () => ({
   ),
 }));
 vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/clips/new/new-clip-project-page',
+  '@app/(protected)/[orgSlug]/[brandSlug]/clipper/new/new-clipper-project-page',
   () => ({
     default: () => (
       <button type="button" onClick={state.create}>
@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('Studio creation routes', () => {
   it.each([
     ['turbo', TurboNewPage],
-    ['clips', ClipsNewPage],
+    ['clipper', ClipperNewPage],
     ['editor', EditorNewPage],
   ] as const)(
     'prevents %s creation until its organization preference is enabled',

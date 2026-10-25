@@ -5,7 +5,7 @@ import {
   getAuthErrorCallbackURL,
   getAuthFlowHref,
   parseBrandOsPreviewToken,
-  parsePublicYoutubeClipToken,
+  parsePublicYoutubeClipperToken,
   resolveOAuthLoginErrorMessage,
   toAbsoluteAuthCallbackURL,
   toAbsolutePasswordResetURL,
@@ -276,16 +276,16 @@ describe('auth callback URL helpers', () => {
     ).toBe(`/onboarding/post-signup?brandOsToken=${token}`);
   });
 
-  it('preserves only a bounded opaque clip-tool token through post-signup', () => {
+  it('preserves only a bounded opaque clipper-tool token through post-signup', () => {
     const token = 'b'.repeat(43);
     expect(
       getAuthCallbackURL(new URLSearchParams({ clipToolToken: token })),
     ).toBe(`/onboarding/post-signup?clipToolToken=${token}`);
-    expect(parsePublicYoutubeClipToken(token)).toBe(token);
+    expect(parsePublicYoutubeClipperToken(token)).toBe(token);
     expect(
-      parsePublicYoutubeClipToken('https://youtube.com/watch?v=x'),
+      parsePublicYoutubeClipperToken('https://youtube.com/watch?v=x'),
     ).toBeNull();
-    expect(parsePublicYoutubeClipToken('b'.repeat(44))).toBeNull();
+    expect(parsePublicYoutubeClipperToken('b'.repeat(44))).toBeNull();
   });
 
   it('preserves a validated referral code through the external auth round trip', () => {

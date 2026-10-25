@@ -150,28 +150,28 @@ describe('PublicService', () => {
     );
 
     await expect(
-      service.createPublicYoutubeClip(
+      service.createPublicYoutubeClipper(
         'https://www.youtube.com/watch?v=abc12345',
         'request-key-1',
       ),
     ).resolves.toMatchObject(session);
     expect(http.post).toHaveBeenCalledWith(
-      'youtube-clips',
+      'youtube-clipper',
       { youtubeUrl: 'https://www.youtube.com/watch?v=abc12345' },
       { headers: { 'Idempotency-Key': 'request-key-1' } },
     );
 
-    await service.getPublicYoutubeClip(session.previewToken);
+    await service.getPublicYoutubeClipper(session.previewToken);
     expect(http.get).toHaveBeenCalledWith(
-      `youtube-clips/${session.previewToken}`,
+      `youtube-clipper/${session.previewToken}`,
     );
 
-    await service.requestPublicYoutubeClipPreview(
+    await service.requestPublicYoutubeClipperPreview(
       session.previewToken,
       'recommendation-1',
     );
     expect(http.post).toHaveBeenLastCalledWith(
-      `youtube-clips/${session.previewToken}/preview`,
+      `youtube-clipper/${session.previewToken}/preview`,
       { recommendationId: 'recommendation-1' },
     );
   });

@@ -169,7 +169,7 @@ describe('media.constant', () => {
     describe('studio production surfaces', () => {
       // The per-media-type tabs are retired; every surviving Studio surface is
       // video-first and one-off generation happens in the Agent.
-      it.each(['/studio', '/storyboard', '/clips', '/turbo'])(
+      it.each(['/studio', '/storyboard', '/clipper', '/turbo'])(
         'should return VIDEO for %s',
         (pathname) => {
           expect(getCategoryFromRoute(pathname)).toBe(IngredientCategory.VIDEO);

@@ -67,9 +67,9 @@ export const NATIVE_SECONDARY_APPS = {
     purpose: 'Compose animated visuals with props, code and revisions.',
     contextualEntries: [],
   },
-  clips: {
-    label: 'Clips',
-    organizationModuleId: 'clips',
+  clipper: {
+    label: 'Clipper',
+    organizationModuleId: 'clipper',
     purpose: 'Cut highlights from long videos using their transcript.',
     contextualEntries: ['clip'],
   },

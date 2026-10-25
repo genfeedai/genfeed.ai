@@ -31,7 +31,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   agent: APP_DISPLAY_LABELS.agent,
   analytics: APP_DISPLAY_LABELS.analytics,
   automation: APP_DISPLAY_LABELS.automation,
-  clips: APP_DISPLAY_LABELS.clips,
+  clipper: APP_DISPLAY_LABELS.clipper,
   editor: APP_DISPLAY_LABELS.editor,
   library: APP_DISPLAY_LABELS.library,
   messages: APP_DISPLAY_LABELS.messages,

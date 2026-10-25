@@ -28,7 +28,7 @@ const RELEASED = {
 
 const UNRELEASED_MODULE_IDS = [
   'motion',
-  'clips',
+  'clipper',
   'editor',
   'automation',
   'messages',
@@ -65,29 +65,33 @@ describe('release gate', () => {
   it('hides unreleased modules from cloud navigation without preview', () => {
     const settings = {
       hasOrganizationBilling: true,
-      moduleOverrides: { clips: true, automation: true, turbo: true },
+      moduleOverrides: { clipper: true, automation: true, turbo: true },
     };
     const preferences = resolveOrganizationModulePreferences(
       settings,
       RELEASED,
     );
-    expect(preferences?.clips).toBe(false);
+    expect(preferences?.clipper).toBe(false);
     expect(preferences?.automation).toBe(false);
     expect(preferences?.turbo).toBe(true);
     expect(
       resolveOrganizationModulePreferences(
         { ...settings, isReleasePreviewEnabled: true },
         RELEASED,
-      )?.clips,
+      )?.clipper,
     ).toBe(true);
     expect(
       resolveOrganizationModulePreferences(settings, {
         ...RELEASED,
-        release_clips: true,
-      })?.clips,
+        release_clipper: true,
+      })?.clipper,
     ).toBe(true);
     expect(
-      resolveOrganizationModulePresentationAccess(settings, 'clips', RELEASED),
+      resolveOrganizationModulePresentationAccess(
+        settings,
+        'clipper',
+        RELEASED,
+      ),
     ).toEqual({ isAllowed: false, reason: 'unreleased' });
   });
 
@@ -168,7 +172,7 @@ describe('organization module preference display', () => {
       publishing: true,
       analytics: true,
       motion: false,
-      clips: false,
+      clipper: false,
       turbo: false,
       editor: false,
       automation: false,
@@ -181,7 +185,7 @@ describe('organization module preference display', () => {
       {
         hasOrganizationBilling: false,
         moduleOverrides: {
-          clips: false,
+          clipper: false,
           automation: true,
           playground: false,
           storyboard: false,
@@ -189,7 +193,7 @@ describe('organization module preference display', () => {
       },
       {},
     );
-    expect(preferences?.clips).toBe(false);
+    expect(preferences?.clipper).toBe(false);
     expect(preferences?.motion).toBe(true);
     expect(preferences?.automation).toBe(true);
     expect(preferences?.playground).toBe(false);
@@ -200,7 +204,7 @@ describe('organization module preference display', () => {
     undefined,
     {},
     { hasOrganizationBilling: 'true', moduleOverrides: {} },
-    { hasOrganizationBilling: true, moduleOverrides: { clips: 'true' } },
+    { hasOrganizationBilling: true, moduleOverrides: { clipper: 'true' } },
   ])(
     'does not guess a preference snapshot from unavailable data: %j',
     (settings) => {
@@ -289,7 +293,7 @@ describe('organization module admission', () => {
       [],
       { typo: true },
       { turbo: 1 },
-      { clips: null },
+      { clipper: null },
     ]) {
       expect(
         organizationModuleOverridesSchema.safeParse(candidate).success,

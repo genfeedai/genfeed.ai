@@ -136,7 +136,7 @@ describe('OrganizationModulesCard', () => {
       expect(toggle(name)).toBeChecked();
     for (const name of [
       'Motion',
-      'Clips',
+      'Clipper',
       'Turbo',
       'Editor',
       'Automation',
@@ -211,7 +211,7 @@ describe('OrganizationModulesCard', () => {
     expect(toggle('Automation')).not.toBeChecked();
     for (const name of [
       'Motion',
-      'Clips',
+      'Clipper',
       'Turbo',
       'Editor',
       'Messages',
@@ -258,11 +258,11 @@ describe('OrganizationModulesCard', () => {
 
   it('allows keyboard activation through the shared Radix switch', async () => {
     render(<OrganizationModulesCard />);
-    toggle('Clips').focus();
+    toggle('Clipper').focus();
     await userEvent.keyboard(' ');
     await waitFor(() =>
       expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
-        moduleOverrides: { clips: true },
+        moduleOverrides: { clipper: true },
       }),
     );
   });

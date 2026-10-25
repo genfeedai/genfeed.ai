@@ -283,7 +283,7 @@ describe('workflow engine in CLOUD tenant context', () => {
 
   describe('SystemWorkflowRunnerService hidden mirror', () => {
     const definition: SystemWorkflowGraphDefinition = {
-      canonicalId: 'clip-hook-review',
+      canonicalId: 'clipper-hook-review',
       definition: {
         edges: [],
         nodes: [
@@ -364,7 +364,7 @@ describe('workflow engine in CLOUD tenant context', () => {
           metadata: {
             sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
             systemWorkflow: buildHiddenSystemWorkflowMetadata({
-              canonicalId: 'clip-hook-review',
+              canonicalId: 'clipper-hook-review',
             }),
           },
         }),

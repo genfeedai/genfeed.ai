@@ -256,7 +256,7 @@ export function generateMockOrganizationSettings(
     isReleasePreviewEnabled: true,
     moduleOverrides: {
       motion: true,
-      clips: true,
+      clipper: true,
       turbo: true,
       editor: true,
       automation: true,

@@ -31,7 +31,7 @@ export enum RedisWorkload {
 
 /**
  * Default logical database index per workload. Queues stay on DB 0 so in-flight
- * jobs are preserved and every queue-touching service (api/workers/files/clips)
+ * jobs are preserved and every queue-touching service (api/workers/files/clipper)
  * agrees on the same namespace without coordination; the other workloads move to
  * dedicated indices so a spike or flush on one cannot evict/starve another.
  */

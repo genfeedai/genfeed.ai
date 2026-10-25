@@ -386,8 +386,8 @@ function dispatchStudioFamily(
       return handlers.prepareHandler.prepareWorkflowTrigger(params, ctx);
     case 'prepare_voice_clone':
       return handlers.prepareHandler.prepareVoiceClone(ctx, params);
-    case 'prepare_clip_workflow_run':
-      return handlers.prepareHandler.prepareClipWorkflowRun(params, ctx);
+    case 'prepare_clipper_workflow_run':
+      return handlers.prepareHandler.prepareClipperWorkflowRun(params, ctx);
     case 'suggest_next_steps':
       return handlers.prepareHandler.suggestNextSteps(params);
     case 'suggest_ingredient_alternatives':

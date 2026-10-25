@@ -8,7 +8,7 @@ import {
   isYoutubeUrl,
   type VideoCompletionResult,
 } from '@files/processors/video-processor.util';
-import { ClipReferenceFrameExtractionService } from '@files/services/clip-reference-frames/clip-reference-frame-extraction.service';
+import { ClipperReferenceFrameExtractionService } from '@files/services/clipper-reference-frames/clipper-reference-frame-extraction.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
@@ -24,7 +24,7 @@ import {
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
 import { FontFamily } from '@genfeedai/contracts';
-import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
+import { CLIPPER_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import {
   FILE_JOB_TYPES as JOB_TYPES,
   FILE_QUEUE_NAMES as QUEUE_NAMES,
@@ -48,7 +48,7 @@ export class VideoProcessor extends WorkerHost {
     private redisService: RedisService,
     private readonly logger: LoggerService,
     private readonly remotionRenderJobService: RemotionRenderJobService,
-    private readonly clipReferenceFrameExtractionService: ClipReferenceFrameExtractionService,
+    private readonly clipperReferenceFrameExtractionService: ClipperReferenceFrameExtractionService,
     private readonly ytDlpService: YtDlpService,
   ) {
     super();
@@ -768,7 +768,7 @@ export class VideoProcessor extends WorkerHost {
           : undefined;
         if (
           sourceDurationSeconds !== undefined &&
-          sourceDurationSeconds > CLIP_SOURCE_MAX_DURATION_SECONDS
+          sourceDurationSeconds > CLIPPER_SOURCE_MAX_DURATION_SECONDS
         ) {
           throw new Error('Clip sources may be up to 6 hours long.');
         }
@@ -792,7 +792,7 @@ export class VideoProcessor extends WorkerHost {
           10 * 1024 * 1024 * 1024,
         );
         sourceS3Key = this.s3Service.generateRunScopedKey(
-          'clip-sources',
+          'clipper-sources',
           `${organizationId}/${ingredientId}/${randomUUID()}/source.mp4`,
         );
         await this.s3Service.uploadFile(sourceS3Key, inputPath, 'video/mp4');
@@ -918,7 +918,7 @@ export class VideoProcessor extends WorkerHost {
   ): Promise<JobResult> {
     const { ingredientId, organizationId, params } = job.data;
     const referenceFrames =
-      await this.clipReferenceFrameExtractionService.extract({
+      await this.clipperReferenceFrameExtractionService.extract({
         organizationId,
         projectId: ingredientId,
         sourceStorageKey: params.s3Key,

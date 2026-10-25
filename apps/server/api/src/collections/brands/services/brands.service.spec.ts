@@ -290,7 +290,14 @@ describe('BrandsService', () => {
       expect(createInput.data.agentConfig).toBeUndefined();
     });
 
-    it.each(['turbo', 'Clips', 'editor', 'motion', 'playground', 'storyboard'])(
+    it.each([
+      'turbo',
+      'Clipper',
+      'editor',
+      'motion',
+      'playground',
+      'storyboard',
+    ])(
       'rejects the reserved app route name "%s" as an explicit handle',
       async (slug) => {
         await expect(
@@ -2270,17 +2277,21 @@ describe('BrandsService', () => {
       expect(crossOrgFlags).toEqual([true, true]);
     });
 
-    it.each(['turbo', 'clips', 'editor', 'motion', 'playground', 'storyboard'])(
-      'is never free for the reserved app route name "%s"',
-      async (slug) => {
-        delegate.findFirst.mockResolvedValue(null);
+    it.each([
+      'turbo',
+      'clipper',
+      'editor',
+      'motion',
+      'playground',
+      'storyboard',
+    ])('is never free for the reserved app route name "%s"', async (slug) => {
+      delegate.findFirst.mockResolvedValue(null);
 
-        await expect(service.isSlugAvailable(slug, 'brand_1')).resolves.toBe(
-          false,
-        );
-        expect(delegate.findFirst).not.toHaveBeenCalled();
-      },
-    );
+      await expect(service.isSlugAvailable(slug, 'brand_1')).resolves.toBe(
+        false,
+      );
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
 
     it('is taken when any other brand holds it, deleted or in another organization', async () => {
       delegate.findFirst.mockResolvedValue({ id: 'brand_deleted' });
@@ -2365,17 +2376,21 @@ describe('BrandsService', () => {
       );
     });
 
-    it.each(['turbo', 'clips', 'editor', 'motion', 'playground', 'storyboard'])(
-      'never hands out the reserved app route name "%s"',
-      async (name) => {
-        delegate.findFirst.mockResolvedValue(null);
+    it.each([
+      'turbo',
+      'clipper',
+      'editor',
+      'motion',
+      'playground',
+      'storyboard',
+    ])('never hands out the reserved app route name "%s"', async (name) => {
+      delegate.findFirst.mockResolvedValue(null);
 
-        const slug = await service.generateUniqueSlug(name);
+      const slug = await service.generateUniqueSlug(name);
 
-        expect(slug).toBe(`${name}-2`);
-        expect(delegate.findFirst).toHaveBeenCalledTimes(1);
-      },
-    );
+      expect(slug).toBe(`${name}-2`);
+      expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('updateAgentConfig', () => {

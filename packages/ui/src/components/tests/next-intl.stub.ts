@@ -157,8 +157,8 @@ const UI_TEST_MESSAGES = {
         label: 'Motion',
         description: 'Compose animated visuals.',
       },
-      clips: {
-        label: 'Clips',
+      clipper: {
+        label: 'Clipper',
         description: 'Cut highlights from long videos.',
       },
       editor: {

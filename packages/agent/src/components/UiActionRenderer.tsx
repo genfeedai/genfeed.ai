@@ -20,8 +20,8 @@ import {
   CampaignControlCard,
   CampaignCreateCard,
 } from '@genfeedai/agent/components/CampaignCard';
-import { ClipRunCard } from '@genfeedai/agent/components/ClipRunCard';
-import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+import { ClipperRunCard } from '@genfeedai/agent/components/ClipperRunCard';
+import { ClipperWorkflowRunCard } from '@genfeedai/agent/components/ClipperWorkflowRunCard';
 import { ContentCalendarCard } from '@genfeedai/agent/components/ContentCalendarCard';
 import { CreditsBalanceCard } from '@genfeedai/agent/components/CreditsBalanceCard';
 import { EngagementOpportunityCard } from '@genfeedai/agent/components/EngagementOpportunityCard';
@@ -197,14 +197,14 @@ export function UiActionRenderer({
         <WorkflowTriggerCard action={action} apiService={liveApiService} />
       ) : null;
       break;
-    case 'clip_workflow_run_card':
+    case 'clipper_workflow_run_card':
       card = liveApiService ? (
-        <ClipWorkflowRunCard action={action} apiService={liveApiService} />
+        <ClipperWorkflowRunCard action={action} apiService={liveApiService} />
       ) : null;
       break;
-    case 'clip_run_card':
-      card = action.clipRunState ? (
-        <ClipRunCard state={action.clipRunState} />
+    case 'clipper_run_card':
+      card = action.clipperRunState ? (
+        <ClipperRunCard state={action.clipperRunState} />
       ) : null;
       break;
     case 'ingredient_alternatives_card':

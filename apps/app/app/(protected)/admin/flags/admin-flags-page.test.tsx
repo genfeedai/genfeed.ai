@@ -173,7 +173,7 @@ describe('AdminFlagsPage (#5468)', () => {
     for (const [name, key] of [
       ['Motion', 'motion'],
       ['Storyboard', 'storyboard'],
-      ['Clips', 'clips'],
+      ['Clipper', 'clipper'],
       ['Turbo', 'turbo'],
       ['Editor', 'editor'],
     ]) {
@@ -209,7 +209,7 @@ describe('AdminFlagsPage (#5468)', () => {
   it('lists every Studio app as its own switch', async () => {
     render(<AdminFlagsPage />);
 
-    for (const name of ['Motion', 'Storyboard', 'Clips', 'Turbo', 'Editor']) {
+    for (const name of ['Motion', 'Storyboard', 'Clipper', 'Turbo', 'Editor']) {
       expect(await screen.findByRole('switch', { name })).toBeInTheDocument();
     }
   });

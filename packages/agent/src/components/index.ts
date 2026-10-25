@@ -30,7 +30,7 @@ export {
   DynamicChart,
   DynamicTable,
 } from '@genfeedai/agent/components/blocks';
-export { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+export { ClipperWorkflowRunCard } from '@genfeedai/agent/components/ClipperWorkflowRunCard';
 export {
   type ConversationComposerShellContextValue,
   ConversationComposerShellProvider,

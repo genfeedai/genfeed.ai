@@ -379,8 +379,8 @@ export class AgentCompletionCardBuilderService {
       uiActionTypes.has('content_preview_card') ||
       uiActionTypes.has('turbo_run_card') ||
       uiActionTypes.has('turbo_run_result_card') ||
-      uiActionTypes.has('clip_run_card') ||
-      uiActionTypes.has('clip_workflow_run_card') ||
+      uiActionTypes.has('clipper_run_card') ||
+      uiActionTypes.has('clipper_workflow_run_card') ||
       hasCompletedTool(
         'generate_content',
         'generate_turbo_content',

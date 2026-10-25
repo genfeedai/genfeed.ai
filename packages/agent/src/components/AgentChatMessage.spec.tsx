@@ -57,8 +57,8 @@ vi.mock('./CampaignCard', () => ({
   CampaignControlCard: () => null,
   CampaignCreateCard: () => null,
 }));
-vi.mock('./ClipWorkflowRunCard', () => ({
-  ClipWorkflowRunCard: () => null,
+vi.mock('./ClipperWorkflowRunCard', () => ({
+  ClipperWorkflowRunCard: () => null,
 }));
 vi.mock('./ContentCalendarCard', () => ({
   ContentCalendarCard: () => null,

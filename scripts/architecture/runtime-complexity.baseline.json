@@ -25,15 +25,15 @@
   },
   {
     "actual": 166,
-    "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
+    "file": "apps/server/api/src/collections/clipper-projects/services/clipper-generation-dispatch.service.ts",
     "metric": "method-lines",
-    "symbol": "ClipGenerationDispatchService.retryFailedClips"
+    "symbol": "ClipperGenerationDispatchService.retryFailedClips"
   },
   {
     "actual": 187,
-    "file": "apps/server/api/src/collections/clip-projects/services/public-youtube-clip-claim.service.ts",
+    "file": "apps/server/api/src/collections/clipper-projects/services/public-youtube-clipper-claim.service.ts",
     "metric": "method-lines",
-    "symbol": "PublicYoutubeClipClaimService.claim"
+    "symbol": "PublicYoutubeClipperClaimService.claim"
   },
   {
     "actual": 219,
@@ -85,9 +85,9 @@
   },
   {
     "actual": 198,
-    "file": "apps/server/api/src/endpoints/public/services/public-youtube-clips.service.ts",
+    "file": "apps/server/api/src/endpoints/public/services/public-youtube-clipper.service.ts",
     "metric": "method-lines",
-    "symbol": "PublicYoutubeClipsService.onModuleInit"
+    "symbol": "PublicYoutubeClipperService.onModuleInit"
   },
   {
     "actual": 159,

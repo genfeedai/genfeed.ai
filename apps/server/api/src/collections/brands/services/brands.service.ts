@@ -622,7 +622,7 @@ export class BrandsService extends BaseService<
 
   /**
    * Whether `slug` is free for `brandId`; global like the database constraint.
-   * Top-level app route names (`turbo`, `clips`, ...) are never free.
+   * Top-level app route names (`turbo`, `clipper`, ...) are never free.
    */
   async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
     if (isReservedAppRootSegment(slug)) {

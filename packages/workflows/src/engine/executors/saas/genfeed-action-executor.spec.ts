@@ -62,7 +62,7 @@ describe('GenfeedActionExecutor idempotency', () => {
     const actionExecutor = vi.fn().mockResolvedValue({ data: { ok: true } });
     const executor = createGenfeedActionExecutor(actionExecutor);
 
-    await executor.execute(makeInput('youtube.clip.read-session'));
+    await executor.execute(makeInput('youtube.clipper.read-session'));
 
     expect(actionExecutor.mock.calls[0]?.[0].context).not.toHaveProperty(
       'idempotencyKey',

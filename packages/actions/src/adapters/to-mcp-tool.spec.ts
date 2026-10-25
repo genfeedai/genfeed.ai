@@ -287,8 +287,8 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: true,
       openWorldHint: true,
     },
-    name: 'get_clip_project',
-    title: 'Get Clip Project',
+    name: 'get_clipper_project',
+    title: 'Get Clipper Project',
   },
   {
     annotations: {

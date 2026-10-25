@@ -56,7 +56,7 @@ import remixBrief from './pages/remixBrief.json';
 import replyDrip from './pages/replyDrip.json';
 import socialIntelligence from './pages/socialIntelligence.json';
 import socialWarmup from './pages/socialWarmup.json';
-import studioClips from './pages/studioClips.json';
+import studioClipper from './pages/studioClipper.json';
 import studioEditor from './pages/studioEditor.json';
 import studioEditorLock from './pages/studioEditorLock.json';
 import studioMotion from './pages/studioMotion.json';
@@ -129,7 +129,7 @@ const pages = {
   replyDrip,
   socialIntelligence,
   socialWarmup,
-  studioClips,
+  studioClipper,
   studioEditor,
   studioEditorLock,
   studioMotion,

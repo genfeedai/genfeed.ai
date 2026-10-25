@@ -4,7 +4,7 @@ import { MCP_ADS_TOOLS } from './ads.tools';
 import { MCP_AGENT_CONTROL_TOOLS } from './agent-control.tools';
 import { MCP_ANALYTICS_TOOLS } from './analytics.tools';
 import { MCP_CAMPAIGN_TOOLS } from './campaign.tools';
-import { MCP_CLIP_TOOLS } from './clips.tools';
+import { MCP_CLIP_TOOLS } from './clipper.tools';
 import { MCP_CONTENT_TOOLS } from './content.tools';
 import { MCP_CONTENT_CAMPAIGN_TOOLS } from './content-campaign.tools';
 import { MCP_DISCOVERY_TOOLS } from './discovery.tools';

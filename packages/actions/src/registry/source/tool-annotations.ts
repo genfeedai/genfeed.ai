@@ -34,6 +34,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'start_remix_generation',
   'control_remix_generation',
   'replace_storyboard_character',
+  'run_clipper',
   'transform_media',
 ]);
 
@@ -194,7 +195,7 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
       },
     ],
     [
-      'get_clip_project',
+      'get_clipper_project',
       {
         destructiveHint: true,
         idempotentHint: true,

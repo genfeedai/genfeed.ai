@@ -113,12 +113,12 @@ describe('MembersService app installation HTTP methods (#5502)', () => {
   it('reads the caller installations and drops unknown ids', async () => {
     const controller = new AbortController();
     http.get.mockResolvedValue(
-      axiosResponse({ installedAppIds: ['turbo', 'retired', 'clips'] }),
+      axiosResponse({ installedAppIds: ['turbo', 'retired', 'clipper'] }),
     );
 
     await expect(service.findMyApps(controller.signal)).resolves.toEqual([
       'turbo',
-      'clips',
+      'clipper',
     ]);
     expect(http.get).toHaveBeenCalledWith('/me/apps', {
       signal: controller.signal,

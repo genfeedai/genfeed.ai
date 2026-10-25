@@ -17,7 +17,7 @@ describe('GenfeedaiAvatarProvider', () => {
       return undefined;
     });
     managedInferenceClient.generateVideo.mockResolvedValue(
-      'https://cdn.genfeed.ai/clips/clip-1.mp4',
+      'https://cdn.genfeed.ai/clipper/clip-1.mp4',
     );
     provider = new GenfeedaiAvatarProvider(
       managedInferenceClient as never,
@@ -43,7 +43,7 @@ describe('GenfeedaiAvatarProvider', () => {
       jobId: 'genfeedai-clip-clip-1',
       providerName: 'genfeedai',
       status: 'completed',
-      videoUrl: 'https://cdn.genfeed.ai/clips/clip-1.mp4',
+      videoUrl: 'https://cdn.genfeed.ai/clipper/clip-1.mp4',
     });
 
     expect(onJobCreated).toHaveBeenCalledWith({

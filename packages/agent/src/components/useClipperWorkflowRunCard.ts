@@ -1,0 +1,421 @@
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  buildAgentGenerationRequestBody,
+  getPromptCategoryForGenerationType,
+} from '@genfeedai/agent/utils/generation-request';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { IngredientCategory } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryAssetRoute,
+  createPublishingApprovalsRoute,
+} from '@genfeedai/contracts/constants';
+import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
+import { buildClipperDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { useCallback, useMemo, useState } from 'react';
+
+export type StepKey =
+  | 'trigger_workflow'
+  | 'generate_clip'
+  | 'merge_clips'
+  | 'reframe_portrait'
+  | 'supervised_review';
+export type StepStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'skipped';
+
+export const STEP_ORDER: StepKey[] = [
+  'trigger_workflow',
+  'generate_clip',
+  'merge_clips',
+  'reframe_portrait',
+  'supervised_review',
+];
+
+interface UseClipperWorkflowRunCardParams {
+  action: AgentUiAction;
+  apiService: AgentApiService;
+  hrefFn: (path: string) => string;
+}
+
+function buildClipperIdentityInputValues(
+  identity?: AgentClipperRunIdentity,
+): Record<string, unknown> {
+  if (!identity) {
+    return {};
+  }
+
+  return {
+    avatarId: identity.avatarId,
+    avatarRef: identity.avatarRef,
+    voiceRef: identity.voiceRef,
+    avatarProvider: identity.avatarProvider,
+    heygenAvatarId:
+      (identity.avatarProvider ?? 'heygen') === 'heygen'
+        ? identity.avatarId
+        : undefined,
+    heygenVoiceId:
+      (identity.voiceProvider ?? 'heygen') === 'heygen'
+        ? identity.voiceId
+        : undefined,
+    identitySource: identity.source,
+    missingIdentity: identity.missing,
+    useIdentity: identity.useIdentity,
+    voiceId: identity.voiceId,
+    voiceProvider: identity.voiceProvider,
+  };
+}
+
+function getClipperIdentityError(identity: AgentClipperRunIdentity): string {
+  if (identity.isComplete) {
+    return '';
+  }
+
+  const missing = identity.missing.join(' and ');
+  return `Configure saved ${missing} defaults or enter explicit IDs before generating clips.`;
+}
+
+export function useClipperWorkflowRunCard({
+  action,
+  apiService,
+  hrefFn,
+}: UseClipperWorkflowRunCardParams) {
+  const { brandId } = useBrand();
+  const clipperRun = action.clipperRun ?? {};
+  const identity = clipperRun.identity;
+  const [autonomousMode, setAutonomousMode] = useState(
+    clipperRun.autonomousMode ?? true,
+  );
+  const [requireStepConfirmation, setRequireStepConfirmation] = useState(
+    clipperRun.requireStepConfirmation ?? true,
+  );
+  const [mergeGeneratedVideos, setMergeGeneratedVideos] = useState(
+    clipperRun.mergeGeneratedVideos ?? true,
+  );
+  const [prompt, setPrompt] = useState(
+    clipperRun.prompt ?? action.description ?? 'Create a 30-second X clip',
+  );
+  const [durationSeconds, setDurationSeconds] = useState(
+    clipperRun.durationSeconds ?? 30,
+  );
+  const [workflowId, setWorkflowId] = useState<string | undefined>(
+    action.workflowId ?? action.workflows?.[0]?.id,
+  );
+  const [workflowExecutionId, setWorkflowExecutionId] = useState<string | null>(
+    null,
+  );
+  const [generatedVideoIds, setGeneratedVideoIds] = useState<string[]>([]);
+  const [mergedVideoId, setMergedVideoId] = useState<string | null>(null);
+  const [portraitVideoId, setPortraitVideoId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeThread = useAgentChatStore((state) =>
+    state.threads.find((thread) => thread.id === state.activeThreadId),
+  );
+  const [steps, setSteps] = useState<Record<StepKey, StepStatus>>({
+    generate_clip: 'pending',
+    merge_clips: mergeGeneratedVideos ? 'pending' : 'skipped',
+    reframe_portrait: 'pending',
+    supervised_review: 'pending',
+    trigger_workflow: workflowId ? 'pending' : 'skipped',
+  });
+
+  const finalVideoId = portraitVideoId ?? mergedVideoId ?? generatedVideoIds[0];
+  const canMerge = mergeGeneratedVideos && generatedVideoIds.length > 1;
+
+  const draftReviewUrl = useMemo(() => {
+    if (!finalVideoId) {
+      return null;
+    }
+
+    return buildClipperDraftAgentHref({
+      description: prompt,
+      ingredientId: finalVideoId,
+      title: action.title || 'Generated clip draft',
+    });
+  }, [action.title, finalVideoId, prompt]);
+
+  const setStep = useCallback((key: StepKey, status: StepStatus) => {
+    setSteps((prev) => ({ ...prev, [key]: status }));
+  }, []);
+
+  const runTriggerWorkflow = useCallback(async () => {
+    if (!workflowId) {
+      setStep('trigger_workflow', 'skipped');
+      return;
+    }
+    setStep('trigger_workflow', 'running');
+    if (identity && !identity.isComplete) {
+      throw new Error(getClipperIdentityError(identity));
+    }
+
+    const inputValues = {
+      ...(clipperRun.inputValues ?? {
+        confirmBeforePublish: true,
+        duration: durationSeconds,
+        format: 'landscape',
+        intent: 'twitter_clip',
+        mergeGeneratedVideos,
+        prompt,
+      }),
+      ...buildClipperIdentityInputValues(identity),
+    };
+
+    const execution = await apiService.triggerWorkflow(
+      workflowId,
+      inputValues,
+      undefined,
+      activeThreadId && activeThread?.contextVersion !== undefined
+        ? {
+            expectedContextVersion: activeThread.contextVersion,
+            threadId: activeThreadId,
+          }
+        : undefined,
+    );
+    setWorkflowExecutionId(execution.id);
+    setStep('trigger_workflow', 'completed');
+  }, [
+    activeThread?.contextVersion,
+    activeThreadId,
+    apiService,
+    clipperRun.inputValues,
+    durationSeconds,
+    identity,
+    mergeGeneratedVideos,
+    prompt,
+    setStep,
+    workflowId,
+  ]);
+
+  const runGenerateClip = useCallback(async () => {
+    setStep('generate_clip', 'running');
+    if (identity && !identity.isComplete) {
+      throw new Error(getClipperIdentityError(identity));
+    }
+
+    const promptDoc = await apiService.createPrompt({
+      category: getPromptCategoryForGenerationType('video'),
+      duration: Math.max(5, Math.min(60, durationSeconds)),
+      isSkipEnhancement: true,
+      model: clipperRun.model || undefined,
+      original: prompt,
+    });
+    const result = await apiService.generateIngredient(
+      'video',
+      buildAgentGenerationRequestBody({
+        aspectRatio: '16:9',
+        brandId: brandId || undefined,
+        duration: Math.max(5, Math.min(60, durationSeconds)),
+        identity,
+        modelKey: clipperRun.model || undefined,
+        promptId: promptDoc.id,
+        promptText: prompt,
+        waitForCompletion: true,
+      }),
+    );
+    setGeneratedVideoIds((prev) => [...prev, result.id]);
+    setStep('generate_clip', 'completed');
+  }, [
+    apiService,
+    brandId,
+    clipperRun.model,
+    durationSeconds,
+    identity,
+    prompt,
+    setStep,
+  ]);
+
+  const runMerge = useCallback(async () => {
+    if (!mergeGeneratedVideos || generatedVideoIds.length < 2) {
+      setStep('merge_clips', mergeGeneratedVideos ? 'pending' : 'skipped');
+      return;
+    }
+    setStep('merge_clips', 'running');
+    const result = await apiService.mergeVideos(generatedVideoIds, {
+      isMuteVideoAudio: true,
+      transition: 'none',
+      transitionDuration: 0.5,
+    });
+    setMergedVideoId(result.id);
+    setStep('merge_clips', 'completed');
+  }, [apiService, generatedVideoIds, mergeGeneratedVideos, setStep]);
+
+  const runReframe = useCallback(async () => {
+    const sourceVideoId =
+      mergedVideoId ?? generatedVideoIds[generatedVideoIds.length - 1];
+    if (!sourceVideoId) {
+      throw new Error('No source video available for reframe');
+    }
+    setStep('reframe_portrait', 'running');
+    try {
+      const result = await apiService.reframeVideo(sourceVideoId, {
+        format: 'portrait',
+        height: 1920,
+        prompt,
+        width: 1080,
+      });
+      setPortraitVideoId(result.id);
+    } catch {
+      const fallback = await apiService.resizeVideo(sourceVideoId, 1080, 1920);
+      setPortraitVideoId(fallback.id);
+    }
+    setStep('reframe_portrait', 'completed');
+  }, [apiService, generatedVideoIds, mergedVideoId, prompt, setStep]);
+
+  const runSupervisedReview = useCallback(async () => {
+    if (!finalVideoId) {
+      throw new Error('No final clip is ready for supervised review yet');
+    }
+
+    setStep('supervised_review', 'running');
+    let nextUrl = draftReviewUrl;
+
+    if (action.brandId) {
+      const turboRun = await apiService.createManualReviewTurboRun({
+        brandId: action.brandId,
+        items: [
+          {
+            caption: prompt,
+            format: 'video',
+            ingredientId: finalVideoId,
+            label: action.title || 'Generated clip draft',
+            platform: action.platform,
+            prompt,
+            sourceActionId: action.id,
+            sourceWorkflowId: action.workflowId,
+            sourceWorkflowName: action.workflowName,
+          },
+        ],
+      });
+      nextUrl = createPublishingApprovalsRoute({
+        run: turboRun.id,
+        item: turboRun.items[0]?.id,
+      });
+    }
+
+    setStep('supervised_review', 'completed');
+
+    if (typeof window !== 'undefined') {
+      window.location.href = nextUrl ?? APP_ROUTES.PUBLISHING.APPROVALS;
+    }
+  }, [
+    action.brandId,
+    action.id,
+    action.platform,
+    action.title,
+    action.workflowId,
+    action.workflowName,
+    apiService,
+    draftReviewUrl,
+    finalVideoId,
+    prompt,
+    setStep,
+  ]);
+
+  const runOneStep = useCallback(
+    async (key: StepKey) => {
+      try {
+        setError(null);
+        if (key === 'trigger_workflow') await runTriggerWorkflow();
+        if (key === 'generate_clip') await runGenerateClip();
+        if (key === 'merge_clips') await runMerge();
+        if (key === 'reframe_portrait') await runReframe();
+        if (key === 'supervised_review') await runSupervisedReview();
+      } catch (err: unknown) {
+        setStep(key, 'failed');
+        setError(err instanceof Error ? err.message : `Failed at ${key}`);
+      }
+    },
+    [
+      runGenerateClip,
+      runMerge,
+      runReframe,
+      runSupervisedReview,
+      runTriggerWorkflow,
+      setStep,
+    ],
+  );
+
+  const nextNonPublishStep = useMemo(
+    () =>
+      STEP_ORDER.find(
+        (s) =>
+          s !== 'supervised_review' &&
+          (steps[s] === 'pending' || steps[s] === 'failed'),
+      ),
+    [steps],
+  );
+
+  const runNext = useCallback(async () => {
+    const step = nextNonPublishStep;
+    if (!step) return;
+    await runOneStep(step);
+    if (autonomousMode && !requireStepConfirmation) {
+      const next = STEP_ORDER.find(
+        (s) =>
+          s !== 'supervised_review' &&
+          (steps[s] === 'pending' || steps[s] === 'failed'),
+      );
+      if (next && next !== step) {
+        await runOneStep(next);
+      }
+    }
+  }, [
+    autonomousMode,
+    nextNonPublishStep,
+    requireStepConfirmation,
+    runOneStep,
+    steps,
+  ]);
+
+  const addAnotherClip = useCallback(async () => {
+    await runOneStep('generate_clip');
+    if (mergeGeneratedVideos) {
+      setStep('merge_clips', 'pending');
+    }
+    setStep('reframe_portrait', 'pending');
+    setStep('supervised_review', 'pending');
+    setMergedVideoId(null);
+    setPortraitVideoId(null);
+  }, [mergeGeneratedVideos, runOneStep, setStep]);
+
+  return {
+    autonomousMode,
+    setAutonomousMode,
+    requireStepConfirmation,
+    setRequireStepConfirmation,
+    mergeGeneratedVideos,
+    setMergeGeneratedVideos,
+    prompt,
+    setPrompt,
+    durationSeconds,
+    setDurationSeconds,
+    workflowId,
+    setWorkflowId,
+    workflowExecutionId,
+    generatedVideoIds,
+    finalVideoId,
+    finalVideoUrl: finalVideoId
+      ? hrefFn(createLibraryAssetRoute(IngredientCategory.VIDEO, finalVideoId))
+      : undefined,
+    identity,
+    canMerge,
+    draftReviewUrl,
+    error,
+    steps,
+    setStep,
+    nextNonPublishStep,
+    runNext,
+    runOneStep,
+    addAnotherClip,
+    workflowExecutionUrl: hrefFn(
+      `${APP_ROUTES.AUTOMATION.RUNS}/${workflowExecutionId ?? ''}`,
+    ),
+    humanReviewUrl: hrefFn(APP_ROUTES.PUBLISHING.APPROVALS),
+  };
+}

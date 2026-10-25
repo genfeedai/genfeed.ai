@@ -1,7 +1,7 @@
 import { ConfigModule } from '@files/config/config.module';
 import { AudioOverlayService } from '@files/services/audio-overlay/audio-overlay.service';
 import { SpeechAssemblyService } from '@files/services/audio-overlay/speech-assembly.service';
-import { ClipReferenceFramesModule } from '@files/services/clip-reference-frames/clip-reference-frames.module';
+import { ClipperReferenceFramesModule } from '@files/services/clipper-reference-frames/clipper-reference-frames.module';
 import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 import { FilesModule } from '@files/services/files/files.module';
 import { HookRemixModule } from '@files/services/hook-remix/hook-remix.module';
@@ -24,7 +24,7 @@ import { Module } from '@nestjs/common';
   exports: [
     AudioOverlayService,
     SpeechAssemblyService,
-    ClipReferenceFramesModule,
+    ClipperReferenceFramesModule,
     FFmpegModule,
     FilesModule,
     HookRemixModule,
@@ -41,7 +41,7 @@ import { Module } from '@nestjs/common';
     YtDlpModule,
   ],
   imports: [
-    ClipReferenceFramesModule,
+    ClipperReferenceFramesModule,
     ConfigModule,
     FFmpegModule,
     FilesModule,

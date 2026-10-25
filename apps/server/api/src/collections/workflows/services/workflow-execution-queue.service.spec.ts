@@ -187,7 +187,7 @@ describe('WorkflowExecutionQueueService', () => {
 
     it('carries the module purpose through trigger and delayed jobs', async () => {
       await runWithOrganizationModule(
-        { organizationId: 'org-1', moduleId: 'clips' },
+        { organizationId: 'org-1', moduleId: 'clipper' },
         async () => {
           await service.queueTriggerEvent(createTriggerEvent());
           await service.queueDelayedResume(createDelayResumeData(), 500);
@@ -197,7 +197,7 @@ describe('WorkflowExecutionQueueService', () => {
       for (const [, data] of mockQueue.add.mock.calls)
         expect(data.organizationModuleContext).toEqual({
           organizationId: 'org-1',
-          moduleId: 'clips',
+          moduleId: 'clipper',
         });
     });
 
@@ -291,7 +291,7 @@ describe('WorkflowExecutionQueueService', () => {
         delayResumeData: createDelayResumeData(),
         organizationModuleContext: {
           organizationId: 'org-1',
-          moduleId: 'clips' as const,
+          moduleId: 'clipper' as const,
         },
       };
       const work = vi.fn(async () => {
@@ -319,7 +319,7 @@ describe('WorkflowExecutionQueueService', () => {
         delayResumeData: createDelayResumeData(),
         organizationModuleContext: {
           organizationId: 'other-org',
-          moduleId: 'clips' as const,
+          moduleId: 'clipper' as const,
         },
       };
       await expect(
@@ -409,18 +409,18 @@ describe('WorkflowExecutionQueueService', () => {
   describe('queueSystemWorkflow', () => {
     it('queues registered workflow identity and runtime input without a graph', async () => {
       const input = {
-        actionType: 'clip-continuity',
-        canonicalId: 'clip-continuity:v1:1',
+        actionType: 'clipper-continuity',
+        canonicalId: 'clipper-continuity:v1:1',
         inputValues: { projectId: 'project-1' },
         organizationId: 'org-1',
-        source: 'clip-generation-completion',
+        source: 'clipper-generation-completion',
       };
 
       await expect(
-        service.queueSystemWorkflow(input, 'clip-continuity-project-1', {
+        service.queueSystemWorkflow(input, 'clipper-continuity-project-1', {
           dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
           failureWorkflow: {
-            canonicalId: 'clip.continuity.failure',
+            canonicalId: 'clipper.continuity.failure',
             inputValues: { projectId: 'project-1' },
           },
         }),
@@ -431,7 +431,7 @@ describe('WorkflowExecutionQueueService', () => {
           actionContext: { origin: ActionOrigin.UNKNOWN },
           systemRun: {
             failureWorkflow: {
-              canonicalId: 'clip.continuity.failure',
+              canonicalId: 'clipper.continuity.failure',
               inputValues: { projectId: 'project-1' },
             },
             input,
@@ -440,7 +440,7 @@ describe('WorkflowExecutionQueueService', () => {
         },
         expect.objectContaining({
           attempts: 3,
-          jobId: 'clip-continuity-project-1',
+          jobId: 'clipper-continuity-project-1',
         }),
       );
     });

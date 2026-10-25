@@ -32,17 +32,17 @@ export const VIDEO_STITCH_LIMITS = {
   MIN_TRANSITION_DURATION: 0.1,
 } as const;
 
-export const CLIP_REFERENCE_FRAME_MAX_CANDIDATES = 5;
+export const CLIPPER_REFERENCE_FRAME_MAX_CANDIDATES = 5;
 /** Minimum source duration accepted when a Library asset starts a clip project. */
-export const CLIP_SOURCE_MIN_DURATION_SECONDS = 15;
+export const CLIPPER_SOURCE_MIN_DURATION_SECONDS = 15;
 /** Maximum source duration accepted by clip ingestion and materialization. */
-export const CLIP_SOURCE_MAX_DURATION_SECONDS = 6 * 60 * 60;
+export const CLIPPER_SOURCE_MAX_DURATION_SECONDS = 6 * 60 * 60;
 /** Supports materializing multi-hour clip sources before downstream processing. */
 export const YT_DLP_PROCESS_TIMEOUT_MS = 30 * 60_000;
-export const CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS =
+export const CLIPPER_REFERENCE_FRAME_JOB_TIMEOUT_MS =
   YT_DLP_PROCESS_TIMEOUT_MS + 60_000;
 /** Allows deterministic extraction jobs to process multi-hour source media. */
-export const CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS = 45 * 60_000;
+export const CLIPPER_AUDIO_EXTRACTION_JOB_TIMEOUT_MS = 45 * 60_000;
 
 export const DEFAULT_LABELS = {
   MERGED_STORYBOARD: 'Merged Storyboard',

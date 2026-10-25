@@ -53,7 +53,7 @@ describe('platform flags (#5468)', () => {
   });
 
   it('gives each Studio app its own module flag, not nested under studio', () => {
-    for (const key of ['storyboard', 'turbo', 'motion', 'clips', 'editor']) {
+    for (const key of ['storyboard', 'turbo', 'motion', 'clipper', 'editor']) {
       expect(PLATFORM_MODULE_FLAG_KEYS).toContain(key);
       expect(PLATFORM_FLAG_PARENTS).not.toHaveProperty(key);
     }
