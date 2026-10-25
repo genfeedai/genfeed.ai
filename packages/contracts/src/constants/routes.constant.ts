@@ -169,26 +169,27 @@ export const APP_ROUTES = {
   },
   LIBRARY: {
     /**
-     * Canonical library home — the unified asset browser with no filter seeded.
-     * Bare ROOT redirects here. The Library has three orthogonal axes: type
-     * (`?categories=`), shelf (`?shelf=`), and folder
-     * (`?folder=`); this route is all three unset.
+     * Canonical library home — the unified asset browser with nothing seeded.
+     * Bare ROOT redirects here. Which view you are in is the path: this
+     * route, a type (`/library/images`), a place (`/library/trash`) or a shelf
+     * (`/library/shelf/approved`). Folder, search and the other filters are
+     * query params on top.
      */
     ASSETS: '/library/assets',
     /**
-     * Type-seeded entry points into the same browser. They are shareable deep
-     * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
-     * is a filter chip, so the sidebar never lists them.
+     * Type routes over the same browser. They are shareable deep links (see
+     * `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`); clearing the type chip moves to
+     * All assets.
      */
-    AVATARS: '/library/assets?categories=AVATAR',
+    AVATARS: '/library/avatars',
     CAPTIONS: '/library/captions',
-    GIFS: '/library/assets?categories=GIF',
-    IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
-    MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
+    GIFS: '/library/gifs',
+    IMAGES: '/library/images',
+    MUSIC: '/library/music',
     /** #5502 Library home: what needs attention, linking into Assets filters. */
     OVERVIEW: '/library/overview',
     /** Assets touched most recently, newest first. */
-    RECENT: '/library/assets?place=recent',
+    RECENT: '/library/recent',
     /**
      * #5502 reusable identities (characters today; locations, styles and
      * products via #6012) that generations reference by name.
@@ -200,9 +201,9 @@ export const APP_ROUTES = {
      * `${SHELF}/needs-review`. A shelf is a saved query, not a location.
      */
     SHELF: '/library/shelf',
-    STARRED: '/library/assets?place=starred',
-    TRASH: '/library/assets?place=trash',
-    VIDEOS: '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
+    STARRED: '/library/starred',
+    TRASH: '/library/trash',
+    VIDEOS: '/library/videos',
     VOICES: '/library/voices',
   },
   MESSAGES: {

@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   loadProtectedBootstrapMock,
   notFoundMock,
+  permanentRedirectMock,
   redirectMock,
   renderPostsListPageMock,
   routeContext,
@@ -21,6 +22,9 @@ const {
   loadProtectedBootstrapMock: vi.fn(),
   notFoundMock: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
+  }),
+  permanentRedirectMock: vi.fn((destination: string) => {
+    throw new Error(`NEXT_PERMANENT_REDIRECT:${destination}`);
   }),
   redirectMock: vi.fn((destination: string) => {
     throw new Error(`NEXT_REDIRECT:${destination}`);
@@ -44,6 +48,7 @@ vi.mock('next/navigation', () => ({
     brandSlug: routeContext.brandSlug,
   }),
   notFound: notFoundMock,
+  permanentRedirect: permanentRedirectMock,
   redirect: redirectMock,
 }));
 
@@ -343,6 +348,48 @@ describe('OrgRootAppPage', () => {
       'data-folder-navigation',
       'shell',
     );
+  });
+
+  it.each([
+    [{ place: 'trash' }, '/acme/~/library/trash'],
+    [
+      { shelf: 'approved', folder: 'f1' },
+      '/acme/~/library/shelf/approved?folder=f1',
+    ],
+    [
+      { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
+      '/acme/~/library/images?search=hero',
+    ],
+  ])(
+    'permanently moves the legacy library query %j to its route',
+    async (search, destination) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'library',
+            orgSlug: 'acme',
+            segments: ['assets'],
+          }),
+          searchParams: Promise.resolve(search),
+        }),
+      ).rejects.toThrow(`NEXT_PERMANENT_REDIRECT:${destination}`);
+    },
+  );
+
+  it('keeps All assets for filters that have no route of their own', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['assets'],
+      }),
+      searchParams: Promise.resolve({ categories: ['IMAGE'], folder: 'f1' }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-browser')).toBeInTheDocument();
+    expect(permanentRedirectMock).not.toHaveBeenCalled();
   });
 
   it('renders org type routes as presets over the unified browser', async () => {

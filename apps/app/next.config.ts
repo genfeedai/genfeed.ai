@@ -162,19 +162,6 @@ const FILTER_ROUTE_SCOPES = [
   '/:orgSlug/~',
 ] as const;
 
-/**
- * Path presets whose destination writes `categories`. Next merges destination
- * query values over the request, so an explicit `categories` override has to
- * be a separate rule that does not write that key.
- */
-const LIBRARY_TYPE_PRESET_QUERIES = [
-  ['/library/images', 'categories=IMAGE&categories=IMAGE_EDIT'],
-  ['/library/videos', 'categories=VIDEO&categories=VIDEO_EDIT'],
-  ['/library/gifs', 'categories=GIF'],
-  ['/library/avatars', 'categories=AVATAR'],
-  ['/library/music', 'categories=MUSIC&categories=AUDIO'],
-] as const;
-
 const filterRouteRedirects: AppRedirect[] = [
   ...[
     ['/workspace/inbox/all', '/workspace/inbox?view=all'],
@@ -185,35 +172,12 @@ const filterRouteRedirects: AppRedirect[] = [
     ['/settings/models/videos', '/settings/models?type=videos'],
     ['/settings/models/text', '/settings/models?type=text'],
     ['/settings/models/trainings', '/settings/models?type=trainings'],
-    ['/library/trash', '/library/assets?place=trash'],
-    ['/library/shelf/generating', '/library/assets?shelf=generating'],
-    ['/library/shelf/unsorted', '/library/assets?shelf=unsorted'],
-    ['/library/shelf/needs-review', '/library/assets?shelf=needs-review'],
-    ['/library/shelf/approved', '/library/assets?shelf=approved'],
-    ['/library/shelf/failed', '/library/assets?shelf=failed'],
-    ['/library/shelf/archived', '/library/assets?shelf=archived'],
   ].flatMap(([source, destination]) =>
     FILTER_ROUTE_SCOPES.map((prefix) => ({
       source: `${prefix}${source}`,
       destination: `${prefix}${destination}`,
       permanent: true,
     })),
-  ),
-  ...LIBRARY_TYPE_PRESET_QUERIES.flatMap(([source, presetQuery]) =>
-    FILTER_ROUTE_SCOPES.flatMap((prefix) => [
-      {
-        destination: `${prefix}/library/assets`,
-        has: [{ key: 'categories', type: 'query' as const }],
-        permanent: true,
-        source: `${prefix}${source}`,
-      },
-      {
-        destination: `${prefix}/library/assets?${presetQuery}`,
-        missing: [{ key: 'categories', type: 'query' as const }],
-        permanent: true,
-        source: `${prefix}${source}`,
-      },
-    ]),
   ),
 ];
 

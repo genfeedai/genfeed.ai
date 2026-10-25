@@ -32,20 +32,24 @@ describe('LIBRARY_MENU_ITEMS', () => {
     expect(assets?.matchSearchParams).toBeUndefined();
   });
 
-  it('lights up Assets for every type-seeded deep link', () => {
+  it('lights up Assets for every type, place and shelf route', () => {
     const assets = LIBRARY_PLACE_MENU_ITEMS.find(
       (item) => item.label === 'Assets',
     );
 
     expect(assets?.matchPaths).toEqual([
       '/library/assets',
-      '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
-      '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
-      '/library/assets?categories=GIF',
-      '/library/assets?categories=AVATAR',
+      '/library/videos',
+      '/library/images',
+      '/library/gifs',
+      '/library/avatars',
       '/library/voices',
-      '/library/assets?categories=MUSIC&categories=AUDIO',
+      '/library/music',
       '/library/captions',
+      '/library/recent',
+      '/library/starred',
+      '/library/trash',
+      '/library/shelf',
     ]);
   });
 

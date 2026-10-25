@@ -26,7 +26,7 @@ async function useListView(page: Page): Promise<void> {
  * is cached server-side per session and is not deterministic across parallel
  * workers sharing one dev server. Library places are query filters on
  * `/library/assets` (#5135), so the avatars route lands on
- * `/library/assets?categories=AVATAR`.
+ * `/library/avatars`.
  */
 async function gotoAvatarLibrary(page: Page): Promise<void> {
   const avatarsRoute = brandPath(APP_ROUTES.LIBRARY.AVATARS);

@@ -3,9 +3,9 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import { AtSign, Gauge, LibraryBig } from 'lucide-react';
 
 /**
- * Type-seeded entry points into the same asset browser.
+ * Type routes over the same asset browser.
  *
- * They stay as shareable deep links (`LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`
+ * They are shareable deep links (`LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`
  * resolves into them) but they are *not* navigation — asset type is a filter
  * chip on the browser toolbar, so the sidebar never lists them.
  *
@@ -25,8 +25,9 @@ export const LIBRARY_ASSET_ROUTES = [
 /**
  * Library destinations (#5502): Overview, Assets and References.
  *
- * Recent, Starred, generation state and Trash are filters on the asset
- * browser toolbar, so every `?place=` and `?shelf=` view lights up Assets.
+ * Recent, Starred, generation state and Trash are views picked from the asset
+ * browser toolbar (`/library/recent`, `/library/shelf/approved`, …), so every
+ * one of them lights up Assets.
  * References are the reusable identities (characters today) that generations
  * reference by name.
  */
@@ -44,9 +45,15 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.LIBRARY.ASSETS,
     label: 'Assets',
-    // Type routes are the same browser with a chip pre-selected, so they light
-    // up Assets rather than a nav row of their own.
-    matchPaths: [...LIBRARY_ASSET_ROUTES],
+    // Type, place and shelf routes are the same browser, so they light up
+    // Assets rather than a nav row of their own.
+    matchPaths: [
+      ...LIBRARY_ASSET_ROUTES,
+      APP_ROUTES.LIBRARY.RECENT,
+      APP_ROUTES.LIBRARY.STARRED,
+      APP_ROUTES.LIBRARY.TRASH,
+      APP_ROUTES.LIBRARY.SHELF,
+    ],
     outline: LibraryBig,
     solid: LibraryBig,
   },

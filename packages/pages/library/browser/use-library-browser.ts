@@ -9,16 +9,17 @@ import {
   PageScope,
   parseIngredientCategory,
   parseIngredientOrigin,
-  parseLibraryShelf,
   parseTagMatchMode,
   TagMatchMode,
 } from '@genfeedai/contracts';
 import {
+  createLibraryShelfRoute,
   LIBRARY_MAX_CHARACTER_FILTERS,
   LIBRARY_MAX_TAG_FILTERS,
   LIBRARY_QUERY_KEYS,
   LIBRARY_VIEW_MODES,
   type LibraryViewMode,
+  resolveLibraryAxisRoute,
 } from '@genfeedai/contracts/constants';
 import type { IIngredientsContextValue } from '@genfeedai/contracts/interfaces/providers/providers.interface';
 import type {
@@ -77,6 +78,12 @@ function parseTags(values: string[]): string[] {
   ).slice(0, LIBRARY_MAX_TAG_FILTERS);
 }
 
+/** `/acme/brand` for `/acme/brand/library/images`: everything before the Library. */
+function libraryScopePrefix(pathname: string): string {
+  const libraryIndex = pathname.indexOf('/library');
+  return libraryIndex === -1 ? '' : pathname.slice(0, libraryIndex);
+}
+
 function parseViewMode(value: string | null): LibraryViewMode {
   return LIBRARY_VIEW_MODES.find((mode) => mode === value) ?? 'grid';
 }
@@ -84,11 +91,13 @@ function parseViewMode(value: string | null): LibraryViewMode {
 /**
  * Drive the Library browser's three axes.
  *
- * `place` and `shelf` are URL filters alongside `categories`,
- * `folder`, `search`, `sort` and `view` are the control plane and live in the
- * query string. Every URL write goes through `pushAxes`, which re-serializes
- * *all* of them together: writing one axis with a fresh `URLSearchParams` is how
- * the old layout silently dropped the other two.
+ * `place`, `shelf` and the type presets are routes (`/library/trash`,
+ * `/library/shelf/approved`, `/library/images`), so the route hands them in as
+ * defaults. `categories`, `folder`, `search`, `sort` and `view` are the
+ * control plane and live in the query string. Every URL write goes through
+ * `pushAxes`, which re-serializes *all* of them together and picks the route
+ * the new axes belong to: writing one axis with a fresh `URLSearchParams` is
+ * how the old layout silently dropped the other two.
  */
 export function useLibraryBrowser({
   place: defaultPlace,
@@ -102,12 +111,8 @@ export function useLibraryBrowser({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const place =
-    Object.values(LibraryPlace).find(
-      (value) => value === searchParams?.get('place'),
-    ) ?? defaultPlace;
-  const shelf =
-    parseLibraryShelf(searchParams?.get('shelf') ?? '') ?? defaultShelf;
+  const place = defaultPlace;
+  const shelf = defaultShelf;
   const { brandId, organizationId } = useCollectionScope();
   const { openUpload } = useUploadModal();
 
@@ -237,7 +242,9 @@ export function useLibraryBrowser({
         'characters',
         'folder',
         'origins',
+        'place',
         'search',
+        'shelf',
         'sort',
         'tagMatch',
         'tags',
@@ -246,40 +253,42 @@ export function useLibraryBrowser({
       ])
         params.delete(key);
 
-      // Recent and Starred share `place` with Trash, so picking one leaves
-      // Trash, and picking Trash below drops them.
+      // The path says which view this is, so one axis owns it. Recent,
+      // Starred and Trash are places; a shelf replaces a place and the other
+      // way round. Trash and the shelves share one status control.
+      let nextPlace: LibraryPlace | undefined = place;
+      let nextShelf: LibraryShelf | undefined = shelf;
       if ('place' in next) {
-        params.delete('place');
-        if (next.place) {
-          params.set('place', next.place);
+        nextPlace = next.place ?? undefined;
+        if (nextPlace) {
+          nextShelf = undefined;
         }
       }
-
-      // Shelf and Trash share one status control. Recent and Starred stay;
-      // Trash replaces them because both use `place`.
       if ('status' in next) {
-        params.delete('shelf');
         if (next.status === 'trash') {
-          params.set('place', LibraryPlace.TRASH);
+          nextPlace = LibraryPlace.TRASH;
+          nextShelf = undefined;
         } else {
-          if (params.get('place') === LibraryPlace.TRASH) {
-            params.delete('place');
+          if (nextPlace === LibraryPlace.TRASH) {
+            nextPlace = undefined;
           }
-          if (next.status) {
-            params.set('shelf', next.status);
+          nextShelf = next.status ?? undefined;
+          if (nextShelf) {
+            nextPlace = undefined;
           }
         }
       }
 
-      for (const category of nextCategories) {
-        params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
-      }
+      const axisRoute = resolveLibraryAxisRoute({
+        categories: nextCategories,
+        place: nextPlace,
+        shelf: nextShelf,
+      });
 
-      // An explicitly emptied type axis still has to reach the URL, otherwise
-      // the seeded categories reappear on the next render and the chips look
-      // like they refuse to clear.
-      if (nextCategories.length === 0 && (seededCategories?.length ?? 0) > 0) {
-        params.set(LIBRARY_QUERY_KEYS.CATEGORIES, '');
+      if (!axisRoute.hasCategoriesInPath) {
+        for (const category of nextCategories) {
+          params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
+        }
       }
 
       for (const character of nextCharacters) {
@@ -313,11 +322,14 @@ export function useLibraryBrowser({
       params.set(LIBRARY_QUERY_KEYS.VIEW, nextViewMode);
 
       const queryString = params.toString();
-      const expectedSearch = queryString ? `?${queryString}` : '';
+      const nextHref = `${libraryScopePrefix(pathname)}${axisRoute.route}${
+        queryString ? `?${queryString}` : ''
+      }`;
       const currentQuery = searchParams?.toString() ?? '';
+      const currentHref = `${pathname}${currentQuery ? `?${currentQuery}` : ''}`;
 
-      if (currentQuery !== queryString) {
-        router.replace(`${pathname}${expectedSearch}`, { scroll: false });
+      if (currentHref !== nextHref) {
+        router.replace(nextHref, { scroll: false });
       }
     },
     [
@@ -327,10 +339,11 @@ export function useLibraryBrowser({
       folderId,
       origins,
       pathname,
+      place,
       router,
       search,
       searchParams,
-      seededCategories,
+      shelf,
       sort,
       tagMatch,
       tags,
@@ -437,8 +450,11 @@ export function useLibraryBrowser({
     const showUploads = () => {
       const params = new URLSearchParams(searchParams?.toString() ?? '');
       params.delete('page');
-      params.set('shelf', LibraryShelf.REFERENCES);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      const query = params.toString();
+      router.push(
+        `${libraryScopePrefix(pathname)}${createLibraryShelfRoute(LibraryShelf.REFERENCES)}${query ? `?${query}` : ''}`,
+        { scroll: false },
+      );
     };
 
     openUpload({

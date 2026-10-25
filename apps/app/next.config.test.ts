@@ -24,14 +24,6 @@ const repoRoot = path.resolve(appDir, '../..');
  */
 const GUARDED_ORG_SLUG = ':orgSlug((?!v1(?:/|$))[^/]+)';
 
-/** The test redirect helper may join repeated keys; production emits both. */
-function categoryValues(target: URL): string[] {
-  return target.searchParams
-    .getAll('categories')
-    .flatMap((value) => value.split(','))
-    .filter((value) => value.length > 0);
-}
-
 describe('app next.config', () => {
   it.each([
     { bundle: '', cloud: '1', expected: false, name: 'hosted web' },
@@ -62,12 +54,6 @@ describe('app next.config', () => {
       '/acme/brand/workspace/inbox',
       'view',
       'all',
-    ],
-    [
-      '/acme/~/library/shelf/approved?folder=f1&view=list',
-      '/acme/~/library/assets',
-      'shelf',
-      'approved',
     ],
     [
       '/admin/automation/models/image?organization=o1',
@@ -124,30 +110,6 @@ describe('app next.config', () => {
       );
     },
   );
-
-  it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
-    const response = await unstable_getResponseFromNextConfig({
-      url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',
-      nextConfig: { redirects: config.redirects },
-    });
-    expect(response.status).toBe(308);
-    const target = new URL(response.headers.get('location') ?? '');
-    expect(target.pathname).toBe('/acme/brand/library/assets');
-    expect(categoryValues(target)).toEqual(['IMAGE', 'GIF']);
-    expect(target.searchParams.get('folder')).toBe('f1');
-  });
-
-  it('applies the type preset only when the old route omits categories', async () => {
-    const response = await unstable_getResponseFromNextConfig({
-      url: 'https://example.com/acme/brand/library/videos?folder=f1',
-      nextConfig: { redirects: config.redirects },
-    });
-    expect(response.status).toBe(308);
-    const target = new URL(response.headers.get('location') ?? '');
-    expect(target.pathname).toBe('/acme/brand/library/assets');
-    expect(categoryValues(target)).toEqual(['VIDEO', 'VIDEO_EDIT']);
-    expect(target.searchParams.get('folder')).toBe('f1');
-  });
 
   it('keeps the API proxy open for bounded campaign generation', () => {
     expect(config.experimental?.proxyTimeout).toBe(300_000);
@@ -339,11 +301,12 @@ describe('app next.config', () => {
           (entry) => entry.source === `${prefix}/workspace/inbox`,
         ),
       ).toBe(false);
-      expect(redirects).toContainEqual({
-        source: `${prefix}/library/shelf/approved`,
-        destination: `${prefix}/library/assets?shelf=approved`,
-        permanent: true,
-      });
+      // Library places, shelves and types are real routes, never redirected.
+      expect(
+        redirects?.some((entry) =>
+          entry.source.startsWith(`${prefix}/library/`),
+        ),
+      ).toBe(false);
     },
   );
 

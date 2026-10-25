@@ -13,9 +13,6 @@ describe('page help routing', () => {
 
   it('picks the longest matching prefix', () => {
     expect(resolvePageHelpKey('/acme/brand/automation/autopilot')).toBeNull();
-    expect(
-      resolvePageHelpKey('/acme/brand/library/assets', 'place=trash&folder=f1'),
-    ).toBe('libraryTrash');
     expect(resolvePageHelpKey('/acme/brand/library/trash')).toBe(
       'libraryTrash',
     );

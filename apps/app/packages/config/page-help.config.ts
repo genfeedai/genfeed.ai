@@ -33,7 +33,7 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
     prefix: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
   },
   { key: 'library', prefix: APP_ROUTES.LIBRARY.ROOT },
-  { key: 'libraryTrash', prefix: '/library/trash' },
+  { key: 'libraryTrash', prefix: APP_ROUTES.LIBRARY.TRASH },
   { key: 'studioPlayground', prefix: APP_ROUTES.STUDIO.PLAYGROUND },
   { key: 'studioStoryboard', prefix: APP_ROUTES.STUDIO.STORYBOARD },
   { key: 'studioClips', prefix: APP_ROUTES.STUDIO.CLIPS },
@@ -66,11 +66,6 @@ export function resolvePageHelpKey(
   search = '',
 ): string | null {
   const path = stripScopePrefix(pathname);
-  if (
-    path === APP_ROUTES.LIBRARY.ASSETS &&
-    new URLSearchParams(search).get('place') === 'trash'
-  )
-    return 'libraryTrash';
   if (
     path === APP_ROUTES.PUBLISHING.POSTS &&
     new URLSearchParams(search).get('view') === 'calendar'
