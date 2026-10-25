@@ -265,8 +265,11 @@ describe('IngredientInspectorRail', () => {
   ])('labels a %s asset in the detail panel', (origin, label) => {
     render(<IngredientInspectorRail ingredient={{ ...ingredient, origin }} />);
 
-    expect(screen.getByText('Origin')).toBeInTheDocument();
-    expect(screen.getByText(label)).toBeInTheDocument();
+    // The header shelf badge also reads "Imported" for a reference asset, so
+    // read the label from the Origin row itself.
+    expect(
+      screen.getByText('Origin').closest('div')?.querySelector('dd'),
+    ).toHaveTextContent(label);
   });
 
   it('has no Origin row for a generated asset', () => {
