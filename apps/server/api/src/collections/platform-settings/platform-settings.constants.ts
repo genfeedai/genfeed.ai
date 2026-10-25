@@ -5,3 +5,10 @@
  * cost one query per process per TTL.
  */
 export const PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS = 15_000;
+
+/**
+ * Redis channel an API task publishes on after saving a margin change, so
+ * every other task re-reads the singleton instead of serving the old multiplier
+ * from process memory until its next deploy.
+ */
+export const PLATFORM_MARGIN_UPDATED_CHANNEL = 'platform-settings:margin-updated';

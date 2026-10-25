@@ -1,4 +1,7 @@
-import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/collections/platform-settings/platform-settings.constants';
+import {
+  PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS,
+  PLATFORM_MARGIN_UPDATED_CHANNEL,
+} from '@api/collections/platform-settings/platform-settings.constants';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
@@ -27,6 +30,7 @@ describe('PlatformSettingsService', () => {
     platformSetting: { updateMany: vi.fn() },
   };
   const brandVisionModels = { resolve: vi.fn() };
+  const redisService = { publish: vi.fn(), subscribe: vi.fn() };
   const logger: Partial<LoggerService> = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -44,6 +48,7 @@ describe('PlatformSettingsService', () => {
         get: vi.fn((key: string) => env[key] ?? ''),
       } as unknown as ConfigService,
       brandVisionModels as never,
+      redisService as never,
     );
   }
 
@@ -193,6 +198,46 @@ describe('PlatformSettingsService', () => {
       expect(result).toBe(updated);
       expect(getRuntimeAgentChatMarginMultiplier()).toBe(2.1);
       expect(getRuntimeMarginMultiplier()).toBe(3.33);
+    });
+
+    it('announces a margin change to the other API tasks', async () => {
+      const current = {
+        id: 'ps-1',
+        key: PLATFORM_SETTING_KEY,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+      };
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
+      vi.spyOn(service, 'patch').mockResolvedValue({
+        ...current,
+        marginMultiplierGeneration: 4,
+      } as never);
+
+      await service.updateSingleton({ marginMultiplierGeneration: 4 });
+
+      expect(redisService.publish).toHaveBeenCalledWith(
+        PLATFORM_MARGIN_UPDATED_CHANNEL,
+        expect.objectContaining({ updatedAt: expect.any(String) }),
+      );
+    });
+
+    it('does not announce a save that leaves the margin alone', async () => {
+      const current = {
+        id: 'ps-1',
+        key: PLATFORM_SETTING_KEY,
+        marginInputMode: 'MARGIN',
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+      };
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
+      vi.spyOn(service, 'patch').mockResolvedValue({
+        ...current,
+        marginInputMode: 'MARKUP',
+      } as never);
+
+      await service.updateSingleton({ marginInputMode: 'MARKUP' as never });
+
+      expect(redisService.publish).not.toHaveBeenCalled();
     });
 
     it('patches the margin input mode', async () => {
@@ -794,6 +839,54 @@ describe('PlatformSettingsService', () => {
 
       expect(getRuntimeMarginMultiplier()).toBe(1.3);
       expect(getRuntimeAgentChatMarginMultiplier()).toBe(2.2);
+    });
+
+    it('re-reads the margin when another task announces a change', async () => {
+      const getSingleton = vi.spyOn(service, 'getSingleton');
+      getSingleton.mockResolvedValueOnce({
+        marginMultiplierAgentChat: 2.2,
+        marginMultiplierGeneration: 1.3,
+      } as never);
+      await service.onModuleInit();
+      expect(redisService.subscribe).toHaveBeenCalledWith(
+        PLATFORM_MARGIN_UPDATED_CHANNEL,
+        expect.any(Function),
+      );
+      const announce = redisService.subscribe.mock.calls[0][1] as () => void;
+
+      getSingleton.mockResolvedValueOnce({
+        marginMultiplierAgentChat: 2.5,
+        marginMultiplierGeneration: 1.9,
+      } as never);
+      announce();
+      await vi.waitFor(() => expect(getRuntimeMarginMultiplier()).toBe(1.9));
+      expect(getRuntimeAgentChatMarginMultiplier()).toBe(2.5);
+    });
+
+    it('keeps the last margin when the announced re-read fails', async () => {
+      const getSingleton = vi.spyOn(service, 'getSingleton');
+      getSingleton.mockResolvedValueOnce({
+        marginMultiplierAgentChat: 2.2,
+        marginMultiplierGeneration: 1.3,
+      } as never);
+      await service.onModuleInit();
+      const announce = redisService.subscribe.mock.calls[0][1] as () => void;
+
+      getSingleton.mockRejectedValueOnce(new Error('db down'));
+      announce();
+      await vi.waitFor(() => expect(logger.warn).toHaveBeenCalled());
+      expect(getRuntimeMarginMultiplier()).toBe(1.3);
+    });
+
+    it('still boots when the subscription fails', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue({
+        marginMultiplierAgentChat: 2.2,
+        marginMultiplierGeneration: 1.3,
+      } as never);
+      redisService.subscribe.mockRejectedValueOnce(new Error('no redis'));
+
+      await expect(service.onModuleInit()).resolves.toBeUndefined();
+      expect(getRuntimeMarginMultiplier()).toBe(1.3);
     });
 
     it('does not throw and keeps both defaults when hydration fails', async () => {

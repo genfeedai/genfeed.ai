@@ -1,6 +1,9 @@
 import { CreatePlatformSettingDto } from '@api/collections/platform-settings/dto/create-platform-setting.dto';
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
-import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/collections/platform-settings/platform-settings.constants';
+import {
+  PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS,
+  PLATFORM_MARGIN_UPDATED_CHANNEL,
+} from '@api/collections/platform-settings/platform-settings.constants';
 import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
 import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import { isTypedDecisionProviderAvailable } from '@api/services/typed-decisions/typed-decision-provider.factory';
@@ -29,6 +32,7 @@ import {
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
   ConflictException,
@@ -146,6 +150,7 @@ export class PlatformSettingsService
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly brandVisionModels: BrandVisionModelCatalogService,
+    private readonly redisService: RedisService,
   ) {
     super(prisma, 'platformSetting', logger);
   }
@@ -170,6 +175,49 @@ export class PlatformSettingsService
       );
       setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
       setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
+    }
+    await this.subscribeToMarginUpdates();
+  }
+
+  /**
+   * The margin lives in process memory, so a save on one API task never
+   * reaches the others on its own. Each task re-reads the row when another
+   * one announces a change.
+   */
+  private async subscribeToMarginUpdates(): Promise<void> {
+    try {
+      await this.redisService.subscribe(PLATFORM_MARGIN_UPDATED_CHANNEL, () => {
+        void this.refreshRuntimeMargins();
+      });
+    } catch (error) {
+      this.logger?.warn('Failed to subscribe to margin updates', { error });
+    }
+  }
+
+  /** Keeps the last known margin when the read fails; never resets to defaults. */
+  private async refreshRuntimeMargins(): Promise<void> {
+    const generation = this.featureSettingsGeneration;
+    try {
+      const settings = await this.getSingleton();
+      // A save in this process finished while the read was in flight, so the
+      // row may be older than the margin it already applied.
+      if (generation !== this.featureSettingsGeneration) return;
+      setRuntimeMarginMultiplier(settings.marginMultiplierGeneration);
+      setRuntimeAgentChatMarginMultiplier(settings.marginMultiplierAgentChat);
+    } catch (error) {
+      this.logger?.warn('Failed to refresh margin multipliers; keeping last', {
+        error,
+      });
+    }
+  }
+
+  private async announceMarginUpdate(): Promise<void> {
+    try {
+      await this.redisService.publish(PLATFORM_MARGIN_UPDATED_CHANNEL, {
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger?.warn('Failed to announce margin update', { error });
     }
   }
 
@@ -341,6 +389,11 @@ export class PlatformSettingsService
     this.cacheFeatureSettings(parsePlatformFeatureSettings(updated));
     setRuntimeMarginMultiplier(updated.marginMultiplierGeneration);
     setRuntimeAgentChatMarginMultiplier(updated.marginMultiplierAgentChat);
+    if (
+      dto.marginMultiplierGeneration !== undefined ||
+      dto.marginMultiplierAgentChat !== undefined
+    )
+      await this.announceMarginUpdate();
     return updated;
   }
 
