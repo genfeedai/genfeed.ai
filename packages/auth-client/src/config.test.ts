@@ -145,7 +145,14 @@ describe('auth-client config', () => {
   });
 
   describe('isGoogleSignInAvailable', () => {
-    it('defaults to available when the server did not report otherwise', () => {
+    it('defaults to unavailable when the runtime capability is absent', () => {
+      expect(isGoogleSignInAvailable()).toBe(false);
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = { betterAuthEnabled: true };
+      expect(isGoogleSignInAvailable()).toBe(false);
+    });
+
+    it('reports available only when the runtime config confirms it', () => {
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = { isGoogleSignInAvailable: true };
       expect(isGoogleSignInAvailable()).toBe(true);
     });
 

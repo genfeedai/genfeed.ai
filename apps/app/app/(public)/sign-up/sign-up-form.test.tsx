@@ -4,20 +4,21 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
+import { readGoogleSignInAvailableFromEnv } from '@/lib/runtime-config/google-sign-in-availability';
+import { createRuntimeAuthConfigSource } from '@/lib/runtime-config/runtime-config-source';
 import SignUpBetterAuth from './sign-up-better-auth';
 import SignUpForm from './sign-up-form';
 
 const authClientMocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
-  isGoogleSignInAvailable: vi.fn(),
   isMagicLinkAvailable: vi.fn(),
   magicLink: vi.fn(),
   signUpEmail: vi.fn(),
   social: vi.fn(),
 }));
 
-vi.mock('@genfeedai/auth-client', () => ({
-  isGoogleSignInAvailable: authClientMocks.isGoogleSignInAvailable,
+vi.mock('@genfeedai/auth-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/auth-client')>()),
   isMagicLinkAvailable: authClientMocks.isMagicLinkAvailable,
   signIn: {
     magicLink: authClientMocks.magicLink,
@@ -102,14 +103,15 @@ const localStorageMock = (() => {
 
 describe('SignUpForm', () => {
   beforeEach(() => {
+    vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', {
+      isGoogleSignInAvailable: true,
+    });
     authClientMocks.magicLink.mockReset();
     authClientMocks.magicLink.mockResolvedValue({});
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
     authClientMocks.isMagicLinkAvailable.mockReset();
     authClientMocks.isMagicLinkAvailable.mockReturnValue(true);
-    authClientMocks.isGoogleSignInAvailable.mockReset();
-    authClientMocks.isGoogleSignInAvailable.mockReturnValue(true);
     authClientMocks.signUpEmail.mockReset();
     authClientMocks.signUpEmail.mockResolvedValue({
       data: { token: 'session-token' },
@@ -164,8 +166,66 @@ describe('SignUpForm', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    { clientId: undefined, clientSecret: undefined, available: false },
+    { clientId: 'test-client-id', clientSecret: undefined, available: false },
+    {
+      clientId: undefined,
+      clientSecret: 'test-client-secret',
+      available: false,
+    },
+    { clientId: ' ', clientSecret: 'test-client-secret', available: false },
+    { clientId: 'test-client-id', clientSecret: ' ', available: false },
+    {
+      clientId: ' test-client-id ',
+      clientSecret: ' test-client-secret ',
+      available: true,
+    },
+  ])(
+    'offers Google only with the runtime credential pair: $available',
+    ({ clientId, clientSecret, available }) => {
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', clientId);
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', clientSecret);
+      const source = createRuntimeAuthConfigSource(
+        true,
+        true,
+        readGoogleSignInAvailableFromEnv(),
+      );
+      new Function('globalThis', source)(globalThis);
+
+      render(<SignUpForm />);
+
+      expect(Boolean(screen.queryByRole('button', { name: 'Google' }))).toBe(
+        available,
+      );
+      expect(
+        screen.getByRole('link', { name: 'Email & password' }),
+      ).toBeVisible();
+      expect(screen.getByRole('link', { name: 'Magic Link' })).toBeVisible();
+      expect(authClientMocks.social).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps Google hidden when no runtime capability was reported', () => {
+    vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', undefined);
+    render(<SignUpForm />);
+    expect(screen.queryByRole('button', { name: 'Google' })).toBeNull();
+  });
+
+  it('offers configured Google independently of Magic Link availability', () => {
+    authClientMocks.isMagicLinkAvailable.mockReturnValue(false);
+    render(<SignUpForm />);
+    expect(screen.getByRole('button', { name: 'Google' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Magic Link' })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Email & password' }),
+    ).toBeVisible();
+  });
+
   it('hides Google when the deployment has no Google OAuth credentials', () => {
-    authClientMocks.isGoogleSignInAvailable.mockReturnValue(false);
+    vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', {
+      isGoogleSignInAvailable: false,
+    });
 
     render(<SignUpForm />);
 

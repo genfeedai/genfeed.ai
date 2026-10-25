@@ -1,9 +1,14 @@
 import * as authConfig from '@genfeedai/auth-client/server';
 import { connection } from 'next/server';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
 vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
+
+beforeEach(() => {
+  vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', undefined);
+  vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', undefined);
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -69,21 +74,52 @@ describe('self-hosted runtime config', () => {
   );
 
   it.each([
+    { expected: false, id: undefined, secret: undefined },
     { expected: false, id: '', secret: '' },
     { expected: false, id: 'google-client-id', secret: '' },
     { expected: false, id: '', secret: 'google-client-secret' },
-    { expected: true, id: 'google-client-id', secret: 'google-client-secret' },
+    { expected: false, id: ' ', secret: 'google-client-secret' },
+    { expected: false, id: 'google-client-id', secret: ' ' },
+    {
+      expected: true,
+      id: ' google-client-id ',
+      secret: ' google-client-secret ',
+    },
   ])(
     'reports Google sign-in available=$expected for client id=$id secret=$secret on self-hosted',
     async ({ expected, id, secret }) => {
       vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', id);
       vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', secret);
 
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = {
+        isGoogleSignInAvailable: !expected,
+      };
       const source = await (await GET()).text();
-
-      expect(source).toContain(`"isGoogleSignInAvailable":${expected}`);
+      const runtimeGlobal = { __GENFEED_RUNTIME_CONFIG__: {} };
+      new Function('globalThis', source)(runtimeGlobal);
+      expect(runtimeGlobal.__GENFEED_RUNTIME_CONFIG__).toMatchObject({
+        isGoogleSignInAvailable: expected,
+      });
+      expect(source).not.toContain('google-client-id');
+      expect(source).not.toContain('google-client-secret');
+      expect(source).not.toContain('GOOGLE_OAUTH');
     },
   );
+
+  it('reflects credential changes between requests without a build or restart', async () => {
+    vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', 'test-client-id');
+    expect(await (await GET()).text()).toContain(
+      '"isGoogleSignInAvailable":false',
+    );
+    vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', 'test-client-secret');
+    expect(await (await GET()).text()).toContain(
+      '"isGoogleSignInAvailable":true',
+    );
+    vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', ' ');
+    expect(await (await GET()).text()).toContain(
+      '"isGoogleSignInAvailable":false',
+    );
+  });
 
   it('escapes less-than characters in the serialized payload', async () => {
     // A synthetic value exercises escaping even though the real helper returns a boolean.

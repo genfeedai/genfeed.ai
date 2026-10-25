@@ -1,7 +1,7 @@
 export function createRuntimeAuthConfigSource(
   isEnabled: boolean,
   isMagicLinkAvailable = true,
-  isGoogleSignInAvailable = true,
+  isGoogleSignInAvailable = false,
 ): string {
   const config = {
     betterAuthEnabled: isEnabled,

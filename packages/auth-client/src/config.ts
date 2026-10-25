@@ -97,14 +97,9 @@ export function isMagicLinkAvailable(): boolean {
   return getRuntimeConfig().isMagicLinkAvailable !== false;
 }
 
-/**
- * Whether the deployment has Google OAuth configured. A self-hosted install
- * without Google client credentials cannot complete the sign-in, so the auth
- * screens must not offer it. Defaults to available when the server did not
- * report otherwise.
- */
+/** Google is offered only when the server confirms the provider is configured. */
 export function isGoogleSignInAvailable(): boolean {
-  return getRuntimeConfig().isGoogleSignInAvailable !== false;
+  return getRuntimeConfig().isGoogleSignInAvailable === true;
 }
 
 /** Reads the environment directly, without the browser runtime override. */
