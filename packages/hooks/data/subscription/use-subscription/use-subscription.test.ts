@@ -170,6 +170,74 @@ describe('useSubscription', () => {
       expect(mockSubscriptionsService.getCreditsBreakdown).toHaveBeenCalled();
     });
 
+    it('keeps concurrent community wallet consumers from requesting local subscription credits', async () => {
+      mockHasOrganizationBillingHint.mockReturnValue(false);
+      const { result } = renderHook(
+        () => [useSubscription(), useSubscription(), useSubscription()],
+        { wrapper: createQueryWrapper() },
+      );
+      await waitFor(() => {
+        for (const consumer of result.current) {
+          expect(consumer.isLoading).toBe(false);
+        }
+      });
+
+      await act(async () => {
+        await Promise.all(
+          result.current.map((consumer) => consumer.refreshCreditsBreakdown()),
+        );
+      });
+
+      for (const consumer of result.current) {
+        expect(consumer.creditsBreakdown).toBeNull();
+        expect(consumer.error).toBeNull();
+      }
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('shares cloud ledger usage and refreshes between concurrent wallet consumers', async () => {
+      mockOrganizationsService.findOrganizationSubscription.mockResolvedValue(
+        null,
+      );
+      const initial = {
+        credits: [],
+        cycleUsed: 40,
+        planLimit: 300,
+        total: 500,
+      } satisfies ICreditsBreakdown;
+      const refreshed = { ...initial, cycleUsed: 80, total: 460 };
+      mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue(initial);
+      const { result } = renderHook(
+        () => [useSubscription(), useSubscription()],
+        { wrapper: createQueryWrapper() },
+      );
+      await waitFor(() => {
+        for (const consumer of result.current) {
+          expect(consumer.creditsBreakdown).toEqual(initial);
+        }
+      });
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).toHaveBeenCalledTimes(1);
+
+      mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue(refreshed);
+      await act(async () => {
+        await result.current[0].refreshCreditsBreakdown();
+      });
+
+      await waitFor(() => {
+        for (const consumer of result.current) {
+          expect(consumer.creditsBreakdown).toEqual(refreshed);
+          expect(consumer.error).toBeNull();
+        }
+      });
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).toHaveBeenCalledTimes(2);
+    });
+
     it.each([null, { status: SubscriptionStatus.ACTIVE }])(
       'does not request community credit breakdowns across mounts and refreshes (%j)',
       async (subscription) => {

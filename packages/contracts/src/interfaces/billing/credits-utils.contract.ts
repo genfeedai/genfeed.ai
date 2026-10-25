@@ -53,6 +53,8 @@ export interface IOrganizationCreditsWithExpiration {
  */
 export interface ICycleRemainingMetrics {
   cycleTotal: number;
+  /** Credits spent in the current cycle, net of refunds; any wallet source. */
+  cycleUsed: number;
   remainingPercent: number;
 }
 

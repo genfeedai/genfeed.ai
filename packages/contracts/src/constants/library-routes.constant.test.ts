@@ -1,24 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { IngredientCategory, LibraryShelf, TagMatchMode } from '..';
+import {
+  IngredientCategory,
+  LibraryPlace,
+  LibraryShelf,
+  TagMatchMode,
+} from '..';
 
 import {
   createLibraryBrowserRoute,
   createLibraryShelfRoute,
   LIBRARY_QUERY_KEYS,
+  resolveLegacyLibraryRoute,
+  resolveLibraryAxisRoute,
 } from './library-routes.constant';
 import { APP_ROUTES } from './routes.constant';
 
 describe('createLibraryShelfRoute', () => {
   it('builds a shelf deep link from the lowercase product key', () => {
     expect(createLibraryShelfRoute(LibraryShelf.NEEDS_REVIEW)).toBe(
-      '/library/assets?shelf=needs-review',
+      '/library/shelf/needs-review',
     );
   });
 
   it('keeps every shelf under the canonical shelf prefix', () => {
     expect(
       createLibraryShelfRoute(LibraryShelf.GENERATING).startsWith(
-        `${APP_ROUTES.LIBRARY.ASSETS}?shelf=`,
+        `${APP_ROUTES.LIBRARY.SHELF}/`,
       ),
     ).toBe(true);
   });
@@ -46,7 +53,7 @@ describe('createLibraryBrowserRoute', () => {
           folderId: 'folder-1',
         },
       ),
-    ).toBe('/library/assets?shelf=approved&categories=VIDEO&folder=folder-1');
+    ).toBe('/library/shelf/approved?categories=VIDEO&folder=folder-1');
   });
 
   it('repeats the characters key beside the other filters', () => {
@@ -87,5 +94,102 @@ describe('createLibraryBrowserRoute', () => {
         view: 'list',
       }),
     ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.VIEW}=list`);
+  });
+});
+
+describe('resolveLibraryAxisRoute', () => {
+  it('lets a place own the path and keeps categories as a param', () => {
+    expect(
+      resolveLibraryAxisRoute({
+        categories: [IngredientCategory.IMAGE],
+        place: LibraryPlace.TRASH,
+      }),
+    ).toEqual({ hasCategoriesInPath: false, route: '/library/trash' });
+    expect(resolveLibraryAxisRoute({ place: LibraryPlace.RECENT }).route).toBe(
+      '/library/recent',
+    );
+    expect(resolveLibraryAxisRoute({ place: LibraryPlace.STARRED }).route).toBe(
+      '/library/starred',
+    );
+  });
+
+  it('lets a shelf own the path before a type preset', () => {
+    expect(
+      resolveLibraryAxisRoute({
+        categories: [IngredientCategory.GIF],
+        shelf: LibraryShelf.APPROVED,
+      }),
+    ).toEqual({
+      hasCategoriesInPath: false,
+      route: '/library/shelf/approved',
+    });
+  });
+
+  it('puts an exact type preset in the path, in any order', () => {
+    expect(
+      resolveLibraryAxisRoute({
+        categories: [IngredientCategory.IMAGE_EDIT, IngredientCategory.IMAGE],
+      }),
+    ).toEqual({ hasCategoriesInPath: true, route: '/library/images' });
+    expect(
+      resolveLibraryAxisRoute({ categories: [IngredientCategory.AVATAR] })
+        .route,
+    ).toBe('/library/avatars');
+  });
+
+  it('falls back to All assets for anything without a route of its own', () => {
+    expect(resolveLibraryAxisRoute({})).toEqual({
+      hasCategoriesInPath: false,
+      route: '/library/assets',
+    });
+    expect(
+      resolveLibraryAxisRoute({
+        categories: [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+      }).route,
+    ).toBe('/library/assets');
+    expect(
+      resolveLibraryAxisRoute({ categories: [IngredientCategory.IMAGE] }).route,
+    ).toBe('/library/assets');
+  });
+});
+
+describe('resolveLegacyLibraryRoute', () => {
+  it.each([
+    [{ place: 'trash' }, '/library/trash'],
+    [{ place: 'recent', folder: 'f1' }, '/library/recent?folder=f1'],
+    [{ shelf: 'needs-review' }, '/library/shelf/needs-review'],
+    [
+      { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
+      '/library/images?search=hero',
+    ],
+    [{ categories: ['GIF'] }, '/library/gifs'],
+  ])('moves %j to its route', (search, route) => {
+    expect(resolveLegacyLibraryRoute(search)).toBe(route);
+  });
+
+  it('keeps the categories param when a place owns the path', () => {
+    expect(
+      resolveLegacyLibraryRoute({ categories: 'IMAGE', place: 'starred' }),
+    ).toBe('/library/starred?categories=IMAGE');
+  });
+
+  it('strips a legacy axis that names no view', () => {
+    expect(resolveLegacyLibraryRoute({ place: 'assets', folder: 'f1' })).toBe(
+      '/library/assets?folder=f1',
+    );
+    expect(resolveLegacyLibraryRoute({ shelf: 'nope' })).toBe(
+      '/library/assets',
+    );
+  });
+
+  it('leaves canonical All assets URLs alone', () => {
+    expect(resolveLegacyLibraryRoute({})).toBeNull();
+    expect(
+      resolveLegacyLibraryRoute({
+        categories: ['IMAGE', 'VIDEO'],
+        folder: 'f1',
+      }),
+    ).toBeNull();
+    expect(resolveLegacyLibraryRoute({ categories: '' })).toBeNull();
   });
 });

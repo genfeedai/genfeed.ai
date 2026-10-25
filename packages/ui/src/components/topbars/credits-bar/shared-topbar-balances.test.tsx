@@ -1,17 +1,17 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
-import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
+import CreditsLiveSync from '@ui/topbars/credits-bar/CreditsLiveSync';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import messages from '../../../../../../apps/app/messages/en/ui.json';
 
 /**
- * The credits chip and the low-credits banner both mount on every protected
+ * The credits live sync and the low-credits banner both mount on every protected
  * page. They used to fetch `/topbar-balances` independently, which cost two
  * identical round trips per navigation. Behind one query key they collapse into
- * one request, and a live balance published by the chip reaches the banner.
+ * one request, and a live balance published by the sync reaches the banner.
  */
 
 const { mockGetCreditsService, mockGetTopbarBalances } = vi.hoisted(() => ({
@@ -89,12 +89,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('./CreditsBarTrigger', () => ({
-  default: ({ fullBalance }: { fullBalance: string }) => (
-    <span data-testid="credits-balance">{fullBalance}</span>
-  ),
-}));
-
 describe('shared topbar balances', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,7 +114,7 @@ describe('shared topbar balances', () => {
     });
   });
 
-  it('fetches the wallet once for the chip and the banner together', async () => {
+  it('fetches the wallet once for the live sync and the banner together', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { gcTime: 0, retry: false } },
     });
@@ -128,20 +122,19 @@ describe('shared topbar balances', () => {
     render(
       <NextIntlClientProvider locale="en" messages={{ ui: messages }}>
         <QueryClientProvider client={queryClient}>
-          <TopbarCreditsBar />
+          <CreditsLiveSync />
           <LowCreditsBanner />
         </QueryClientProvider>
       </NextIntlClientProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('credits-balance')).toHaveTextContent('0');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "You've run out of credits",
+      );
     });
 
-    // Both surfaces read the same wallet, and both render it.
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      "You've run out of credits",
-    );
+    // Both mount on every protected page and share one wallet request.
     expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
   });
 });

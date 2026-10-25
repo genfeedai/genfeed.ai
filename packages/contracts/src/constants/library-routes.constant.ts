@@ -1,8 +1,11 @@
-import type {
+import {
   IngredientCategory,
-  IngredientOrigin,
-  LibraryShelf,
-  TagMatchMode,
+  type IngredientOrigin,
+  LibraryPlace,
+  type LibraryShelf,
+  parseIngredientCategory,
+  parseLibraryShelf,
+  type TagMatchMode,
 } from '..';
 
 import { APP_ROUTES } from './routes.constant';
@@ -64,13 +67,90 @@ export interface LibraryBrowserRouteOptions {
 }
 
 /**
- * Shelf deep link — `/library/assets?shelf=needs-review`.
+ * Shelf deep link — `/library/shelf/needs-review`.
  *
  * A shelf is a saved query, not a location, so the segment is the lowercase
  * `LibraryShelf` product key rather than a persisted status label.
  */
 export function createLibraryShelfRoute(shelf: LibraryShelf): string {
-  return `${APP_ROUTES.LIBRARY.ASSETS}?shelf=${shelf}`;
+  return `${APP_ROUTES.LIBRARY.SHELF}/${shelf}`;
+}
+
+/**
+ * The category sets that have a route of their own. Any other selection stays
+ * on All assets as `?categories=`.
+ */
+export const LIBRARY_TYPE_PRESET_CATEGORIES: Readonly<
+  Record<string, readonly IngredientCategory[]>
+> = {
+  [APP_ROUTES.LIBRARY.AVATARS]: [IngredientCategory.AVATAR],
+  [APP_ROUTES.LIBRARY.GIFS]: [IngredientCategory.GIF],
+  [APP_ROUTES.LIBRARY.IMAGES]: [
+    IngredientCategory.IMAGE,
+    IngredientCategory.IMAGE_EDIT,
+  ],
+  [APP_ROUTES.LIBRARY.MUSIC]: [
+    IngredientCategory.MUSIC,
+    IngredientCategory.AUDIO,
+  ],
+  [APP_ROUTES.LIBRARY.VIDEOS]: [
+    IngredientCategory.VIDEO,
+    IngredientCategory.VIDEO_EDIT,
+  ],
+};
+
+const LIBRARY_PLACE_ROUTES: Readonly<Record<string, string>> = {
+  [LibraryPlace.RECENT]: APP_ROUTES.LIBRARY.RECENT,
+  [LibraryPlace.STARRED]: APP_ROUTES.LIBRARY.STARRED,
+  [LibraryPlace.TRASH]: APP_ROUTES.LIBRARY.TRASH,
+};
+
+export interface LibraryAxes {
+  categories?: readonly IngredientCategory[];
+  place?: LibraryPlace | null;
+  shelf?: LibraryShelf | null;
+}
+
+export interface LibraryAxisRoute {
+  /** True when the route already says which categories are selected. */
+  hasCategoriesInPath: boolean;
+  route: string;
+}
+
+/**
+ * The one Library path for a set of axes. The path says which view you are in,
+ * so only one axis can own it: a place (Trash, Recent, Starred) wins, then a
+ * shelf, then a type set that has a route of its own. Whatever the path does
+ * not say (`hasCategoriesInPath` false) stays a query param.
+ */
+export function resolveLibraryAxisRoute({
+  categories = [],
+  place,
+  shelf,
+}: LibraryAxes): LibraryAxisRoute {
+  const placeRoute = place ? LIBRARY_PLACE_ROUTES[place] : undefined;
+  if (placeRoute) {
+    return { hasCategoriesInPath: false, route: placeRoute };
+  }
+
+  if (shelf) {
+    return {
+      hasCategoriesInPath: false,
+      route: createLibraryShelfRoute(shelf),
+    };
+  }
+
+  const selected = new Set(categories);
+  const preset = Object.entries(LIBRARY_TYPE_PRESET_CATEGORIES).find(
+    ([, presetCategories]) =>
+      presetCategories.length === selected.size &&
+      presetCategories.every((category) => selected.has(category)),
+  );
+  if (preset) {
+    return { hasCategoriesInPath: true, route: preset[0] };
+  }
+
+  return { hasCategoriesInPath: false, route: APP_ROUTES.LIBRARY.ASSETS };
 }
 
 /**
@@ -135,4 +215,52 @@ export function createLibraryBrowserRoute(
 
   const queryString = params.toString();
   return queryString ? `${pathname}?${queryString}` : pathname;
+}
+
+type LegacyLibrarySearchParams = Record<string, string | string[] | undefined>;
+
+/**
+ * Old Library links carried the view in the query (`/library/assets?place=trash`,
+ * `?shelf=approved`, `?categories=IMAGE&categories=IMAGE_EDIT`). Returns the
+ * route that now owns that view, with every other param kept, or null when
+ * the URL is already canonical.
+ */
+export function resolveLegacyLibraryRoute(
+  searchParams: LegacyLibrarySearchParams,
+): string | null {
+  const values = (key: string): string[] => [searchParams[key] ?? []].flat();
+  const [placeValue] = values(LIBRARY_QUERY_KEYS.PLACE);
+  const [shelfValue] = values(LIBRARY_QUERY_KEYS.SHELF);
+  const place = Object.values(LibraryPlace).find(
+    (candidate) => candidate === placeValue,
+  );
+  const shelf = parseLibraryShelf(shelfValue);
+  const categories = values(LIBRARY_QUERY_KEYS.CATEGORIES)
+    .map((value) => parseIngredientCategory(value))
+    .filter((value): value is IngredientCategory => Boolean(value));
+
+  const axisRoute = resolveLibraryAxisRoute({ categories, place, shelf });
+  const hasLegacyAxis =
+    searchParams[LIBRARY_QUERY_KEYS.PLACE] !== undefined ||
+    searchParams[LIBRARY_QUERY_KEYS.SHELF] !== undefined;
+  if (!hasLegacyAxis && axisRoute.route === APP_ROUTES.LIBRARY.ASSETS) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (
+      value === undefined ||
+      key === LIBRARY_QUERY_KEYS.PLACE ||
+      key === LIBRARY_QUERY_KEYS.SHELF ||
+      (key === LIBRARY_QUERY_KEYS.CATEGORIES && axisRoute.hasCategoriesInPath)
+    ) {
+      continue;
+    }
+    for (const entry of [value].flat()) {
+      params.append(key, entry);
+    }
+  }
+  const query = params.toString();
+  return query ? `${axisRoute.route}?${query}` : axisRoute.route;
 }
