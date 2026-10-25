@@ -15,6 +15,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
 import {
   CampaignDetailAds,
@@ -32,7 +33,7 @@ import PublishingDeskViewToggle from '@pages/posts/library/publishing-desk-view-
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
@@ -290,6 +291,14 @@ export default async function OrgRootAppPage({
 
     if (segments[0] === 'captions') {
       return <LibraryCaptionsPage />;
+    }
+
+    if (segments[0] === 'assets' && segments.length === 1) {
+      // Old links carried the view in the query; each view is a route now.
+      const legacyRoute = resolveLegacyLibraryRoute((await searchParams) ?? {});
+      if (legacyRoute) {
+        permanentRedirect(createOrganizationAppRoute(orgSlug, legacyRoute));
+      }
     }
 
     return <OrgLibraryBrowserPage segments={segments} />;

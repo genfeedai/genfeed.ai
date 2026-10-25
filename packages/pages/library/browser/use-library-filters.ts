@@ -80,7 +80,7 @@ export function useLibraryFilters({
 >): LibraryFilterModel {
   const translate = useTranslations('pages.library.browser.toolbar');
   const statusValue = place === LibraryPlace.TRASH ? 'trash' : (shelf ?? 'all');
-  // Recent and Starred compose with a shelf; Trash replaces them.
+  // Recent and Starred are places of their own; a shelf or Trash replaces them.
   const placeValue =
     place === LibraryPlace.RECENT || place === LibraryPlace.STARRED
       ? place

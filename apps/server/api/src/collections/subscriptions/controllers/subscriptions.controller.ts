@@ -55,6 +55,7 @@ interface CreditsBreakdownResponse {
     total: number;
     planLimit: number;
     cycleTotal: number;
+    cycleUsed: number;
     remainingPercent: number;
     cycleStartAt?: Date;
     cycleEndAt?: Date;
@@ -250,6 +251,7 @@ export class SubscriptionsController {
           )
         : {
             cycleTotal: creditsData.total,
+            cycleUsed: 0,
             remainingPercent: creditsData.total > 0 ? 100 : 0,
           };
 

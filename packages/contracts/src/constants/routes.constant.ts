@@ -158,43 +158,41 @@ export const APP_ROUTES = {
     TRENDS: '/discovery/trends',
   },
   /**
-   * Legacy long-form editor aliases retained for existing deep links. New
-   * operator navigation uses the type-aware `/publishing/posts/{id}` route built
-   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR (`/editor`), which
-   * is the Remotion project canvas.
+   * Prefix of the retired long-form editor aliases (`/edit/article/{id}`,
+   * `/edit/newsletter/{id}`). Long-form editing uses `/publishing/posts/{id}`.
+   * Distinct from STUDIO.EDITOR (`/editor`), the Remotion project canvas.
    */
   EDIT: {
-    ARTICLE: '/edit/article',
-    NEWSLETTER: '/edit/newsletter',
     ROOT: '/edit',
   },
   LIBRARY: {
     /**
-     * Canonical library home — the unified asset browser with no filter seeded.
-     * Bare ROOT redirects here. The Library has three orthogonal axes: type
-     * (`?categories=`), shelf (`?shelf=`), and folder
-     * (`?folder=`); this route is all three unset.
+     * Canonical library home — the unified asset browser with nothing seeded.
+     * Bare ROOT redirects here. Which view you are in is the path: this
+     * route, a type (`/library/images`), a place (`/library/trash`) or a shelf
+     * (`/library/shelf/approved`). Folder, search and the other filters are
+     * query params on top.
      */
     ASSETS: '/library/assets',
     /**
-     * Type-seeded entry points into the same browser. They are shareable deep
-     * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
-     * is a filter chip, so the sidebar never lists them.
+     * Type routes over the same browser. They are shareable deep links (see
+     * `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`); clearing the type chip moves to
+     * All assets.
      */
-    AVATARS: '/library/assets?categories=AVATAR',
+    AVATARS: '/library/avatars',
     CAPTIONS: '/library/captions',
-    GIFS: '/library/assets?categories=GIF',
-    IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
+    GIFS: '/library/gifs',
+    IMAGES: '/library/images',
     /**
      * Uploaded and imported assets, apart from generated output. The browser
      * seeds the origin axis (`UPLOADED`, `IMPORTED`) like a type preset does.
      */
     IMPORTED: '/library/imported',
-    MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
+    MUSIC: '/library/music',
     /** #5502 Library home: what needs attention, linking into Assets filters. */
     OVERVIEW: '/library/overview',
     /** Assets touched most recently, newest first. */
-    RECENT: '/library/assets?place=recent',
+    RECENT: '/library/recent',
     /**
      * #5502 reusable identities (characters today; locations, styles and
      * products via #6012) that generations reference by name.
@@ -206,9 +204,9 @@ export const APP_ROUTES = {
      * `${SHELF}/needs-review`. A shelf is a saved query, not a location.
      */
     SHELF: '/library/shelf',
-    STARRED: '/library/assets?place=starred',
-    TRASH: '/library/assets?place=trash',
-    VIDEOS: '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
+    STARRED: '/library/starred',
+    TRASH: '/library/trash',
+    VIDEOS: '/library/videos',
     VOICES: '/library/voices',
   },
   MESSAGES: {
@@ -245,14 +243,6 @@ export const APP_ROUTES = {
     ROOT: '/onboarding',
     SUCCESS: '/onboarding/success',
     SUMMARY: '/onboarding/summary',
-  },
-  OVERVIEW: {
-    /**
-     * Legacy activity list. Workspace Activity is the operator surface
-     * (`WORKSPACE.ACTIVITY`); this path stays registered under the workspace
-     * switcher so old bookmarks still resolve.
-     */
-    ACTIVITIES: '/overview/activities',
   },
   PUBLISHING: {
     /**
@@ -296,7 +286,13 @@ export const APP_ROUTES = {
   },
   SETTINGS: {
     AGENT: '/settings/agent',
+    AGENT_CONTEXT: '/settings/agent/context',
+    AGENT_LEARNING: '/settings/agent/learning',
+    AGENT_RECEIPTS: '/settings/agent/receipts',
     BRAND_KIT: '/settings/brand-kit',
+    BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
+    BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
+    BRAND_KIT_VOICE: '/settings/brand-kit/voice',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',

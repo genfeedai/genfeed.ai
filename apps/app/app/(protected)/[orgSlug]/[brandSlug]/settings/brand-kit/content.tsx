@@ -1,6 +1,7 @@
 'use client';
 
 import { AssetCategory, ButtonVariant, MemberRole } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   BrandKitFieldGroup,
   IBrandKitDraft,
@@ -36,10 +37,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
+import { BRAND_KIT_TAB_PATHS, isBrandKitPathTab } from './brand-kit-tabs';
 
 const FIELD_GROUPS: Record<string, readonly BrandKitFieldGroup[]> = {
   overview: ['profile', 'links'],
@@ -54,13 +56,10 @@ export default function BrandKitPage() {
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const [refreshKey, setRefreshKey] = useState(0);
   const [workflow, setWorkflow] = useState<'scan' | 'manual' | null>(null);
-  const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const requestedTab = params.get('tab') ?? 'overview';
-  const tab = Object.hasOwn(FIELD_GROUPS, requestedTab)
-    ? requestedTab
-    : 'overview';
+  const requestedTab = pathname?.split('/').filter(Boolean).at(-1) ?? '';
+  const tab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
   const { href } = useOrgUrl();
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -127,11 +126,14 @@ export default function BrandKitPage() {
             brand={brand}
             tab={tab}
             onTabChange={(next) => {
-              const query = new URLSearchParams(params.toString());
-              query.set('tab', next);
-              router.replace(`${pathname}?${query.toString()}`, {
-                scroll: false,
-              });
+              router.push(
+                href(
+                  isBrandKitPathTab(next)
+                    ? BRAND_KIT_TAB_PATHS[next]
+                    : APP_ROUTES.SETTINGS.BRAND_KIT,
+                ),
+                { scroll: false },
+              );
             }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}

@@ -45,6 +45,7 @@ export class SubscriptionsService extends BaseService<Subscription> {
     total: number;
     planLimit: number;
     cycleTotal?: number;
+    cycleUsed?: number;
     remainingPercent?: number;
     cycleStartAt?: string;
     cycleEndAt?: string;

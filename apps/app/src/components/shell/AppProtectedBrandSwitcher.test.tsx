@@ -173,8 +173,8 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   },
 }));
 
-vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
-  default: () => <div data-testid="topbar-credits-bar">Credits</div>,
+vi.mock('@ui/topbars/credits-bar/CreditsLiveSync', () => ({
+  default: () => <span data-testid="credits-live-sync" />,
 }));
 
 vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
