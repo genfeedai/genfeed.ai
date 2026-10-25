@@ -31,3 +31,18 @@ export interface StudioReferenceMentionDocument {
   content?: StudioReferenceMentionDocument[];
   type?: string;
 }
+
+/** Raw ordered arrays, before generation-brief deduplication or provider limits. */
+export interface StudioVideoReferenceMentionBindingInput {
+  audioReferenceIds?: readonly string[];
+  endFrameId?: string;
+  imageReferenceIds?: readonly string[];
+  model: string;
+  text: string;
+  videoReferenceIds?: readonly string[];
+}
+
+export interface StudioReferenceMentionInvariantInput {
+  originalText: string;
+  preparedText: string;
+}
