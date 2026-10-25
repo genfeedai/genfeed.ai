@@ -16,9 +16,8 @@ waits for approval → publishes). Real footage only; no mock media. -->
 npx @genfeedai/create my-genfeed
 ```
 
-Needs Docker Compose v2 and Node.js 24. The wizard asks for your
-[OpenRouter API key](https://openrouter.ai/keys), verifies the release bundle,
-and starts it. Install guide: [genfeed.ai/self-hosted](https://genfeed.ai/self-hosted)
+Needs Docker Compose v2 and Node.js 24. The wizard verifies the release bundle,
+asks for your [OpenRouter API key](https://openrouter.ai/keys), then starts it. Install guide: [genfeed.ai/self-hosted](https://genfeed.ai/self-hosted)
 · [docs.genfeed.ai](https://docs.genfeed.ai/self-host/installation).
 
 If Genfeed is useful, a ⭐ on GitHub helps others find it.
@@ -38,8 +37,9 @@ hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
   need it.
 - Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`.
 - Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP).
-- At least 15 GB of free disk: the v0.2.15 app image alone is 9.15 GB, plus about
-  0.6 GB for PostgreSQL, and generated media needs more on top.
+- Plan for at least 15 GB of free disk, plus room for media, backups, and upgrades.
+  This is capacity guidance based on the reported v0.2.15 image footprint; see
+  [system requirements](https://docs.genfeed.ai/self-host/system-requirements).
 - RAM: no minimum is published. Tested on 8 CPU / 15 GiB.
 - Debian 13 provides Compose v2 in its
   [`docker-compose` package](https://packages.debian.org/trixie/docker-compose).
@@ -57,8 +57,8 @@ See [troubleshooting](docs/self-hosting.md#troubleshooting) if the app logs
 npx @genfeedai/create my-genfeed
 ```
 
-It prompts for your OpenRouter key, then downloads, checksums, and starts the
-release bundle. Checksums, auth, providers, and upgrades:
+It downloads and verifies the release bundle, prompts for your OpenRouter key,
+then starts the stack. Checksums, auth, providers, and upgrades:
 [self-hosting guide](docs/self-hosting.md).
 
 **Release bundle (no Node.js):** set `OPENROUTER_API_KEY` in `.env` to a real
@@ -67,17 +67,23 @@ The container exits at start without it.
 
 ```bash
 curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
 tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
 cp .env.example .env
 # Edit .env: set OPENROUTER_API_KEY to your real OpenRouter key, then:
 docker compose --env-file .env -f compose.yml up -d
 ```
 
-| Surface    | Local URL               |
-| ---------- | ----------------------- |
-| Web UI     | `http://localhost:3000` |
-| REST API   | `http://localhost:3010` |
-| MCP server | `http://localhost:3014` |
+On macOS, use `shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256` for the checksum step.
+The API and WebSocket ports bind to `127.0.0.1`; a remote browser needs a reverse proxy
+configured as described in the [self-hosting guide](docs/self-hosting.md).
+
+| Surface    | Local URL                                                     |
+| ---------- | ------------------------------------------------------------- |
+| Web UI     | `http://localhost:3000`                                       |
+| REST API   | `http://localhost:3010`                                       |
+| MCP server | `http://localhost:3014`                                       |
 | WebSocket  | `ws://localhost:3011` (live agent replies; keep it reachable) |
 
 The bundle pins the image for its release, applies Prisma migrations, and seeds
@@ -96,24 +102,27 @@ For a first generation, do these in order:
    organization and brand.
 3. Complete onboarding, then start a task or generation.
 
-Keys are checked for real. **Settings → API Keys** validates each provider key
-against the provider before saving, so placeholder text is rejected there.
-Keys in `.env` are never accepted as placeholders either: an empty or
-template value counts as not configured.
+Startup checks the OpenRouter key's format and rejects empty or placeholder
+values. A successful boot does not prove provider balance or model access.
+**Settings → API Keys** validates each provider key against the provider before
+saving it.
 
 ### Let your coding agent install it
 
 Genfeed is driven by agents, so installing it is a task you can hand to one.
 Paste this into Claude Code, Codex, Cursor, or any agent with shell access:
 
-````text
+```text
 Install Genfeed — the open-source content agent — on this machine, then connect
 it to yourself over MCP.
 
 1. Check Docker Engine with Compose v2 is available.
 2. Download the Community bundle:
    curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+   curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+   sha256sum -c genfeed-selfhosted.tar.gz.sha256
    tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
+   On macOS, use shasum -a 256 -c for the checksum step.
    cp .env.example .env
 3. Ask me for my OpenRouter API key and set it in `.env` as
    `OPENROUTER_API_KEY` (a real key; the container exits at start without
@@ -130,7 +139,7 @@ it to yourself over MCP.
 
 Reference: https://github.com/genfeedai/genfeed.ai/blob/master/docs/self-hosting.md
 Docs index for agents: https://docs.genfeed.ai/llms.txt
-````
+```
 
 Already on the hosted product? Skip installation and authorize with browser OAuth.
 Claude uses `https://mcp.genfeed.ai/mcp/claude` for brands, drafts, existing assets, scheduling and analytics; create media in [Genfeed Playground](https://app.genfeed.ai/playground). Other clients use `https://mcp.genfeed.ai/mcp` for the full toolset.
@@ -141,15 +150,15 @@ publishing waits for a human. What each surface exposes and why is in
 
 ![Agent conversation shell in a mocked Community workspace](docs/assets/readme/agent-shell.png)
 
-*Mocked Playwright capture of the agent conversation shell. Fixture data, not a live generation.*
+_Mocked Playwright capture of the agent conversation shell. Fixture data, not a live generation._
 
 ![Publishing desk in a mocked Community workspace](docs/assets/readme/publishing-desk.png)
 
-*Mocked Playwright capture of the Publish desk.*
+_Mocked Playwright capture of the Publish desk._
 
 ![Visual workflow authoring in a mocked Community workspace](docs/assets/readme/automation-workflows.png)
 
-*Mocked Playwright capture of Automate workflow authoring.*
+_Mocked Playwright capture of Automate workflow authoring._
 
 ## Capabilities
 
@@ -169,11 +178,11 @@ feature for a specific distribution.
 
 ## Deployment modes
 
-| Mode          | Who it is for                         | How you get it                                      |
-| ------------- | ------------------------------------- | --------------------------------------------------- |
-| **SaaS**      | Hosted multi-tenant product           | [app.genfeed.ai](https://app.genfeed.ai)            |
-| **Community** | Self-hosters, one organization        | Checksummed GitHub release bundle (quick start above) |
-| **Desktop**   | Solo creators on their own Mac        | Signed macOS artifacts from `desktop-v*` tags       |
+| Mode          | Who it is for                  | How you get it                                        |
+| ------------- | ------------------------------ | ----------------------------------------------------- |
+| **SaaS**      | Hosted multi-tenant product    | [app.genfeed.ai](https://app.genfeed.ai)              |
+| **Community** | Self-hosters, one organization | Checksummed GitHub release bundle (quick start above) |
+| **Desktop**   | Solo creators on their own Mac | Signed macOS artifacts from `desktop-v*` tags         |
 
 Organization billing ships in every image and is gated at runtime
 (`GENFEED_CLOUD` / self-host licence) — see the
@@ -196,9 +205,9 @@ laid out so an agent can be productive from a cold clone.
 - **[CONTEXT.md](CONTEXT.md)** — the glossary. One spelling per concept, used
   in code, issues, docs, and PRs.
 - **`.agents/`** — durable project memory (rules, ADRs under
-  `architecture/ADR-*.md`, specs) plus build/dev skills for working *on* the
+  `architecture/ADR-*.md`, specs) plus build/dev skills for working _on_ the
   app. `MEMORY.md` is the index. **`skills/`** at the repo root is different:
-  those are product/content skills the app *ships*.
+  those are product/content skills the app _ships_.
 - **Issues carry EARS acceptance criteria** (`WHEN … THE SYSTEM SHALL …`) so an
   agent can pick one up and know what "done" means. Triage rewrites weak
   criteria; it never bounces.
@@ -237,16 +246,16 @@ such as Shopify.
 The stack is declared, not debated per-PR. Replacing an item requires an
 accepted ADR **before** code lands (see [GOVERNANCE.md](GOVERNANCE.md)).
 
-| Layer        | Choice                                | Why                                                                                  |
-| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
-| Runtime + PM | **Bun** + **Turborepo**               | One toolchain for install, scripts, tests, and bundling                              |
-| Web          | **Next.js 16** + **React 19**         | App Router, RSC, and the same client for SaaS, Community, and Desktop                |
-| API          | **NestJS 11**                         | DI, guards, and tenancy/auth enforcement across services                             |
-| Data         | **Prisma 7** + **PostgreSQL**         | One schema, typed queries, migrations shipped with every release                     |
-| Queues       | **Redis** + **BullMQ**                | Generation, publishing, and scheduling are background work                           |
-| Auth         | **Better Auth**                       | Self-hostable, org-aware, no vendor account required for Community                   |
-| Quality      | **Biome**, **Vitest**, **Playwright** | Format+lint in one pass; colocated unit tests; E2E tiers per distribution            |
-| Distribution | **Docker Compose** + GHCR             | Checksummed bundle pinned to an image                                                |
+| Layer        | Choice                                | Why                                                                       |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------- |
+| Runtime + PM | **Bun** + **Turborepo**               | One toolchain for install, scripts, tests, and bundling                   |
+| Web          | **Next.js 16** + **React 19**         | App Router, RSC, and the same client for SaaS, Community, and Desktop     |
+| API          | **NestJS 11**                         | DI, guards, and tenancy/auth enforcement across services                  |
+| Data         | **Prisma 7** + **PostgreSQL**         | One schema, typed queries, migrations shipped with every release          |
+| Queues       | **Redis** + **BullMQ**                | Generation, publishing, and scheduling are background work                |
+| Auth         | **Better Auth**                       | Self-hostable, org-aware, no vendor account required for Community        |
+| Quality      | **Biome**, **Vitest**, **Playwright** | Format+lint in one pass; colocated unit tests; E2E tiers per distribution |
+| Distribution | **Docker Compose** + GHCR             | Checksummed bundle pinned to an image                                     |
 
 More: [Architecture](docs/architecture.md) ·
 [Deployment Modes](docs/deployment-modes.md) ·

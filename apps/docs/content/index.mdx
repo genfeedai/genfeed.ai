@@ -16,27 +16,29 @@ Don't want to host it? Use Genfeed Cloud at [genfeed.ai](https://genfeed.ai).
 
 ## Start here
 
-1. **[Check the system requirements](/self-host/system-requirements).** At least 15 GB
-   of free disk, Docker Compose v2, and ports 3000, 3010, 3011, and 3014.
-2. **[Install it](/self-host/installation).** Run `npx @genfeedai/create my-genfeed`,
-   or use the checksummed release bundle with Docker Compose. No clone needed.
-3. **[Add your provider keys](/self-host/provider-api-keys).** Start with an
-   OpenRouter key, which is required to start, then add Replicate, fal, and
-   ElevenLabs for media and voice. Self-hosting has no Genfeed credits.
+1. **[Check the system requirements](/self-host/system-requirements).** Plan for at
+   least 15 GB of free disk, plus room for media and backups; Docker Compose v2;
+   and ports 3000, 3010, 3011, and 3014.
+2. **[Install it](/self-host/installation).** Have your OpenRouter key ready before
+   starting. Run `npx @genfeedai/create my-genfeed`, or use the checksummed release
+   bundle with Docker Compose. No clone needed.
+3. **[Add optional provider keys](/self-host/provider-api-keys).** OpenRouter is
+   already configured for startup. Add Replicate, fal, or ElevenLabs for media
+   and voice as needed. Self-hosting has no Genfeed credits.
 4. **[Follow the first steps](/self-host/after-it-is-running).** Connect MCP at
    `localhost:3014`, point the CLI at your API, and ship a first post.
 
 ## What is in these docs
 
-| Section | What it covers |
-| --- | --- |
-| [Self-host](/self-host/installation) | Installing, configuring, securing, upgrading, and troubleshooting your instance |
-| [Guides](/guides) | Brands, Studio, publishing, and other day-to-day workflows |
-| [Capabilities](/features) and [models](/models) | What the stack contains and which providers it can call |
-| [Agent Skills](/skills) | Portable skills that teach your agent content work |
-| [Integrations](/integrations) | Providers, publishing channels, and messaging apps |
-| [Core loop](/core-loop) | How trend ingestion, generation, agents, and analytics fit together |
-| [API reference](/api-reference) | REST API, API keys, MCP server, CLI, and webhooks |
+| Section                                         | What it covers                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| [Self-host](/self-host/installation)            | Installing, configuring, securing, upgrading, and troubleshooting your instance |
+| [Guides](/guides)                               | Brands, Studio, publishing, and other day-to-day workflows                      |
+| [Capabilities](/features) and [models](/models) | What the stack contains and which providers it can call                         |
+| [Agent Skills](/skills)                         | Portable skills that teach your agent content work                              |
+| [Integrations](/integrations)                   | Providers, publishing channels, and messaging apps                              |
+| [Core loop](/core-loop)                         | How trend ingestion, generation, agents, and analytics fit together             |
+| [API reference](/api-reference)                 | REST API, API keys, MCP server, CLI, and webhooks                               |
 
 ## License
 

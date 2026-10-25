@@ -22,10 +22,14 @@ there is no login wall: the first boot seeded one local user, one organization
 
 ## 2. Add model keys
 
-Generation needs at least one provider key, and self-hosting has no Genfeed
-credits. Text generation and the agent need `OPENROUTER_API_KEY`; without it the
-install-readiness check reports text generation as not ready and the first agent
-turn fails. Add real keys to `.env` and recreate the stack, following
+Self-hosting has no Genfeed credits. You already configured
+`OPENROUTER_API_KEY` before startup: since v0.2.15, the container refuses to
+start with an empty or placeholder value. Text generation and the agent use
+that key. Startup validates its format; provider access still depends on your
+account and model access.
+
+Add optional keys for Replicate, fal, ElevenLabs, or other supported providers
+as needed. Edit `.env` and recreate the stack, following
 [Provider API keys](/self-host/provider-api-keys). Settings checks each key with
 the provider before saving it, so placeholder values are rejected.
 

@@ -9,15 +9,16 @@ There are three ways to run Genfeed. Most people should pick the first or second
 both start the same published release as a single container next to PostgreSQL,
 and neither needs a repository clone.
 
-| Option | Best for | Needs |
-| --- | --- | --- |
-| [`npx @genfeedai/create`](#option-1-npx-one-command) | The fastest start | Docker Compose v2, Node.js 24 |
-| [Release bundle](#option-2-release-bundle-with-docker-compose) | Servers, CI, or machines without Node.js | Docker Compose v2 |
-| [From source](#option-3-from-source-contributors) | Contributors changing Genfeed itself | Node.js 24, Bun, Git, Docker Compose v2 |
+| Option                                                         | Best for                                 | Needs                                   |
+| -------------------------------------------------------------- | ---------------------------------------- | --------------------------------------- |
+| [`npx @genfeedai/create`](#option-1-npx-one-command)           | The fastest start                        | Docker Compose v2, Node.js 24           |
+| [Release bundle](#option-2-release-bundle-with-docker-compose) | Servers, CI, or machines without Node.js | Docker Compose v2                       |
+| [From source](#option-3-from-source-contributors)              | Contributors changing Genfeed itself     | Node.js 24, Bun, Git, Docker Compose v2 |
 
 Check the [system requirements](/self-host/system-requirements) first. Plan on at
-least 15 GB of free disk (the app image alone is 9.15 GB), and free ports `3000` (web), `3010` (API),
-`3011` (WebSocket), and `3014` (MCP).
+least 15 GB of free disk, plus room for media, backups, and upgrades. This is
+capacity guidance based on the reported v0.2.15 image footprint. Keep ports
+`3000` (web), `3010` (API), `3011` (WebSocket), and `3014` (MCP) free.
 
 Whichever option you pick, you configure the instance with one `.env` file of
 environment variables. After you edit it, recreate the stack
@@ -37,9 +38,9 @@ non-placeholder `OPENROUTER_API_KEY` and exits with
 npx @genfeedai/create my-genfeed
 ```
 
-The wizard asks for your OpenRouter API key (it refuses an empty or placeholder
-value), then downloads the release bundle, verifies its checksum and manifest,
-validates the Compose file, and starts it with Docker Compose.
+The installer downloads the release bundle and verifies its checksum and
+manifest, then asks for your OpenRouter API key with hidden input. It refuses an
+empty or placeholder value, validates the Compose file, and starts the stack.
 
 It needs Node.js 24 (`>=24 <25`). On any other Node version, use the release
 bundle below. `@genfeedai/create` is separate from the
@@ -85,7 +86,9 @@ sign-in turned on, so you create your own account on first visit.
 | WebSocket  | `ws://localhost:3011`   |
 
 The browser connects to `ws://localhost:3011/socket.io/` for live agent replies
-and notifications, so keep port `3011` reachable.
+and notifications, so keep port `3011` reachable. The API and WebSocket ports
+bind to `127.0.0.1`; see [Reverse proxy and HTTPS](/self-host/reverse-proxy) for
+access from another machine.
 
 PostgreSQL is reachable only inside the Compose network, and Redis runs inside
 the Genfeed container. Neither is published on a host port.
@@ -101,8 +104,9 @@ any model provider are ready.
 
 ### Create the first user
 
-How you get in depends on one setting, `BETTER_AUTH_ENABLED`. The default path
-below was verified end to end on a clean Ubuntu 24.04 install of v0.2.15.
+How you get in depends on one setting, `BETTER_AUTH_ENABLED`. Email/password
+sign-up and sign-in were verified on a clean Ubuntu 24.04 install of v0.2.15;
+see the [clean-install report](https://github.com/genfeedai/genfeed.ai/issues/8085).
 
 **Optional no-login mode (`BETTER_AUTH_ENABLED=false`):**
 Open `http://localhost:3000`. The first boot seeded one local user
@@ -125,6 +129,7 @@ installations on your own machine or behind your network's access controls.
 
    `BETTER_AUTH_SECRET` can stay empty: the container generates one and keeps it
    in `/data/.better-auth-secret`.
+
 2. Create your account. Open `http://localhost:3000/sign-up` and choose
    **Email & password**. It needs no email provider and no Google client.
    **Magic Link** appears only once `RESEND_API_KEY` is set. **Google** works
@@ -141,6 +146,7 @@ installations on your own machine or behind your network's access controls.
    Email verification is skipped on a self-hosted install with no mailer, so the
    account works immediately. If you add `RESEND_API_KEY` later and verification
    is switched on, new accounts must verify by email.
+
 3. Sign in at `http://localhost:3000/login/password` with that email and
    password.
 
@@ -242,12 +248,12 @@ bun run dev:app           # https://app.genfeed.localhost/
 
 Other common entry points:
 
-| Command | Starts |
-| --- | --- |
-| `bun run dev` | Full stack (app + backend + docs + website) |
-| `bun run dev:backend` | Full backend (+ mcp + workers) |
-| `bun run dev:docs` | Docs site |
-| `bun run dev:debug:*` | Fixed-port debug only (explicit) |
+| Command               | Starts                                      |
+| --------------------- | ------------------------------------------- |
+| `bun run dev`         | Full stack (app + backend + docs + website) |
+| `bun run dev:backend` | Full backend (+ mcp + workers)              |
+| `bun run dev:docs`    | Docs site                                   |
+| `bun run dev:debug:*` | Fixed-port debug only (explicit)            |
 
 Use the scripts in the root and workspace `package.json` files rather than
 inventing service commands. Source-development Prisma migrations run through:

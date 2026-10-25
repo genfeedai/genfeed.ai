@@ -12,10 +12,12 @@ Use the test report form below to tell us what worked, even if nothing broke.
 
 ## What you need
 
-- Docker with Compose v2, at least 15 GB free disk, and free ports 3000, 3010,
-  3011 and 3014. The full list is in [Self-Hosting](./self-hosting.md#requirements).
-- An [OpenRouter](https://openrouter.ai/keys) key. It is the only required key;
-  without it text generation and the agent do not run.
+- Docker with Compose v2, at least 15 GB free disk plus space for media and
+  backups, and free ports 3000, 3010, 3011 and 3014. This is capacity guidance;
+  see [Self-Hosting](./self-hosting.md#requirements) for the reported image sizes.
+- A real [OpenRouter](https://openrouter.ai/keys) key configured before startup.
+  It is the only required provider key; empty or placeholder values stop the
+  container before services run.
 - Optional, only for the image step: a `FAL_API_KEY` or `REPLICATE_KEY`. Your
   provider bills you directly. Genfeed shows the model and price before it
   generates; read it and cancel if it is not what you expect.
@@ -34,47 +36,30 @@ them:
 - Minutes from `docker compose up -d` until `http://localhost:3000` loads.
 - Anything that differed from the guide.
 
-Then add your key to `.env` and restart with the same `docker compose` command.
+The wizard writes your OpenRouter key before starting Docker. If you use the
+release bundle, set `OPENROUTER_API_KEY` in `.env` before the first start. After
+later changes, recreate the stack with the same Compose command; a plain
+`restart` does not re-read `.env`. Startup checks the key's format, not provider
+balance or model access.
 
-### Known issues in v0.2.13
+### Create an account and check live chat
 
-Two bugs affect a first run. Both have workarounds until a fixed release ships.
+On a default install, open `http://localhost:3000/sign-up` and choose **Email &
+password**, then finish onboarding. No mail provider or Google client is needed.
+Your account gets its own organization and brand, separate from the seeded
+`default` workspace. **Magic Link** requires `RESEND_API_KEY`; Google sign-in
+works only with both `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
 
-**No email/password sign-up page
-([#7880](https://github.com/genfeedai/genfeed.ai/issues/7880)).** `/sign-up`
-offers only Google and Magic Link, and Magic Link cannot send without an email
-provider. Create the first account from a terminal, then sign in in the browser:
+The v0.2.15 bundle already publishes WebSocket port `3011` on `127.0.0.1`;
+it needs no additional Compose override. Keep the browser endpoint reachable.
+For a browser on another machine, use the reverse-proxy setup in
+[Self-Hosting](./self-hosting.md#troubleshooting).
 
-```bash
-curl -sS -X POST http://localhost:3010/v1/auth/sign-up/email \
-  -H 'Content-Type: application/json' -H 'Origin: http://localhost:3000' \
-  -d '{"email":"you@example.com","name":"You","password":"choose-a-long-password"}'
-```
-
-Open `http://localhost:3000/login/password`, sign in, and finish onboarding. If
-onboarding says it could not draft posts, the OpenRouter key is missing or not
-loaded; check `.env` and restart.
-
-**Agent chat stays on "Reconnecting"
-([#7883](https://github.com/genfeedai/genfeed.ai/issues/7883)).** The browser
-connects to port 3011, which the bundle does not publish. Save this next to
-`compose.yml` as `compose.ws.yml`:
-
-```yaml
-services:
-  genfeed:
-    ports:
-      - "3011:3011"
-```
-
-and start with both files:
-
-```bash
-docker compose --env-file .env -f compose.yml -f compose.ws.yml up -d
-```
-
-Skip both workarounds if your release is newer than v0.2.13 and the issues are
-closed.
+The [v0.2.15 verification receipt](https://github.com/genfeedai/genfeed.ai/issues/7883#issuecomment-6398021657)
+records a fresh account and two live composer turns without reloading, using
+deterministic local model responses. That verifies local signup and chat
+transport; it does not establish paid-provider generation. The sample below
+uses your configured provider account and its billing terms.
 
 ## 2. Run the sample brief
 
@@ -112,9 +97,9 @@ What to do with it:
 2. Expect the first set to miss the format: in our test runs every draft broke
    "one paragraph, two sentences" and some made a durability claim the brief
    forbids. That is the point of this step. Reject one and send a correction,
-   for example: *one paragraph, no blank line, exactly two sentences, under 200
+   for example: _one paragraph, no blank line, exactly two sentences, under 200
    characters, no claim that pages stay dry or legible, ending with "Open the
-   product page."* The hook counts as sentence one and "Open the product page."
+   product page."_ The hook counts as sentence one and "Open the product page."
    as sentence two. Check the next version against your own rules.
 3. Optional, needs a provider key: ask for the image. The agent shows a card
    with the model and credit cost. Approve it to generate, or decline to stop. A
@@ -130,14 +115,14 @@ What to do with it:
 Open a [test report](https://github.com/genfeedai/genfeed.ai/issues/new?template=test-report.yml)
 and fill in:
 
-| Field | What to record |
-| --- | --- |
-| Version | Release tag or image digest from `docker compose images` |
-| Environment | OS, CPU, Docker runtime and version |
-| Install | Method, pass or fail, minutes to first page load |
+| Field           | What to record                                                    |
+| --------------- | ----------------------------------------------------------------- |
+| Version         | Release tag or image digest from `docker compose images`          |
+| Environment     | OS, CPU, Docker runtime and version                               |
+| Install         | Method, pass or fail, minutes to first page load                  |
 | Sample workflow | How many of the 4 steps above you finished, and where you stopped |
-| Cost | What the provider charged for the image step, or "not run" |
-| Surprises | Anything unclear, slow or different from this guide |
+| Cost            | What the provider charged for the image step, or "not run"        |
+| Surprises       | Anything unclear, slow or different from this guide               |
 
 For a failure, add the exact command, the error text, and the output of
 `docker compose logs --tail=100` with keys removed. For a bug that blocks you,

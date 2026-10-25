@@ -10,25 +10,28 @@ that you supply. Self-hosting has **no Genfeed credits**: you create accounts
 with the providers you want, add their keys to your instance, and pay those
 providers directly under their own terms.
 
-The application starts and works without any key, but **text generation needs
-an OpenRouter key**. Without one, the first chat, agent run, or draft fails with
-`Missing provider key: OPENROUTER_API_KEY`. Add that key first.
+**Set a real, non-placeholder `OPENROUTER_API_KEY` before starting the
+container.** Since v0.2.15, an empty or placeholder value stops startup before
+services run. The installation wizard asks for the key; with the release bundle,
+set it in `.env` before `docker compose up`. Text generation and the agent use
+OpenRouter; other provider keys are optional.
 
 ## Supported keys
 
-| Provider | Environment variable | Required? | Used for |
-| --- | --- | --- | --- |
-| OpenRouter | `OPENROUTER_API_KEY` | **Yes, for any text generation** | Chat, agents, post drafts, prompt enhancement, newsletters, and workflow LLM steps |
-| OpenAI | `OPENAI_API_KEY` | No | Direct access to `openai/*` models, where a path routes there |
-| Anthropic | `ANTHROPIC_API_KEY` | No | Direct access to `anthropic/*` models, where a path routes there |
-| Replicate | `REPLICATE_KEY` | For media | Hosted image, video, and other media models |
-| fal | `FAL_API_KEY` | For media, where a path selects fal | Hosted media models |
-| ElevenLabs | `ELEVENLABS_API_KEY` | For voice | Voice and audio |
+| Provider   | Environment variable | Required?                                       | Used for                                                                           |
+| ---------- | -------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
+| OpenRouter | `OPENROUTER_API_KEY` | **Yes, before startup and for text generation** | Chat, agents, post drafts, prompt enhancement, newsletters, and workflow LLM steps |
+| OpenAI     | `OPENAI_API_KEY`     | No                                              | Direct access to `openai/*` models, where a path routes there                      |
+| Anthropic  | `ANTHROPIC_API_KEY`  | No                                              | Direct access to `anthropic/*` models, where a path routes there                   |
+| Replicate  | `REPLICATE_KEY`      | For media                                       | Hosted image, video, and other media models                                        |
+| fal        | `FAL_API_KEY`        | For media, where a path selects fal             | Hosted media models                                                                |
+| ElevenLabs | `ELEVENLABS_API_KEY` | For voice                                       | Voice and audio                                                                    |
 
 All provider keys are blank in the self-hosted `.env.example`. Set
-`OPENROUTER_API_KEY` to a real key, then recreate the stack. Empty or placeholder
-values count as not configured; Settings validates each key with the provider
-before saving it.
+`OPENROUTER_API_KEY` to a real key before the first start. After later edits,
+recreate the stack. Startup checks the key's format and rejects empty or
+placeholder values; it does not prove that your provider account has access to
+a model. Settings validates each key with the provider before saving it.
 
 ### Can another provider replace OpenRouter?
 
@@ -43,23 +46,25 @@ Not for the default paths. The routing rules, checked against the code, are:
 - Replicate, fal, and ElevenLabs are media and voice providers. They never
   generate text.
 
-So an OpenAI-only or Anthropic-only install still fails on the default models. If
+An OpenAI or Anthropic key does not replace the OpenRouter startup requirement. If
 you want OpenAI or Anthropic models, you can reach them through OpenRouter with
 the same single key, and the direct keys are an optional addition.
 
-An OpenRouter key saved for an organization in the app also satisfies this
-requirement. See [Per organization](#per-organization-in-the-app).
+Once the instance is running, an OpenRouter key saved for an organization can
+serve supported generation paths. It does not replace the deployment-wide
+`OPENROUTER_API_KEY` required at container startup. See
+[Per organization](#per-organization-in-the-app).
 
 ### Which key does a feature need?
 
-| Feature | Key |
-| --- | --- |
-| Chat and agents | `OPENROUTER_API_KEY` |
-| Post and branded drafts | `OPENROUTER_API_KEY` |
-| Prompt enhancement | `OPENROUTER_API_KEY` |
-| Newsletters and workflow LLM steps | `OPENROUTER_API_KEY` |
-| Image and video generation | `REPLICATE_KEY` or `FAL_API_KEY`, depending on the model |
-| Voice and audio | `ELEVENLABS_API_KEY` |
+| Feature                            | Key                                                      |
+| ---------------------------------- | -------------------------------------------------------- |
+| Chat and agents                    | `OPENROUTER_API_KEY`                                     |
+| Post and branded drafts            | `OPENROUTER_API_KEY`                                     |
+| Prompt enhancement                 | `OPENROUTER_API_KEY`                                     |
+| Newsletters and workflow LLM steps | `OPENROUTER_API_KEY`                                     |
+| Image and video generation         | `REPLICATE_KEY` or `FAL_API_KEY`, depending on the model |
+| Voice and audio                    | `ELEVENLABS_API_KEY`                                     |
 
 Other providers in the model registry (such as xAI) are listed in
 [Models and providers](/models) and are configured through
@@ -85,7 +90,8 @@ balance, or account approval before a key can run a given model.
 ### Deployment-wide, in `.env`
 
 1. Open the `.env` next to your `compose.yml`.
-2. Uncomment `OPENROUTER_API_KEY` and paste each key after its variable:
+2. Set `OPENROUTER_API_KEY` before the first start, and add any optional keys
+   after their variables:
 
    ```env
    OPENROUTER_API_KEY=sk-or-...
@@ -104,8 +110,8 @@ balance, or account approval before a key can run a given model.
    ```
 
 Use real keys only. If `OPENROUTER_API_KEY` is empty or still a template value,
-the install-readiness check reports text generation as not ready and the first
-agent turn fails with `OPENROUTER_API_KEY is not configured`.
+the container exits with `OPENROUTER_API_KEY is required and must contain a
+non-placeholder OpenRouter key. Set it before starting.` No services start.
 
 Keys in `.env` are server-side only. Never commit `.env` and never put a key in a
 `NEXT_PUBLIC_*` variable.

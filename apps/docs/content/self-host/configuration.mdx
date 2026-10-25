@@ -6,33 +6,42 @@ description: 'Reference for the .env file that configures a self-hosted Genfeed 
 # Configuration Reference
 
 A self-hosted instance is configured through one `.env` file next to its Compose
-file. Add a real `OPENROUTER_API_KEY` to generate text; every
-other setting is optional. The defaults boot a single local workspace with
-sign-up enabled.
+file. Set a real, non-placeholder `OPENROUTER_API_KEY` before startup; the
+container exits without it. Every other setting is optional. Once that key is
+set, the defaults boot a local workspace with sign-up enabled.
 
 - **Release bundle or `npx`:** copy the bundled `.env.example` to `.env`, in the
   same directory as `compose.yml`.
 - **Source checkout:** `docker/.env.example` is copied to `docker/.env`, next to
   `docker-compose.selfhosted.yml`.
 
-Edit `.env`, then recreate the stack so the container picks the change up:
+Edit `.env`, then recreate the stack so the container picks up the change. In a
+release bundle, run this from the directory containing `compose.yml`:
 
 ```bash
 docker compose --env-file .env -f compose.yml up -d
 ```
+
+For a source checkout running the published image, run this from the repository root:
+
+```bash
+docker compose --env-file docker/.env -f docker/docker-compose.selfhosted.yml up -d
+```
+
+A plain `restart` does not re-read `.env`.
 
 Contributors working on Genfeed from source use a different template; see
 [source configuration](#source-development) below.
 
 ## Image and ports
 
-| Variable              | Default                                                        | Purpose                                                |
-| --------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
-| `GENFEED_IMAGE_TAG`   | `latest` in the source template; the exact release in a bundle | Application image tag. Release bundles pin it for you. |
-| `SELFHOSTED_APP_PORT` | `3000`                                                         | Host port for the web UI                               |
-| `SELFHOSTED_API_PORT` | `3010`                                                         | Host port for the REST API                             |
+| Variable              | Default                                                        | Purpose                                                          |
+| --------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `GENFEED_IMAGE_TAG`   | `latest` in the source template; the exact release in a bundle | Application image tag. Release bundles pin it for you.           |
+| `SELFHOSTED_APP_PORT` | `3000`                                                         | Host port for the web UI                                         |
+| `SELFHOSTED_API_PORT` | `3010`                                                         | Host port for the REST API (localhost only)                      |
 | `SELFHOSTED_WS_PORT`  | `3011`                                                         | Host port for live agent chat and notifications (localhost only) |
-| `SELFHOSTED_MCP_PORT` | `3014`                                                         | Host port for the MCP server                           |
+| `SELFHOSTED_MCP_PORT` | `3014`                                                         | Host port for the MCP server                                     |
 
 Only the host side of each mapping changes. Inside the container the web app,
 API, WebSocket service, and MCP server always listen on `3000`, `3010`, `3011`,
@@ -52,15 +61,16 @@ update the browser bundle.
 ## Model provider keys
 
 See [Provider API keys](/self-host/provider-api-keys) for how to get each one and
-which features need which key. `OPENROUTER_API_KEY` is the one to set first:
-text generation fails with `Missing provider key: OPENROUTER_API_KEY` without
-it. All provider keys are blank in `.env.example`; set a real key and recreate the
-stack. Empty or placeholder values count as not configured; Settings validates
-each key with the provider before saving it.
+which features need which key. Set `OPENROUTER_API_KEY` before the first start:
+empty or placeholder values stop the container before services run. All provider
+keys are blank in `.env.example`. Startup checks the key's format; successful
+provider access still depends on your account and model access. Settings
+validates each key with the provider before saving it. After editing `.env`,
+recreate the stack.
 
 | Variable               | Provider                                                                                                                           |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENROUTER_API_KEY`   | OpenRouter (required for chat, agents, drafts, and other text generation)                                                          |
+| `OPENROUTER_API_KEY`   | OpenRouter (required before startup, and for chat, agents, drafts, and other text generation)                                      |
 | `OPENAI_API_KEY`       | OpenAI (optional; `openai/*` models only)                                                                                          |
 | `ANTHROPIC_API_KEY`    | Anthropic (optional; `anthropic/*` models only)                                                                                    |
 | `REPLICATE_KEY`        | Replicate                                                                                                                          |
@@ -98,18 +108,18 @@ need them:
 
 The login wall protects the REST API on port `3010` as well as the web UI.
 
-| `BETTER_AUTH_ENABLED` | Requests to the API                                                                                                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `true` (default)      | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role.              |
-| `false`               | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
+| `BETTER_AUTH_ENABLED` | Requests to the API                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `true` (default)      | Protected routes need a valid session token or API key from any address; public routes such as health checks remain open. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role. |
+| `false`               | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key.                        |
 
 `X-Forwarded-For` is not trusted unless `TRUST_PROXY` names your proxy, so a
 remote client cannot pass as a local one by sending a header.
 
 Turning the login wall off does not turn off MCP authentication; see
-[MCP server](/api-reference/mcp#authentication). The login wall also gates only
-the web UI: see the [security note](/self-host/installation#create-the-first-user)
-before you expose port `3010`.
+[MCP server](/api-reference/mcp#authentication). Keep the login wall enabled
+before exposing the API through a reverse proxy; see the
+[security note](/self-host/installation#create-the-first-user).
 
 ## Public URLs
 

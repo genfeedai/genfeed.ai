@@ -6,23 +6,24 @@ description: 'Check the hardware, required services, ports, filesystem, and netw
 # System Requirements
 
 Genfeed runs as one application container plus a PostgreSQL container. The
-figures below are ones we have measured; where we have not measured something,
-the table says so rather than guessing.
+installation guidance below combines reported image sizes with room for
+persistent data. CPU and RAM minimums have not been established.
 
 ## Hardware
 
-| Resource         | Supported floor     | Recommended                                                    |
-| ---------------- | ------------------- | -------------------------------------------------------------- |
-| Free disk        | 15 GB               | More than 15 GB, plus room for generated media and backups     |
-| CPU              | Not yet published   | Not yet published                                              |
-| RAM              | Not yet published   | Not yet published                                              |
-| CPU architecture | `linux/amd64` image | `linux/amd64` (Docker Desktop can emulate it on Apple Silicon) |
+| Resource         | Installation guidance | Recommended                                                    |
+| ---------------- | --------------------- | -------------------------------------------------------------- |
+| Free disk        | At least 15 GB free   | More room for generated media, backups, and upgrades           |
+| CPU              | Not yet published     | Not yet published                                              |
+| RAM              | Not yet published     | Not yet published                                              |
+| CPU architecture | `linux/amd64` image   | `linux/amd64` (Docker Desktop can emulate it on Apple Silicon) |
 
-Disk covers the application image, PostgreSQL, and the media you generate, so
-it grows with use. On v0.2.15 the application image alone is 9.15 GB
-uncompressed and the PostgreSQL (pgvector) image adds about 631 MB, so a 10 GB
-disk leaves almost nothing for volumes. The 15 GB floor leaves headroom for the
-first media and database growth.
+Plan for at least **15 GB of free disk** for a new installation. The
+[v0.2.15 clean-install report](https://github.com/genfeedai/genfeed.ai/issues/8085)
+records a 9.15 GB uncompressed application image plus a 631 MB PostgreSQL image.
+Database and Redis volumes, generated media, backups, and images retained during
+upgrades need additional space. The 15 GB figure is installation guidance based
+on that reported footprint, not a measured hardware minimum.
 
 ### What we have measured
 
@@ -45,26 +46,26 @@ smaller hardware, [tell us how it went](https://github.com/genfeedai/genfeed.ai/
 
 ## Required services
 
-Everything below is included in the default Compose file. You do not install any
-of it yourself.
+The default Compose file provides PostgreSQL, Redis, and file storage. Model
+access requires your own provider keys.
 
 | Service                     | Provided by                            | Notes                                                                                                          |
 | --------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | PostgreSQL 16 with pgvector | The `pgvector/pgvector:pg16` container | Reachable only inside the Compose network. Point `DATABASE_URL` at your own PostgreSQL to use an external one. |
 | Redis                       | Embedded in the Genfeed container      | Used for queues and caching. Its data lives in `/data`.                                                        |
 | File storage                | Local disk at `/data/files`            | Generated media. Change it with `GENFEED_STORAGE_PATH`.                                                        |
-| Model providers             | Your own keys                          | An [OpenRouter key](/self-host/provider-api-keys) is required for text generation.                             |
+| Model providers             | Your own keys                          | An [OpenRouter key](/self-host/provider-api-keys) is required before startup and for text generation.          |
 
 ## Default ports
 
-| Port   | Service                   | Published to the host?      | Needed when                           |
-| ------ | ------------------------- | --------------------------- | ------------------------------------- |
-| `3000` | Web UI                    | Yes (`SELFHOSTED_APP_PORT`) | Always                                |
-| `3010` | REST API                  | Yes (`SELFHOSTED_API_PORT`) | Always; the browser calls it directly |
-| `3011` | WebSocket / notifications | Yes, localhost only (`SELFHOSTED_WS_PORT`) | Live agent chat and notifications     |
-| `3014` | MCP server                | Yes (`SELFHOSTED_MCP_PORT`) | You connect an AI agent               |
-| `3012` | Files service             | No                          | Inside the container only             |
-| `3013` | Workers                   | No                          | Inside the container only             |
+| Port   | Service                   | Published to the host?                      | Needed when                           |
+| ------ | ------------------------- | ------------------------------------------- | ------------------------------------- |
+| `3000` | Web UI                    | Yes (`SELFHOSTED_APP_PORT`)                 | Always                                |
+| `3010` | REST API                  | Yes, localhost only (`SELFHOSTED_API_PORT`) | Always; the browser calls it directly |
+| `3011` | WebSocket / notifications | Yes, localhost only (`SELFHOSTED_WS_PORT`)  | Live agent chat and notifications     |
+| `3014` | MCP server                | Yes (`SELFHOSTED_MCP_PORT`)                 | You connect an AI agent               |
+| `3012` | Files service             | No                                          | Inside the container only             |
+| `3013` | Workers                   | No                                          | Inside the container only             |
 
 Only the host side of a published port changes; the container always uses the
 numbers above. See [Configuration](/self-host/configuration#image-and-ports).

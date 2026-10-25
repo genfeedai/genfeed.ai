@@ -91,6 +91,21 @@ Install Node.js 24, or skip Node entirely and use the
 [release bundle](/self-host/installation#option-2-release-bundle-with-docker-compose).
 This is separate from `@genfeedai/cli`, which needs Node.js 22.12 or newer.
 
+## Container exits: OpenRouter key is required
+
+Since v0.2.15, `OPENROUTER_API_KEY` must be set before any services start. If the
+container logs `OPENROUTER_API_KEY is required and must contain a non-placeholder
+OpenRouter key`, set a real key in `.env` next to `compose.yml`, then recreate
+the stack:
+
+```bash
+docker compose --env-file .env -f compose.yml up -d
+```
+
+The wizard asks for the key during installation. A key saved later inside the
+app cannot replace this startup setting. Startup validates the key's format;
+a successful boot does not prove provider balance or model access.
+
 ## Missing provider key
 
 **Symptom:** the first chat, agent run, or draft fails with
@@ -106,8 +121,9 @@ key does not replace it, because those keys only serve `openai/*` and
 
 1. Create a key at [openrouter.ai/keys](https://openrouter.ai/keys) and add
    credits.
-2. In `.env`, set `OPENROUTER_API_KEY` to the real key. Or save it per
-   organization under **Organization settings → Integrations**.
+2. In `.env`, set `OPENROUTER_API_KEY` to the real key. This is required at
+   startup. Once the instance is running, you can also save keys per organization
+   under **Organization settings → Integrations** for supported generation paths.
 3. Recreate the stack, because `restart` does not re-read `.env`:
 
    ```bash
@@ -129,12 +145,12 @@ above. Otherwise, add the key for the provider behind the model you chose
 small request. Self-hosting has no Genfeed credits. Then check the provider's
 dashboard for balance and model access, and read the container logs.
 
-If a turn fails with `OPENROUTER_API_KEY is not configured`, set a real
-`OPENROUTER_API_KEY` in `.env` and recreate the stack. Text generation and the
-agent use OpenRouter, and the install-readiness check reports text generation as
-not ready until the key is set. Keys must be real: Settings validates each key
-with the provider before saving it (a placeholder shows "Invalid ... API key"),
-and a placeholder in `.env` counts as not configured.
+If a running instance reports `OPENROUTER_API_KEY is not configured`, check the
+key in `.env` and recreate the stack. Text generation and the agent use
+OpenRouter. Empty or placeholder keys stop container startup on v0.2.15 and
+later; see [the startup error](#container-exits-openrouter-key-is-required).
+Settings also validates each key with the provider before saving it; a
+placeholder shows "Invalid ... API key".
 
 The Community image does not start GPU or local-model services, so a model that
 needs your own ComfyUI or GPU host will not run unless you point
@@ -147,7 +163,9 @@ needs your own ComfyUI or GPU host will not run unless you point
   local user. Nothing to fix.
 - **There is no Magic Link option.** Magic Link needs `RESEND_API_KEY`, so it is
   hidden until you set one. Sign up with **Email & password** at `/sign-up`
-  instead. Google needs OAuth credentials.
+  instead. Google sign-in works only with both `GOOGLE_OAUTH_CLIENT_ID` and
+  `GOOGLE_OAUTH_CLIENT_SECRET` configured. On v0.2.15, the Google button may
+  appear even when those credentials are missing; use email/password instead.
   See [Create the first user](/self-host/installation#create-the-first-user).
 - **The login wall does not appear after you enabled it.** Set
   `BETTER_AUTH_ENABLED=true` (and, if you set it, `NEXT_PUBLIC_BETTER_AUTH_ENABLED`
@@ -190,13 +208,16 @@ Magic links, password resets, verification emails, and invites are sent through
 Resend. Set `RESEND_API_KEY` (and `RESEND_FROM_EMAIL` for a sender you have
 verified with Resend), recreate the stack, and check
 `docker compose --env-file .env -f compose.yml logs genfeed` for delivery errors.
-Email and password sign-in does not need email unless verification is switched
-on.
+Email and password sign-in needs no mail provider. Email verification is
+enforced only when Resend is configured and verification is switched on.
 
 ## The disk is full
 
-Genfeed needs at least 15 GB free, and generated media and Docker images grow it.
-See where the space went:
+Plan for at least 15 GB free for installation, plus additional space for media,
+backups, and upgrades. The v0.2.15 report records a 9.15 GB uncompressed
+application image plus a 631 MB PostgreSQL image, before persistent data grows.
+See [System requirements](/self-host/system-requirements) for the basis of this
+guidance. Check where the space went:
 
 ```bash
 docker system df

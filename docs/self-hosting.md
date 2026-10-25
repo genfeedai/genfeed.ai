@@ -11,8 +11,11 @@
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
   can use emulation on Apple Silicon). Compose selects this image architecture;
   ARM hosts must have AMD64 emulation enabled in their Docker runtime.
-- At least 15 GB of free disk: the v0.2.15 app image alone is 9.15 GB, plus about
-  0.6 GB for PostgreSQL, and generated media needs more on top
+- Plan for at least 15 GB of free disk, plus more for media, backups, and
+  upgrades. The [v0.2.15 clean-install report](https://github.com/genfeedai/genfeed.ai/issues/8085)
+  records a 9.15 GB uncompressed application image plus a 631 MB PostgreSQL image,
+  before persistent data grows. This is capacity guidance, not a measured
+  hardware minimum.
 - RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB
   RAM ran it fine, and idle PostgreSQL used about 59 MiB.
 - Debian 13 provides Compose v2 in its
@@ -22,6 +25,10 @@
 
 ## Quick Start
 
+Have a real [OpenRouter key](https://openrouter.ai/keys) ready. Since v0.2.15,
+the container exits before starting services if `OPENROUTER_API_KEY` is empty
+or a placeholder. Set it in `.env` **before** the first start:
+
 ```bash
 curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
 curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
@@ -29,6 +36,7 @@ sha256sum -c genfeed-selfhosted.tar.gz.sha256
 tar -xzf genfeed-selfhosted.tar.gz
 cd genfeed-selfhosted-v*
 cp .env.example .env
+# Edit .env: set OPENROUTER_API_KEY to your real OpenRouter key, then:
 docker compose --env-file .env -f compose.yml up -d
 ```
 
@@ -36,8 +44,9 @@ On macOS, verify with
 `shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256`. The bundle includes a
 manifest and pins the exact image version associated with its GitHub release.
 
-The create package performs the same download, checksum, manifest, and Compose
-validation automatically:
+The create package downloads and verifies the release checksum and manifest,
+asks for your OpenRouter key with hidden input, validates the Compose file,
+then starts the stack:
 
 ```bash
 npx @genfeedai/create my-genfeed
@@ -74,40 +83,45 @@ workspace: one user, one organization, and one brand.
 A fresh install needs two things before it can run a generation: an account and
 a model key.
 
-1. **Add a model key.** Text generation and the agent use OpenRouter, so set a
-   real key in `.env`:
+1. **Confirm the required model key.** Text generation and the agent use
+   OpenRouter. The wizard sets your key in `.env`; for the release bundle, you
+   set it before the first start:
 
    ```env
    OPENROUTER_API_KEY=sk-or-...
    ```
 
-   Create one at [openrouter.ai/keys](https://openrouter.ai/keys). Restart so the
-   container reads it (`docker compose --env-file .env -f compose.yml up -d`).
-   If the key is empty or still a template value, the install-readiness check
-   (`GET /v1/onboarding/install-readiness`) reports
-   `providers.textGenerationReady: false` and the first agent turn fails with
-   `OPENROUTER_API_KEY is not configured`. An `OPENAI_API_KEY` alone does not
-   make text generation ready. Image and video generation use `REPLICATE_KEY`
-   or `FAL_API_KEY` instead.
+   Create one at [openrouter.ai/keys](https://openrouter.ai/keys). If you edit it
+   later, recreate the container with
+   `docker compose --env-file .env -f compose.yml up -d`. Empty or placeholder
+   values stop startup before services run. Startup checks key format; a
+   successful boot does not prove provider balance or model access.
+   An `OPENAI_API_KEY` alone does not replace this startup requirement. Image
+   and video generation use optional `REPLICATE_KEY` or `FAL_API_KEY` keys.
 
-   With the login wall on, the check needs a Bearer JWT, not the session cookie.
+   Once signed in, check workspace and provider configuration with
+   `GET /v1/onboarding/install-readiness`. With the login wall on, this endpoint
+   needs a Bearer JWT, not the session cookie.
    Exchange the cookie for one with `GET /v1/auth/token`, then send it as
    `Authorization: Bearer <jwt>`. Once onboarding has created your organization
    and brand, `workspace.hasOrganization` and `workspace.hasBrand` read `true`.
+
 2. **Sign up.** Open `http://localhost:3000/sign-up` and choose **Email &
    password**. Sign-up is enabled out of the box (`BETTER_AUTH_ENABLED=true` and
    `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in `.env.example`). Email/password
    needs no email provider, and **Magic Link** is hidden until you set
-   `RESEND_API_KEY`. See [Community Auth Modes](#community-auth-modes)
-   to run without a login wall instead.
+   `RESEND_API_KEY`. Google sign-in works only with both Google OAuth
+   credentials configured. Your account gets its own organization and brand,
+   separate from the seeded `default` workspace. See
+   [Community Auth Modes](#community-auth-modes) to run without a login wall.
 3. **Finish onboarding**, then create your first task or generation.
 
-Provider keys are validated live. **Settings → API Keys** (the page the onboarding
-"Add my own API keys" action opens) calls the provider with the key before saving it, so placeholder text
+**Settings → API Keys**, opened by onboarding's "Add my own API keys" action,
+validates each key with the provider before saving it. Placeholder text
 such as `your_key_here` is rejected with an "Invalid ... API key" error. Only
 real keys can be saved there. Keys set in `.env` are read at container start and
-are the way to configure the server-wide defaults; a placeholder in `.env` is
-treated as not configured.
+configure the server-wide defaults; an empty or placeholder OpenRouter key in
+`.env` stops container startup.
 
 ## Source Checkout
 
@@ -117,6 +131,7 @@ Contributors can inspect and edit the repository's Compose configuration:
 git clone https://github.com/genfeedai/genfeed.ai.git
 cd genfeed.ai/docker
 cp .env.example .env
+# Edit .env: set OPENROUTER_API_KEY to your real OpenRouter key, then:
 docker compose --env-file .env -f docker-compose.selfhosted.yml up -d
 ```
 
@@ -181,9 +196,10 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=
 ```
 
-With Better Auth enabled, the API on port 3010 requires a valid session token
-or API key on every request, from any address. There is no fallback to the
-seeded local user, and admin routes still need the admin role.
+With Better Auth enabled, protected API routes on port 3010 require a valid
+session token or API key from any address. Public routes such as the health
+check remain open. There is no fallback to the seeded local user, and admin
+routes still need the admin role.
 
 Email/password works with only the local Better Auth database: no email
 provider, no Google OAuth client, and no cloud service. To run a single-user
@@ -197,11 +213,9 @@ BETTER_AUTH_ENABLED=false
 NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
 ```
 
-`BETTER_AUTH_ENABLED` is read at container start and reaches the browser at
-runtime, while `NEXT_PUBLIC_BETTER_AUTH_ENABLED` is fixed when the image is
-built. Add an email
-provider only for magic links, password reset, email verification, or member
-invites:
+Keep `BETTER_AUTH_ENABLED` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED` equal in `.env`,
+then recreate the container so it reads the new settings. Add an email provider
+only for magic links, password reset, email verification, or member invites:
 
 ```env
 RESEND_API_KEY=re_...
@@ -214,8 +228,10 @@ enforced only while `RESEND_API_KEY` is set on the notifications service. Withou
 it the switch is unavailable and sign-up and sign-in are never blocked, whatever
 value was stored; setting the key later enforces the stored value again.
 
-Google sign-in and the Google API connectors share one Google Cloud OAuth web
-client. Register every enabled connector callback on that client:
+Google sign-in works only when both credentials below are configured. The
+v0.2.15 login page may still show a Google button without them; use email/password
+on a default install. Google sign-in and the Google API connectors share one
+Google Cloud OAuth web client. Register every enabled connector callback on it:
 
 ```env
 GOOGLE_OAUTH_CLIENT_ID=...
