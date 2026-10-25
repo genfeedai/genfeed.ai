@@ -1,17 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import BrandAgentSettingsPage from './content';
+import AgentSettingsShell from './agent-settings-shell';
 
 const mocks = vi.hoisted(() => ({
-  replace: vi.fn(),
-  search: '',
+  brand: { id: 'brand-1', label: 'Acme', slug: 'acme' } as object | null,
+  pathname: '/acme/acme/settings/agent',
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/acme/settings/agent',
-  useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams(mocks.search),
+  usePathname: () => mocks.pathname,
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/acme${path}` }),
@@ -22,72 +21,73 @@ vi.mock('next-intl', async () => {
 });
 vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
-    brand: { id: 'brand-1', label: 'Acme', slug: 'acme' },
+    brand: mocks.brand,
     brandId: 'brand-1',
-    handleCopy: vi.fn(),
-    handleRefreshBrand: vi.fn(),
     hasBrandId: true,
     isLoading: false,
   }),
 }));
-vi.mock('@pages/brands/components/sidebar/BrandDetailIdentityCard', () => ({
-  default: () => <p>Identity card</p>,
-}));
-vi.mock(
-  '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard',
-  () => ({
-    default: () => <p>Models card</p>,
-  }),
-);
-vi.mock(
-  '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor',
-  () => ({ default: () => <p>Agent profile</p> }),
-);
-vi.mock(
-  '@pages/brands/components/system-prompt/BrandDetailSystemPrompt',
-  () => ({
-    default: () => <p>System prompt</p>,
-  }),
-);
-vi.mock('./agent-learning-tab', () => ({
-  default: () => <p>Learning tab</p>,
-}));
-vi.mock('./context/content', () => ({
-  default: () => <p>Context tab</p>,
-}));
-vi.mock('./receipts/content', () => ({
-  default: () => <p>Receipts tab</p>,
-}));
 
-describe('brand-settings-agent-page', () => {
+describe('AgentSettingsShell', () => {
   beforeEach(() => {
-    mocks.search = '';
+    mocks.brand = { id: 'brand-1', label: 'Acme', slug: 'acme' };
+    mocks.pathname = '/acme/acme/settings/agent';
   });
 
-  it('exports a component', () => {
-    expect(BrandAgentSettingsPage).toBeDefined();
-  });
+  it('links every section to its own path, not a query param', () => {
+    render(
+      <AgentSettingsShell>
+        <p>Section body</p>
+      </AgentSettingsShell>,
+    );
 
-  it('shows the agent defaults heading beside identity on the defaults tab', () => {
-    render(<BrandAgentSettingsPage />);
-
+    expect(screen.getByRole('link', { name: 'Defaults' })).toHaveAttribute(
+      'href',
+      '/acme/acme/settings/agent',
+    );
+    expect(screen.getByRole('link', { name: 'Context' })).toHaveAttribute(
+      'href',
+      '/acme/acme/settings/agent/context',
+    );
+    expect(screen.getByRole('link', { name: 'Learning' })).toHaveAttribute(
+      'href',
+      '/acme/acme/settings/agent/learning',
+    );
     expect(
-      screen.getByRole('heading', { name: /^Agent defaults$/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Identity card')).toBeInTheDocument();
+      screen.getByRole('link', { name: 'Generation receipts' }),
+    ).toHaveAttribute('href', '/acme/acme/settings/agent/receipts');
     expect(screen.getByRole('link', { name: 'Writing voice' })).toHaveAttribute(
       'href',
       '/acme/acme/settings/brand-kit/voice',
     );
+    expect(screen.getByText('Section body')).toBeInTheDocument();
   });
 
-  it('keeps the agent defaults heading off the other sections', () => {
-    mocks.search = 'tab=context';
-    render(<BrandAgentSettingsPage />);
+  it('lights only the section the path is on', () => {
+    mocks.pathname = '/acme/acme/settings/agent/learning';
+    render(
+      <AgentSettingsShell>
+        <p>Section body</p>
+      </AgentSettingsShell>,
+    );
 
-    expect(
-      screen.queryByRole('heading', { name: /^Agent defaults$/ }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('Context tab')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Learning' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Defaults' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
+  it('shows the missing-brand notice instead of the section', () => {
+    mocks.brand = null;
+    render(
+      <AgentSettingsShell>
+        <p>Section body</p>
+      </AgentSettingsShell>,
+    );
+
+    expect(screen.queryByText('Section body')).not.toBeInTheDocument();
   });
 });

@@ -125,6 +125,27 @@ describe('app next.config', () => {
     },
   );
 
+  it.each([
+    [
+      '/acme/~/settings/models?type=trainings',
+      '/acme/~/settings/models/trainings',
+    ],
+    [
+      '/acme/~/settings/models?type=custom-models',
+      '/acme/~/settings/models/custom-models',
+    ],
+    ['/acme/~/settings/models/all', '/acme/~/settings/models'],
+  ])('moves the models type into the path for %s', async (source, pathname) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.com${source}`,
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+      pathname,
+    );
+  });
+
   it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
     const response = await unstable_getResponseFromNextConfig({
       url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',

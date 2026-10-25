@@ -180,11 +180,7 @@ const filterRouteRedirects: AppRedirect[] = [
     ['/workspace/inbox/all', '/workspace/inbox?view=all'],
     ['/workspace/inbox/recent', '/workspace/inbox?view=recent'],
     ['/workspace/inbox/unread', '/workspace/inbox?view=unread'],
-    ['/settings/models/all', '/settings/models?type=all'],
-    ['/settings/models/images', '/settings/models?type=images'],
-    ['/settings/models/videos', '/settings/models?type=videos'],
-    ['/settings/models/text', '/settings/models?type=text'],
-    ['/settings/models/trainings', '/settings/models?type=trainings'],
+    ['/settings/models/all', '/settings/models'],
     ['/library/trash', '/library/assets?place=trash'],
     ['/library/shelf/generating', '/library/assets?shelf=generating'],
     ['/library/shelf/unsorted', '/library/assets?shelf=unsorted'],
@@ -199,6 +195,18 @@ const filterRouteRedirects: AppRedirect[] = [
       permanent: true,
     })),
   ),
+  ...FILTER_ROUTE_SCOPES.map((prefix) => ({
+    destination: `${prefix}/settings/models/:type`,
+    has: [
+      {
+        key: 'type',
+        type: 'query' as const,
+        value: '(?<type>trainings|custom-models)',
+      },
+    ],
+    permanent: true,
+    source: `${prefix}/settings/models`,
+  })),
   ...LIBRARY_TYPE_PRESET_QUERIES.flatMap(([source, presetQuery]) =>
     FILTER_ROUTE_SCOPES.flatMap((prefix) => [
       {
