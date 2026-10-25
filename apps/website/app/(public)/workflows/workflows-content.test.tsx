@@ -47,10 +47,8 @@ describe('WorkflowsContent', () => {
     expect(
       screen.getByText(/Agents can trigger the workflow/i),
     ).toBeInTheDocument();
-    expect(screen.getByText('Agent-Triggered')).toBeInTheDocument();
     expect(
       screen.getByText('Deterministic workflow control for agentic execution.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Deterministic')).toBeInTheDocument();
   });
 });

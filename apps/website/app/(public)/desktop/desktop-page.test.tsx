@@ -76,7 +76,7 @@ describe('Desktop product landing', () => {
     expect(
       screen.getByRole('link', { name: /Download \.dmg/ }),
     ).toHaveAttribute('href', downloadUrl);
-    expect(screen.getAllByText(/macOS 13 Ventura or later/)).toHaveLength(2);
+    expect(screen.getAllByText(/macOS 13 Ventura or later/)).toHaveLength(1);
     expect(getBuild).toHaveBeenCalledOnce();
   });
 

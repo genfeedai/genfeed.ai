@@ -163,18 +163,10 @@ export default function DesktopContent({
             </Button>
           </>
         }
-        heroDetails={
-          <p className="text-xs text-surface/50">
-            {hasMacBuild
-              ? MAC_REQUIREMENT
-              : 'Desktop builds are not published yet. The web app is live today.'}
-          </p>
-        }
       >
         <WebSection maxWidth="lg" className="gsap-section">
           <SectionHeader
             title="Pick your platform"
-            description="macOS ships first. Windows follows once the build and signing pipeline covers it."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
@@ -245,7 +237,6 @@ export default function DesktopContent({
         <WebSection bg="bordered" maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="What the desktop app adds"
-            description="Everything the web app does, plus the things only a local process can do."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
@@ -266,7 +257,6 @@ export default function DesktopContent({
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="Running in four steps"
-            description="No terminal, no clone, no local API. Download and open."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
@@ -289,7 +279,6 @@ export default function DesktopContent({
         <WebSection bg="bordered" maxWidth="lg" className="gsap-section">
           <SectionHeader
             title="Desktop or browser"
-            description="Same product and the same account. The desktop app adds a local workspace and your own generation providers."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
@@ -346,7 +335,6 @@ export default function DesktopContent({
         <CtaSection
           bg="subtle"
           title="Start where you are."
-          description="Use Genfeed in the browser today, and install the desktop app when you want a local workspace."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={appHref} target="_blank" rel="noopener noreferrer">

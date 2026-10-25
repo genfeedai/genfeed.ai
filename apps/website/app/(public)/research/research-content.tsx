@@ -76,8 +76,6 @@ const STEPS = [
   },
 ];
 
-const HIGHLIGHT_TAGS = ['Discovery', 'Socials', 'Ads', 'Briefs'];
-
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Trend discovery, competitor tracking, and ad creative research all live inside one research workspace."
@@ -145,16 +143,6 @@ export default function ResearchContent() {
                   winning ad creative from a single interface. Turn any
                   discovery into a ready brief without switching tabs.
                 </Text>
-                <div className="flex flex-row items-center flex-wrap gap-2">
-                  {HIGHLIGHT_TAGS.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 text-xs border border-[var(--gen-accent-border)] text-[var(--gen-accent-text)]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
@@ -217,27 +205,20 @@ export default function ResearchContent() {
           <Heading as="h3" className="text-2xl font-bold text-center mb-12">
             How It Works
           </Heading>
-          <div className="space-y-0">
-            {STEPS.map((step, index) => {
+          <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
+            {STEPS.map((step) => {
               const Icon = step.icon;
               return (
-                <div key={step.label}>
-                  <div className="flex flex-row items-center gap-6 py-6">
-                    <div className="flex-shrink-0 size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Text className="text-lg font-bold text-surface">
-                        {step.label}
-                      </Text>
-                      <Text className="text-sm text-surface/65">
-                        {step.sublabel}
-                      </Text>
-                    </div>
+                <div
+                  key={step.label}
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-fill/[0.02] p-6 text-center"
+                >
+                  <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                    <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  {index < STEPS.length - 1 && (
-                    <div className="gen-divider-accent" />
-                  )}
+                  <Text as="p" className="text-lg font-bold text-surface">
+                    {step.label}
+                  </Text>
                 </div>
               );
             })}
@@ -250,13 +231,9 @@ export default function ResearchContent() {
             <div className="flex justify-center mb-4">
               <Sparkles className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading as="h3" className="text-2xl font-bold mb-6 text-surface">
               Start Discovering Today
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Find trends, track competitors, and study winning ad creative.
-              Turn every discovery into a ready brief in one click.
-            </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <AgentFirstActions

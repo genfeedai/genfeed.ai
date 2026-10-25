@@ -17,24 +17,6 @@ import {
   Zap,
 } from 'lucide-react';
 
-const METRICS = [
-  {
-    icon: ChartColumn,
-    label: 'Overview Dashboard',
-    value: 'Publishing performance at a glance',
-  },
-  {
-    icon: ChartNoAxesColumn,
-    label: 'Post Analytics',
-    value: 'Available views and engagement per post',
-  },
-  {
-    icon: Flame,
-    label: 'Streaks',
-    value: 'Consistency tracked and rewarded',
-  },
-];
-
 const FEATURES = [
   {
     description:
@@ -91,8 +73,6 @@ const STEPS = [
   },
 ];
 
-const HIGHLIGHT_TAGS = ['Performance', 'Trends', 'Hooks', 'Streaks'];
-
 const HERO_VISUAL = (
   <ProductInterfacePreview
     product={{
@@ -147,45 +127,8 @@ export default function AnalyticsContent() {
                   brands. Use that context to choose the next format, hook or
                   campaign brief.
                 </Text>
-                <div className="flex flex-row items-center flex-wrap gap-2">
-                  {HIGHLIGHT_TAGS.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 text-xs border border-[var(--gen-accent-border)] text-[var(--gen-accent-text)]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Metrics Showcase */}
-        <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-            {METRICS.map((metric) => {
-              const Icon = metric.icon;
-              return (
-                <div
-                  key={metric.label}
-                  className="gen-contact-sheet p-6 bg-fill/[0.02] text-center"
-                >
-                  <div className="flex justify-center mb-3">
-                    <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
-                    </div>
-                  </div>
-                  <Text as="p" className="text-sm font-bold text-surface">
-                    {metric.label}
-                  </Text>
-                  <Text as="p" className="text-xs text-surface/65">
-                    {metric.value}
-                  </Text>
-                </div>
-              );
-            })}
           </div>
         </section>
 
@@ -224,27 +167,20 @@ export default function AnalyticsContent() {
           <Heading as="h3" className="text-2xl font-bold text-center mb-12">
             How It Works
           </Heading>
-          <div className="space-y-0">
-            {STEPS.map((step, index) => {
+          <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
+            {STEPS.map((step) => {
               const Icon = step.icon;
               return (
-                <div key={step.label}>
-                  <div className="flex flex-row items-center gap-6 py-6">
-                    <div className="flex-shrink-0 size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Text className="text-lg font-bold text-surface">
-                        {step.label}
-                      </Text>
-                      <Text className="text-sm text-surface/65">
-                        {step.sublabel}
-                      </Text>
-                    </div>
+                <div
+                  key={step.label}
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-fill/[0.02] p-6 text-center"
+                >
+                  <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                    <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  {index < STEPS.length - 1 && (
-                    <div className="gen-divider-accent" />
-                  )}
+                  <Text as="p" className="text-lg font-bold text-surface">
+                    {step.label}
+                  </Text>
                 </div>
               );
             })}
@@ -257,13 +193,9 @@ export default function AnalyticsContent() {
             <div className="flex justify-center mb-4">
               <Sparkles className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading as="h3" className="text-2xl font-bold mb-6 text-surface">
               Know What Works. Do More.
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Post performance, hook analysis and brand rollups built into the
-              studio. No spreadsheets required.
-            </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <AgentFirstActions

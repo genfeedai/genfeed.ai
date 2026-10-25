@@ -35,13 +35,6 @@ const BEFORE_AFTER = [
   },
 ];
 
-const HIGHLIGHT_TAGS = [
-  'Deterministic',
-  'Inspectable',
-  'Scheduled',
-  'Agent-Triggered',
-];
-
 const NODE_CATEGORIES = [
   {
     count: '8+',
@@ -179,16 +172,6 @@ export default function WorkflowsContent() {
                   the workflow, but the triggers, steps, branches, ratings, and
                   publishing logic stay explicit and inspectable.
                 </Text>
-                <div className="flex flex-row items-center flex-wrap gap-2">
-                  {HIGHLIGHT_TAGS.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 text-xs border border-[var(--gen-accent-border)] text-[var(--gen-accent-text)]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
@@ -301,14 +284,9 @@ export default function WorkflowsContent() {
             <div className="flex justify-center mb-4">
               <LayoutGrid className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading as="h3" className="text-2xl font-bold mb-6 text-surface">
               Use Agents for Simplicity. Use Workflows for Control.
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Let agents trigger autonomous runs, or configure every trigger and
-              step yourself when you need deterministic execution from idea to
-              published output.
-            </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <AgentFirstActions trackingName="workflows_cta_click" />

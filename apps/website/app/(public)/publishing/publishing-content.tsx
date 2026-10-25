@@ -286,10 +286,6 @@ export default function PublishingContent() {
                   <Heading as="h4" className="font-semibold text-surface mb-1">
                     {step.label}
                   </Heading>
-
-                  <Text className="text-xs text-surface/65 leading-relaxed">
-                    {step.sublabel}
-                  </Text>
                 </div>
               );
             })}
@@ -303,13 +299,9 @@ export default function PublishingContent() {
             <div className="flex justify-center mb-4">
               <Rocket className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading as="h3" className="text-2xl font-bold mb-6 text-surface">
               Start Publishing Today
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Connect your platforms and start publishing AI content everywhere
-              in minutes. Free tier available with no credit card required.
-            </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <AgentFirstActions trackingName="publishing_cta_click" />
