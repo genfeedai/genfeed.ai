@@ -719,7 +719,7 @@ describe('AppProtectedLayout', () => {
   );
 
   it('hides the shell low credits banner on promptbar routes', () => {
-    mockPathname.value = '/studio/storyboard';
+    mockPathname.value = '/storyboard';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
     // The impersonation banner has no route carve-outs: it must survive
@@ -728,7 +728,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps the shell low credits banner on the Studio Editor surface', () => {
-    mockPathname.value = '/studio/editor/new';
+    mockPathname.value = '/editor/new';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
   });
@@ -968,7 +968,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps the permanent topbar and app rail on Studio routes', () => {
-    mockPathname.value = '/studio/storyboard';
+    mockPathname.value = '/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -986,7 +986,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('mounts the universal shell around canonical Studio content', () => {
-    mockPathname.value = '/org-123/brand-123/studio/storyboard';
+    mockPathname.value = '/org-123/brand-123/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -1007,7 +1007,7 @@ describe('AppProtectedLayout', () => {
 
   it('keeps render failures inside the protected shell error boundary', () => {
     shellState.isShellThrowing = true;
-    mockPathname.value = '/org-123/brand-123/studio/storyboard';
+    mockPathname.value = '/org-123/brand-123/storyboard';
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
@@ -1134,7 +1134,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/workspace', 'Workspace'],
-    ['/studio/storyboard', 'Storyboard'],
+    ['/storyboard', 'Storyboard'],
     ['/library/images', 'Assets'],
     ['/discovery/overview', 'Overview'],
     ['/analytics', 'Overview'],
@@ -1168,7 +1168,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/discovery/ads', 'Discovery', 'Ads'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
-    ['/org-123/brand-123/studio/clips', 'Clips', 'Projects'],
+    ['/org-123/brand-123/clips', 'Clips', 'Projects'],
     ['/org-123/brand-123/discovery/trends', 'Discovery', 'Trends'],
     [
       '/org-123/brand-123/discovery/trends/detail/trend-1',
@@ -1222,7 +1222,7 @@ describe('AppProtectedLayout', () => {
 
   describe('storyboard run breadcrumb', () => {
     it('shows the run title the page publishes as the leaf', () => {
-      mockPathname.value = '/org-123/brand-123/studio/storyboard/run-1';
+      mockPathname.value = '/org-123/brand-123/storyboard/run-1';
 
       render(
         <AppProtectedLayout>
@@ -1237,7 +1237,7 @@ describe('AppProtectedLayout', () => {
     });
 
     it('keeps the registry leaf when the published title belongs to another run', () => {
-      mockPathname.value = '/org-123/brand-123/studio/storyboard/run-2';
+      mockPathname.value = '/org-123/brand-123/storyboard/run-2';
 
       render(
         <AppProtectedLayout>
@@ -1255,7 +1255,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     '/org-123/brand-123/automation/workflows/new',
     '/org-123/brand-123/automation/workflows/wf-123',
-    '/org-123/brand-123/studio/editor/new',
+    '/org-123/brand-123/editor/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
 
@@ -1322,7 +1322,7 @@ describe('AppProtectedLayout', () => {
     // Canvas routes still own the left rail, while the application keeps the
     // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
-    mockPathname.value = '/org-123/brand-123/studio/editor/new';
+    mockPathname.value = '/org-123/brand-123/editor/new';
 
     render(
       <AppProtectedLayout>
@@ -1477,7 +1477,7 @@ describe('AppProtectedLayout', () => {
 
   it('gives a Studio app with several pages its own nav column (#5502)', () => {
     mockStudioNav.appsWithSecondPage.add('storyboard');
-    mockPathname.value = '/org-123/brand-123/studio/storyboard';
+    mockPathname.value = '/org-123/brand-123/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -1495,7 +1495,7 @@ describe('AppProtectedLayout', () => {
       appSidebarSpy.mock.calls
         .at(-1)?.[0]
         .items.map((item: MenuItemConfig) => item.href),
-    ).toEqual(['/studio/storyboard', '/studio/storyboard/archive']);
+    ).toEqual(['/storyboard', '/storyboard/archive']);
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
       'backLabel',
@@ -1504,7 +1504,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives a single-page Studio app no nav column, only the rail (#5502)', () => {
-    mockPathname.value = '/org-123/brand-123/studio/storyboard';
+    mockPathname.value = '/org-123/brand-123/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -1537,10 +1537,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it.each([
-    '/org-123/brand-123/studio/storyboard',
-    '/org-123/brand-123/studio/turbo/new',
-  ])(
+  it.each(['/org-123/brand-123/storyboard', '/org-123/brand-123/turbo/new'])(
     'keeps the %s rail app surface without a module nav column',
     (pathname) => {
       mockPathname.value = pathname;
@@ -1793,7 +1790,7 @@ describe('AppProtectedLayout', () => {
 
   it('lists only the current Studio app in its nav (#5502)', () => {
     mockStudioNav.appsWithSecondPage.add('storyboard');
-    mockPathname.value = '/studio/storyboard';
+    mockPathname.value = '/storyboard';
     mockBrandState.settings.hasOrganizationBilling = true;
     render(
       <AppProtectedLayout>
@@ -1804,13 +1801,13 @@ describe('AppProtectedLayout', () => {
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/studio/storyboard', '/studio/storyboard/archive']);
+    ).toEqual(['/storyboard', '/storyboard/archive']);
     expect(screen.getByText('Existing storyboard')).toBeInTheDocument();
   });
 
   it('updates an app nav without discarding existing project content', () => {
     mockStudioNav.appsWithSecondPage.add('clips');
-    mockPathname.value = '/studio/clips/project-123';
+    mockPathname.value = '/clips/project-123';
     mockBrandState.settings.hasOrganizationBilling = true;
     // Release preview isolates the module switch from the #5502 release gate.
     mockBrandState.settings.isReleasePreviewEnabled = true;
@@ -1827,7 +1824,7 @@ describe('AppProtectedLayout', () => {
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/studio/clips', '/studio/clips/archive']);
+    ).toEqual(['/clips', '/clips/archive']);
     mockBrandState.settings = {
       ...mockBrandState.settings,
       moduleOverrides: { clips: false },
@@ -1847,7 +1844,7 @@ describe('AppProtectedLayout', () => {
     'keeps a credit-only Studio app nav while preferences are unknown (loading=%s)',
     (settingsLoading) => {
       mockStudioNav.appsWithSecondPage.add('storyboard');
-      mockPathname.value = '/studio/storyboard';
+      mockPathname.value = '/storyboard';
       mockBrandState.settingsLoading = settingsLoading;
       mockBrandState.settings = { subscriptionTier: 'scale' };
       render(
@@ -1859,13 +1856,13 @@ describe('AppProtectedLayout', () => {
         appSidebarSpy.mock.lastCall?.[0].items.map(
           (item: MenuItemConfig) => item.href,
         ),
-      ).toEqual(['/studio/storyboard', '/studio/storyboard/archive']);
+      ).toEqual(['/storyboard', '/storyboard/archive']);
     },
   );
 
   it('never lists another Studio app or a retired surface in an app nav', () => {
     mockStudioNav.appsWithSecondPage.add('storyboard');
-    mockPathname.value = '/studio/storyboard';
+    mockPathname.value = '/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -1876,11 +1873,11 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalled();
 
     for (const otherHref of [
-      '/studio/playground',
-      '/studio/clips',
-      '/studio/turbo',
-      '/studio/motion',
-      '/studio/editor',
+      '/playground',
+      '/clips',
+      '/turbo',
+      '/motion',
+      '/editor',
       '/studio/image',
       '/studio/audio',
       '/library/voices',
@@ -1947,7 +1944,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps the Studio Editor surface inside the workspace shell while skipping editor-only providers', () => {
-    mockPathname.value = '/org-123/brand-123/studio/editor/new';
+    mockPathname.value = '/org-123/brand-123/editor/new';
 
     render(
       <AppProtectedLayout>

@@ -153,6 +153,12 @@ export interface IOrganizationSetting extends IBaseEntity {
    * visual checks stay unknown. The platform switch is the master kill switch.
    */
   isBrandVisionChecksEnabled?: boolean;
+  /**
+   * Whether MCP requests that spend credits wait in the approvals queue. On unless an
+   * owner or admin turns it off; the organization owns the credit pool, so a member's own
+   * setting can only relax this, never override it.
+   */
+  isMcpApprovalRequired?: boolean;
   /** Read-only server runtime hint for presentation; admission always rechecks. */
   readonly hasOrganizationBilling?: boolean;
   /** Read-only fresh paid eligibility; null means the grant could not be verified. */

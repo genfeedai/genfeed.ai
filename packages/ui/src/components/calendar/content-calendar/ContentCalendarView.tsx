@@ -291,7 +291,7 @@ function FullCalendarMount({
     };
   }, [onError, options, calendarRef]);
 
-  return <div ref={elementRef} />;
+  return <div data-calendar-host ref={elementRef} />;
 }
 
 function FullCalendarHost({ options, calendarRef }: FullCalendarHostProps) {
@@ -401,7 +401,11 @@ export default function ContentCalendarView<T extends CalendarItem>({
             ? `gen-calendar-event-host--${item.status}`
             : '';
           acc.push({
-            className: [item.isDisabled ? 'event-disabled' : '', statusClass]
+            className: [
+              item.isDisabled ? 'event-disabled' : '',
+              isDraggable ? 'gen-calendar-event-draggable' : '',
+              statusClass,
+            ]
               .filter(Boolean)
               .join(' '),
             color,
@@ -683,6 +687,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
       slotMaxTime: '24:00:00',
       slotMinTime: '00:00:00',
       snapDuration: '00:15:00',
+      timeZone: timezone,
     }),
     [
       events,
@@ -695,6 +700,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
       handleDatesSet,
       onDateClick,
       isDragEnabled,
+      timezone,
     ],
   );
 

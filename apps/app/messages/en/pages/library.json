@@ -53,6 +53,8 @@
   "inspector": {
     "copyPrompt": "Copy prompt",
     "created": "Created",
+    "credits": "Credits",
+    "creditsReserved": "{count} (running)",
     "deletedReference": "Deleted reference",
     "dimensions": "Dimensions",
     "duration": "Duration",
@@ -241,6 +243,10 @@
       "empty": "No ready sources yet. Add some in Library › Knowledge.",
       "budget": "Up to {passages} passages · ~{tokens} tokens"
     }
+  },
+  "imported": {
+    "description": "Files you uploaded and posts or pages you imported. Generated output lives in Assets.",
+    "label": "Imported"
   },
   "assetDeepLink": {
     "opening": "Opening your asset…",

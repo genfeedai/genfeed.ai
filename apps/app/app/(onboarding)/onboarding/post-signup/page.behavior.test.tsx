@@ -377,9 +377,7 @@ describe('PostSignupPage behavior', () => {
         previewToken: token,
       });
     });
-    expect(locationState.href).toBe(
-      '/acme/acme-brand/studio/clips/clip-project-1',
-    );
+    expect(locationState.href).toBe('/acme/acme-brand/clips/clip-project-1');
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       'public_youtube_clip_project_claimed',
       { source: 'public_preview' },

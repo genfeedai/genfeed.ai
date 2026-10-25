@@ -172,7 +172,7 @@ describe('useStudioPlaygroundAssetActions', () => {
     act(() => result.current.onOpenInEditor({ ...ingredient, id: 'video-1' }));
 
     expect(mocks.push).toHaveBeenCalledWith(
-      '/default/default/studio/editor/new?video=video-1',
+      '/default/default/editor/new?video=video-1',
     );
   });
 

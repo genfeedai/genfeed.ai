@@ -53,7 +53,7 @@ describe('AgentRouteRewriteService', () => {
               label: 'Open workflow',
             },
           ],
-          editorUrl: '/publishing/posts?view=approvals&filter=ready',
+          editorUrl: '/publishing/approvals?filter=ready',
           id: 'action-review',
           title: 'Review',
           type: 'content_preview_card',
@@ -74,8 +74,7 @@ describe('AgentRouteRewriteService', () => {
           ctaHref: '/genfeed-ai/launch-brand/automation/workflows/workflow-1',
         },
       ],
-      editorUrl:
-        '/genfeed-ai/launch-brand/publishing/posts?view=approvals&filter=ready',
+      editorUrl: '/genfeed-ai/launch-brand/publishing/approvals?filter=ready',
     });
   });
 
@@ -188,7 +187,7 @@ describe('AgentRouteRewriteService', () => {
     const scoped = await service.scopeToolResultHrefs(
       {
         data: {
-          href: '/publishing/posts?view=approvals',
+          href: '/publishing/approvals',
           url: '/media/generated-image.png',
         },
         creditsUsed: 0,
@@ -198,7 +197,7 @@ describe('AgentRouteRewriteService', () => {
     );
 
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/publishing/posts?view=approvals',
+      href: '/genfeed-ai/launch-brand/publishing/approvals',
       url: '/media/generated-image.png',
     });
   });
@@ -228,15 +227,15 @@ describe('AgentRouteRewriteService', () => {
 
     expect(scoped.nextActions?.[0].ctas).toEqual([
       {
-        href: '/genfeed-ai/launch-brand/publishing/posts?view=approvals',
+        href: '/genfeed-ai/launch-brand/publishing/approvals',
         label: 'Review Queue',
       },
       {
-        href: '/genfeed-ai/launch-brand/publishing/posts?view=calendar',
+        href: '/genfeed-ai/launch-brand/publishing/calendar',
         label: 'View Calendar',
       },
       {
-        href: '/genfeed-ai/launch-brand/publishing/posts?view=calendar&release=r-1',
+        href: '/genfeed-ai/launch-brand/publishing/calendar?release=r-1',
         label: 'Open release',
       },
     ]);

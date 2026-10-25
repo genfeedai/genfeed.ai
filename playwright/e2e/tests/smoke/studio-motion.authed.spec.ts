@@ -120,7 +120,7 @@ test('Motion loads under a genuine local Better Auth session without creating pa
     }
   }
   const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
-  const route = `/${brand?.organization?.slug}/${brand?.slug}/studio/motion`;
+  const route = `/${brand?.organization?.slug}/${brand?.slug}/motion`;
   const pageResponse = await page.goto(route, {
     timeout: 180_000,
     waitUntil: 'domcontentloaded',

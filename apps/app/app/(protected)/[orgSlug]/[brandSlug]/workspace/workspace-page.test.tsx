@@ -709,7 +709,7 @@ describe('WorkspacePageContent', () => {
     );
     expect(screen.getByRole('link', { name: 'Open Review' })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/publishing/posts?view=approvals',
+      '/acme-org/acme-creator/publishing/approvals',
     );
     // #5397: the "Open Inbox" link (`workspace-overview-sidebar.tsx`'s
     // "Recent activity" card) used to build a bare

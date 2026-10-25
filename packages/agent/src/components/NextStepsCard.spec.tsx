@@ -169,7 +169,7 @@ describe('NextStepsCard', () => {
               label: 'Do it here',
               payload: { prompt: 'Walk me through brand setup.' },
             },
-            { href: '/publishing/review', label: 'Open reviews' },
+            { href: '/publishing/approvals', label: 'Open reviews' },
           ],
         },
       ],
@@ -190,7 +190,7 @@ describe('NextStepsCard', () => {
     ).toBeTruthy();
     expect(start.getAttribute('data-variant')).toBe(ButtonVariant.DEFAULT);
     expect(brandSettings.getAttribute('href')).toBe('/settings/brands');
-    expect(reviews.getAttribute('href')).toBe('/publishing/review');
+    expect(reviews.getAttribute('href')).toBe('/publishing/approvals');
     expect(screen.queryByText('Do it here')).toBeNull();
     fireEvent.click(start);
     expect(onUiAction).toHaveBeenCalledOnce();

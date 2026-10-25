@@ -17,6 +17,7 @@ import LoginBetterAuth from './login-better-auth';
 const authClientMocks = vi.hoisted(() => ({
   email: vi.fn(),
   getSession: vi.fn(),
+  isGoogleSignInAvailable: vi.fn(() => true),
   magicLink: vi.fn(),
   social: vi.fn(),
 }));
@@ -42,6 +43,7 @@ let desktopSessionChangeCallback: ((session: object | null) => void) | null =
 
 vi.mock('@genfeedai/auth-client', () => ({
   getSession: authClientMocks.getSession,
+  isGoogleSignInAvailable: authClientMocks.isGoogleSignInAvailable,
   isMagicLinkAvailable: () => true,
   signIn: {
     email: authClientMocks.email,
@@ -115,6 +117,8 @@ describe('LoginPage', () => {
     authClientMocks.email.mockReset();
     authClientMocks.email.mockResolvedValue({});
     authClientMocks.getSession.mockReset();
+    authClientMocks.isGoogleSignInAvailable.mockReset();
+    authClientMocks.isGoogleSignInAvailable.mockReturnValue(true);
     authClientMocks.getSession.mockResolvedValue({
       data: { session: { id: 'browser-session' } },
       error: null,
@@ -168,6 +172,17 @@ describe('LoginPage', () => {
     });
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+  });
+
+  it('hides Google when the deployment has no Google OAuth credentials', () => {
+    authClientMocks.isGoogleSignInAvailable.mockReturnValue(false);
+
+    render(<LoginPage />);
+
+    expect(screen.queryByRole('button', { name: 'Google' })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Email / Password' }),
+    ).toHaveAttribute('href', '/login/password');
   });
 
   it('renders the Better Auth sign-in chooser', () => {

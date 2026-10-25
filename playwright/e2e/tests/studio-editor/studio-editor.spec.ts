@@ -22,7 +22,7 @@ import {
  *
  * Every route is visited with the explicit E2E org+brand slugs (brandPath),
  * not a bare path: the proxy's active-workspace resolution for a bare
- * `/studio/*` path is cached server-side per session and is not
+ * `/editor/*` path is cached server-side per session and is not
  * deterministic across parallel workers sharing one dev server.
  */
 
@@ -246,9 +246,9 @@ test.describe('Studio Editor', () => {
   });
 
   /**
-   * /studio/editor/new (new-editor-project-page.tsx) is a transient redirect: it
-   * POSTs a new project on mount and replaces the URL with `/studio/editor/:id`
-   * on success, or back to `/studio/editor` if the create call fails.
+   * /editor/new (new-editor-project-page.tsx) is a transient redirect: it
+   * POSTs a new project on mount and replaces the URL with `/editor/:id`
+   * on success, or back to `/editor` if the create call fails.
    */
   test.describe('New Editor Project', () => {
     test('creates a project and lands on its editor with real toolbar controls', async ({

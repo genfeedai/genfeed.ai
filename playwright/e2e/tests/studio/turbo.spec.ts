@@ -3,7 +3,7 @@ import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
 
-const base = '/test-org/brand-1/studio/turbo';
+const base = '/test-org/brand-1/turbo';
 test.describe('Persisted Turbo projects', () => {
   test('idea choices, generated ideas, quote, approval and per-target timing survive reloads', async ({
     authenticatedPage: page,
@@ -102,7 +102,7 @@ test.describe('Persisted Turbo projects', () => {
       page.getByRole('button', { name: 'Approve', exact: true }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Open review inbox' }).click();
-    await expect(page).toHaveURL(/publishing\/posts\?view=approvals/);
+    await expect(page).toHaveURL(/publishing\/approvals/);
     await expect(
       page.getByText('Saved project output', { exact: true }).first(),
     ).toBeVisible();

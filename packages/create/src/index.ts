@@ -47,7 +47,8 @@ interface ReleaseAssetUrls {
 
 interface RunCommandOptions {
   cwd?: string;
-  stdio?: 'ignore' | 'inherit';
+  stdio?: 'ignore' | 'inherit' | 'pipe';
+  timeoutMs?: number;
 }
 
 type FetchImplementation = typeof fetch;
@@ -218,17 +219,24 @@ async function runCommand(
   command: string,
   args: string[],
   options: RunCommandOptions = {},
-): Promise<void> {
-  await new Promise<void>((resolvePromise, rejectPromise) => {
+): Promise<string> {
+  return await new Promise<string>((resolvePromise, rejectPromise) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
       stdio: options.stdio ?? 'inherit',
+      timeout: options.timeoutMs,
     });
+    let output = '';
+    child.stdout?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      output += chunk;
+    });
+    child.stderr?.resume();
 
     child.once('error', rejectPromise);
     child.once('close', (code, signal) => {
       if (code === 0) {
-        resolvePromise();
+        resolvePromise(output);
         return;
       }
 
@@ -271,30 +279,119 @@ function assertInstallPrerequisites(): void {
   }
 }
 
+async function isAppContainerRunning(
+  projectDirectory: string,
+): Promise<boolean> {
+  let output: string;
+  try {
+    output = await runCommand(
+      'docker',
+      [
+        'compose',
+        '--env-file',
+        '.env',
+        '-f',
+        'compose.yml',
+        'ps',
+        '--all',
+        '--format',
+        'json',
+        'genfeed',
+      ],
+      { cwd: projectDirectory, stdio: 'pipe', timeoutMs: 10_000 },
+    );
+  } catch (error) {
+    throw new Error(
+      `Could not read the genfeed container status: ${error instanceof Error ? error.message : 'Docker Compose failed.'}`,
+    );
+  }
+
+  let containers: unknown[];
+  try {
+    const content = output.trim();
+    const parsed: unknown = content.startsWith('[')
+      ? JSON.parse(content)
+      : content
+          .split(/\r?\n/)
+          .filter(Boolean)
+          .map((line) => JSON.parse(line));
+    if (!Array.isArray(parsed))
+      throw new Error('Expected container status list');
+    containers = parsed;
+  } catch {
+    throw new Error(
+      'Could not read the genfeed container status: invalid Docker Compose response.',
+    );
+  }
+
+  if (containers.length === 0) {
+    throw new Error('No genfeed container was found after startup.');
+  }
+  let isRunning = true;
+  for (const container of containers) {
+    if (
+      !isNonNullObject(container) ||
+      container.Service !== 'genfeed' ||
+      typeof container.State !== 'string' ||
+      ![
+        'created',
+        'running',
+        'paused',
+        'restarting',
+        'removing',
+        'exited',
+        'dead',
+      ].includes(container.State) ||
+      typeof container.ExitCode !== 'number' ||
+      !Number.isInteger(container.ExitCode) ||
+      (container.Health !== undefined && typeof container.Health !== 'string')
+    ) {
+      throw new Error(
+        'Could not read the genfeed container status: invalid Docker Compose response.',
+      );
+    }
+    if (container.State === 'exited' || container.State === 'dead') {
+      throw new Error(
+        `The genfeed container ${container.State} with code ${container.ExitCode}.`,
+      );
+    }
+    if (container.Health === 'unhealthy') {
+      throw new Error('The genfeed container is unhealthy.');
+    }
+    isRunning &&= container.State === 'running';
+  }
+  return isRunning;
+}
+
 async function waitForApp(
   fetchImplementation: FetchImplementation,
   appUrl: string,
+  projectDirectory: string,
   timeoutMs = 180_000,
-): Promise<boolean> {
+): Promise<void> {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
-    try {
-      const response = await fetchImplementation(appUrl, {
-        redirect: 'manual',
-        signal: AbortSignal.timeout(2_000),
-      });
-      if (response.ok || (response.status >= 300 && response.status < 400)) {
-        return true;
+    if (await isAppContainerRunning(projectDirectory)) {
+      try {
+        const response = await fetchImplementation(appUrl, {
+          redirect: 'manual',
+          signal: AbortSignal.timeout(2_000),
+        });
+        if (response.ok || (response.status >= 300 && response.status < 400)) {
+          return;
+        }
+      } catch {
+        // The container is still starting.
       }
-    } catch {
-      // The container is still starting.
     }
 
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
   }
 
-  return false;
+  throw new Error(
+    `${appUrl} did not become ready within ${timeoutMs / 1_000} seconds.`,
+  );
 }
 
 export function openBrowser(url: string): void {
@@ -416,20 +513,15 @@ export async function installRelease(
     );
 
     consola.start('Waiting for Genfeed.ai to become ready…');
-    if (await waitForApp(fetchImplementation, setup.appUrl)) {
-      consola.success(`Genfeed.ai is running at ${setup.appUrl}`);
-      openBrowser(setup.appUrl);
-    } else {
-      consola.warn(
-        `The containers started, but ${setup.appUrl} is not ready yet.`,
-      );
-    }
+    await waitForApp(fetchImplementation, setup.appUrl, projectDirectory);
+    consola.success(`Genfeed.ai is running at ${setup.appUrl}`);
+    openBrowser(setup.appUrl);
   } catch (error) {
     if (createdProjectDirectory && !startAttempted) {
       await rm(projectDirectory, { force: true, recursive: true });
     } else if (startAttempted) {
       consola.warn(
-        `Startup failed. Installation files were preserved at ${projectDirectory} for inspection or recovery.`,
+        `Startup failed. Installation files were preserved at ${projectDirectory} for inspection or recovery.\nRun in that directory: docker compose --env-file .env -f compose.yml logs genfeed`,
       );
     }
     throw error;

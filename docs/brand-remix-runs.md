@@ -36,7 +36,7 @@ treatment.
 Opening Remix creates or reuses a server-authorized draft `ContentRun`. The
 server combines the resolved source pattern with the active brand's voice,
 harness, output recommendation, review policy, and available Library defaults.
-Navigation carries only the run ID (`/studio/storyboard/<runId>`); refreshing
+Navigation carries only the run ID (`/storyboard/<runId>`); refreshing
 or reopening the run restores the same editable state. Studio → Storyboard lists
 every run for the active brand (`GET /brands/:brandId/content-runs/remixes`)
 with its title, source kind, state, shot count, runtime and last-edited time.

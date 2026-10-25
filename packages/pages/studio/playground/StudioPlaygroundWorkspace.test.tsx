@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
+import type { StudioSubmitOptions } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
 import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
@@ -296,7 +297,7 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/default/default/studio/playground',
+  usePathname: () => '/default/default/playground',
   useSearchParams: () => new URLSearchParams(mocks.searchParams.value),
 }));
 
@@ -1221,6 +1222,36 @@ describe('StudioPlaygroundWorkspace', () => {
     act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
     expect(mocks.submit).toHaveBeenCalledTimes(2);
   });
+
+  it.each<StudioSubmitOptions>([
+    { isDraft: true },
+    { pinnedModelKey: MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST },
+    {
+      isDraft: true,
+      pinnedModelKey: MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    },
+  ])(
+    'preserves the quoted video submission options %o',
+    async (submitOptions) => {
+      mocks.type.value = 'video';
+      await renderLoaded();
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'),
+      );
+      const composer: StudioPlaygroundComposerProps =
+        mocks.composer.mock.calls.at(-1)?.[0];
+
+      await act(async () => composer.onSubmit(submitOptions));
+
+      expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(
+        'A coast',
+        expect.objectContaining({
+          imageReferenceIds: ['ingredient-1', 'img-anna'],
+        }),
+        { ...submitOptions, originalText: 'A coast' },
+      );
+    },
+  );
 
   it.each(['image', 'video'])(
     'strips commands and submits selected skills for %s',

@@ -22,6 +22,7 @@ export class OrganizationSettingEntity extends BaseEntity {
   declare readonly isBreakoutResponsesEnabled: boolean;
   declare readonly isBreakoutAutoPublishEnabled: boolean;
   declare readonly isBrandVisionChecksEnabled: boolean;
+  declare readonly isMcpApprovalRequired: boolean;
 
   declare readonly isWebhookEnabled: boolean;
   declare readonly webhookEndpoint: string | undefined;

@@ -81,7 +81,7 @@ test('Motion reviews exact output cost and retains source on a revision conflict
       });
     },
   );
-  await page.goto('/test-org/brand-1/studio/motion');
+  await page.goto('/test-org/brand-1/motion');
   await page
     .getByLabel('Project name', { exact: true })
     .fill('Motion acceptance');

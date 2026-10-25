@@ -144,7 +144,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/posts?view=approvals',
+              route: '/publishing/approvals',
             },
             arguments: 'post-1',
           })
@@ -176,7 +176,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/posts?view=calendar',
+              route: '/publishing/calendar',
             },
             arguments: 'post-1',
           })
@@ -209,9 +209,7 @@ vi.mock('@genfeedai/agent', () => ({
         name,
         requiredScope: 'brand',
         route:
-          name === 'publish'
-            ? '/publishing/posts?view=approvals'
-            : '/publishing/remix',
+          name === 'publish' ? '/publishing/approvals' : '/publishing/remix',
       };
     }
     if (name === 'workflow') {
@@ -739,7 +737,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('returns focus to the asset after closing its sidebar', () => {
-    navigation.pathname = '/acme/moonrise/studio/playground';
+    navigation.pathname = '/acme/moonrise/playground';
     render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -900,7 +898,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
-    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.pathname = '/acme/moonrise/storyboard';
     navigation.searchParams = new URLSearchParams();
     agentState.threads[0].brandId = 'brand-previous';
 
@@ -964,7 +962,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('keeps a conversation created from Studio out of the canonical URL', () => {
-    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.pathname = '/acme/moonrise/storyboard';
     navigation.searchParams = new URLSearchParams();
     agentState.activeThreadId = null;
 
@@ -1138,7 +1136,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('restores a registered overlay above the canvas from a direct URL load', () => {
-    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.pathname = '/acme/moonrise/storyboard';
     navigation.searchParams = new URLSearchParams({
       overlay: 'workflow-picker',
     });
@@ -1178,9 +1176,7 @@ describe('UniversalWorkspaceShell', () => {
     // Loaded straight from a URL, not pushed by this session: dismissal
     // replaces the overlay params rather than assuming an owned history entry.
     expect(router.back).not.toHaveBeenCalled();
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/studio/storyboard',
-    );
+    expect(router.replace).toHaveBeenCalledWith('/acme/moonrise/storyboard');
   });
 
   it('dispatches publish only as a trusted brand-scoped review route', () => {
@@ -1198,7 +1194,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/publishing/posts?view=approvals',
+      '/acme/moonrise/publishing/approvals',
     );
   });
 
@@ -1315,7 +1311,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/studio/playground?sourceArtifact=ingredient%3Aingredient-1',
+      '/acme/moonrise/playground?sourceArtifact=ingredient%3Aingredient-1',
     );
   });
 
@@ -1353,7 +1349,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/publishing/posts?view=approvals'),
+      expect.stringContaining('/publishing/approvals'),
     );
   });
 

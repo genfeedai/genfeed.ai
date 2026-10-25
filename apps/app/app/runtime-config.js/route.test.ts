@@ -17,6 +17,8 @@ describe('self-hosted runtime config', () => {
     async (flag) => {
       vi.stubEnv('BETTER_AUTH_ENABLED', flag);
       vi.stubEnv('RESEND_API_KEY', 're_test_key');
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', 'google-client-id');
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', 'google-client-secret');
       vi.stubEnv(
         'NEXT_PUBLIC_BETTER_AUTH_ENABLED',
         flag === 'true' ? 'false' : 'true',
@@ -46,6 +48,7 @@ describe('self-hosted runtime config', () => {
         apiEndpoint: '/v1',
         clientSurface: 'desktop',
         betterAuthEnabled: flag === 'true',
+        isGoogleSignInAvailable: true,
         isMagicLinkAvailable: true,
       });
     },
@@ -62,6 +65,23 @@ describe('self-hosted runtime config', () => {
       const source = await (await GET()).text();
 
       expect(source).toContain(`"isMagicLinkAvailable":${expected}`);
+    },
+  );
+
+  it.each([
+    { expected: false, id: '', secret: '' },
+    { expected: false, id: 'google-client-id', secret: '' },
+    { expected: false, id: '', secret: 'google-client-secret' },
+    { expected: true, id: 'google-client-id', secret: 'google-client-secret' },
+  ])(
+    'reports Google sign-in available=$expected for client id=$id secret=$secret on self-hosted',
+    async ({ expected, id, secret }) => {
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', id);
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', secret);
+
+      const source = await (await GET()).text();
+
+      expect(source).toContain(`"isGoogleSignInAvailable":${expected}`);
     },
   );
 

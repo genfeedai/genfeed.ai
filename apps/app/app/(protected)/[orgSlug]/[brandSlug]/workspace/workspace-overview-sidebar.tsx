@@ -1,3 +1,4 @@
+import { getStudioAppForPath } from '@app-config/studio-menu-items.config';
 import {
   ButtonSize,
   ButtonVariant,
@@ -53,7 +54,7 @@ export function WorkspaceOverviewSidebar({
   const { flags } = useFeatureFlagContext();
   const availableAdvancedTools = advancedTools.filter(
     (tool) =>
-      !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT) ||
+      !getStudioAppForPath(tool.href) ||
       (isStudioEnabled && isAppRailPathEnabled(tool.href, flags)),
   );
   const taskStreamContent =
@@ -143,7 +144,7 @@ export function WorkspaceOverviewSidebar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
             >
-              <Link href={href(APP_ROUTES.PUBLISHING.REVIEW)}>
+              <Link href={href(APP_ROUTES.PUBLISHING.APPROVALS)}>
                 {translate('openReview')}
               </Link>
             </Button>

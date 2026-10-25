@@ -59,4 +59,6 @@ export interface ISetting extends IBaseEntity {
   isSidebarProgressVisible?: boolean;
   /** Saved default agent mode (#4672) applied to new agent threads. */
   agentMode?: AgentThreadMode;
+  /** Member half of "Require approval for MCP requests"; on by default. */
+  isMcpApprovalRequired?: boolean;
 }

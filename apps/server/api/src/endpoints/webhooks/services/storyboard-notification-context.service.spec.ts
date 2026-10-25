@@ -32,7 +32,7 @@ describe('StoryboardNotificationContextService', () => {
     await expect(
       service.find({ organizationId: 'org-1', sourceActionId: stillKey }),
     ).resolves.toEqual({
-      layoutPath: `/org/acme/studio/storyboard/${runId}`,
+      layoutPath: `/org/acme/storyboard/${runId}`,
       runId,
       title: 'Steam shots',
     });

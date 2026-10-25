@@ -62,9 +62,9 @@ export const APP_ROUTES = {
     );
     assert.equal(
       canonicalize(
-        `/studio/storyboard${readAppRouteSuffix(srcTemplate, idx, token.length)}`,
+        `/storyboard${readAppRouteSuffix(srcTemplate, idx, token.length)}`,
       ),
-      '/studio/storyboard/*',
+      '/storyboard/*',
     );
   });
 });
