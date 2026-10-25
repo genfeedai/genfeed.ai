@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
@@ -49,61 +48,37 @@ describe('app next.config', () => {
   });
 
   it.each([
-    [
-      '/admin/automation/models/image?organization=o1',
-      '/admin/automation/models',
-      'type',
-      'image',
-    ],
-    [
-      '/admin/content/ingredients/images?search=hero',
-      '/admin/content/ingredients',
-      'assetType',
-      'images',
-    ],
-    [
-      '/admin/configuration/tags/account?search=hero',
-      '/admin/configuration/tags',
-      'filter',
-      'account',
-    ],
+    '/admin/automation/models/image?organization=o1',
+    '/admin/content/ingredients/images?search=hero',
+    '/admin/configuration/tags/account?search=hero',
   ])(
-    'preserves context when redirecting %s',
-    async (source, pathname, key, value) => {
-      const response = await unstable_getResponseFromNextConfig({
-        url: `https://example.com${source}`,
-        nextConfig: { redirects: config.redirects },
-      });
-      expect(response.status).toBe(308);
-      const target = new URL(response.headers.get('location') ?? '');
-      expect(target.pathname).toBe(pathname);
-      expect(target.searchParams.get(key)).toBe(value);
-      new URL(`https://example.com${source}`).searchParams.forEach(
-        (entry, name) => {
-          expect(target.searchParams.get(name)).toBe(entry);
-        },
-      );
-    },
-  );
-
-  it.each([
-    '/acme/~/agent/onboarding',
-    '/acme/~/agent/onboarding/thread-1',
-    '/acme/brand/agent/onboarding',
-    '/acme/brand/agent/onboarding/thread-1',
-  ])(
-    'sends the retired agent onboarding route %s to /onboarding',
+    'does not redirect the retired admin route with query %s',
     async (source) => {
       const response = await unstable_getResponseFromNextConfig({
         url: `https://example.com${source}`,
         nextConfig: { redirects: config.redirects },
       });
-      expect(response.status).toBe(307);
-      expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
-        '/onboarding',
-      );
+      expect(response.status).not.toBe(307);
+      expect(response.status).not.toBe(308);
     },
   );
+
+  it.each([
+    '/acme/~/agent/onboarding',
+    '/acme/brand/agent/onboarding/thread-1',
+    '/acme/brand/analytics/trends',
+    '/acme/brand/analytics/trend-turnover',
+    '/admin/automation/models/image',
+    '/admin/content/ingredients/images',
+    '/admin/configuration/tags/account',
+  ])('does not redirect the retired route %s (hard cut)', async (source) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.com${source}`,
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).not.toBe(307);
+    expect(response.status).not.toBe(308);
+  });
 
   it('keeps the API proxy open for bounded campaign generation', () => {
     expect(config.experimental?.proxyTimeout).toBe(300_000);
@@ -219,20 +194,6 @@ describe('app next.config', () => {
     expect(sources).toContain(
       '/:orgSlug((?!v1(?:/|$))[^/]+)/:brandSlug/library',
     );
-  });
-
-  it('redirects retired Analytics trends routes to Discovery', async () => {
-    const redirects = await config.redirects?.();
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/discovery/trends/:path*',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/analytics/trends/:path*',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/discovery/trend-turnover',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/analytics/trend-turnover',
-    });
   });
 
   it('hard-cuts the retired review routes (#5502): no redirects', async () => {
@@ -477,7 +438,7 @@ describe('app next.config', () => {
   });
 
   it('keeps no legacy redirect surface for the retired studio tabs', async () => {
-    // The one-off tabs came back as `/studio/playground`, so the 28 legacy
+    // The one-off tabs came back as `/playground`, so the 28 legacy
     // `/studio/<type>` rules were hard-cut rather than repointed — there is no
     // redirect table to maintain for them.
     const redirects = (await config.redirects?.()) ?? [];
@@ -490,15 +451,30 @@ describe('app next.config', () => {
     expect(legacyStudioSources).toEqual([]);
   });
 
-  it('does not define a broad studio wildcard redirect', async () => {
-    const redirects = await config.redirects?.();
-    const studioWildcards = redirects?.filter(
-      (redirect) =>
-        redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO) &&
-        redirect.source.includes(':path*'),
-    );
+  it('keeps no redirect from the old /studio/<app> paths (hard cut)', async () => {
+    const redirects = (await config.redirects?.()) ?? [];
 
-    expect(studioWildcards).toEqual([]);
+    expect(
+      redirects.filter((redirect) => redirect.source.includes('/studio')),
+    ).toEqual([]);
+  });
+
+  it.each([
+    '/studio/turbo',
+    '/studio/turbo/new',
+    '/acme/brand/studio/turbo/abc123',
+    '/acme/brand/studio/storyboard',
+    '/acme/brand/studio/playground',
+    '/acme/~/studio/editor/project-1',
+    '/studio',
+    '/v1/tags/studio/turbo',
+  ])('does not redirect the retired path %s', async (source) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.com${source}`,
+      nextConfig: { redirects: config.redirects },
+    });
+
+    expect(response.status).not.toBe(308);
   });
 
   it('sends X-Robots-Tag: noindex, nofollow on every studio route', async () => {

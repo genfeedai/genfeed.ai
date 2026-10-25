@@ -1,5 +1,5 @@
+import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/editor-detail-surface';
 import PublishingContentEditorPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage';
-import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/editor-detail-surface';
 import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
 import {
   getBrandEntityId,
@@ -35,6 +35,8 @@ import type { PostsListSearchParams } from '@props/publishing/publishing-list-pa
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
+import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-notice';
@@ -46,12 +48,9 @@ import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
-import { resolveLegacyPublishingViewPath } from '../../../[brandSlug]/publishing/posts/legacy-view-redirect';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
-import EditorProjectsPage from '../../../[brandSlug]/studio/editor/editor-projects-page';
-import EditorNewPage from '../../../[brandSlug]/studio/editor/new/page';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
 
 const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
@@ -62,7 +61,7 @@ const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
   videos: APP_ROUTES.LIBRARY.VIDEOS,
 };
 
-/** Org entries of the brand-scoped Studio apps, by route segment. */
+/** Org entries of the brand-scoped former Studio apps, by route segment. */
 const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
   clips: APP_ROUTES.STUDIO.CLIPS,
   motion: APP_ROUTES.STUDIO.MOTION,
@@ -112,10 +111,11 @@ function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
   );
 }
 
-// A bare `/:org/~/studio` hit (the app rail's brandless destination,
-// #4671) still has a persisted last-used brand server-side even though the
-// client brand context clears its own brandId on org-scoped routes. Resolve
-// it here so Studio itself is reachable instead of always bouncing to Agent.
+// A bare `/:org/~/<app>` hit for a former Studio app (the app rail's brandless
+// destination, #4671) still has a persisted last-used brand server-side even
+// though the client brand context clears its own brandId on org-scoped routes.
+// Resolve it here so the app itself is reachable instead of always bouncing to
+// Agent.
 // Validated against the operator's own brand list and this route's own org —
 // a stale or deleted selection (or one from another organization) falls
 // through to the existing Agent redirect below, unchanged.
@@ -141,7 +141,7 @@ async function renderStudioEditorSurface(section?: string) {
     return <EditorNewPage />;
   }
 
-  // Reserved index segment: /~/studio/editor/projects mirrors the Editor root
+  // Reserved index segment: /~/editor/projects mirrors the Editor root
   // (projects). Without this guard it would fall into the detail branch below
   // and request an editor project with id 'projects'.
   if (section === 'projects') {
@@ -304,23 +304,22 @@ export default async function OrgRootAppPage({
     return <OrgLibraryBrowserPage segments={segments} />;
   }
 
-  if (orgRootApp === 'studio') {
-    const [toolSegment, detail] = segments ?? [];
+  // The Editor app's timeline surface. It mirrors the brand-scoped static
+  // `editor` segment.
+  if (orgRootApp === 'editor') {
+    const [section] = segments ?? [];
+    const editorSurface = await renderStudioEditorSurface(section);
 
-    // `editor` is the Editor app's timeline surface. It mirrors the
-    // brand-scoped static `studio/editor` segment.
-    if (toolSegment === 'editor') {
-      const editorSurface = await renderStudioEditorSurface(detail);
+    return <ErrorBoundary>{editorSurface}</ErrorBoundary>;
+  }
 
-      return <ErrorBoundary>{editorSurface}</ErrorBoundary>;
-    }
-
-    // Each Studio tool is its own app with brand-scoped production tooling
-    // (#5502). There is no Studio parent: a bare `/studio` is not a route.
-    const toolRoute = toolSegment
-      ? ORG_STUDIO_APP_ROUTES[toolSegment]
-      : undefined;
-    if (!toolRoute || detail) {
+  // Each former Studio app has brand-scoped production tooling (#5502). There
+  // is no Studio parent: a bare `/studio` is not a route.
+  const studioAppRoute = Object.hasOwn(ORG_STUDIO_APP_ROUTES, orgRootApp)
+    ? ORG_STUDIO_APP_ROUTES[orgRootApp]
+    : undefined;
+  if (studioAppRoute) {
+    if (segments?.length) {
       notFound();
     }
 
@@ -328,7 +327,7 @@ export default async function OrgRootAppPage({
     // Without one, one-off generation lives in Agent.
     const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);
     if (lastUsedBrandSlug) {
-      redirect(createBrandAppRoute(orgSlug, lastUsedBrandSlug, toolRoute));
+      redirect(createBrandAppRoute(orgSlug, lastUsedBrandSlug, studioAppRoute));
     }
 
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
@@ -375,14 +374,6 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'posts') {
-      const legacyViewPath = resolveLegacyPublishingViewPath(
-        (await searchParams) ?? {},
-      );
-
-      if (legacyViewPath) {
-        permanentRedirect(createOrganizationAppRoute(orgSlug, legacyViewPath));
-      }
-
       const postsListPage = await renderPostsListPage({
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,

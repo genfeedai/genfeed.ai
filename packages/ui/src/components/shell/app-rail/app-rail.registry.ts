@@ -382,7 +382,7 @@ function normalizePath(path?: string): string | undefined {
 
 /**
  * Strip tenant scope so matching is product-root based, like sidebar menus:
- * `/acme/default/studio/storyboard` → `/studio/storyboard`
+ * `/acme/default/storyboard` → `/storyboard`
  * `/acme/~/settings/brands` → `/settings/brands`
  * `/admin/users` → `/admin/users`
  */

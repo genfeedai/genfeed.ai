@@ -33,7 +33,7 @@ test('organization Plugins browser keeps scope, filters and previews usable on d
   ).toBeVisible();
   await expect(
     detail.getByRole('link', { name: 'Open Storyboard' }),
-  ).toHaveAttribute('href', /\/studio\/storyboard$/);
+  ).toHaveAttribute('href', /\/storyboard$/);
   await expect
     .poll(() =>
       detail

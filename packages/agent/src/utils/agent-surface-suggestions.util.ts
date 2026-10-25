@@ -1,4 +1,7 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  STUDIO_APP_ROUTE_PREFIXES,
+} from '@genfeedai/contracts/constants';
 import type {
   BrandPromptIntent,
   IBrandAgentConfig,
@@ -52,7 +55,9 @@ export function resolveAgentPromptSurface(
   if (pathname.startsWith('/discovery')) return 'discovery';
   if (pathname.startsWith('/publishing')) return 'review';
   if (
-    pathname.startsWith('/studio') ||
+    STUDIO_APP_ROUTE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    ) ||
     pathname.startsWith('/edit') ||
     pathname.startsWith('/articles')
   ) {

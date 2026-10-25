@@ -5,7 +5,7 @@ import {
   type IngredientOrigin,
   LIBRARY_OUTPUT_ORIGINS,
   LibraryPlace,
-  LibraryShelf,
+  type LibraryShelf,
   PageScope,
   parseIngredientCategory,
   parseIngredientOrigin,
@@ -13,7 +13,7 @@ import {
   TagMatchMode,
 } from '@genfeedai/contracts';
 import {
-  createLibraryShelfRoute,
+  APP_ROUTES,
   LIBRARY_MAX_CHARACTER_FILTERS,
   LIBRARY_MAX_TAG_FILTERS,
   LIBRARY_QUERY_KEYS,
@@ -27,6 +27,7 @@ import type {
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   LibraryBrowserPlace,
   LibraryBrowserProps,
@@ -103,10 +104,11 @@ export function useLibraryBrowser({
   place: defaultPlace,
   shelf: defaultShelf,
   seededCategories,
+  seededOrigins,
   scope = PageScope.BRAND,
 }: Pick<
   LibraryBrowserProps,
-  'place' | 'shelf' | 'seededCategories' | 'scope'
+  'place' | 'shelf' | 'seededCategories' | 'seededOrigins' | 'scope'
 >) {
   const pathname = usePathname();
   const router = useRouter();
@@ -115,6 +117,7 @@ export function useLibraryBrowser({
   const shelf = defaultShelf;
   const { brandId, organizationId } = useCollectionScope();
   const { openUpload } = useUploadModal();
+  const { href } = useOrgUrl();
 
   const urlCategories = useMemo(
     () =>
@@ -187,12 +190,13 @@ export function useLibraryBrowser({
     searchParams?.get(LIBRARY_QUERY_KEYS.VIEW) ?? null,
   );
 
-  // All assets is output. References (uploads, imports) have their own shelf,
-  // so the unfiltered view leaves them out — an origin the operator picks, a
-  // shelf, or a folder they filed into always wins.
+  // All assets is generated output. Uploads and imports have their own page
+  // (`seededOrigins`), so the unfiltered view leaves them out — an origin the
+  // operator picks, a shelf, or a folder they filed into always wins.
   const isAllAssets =
     !shelf &&
     !folderId &&
+    !seededOrigins &&
     (place === undefined || place === LibraryPlace.ASSETS);
 
   const defaultSort =
@@ -445,14 +449,14 @@ export function useLibraryBrowser({
     const category =
       categories.length === 1 ? categories[0] : IngredientCategory.INGREDIENT;
 
-    // All assets leaves references out, so a fresh upload would vanish from
-    // view; follow it to the References shelf instead.
+    // All assets leaves uploads out, so a fresh upload would vanish from
+    // view; follow it to the Imported page instead.
     const showUploads = () => {
       const params = new URLSearchParams(searchParams?.toString() ?? '');
-      params.delete('page');
+      for (const key of ['page', 'place', 'shelf']) params.delete(key);
       const query = params.toString();
       router.push(
-        `${libraryScopePrefix(pathname)}${createLibraryShelfRoute(LibraryShelf.REFERENCES)}${query ? `?${query}` : ''}`,
+        `${href(APP_ROUTES.LIBRARY.IMPORTED)}${query ? `?${query}` : ''}`,
         { scroll: false },
       );
     };
@@ -468,9 +472,9 @@ export function useLibraryBrowser({
     categories,
     handleRefresh,
     isAllAssets,
+    href,
     openUpload,
     organizationId,
-    pathname,
     router,
     scope,
     searchParams,
@@ -511,6 +515,8 @@ export function useLibraryBrowser({
 
     if (origins.length > 0) {
       next.origins = origins;
+    } else if (seededOrigins) {
+      next.origins = [...seededOrigins];
     } else if (isAllAssets) {
       next.origins = [...LIBRARY_OUTPUT_ORIGINS];
     }
@@ -552,6 +558,7 @@ export function useLibraryBrowser({
     origins,
     place,
     search,
+    seededOrigins,
     shelf,
     sort,
     tagMatch,

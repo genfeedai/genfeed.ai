@@ -138,9 +138,10 @@ export const APP_ROUTES = {
     CAMPAIGNS_NEW: '/automation/campaigns/new',
     /**
      * Pipeline canvas library (merged former /workflows surface). Templates is
-     * a view of this page: `WORKFLOWS?view=templates`.
+     * its own path beside the library.
      */
     WORKFLOWS: '/automation/workflows',
+    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
     WORKFLOWS_NEW: '/automation/workflows/new',
   },
   DISCOVERY: {
@@ -159,8 +160,8 @@ export const APP_ROUTES = {
   /**
    * Legacy long-form editor aliases retained for existing deep links. New
    * operator navigation uses the type-aware `/publishing/posts/{id}` route built
-   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR, which is the
-   * Remotion project canvas.
+   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR (`/editor`), which
+   * is the Remotion project canvas.
    */
   EDIT: {
     ARTICLE: '/edit/article',
@@ -185,6 +186,11 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
+    /**
+     * Uploaded and imported assets, apart from generated output. The browser
+     * seeds the origin axis (`UPLOADED`, `IMPORTED`) like a type preset does.
+     */
+    IMPORTED: '/library/imported',
     MUSIC: '/library/music',
     /** #5502 Library home: what needs attention, linking into Assets filters. */
     OVERVIEW: '/library/overview',
@@ -350,31 +356,32 @@ export const APP_ROUTES = {
     USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
-  /**
-   * Studio is a production surface only. One-off "make me an image/video"
-   * generation lives in the Agent (`AGENT.NEW`) — the standalone
-   * image/video/avatar/music tabs were retired.
-   */
   /** #5502 native app catalog; installation is per organization membership. */
   PLUGINS: {
     ROOT: '/plugins',
   },
+  /**
+   * The former Studio apps. Each is its own top-level product root
+   * (`/turbo`, `/storyboard`, ...) with no Studio parent, so a bare `/studio`
+   * is not a route; the old `/studio/<app>` paths are gone, not redirected.
+   * These are production surfaces only: one-off "make me an image/video" generation
+   * lives in the Agent (`AGENT.NEW`).
+   */
   STUDIO: {
-    MOTION: '/studio/motion',
-    TURBO: '/studio/turbo',
-    TURBO_NEW: '/studio/turbo/new',
-    CLIPS: '/studio/clips',
-    CLIPS_NEW: '/studio/clips/new',
-    EDITOR: '/studio/editor',
-    EDITOR_NEW: '/studio/editor/new',
+    CLIPS: '/clips',
+    CLIPS_NEW: '/clips/new',
+    EDITOR: '/editor',
+    EDITOR_NEW: '/editor/new',
+    MOTION: '/motion',
     /**
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.
      */
-    PLAYGROUND: '/studio/playground',
-    ROOT: '/studio',
-    STORYBOARD: '/studio/storyboard',
-    STORYBOARD_NEW: '/studio/storyboard/new',
+    PLAYGROUND: '/playground',
+    STORYBOARD: '/storyboard',
+    STORYBOARD_NEW: '/storyboard/new',
+    TURBO: '/turbo',
+    TURBO_NEW: '/turbo/new',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
@@ -407,9 +414,24 @@ export const APP_ROUTE_PREFIXES = {
   PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
   PUBLISHING: APP_ROUTES.PUBLISHING.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
-  STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
+  PLAYGROUND: APP_ROUTES.STUDIO.PLAYGROUND,
+  STORYBOARD: APP_ROUTES.STUDIO.STORYBOARD,
+  TURBO: APP_ROUTES.STUDIO.TURBO,
+  MOTION: APP_ROUTES.STUDIO.MOTION,
+  CLIPS: APP_ROUTES.STUDIO.CLIPS,
+  EDITOR: APP_ROUTES.STUDIO.EDITOR,
 } as const;
+
+/** Product roots of the former Studio apps, in app-rail order. */
+export const STUDIO_APP_ROUTE_PREFIXES = [
+  APP_ROUTE_PREFIXES.PLAYGROUND,
+  APP_ROUTE_PREFIXES.STORYBOARD,
+  APP_ROUTE_PREFIXES.TURBO,
+  APP_ROUTE_PREFIXES.MOTION,
+  APP_ROUTE_PREFIXES.CLIPS,
+  APP_ROUTE_PREFIXES.EDITOR,
+] as const;
 
 export const APP_ROUTE_TEMPLATES = {
   BRAND: '/:orgSlug/:brandSlug',
@@ -488,7 +510,7 @@ export function createBrandAppRoute(
  * Parent layouts sit above `[orgSlug]/[brandSlug]`, so `useParams()` there
  * cannot see the current brand. Parse the URL instead.
  */
-const RESERVED_APP_ROOT_SEGMENTS = new Set(
+export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
   [
     ...Object.values(APP_ROUTE_PREFIXES).map(
       (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
@@ -514,6 +536,15 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'v1',
   ].filter(Boolean),
 );
+
+/**
+ * Whether `slug` collides with a top-level app segment. Organization slugs and
+ * brand handles share the first URL segment with these roots, so neither may
+ * take one.
+ */
+export function isReservedAppRootSegment(slug: string): boolean {
+  return RESERVED_APP_ROOT_SEGMENTS.has(slug.trim().toLowerCase());
+}
 
 export function parseScopedAppPath(pathname: string): {
   brandSlug: string;

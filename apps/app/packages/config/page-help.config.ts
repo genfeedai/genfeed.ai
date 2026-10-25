@@ -65,13 +65,10 @@ export function stripScopePrefix(pathname: string): string {
 
 export function resolvePageHelpKey(
   pathname: string,
-  search = '',
+  _search = '',
 ): string | null {
   const path = stripScopePrefix(pathname);
-  if (
-    path === APP_ROUTES.AUTOMATION.WORKFLOWS &&
-    new URLSearchParams(search).get('view') === 'templates'
-  )
+  if (path === APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)
     return 'automationTemplates';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {

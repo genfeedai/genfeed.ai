@@ -180,42 +180,39 @@ vi.mock('../../../[brandSlug]/messages/reply-drip/page', () => ({
   default: () => <div data-testid="reply-drip-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/studio/editor/[id]/page', () => ({
+vi.mock('../../../[brandSlug]/editor/[id]/page', () => ({
   default: () => {
     throw new Error('route entry must not be invoked by another route');
   },
 }));
 
-vi.mock(
-  '../../../[brandSlug]/studio/editor/[id]/editor-page-content',
-  async () => {
-    const { useBrand } = await import(
-      '@contexts/user/brand-context/brand-context'
-    );
-    const { useParams } = await import('next/navigation');
-    return {
-      default: ({ projectId }: { projectId: string }) => {
-        const { brandId } = useBrand();
-        const params = useParams();
-        return (
-          <div
-            data-id={projectId}
-            data-brand-id={brandId}
-            data-org={params.orgSlug}
-            data-brand={params.brandSlug}
-            data-testid="editor-detail-page"
-          />
-        );
-      },
-    };
-  },
-);
+vi.mock('../../../[brandSlug]/editor/[id]/editor-page-content', async () => {
+  const { useBrand } = await import(
+    '@contexts/user/brand-context/brand-context'
+  );
+  const { useParams } = await import('next/navigation');
+  return {
+    default: ({ projectId }: { projectId: string }) => {
+      const { brandId } = useBrand();
+      const params = useParams();
+      return (
+        <div
+          data-id={projectId}
+          data-brand-id={brandId}
+          data-org={params.orgSlug}
+          data-brand={params.brandSlug}
+          data-testid="editor-detail-page"
+        />
+      );
+    },
+  };
+});
 
-vi.mock('../../../[brandSlug]/studio/editor/new/page', () => ({
+vi.mock('../../../[brandSlug]/editor/new/page', () => ({
   default: () => <div data-testid="editor-new-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/studio/editor/editor-projects-page', () => ({
+vi.mock('../../../[brandSlug]/editor/editor-projects-page', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
@@ -524,7 +521,7 @@ describe('OrgRootAppPage', () => {
   });
 
   it.each([[undefined], [['music']], [['playground', 'extra']]])(
-    'serves no Studio parent or unknown Studio segment %j (#5502)',
+    'serves no Studio parent, whatever its segments %j (#5502)',
     async (segments) => {
       await expect(
         OrgRootAppPage({
@@ -540,12 +537,29 @@ describe('OrgRootAppPage', () => {
     },
   );
 
+  it.each([['playground'], ['storyboard'], ['turbo'], ['motion'], ['clips']])(
+    'serves no child routes under the org %s entry',
+    async (orgRootApp) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp,
+            orgSlug: 'acme',
+            segments: ['extra'],
+          }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(redirectMock).not.toHaveBeenCalled();
+      expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
-    ['playground', '/acme/moonrise/studio/playground'],
-    ['storyboard', '/acme/moonrise/studio/storyboard'],
-    ['turbo', '/acme/moonrise/studio/turbo'],
-    ['motion', '/acme/moonrise/studio/motion'],
-    ['clips', '/acme/moonrise/studio/clips'],
+    ['playground', '/acme/moonrise/playground'],
+    ['storyboard', '/acme/moonrise/storyboard'],
+    ['turbo', '/acme/moonrise/turbo'],
+    ['motion', '/acme/moonrise/motion'],
+    ['clips', '/acme/moonrise/clips'],
   ])(
     'opens the %s app in the persisted last-used brand (#4671)',
     async (segment, destination) => {
@@ -563,9 +577,8 @@ describe('OrgRootAppPage', () => {
       await expect(
         OrgRootAppPage({
           params: Promise.resolve({
-            orgRootApp: 'studio',
+            orgRootApp: segment,
             orgSlug: 'acme',
-            segments: [segment],
           }),
         }),
       ).rejects.toThrow(`NEXT_REDIRECT:${destination}`);
@@ -582,9 +595,8 @@ describe('OrgRootAppPage', () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'studio',
+          orgRootApp: 'playground',
           orgSlug: 'acme',
-          segments: ['playground'],
         }),
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
@@ -606,9 +618,8 @@ describe('OrgRootAppPage', () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'studio',
+          orgRootApp: 'playground',
           orgSlug: 'acme',
-          segments: ['playground'],
         }),
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
@@ -630,9 +641,8 @@ describe('OrgRootAppPage', () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'studio',
+          orgRootApp: 'playground',
           orgSlug: 'acme',
-          segments: ['playground'],
         }),
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
@@ -753,26 +763,20 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['approvals', '/acme/~/publishing/approvals/run-1/item-1?filter=all'],
-    ['calendar', '/acme/~/publishing/calendar'],
-  ])(
-    'permanently redirects the legacy posts ?view=%s tab',
-    async (view, destination) => {
-      await expect(
-        OrgRootAppPage({
-          params: Promise.resolve({
-            orgRootApp: 'publishing',
-            orgSlug: 'acme',
-            segments: ['posts'],
-          }),
-          searchParams: Promise.resolve(
-            view === 'approvals'
-              ? { filter: 'all', item: 'item-1', run: 'run-1', view }
-              : { view },
-          ),
+  it.each(['approvals', 'calendar'])(
+    'serves the posts list for a retired ?view=%s tab without redirecting',
+    async (view) => {
+      await OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+          segments: ['posts'],
         }),
-      ).rejects.toThrow(`NEXT_PERMANENT_REDIRECT:${destination}`);
+        searchParams: Promise.resolve({ view }),
+      });
+
+      expect(permanentRedirectMock).not.toHaveBeenCalled();
+      expect(redirectMock).not.toHaveBeenCalled();
     },
   );
 
@@ -971,9 +975,8 @@ describe('OrgRootAppPage', () => {
   it('renders the studio Editor projects surface', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'studio',
+        orgRootApp: 'editor',
         orgSlug: 'acme',
-        segments: ['editor'],
       }),
     });
 
@@ -985,9 +988,9 @@ describe('OrgRootAppPage', () => {
   it('renders the studio Editor projects surface for the reserved projects segment', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'studio',
+        orgRootApp: 'editor',
         orgSlug: 'acme',
-        segments: ['editor', 'projects'],
+        segments: ['projects'],
       }),
     });
 
@@ -1012,9 +1015,9 @@ describe('OrgRootAppPage', () => {
   it('renders the studio Editor new and detail surfaces', async () => {
     const newElement = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'studio',
+        orgRootApp: 'editor',
         orgSlug: 'acme',
-        segments: ['editor', 'new'],
+        segments: ['new'],
       }),
     });
     const { unmount } = render(newElement);
@@ -1025,9 +1028,9 @@ describe('OrgRootAppPage', () => {
 
     const detailElement = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'studio',
+        orgRootApp: 'editor',
         orgSlug: 'acme',
-        segments: ['editor', 'project-1'],
+        segments: ['project-1'],
       }),
     });
     render(detailElement);
@@ -1036,19 +1039,6 @@ describe('OrgRootAppPage', () => {
       'data-id',
       'project-1',
     );
-  });
-
-  it('returns not found for the retired org editor root', async () => {
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'editor',
-          orgSlug: 'acme',
-        }),
-      }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
-
-    expect(notFoundMock).toHaveBeenCalled();
   });
 
   it('returns not found for unknown org-root routes', async () => {
@@ -1064,7 +1054,7 @@ describe('OrgRootAppPage', () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
   it.each([
-    ['studio', 'editor', 'project-org-2', 'editor-detail-page', 'data-id'],
+    ['editor', undefined, 'project-org-2', 'editor-detail-page', 'data-id'],
     [
       'publishing',
       'posts',
@@ -1086,7 +1076,11 @@ describe('OrgRootAppPage', () => {
       );
       await Promise.resolve();
       expect(settled).not.toHaveBeenCalled();
-      params.resolve({ orgRootApp, orgSlug: 'org-A', segments: [section, id] });
+      params.resolve({
+        orgRootApp,
+        orgSlug: 'org-A',
+        segments: section ? [section, id] : [id],
+      });
       render(await pending);
       const detail = await screen.findByTestId(testId);
       expect(detail).toHaveAttribute(attribute, id);
@@ -1109,9 +1103,9 @@ describe('OrgRootAppPage', () => {
     render(
       await OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'studio',
+          orgRootApp: 'editor',
           orgSlug: 'org-A',
-          segments: ['editor', 'project-trailing', 'extra'],
+          segments: ['project-trailing', 'extra'],
         }),
       }),
     );

@@ -982,7 +982,7 @@ export const testRoutes = {
     articles: '/publishing/posts?type=article',
     posts: '/publishing/calendar',
   },
-  editor: '/studio/editor',
+  editor: '/editor',
   generation: {
     avatar: '/g/avatar',
     image: '/g/image',
@@ -1005,7 +1005,7 @@ export const testRoutes = {
     }),
   },
   settings: '/settings',
-  studio: '/studio',
+  studio: APP_ROUTES.STUDIO.PLAYGROUND,
   workflow: {
     editor: '/automation/workflows/new',
     executions: '/automation/runs',

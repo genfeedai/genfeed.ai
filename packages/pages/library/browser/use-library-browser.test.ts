@@ -30,6 +30,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
+}));
+
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   useUploadModal: () => ({ openUpload: mockOpenUpload }),
 }));
@@ -683,7 +687,7 @@ describe('useLibraryBrowser', () => {
     );
   });
 
-  it('follows an upload from All assets to the References shelf', () => {
+  it('follows an upload from All assets to the Imported page', () => {
     state.search = '?categories=IMAGE&view=list&page=2';
     const { result } = renderHook(() =>
       useLibraryBrowser({ place: LibraryPlace.ASSETS }),
@@ -697,9 +701,43 @@ describe('useLibraryBrowser', () => {
     });
 
     expect(mockPush).toHaveBeenCalledWith(
-      '/library/shelf/references?categories=IMAGE&view=list',
+      '/acme/brand-x/library/imported?categories=IMAGE&view=list',
       { scroll: false },
     );
+  });
+
+  it('lists only the seeded origins on the Imported page and refreshes in place after an upload', () => {
+    const seededOrigins = [
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.IMPORTED,
+    ];
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS, seededOrigins }),
+    );
+
+    expect(result.current.contextValue.query.origins).toEqual(seededOrigins);
+
+    act(() => {
+      result.current.handleUpload();
+    });
+    act(() => {
+      mockOpenUpload.mock.lastCall?.[0].onComplete();
+    });
+
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('lets an origin the operator picks narrow the seeded origins', () => {
+    state.search = '?origins=UPLOADED';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({
+        seededOrigins: [IngredientOrigin.UPLOADED, IngredientOrigin.IMPORTED],
+      }),
+    );
+
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.UPLOADED,
+    ]);
   });
 
   it('refreshes in place after an upload from a view that shows references', () => {

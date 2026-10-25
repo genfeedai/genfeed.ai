@@ -207,9 +207,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
           },
         }),
       );
-      await page.goto(
-        new URL('/test-org/brand-1/studio/playground', baseURL).href,
-      );
+      await page.goto(new URL('/test-org/brand-1/playground', baseURL).href);
       await expect(page.getByTestId('topbar-credits-trigger')).toContainText(
         '500',
       );
@@ -270,9 +268,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
         path: testInfo.outputPath(`electron-${failure}-local.png`),
         fullPage: true,
       });
-      await page.goto(
-        new URL('/test-org/brand-1/studio/playground', baseURL).href,
-      );
+      await page.goto(new URL('/test-org/brand-1/playground', baseURL).href);
       await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
       const walletBeforeRecovery = walletRequests;
       await control(electron, 'defer');

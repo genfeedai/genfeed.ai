@@ -224,7 +224,7 @@ describe('DiscordService', () => {
 
   describe('sendIngredientNotification', () => {
     const storyboard = {
-      layoutPath: '/org/brand/studio/storyboard/run-1',
+      layoutPath: '/org/brand/storyboard/run-1',
       runId: 'run-1',
       title: 'Steam shots',
     };
@@ -247,7 +247,7 @@ describe('DiscordService', () => {
       );
 
       expect(mockDiscordBotService.getStoryboardThread).toHaveBeenCalledWith({
-        layoutUrl: 'https://app.genfeed.ai/org/brand/studio/storyboard/run-1',
+        layoutUrl: 'https://app.genfeed.ai/org/brand/storyboard/run-1',
         runId: 'run-1',
         title: 'Steam shots',
       });

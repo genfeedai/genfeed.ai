@@ -47,7 +47,7 @@ describe('handleEditorTool', () => {
     expect(result.content[0]?.text).toContain('[Open in Editor](');
     expect(result.structuredContent.data).toMatchObject({
       id: 'editor-1',
-      editorPath: '/studio/editor/editor-1',
+      editorPath: '/editor/editor-1',
     });
     expect(result.content[0]?.text).not.toContain('ID:');
   });

@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { AtSign, Gauge, LibraryBig } from 'lucide-react';
+import { AtSign, Download, Gauge, LibraryBig } from 'lucide-react';
 
 /**
  * Type routes over the same asset browser.
@@ -23,13 +23,13 @@ export const LIBRARY_ASSET_ROUTES = [
 ] as const;
 
 /**
- * Library destinations (#5502): Overview, Assets and References.
+ * Library destinations (#5502): Overview, Assets, Imported and References.
  *
  * Recent, Starred, generation state and Trash are views picked from the asset
- * browser toolbar (`/library/recent`, `/library/shelf/approved`, …), so every
- * one of them lights up Assets.
- * References are the reusable identities (characters today) that generations
- * reference by name.
+ * browser toolbar (`/library/recent`, `/library/shelf/approved`, ...), so every
+ * one of them lights up Assets, which lists generated output only. Imported
+ * lists what was uploaded or imported. References are the reusable identities
+ * (characters today) that generations reference by name.
  */
 export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -56,6 +56,13 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     ],
     outline: LibraryBig,
     solid: LibraryBig,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.LIBRARY.IMPORTED,
+    label: 'Imported',
+    outline: Download,
+    solid: Download,
   },
   {
     group: '',

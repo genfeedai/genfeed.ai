@@ -198,7 +198,7 @@ for (const kind of ['image', 'video'] as const) {
     );
     release();
     await expect(page).toHaveURL(
-      new RegExp(`/test-org/brand-1/studio/storyboard/saved-${kind}-run$`),
+      new RegExp(`/test-org/brand-1/storyboard/saved-${kind}-run$`),
     );
   });
 }

@@ -18,16 +18,20 @@ shelf moves on its own as the asset renders and gets reviewed; the folder moves
 only when a human moves it. That independence is the whole point — it is what a
 plain Drive clone cannot express.
 
-**Origin is a filter, not a fourth axis and never a navigation destination.**
+**Origin is a filter, not a fourth axis. One exception: Imported (2026-10-25).**
 Every asset has one permanent origin — Uploaded, Generated, Imported, or Unknown
 for legacy rows the backfill could not classify (`Ingredient.origin`, #6010).
 Unlike the shelf it never moves: it is set once at creation and the database
 rejects any change. It sits beside type in the toolbar as a multi-select
 (`?origins=UPLOADED&origins=IMPORTED`) and composes with type, shelf, folder and
-search; it has no sidebar entry, route or preset, and a count of it must never be
-rendered as a place. Its labels are always words (Uploaded / Generated / Imported)
-on grid cards, list rows and the inspector, matching the Imported / Generated /
-Knowledge boundary.
+search. Vincent asked for uploads and imports to get their own page, because
+everything in Assets is generated: `/library/imported` is the browser with the
+origin axis seeded to Uploaded + Imported (`seededOrigins`), and Assets lists
+generated output only. There is no other origin route or preset. **Generated
+carries no badge** (grid card, list row, inspector Origin row, lineage strip) —
+it is the norm; only Uploaded / Imported / Unknown are marked, in words. #7271
+had hidden the badge only on failed and generating tiles; this removes it from
+completed ones too.
 
 **Tags are a filter, not a nav destination (#6011).** Tags carry human judgment —
 campaign, series, episode, mood, client — that no structured axis can express.
@@ -64,7 +68,7 @@ three are needed.
 
 - `/library/assets` is the canonical asset browser; bare `/library` redirects
   to `/library/overview` (#5502).
-- Sidebar links are **Overview, Assets and References** (#5502). Overview
+- Sidebar links are **Overview, Assets, Imported and References** (#5502). Overview
   (`/library/overview`) is the Library home: attention counts from
   `GET /ingredients/summary` and cards that link into Assets filters. It holds
   no assets and no per-type tiles. Recent and Starred are
@@ -84,8 +88,9 @@ three are needed.
   usable inventory grid or list and refreshes shelf counts; a failed write keeps
   it visible. Review buttons and status menus share this behavior.
 - The status filter puts Unsorted first, then Approved and Needs review,
-  followed by Rejected, Failed and Archived, with References last and Trash
-  after References. Generating appears after Unsorted only while renders are
+  followed by Rejected, Failed and Archived, with Trash last. The `references`
+  shelf (labelled Imported) is not in the status filter; it has its own page,
+  and stays in the API and agent `shelf` enum. Generating appears after Unsorted only while renders are
   active, or while that shelf is the current URL.
 - `?view=` carries `grid` · `list` · `canvas`. `grid` is the default and is
   labelled "Contact sheet". The canvas entry is gated by the PostHog flag

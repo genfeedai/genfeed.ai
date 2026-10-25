@@ -20,12 +20,12 @@ export const TURBO_IDEA_FORMATS: readonly TurboIdeaFormat[] = [
 ] as const;
 
 /**
- * Idea-count bounds for an idea project. These mirror the UI stepper limits in
- * `TurboIdeasEditor` (the only consumer of this endpoint) so the server
- * rejects counts the UI can never produce, instead of silently accepting 1–12.
+ * Idea-count bounds for an idea project. The maximum is not a product limit:
+ * credits are quoted before anything is generated. It only stops a single
+ * request from queueing unbounded LLM calls.
  */
 export const TURBO_IDEA_MIN_COUNT = 3;
-export const TURBO_IDEA_MAX_COUNT = 9;
+export const TURBO_IDEA_MAX_COUNT = 200;
 
 export class GenerateTurboIdeasDto {
   @IsArray()

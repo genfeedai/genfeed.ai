@@ -4,7 +4,7 @@ import { createRuntimeAuthConfigSource } from './runtime-config-source';
 describe('createRuntimeAuthConfigSource', () => {
   it.each([true, false])('serializes the auth flag %s', (isEnabled) => {
     expect(createRuntimeAuthConfigSource(isEnabled)).toBe(
-      `globalThis.__GENFEED_RUNTIME_CONFIG__={...globalThis.__GENFEED_RUNTIME_CONFIG__,...{"betterAuthEnabled":${isEnabled},"isMagicLinkAvailable":true}};`,
+      `globalThis.__GENFEED_RUNTIME_CONFIG__={...globalThis.__GENFEED_RUNTIME_CONFIG__,...{"betterAuthEnabled":${isEnabled},"isGoogleSignInAvailable":true,"isMagicLinkAvailable":true}};`,
     );
   });
 
@@ -25,6 +25,7 @@ describe('createRuntimeAuthConfigSource', () => {
       apiEndpoint: '/v1',
       betterAuthEnabled: true,
       clientSurface: 'desktop',
+      isGoogleSignInAvailable: true,
       isMagicLinkAvailable: true,
     });
   });
@@ -38,7 +39,23 @@ describe('createRuntimeAuthConfigSource', () => {
 
     expect(runtimeGlobal.__GENFEED_RUNTIME_CONFIG__).toEqual({
       betterAuthEnabled: true,
+      isGoogleSignInAvailable: true,
       isMagicLinkAvailable: false,
+    });
+  });
+
+  it('serializes that Google sign-in is not configured', () => {
+    const runtimeGlobal = { __GENFEED_RUNTIME_CONFIG__: {} };
+
+    new Function(
+      'globalThis',
+      createRuntimeAuthConfigSource(true, true, false),
+    )(runtimeGlobal);
+
+    expect(runtimeGlobal.__GENFEED_RUNTIME_CONFIG__).toEqual({
+      betterAuthEnabled: true,
+      isGoogleSignInAvailable: false,
+      isMagicLinkAvailable: true,
     });
   });
 });

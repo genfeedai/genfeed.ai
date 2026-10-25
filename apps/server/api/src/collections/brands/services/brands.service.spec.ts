@@ -290,6 +290,22 @@ describe('BrandsService', () => {
       expect(createInput.data.agentConfig).toBeUndefined();
     });
 
+    it.each(['turbo', 'Clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'rejects the reserved app route name "%s" as an explicit handle',
+      async (slug) => {
+        await expect(
+          service.create({
+            ...createBrandDto,
+            organizationId: 'org-1',
+            slug,
+            userId: 'user-1',
+          }),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(delegate.create).not.toHaveBeenCalled();
+      },
+    );
+
     it('retries with a deterministic suffix when two creates race on the same slug', async () => {
       const collision = {
         code: 'P2002',
@@ -2076,6 +2092,47 @@ describe('BrandsService', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
 
+    it('generates a large idea count in several calls that each fit one reply', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: { voice: { tone: 'bold' } },
+        id: brandId,
+        isDeleted: false,
+        label: 'Acme',
+        organizationId,
+      });
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify([
+                { caption: 'cap', format: 'image', hook: 'hook' },
+              ]),
+            },
+          },
+        ],
+      });
+
+      const result = await service.generateTurboIdeas(
+        brandId,
+        { count: 50, formats: ['image'] as TurboIdeaFormat[] },
+        organizationId,
+      );
+
+      // 50 ideas at no more than 9 per reply takes 6 calls.
+      expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(6);
+      const requests = llmDispatcher.chatCompletion.mock.calls as [
+        { messages: { content: string }[] },
+      ][];
+      const sizes = requests.map(([request]) =>
+        Number(
+          /generate (\d+) distinct/.exec(request.messages[0].content)?.[1],
+        ),
+      );
+      expect(sizes.reduce((total, size) => total + size, 0)).toBe(50);
+      expect(Math.max(...sizes)).toBeLessThanOrEqual(9);
+      expect(result).toHaveLength(6);
+    });
+
     it('returns normalized ideas with unique generated ids for a configured brand', async () => {
       delegate.findFirst.mockResolvedValue({
         agentConfig: { voice: { tone: 'bold' } },
@@ -2213,6 +2270,18 @@ describe('BrandsService', () => {
       expect(crossOrgFlags).toEqual([true, true]);
     });
 
+    it.each(['turbo', 'clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'is never free for the reserved app route name "%s"',
+      async (slug) => {
+        delegate.findFirst.mockResolvedValue(null);
+
+        await expect(service.isSlugAvailable(slug, 'brand_1')).resolves.toBe(
+          false,
+        );
+        expect(delegate.findFirst).not.toHaveBeenCalled();
+      },
+    );
+
     it('is taken when any other brand holds it, deleted or in another organization', async () => {
       delegate.findFirst.mockResolvedValue({ id: 'brand_deleted' });
 
@@ -2295,6 +2364,18 @@ describe('BrandsService', () => {
         BadRequestException,
       );
     });
+
+    it.each(['turbo', 'clips', 'editor', 'motion', 'playground', 'storyboard'])(
+      'never hands out the reserved app route name "%s"',
+      async (name) => {
+        delegate.findFirst.mockResolvedValue(null);
+
+        const slug = await service.generateUniqueSlug(name);
+
+        expect(slug).toBe(`${name}-2`);
+        expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+      },
+    );
   });
 
   describe('updateAgentConfig', () => {

@@ -162,10 +162,8 @@ export class StudioPage {
    * Navigate to a specific Studio production surface
    */
   async gotoSurface(surface: StudioSurface): Promise<void> {
-    await this.page.goto(
-      `${E2E_BRAND_BASE}${APP_ROUTES.STUDIO.ROOT}/${surface}`,
-    );
-    await this.page.waitForURL(new RegExp(`/studio/${surface}(?:/|\\?|$)`));
+    await this.page.goto(`${E2E_BRAND_BASE}/${surface}`);
+    await this.page.waitForURL(new RegExp(`/${surface}(?:/|\\?|$)`));
     await this.waitForPageLoad();
   }
 
@@ -195,7 +193,7 @@ export class StudioPage {
    */
   async isDisplayed(): Promise<boolean> {
     const url = this.page.url();
-    return url.includes('/studio');
+    return url.includes(APP_ROUTES.STUDIO.PLAYGROUND);
   }
 
   /**

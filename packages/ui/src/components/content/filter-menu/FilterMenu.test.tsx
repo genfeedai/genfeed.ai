@@ -58,6 +58,59 @@ describe('FilterMenu', () => {
     ).toBeVisible();
   });
 
+  it('shows an option count as a badge instead of in the label', async () => {
+    const user = userEvent.setup();
+    renderMenu([
+      {
+        defaultValue: 'all',
+        key: 'status',
+        label: 'Status',
+        onChange: vi.fn(),
+        options: [
+          { label: 'All', value: 'all' },
+          { count: 32, label: 'Unsorted', value: 'unsorted' },
+        ],
+        selection: 'single',
+        value: 'all',
+      },
+    ]);
+    await openFacet(user, /Status/);
+    const unsorted = await screen.findByRole('menuitemradio', {
+      name: /^Unsorted\s*32$/,
+    });
+    expect(unsorted).toHaveTextContent(/^Unsorted32$/);
+    // The check takes the badge's place once the row is selected.
+    expect(screen.getByText('32')).toHaveClass(
+      'tabular-nums',
+      'group-data-[state=checked]:hidden',
+    );
+    expect(screen.getByRole('menuitemradio', { name: 'All' })).toBeVisible();
+  });
+
+  it('shows user-authored option text as typed', async () => {
+    const user = userEvent.setup();
+    renderMenu([
+      {
+        key: 'tags',
+        label: 'Tags',
+        onChange: vi.fn(),
+        options: [
+          { isLiteral: true, label: 'spring sale', value: 'spring' },
+          { label: 'Image', value: 'image' },
+        ],
+        selection: 'multiple',
+        values: [],
+      },
+    ]);
+    await openFacet(user, /Tags/);
+    expect(
+      await screen.findByRole('menuitemcheckbox', { name: 'spring sale' }),
+    ).toHaveClass('normal-case');
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Image' }),
+    ).not.toHaveClass('normal-case');
+  });
+
   it('reports the chosen value of a single facet', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

@@ -81,7 +81,7 @@ export const LIBRARY_PLACE_COPY: Readonly<
 > = {
   [LibraryPlace.ASSETS]: {
     description:
-      'Generated output for this brand. Uploads and imports live on the References shelf.',
+      'Generated output for this brand. Uploads and imports live on the Imported page.',
     label: 'All assets',
   },
   [LibraryPlace.RECENT]: {
@@ -113,7 +113,7 @@ export const LIBRARY_SHELF_DESCRIPTIONS: Readonly<
   [LibraryShelf.NEEDS_REVIEW]:
     'Waiting on a human decision before it can ship.',
   [LibraryShelf.REFERENCES]:
-    'What you uploaded or imported to generate from, kept apart from output.',
+    'What you uploaded or imported, kept apart from generated output.',
   [LibraryShelf.UNSORTED]:
     'Generated assets nobody has filed into a folder yet.',
 };
