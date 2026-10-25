@@ -138,7 +138,7 @@ export default function AnalyticsContent() {
                   <ChartColumn className="size-10 text-surface" />
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Learn From Your Published Content
                 </Heading>
@@ -177,10 +177,10 @@ export default function AnalyticsContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Text className="text-sm font-bold text-surface">
+                  <Text as="p" className="text-sm font-bold text-surface">
                     {metric.label}
                   </Text>
-                  <Text className="text-xs text-surface/65">
+                  <Text as="p" className="text-xs text-surface/65">
                     {metric.value}
                   </Text>
                 </div>

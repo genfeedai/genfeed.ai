@@ -167,7 +167,7 @@ export default function PublishingContent() {
                   <Rocket className="size-10 text-surface" />
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Publish Everywhere, From One Place
                 </Heading>
