@@ -43,6 +43,7 @@ vi.mock('@app-server/protected-bootstrap.server', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
   useParams: () => ({
     orgSlug: routeContext.orgSlug,
     brandSlug: routeContext.brandSlug,
