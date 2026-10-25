@@ -11,8 +11,8 @@
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
   can use emulation on Apple Silicon). Compose selects this image architecture;
   ARM hosts must have AMD64 emulation enabled in their Docker runtime.
-- About 10 GB of free disk (15 GB recommended): a fresh install measured about
-  9.5 GB, and generated media needs more on top
+- At least 15 GB of free disk: the v0.2.15 app image alone is 9.15 GB, plus about
+  0.6 GB for PostgreSQL, and generated media needs more on top
 - RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB
   RAM ran it fine, and idle PostgreSQL used about 59 MiB.
 - Debian 13 provides Compose v2 in its

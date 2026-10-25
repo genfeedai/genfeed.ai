@@ -30,26 +30,39 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
+}));
+
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   useUploadModal: () => ({ openUpload: mockOpenUpload }),
 }));
 
 import { useLibraryBrowser } from './use-library-browser';
 
-/** The URL the hook pushed, minus the pathname. */
+/** The URL the hook pushed, minus the path. */
 function lastPushedSearch(): string {
   const [href] = mockReplace.mock.calls.at(-1) ?? [];
+  const query = String(href).split('?')[1];
 
-  return String(href).replace(state.pathname, '');
+  return query ? `?${query}` : '';
+}
+
+/** The route the hook last moved to, without its query. */
+function lastPushedPath(): string {
+  const [href] = mockReplace.mock.calls.at(-1) ?? [];
+
+  return String(href).split('?')[0] ?? '';
 }
 
 describe('useLibraryBrowser', () => {
-  it('restores place and shelf from the URL and preserves them when changing type', () => {
-    state.search =
-      'place=starred&shelf=approved&folder=f1&asset=a1&view=list&page=3';
-    const { result, rerender } = renderHook(() => useLibraryBrowser({}));
+  it('takes place and shelf from the route and keeps the route when changing type', () => {
+    state.pathname = '/library/shelf/approved';
+    state.search = 'folder=f1&asset=a1&view=list&page=3';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ shelf: LibraryShelf.APPROVED }),
+    );
     expect(result.current.contextValue.query).toMatchObject({
-      isFavorite: 'true',
       shelf: 'approved',
       folder: 'f1',
     });
@@ -57,14 +70,21 @@ describe('useLibraryBrowser', () => {
       result.current.handleCategoriesChange([IngredientCategory.IMAGE]),
     );
     const next = new URLSearchParams(lastPushedSearch());
-    expect(next.get('place')).toBe('starred');
-    expect(next.get('shelf')).toBe('approved');
+    expect(lastPushedPath()).toBe('/library/shelf/approved');
+    expect(next.getAll('categories')).toEqual(['IMAGE']);
     expect(next.get('asset')).toBe('a1');
     expect(next.has('page')).toBe(false);
+    expect(next.has('shelf')).toBe(false);
+  });
+
+  it('reads Starred and Trash from the route, not the query', () => {
     state.search = 'place=trash';
-    rerender();
-    expect(result.current.contextValue.query.isDeleted).toBe('true');
-    expect(result.current.contextValue.query.shelf).toBeUndefined();
+    const starred = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.STARRED }),
+    );
+    expect(starred.result.current.contextValue.query.isFavorite).toBe('true');
+    expect(starred.result.current.contextValue.query.isDeleted).toBeUndefined();
+    expect(starred.result.current.contextValue.query.shelf).toBeUndefined();
   });
 
   beforeEach(() => {
@@ -129,7 +149,7 @@ describe('useLibraryBrowser', () => {
   });
 
   it.each([
-    ['a shelf', '?shelf=references', {}],
+    ['a shelf', '', { shelf: LibraryShelf.REFERENCES }],
     ['a folder', '?folder=f1', { place: LibraryPlace.ASSETS }],
     ['Recent', '', { place: LibraryPlace.RECENT }],
     ['Starred', '', { place: LibraryPlace.STARRED }],
@@ -143,10 +163,11 @@ describe('useLibraryBrowser', () => {
   });
 
   it('composes origin with type, shelf and folder instead of replacing them', () => {
-    state.search =
-      '?categories=IMAGE&shelf=approved&folder=f1&origins=UPLOADED';
+    state.search = '?categories=IMAGE&folder=f1&origins=UPLOADED';
 
-    const { result } = renderHook(() => useLibraryBrowser({}));
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ shelf: LibraryShelf.APPROVED }),
+    );
 
     expect(result.current.contextValue.query).toMatchObject({
       categories: [IngredientCategory.IMAGE],
@@ -423,7 +444,25 @@ describe('useLibraryBrowser', () => {
   });
 
   it('replaces the type axis from the dropdown selection', () => {
-    state.search = '?categories=IMAGE&categories=IMAGE_EDIT';
+    state.search = '?categories=IMAGE&categories=VIDEO';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    act(() => {
+      result.current.handleCategoriesChange([
+        IngredientCategory.VIDEO,
+        IngredientCategory.GIF,
+      ]);
+    });
+
+    expect(lastPushedPath()).toBe('/library/assets');
+    expect(
+      new URLSearchParams(lastPushedSearch()).getAll('categories'),
+    ).toEqual(['VIDEO', 'GIF']);
+  });
+
+  it('moves to the type route when the selection is exactly that type', () => {
+    state.search = '?folder=f1&view=list';
 
     const { result } = renderHook(() => useLibraryBrowser({}));
 
@@ -434,9 +473,49 @@ describe('useLibraryBrowser', () => {
       ]);
     });
 
+    expect(lastPushedPath()).toBe('/library/videos');
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.has('categories')).toBe(false);
+    expect(next.get('folder')).toBe('f1');
+    expect(next.get('view')).toBe('list');
+  });
+
+  it('returns to All assets when the type route is cleared', () => {
+    state.pathname = '/library/images';
+    state.search = '?folder=f1';
+    const seeded = [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT];
+
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ seededCategories: seeded }),
+    );
+
+    act(() => {
+      result.current.handleCategoriesChange([]);
+    });
+
+    expect(lastPushedPath()).toBe('/library/assets');
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.has('categories')).toBe(false);
+    expect(next.get('folder')).toBe('f1');
+  });
+
+  it('keeps the type chips as filters on a place route', () => {
+    state.pathname = '/library/images';
+    state.search = '';
+    const seeded = [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT];
+
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ seededCategories: seeded }),
+    );
+
+    act(() => {
+      result.current.handlePlaceChange(LibraryPlace.RECENT);
+    });
+
+    expect(lastPushedPath()).toBe('/library/recent');
     expect(
       new URLSearchParams(lastPushedSearch()).getAll('categories'),
-    ).toEqual(['VIDEO', 'VIDEO_EDIT']);
+    ).toEqual(['IMAGE', 'IMAGE_EDIT']);
   });
 
   it('leaves the default sort out of the URL', () => {
@@ -487,62 +566,77 @@ describe('useLibraryBrowser', () => {
     expect(result.current.sort).toBe('updatedAt: -1');
   });
 
-  it('keeps Recent when the status filter selects a shelf', () => {
-    state.search = 'place=recent&view=grid';
+  it('moves from Recent to the shelf when the status filter selects one', () => {
+    state.pathname = '/library/recent';
+    state.search = 'view=grid';
 
-    const { result } = renderHook(() => useLibraryBrowser({}));
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.RECENT }),
+    );
 
     act(() => {
       result.current.handleStatusChange(LibraryShelf.FAILED);
     });
 
+    expect(lastPushedPath()).toBe('/library/shelf/failed');
     const next = new URLSearchParams(lastPushedSearch());
-    expect(next.get('place')).toBe('recent');
-    expect(next.get('shelf')).toBe('failed');
+    expect(next.has('place')).toBe(false);
+    expect(next.has('shelf')).toBe(false);
     expect(next.get('view')).toBe('grid');
   });
 
-  it('filters Recent and Starred in place, keeping the shelf and leaving Trash (#5502)', () => {
-    state.search = 'place=trash&view=grid';
-    const fromTrash = renderHook(() => useLibraryBrowser({}));
+  it('switches places by route, leaving Trash and a shelf (#5502)', () => {
+    state.pathname = '/library/trash';
+    state.search = 'view=grid';
+    const fromTrash = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.TRASH }),
+    );
     act(() => {
       fromTrash.result.current.handlePlaceChange(LibraryPlace.STARRED);
     });
-    expect(new URLSearchParams(lastPushedSearch()).get('place')).toBe(
-      'starred',
-    );
+    expect(lastPushedPath()).toBe('/library/starred');
 
-    state.search = 'place=recent&shelf=failed&view=grid';
-    const recent = renderHook(() => useLibraryBrowser({}));
+    state.pathname = '/library/recent';
+    const recent = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.RECENT }),
+    );
     act(() => {
       recent.result.current.handlePlaceChange(null);
     });
-    const cleared = new URLSearchParams(lastPushedSearch());
-    expect(cleared.get('place')).toBeNull();
-    expect(cleared.get('shelf')).toBe('failed');
-    expect(cleared.get('view')).toBe('grid');
+    expect(lastPushedPath()).toBe('/library/assets');
+    expect(new URLSearchParams(lastPushedSearch()).get('view')).toBe('grid');
+
+    state.pathname = '/library/shelf/failed';
+    const shelved = renderHook(() =>
+      useLibraryBrowser({ shelf: LibraryShelf.FAILED }),
+    );
+    act(() => {
+      shelved.result.current.handlePlaceChange(LibraryPlace.RECENT);
+    });
+    expect(lastPushedPath()).toBe('/library/recent');
   });
 
   it('treats Trash and a shelf as mutually exclusive', () => {
-    state.search = 'shelf=failed&view=grid';
+    state.pathname = '/library/shelf/failed';
+    state.search = 'view=grid';
 
-    const selected = renderHook(() => useLibraryBrowser({}));
+    const selected = renderHook(() =>
+      useLibraryBrowser({ shelf: LibraryShelf.FAILED }),
+    );
     act(() => {
       selected.result.current.handleStatusChange('trash');
     });
-    const trashed = new URLSearchParams(lastPushedSearch());
-    expect(trashed.get('place')).toBe('trash');
-    expect(trashed.get('shelf')).toBeNull();
+    expect(lastPushedPath()).toBe('/library/trash');
 
-    state.search = 'place=trash&view=grid';
-    const cleared = renderHook(() => useLibraryBrowser({}));
+    state.pathname = '/library/trash';
+    const cleared = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.TRASH }),
+    );
     act(() => {
       cleared.result.current.handleStatusChange(null);
     });
-    const all = new URLSearchParams(lastPushedSearch());
-    expect(all.get('place')).toBeNull();
-    expect(all.get('shelf')).toBeNull();
-    expect(all.get('view')).toBe('grid');
+    expect(lastPushedPath()).toBe('/library/assets');
+    expect(new URLSearchParams(lastPushedSearch()).get('view')).toBe('grid');
   });
 
   it('sends the shelf as its own axis and never a status filter', () => {
@@ -593,7 +687,7 @@ describe('useLibraryBrowser', () => {
     );
   });
 
-  it('follows an upload from All assets to the References shelf', () => {
+  it('follows an upload from All assets to the Imported page', () => {
     state.search = '?categories=IMAGE&view=list&page=2';
     const { result } = renderHook(() =>
       useLibraryBrowser({ place: LibraryPlace.ASSETS }),
@@ -607,14 +701,50 @@ describe('useLibraryBrowser', () => {
     });
 
     expect(mockPush).toHaveBeenCalledWith(
-      '/library/assets?categories=IMAGE&view=list&shelf=references',
+      '/acme/brand-x/library/imported?categories=IMAGE&view=list',
       { scroll: false },
     );
   });
 
+  it('lists only the seeded origins on the Imported page and refreshes in place after an upload', () => {
+    const seededOrigins = [
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.IMPORTED,
+    ];
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS, seededOrigins }),
+    );
+
+    expect(result.current.contextValue.query.origins).toEqual(seededOrigins);
+
+    act(() => {
+      result.current.handleUpload();
+    });
+    act(() => {
+      mockOpenUpload.mock.lastCall?.[0].onComplete();
+    });
+
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('lets an origin the operator picks narrow the seeded origins', () => {
+    state.search = '?origins=UPLOADED';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({
+        seededOrigins: [IngredientOrigin.UPLOADED, IngredientOrigin.IMPORTED],
+      }),
+    );
+
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.UPLOADED,
+    ]);
+  });
+
   it('refreshes in place after an upload from a view that shows references', () => {
-    state.search = '?shelf=references';
-    const { result } = renderHook(() => useLibraryBrowser({}));
+    state.pathname = '/library/shelf/references';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ shelf: LibraryShelf.REFERENCES }),
+    );
 
     act(() => {
       result.current.handleUpload();

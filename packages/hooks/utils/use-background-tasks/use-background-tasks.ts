@@ -50,7 +50,7 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     resultType === 'model' ||
     label.includes('training')
   ) {
-    return '/studio/models';
+    return APP_ROUTES.SETTINGS.MODELS;
   }
 
   if (
@@ -63,7 +63,7 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('generation') ||
     label.includes('merge')
   ) {
-    return APP_ROUTES.STUDIO.ROOT;
+    return APP_ROUTES.STUDIO.PLAYGROUND;
   }
 
   return APP_ROUTES.WORKSPACE.ACTIVITY;

@@ -24,7 +24,12 @@ export const OPERATOR_TASK_CONTEXT_QUERY_KEYS = [
 
 const KNOWN_PROTECTED_PREFIXES = [
   'workspace',
-  'studio',
+  'playground',
+  'storyboard',
+  'turbo',
+  'motion',
+  'clips',
+  'editor',
   'settings',
   'agents',
   'publishing',

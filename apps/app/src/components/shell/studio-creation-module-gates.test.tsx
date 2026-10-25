@@ -1,6 +1,6 @@
-import ClipsNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/clips/new/page';
-import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/editor/new/page';
-import TurboNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/turbo/new/page';
+import ClipsNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/clips/new/page';
+import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/page';
+import TurboNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/turbo/new/page';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +33,7 @@ vi.mock('@/features/workflows/pages/turbo/TurboNewProjectPage', () => ({
   ),
 }));
 vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/studio/clips/new/new-clip-project-page',
+  '@app/(protected)/[orgSlug]/[brandSlug]/clips/new/new-clip-project-page',
   () => ({
     default: () => (
       <button type="button" onClick={state.create}>
@@ -43,7 +43,7 @@ vi.mock(
   }),
 );
 vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/studio/editor/new/new-editor-project-page',
+  '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/new-editor-project-page',
   () => ({
     default: () => (
       <button type="button" onClick={state.create}>

@@ -152,6 +152,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
     ':platform Trends',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/assets': 'Assets',
+  '/:orgSlug/:brandSlug/library/imported': 'Imported',
   '/:orgSlug/:brandSlug/library/overview': 'Overview',
   '/:orgSlug/:brandSlug/library/references': 'References',
   '/:orgSlug/:brandSlug/settings/brand-kit': 'Brand Kit',
@@ -163,6 +164,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/library/images': 'Assets',
   '/:orgSlug/:brandSlug/library/music': 'Assets',
   '/:orgSlug/:brandSlug/library/shelf/:shelf': ':shelf',
+  '/:orgSlug/:brandSlug/library/recent': 'Recent',
+  '/:orgSlug/:brandSlug/library/starred': 'Starred',
   '/:orgSlug/:brandSlug/library/trash': 'Trash',
   '/:orgSlug/:brandSlug/library/videos': 'Assets',
   '/:orgSlug/:brandSlug/library/voices': 'Assets',
@@ -221,23 +224,24 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/settings/knowledge': 'Knowledge',
   '/:orgSlug/:brandSlug/settings/usage': 'Usage',
   // Studio tools are apps (#5502): the app is the root, its home the leaf.
-  '/:orgSlug/:brandSlug/studio/playground': 'Canvas',
-  '/:orgSlug/:brandSlug/studio/storyboard': 'Runs',
-  '/:orgSlug/:brandSlug/studio/motion': 'Compositions',
-  '/:orgSlug/:brandSlug/studio/clips': 'Projects',
-  '/:orgSlug/:brandSlug/studio/turbo': 'Projects',
-  '/:orgSlug/:brandSlug/studio/turbo/new': 'New project',
-  '/:orgSlug/:brandSlug/studio/clips/new': 'New project',
-  '/:orgSlug/:brandSlug/studio/storyboard/new': 'New storyboard',
-  '/:orgSlug/:brandSlug/studio/storyboard/:runId': 'Run',
-  '/:orgSlug/:brandSlug/studio/clips/:projectId': 'Project',
-  '/:orgSlug/:brandSlug/studio/editor': 'Projects',
-  '/:orgSlug/:brandSlug/studio/editor/:id': 'Project',
+  '/:orgSlug/:brandSlug/playground': 'Canvas',
+  '/:orgSlug/:brandSlug/storyboard': 'Runs',
+  '/:orgSlug/:brandSlug/motion': 'Compositions',
+  '/:orgSlug/:brandSlug/clips': 'Projects',
+  '/:orgSlug/:brandSlug/turbo': 'Projects',
+  '/:orgSlug/:brandSlug/turbo/new': 'New project',
+  '/:orgSlug/:brandSlug/clips/new': 'New project',
+  '/:orgSlug/:brandSlug/storyboard/new': 'New storyboard',
+  '/:orgSlug/:brandSlug/storyboard/:runId': 'Run',
+  '/:orgSlug/:brandSlug/clips/:projectId': 'Project',
+  '/:orgSlug/:brandSlug/editor': 'Projects',
+  '/:orgSlug/:brandSlug/editor/:id': 'Project',
   '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
   '/:orgSlug/:brandSlug/automation/workflows/:id': 'Workflow',
   '/:orgSlug/:brandSlug/automation/runs/:id': 'Run',
   '/:orgSlug/:brandSlug/automation/workflows/new': 'New Workflow',
   '/:orgSlug/:brandSlug/automation/workflows': 'Workflows',
+  '/:orgSlug/:brandSlug/automation/workflows/templates': 'Templates',
   '/:orgSlug/:brandSlug/messages/reply-drip': 'Reply drip',
   '/:orgSlug/:brandSlug/messages/replies': 'Replies',
   '/:orgSlug/:brandSlug/automation/runs': 'Runs',
@@ -256,8 +260,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/settings/api-keys': 'API Keys',
   '/:orgSlug/~/settings/integrations': 'Integrations',
   '/:orgSlug/~/settings/models/:type': ':type',
-  '/:orgSlug/~/studio/editor': 'Projects',
-  '/:orgSlug/~/studio/editor/:id': 'Project',
+  '/:orgSlug/~/editor': 'Projects',
+  '/:orgSlug/~/editor/:id': 'Project',
 
   '/admin': 'Dashboard',
   '/admin/settings/ai': 'AI',
@@ -360,30 +364,6 @@ function humanizeBreadcrumbLabel(value: string): string {
     .join(' ');
 }
 
-/** Studio tools are apps. */
-const STUDIO_APP_SEGMENTS = Object.freeze({
-  clips: 'clips',
-  editor: 'editor',
-  motion: 'motion',
-  playground: 'playground',
-  storyboard: 'storyboard',
-  turbo: 'turbo',
-} as const satisfies Readonly<Record<string, string>>);
-
-function getCanonicalAppSegment(canonicalUrl: string): string {
-  const appSegment = getCanonicalRootSegment(canonicalUrl);
-  if (appSegment !== 'studio') {
-    return appSegment;
-  }
-
-  const segments = canonicalUrl.split('/').filter(Boolean);
-  const toolSegment = segments[segments.indexOf('studio') + 1] ?? '';
-  return (
-    STUDIO_APP_SEGMENTS[toolSegment as keyof typeof STUDIO_APP_SEGMENTS] ??
-    toolSegment
-  );
-}
-
 function getCanonicalRootSegment(canonicalUrl: string): string {
   if (canonicalUrl === '/') {
     return 'workspace';
@@ -419,7 +399,7 @@ function getDefaultBreadcrumbLeafLabel(canonicalUrl: string): string {
 function getRouteBreadcrumbMetadata(
   canonicalUrl: string,
 ): WorkspaceShellBreadcrumbMetadata {
-  const appSegment = getCanonicalAppSegment(canonicalUrl);
+  const appSegment = getCanonicalRootSegment(canonicalUrl);
   const rootLabel =
     BREADCRUMB_ROOT_LABELS[appSegment as keyof typeof BREADCRUMB_ROOT_LABELS] ??
     humanizeBreadcrumbLabel(appSegment);
@@ -776,13 +756,13 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/~/studio/editor',
-      '/:orgSlug/~/studio/editor/projects',
-      '/:orgSlug/~/studio/editor/new',
-      '/:orgSlug/~/studio/editor/:id',
+      '/:orgSlug/~/editor',
+      '/:orgSlug/~/editor/projects',
+      '/:orgSlug/~/editor/new',
+      '/:orgSlug/~/editor/:id',
     ],
     {
-      fallback: '/:orgSlug/~/studio/editor',
+      fallback: '/:orgSlug/~/editor',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'organization',
@@ -886,21 +866,21 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/studio/turbo',
-      '/:orgSlug/:brandSlug/studio/turbo/new',
-      '/:orgSlug/:brandSlug/studio/turbo/:projectId',
-      '/:orgSlug/:brandSlug/studio/clips',
-      '/:orgSlug/:brandSlug/studio/clips/new',
-      '/:orgSlug/:brandSlug/studio/clips/:projectId',
-      '/:orgSlug/:brandSlug/studio/playground',
-      '/:orgSlug/:brandSlug/studio/motion',
-      '/:orgSlug/:brandSlug/studio/storyboard',
-      '/:orgSlug/:brandSlug/studio/storyboard/new',
-      '/:orgSlug/:brandSlug/studio/storyboard/:runId',
+      '/:orgSlug/:brandSlug/turbo',
+      '/:orgSlug/:brandSlug/turbo/new',
+      '/:orgSlug/:brandSlug/turbo/:projectId',
+      '/:orgSlug/:brandSlug/clips',
+      '/:orgSlug/:brandSlug/clips/new',
+      '/:orgSlug/:brandSlug/clips/:projectId',
+      '/:orgSlug/:brandSlug/playground',
+      '/:orgSlug/:brandSlug/motion',
+      '/:orgSlug/:brandSlug/storyboard',
+      '/:orgSlug/:brandSlug/storyboard/new',
+      '/:orgSlug/:brandSlug/storyboard/:runId',
     ],
     {
       adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/studio/playground',
+      fallback: '/:orgSlug/:brandSlug/playground',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -911,12 +891,12 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/studio/editor',
-      '/:orgSlug/:brandSlug/studio/editor/new',
-      '/:orgSlug/:brandSlug/studio/editor/:id',
+      '/:orgSlug/:brandSlug/editor',
+      '/:orgSlug/:brandSlug/editor/new',
+      '/:orgSlug/:brandSlug/editor/:id',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/studio/editor',
+      fallback: '/:orgSlug/:brandSlug/editor',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -929,8 +909,11 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/library',
       '/:orgSlug/:brandSlug/library/assets',
+      '/:orgSlug/:brandSlug/library/imported',
       '/:orgSlug/:brandSlug/library/overview',
       '/:orgSlug/:brandSlug/library/references',
+      '/:orgSlug/:brandSlug/library/recent',
+      '/:orgSlug/:brandSlug/library/starred',
       '/:orgSlug/:brandSlug/library/trash',
       '/:orgSlug/:brandSlug/library/shelf/:shelf',
       '/:orgSlug/:brandSlug/library/videos',
@@ -1035,6 +1018,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automation/content-runs',
       '/:orgSlug/:brandSlug/automation/content-runs/:runId',
       '/:orgSlug/:brandSlug/automation/workflows',
+      '/:orgSlug/:brandSlug/automation/workflows/templates',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/automation',
@@ -1108,7 +1092,9 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/connected-accounts',
       '/:orgSlug/:brandSlug/settings/brand-kit/content-rules',
       '/:orgSlug/:brandSlug/settings/brand-kit/guided-setup',
+      '/:orgSlug/:brandSlug/settings/brand-kit/:tab',
       '/:orgSlug/:brandSlug/settings/agent/context',
+      '/:orgSlug/:brandSlug/settings/agent/learning',
       '/:orgSlug/:brandSlug/settings/publishing',
       '/:orgSlug/:brandSlug/settings/agent',
       '/:orgSlug/:brandSlug/settings/skills',

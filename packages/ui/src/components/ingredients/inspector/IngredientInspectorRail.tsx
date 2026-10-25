@@ -285,7 +285,8 @@ export default function IngredientInspectorRail({
             <LibraryAssetTypeBadge category={ingredient.category} />
           </dd>
         </div>
-        {ingredient.origin ? (
+        {ingredient.origin &&
+        ingredient.origin !== IngredientOrigin.GENERATED ? (
           <div className="flex items-baseline justify-between gap-3 py-1.5">
             <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
               {translate('origin')}

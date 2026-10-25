@@ -1,9 +1,12 @@
 import {
-  IngredientCategory,
+  type IngredientCategory,
   LibraryPlace,
   LibraryShelf,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  LIBRARY_TYPE_PRESET_CATEGORIES,
+} from '@genfeedai/contracts/constants';
 import type { LibraryBrowserSortOption } from '@props/pages/library-browser.props';
 import {
   LIBRARY_ASSET_TYPES,
@@ -28,37 +31,40 @@ export interface LibraryTypePreset {
 /**
  * The type-seeded preset routes.
  *
- * The per-type routes survive as deep links (the agent, workspace cards, brand
- * settings and the e2e suite all point at them), but they are presets over the
- * one browser rather than separate surfaces — the operator can widen or clear
- * the chips without leaving the page, and the shelf and folder axes stay live
- * underneath.
+ * The per-type routes are deep links (the agent, workspace cards, brand
+ * settings and the e2e suite all point at them) over the one browser. Widening
+ * or clearing the chips moves to the route that matches the new selection (All
+ * assets when none does), and the folder axis stays live underneath.
  */
 export const LIBRARY_TYPE_PRESETS: Readonly<Record<string, LibraryTypePreset>> =
   {
     [APP_ROUTES.LIBRARY.AVATARS]: {
-      categories: [IngredientCategory.AVATAR],
+      categories:
+        LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.AVATARS] ?? [],
       description: 'Avatars in this brand. Clear the chip to see the rest.',
       label: 'Avatars',
     },
     [APP_ROUTES.LIBRARY.GIFS]: {
-      categories: [IngredientCategory.GIF],
+      categories: LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.GIFS] ?? [],
       description: 'GIFs in this brand. Clear the chip to see the rest.',
       label: 'GIFs',
     },
     [APP_ROUTES.LIBRARY.IMAGES]: {
-      categories: [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT],
+      categories:
+        LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.IMAGES] ?? [],
       description:
         'Images and edits in this brand. Clear the chip to see the rest.',
       label: 'Images',
     },
     [APP_ROUTES.LIBRARY.MUSIC]: {
-      categories: [IngredientCategory.MUSIC, IngredientCategory.AUDIO],
+      categories:
+        LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.MUSIC] ?? [],
       description: 'Music and audio beds. Clear the chip to see the rest.',
       label: 'Music',
     },
     [APP_ROUTES.LIBRARY.VIDEOS]: {
-      categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
+      categories:
+        LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.VIDEOS] ?? [],
       description:
         'Videos and edits in this brand. Clear the chip to see the rest.',
       label: 'Videos',
@@ -75,7 +81,7 @@ export const LIBRARY_PLACE_COPY: Readonly<
 > = {
   [LibraryPlace.ASSETS]: {
     description:
-      'Generated output for this brand. Uploads and imports live on the References shelf.',
+      'Generated output for this brand. Uploads and imports live on the Imported page.',
     label: 'All assets',
   },
   [LibraryPlace.RECENT]: {
@@ -107,7 +113,7 @@ export const LIBRARY_SHELF_DESCRIPTIONS: Readonly<
   [LibraryShelf.NEEDS_REVIEW]:
     'Waiting on a human decision before it can ship.',
   [LibraryShelf.REFERENCES]:
-    'What you uploaded or imported to generate from, kept apart from output.',
+    'What you uploaded or imported, kept apart from generated output.',
   [LibraryShelf.UNSORTED]:
     'Generated assets nobody has filed into a folder yet.',
 };

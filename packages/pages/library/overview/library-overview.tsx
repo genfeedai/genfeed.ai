@@ -1,6 +1,6 @@
 'use client';
 
-import { LibraryPlace, LibraryShelf, PageScope } from '@genfeedai/contracts';
+import { LibraryShelf, PageScope } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryShelfRoute,
@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const RECENT_ROUTE = `${APP_ROUTES.LIBRARY.ASSETS}?place=${LibraryPlace.RECENT}`;
-const STARRED_ROUTE = `${APP_ROUTES.LIBRARY.ASSETS}?place=${LibraryPlace.STARRED}`;
+const RECENT_ROUTE = APP_ROUTES.LIBRARY.RECENT;
+const STARRED_ROUTE = APP_ROUTES.LIBRARY.STARRED;
 
 /**
  * #5502 Library home: what needs attention and where to jump in. Every count

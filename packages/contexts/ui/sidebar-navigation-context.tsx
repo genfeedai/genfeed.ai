@@ -59,7 +59,12 @@ function stripOrgPrefix(path: string): string {
     // the third segment matches a known app route prefix)
     const knownPrefixes = [
       'workspace',
-      'studio',
+      'playground',
+      'storyboard',
+      'turbo',
+      'motion',
+      'clips',
+      'editor',
       'settings',
       'agent',
       'agents',

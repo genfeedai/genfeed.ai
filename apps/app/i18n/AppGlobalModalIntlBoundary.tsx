@@ -1,5 +1,6 @@
 'use client';
 
+import { STUDIO_APP_ROUTE_PREFIXES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type {
   GlobalModalKind,
@@ -70,7 +71,12 @@ export function resolveModalCatalogScope(
     return 'personal-settings';
   }
   if (area === 'tasks') return 'workspace';
-  if (area === 'edit') return 'studio';
+  if (
+    area === 'edit' ||
+    STUDIO_APP_ROUTE_PREFIXES.some((prefix) => prefix === `/${area}`)
+  ) {
+    return 'studio';
+  }
   return area && Object.hasOwn(CATALOGS, area)
     ? (area as ModalCatalogScope)
     : undefined;

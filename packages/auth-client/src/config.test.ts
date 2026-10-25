@@ -5,6 +5,7 @@ import {
   getApiEndpoint,
   getApiOrigin,
   isBetterAuthEnabled,
+  isGoogleSignInAvailable,
   isMagicLinkAvailable,
 } from './config';
 
@@ -140,6 +141,19 @@ describe('auth-client config', () => {
     it('reports unavailable when the runtime config says no email provider', () => {
       globalThis.__GENFEED_RUNTIME_CONFIG__ = { isMagicLinkAvailable: false };
       expect(isMagicLinkAvailable()).toBe(false);
+    });
+  });
+
+  describe('isGoogleSignInAvailable', () => {
+    it('defaults to available when the server did not report otherwise', () => {
+      expect(isGoogleSignInAvailable()).toBe(true);
+    });
+
+    it('reports unavailable when the runtime config says Google OAuth is not configured', () => {
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = {
+        isGoogleSignInAvailable: false,
+      };
+      expect(isGoogleSignInAvailable()).toBe(false);
     });
   });
 });

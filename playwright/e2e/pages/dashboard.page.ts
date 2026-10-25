@@ -243,7 +243,7 @@ export class DashboardPage {
     await this.#gotoOrClick(
       this.navStudio,
       APP_ROUTES.STUDIO.STORYBOARD,
-      /studio|g\//,
+      /storyboard|g\//,
     );
   }
 
@@ -259,7 +259,7 @@ export class DashboardPage {
     await this.#gotoOrClick(
       this.navEditor,
       APP_ROUTES.STUDIO.EDITOR,
-      /studio\/editor/,
+      /\/editor/,
     );
   }
 

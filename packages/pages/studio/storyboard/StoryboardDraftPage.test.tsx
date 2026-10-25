@@ -224,7 +224,7 @@ describe('draft detail page', () => {
       const link = screen.getByRole('link', { name: 'Open in Editor' });
       expect(link).toHaveAttribute(
         'href',
-        expect.stringContaining('/org/brand/studio/editor/new?'),
+        expect.stringContaining('/org/brand/editor/new?'),
       );
       fireEvent.click(link);
       expect(mocks.push).not.toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe('draft detail page', () => {
       finish?.();
       await waitFor(() =>
         expect(mocks.push).toHaveBeenCalledWith(
-          expect.stringContaining('/org/brand/studio/editor/new?'),
+          expect.stringContaining('/org/brand/editor/new?'),
         ),
       );
     });

@@ -96,8 +96,8 @@ test.describe('Library', () => {
     await assertRouteRenders(authenticatedPage, shelfRoute);
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
-    expect(new URL(authenticatedPage.url()).searchParams.get('shelf')).toBe(
-      LibraryShelf.NEEDS_REVIEW,
+    expect(new URL(authenticatedPage.url()).pathname).toBe(
+      new URL(shelfRoute, 'http://localhost').pathname,
     );
     await expect(authenticatedPage.locator('[data-nextjs-dialog]')).toHaveCount(
       0,

@@ -84,7 +84,7 @@ const AUTOMATION_WORKFLOW_RESERVED = new Set([
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.STUDIO.EDITOR_NEW ||
-    /^\/studio\/editor\/[^/]+$/.test(pathname) ||
+    /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_NEW ||
     (/^\/automation\/workflows\/([^/]+)$/.test(pathname) &&
       !AUTOMATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
@@ -131,19 +131,21 @@ export function useAppProtectedLayout(
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isMessagesInboxRoute = pathname === APP_ROUTES.MESSAGES.ROOT;
-  const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
+  // Studio tools are separate apps: `/<tool>` belongs to that tool.
+  const studioApp = getStudioAppForPath(pathname);
+  const isStudioRoute = studioApp !== undefined;
   const isPublishingRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISHING);
   // Dense studio canvases + mission-control runs: hide shell low-credits strip
   // so it does not steal vertical space under fixed chrome.
   const suppressShellLowCreditsBanner =
-    /^\/studio\/(batch|clips|storyboard)(?:\/|$)/.test(pathname) ||
+    /^\/(clips|storyboard)(?:\/|$)/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for leftover org destinations (Connect, etc.). Module
-  // routes under `/:org/~/workspace|publishing|studio|…` keep their own app
+  // routes under `/:org/~/workspace|publishing|turbo|…` keep their own app
   // sidebars — otherwise Workspace/Publishing steal the Organization menu.
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
@@ -169,8 +171,6 @@ export function useAppProtectedLayout(
   const isUniversalWorkspaceShell =
     Boolean(workspaceShellRoute) && !isAdminRoute;
 
-  // Studio tools are separate apps: `/studio/<tool>` belongs to that tool.
-  const studioApp = isStudioRoute ? getStudioAppForPath(pathname) : undefined;
   const currentApp: AppContext = studioApp
     ? studioApp
     : isLibraryRoute

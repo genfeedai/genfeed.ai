@@ -92,7 +92,7 @@ function createMockContext(
     normalizedWatchedModels: [],
     openGallery: vi.fn(),
     openUpload: vi.fn(),
-    pathname: '/studio/storyboard',
+    pathname: '/storyboard',
     previousPrompt: null,
     profiles: [],
     promptBarHeight: 0,

@@ -74,7 +74,7 @@ let speechHandlers: SpeechRecordingOptions = {};
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/studio/storyboard',
+  usePathname: () => '/storyboard',
   useParams: () => ({
     brandSlug: 'test-brand',
     orgSlug: 'test-org',

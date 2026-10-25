@@ -637,7 +637,7 @@ main place to generate.</p>
 <h2>Open the Playground</h2>
 <p>Select your brand, open <strong>Studio</strong>, then
 <strong>Playground</strong>
-(<code>/{orgSlug}/{brandSlug}/studio/playground</code>). It is described as one
+(<code>/{orgSlug}/{brandSlug}/playground</code>). It is described as one
 prompt bar for every asset type, enriched with your brand. Everything you
 generate appears on the page.</p>
 

@@ -756,7 +756,7 @@ describe('AppRail', () => {
     }
     expect(screen.getByRole('link', { name: 'Playground' })).toHaveAttribute(
       'href',
-      '/acme/my-brand/studio/playground',
+      '/acme/my-brand/playground',
     );
   });
 
@@ -1137,7 +1137,7 @@ describe('AppRail', () => {
 
     expect(screen.getByRole('link', { name: 'Playground' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/studio/playground',
+      '/acme/moonrise/playground',
     );
   });
 
@@ -1146,7 +1146,7 @@ describe('AppRail', () => {
 
     expect(screen.getByRole('link', { name: 'Playground' })).toHaveAttribute(
       'href',
-      '/acme/~/studio/playground',
+      '/acme/~/playground',
     );
   });
 
@@ -1377,7 +1377,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/clips/project-1"
+        currentPath="/acme/my-brand/clips/project-1"
         pinnedAppIds={LAUNCHER_APP_IDS}
       />,
     );
@@ -1443,7 +1443,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/turbo"
+        currentPath="/acme/my-brand/turbo"
         pinnedAppIds={LAUNCHER_APP_IDS}
       />,
     );
@@ -1460,7 +1460,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/editor/new"
+        currentPath="/acme/my-brand/editor/new"
         pinnedAppIds={LAUNCHER_APP_IDS}
       />,
     );
@@ -1476,8 +1476,8 @@ describe('AppRail', () => {
 
   describe('active selection follows pin placement', () => {
     it.each([
-      ['editor', '/studio/editor/project-1'],
-      ['turbo', '/studio/turbo/project-1'],
+      ['editor', '/editor/project-1'],
+      ['turbo', '/turbo/project-1'],
       ['automation', '/automation/runs/run-1'],
       ['messages', '/messages/thread-1'],
       ['discovery', '/discovery/ads/ad-1'],
@@ -1577,7 +1577,7 @@ describe('AppRail', () => {
       );
       expect(screen.getByRole('link', { name: 'Playground' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/studio/playground',
+        '/acme/my-brand/playground',
       );
     });
 
@@ -1625,7 +1625,7 @@ describe('AppRail', () => {
       render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
       expect(screen.getByRole('link', { name: 'Playground' })).toHaveAttribute(
         'href',
-        '/acme/~/studio/playground',
+        '/acme/~/playground',
       );
     });
 
@@ -1633,9 +1633,9 @@ describe('AppRail', () => {
       render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
 
       for (const [label, href] of [
-        ['Playground', '/acme/~/studio/playground'],
-        ['Turbo', '/acme/~/studio/turbo'],
-        ['Editor', '/acme/~/studio/editor'],
+        ['Playground', '/acme/~/playground'],
+        ['Turbo', '/acme/~/turbo'],
+        ['Editor', '/acme/~/editor'],
         ['Library', '/acme/~/library/assets'],
         ['Discovery', '/acme/~/discovery/overview'],
         ['Publishing', '/acme/~/publishing/overview'],
@@ -1832,7 +1832,7 @@ describe('AppRail', () => {
       fireEvent.click(screen.getByTestId('app-rail-more'));
       expect(screen.getByTestId('app-rail-more-item-turbo')).toHaveAttribute(
         'href',
-        expect.stringContaining('/studio/turbo'),
+        expect.stringContaining('/turbo'),
       );
       expect(screen.queryByTestId('app-rail-more-item-playground')).toBeNull();
       fireEvent.click(screen.getByTestId('app-rail-more-pin-turbo'));

@@ -106,7 +106,7 @@ function AppProtectedRailContent({
       });
 
       // A destination the shell registry does not know (an org-level app
-      // entry such as `~/studio/storyboard`, resolved by its own route) must
+      // entry such as `~/storyboard`, resolved by its own route) must
       // keep its own link, not fall back to the current page.
       return {
         announcement: launch.announcement,

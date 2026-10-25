@@ -110,7 +110,7 @@ describe('first masonry card overflow integration', () => {
     );
     expect(mocks.push).toHaveBeenCalledTimes(1);
     expect(mocks.push).toHaveBeenCalledWith(
-      '/org/brand/studio/playground?editImage=first-image',
+      '/org/brand/playground?editImage=first-image',
     );
     expect(onSelect).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());

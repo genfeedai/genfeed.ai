@@ -26,7 +26,7 @@ const DIVIDER_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-queue-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-thread-card.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTextTrackList.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTextTrackList.tsx',
   'app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-rewards-card.tsx',
 ] as const;
 
@@ -52,8 +52,8 @@ const CARD_MIGRATION_SOURCES = [
   'app/(onboarding)/onboarding/(wizard)/providers/providers-status-card.tsx',
   'app/(onboarding)/onboarding/(wizard)/providers/providers-tool-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-list.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProgressView.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/HighlightReviewCard.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/clips/components/ClipsProgressView.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/clips/components/HighlightReviewCard.tsx',
   'packages/components/research/ads/AdsResearchWatchlistPanel.tsx',
 ] as const;
 

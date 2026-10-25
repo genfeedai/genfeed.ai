@@ -39,12 +39,14 @@ export async function persistQuoteGroupDisposition(
         async (tx) => {
           const candidate = await tx.ingredient.findFirst({
             where: { id: ingredientId, organizationId, isDeleted: false },
-            select: { generationBilling: true },
+            select: { generationBilling: true, status: true },
           });
           const receipt = generationQuoteGroupReceiptSchema.safeParse(
             candidate?.generationBilling,
           );
           if (!receipt.success) return null;
+          if (candidate?.status !== IngredientStatus.PROCESSING)
+            return { count: 0 };
           const hold = await tx.creditReservation.findFirst({
             where: {
               id: receipt.data.reservationId,

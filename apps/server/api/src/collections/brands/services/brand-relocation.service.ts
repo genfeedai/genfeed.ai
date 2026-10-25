@@ -65,7 +65,11 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
-import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
+import {
+  BRAND_HANDLE_RESERVED_MESSAGE,
+  BRAND_HANDLE_TAKEN_MESSAGE,
+  isReservedAppRootSegment,
+} from '@genfeedai/contracts/constants';
 import type { IBrandRelocationSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -647,6 +651,9 @@ export class BrandRelocationService {
   ): Promise<void> {
     if (slug === undefined) {
       return;
+    }
+    if (isReservedAppRootSegment(slug)) {
+      throw new ConflictException(BRAND_HANDLE_RESERVED_MESSAGE);
     }
     // tenant-scope-ignore: handle uniqueness spans every organization and deleted brands, matching the global unique constraint.
     const holder = await (transaction ?? this.prisma).brand.findFirst({

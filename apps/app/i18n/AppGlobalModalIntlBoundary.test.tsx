@@ -67,7 +67,7 @@ const CASES = [
     value: pages.about.apiReference,
   },
   {
-    pathname: '/acme/brand/studio/playground',
+    pathname: '/acme/brand/playground',
     id: 'studioPlayground.editImage.fluxResolution',
     value: pages.studioPlayground.editImage.fluxResolution,
   },

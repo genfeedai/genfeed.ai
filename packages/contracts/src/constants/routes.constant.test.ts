@@ -10,6 +10,8 @@ import {
   createPlatformHomeRoute,
   getOrgSwitchHref,
   isPersonalSettingsPath,
+  isReservedAppRootSegment,
+  RESERVED_APP_ROOT_SEGMENTS,
   isUserFacingAppPathname,
   parseScopedAppPath,
   withPlatformQuery,
@@ -29,7 +31,7 @@ function collectRouteValues(value: unknown): string[] {
 
 describe('routes.constant', () => {
   it('hard-cuts the Studio home to Playground without an old route alias', () => {
-    expect(APP_ROUTES.STUDIO.PLAYGROUND).toBe('/studio/playground');
+    expect(APP_ROUTES.STUDIO.PLAYGROUND).toBe('/playground');
     expect('GENERATE' in APP_ROUTES.STUDIO).toBe(false);
     expect(collectRouteValues(APP_ROUTES)).not.toContain('/studio/generate');
   });
@@ -83,9 +85,9 @@ describe('routes.constant', () => {
   it('keeps legacy long-form aliases separate from the project editor', () => {
     expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
     expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
-    expect(APP_ROUTES.STUDIO.EDITOR).toBe('/studio/editor');
-    expect(APP_ROUTES.STUDIO.TURBO).toBe('/studio/turbo');
-    expect(APP_ROUTES.STUDIO.TURBO_NEW).toBe('/studio/turbo/new');
+    expect(APP_ROUTES.STUDIO.EDITOR).toBe('/editor');
+    expect(APP_ROUTES.STUDIO.TURBO).toBe('/turbo');
+    expect(APP_ROUTES.STUDIO.TURBO_NEW).toBe('/turbo/new');
   });
 
   it('reclaims Publish Campaigns without moving Automate Programs', () => {
@@ -134,7 +136,9 @@ describe('routes.constant', () => {
   it('nests agent detail under the agents list', () => {
     expect(APP_ROUTES.AUTOMATION.AGENTS).toBe('/automation/agents');
     expect(APP_ROUTES.AUTOMATION).not.toHaveProperty('TEMPLATES');
-    expect(APP_ROUTES.AUTOMATION).not.toHaveProperty('WORKFLOWS_TEMPLATES');
+    expect(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES).toBe(
+      '/automation/workflows/templates',
+    );
   });
 
   it('does not expose retired Lab route constants', () => {
@@ -234,9 +238,9 @@ describe('routes.constant', () => {
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
     ).toBe('/genfeed-ai/paperclip/workspace/overview');
-    expect(
-      createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/storyboard'),
-    ).toBe('/genfeed-ai/paperclip/studio/storyboard');
+    expect(createBrandAppRoute('genfeed-ai', 'paperclip', 'storyboard')).toBe(
+      '/genfeed-ai/paperclip/storyboard',
+    );
     expect(createBrandAppRoute('genfeed-ai', 'paperclip')).toBe(
       '/genfeed-ai/paperclip',
     );
@@ -299,10 +303,7 @@ describe('routes.constant', () => {
       ),
     ).toBe('/acme/~/settings/brands');
     expect(
-      createOrganizationAppRoute(
-        'acme',
-        `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
-      ),
+      createOrganizationAppRoute('acme', APP_ROUTES.SETTINGS.BRAND_KIT_VOICE),
     ).toBe('/acme/~/settings/brands');
     expect(
       createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.REFERENCES),
@@ -333,8 +334,37 @@ describe('routes.constant', () => {
       createBrandAppRoute(
         'acme',
         'coffee',
-        `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
+        APP_ROUTES.SETTINGS.BRAND_KIT_VOICE,
       ),
-    ).toBe('/acme/coffee/settings/brand-kit?tab=voice');
+    ).toBe('/acme/coffee/settings/brand-kit/voice');
+  });
+
+  describe('reserved app root segments', () => {
+    it('reserves every top-level app route, including the former Studio apps', () => {
+      for (const prefix of Object.values(APP_ROUTE_PREFIXES)) {
+        const root = prefix.replace(/^\//, '').split('/')[0] ?? '';
+        expect(isReservedAppRootSegment(root), root).toBe(true);
+      }
+      for (const app of [
+        'clips',
+        'editor',
+        'motion',
+        'playground',
+        'storyboard',
+        'turbo',
+      ]) {
+        expect(RESERVED_APP_ROOT_SEGMENTS.has(app), app).toBe(true);
+      }
+    });
+
+    it('matches regardless of case and surrounding whitespace', () => {
+      expect(isReservedAppRootSegment(' Turbo ')).toBe(true);
+    });
+
+    it('leaves ordinary slugs alone', () => {
+      expect(isReservedAppRootSegment('acme')).toBe(false);
+      expect(isReservedAppRootSegment('turbo-2')).toBe(false);
+      expect(isReservedAppRootSegment('')).toBe(false);
+    });
   });
 });
