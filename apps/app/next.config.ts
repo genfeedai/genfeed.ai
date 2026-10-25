@@ -196,23 +196,6 @@ const filterRouteRedirects: AppRedirect[] = [
       permanent: true,
     })),
   ),
-  ...FILTER_ROUTE_SCOPES.flatMap((prefix) => [
-    {
-      destination: `${prefix}/publishing/posts/:id`,
-      permanent: true,
-      source: `${prefix}/edit/article/:id`,
-    },
-    {
-      destination: `${prefix}/publishing/posts/:id`,
-      permanent: true,
-      source: `${prefix}/edit/newsletter/:id`,
-    },
-    {
-      destination: `${prefix}/workspace/activity`,
-      permanent: true,
-      source: `${prefix}/overview/activities`,
-    },
-  ]),
   ...LIBRARY_TYPE_PRESET_QUERIES.flatMap(([source, presetQuery]) =>
     FILTER_ROUTE_SCOPES.flatMap((prefix) => [
       {

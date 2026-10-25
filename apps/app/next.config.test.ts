@@ -120,18 +120,15 @@ describe('app next.config', () => {
   );
 
   it.each([
-    ['/acme/brand/edit/article/a1', '/acme/brand/publishing/posts/a1'],
-    ['/acme/brand/edit/newsletter/n1', '/acme/brand/publishing/posts/n1'],
-    ['/acme/brand/overview/activities', '/acme/brand/workspace/activity'],
-  ])('redirects the retired alias %s to %s', async (source, pathname) => {
+    '/acme/brand/edit/article/a1',
+    '/acme/brand/edit/newsletter/n1',
+    '/acme/brand/overview/activities',
+  ])('does not redirect the retired alias %s (hard cut)', async (source) => {
     const response = await unstable_getResponseFromNextConfig({
       url: `https://example.com${source}`,
       nextConfig: { redirects: config.redirects },
     });
-    expect(response.status).toBe(308);
-    expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
-      pathname,
-    );
+    expect(response.status).not.toBe(308);
   });
 
   it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
