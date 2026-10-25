@@ -177,7 +177,12 @@ export class MediaDerivativePreparationService {
           identity,
       },
     });
-    if (!isSupported || variant.state === 'READY') return;
+    if (
+      !isSupported ||
+      variant.state === 'READY' ||
+      variant.state === 'UNSUPPORTED'
+    )
+      return;
     // A failed render is rendered again on request, but not on every request:
     // a source that cannot be rendered would otherwise queue three attempts
     // each time its tile is viewed.
@@ -234,7 +239,12 @@ export class MediaDerivativePreparationService {
       sourceIdentity: data.sourceIdentity,
     };
     const variant = await this.prisma.mediaDeliveryVariant.findFirst({ where });
-    if (!variant || variant.state === 'READY') return;
+    if (
+      !variant ||
+      variant.state === 'READY' ||
+      variant.state === 'UNSUPPORTED'
+    )
+      return;
     const category = protectedPreviewCategory(source);
     if (!category) return;
     await this.prisma.mediaDeliveryVariant.updateMany({
@@ -245,6 +255,7 @@ export class MediaDerivativePreparationService {
         organizationId: data.organizationId,
       },
     });
+    let watermarkExportPending = false;
     try {
       const preparedPreview =
         data.purpose === 'preview'
@@ -257,6 +268,7 @@ export class MediaDerivativePreparationService {
         preparedPreview.storageKey !== source.s3Key
           ? preparedPreview.storageKey
           : null;
+      watermarkExportPending = !reusableKey;
       const rendered = reusableKey
         ? { storageKey: reusableKey }
         : await this.files.watermarkExport({
@@ -264,6 +276,7 @@ export class MediaDerivativePreparationService {
             layers: PLATFORM_PREVIEW_LAYERS.map((layer) => ({ ...layer })),
             storageKey: requireStoredMediaKey(source),
           });
+      watermarkExportPending = false;
       requireStoredMediaKey({ s3Key: rendered.storageKey });
       if (
         !rendered.storageKey.startsWith('exports/watermarked/') ||
@@ -314,10 +327,17 @@ export class MediaDerivativePreparationService {
         },
       });
     } catch (error: unknown) {
+      const filesFailure = describeFilesFailure(error);
+      const unsupportedDimensions =
+        watermarkExportPending &&
+        filesFailure.filesStatus === 400 &&
+        filesFailure.filesReason === 'Unsupported media dimensions';
       await this.prisma.mediaDeliveryVariant.updateMany({
         data: {
-          failureCode: 'PREPARATION_FAILED',
-          state: 'FAILED',
+          failureCode: unsupportedDimensions
+            ? 'UNSUPPORTED_DIMENSIONS'
+            : 'PREPARATION_FAILED',
+          state: unsupportedDimensions ? 'UNSUPPORTED' : 'FAILED',
           storageKey: null,
         },
         where: {
@@ -326,12 +346,13 @@ export class MediaDerivativePreparationService {
           organizationId: data.organizationId,
         },
       });
+      if (unsupportedDimensions) return;
       // A failed render leaves the asset without a preview and nothing else
       // records why: BullMQ drops the job (`removeOnFail`). Report it, or a
       // broken renderer shows up only as every tile reading "Preview unavailable".
       Sentry.captureException(error, {
         extra: {
-          ...describeFilesFailure(error),
+          ...filesFailure,
           ingredientId: data.ingredientId,
           organizationId: data.organizationId,
           purpose: data.purpose,
