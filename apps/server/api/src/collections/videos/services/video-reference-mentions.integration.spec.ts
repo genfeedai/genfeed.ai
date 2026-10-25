@@ -111,10 +111,11 @@ function httpRequest(
   dto: CreateVideoDto,
 ): RequestWithContext & GenerationBillingRequest {
   // Per-app Express request prototype: no listener, socket, or network request.
-  const request: RequestWithContext = express().request;
+  const request: RequestWithContext = Object.assign(express().request, {
+    user: USER,
+  });
   request.originalUrl = '/v1/videos';
   request.body = dto;
-  request.user = USER;
   return Object.assign(request, {
     creditsConfig: { amount: 8, description: 'Synthetic video acceptance' },
   });

@@ -594,9 +594,11 @@ export const createMockRedisService = () => ({
   lpop: vi.fn().mockResolvedValue(null),
   lpush: vi.fn().mockResolvedValue(1),
   lrange: vi.fn().mockResolvedValue([]),
+  publish: vi.fn().mockResolvedValue(undefined),
   rpop: vi.fn().mockResolvedValue(null),
   rpush: vi.fn().mockResolvedValue(1),
   set: vi.fn().mockResolvedValue('OK'),
+  subscribe: vi.fn().mockResolvedValue(undefined),
   ttl: vi.fn().mockResolvedValue(-1),
 });
 

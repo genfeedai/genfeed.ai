@@ -409,7 +409,7 @@ export async function createProactiveProductionTurnFixture() {
     vi.resetModules();
     const [
       { Test },
-      { getQueueToken },
+      { BullRegistrar, getQueueToken },
       { ModulesContainer },
       { EventEmitterModule },
       { AgentOrchestratorModule },
@@ -1009,6 +1009,7 @@ export async function createProactiveProductionTurnFixture() {
       module.get(SystemWorkflowRunnerService),
     );
     await module.init();
+    await module.get(BullRegistrar).register();
     await Promise.all([
       processor.worker.waitUntilReady(),
       liveProcessor.worker.waitUntilReady(),

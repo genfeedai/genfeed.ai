@@ -167,6 +167,10 @@ export const EXTERNAL_SERVICE_MOCK_PROVIDERS = [
     useFactory: () => createMockEventEmitter(),
   },
   {
+    provide: RedisService,
+    useFactory: () => createMockRedisService(),
+  },
+  {
     provide: 'REDIS_CLIENT',
     useFactory: () => createMockRedisService(),
   },

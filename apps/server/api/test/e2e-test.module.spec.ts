@@ -41,6 +41,8 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
@@ -74,9 +76,10 @@ import {
   ORGANIZATION_SETTINGS_E2E_MOCK,
   TASK_E2E_MOCK_PROVIDERS,
 } from '@api-test/e2e-test.module';
+import { RedisService } from '@libs/redis/redis.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 /**
  * Nest accepts both `{ provide: Token, useValue }` objects and bare classes as
@@ -183,6 +186,38 @@ describe('E2E fixture contracts', () => {
       const markerEvent = 'e2e-fixture.marker';
       eventEmitter.emit(markerEvent);
       expect(eventEmitter.emit).toHaveBeenCalledWith(markerEvent);
+    } finally {
+      await moduleRef.close();
+    }
+  });
+
+  it('compiles the real PlatformSettingsService with awaitable Redis pub/sub', async () => {
+    const moduleConfig = await E2ETestModule.forRoot({
+      providers: [PlatformSettingsService, BrandVisionModelCatalogService],
+    });
+    const moduleRef = await Test.createTestingModule({
+      imports: [moduleConfig],
+    })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
+
+    try {
+      expect(moduleRef.get(PlatformSettingsService)).toBeInstanceOf(
+        PlatformSettingsService,
+      );
+      expect(moduleRef.get(BrandVisionModelCatalogService)).toBeInstanceOf(
+        BrandVisionModelCatalogService,
+      );
+      const redis = moduleRef.get(RedisService);
+      expect(vi.isMockFunction(redis.subscribe)).toBe(true);
+      expect(vi.isMockFunction(redis.publish)).toBe(true);
+      await expect(
+        redis.subscribe('e2e-fixture.redis', () => {}),
+      ).resolves.toBeUndefined();
+      await expect(
+        redis.publish('e2e-fixture.redis', { ready: true }),
+      ).resolves.toBeUndefined();
     } finally {
       await moduleRef.close();
     }
