@@ -146,6 +146,14 @@ vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
+vi.mock('../../../[brandSlug]/library/library-credit-notice', () => ({
+  default: () => <div data-testid="library-credit-notice" />,
+}));
+
+vi.mock('../../../[brandSlug]/library/assets/asset-deep-link', () => ({
+  default: () => null,
+}));
+
 vi.mock('../../../[brandSlug]/library/captions/page', () => ({
   default: () => <div data-testid="library-captions-page" />,
 }));
