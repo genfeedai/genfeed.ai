@@ -237,7 +237,7 @@ describe('PublishingLayoutContent', () => {
     );
     modalCallbacks.newsletter?.('newsletter-1');
     expect(pushMock).toHaveBeenLastCalledWith(
-      '/acme/main/edit/newsletter/newsletter-1',
+      '/acme/main/publishing/posts/newsletter-1',
     );
   });
 

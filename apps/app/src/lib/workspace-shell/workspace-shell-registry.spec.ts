@@ -134,8 +134,6 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automation/campaigns/campaign-1', 'Automation', 'Program'],
     ['/acme/moonrise/automation/library/images', 'Automation', 'Images'],
     ['/acme/moonrise/automation/agents', 'Automation', 'Agents'],
-    ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
-    ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
     // /publishing/posts/:id has its own case below: it carries parent and root
     // hrefs that this flat {leafLabel, rootLabel} shape cannot express.
   ] as const)(
@@ -203,24 +201,6 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,
     ).toBe(mode);
   });
-
-  it.each([
-    '/acme/moonrise/edit/article/article-1',
-    '/acme/moonrise/edit/newsletter/newsletter-1',
-  ] as const)(
-    'registers the dedicated artifact editor %s as a focused Publishing surface',
-    (pathname) => {
-      expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
-        mode: 'canvas',
-        productClass: 'contextual-action',
-        safeFallback: '/:orgSlug/:brandSlug/publishing/posts',
-        surfaceKey: 'artifact-editor',
-      });
-      expect(resolveWorkspaceShellRoute(pathname)?.switcherItems).toEqual([
-        'publishing',
-      ]);
-    },
-  );
 
   it('registers bare /:org/:brand as a Workspace landing, not a 404', () => {
     expect(resolveWorkspaceShellRoute('/acme/moonrise')).toMatchObject({

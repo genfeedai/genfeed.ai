@@ -157,14 +157,11 @@ export const APP_ROUTES = {
     TRENDS: '/discovery/trends',
   },
   /**
-   * Legacy long-form editor aliases retained for existing deep links. New
-   * operator navigation uses the type-aware `/publishing/posts/{id}` route built
-   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR, which is the
-   * Remotion project canvas.
+   * Prefix of the retired long-form editor aliases (`/edit/article/{id}`,
+   * `/edit/newsletter/{id}`), which redirect to `/publishing/posts/{id}`.
+   * Distinct from STUDIO.EDITOR, which is the Remotion project canvas.
    */
   EDIT: {
-    ARTICLE: '/edit/article',
-    NEWSLETTER: '/edit/newsletter',
     ROOT: '/edit',
   },
   LIBRARY: {
@@ -239,14 +236,6 @@ export const APP_ROUTES = {
     ROOT: '/onboarding',
     SUCCESS: '/onboarding/success',
     SUMMARY: '/onboarding/summary',
-  },
-  OVERVIEW: {
-    /**
-     * Legacy activity list. Workspace Activity is the operator surface
-     * (`WORKSPACE.ACTIVITY`); this path stays registered under the workspace
-     * switcher so old bookmarks still resolve.
-     */
-    ACTIVITIES: '/overview/activities',
   },
   PUBLISHING: {
     /**

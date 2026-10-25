@@ -150,8 +150,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/discovery/trends/detail/:id': 'Trend Detail',
   '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform':
     ':platform Trends',
-  '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
-  '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/assets': 'Assets',
   '/:orgSlug/:brandSlug/library/overview': 'Overview',
@@ -809,7 +807,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/workspace/tasks',
       '/:orgSlug/:brandSlug/workspace/tasks/:id',
-      '/:orgSlug/:brandSlug/overview/activities',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/workspace',
@@ -888,21 +885,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       scope: 'brand',
       surfaceKey: 'studio-specialized',
       switcherItems: ['playground', 'storyboard', 'turbo', 'motion', 'clips'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/edit/article/:id',
-      '/:orgSlug/:brandSlug/edit/newsletter/:id',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/publishing/posts',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'artifact-editor',
-      switcherItems: ['publishing'],
       telemetryClass: 'product',
     },
   ),

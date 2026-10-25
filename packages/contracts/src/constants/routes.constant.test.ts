@@ -82,8 +82,6 @@ describe('routes.constant', () => {
 
   it('keeps legacy long-form aliases separate from the project editor', () => {
     expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
-    expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
-    expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
     expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
     expect(APP_ROUTES.STUDIO.EDITOR).toBe('/studio/editor');
     expect(APP_ROUTES.STUDIO.TURBO).toBe('/studio/turbo');

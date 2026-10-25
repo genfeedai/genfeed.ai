@@ -1454,20 +1454,6 @@ describe('AppRail', () => {
     );
   });
 
-  it('does not classify focused artifact editors as Publishing', () => {
-    render(
-      <AppRail
-        orgSlug="acme"
-        brandSlug="my-brand"
-        currentPath="/acme/my-brand/edit/article/article-1"
-      />,
-    );
-
-    expect(
-      screen.getByRole('link', { name: 'Publishing' }),
-    ).not.toHaveAttribute('aria-current');
-  });
-
   it('highlights Editor for the timeline surface', () => {
     // #2309: the editor is no longer a publish-adjacent surface.
     render(

@@ -38,7 +38,6 @@ describe('workspace shell URL restoration', () => {
     '/acme/~/messages',
     '/acme/~/discovery/overview',
     '/acme/moonrise/settings/skills',
-    '/acme/moonrise/overview/activities',
     '/acme/moonrise/studio/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/automation/workflows',
