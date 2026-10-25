@@ -3008,7 +3008,6 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([isDeleted, parentId, scheduledDate, status])
   @@index([isDeleted, parentId, targetExecutionState, scheduledDate], map: "posts_thread_child_due_idx")
   @@index([isDeleted, organizationId, status])
-  @@index([brandId, isDeleted, status])
   @@index([brandId, isDeleted, scheduledDate], map: "posts_brand_deleted_scheduled_date_idx")
   @@index([isDeleted, nextScheduledDate, status])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
@@ -3527,7 +3526,6 @@ model SubscriptionAttribution {
   updatedAt            DateTime     @updatedAt
 
   @@unique([organizationId, stripeSubscriptionId], map: "subscription_attributions_org_stripe_subscription_key")
-  @@index([organizationId])
   @@map("subscription_attributions")
 }
 
@@ -6375,7 +6373,6 @@ model ResearchCollectionJob {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  @@index([organizationId, isDeleted])
   @@index([organizationId, isDeleted, upstreamRunId])
   @@map("research_collection_jobs")
 }
@@ -6498,7 +6495,6 @@ model AdPerformance {
   @@index([isDeleted, scope, industry])
   @@index([isDeleted, scope, adPlatform, industry])
   @@index([isDeleted, scope, spendBucket, adPlatform, industry])
-  @@index([organizationId, isDeleted])
   @@index([organizationId, isDeleted, date(sort: Desc)], map: "ad_performance_org_deleted_date_idx")
   @@index([organizationId, isDeleted, adPlatform, granularity, date(sort: Desc)], map: "ad_performance_org_deleted_platform_granularity_date_idx")
   @@index([credentialId, isDeleted, date(sort: Desc)], map: "ad_performance_credential_deleted_date_idx")
@@ -7031,7 +7027,6 @@ model ClipResult {
   updatedAt      DateTime     @updatedAt
 
   @@unique([ingredientId])
-  @@index([organizationId, projectId])
   @@index([organizationId, projectId, status, isDeleted])
   @@index([organizationId, mode, isDeleted])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
@@ -7222,7 +7217,6 @@ model SkillVersion {
 
   @@unique([skillId, versionNumber])
   @@unique([id, skillId])
-  @@index([skillId, versionNumber(sort: Desc)])
   @@map("skill_versions")
 }
 
