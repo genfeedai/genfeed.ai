@@ -34,11 +34,11 @@ describe('pinBetterAuthClientIp', () => {
     expect(request.headers['x-forwarded-for']).toBe('192.0.2.1');
   });
 
-  it('leaves the header alone when no address is known', () => {
+  it('removes an untrusted header when no address is known', () => {
     const request = { headers: { 'x-forwarded-for': '6.6.6.6' } };
 
     pinBetterAuthClientIp(request);
 
-    expect(request.headers['x-forwarded-for']).toBe('6.6.6.6');
+    expect(request.headers['x-forwarded-for']).toBeUndefined();
   });
 });

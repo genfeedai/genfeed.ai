@@ -1,15 +1,25 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { EmailVerifiedCreditsListener } from '@api/collections/credits/listeners/email-verified-credits.listener';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
+import { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import type {
+  PrismaTransactionClient,
+  TransactionUtil,
+} from '@api/helpers/utils/transaction/transaction.util';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import * as deployment from '@genfeedai/config';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { betterAuth } from 'better-auth';
 import { type MemoryDB, memoryAdapter } from 'better-auth/adapters/memory';
@@ -162,13 +172,22 @@ function createSignupProvisioningHarness() {
     logger as unknown as LoggerService,
   );
 
+  const sessionCreated = vi.fn(async (event: { userId: string }) => {
+    expect(
+      database.session.some((session) => session.userId === event.userId),
+    ).toBe(true);
+  });
   const auth = betterAuth({
     basePath: BETTER_AUTH_BASE_PATH,
     baseURL: AUTH_BASE_URL,
     database: memoryAdapter(database),
-    databaseHooks: buildBetterAuthUserDatabaseHooks(async (event) => {
-      await listener.handleUserCreated(event);
-    }),
+    databaseHooks: buildBetterAuthUserDatabaseHooks(
+      async (event) => {
+        await listener.handleUserCreated(event);
+      },
+      undefined,
+      sessionCreated,
+    ),
     plugins: [
       magicLink(
         buildBetterAuthMagicLinkOptions({
@@ -192,6 +211,7 @@ function createSignupProvisioningHarness() {
   });
 
   return {
+    auth,
     brandsService,
     creditsUtilsService,
     database,
@@ -210,6 +230,7 @@ function createSignupProvisioningHarness() {
       );
     },
     userSetupService,
+    sessionCreated,
   };
 }
 
@@ -264,6 +285,9 @@ describe('Better Auth signup provisioning contract', () => {
     expect(verificationResponse.status).toBe(200);
     expect(sessionResponse.status).toBe(200);
     expect(session.user.email).toBe(TEST_EMAIL);
+    expect(harness.sessionCreated).toHaveBeenCalledWith({
+      userId: session.user.id,
+    });
     expect(session.session.userId).toBe(session.user.id);
     expect(createdUser?.id).toBe(session.user.id);
     expect(createdUser?.handle).toMatch(
@@ -283,6 +307,142 @@ describe('Better Auth signup provisioning contract', () => {
       ORGANIZATION_ID,
       session.user.id,
     );
+  });
+
+  it('defers a verified OAuth gift until a usable session IP exists and releases it only once', async () => {
+    const hosted = vi
+      .spyOn(deployment, 'isSelfHostedDeployment')
+      .mockReturnValue(false);
+    const metered = vi
+      .spyOn(deployment, 'usesMeteredCredits')
+      .mockReturnValue(true);
+    try {
+      const harness = createSignupProvisioningHarness();
+      const paid: Array<
+        Parameters<CreditsUtilsService['addPromotionalCreditsInTransaction']>[0]
+      > = [];
+      const tx = {
+        organization: {
+          findFirst: vi.fn().mockResolvedValue({ id: ORGANIZATION_ID }),
+        },
+        user: {
+          findFirst: vi.fn(
+            async ({ where }: { where: { id: string } }) =>
+              harness.database.user.find((user) => user.id === where.id) ??
+              null,
+          ),
+        },
+        session: {
+          findFirst: vi.fn(
+            async ({
+              where,
+            }: {
+              where: { userId: string; ipAddress: { notIn: string[] } };
+            }) =>
+              harness.database.session.find(
+                (session) =>
+                  session.userId === where.userId &&
+                  typeof session.ipAddress === 'string' &&
+                  !where.ipAddress.notIn.includes(session.ipAddress),
+              ) ?? null,
+          ),
+        },
+        creditTransaction: {
+          findFirst: vi.fn(async () =>
+            paid[0]
+              ? {
+                  organizationId: ORGANIZATION_ID,
+                  balanceAfter: paid[0].creditsToAdd,
+                }
+              : null,
+          ),
+          count: vi.fn().mockResolvedValue(0),
+        },
+      } as unknown as PrismaTransactionClient;
+      const grants = new OnboardingCreditGrantsService(
+        {
+          runInTransaction: async (
+            operation: (client: PrismaTransactionClient) => Promise<unknown>,
+          ) => operation(tx),
+        } as unknown as TransactionUtil,
+        {} as OrganizationSettingsService,
+        {
+          addPromotionalCreditsInTransaction: async (
+            input: Parameters<
+              CreditsUtilsService['addPromotionalCreditsInTransaction']
+            >[0],
+          ) => {
+            paid.push(input);
+            return {
+              currentBalance: 0,
+              newBalance: input.creditsToAdd,
+              wasApplied: true,
+            };
+          },
+          publishCreditAddition: vi.fn(),
+        } as unknown as CreditsUtilsService,
+        {} as FreeTrialService,
+        harness.logger as unknown as LoggerService,
+        undefined,
+        new SignupGrantEligibilityService(
+          harness.logger as unknown as LoggerService,
+        ),
+      );
+      harness.creditsUtilsService.grantSignupGift.mockImplementation(
+        (
+          ...args: Parameters<OnboardingCreditGrantsService['grantSignupGift']>
+        ) => grants.grantSignupGift(...args),
+      );
+      const release = new EmailVerifiedCreditsListener(
+        {
+          organization: {
+            findFirst: vi.fn().mockResolvedValue({ id: ORGANIZATION_ID }),
+          },
+        } as unknown as PrismaService,
+        grants,
+        harness.logger as unknown as LoggerService,
+      );
+      harness.sessionCreated.mockImplementation((event) =>
+        release.handleSessionCreated(event),
+      );
+      const context = await harness.auth.$context;
+      // These are the same adapter calls used by Better Auth's OAuth callback;
+      // no provider exchange or external request is involved.
+      const { user } = await context.internalAdapter.createOAuthUser(
+        { email: TEST_EMAIL, emailVerified: true, name: 'OAuth Signup' },
+        { providerId: 'google', accountId: 'offline-oauth-account' },
+      );
+      expect(paid).toHaveLength(0);
+      await context.internalAdapter.createSession(user.id);
+      expect(paid).toHaveLength(0);
+
+      const session = await context.internalAdapter.createSession(
+        user.id,
+        false,
+        { ipAddress: '203.0.113.7' },
+      );
+      expect(paid).toHaveLength(1);
+      expect(paid[0]).toMatchObject({
+        creditsToAdd: 25,
+        source: 'onboarding-signup-gift',
+        options: {
+          metadata: {
+            ipKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+            emailKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+          },
+        },
+      });
+      await context.internalAdapter.deleteSession(session.token);
+      await context.internalAdapter.createSession(user.id, false, {
+        ipAddress: '203.0.113.7',
+      });
+      await release.handleSessionCreated({ userId: user.id });
+      expect(paid).toHaveLength(1);
+      expect(JSON.stringify(paid)).not.toContain('203.0.113.7');
+    } finally {
+      hosted.mockRestore();
+      metered.mockRestore();
+    }
   });
 
   it('keeps a recoverable session when provisioning fails instead of returning a null session', async () => {

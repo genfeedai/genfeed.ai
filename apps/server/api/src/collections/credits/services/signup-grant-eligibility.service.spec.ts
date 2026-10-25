@@ -1,9 +1,11 @@
+import { hashToken } from '@api/auth/shared/pkce.util';
 import {
   MAX_FREE_GRANTS_PER_IP_PER_DAY,
   SignupGrantEligibilityService,
 } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import * as deployment from '@genfeedai/config';
+import { CreditTransactionCategory } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('SignupGrantEligibilityService', () => {
@@ -164,14 +166,62 @@ describe('SignupGrantEligibilityService', () => {
     expect(withRequestIp).toEqual(withSession);
   });
 
-  it('skips the IP check when the user has no session yet', async () => {
+  it('withholds a hosted OAuth gift until a trusted IP is available', async () => {
     sessionFindFirst.mockResolvedValue(null);
     grantCount.mockResolvedValue(MAX_FREE_GRANTS_PER_IP_PER_DAY);
 
-    await expect(service.evaluate(tx, input)).resolves.toMatchObject({
-      isEligible: true,
-    });
+    await expect(
+      service.evaluate(tx, { ...input, source: 'onboarding-signup-gift' }),
+    ).resolves.toEqual({ isEligible: false, reason: 'ip-required' });
     expect(grantCount).not.toHaveBeenCalled();
+  });
+
+  it('keeps the daily signup-gift count after prior recipients sign out, across distinct verified mailboxes', async () => {
+    const durableIpKeys: string[] = [];
+    grantCount.mockImplementation(async () => durableIpKeys.length);
+    const source = 'onboarding-signup-gift';
+    for (let index = 0; index < MAX_FREE_GRANTS_PER_IP_PER_DAY; index += 1) {
+      userFindFirst.mockResolvedValue({
+        email: `mailbox-${index}@example.com`,
+        emailVerified: true,
+      });
+      const eligibility = await service.evaluate(tx, {
+        source,
+        userId: `user-${index}`,
+      });
+      expect(eligibility.isEligible).toBe(true);
+      if (!eligibility.isEligible || !eligibility.ipKey)
+        throw new Error('Expected a keyed grant');
+      durableIpKeys.push(eligibility.ipKey);
+      // Signing out deletes the prior recipient's sessions, never their ledger.
+      sessionFindFirst.mockResolvedValue(null);
+      sessionFindFirst.mockResolvedValueOnce({ ipAddress: '203.0.113.7' });
+    }
+    userFindFirst.mockResolvedValue({
+      email: 'another-mailbox@example.com',
+      emailVerified: true,
+    });
+    await expect(
+      service.evaluate(tx, { source, userId: 'another-user' }),
+    ).resolves.toEqual({ isEligible: false, reason: 'ip-velocity' });
+    expect(grantCount).toHaveBeenLastCalledWith({
+      where: {
+        category: CreditTransactionCategory.ADD,
+        createdAt: { gte: expect.any(Date) },
+        isDeleted: false,
+        metadata: { equals: hashToken('203.0.113.7'), path: ['ipKey'] },
+        organization: { userId: { not: 'another-user' } },
+        source,
+      },
+    });
+  });
+
+  it('withholds a hosted gift when the available session has an empty IP', async () => {
+    sessionFindFirst.mockResolvedValue({ ipAddress: '' });
+    await expect(service.evaluate(tx, input)).resolves.toEqual({
+      isEligible: false,
+      reason: 'ip-required',
+    });
   });
 
   it('grants a user without an email address on verification alone', async () => {
