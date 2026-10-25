@@ -45,6 +45,8 @@ const mocks = vi.hoisted(() => ({
   useQuery: vi.fn(),
 }));
 const searchParamsState = new URLSearchParams();
+const APPROVALS_PATH = '/acme/main/publishing/approvals';
+const pathnameState = { current: APPROVALS_PATH };
 
 type ConfirmConfig = {
   confirmLabel?: string;
@@ -361,7 +363,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/publishing/review',
+  usePathname: () => pathnameState.current,
   useRouter: () => ({
     replace: mocks.replace,
   }),
@@ -377,6 +379,7 @@ describe('ReviewQueueContent', () => {
     searchParamsState.delete('run');
     searchParamsState.delete('filter');
     searchParamsState.delete('item');
+    pathnameState.current = APPROVALS_PATH;
     mocks.approvals.items = [];
     mocks.approvals.sourceFilters = [];
     mocks.approvals.error = null;
@@ -592,10 +595,9 @@ describe('ReviewQueueContent', () => {
       expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
         'post-123',
       );
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/publishing/review?run=batch-1&filter=ready',
-        { scroll: false },
-      );
+      expect(mocks.replace).toHaveBeenCalledWith(`${APPROVALS_PATH}/batch-1`, {
+        scroll: false,
+      });
     });
   });
 
@@ -662,9 +664,8 @@ describe('ReviewQueueContent', () => {
   });
 
   it('opens straight into the queue without a title or description block', () => {
-    // #5502: approvals are a Posts view; the view toggle switches back.
-    searchParamsState.set('run', 'batch-1');
-    searchParamsState.set('item', 'item-1');
+    // #5502: approvals open straight into the queue at /publishing/approvals.
+    pathnameState.current = `${APPROVALS_PATH}/batch-1/item-1`;
     mockReviewQueries();
 
     render(<ReviewQueueContent />);
@@ -696,14 +697,14 @@ describe('ReviewQueueContent', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith(
-        '/publishing/review?run=batch-1&filter=ready&item=item-1',
+        `${APPROVALS_PATH}/batch-1/item-1`,
         { scroll: false },
       );
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Select item-2' }));
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publishing/review?run=batch-1&filter=ready&item=item-2',
+      `${APPROVALS_PATH}/batch-1/item-2`,
       { scroll: false },
     );
 
@@ -712,7 +713,7 @@ describe('ReviewQueueContent', () => {
     // keeps the current active item when it remains visible, and item-2 is
     // visible under "all", so the active item does not move.
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publishing/review?run=batch-1&filter=all&item=item-2',
+      `${APPROVALS_PATH}/batch-1/item-2?filter=all`,
       { scroll: false },
     );
   });

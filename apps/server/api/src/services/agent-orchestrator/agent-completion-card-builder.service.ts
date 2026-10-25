@@ -199,7 +199,7 @@ export class AgentCompletionCardBuilderService {
 
     // Content completions always need a review destination.
     if (label === 'Review Draft') {
-      return { href: APP_ROUTES.PUBLISHING.REVIEW, label };
+      return { href: APP_ROUTES.PUBLISHING.APPROVALS, label };
     }
 
     return undefined;
@@ -220,15 +220,11 @@ export class AgentCompletionCardBuilderService {
     const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
 
     if (path === '/review') {
-      return suffix.startsWith('?')
-        ? `${APP_ROUTES.PUBLISHING.REVIEW}&${suffix.slice(1)}`
-        : `${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
+      return `${APP_ROUTES.PUBLISHING.APPROVALS}${suffix}`;
     }
 
     if (path === '/calendar' || path === '/calendar/posts') {
-      return suffix.startsWith('?')
-        ? `${APP_ROUTES.PUBLISHING.CALENDAR}&${suffix.slice(1)}`
-        : `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
+      return `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
     }
 
     if (path === '/drafts') {

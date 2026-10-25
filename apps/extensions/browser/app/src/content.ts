@@ -26,6 +26,7 @@ import {
   TextActionSession,
 } from '~platforms/text-action-session';
 import {
+  findComposerScope,
   findSubmitButtons,
   mayContainSubmit,
   mountGenfeedGroup,
@@ -83,16 +84,24 @@ function initializePlatformIntegration(): void {
 
     attachSourceButton(currentPlatform);
 
+    // The compose modal and the home composer have no post in the URL; the
+    // group still belongs beside their Post button.
     const postId = currentPlatform.extractPostId();
-    if (!postId) {
-      return;
-    }
-    const postUrl = currentPlatform.constructPostUrl(postId);
+    const postUrl = postId
+      ? currentPlatform.constructPostUrl(postId)
+      : undefined;
 
     for (const submit of findSubmitButtons(currentPlatform)) {
+      const boundary = currentPlatform.scopeToComposer
+        ? findComposerScope(submit, currentPlatform)
+        : null;
+      if (currentPlatform.scopeToComposer && !boundary) {
+        continue;
+      }
       mountGenfeedGroup(
         submit,
         buildMenuGroups({ platform: currentPlatform, platformName, postUrl }),
+        boundary ?? undefined,
       );
     }
   }

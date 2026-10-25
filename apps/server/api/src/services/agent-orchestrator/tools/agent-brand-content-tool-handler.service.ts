@@ -160,7 +160,7 @@ export class AgentBrandContentToolHandler {
                 label: 'View Calendar',
               },
               {
-                href: APP_ROUTES.PUBLISHING.REVIEW,
+                href: APP_ROUTES.PUBLISHING.APPROVALS,
                 label: 'Review Queue',
               },
             ],

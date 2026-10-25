@@ -169,14 +169,14 @@ test.describe('Core Content Loop', () => {
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);
     await postsPage.gotoCalendar();
-    // The calendar is the Posts desk's calendar view
-    // (`/publishing/posts?view=calendar`). The topbar breadcrumb owns visible
-    // page identity under ADR-CONVERSATION-SHELL-CONTRACTS v3.2, so assert the
-    // desk's breadcrumb alongside the canonical URL and the calendar grid.
+    // The calendar has its own route (`/publishing/calendar`). The topbar
+    // breadcrumb owns visible page identity under
+    // ADR-CONVERSATION-SHELL-CONTRACTS v3.2, so assert it alongside the
+    // canonical URL and the calendar grid.
     await calendarPage.assertPostsTabActive();
     await expect(
       authenticatedPage.getByRole('navigation', { name: 'Breadcrumb' }),
-    ).toContainText('Posts');
+    ).toContainText('Calendar');
     await calendarPage.assertCalendarVisible();
 
     await analyticsPage.goto();
