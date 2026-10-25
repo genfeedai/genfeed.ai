@@ -1,10 +1,13 @@
 import { SubscriptionStatus } from '@genfeedai/contracts';
+import type { ICreditsBreakdown } from '@genfeedai/contracts/interfaces';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseAuthIdentity = vi.fn();
 const mockUseBrand = vi.fn();
 const mockShouldShowCreditsNav = vi.fn(() => true);
+const mockHasOrganizationBillingHint = vi.fn(() => true);
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mockUseAuthIdentity(),
@@ -15,6 +18,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
+  hasOrganizationBillingHint: () => mockHasOrganizationBillingHint(),
   shouldShowCreditsNav: () => mockShouldShowCreditsNav(),
 }));
 
@@ -93,6 +97,7 @@ describe('useSubscription', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockShouldShowCreditsNav.mockReturnValue(true);
+    mockHasOrganizationBillingHint.mockReturnValue(true);
     mockUseAuthIdentity.mockReturnValue({ userId: 'user-123' });
     mockUseBrand.mockReturnValue({ organizationId: 'org-123' });
     mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
@@ -165,6 +170,137 @@ describe('useSubscription', () => {
       expect(mockSubscriptionsService.getCreditsBreakdown).toHaveBeenCalled();
     });
 
+    it.each([null, { status: SubscriptionStatus.ACTIVE }])(
+      'does not request community credit breakdowns across mounts and refreshes (%j)',
+      async (subscription) => {
+        mockHasOrganizationBillingHint.mockReturnValue(false);
+        mockOrganizationsService.findOrganizationSubscription.mockResolvedValue(
+          subscription,
+        );
+        const wrapper = createQueryWrapper();
+        const firstMount = renderHook(() => useSubscription(), { wrapper });
+
+        await waitFor(() => {
+          expect(firstMount.result.current.isLoading).toBe(false);
+          expect(
+            mockOrganizationsService.findOrganizationSubscription,
+          ).toHaveBeenCalled();
+        });
+        expect(
+          mockSubscriptionsService.getCreditsBreakdown,
+        ).not.toHaveBeenCalled();
+
+        await act(async () => {
+          await firstMount.result.current.refreshCreditsBreakdown();
+          await firstMount.result.current.refreshSubscription();
+        });
+        firstMount.unmount();
+
+        const secondMount = renderHook(() => useSubscription(), { wrapper });
+        await waitFor(() => {
+          expect(secondMount.result.current.isLoading).toBe(false);
+        });
+        await act(async () => {
+          await secondMount.result.current.refreshCreditsBreakdown();
+        });
+
+        expect(secondMount.result.current.creditsBreakdown).toBeNull();
+        expect(secondMount.result.current.error).toBeNull();
+        expect(
+          mockSubscriptionsService.getCreditsBreakdown,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not request community credits when a caller forces the cached query to fetch', async () => {
+      mockHasOrganizationBillingHint.mockReturnValue(false);
+      const { result } = renderHook(
+        () => ({
+          queryClient: useQueryClient(),
+          subscription: useSubscription(),
+        }),
+        { wrapper: createQueryWrapper() },
+      );
+      await waitFor(() => {
+        expect(result.current.subscription.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.queryClient.fetchQuery({
+          queryKey: ['credits-breakdown', 'org-123', 'user-123'],
+        });
+      });
+
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).not.toHaveBeenCalled();
+      expect(result.current.subscription.creditsBreakdown).toBeNull();
+      expect(result.current.subscription.error).toBeNull();
+    });
+
+    it.each([null, { status: SubscriptionStatus.TRIALING }])(
+      'keeps billing-enabled wallet reads and refreshes without an active plan (%j)',
+      async (subscription) => {
+        mockOrganizationsService.findOrganizationSubscription.mockResolvedValue(
+          subscription,
+        );
+        const { result } = renderHook(() => useSubscription(), {
+          wrapper: createQueryWrapper(),
+        });
+        await waitFor(() => {
+          expect(result.current.creditsBreakdown?.total).toBe(200);
+        });
+
+        mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue({
+          total: 150,
+        });
+        await act(async () => {
+          await result.current.refreshCreditsBreakdown();
+        });
+
+        await waitFor(() => {
+          expect(result.current.creditsBreakdown?.total).toBe(150);
+        });
+        expect(
+          mockSubscriptionsService.getCreditsBreakdown,
+        ).toHaveBeenCalledTimes(2);
+      },
+    );
+
+    it('keeps a previous organization response from replacing the current credit breakdown', async () => {
+      const previousBalance =
+        Promise.withResolvers<Pick<ICreditsBreakdown, 'total'>>();
+      mockSubscriptionsService.getCreditsBreakdown.mockReturnValueOnce(
+        previousBalance.promise,
+      );
+      const { result, rerender } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => {
+        expect(
+          mockSubscriptionsService.getCreditsBreakdown,
+        ).toHaveBeenCalledTimes(1);
+      });
+
+      mockUseBrand.mockReturnValue({ organizationId: 'org-456' });
+      mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue({
+        total: 300,
+      });
+      rerender();
+
+      await waitFor(() => {
+        expect(result.current.creditsBreakdown?.total).toBe(300);
+      });
+      await act(async () => {
+        previousBalance.resolve({ total: 200 });
+        await previousBalance.promise;
+      });
+      expect(result.current.creditsBreakdown?.total).toBe(300);
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).toHaveBeenCalledTimes(2);
+    });
+
     it('does not fetch credit breakdown when neither subscription nor credits nav applies', async () => {
       mockShouldShowCreditsNav.mockReturnValue(false);
       mockOrganizationsService.findOrganizationSubscription.mockResolvedValueOnce(
@@ -200,7 +336,14 @@ describe('useSubscription', () => {
 
     it.each([
       new Error('Balance unavailable'),
-      { errors: [{ detail: 'Temporarily unavailable', status: '503' }] },
+      ...[401, 403, 404, 500, 502, 503, 504].map((status) => ({
+        errors: [
+          {
+            detail: `Balance request failed (${status})`,
+            status: String(status),
+          },
+        ],
+      })),
     ])(
       'exposes a failed balance read and clears it after retry (%j)',
       async (failure) => {

@@ -1,4 +1,7 @@
-import { shouldShowCreditsNav } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import type {
@@ -15,7 +18,7 @@ import { OrganizationsService } from '@genfeedai/services/organization/organizat
 import { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 const SUBSCRIPTION_CACHE_TTL_MS = 60_000;
 const CREDITS_CACHE_TTL_MS = 30_000;
@@ -23,7 +26,6 @@ const CREDITS_CACHE_TTL_MS = 30_000;
 export function useSubscription(): UseSubscriptionReturn {
   const { userId } = useAuthIdentity();
   const { organizationId } = useBrand();
-  const queryClient = useQueryClient();
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -68,11 +70,12 @@ export function useSubscription(): UseSubscriptionReturn {
 
   const hasActiveSubscription =
     subscription?.status === SubscriptionStatus.ACTIVE;
-  // Wallet balance is independent of plan status — free/trial orgs still show
-  // GEN in the topbar and need the low-credits shell banner. Gating only on
-  // ACTIVE subscription left creditsBreakdown null while the chip showed 0.
+  // Billing-enabled free/trial orgs still have a wallet. Community credits
+  // navigation offers Cloud purchases, but its local subscription API is absent.
   const shouldLoadCredits = Boolean(
-    userId && (hasActiveSubscription || shouldShowCreditsNav()),
+    hasOrganizationBillingHint() &&
+      userId &&
+      (hasActiveSubscription || shouldShowCreditsNav()),
   );
 
   const {
@@ -84,7 +87,7 @@ export function useSubscription(): UseSubscriptionReturn {
   } = useQuery({
     queryKey: creditsQueryKey,
     queryFn: async () => {
-      if (!userId) {
+      if (!shouldLoadCredits) {
         return null;
       }
 
@@ -160,6 +163,7 @@ export function useSubscription(): UseSubscriptionReturn {
   };
 
   const refreshCreditsBreakdown = async () => {
+    if (!shouldLoadCredits) return;
     await refetchCredits();
   };
 
