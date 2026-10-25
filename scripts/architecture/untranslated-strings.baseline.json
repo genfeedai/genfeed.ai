@@ -608,7 +608,7 @@
     "packages/ui/src/components/tags/manager/TagsList.tsx": 1,
     "packages/ui/src/components/tags/manager/TagsManager.tsx": 1,
     "packages/ui/src/components/topbars/breadcrumbs/TopbarBreadcrumbs.tsx": 1,
-    "packages/ui/src/components/topbars/credits-bar/CreditsBarTrigger.tsx": 4,
+    "packages/ui/src/components/topbars/credits-bar/CreditsMenuSection.tsx": 4,
     "packages/ui/src/components/topbars/public/TopbarPublicMobileMenu.tsx": 2,
     "packages/ui/src/components/workflow-builder/nodes/BaseNode.tsx": 1,
     "packages/ui/src/components/workflow-builder/nodes/RssInputNode.tsx": 6,

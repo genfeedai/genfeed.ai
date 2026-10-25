@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import AccountCredits from '@ui/topbars/credits-bar/AccountCredits';
 import { Building2, CircleQuestionMark, LogOut, Tag, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -96,7 +97,7 @@ export default function UserDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-56"
+        className="w-64"
         side={side}
         sideOffset={side === 'right' ? 12 : 4}
       >
@@ -109,6 +110,7 @@ export default function UserDropdown({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <AccountCredits />
         {dropdownItems.map((item) => (
           <DropdownMenuItem key={item.href} asChild>
             <Link href={item.href} className="cursor-pointer">

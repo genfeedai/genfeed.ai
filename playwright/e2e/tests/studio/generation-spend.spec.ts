@@ -1,4 +1,4 @@
-import { brandPath } from '@e2e/utils/app-chrome';
+import { brandPath, openAccountCredits } from '@e2e/utils/app-chrome';
 import {
   APP_ROUTES,
   FLUX_3_EDIT_CONTRACT_VERSION,
@@ -300,8 +300,11 @@ async function mountPlayground(
   return { editor, generationBodies, generationWrites, wallet };
 }
 
-function walletChip(page: Page) {
-  return page.getByTestId('topbar-credits-trigger');
+/** Opens the account menu and returns the wallet block it shows. */
+async function openWallet(page: Page) {
+  const wallet = await openAccountCredits(page);
+  await expect(wallet).toBeVisible();
+  return wallet;
 }
 
 test.describe('Studio generation spend', () => {
@@ -335,16 +338,15 @@ test.describe('Studio generation spend', () => {
     await expectNoErrorOverlay(page);
   });
 
-  test('Auto submits once, pinned to the quoted model, says which model and price, and the wallet chip follows', async ({
+  test('Auto submits once, pinned to the quoted model, says which model and price, and the wallet follows', async ({
     authenticatedPage: page,
   }) => {
     test.setTimeout(90_000);
     const { editor, generationBodies, generationWrites, wallet } =
       await mountPlayground(page, { routedModelKey: imageModel });
-    await expect(walletChip(page)).toHaveAttribute(
-      'title',
-      new RegExp(`^${startingBalance}\\b`),
-    );
+    const walletBlock = await openWallet(page);
+    await expect(walletBlock).toContainText(new RegExp(`${startingBalance}\\s*GEN`));
+    await page.keyboard.press('Escape');
     const requestsBeforeSpend = wallet.requests;
     await editor.fill('A lighthouse at dusk');
 
@@ -371,9 +373,8 @@ test.describe('Studio generation spend', () => {
     await expect
       .poll(() => wallet.requests)
       .toBeGreaterThan(requestsBeforeSpend);
-    await expect(walletChip(page)).toHaveAttribute(
-      'title',
-      new RegExp(`^${balanceAfterSpend}\\b`),
+    await expect(await openWallet(page)).toContainText(
+      new RegExp(`${balanceAfterSpend}\\s*GEN`),
     );
     await expectNoErrorOverlay(page);
   });

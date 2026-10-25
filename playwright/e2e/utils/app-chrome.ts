@@ -50,3 +50,15 @@ export function sidebarLocator(page: Page): Locator {
     .or(page.locator('[data-testid="sidebar"]'))
     .first();
 }
+
+/**
+ * Opens the account menu in the app rail and returns its credit wallet block.
+ * The balance is not shown in the topbar; it lives here.
+ */
+export async function openAccountCredits(page: Page): Promise<Locator> {
+  await page
+    .getByTestId('app-rail-account')
+    .getByRole('button', { name: 'Open account menu' })
+    .click();
+  return page.getByTestId('account-credits');
+}

@@ -15,6 +15,7 @@ import {
 } from '@playwright/test';
 import { createAuthenticatedPage } from '../../fixtures/auth.fixture';
 import { buildUnhandledApiMockBody } from '../../utils/api-interceptor';
+import { openAccountCredits } from '../../utils/app-chrome';
 import {
   assertNoErrorBoundaryFallback,
   expectNoErrorOverlay,
@@ -210,9 +211,8 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       await page.goto(
         new URL('/test-org/brand-1/studio/playground', baseURL).href,
       );
-      await expect(page.getByTestId('topbar-credits-trigger')).toContainText(
-        '500',
-      );
+      await expect(await openAccountCredits(page)).toContainText('500');
+      await page.keyboard.press('Escape');
       await page.screenshot({
         path: testInfo.outputPath(`electron-${failure}-cloud.png`),
         fullPage: true,
@@ -273,7 +273,8 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       await page.goto(
         new URL('/test-org/brand-1/studio/playground', baseURL).href,
       );
-      await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
+      await expect(await openAccountCredits(page)).toHaveCount(0);
+      await page.keyboard.press('Escape');
       const walletBeforeRecovery = walletRequests;
       await control(electron, 'defer');
       await page.evaluate((apiURL) => {
@@ -366,7 +367,8 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
             ? 'Restart Genfeed Desktop'
             : 'switching servers',
         );
-      await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
+      await expect(await openAccountCredits(page)).toHaveCount(0);
+      await page.keyboard.press('Escape');
       await expect(
         page.getByRole('button', { name: 'Generate', exact: true }),
       ).toBeDisabled();

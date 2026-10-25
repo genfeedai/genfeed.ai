@@ -37,6 +37,7 @@ import type {
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
+  ICycleRemainingMetrics,
   IDeductCreditsOptions,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
@@ -819,10 +820,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     cycleStartAt: Date,
     cycleEndAt: Date,
     currentBalance: number,
-  ): Promise<{
-    cycleTotal: number;
-    remainingPercent: number;
-  }> {
+  ): Promise<ICycleRemainingMetrics> {
     const previousTransaction =
       await this.creditTransactionsService.getLatestTransactionBeforeDate(
         organizationId,
@@ -869,6 +867,21 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       )
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 
+    // The wallet is one pool, so spend is read from the ledger rather than
+    // inferred from the balance: a top-up on top of the plan grant keeps the
+    // balance above the plan size and would otherwise read as nothing spent.
+    const cycleUsed = cycleTransactions
+      .slice(startIndex)
+      .reduce((sum, transaction) => {
+        if (transaction.category === CreditTransactionCategory.DEDUCT) {
+          return sum + Math.abs(transaction.amount);
+        }
+        if (transaction.category === CreditTransactionCategory.REFUND) {
+          return sum - Math.abs(transaction.amount);
+        }
+        return sum;
+      }, 0);
+
     const cycleTotal = Math.max(0, baseBalance + inflows);
     const remainingPercentRaw =
       cycleTotal > 0 ? (currentBalance / cycleTotal) * 100 : 0;
@@ -877,7 +890,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       Math.min(100, Math.round(remainingPercentRaw * 100) / 100),
     );
 
-    return { cycleTotal, remainingPercent };
+    return { cycleTotal, cycleUsed: Math.max(0, cycleUsed), remainingPercent };
   }
 
   async resetOrganizationCredits(
