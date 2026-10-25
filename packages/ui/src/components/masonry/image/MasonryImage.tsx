@@ -332,9 +332,6 @@ function MasonryImageTile({
       upscaleConfirmData={transformActions ? null : actions.upscaleConfirmData}
       executeUpscale={actions.executeUpscale}
       clearUpscaleConfirm={actions.clearUpscaleConfirm}
-      enhanceConfirmData={actions.enhanceConfirmData}
-      executeEnhance={actions.executeEnhance}
-      clearEnhanceConfirm={actions.clearEnhanceConfirm}
     />
   );
 

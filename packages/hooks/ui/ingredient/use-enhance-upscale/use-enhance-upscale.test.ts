@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPostUpscale = vi.fn();
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
+const mockInfo = vi.fn();
 const mockUseElements = vi.hoisted(() => vi.fn());
 
 const defaultElements = {
@@ -59,6 +60,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: mockError,
+      info: mockInfo,
       success: mockSuccess,
     })),
   },
@@ -114,15 +116,12 @@ describe('useEnhanceUpscale', () => {
         initialProps: { scopeKey: 'org:brand:actor:session-1' },
       },
     );
+    let pending: Promise<void> | undefined;
     await act(async () => {
-      await result.current.handleUpscale({
+      pending = result.current.handleUpscale({
         id: 'original-source',
         category: IngredientCategory.IMAGE,
       } as IIngredient);
-    });
-    let pending: Promise<void> | undefined;
-    await act(async () => {
-      pending = result.current.executeUpscale();
     });
     expect(mockPostUpscale).toHaveBeenCalledTimes(1);
     expect(result.current.upscalingSourceId).toBe('original-source');
@@ -143,7 +142,7 @@ describe('useEnhanceUpscale', () => {
     await act(async () => {
       await result.current.handleUpscale({
         id: 'source',
-        category: IngredientCategory.IMAGE,
+        category: IngredientCategory.VIDEO,
       } as IIngredient);
     });
     expect(result.current.upscaleConfirmData?.ingredient?.id).toBe('source');
@@ -165,15 +164,12 @@ describe('useEnhanceUpscale', () => {
       ({ scopeKey }) => useEnhanceUpscale({ ...defaultParams, scopeKey }),
       { initialProps: { scopeKey: 'org:brand:actor:session-1' } },
     );
-    await act(async () => {
-      await result.current.handleUpscale({
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.handleUpscale({
         id: 'source',
         category: IngredientCategory.IMAGE,
       } as IIngredient);
-    });
-    let pending: Promise<void> | undefined;
-    act(() => {
-      pending = result.current.executeUpscale();
     });
     rerender({ scopeKey: 'org:brand:actor:session-2' });
     await act(async () => {
@@ -191,18 +187,13 @@ describe('useEnhanceUpscale', () => {
       expect(typeof result.current.handleUpscale).toBe('function');
       expect(typeof result.current.handleEnhance).toBe('function');
       expect(typeof result.current.executeUpscale).toBe('function');
-      expect(typeof result.current.executeEnhance).toBe('function');
       expect(typeof result.current.clearUpscaleConfirm).toBe('function');
-      expect(typeof result.current.clearEnhanceConfirm).toBe('function');
       expect(result.current.upscaleConfirmData).toBeNull();
-      expect(result.current.enhanceConfirmData).toBeNull();
-      expect(result.current.upscaleConfirmMessage).toBe('');
-      expect(result.current.enhanceConfirmMessage).toBe('');
     });
   });
 
   describe('handleUpscale', () => {
-    it('sets upscale confirm data for image ingredient', async () => {
+    it('starts an image upscale without a confirmation and says what it costs', async () => {
       const ingredient: Partial<IIngredient> = {
         category: IngredientCategory.IMAGE,
         id: 'img-123',
@@ -214,11 +205,18 @@ describe('useEnhanceUpscale', () => {
         await result.current.handleUpscale(ingredient as IIngredient);
       });
 
-      expect(result.current.upscaleConfirmData).toEqual({
-        cost: 10,
-        ingredient,
-        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      expect(mockInfo).toHaveBeenCalledWith(
+        'Upscaling image with Topaz AI for 10 credits.',
+      );
+      expect(mockGetImagesService).toHaveBeenCalled();
+      expect(mockPostUpscale).toHaveBeenCalledWith('img-123', {
+        faceEnhancement: true,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        subjectDetection: 'Foreground',
+        upscaleFactor: '4x',
       });
+      expect(mockOnRefresh).toHaveBeenCalled();
+      expect(result.current.upscaleConfirmData).toBeNull();
     });
 
     it('sets upscale confirm data for video ingredient', async () => {
@@ -301,7 +299,7 @@ describe('useEnhanceUpscale', () => {
   });
 
   describe('handleEnhance', () => {
-    it('sets enhance confirm data for image ingredient', async () => {
+    it('starts an image enhance without a confirmation and says what it costs', async () => {
       const ingredient: Partial<IIngredient> = {
         category: IngredientCategory.IMAGE,
         id: 'img-123',
@@ -313,14 +311,19 @@ describe('useEnhanceUpscale', () => {
         await result.current.handleEnhance(ingredient as IIngredient);
       });
 
-      expect(result.current.enhanceConfirmData).toEqual({
-        cost: 10,
-        ingredient,
-        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      expect(mockInfo).toHaveBeenCalledWith(
+        'Enhancing image with Topaz AI for 10 credits.',
+      );
+      expect(mockGetImagesService).toHaveBeenCalled();
+      expect(mockPostUpscale).toHaveBeenCalledWith('img-123', {
+        category: IngredientCategory.IMAGE,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        parent: 'img-123',
+        prompt: 'Enhance image quality using Topaz AI upscaling',
       });
     });
 
-    it('sets enhance confirm data for video ingredient', async () => {
+    it('starts a video enhance without a confirmation and says what it costs', async () => {
       const ingredient: Partial<IIngredient> = {
         category: IngredientCategory.VIDEO,
         id: 'vid-123',
@@ -332,10 +335,15 @@ describe('useEnhanceUpscale', () => {
         await result.current.handleEnhance(ingredient as IIngredient);
       });
 
-      expect(result.current.enhanceConfirmData).toEqual({
-        cost: 20,
-        ingredient,
-        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      expect(mockInfo).toHaveBeenCalledWith(
+        'Enhancing video with Topaz AI for 20 credits.',
+      );
+      expect(mockGetVideosService).toHaveBeenCalled();
+      expect(mockPostUpscale).toHaveBeenCalledWith('vid-123', {
+        category: IngredientCategory.VIDEO,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        parent: 'vid-123',
+        prompt: 'Enhance image quality using Topaz AI upscaling',
       });
     });
 
@@ -358,34 +366,6 @@ describe('useEnhanceUpscale', () => {
   });
 
   describe('executeUpscale', () => {
-    it('executes image upscale with correct parameters', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      // First trigger the upscale to set confirm data
-      await act(async () => {
-        await result.current.handleUpscale(ingredient as IIngredient);
-      });
-
-      // Then execute
-      await act(async () => {
-        await result.current.executeUpscale();
-      });
-
-      expect(mockGetImagesService).toHaveBeenCalled();
-      expect(mockPostUpscale).toHaveBeenCalledWith('img-123', {
-        faceEnhancement: true,
-        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-        subjectDetection: 'Foreground',
-        upscaleFactor: '4x',
-      });
-      expect(result.current.upscaleConfirmData).toBeNull();
-    });
-
     it('executes video upscale with correct parameters', async () => {
       const ingredient: Partial<IIngredient> = {
         category: IngredientCategory.VIDEO,
@@ -448,8 +428,8 @@ describe('useEnhanceUpscale', () => {
 
     it('calls onRefresh after successful upscale', async () => {
       const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
+        category: IngredientCategory.VIDEO,
+        id: 'vid-123',
       };
 
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
@@ -463,70 +443,6 @@ describe('useEnhanceUpscale', () => {
       });
 
       expect(mockOnRefresh).toHaveBeenCalled();
-    });
-  });
-
-  describe('executeEnhance', () => {
-    it('executes enhance with correct parameters', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.handleEnhance(ingredient as IIngredient);
-      });
-
-      await act(async () => {
-        await result.current.executeEnhance();
-      });
-
-      expect(mockGetImagesService).toHaveBeenCalled();
-      expect(mockPostUpscale).toHaveBeenCalledWith('img-123', {
-        category: IngredientCategory.IMAGE,
-        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-        parent: 'img-123',
-        prompt: 'Enhance image quality using Topaz AI upscaling',
-      });
-      expect(result.current.enhanceConfirmData).toBeNull();
-    });
-
-    it('executes video enhance with correct parameters', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.VIDEO,
-        id: 'vid-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.handleEnhance(ingredient as IIngredient);
-      });
-
-      await act(async () => {
-        await result.current.executeEnhance();
-      });
-
-      expect(mockGetVideosService).toHaveBeenCalled();
-      expect(mockPostUpscale).toHaveBeenCalledWith('vid-123', {
-        category: IngredientCategory.VIDEO,
-        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-        parent: 'vid-123',
-        prompt: 'Enhance image quality using Topaz AI upscaling',
-      });
-      expect(result.current.enhanceConfirmData).toBeNull();
-    });
-
-    it('does nothing when no confirm data is set', async () => {
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.executeEnhance();
-      });
-
-      expect(mockPostUpscale).not.toHaveBeenCalled();
     });
   });
 
@@ -557,7 +473,6 @@ describe('useEnhanceUpscale', () => {
         await act(async () => {
           await result.current.handleEnhance(image);
         });
-        expect(result.current.enhanceConfirmData).toBeNull();
         expect(mockError).toHaveBeenCalledWith(
           expect.stringContaining('price unavailable'),
         );
@@ -576,10 +491,9 @@ describe('useEnhanceUpscale', () => {
       await act(async () => {
         await result.current.handleUpscale(image);
       });
-      expect(result.current.upscaleConfirmData?.cost).toBe(0);
-      await act(async () => {
-        await result.current.executeUpscale();
-      });
+      expect(mockInfo).toHaveBeenCalledWith(
+        'Upscaling image with Topaz AI for 0 credits.',
+      );
       expect(mockPostUpscale).toHaveBeenCalledTimes(1);
     });
 
@@ -620,35 +534,35 @@ describe('useEnhanceUpscale', () => {
       ).toEqual([MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE]);
     });
 
-    it.each(['removed', 'repriced'])(
-      'rejects a %s image model at confirmation',
-      async (change) => {
-        const { result, rerender } = renderHook(() =>
-          useEnhanceUpscale(defaultParams),
-        );
-        await act(async () => {
-          await result.current.handleUpscale(image);
-        });
-        mockUseElements.mockReturnValue({
-          ...defaultElements,
-          imageUpscaleModels:
-            change === 'removed'
-              ? []
-              : [{ ...defaultElements.imageUpscaleModels[0], cost: 11 }],
-        });
-        rerender();
-        await act(async () => {
-          await result.current.executeUpscale();
-        });
-        expect(mockGetImagesService).not.toHaveBeenCalled();
-        expect(mockError).toHaveBeenCalledWith(
-          expect.stringContaining('model or price changed'),
-        );
-        expect(result.current.upscaleConfirmData?.ingredient?.id).toBe(
-          image.id,
-        );
-      },
-    );
+    it('quotes the price in force when an image upscale is requested', async () => {
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        imageUpscaleModels: [
+          { ...defaultElements.imageUpscaleModels[0], cost: 11 },
+        ],
+      });
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(image);
+      });
+      expect(mockInfo).toHaveBeenCalledWith(
+        'Upscaling image with Topaz AI for 11 credits.',
+      );
+      expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not upscale an image whose model was removed', async () => {
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        imageUpscaleModels: [],
+      });
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(image);
+      });
+      expect(mockGetImagesService).not.toHaveBeenCalled();
+      expect(mockError).toHaveBeenCalledWith('Upscale model not available');
+    });
 
     it('rejects a removed video model without substituting a remaining model', async () => {
       const { result, rerender } = renderHook(() =>
@@ -748,13 +662,9 @@ describe('useEnhanceUpscale', () => {
       const { result, rerender } = renderHook(() =>
         useEnhanceUpscale(defaultParams),
       );
-      await act(async () => {
-        await result.current.handleUpscale(image);
-      });
-      const execute = result.current.executeUpscale;
       let request: Promise<void> | undefined;
       act(() => {
-        request = execute();
+        request = result.current.handleUpscale(image);
       });
       mockUseElements.mockReturnValue({
         ...defaultElements,
@@ -772,14 +682,11 @@ describe('useEnhanceUpscale', () => {
       await act(async () => {
         await result.current.handleUpscale(image);
       });
-      await act(async () => {
-        await result.current.executeUpscale();
-      });
       expect(mockPostUpscale).toHaveBeenCalledTimes(1);
     });
 
     it.each(['upscale', 'enhance'] as const)(
-      'consumes one %s confirmation and binds its original source',
+      'runs one %s at a time and binds its original source',
       async (operation) => {
         let finish: (() => void) | undefined;
         mockPostUpscale.mockImplementationOnce(
@@ -790,24 +697,17 @@ describe('useEnhanceUpscale', () => {
         );
         const source = { ...image };
         const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-        await act(async () => {
-          await (operation === 'upscale'
-            ? result.current.handleUpscale
-            : result.current.handleEnhance)(source);
-        });
-        const execute =
+        const start = (ingredient: IIngredient) =>
           operation === 'upscale'
-            ? result.current.executeUpscale
-            : result.current.executeEnhance;
-        source.id = 'mutated-source';
+            ? result.current.handleUpscale(ingredient)
+            : result.current.handleEnhance(ingredient);
         let request: Promise<void> | undefined;
         await act(async () => {
-          request = execute();
-          await execute();
-          await result.current.handleUpscale({
-            ...image,
-            id: 'another-source',
-          });
+          request = start(source);
+        });
+        source.id = 'mutated-source';
+        await act(async () => {
+          await start({ ...image, id: 'another-source' });
         });
         expect(mockPostUpscale).toHaveBeenCalledTimes(1);
         expect(mockPostUpscale.mock.calls[0][0]).toBe(image.id);
@@ -815,57 +715,23 @@ describe('useEnhanceUpscale', () => {
           finish?.();
           await request;
         });
-        await act(async () => {
-          await execute();
-        });
-        expect(mockPostUpscale).toHaveBeenCalledTimes(1);
         expect(result.current.upscaleConfirmData).toBeNull();
       },
     );
 
-    it.each(['upscale', 'enhance'] as const)(
-      'cannot execute a dismissed %s confirmation from a captured callback',
-      async (operation) => {
-        const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-        await act(async () => {
-          await (operation === 'upscale'
-            ? result.current.handleUpscale
-            : result.current.handleEnhance)(image);
-        });
-        const execute =
-          operation === 'upscale'
-            ? result.current.executeUpscale
-            : result.current.executeEnhance;
-        act(() => {
-          (operation === 'upscale'
-            ? result.current.clearUpscaleConfirm
-            : result.current.clearEnhanceConfirm)();
-        });
-        await act(async () => {
-          await execute();
-        });
-        expect(mockGetImagesService).not.toHaveBeenCalled();
-      },
-    );
-
-    it('rejects a changed Enhance price at confirmation', async () => {
-      const { result, rerender } = renderHook(() =>
-        useEnhanceUpscale(defaultParams),
-      );
+    it('cannot execute a dismissed upscale confirmation from a captured callback', async () => {
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
       await act(async () => {
-        await result.current.handleEnhance(image);
+        await result.current.handleUpscale(video);
       });
-      mockUseElements.mockReturnValue({
-        ...defaultElements,
-        imageUpscaleModels: [
-          { ...defaultElements.imageUpscaleModels[0], cost: 11 },
-        ],
+      const execute = result.current.executeUpscale;
+      act(() => {
+        result.current.clearUpscaleConfirm();
       });
-      rerender();
       await act(async () => {
-        await result.current.executeEnhance();
+        await execute();
       });
-      expect(mockGetImagesService).not.toHaveBeenCalled();
+      expect(mockGetVideosService).not.toHaveBeenCalled();
     });
 
     it.each(['upscale', 'enhance'] as const)(
@@ -883,18 +749,12 @@ describe('useEnhanceUpscale', () => {
         const { result, unmount } = renderHook(() =>
           useEnhanceUpscale(defaultParams),
         );
-        await act(async () => {
-          await (operation === 'upscale'
-            ? result.current.handleUpscale
-            : result.current.handleEnhance)(image);
-        });
-        const execute =
-          operation === 'upscale'
-            ? result.current.executeUpscale
-            : result.current.executeEnhance;
         let request: Promise<void> | undefined;
         act(() => {
-          request = execute();
+          request =
+            operation === 'upscale'
+              ? result.current.handleUpscale(image)
+              : result.current.handleEnhance(image);
         });
         unmount();
         await act(async () => {
@@ -909,18 +769,12 @@ describe('useEnhanceUpscale', () => {
       mockPostUpscale.mockRejectedValueOnce(new Error('provider unavailable'));
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
       await act(async () => {
-        await result.current.handleEnhance(image);
-      });
-      await act(async () => {
-        await expect(result.current.executeEnhance()).rejects.toThrow(
+        await expect(result.current.handleEnhance(image)).rejects.toThrow(
           'provider unavailable',
         );
       });
       await act(async () => {
         await result.current.handleEnhance(image);
-      });
-      await act(async () => {
-        await result.current.executeEnhance();
       });
       expect(mockPostUpscale).toHaveBeenCalledTimes(2);
     });
@@ -929,8 +783,8 @@ describe('useEnhanceUpscale', () => {
   describe('Clear Functions', () => {
     it('clearUpscaleConfirm clears upscale confirm data', async () => {
       const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
+        category: IngredientCategory.VIDEO,
+        id: 'vid-123',
       };
 
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
@@ -946,86 +800,6 @@ describe('useEnhanceUpscale', () => {
       });
 
       expect(result.current.upscaleConfirmData).toBeNull();
-    });
-
-    it('clearEnhanceConfirm clears enhance confirm data', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.handleEnhance(ingredient as IIngredient);
-      });
-
-      expect(result.current.enhanceConfirmData).not.toBeNull();
-
-      act(() => {
-        result.current.clearEnhanceConfirm();
-      });
-
-      expect(result.current.enhanceConfirmData).toBeNull();
-    });
-  });
-
-  describe('Confirm Messages', () => {
-    it('generates correct upscale confirm message for image', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.handleUpscale(ingredient as IIngredient);
-      });
-
-      expect(result.current.upscaleConfirmMessage).toContain('Upscale');
-      expect(result.current.upscaleConfirmMessage).toContain('image');
-      expect(result.current.upscaleConfirmMessage).toContain('10');
-    });
-
-    it('generates correct upscale confirm message for video', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.VIDEO,
-        id: 'vid-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.handleUpscale(ingredient as IIngredient);
-      });
-
-      expect(result.current.upscaleConfirmMessage).toContain('Upscale');
-      expect(result.current.upscaleConfirmMessage).toContain('video');
-      expect(result.current.upscaleConfirmMessage).toContain('20');
-    });
-
-    it('generates correct enhance confirm message', async () => {
-      const ingredient: Partial<IIngredient> = {
-        category: IngredientCategory.IMAGE,
-        id: 'img-123',
-      };
-
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      await act(async () => {
-        await result.current.handleEnhance(ingredient as IIngredient);
-      });
-
-      expect(result.current.enhanceConfirmMessage).toContain('Enhance');
-      expect(result.current.enhanceConfirmMessage).toContain('Topaz');
-    });
-
-    it('returns empty message when no confirm data', () => {
-      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
-
-      expect(result.current.upscaleConfirmMessage).toBe('');
-      expect(result.current.enhanceConfirmMessage).toBe('');
     });
   });
 });

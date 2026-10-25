@@ -1,8 +1,4 @@
 'use client';
-
-import { IngredientCategory, MediaType } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   UpscaleConfirmData,
   VideoUpscaleSelection,
@@ -21,11 +17,6 @@ import VideoUpscaleConfirmControls, {
 import ModalConfirm from '@ui/modals/system/confirm/ModalConfirm';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export interface ConfirmData {
-  ingredient: IIngredient | null;
-  cost: number;
-}
-
 export interface MasonryConfirmBridgeProps {
   upscaleConfirmData: UpscaleConfirmData | null;
   executeUpscale: (selection?: VideoUpscaleSelection) => Promise<void>;
@@ -33,13 +24,11 @@ export interface MasonryConfirmBridgeProps {
   extendConfirmData?: VideoExtendConfirmData | null;
   executeExtend?: (selection: VideoExtendSelection) => Promise<void>;
   clearExtendConfirm?: () => void;
-  enhanceConfirmData?: ConfirmData | null;
-  executeEnhance?: () => Promise<void>;
-  clearEnhanceConfirm?: () => void;
 }
 
 /**
- * Shared component for handling upscale/enhance confirmation dialogs
+ * Opens the video upscale and extend dialogs, where the model, resolution and
+ * duration are chosen. Image upscale and enhance start without a dialog.
  * Used by both MasonryImage and MasonryVideo
  */
 export default function MasonryConfirmBridge({
@@ -49,9 +38,6 @@ export default function MasonryConfirmBridge({
   extendConfirmData,
   executeExtend,
   clearExtendConfirm,
-  enhanceConfirmData,
-  executeEnhance,
-  clearEnhanceConfirm,
 }: MasonryConfirmBridgeProps) {
   const [confirmConfig, setConfirmConfig] = useState<ModalConfirmProps | null>(
     null,
@@ -64,16 +50,9 @@ export default function MasonryConfirmBridge({
     cost: number;
   } | null>(null);
 
-  const lastEnhanceDataRef = useRef<{
-    ingredientId: string | null;
-    cost: number;
-  } | null>(null);
-
   // Store callbacks in refs to avoid dependency issues
   const executeUpscaleRef = useRef(executeUpscale);
   const clearUpscaleConfirmRef = useRef(clearUpscaleConfirm);
-  const executeEnhanceRef = useRef(executeEnhance);
-  const clearEnhanceConfirmRef = useRef(clearEnhanceConfirm);
   const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
     undefined,
   );
@@ -90,14 +69,6 @@ export default function MasonryConfirmBridge({
   useEffect(() => {
     clearUpscaleConfirmRef.current = clearUpscaleConfirm;
   }, [clearUpscaleConfirm]);
-
-  useEffect(() => {
-    executeEnhanceRef.current = executeEnhance;
-  }, [executeEnhance]);
-
-  useEffect(() => {
-    clearEnhanceConfirmRef.current = clearEnhanceConfirm;
-  }, [clearEnhanceConfirm]);
 
   useEffect(() => {
     executeExtendRef.current = executeExtend;
@@ -141,26 +112,18 @@ export default function MasonryConfirmBridge({
 
     lastUpscaleDataRef.current = { cost, ingredientId };
 
-    const category =
-      upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO
-        ? MediaType.VIDEO
-        : MediaType.IMAGE;
-    const isVideo = category === MediaType.VIDEO;
     const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
-    videoUpscaleSelectionRef.current = isVideo
-      ? getDefaultVideoUpscaleSelection(modelOptions)
-      : undefined;
-    const message = isVideo
-      ? 'Choose the model, output resolution, and frame rate. The source video remains unchanged.'
-      : `Upscale ${category} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(cost)} credits.`;
+    videoUpscaleSelectionRef.current =
+      getDefaultVideoUpscaleSelection(modelOptions);
 
     openConfirm({
       cancelLabel: 'Cancel',
       confirmLabel: 'Upscale',
       label: 'Confirm Upscale',
-      message,
+      message:
+        'Choose the model, output resolution, and frame rate. The source video remains unchanged.',
       children:
-        isVideo && modelOptions.length > 0 ? (
+        modelOptions.length > 0 ? (
           <VideoUpscaleConfirmControls
             modelOptions={modelOptions}
             onChange={(selection) => {
@@ -207,47 +170,6 @@ export default function MasonryConfirmBridge({
       },
     });
   }, [clearExtendConfirm, executeExtend, extendConfirmData, openConfirm]);
-
-  // Enhance confirmation (optional)
-  useEffect(() => {
-    if (!enhanceConfirmData || !executeEnhance || !clearEnhanceConfirm) {
-      lastEnhanceDataRef.current = null;
-      return;
-    }
-
-    const ingredientId = enhanceConfirmData.ingredient?.id || null;
-    const cost = enhanceConfirmData.cost;
-
-    // Only open if this is new/different confirm data
-    if (
-      lastEnhanceDataRef.current?.ingredientId === ingredientId &&
-      lastEnhanceDataRef.current?.cost === cost
-    ) {
-      return;
-    }
-
-    lastEnhanceDataRef.current = { cost, ingredientId };
-
-    const category =
-      enhanceConfirmData.ingredient?.category === IngredientCategory.VIDEO
-        ? MediaType.VIDEO
-        : MediaType.IMAGE;
-    const message = `Enhance ${category} with Topaz AI upscaling?\n\nThis will cost ${formatNumberWithCommas(cost)} credits.`;
-
-    openConfirm({
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Enhance',
-      label: 'Confirm Enhance',
-      message,
-      onClose: () => {
-        lastEnhanceDataRef.current = null;
-        clearEnhanceConfirmRef.current?.();
-      },
-      onConfirm: async () => {
-        await executeEnhanceRef.current?.();
-      },
-    });
-  }, [enhanceConfirmData, openConfirm, executeEnhance, clearEnhanceConfirm]);
 
   return confirmConfig ? (
     <ModalConfirm

@@ -26,7 +26,6 @@ import type { NotificationsService } from '@genfeedai/services/core/notification
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { dispatchLibraryAssetsRefresh } from '@hooks/data/library/library-assets-refresh';
@@ -302,26 +301,18 @@ export function useIngredientsActions({
 
   useEffect(() => {
     if (upscaleConfirmData) {
-      const isVideo =
-        upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO;
-      const ingredientCategory = isVideo ? 'video' : 'image';
       const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
-      videoUpscaleSelectionRef.current = isVideo
-        ? getDefaultVideoUpscaleSelection(modelOptions)
-        : undefined;
-      const message = isVideo
-        ? 'Choose the model, output resolution, and frame rate. The source video remains unchanged.'
-        : `Upscale ${ingredientCategory} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(
-            upscaleConfirmData.cost,
-          )} credits.`;
+      videoUpscaleSelectionRef.current =
+        getDefaultVideoUpscaleSelection(modelOptions);
 
       openConfirm({
         cancelLabel: 'Cancel',
         confirmLabel: 'Upscale',
         label: 'Confirm Upscale',
-        message,
+        message:
+          'Choose the model, output resolution, and frame rate. The source video remains unchanged.',
         children:
-          isVideo && modelOptions.length > 0
+          modelOptions.length > 0
             ? createElement(VideoUpscaleConfirmControls, {
                 modelOptions,
                 onChange: (selection) => {

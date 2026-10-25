@@ -218,13 +218,8 @@ export function useIngredientActions({
     upscalingSourceId,
     handleEnhance,
     upscaleConfirmData,
-    upscaleConfirmMessage,
-    enhanceConfirmData,
-    enhanceConfirmMessage,
     executeUpscale,
-    executeEnhance,
     clearUpscaleConfirm,
-    clearEnhanceConfirm,
   } = useEnhanceUpscale({
     scopeKey: transformScopeKey,
     getImagesService,
@@ -248,7 +243,7 @@ export function useIngredientActions({
     };
   }, []);
 
-  // Parent components can watch enhanceConfirmData/upscaleConfirmData
+  // Parent components can watch upscaleConfirmData
   // and call openConfirm from useConfirmModal hook to display the modal.
 
   const handleExtend = useCallback(
@@ -1157,13 +1152,8 @@ export function useIngredientActions({
     getUpscaleAvailability,
     getExtendAvailability,
     actionStates,
-    clearEnhanceConfirm,
     clearExtendConfirm,
     clearUpscaleConfirm,
-    // Enhance confirm modal data
-    enhanceConfirmData,
-    enhanceConfirmMessage,
-    executeEnhance,
     executeExtend,
     executeUpscale,
     handlers: {
@@ -1231,7 +1221,6 @@ export function useIngredientActions({
         : null,
     // Upscale confirm modal data
     upscaleConfirmData,
-    upscaleConfirmMessage,
   };
 }
 

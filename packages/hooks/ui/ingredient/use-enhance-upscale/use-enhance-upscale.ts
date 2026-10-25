@@ -27,7 +27,7 @@ import {
   executeWithActionState,
 } from '@hooks/utils/service-operation/service-operation.util';
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const TOPAZ_ENHANCE_PROMPT = 'Enhance image quality using Topaz AI upscaling';
 
@@ -89,31 +89,25 @@ export function useEnhanceUpscale({
   );
   const isMounted = useRef(true);
   const activeUpscaleConfirmation = useRef<UpscaleConfirmData | null>(null);
-  const activeEnhanceConfirmation = useRef<UpscaleConfirmData | null>(null);
   const currentModels = useRef({ imageUpscaleModels, videoUpscaleModels });
   currentModels.current = { imageUpscaleModels, videoUpscaleModels };
   const owner = useRef({ scopeKey, epoch: 0 });
   if (owner.current.scopeKey !== scopeKey)
     owner.current = { scopeKey, epoch: owner.current.epoch + 1 };
   const upscaleOwner = useRef(0);
-  const enhanceOwner = useRef(0);
+  // Re-render when the upscale source ref changes: the ref alone does not.
+  const [, setPendingSourceVersion] = useState(0);
 
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
       activeUpscaleConfirmation.current = null;
-      activeEnhanceConfirmation.current = null;
     };
   }, []);
 
-  // State for confirm modals
-  const [enhanceConfirmData, setEnhanceConfirmData] = useState<{
-    ingredient: IIngredient | null;
-    cost: number;
-    modelKey: string;
-  } | null>(null);
-
+  // Only video upscale still asks: its model, resolution and frame rate are
+  // chosen in the dialog. Images and enhance start straight away.
   const [upscaleConfirmData, setUpscaleConfirmData] =
     useState<UpscaleConfirmData | null>(null);
 
@@ -122,9 +116,7 @@ export function useEnhanceUpscale({
     if (lastCommittedScope.current === scopeKey) return;
     lastCommittedScope.current = scopeKey;
     activeUpscaleConfirmation.current = null;
-    activeEnhanceConfirmation.current = null;
     setUpscaleConfirmData(null);
-    setEnhanceConfirmData(null);
   }, [scopeKey]);
 
   const getUpscaleAvailability = useCallback(
@@ -140,62 +132,17 @@ export function useEnhanceUpscale({
     [imageUpscaleModels, videoUpscaleModels],
   );
 
-  const handleUpscale = useCallback(
-    async (ingredient: IIngredient) => {
-      if (
-        !isMounted.current ||
-        pendingTransformation.current ||
-        owner.current.scopeKey !== scopeKey
-      )
-        return;
-      activeUpscaleConfirmation.current = null;
-      activeEnhanceConfirmation.current = null;
-      setUpscaleConfirmData(null);
-      setEnhanceConfirmData(null);
-      const isVideo = isVideoIngredient(ingredient);
-      const isImage = isImageIngredient(ingredient);
-
-      if (!isVideo && !isImage) {
-        return notificationsService.error(
-          'Cannot upscale this ingredient type',
-        );
-      }
-
-      const admission = getUpscaleAdmission(
-        ingredient,
-        imageUpscaleModels,
-        videoUpscaleModels,
-      );
-      if (!admission.confirmation) {
-        return notificationsService.error(
-          admission.availability.reason === 'priceUnavailable'
-            ? 'Upscale price unavailable. Refresh models before continuing.'
-            : 'Upscale model not available',
-        );
-      }
-      const confirmation: UpscaleConfirmData = {
-        ...admission.confirmation,
-        ingredient: { ...ingredient },
-      };
-      upscaleOwner.current = owner.current.epoch;
-      activeUpscaleConfirmation.current = confirmation;
-      setUpscaleConfirmData(confirmation);
-    },
-    [videoUpscaleModels, imageUpscaleModels, notificationsService, scopeKey],
-  );
-
-  const executeUpscale = useCallback(
-    async (selection?: VideoUpscaleSelection) => {
-      if (
-        !upscaleConfirmData?.ingredient ||
-        activeUpscaleConfirmation.current !== upscaleConfirmData ||
-        pendingTransformation.current
-      ) {
+  const performUpscale = useCallback(
+    async (
+      confirmation: UpscaleConfirmData,
+      confirmedEpoch: number,
+      selection?: VideoUpscaleSelection,
+    ) => {
+      if (!confirmation.ingredient || pendingTransformation.current) {
         return;
       }
 
-      const ingredient = upscaleConfirmData.ingredient;
-      const confirmedEpoch = upscaleOwner.current;
+      const ingredient = confirmation.ingredient;
       const isVideo = isVideoIngredient(ingredient);
       const isImage = isImageIngredient(ingredient);
 
@@ -206,12 +153,12 @@ export function useEnhanceUpscale({
       }
 
       const modelKey = isVideo
-        ? (selection?.model ?? upscaleConfirmData.modelKey)
-        : upscaleConfirmData.modelKey;
-      const option = upscaleConfirmData.videoModelOptions?.find(
+        ? (selection?.model ?? confirmation.modelKey)
+        : confirmation.modelKey;
+      const option = confirmation.videoModelOptions?.find(
         (candidate) => candidate.key === modelKey,
       );
-      const quotedCost = isVideo ? option?.cost : upscaleConfirmData.cost;
+      const quotedCost = isVideo ? option?.cost : confirmation.cost;
       const targetFps = selection?.targetFps ?? 30;
       const targetResolution = selection?.targetResolution ?? '1080p';
       const selectedCost = selection?.cost;
@@ -258,6 +205,7 @@ export function useEnhanceUpscale({
         id: ingredient.id,
         epoch: confirmedEpoch,
       };
+      setPendingSourceVersion((version) => version + 1);
       activeUpscaleConfirmation.current = null;
       setUpscaleConfirmData(null);
       try {
@@ -296,10 +244,11 @@ export function useEnhanceUpscale({
       } finally {
         pendingTransformation.current = false;
         pendingUpscaleSource.current = null;
+        if (isMounted.current)
+          setPendingSourceVersion((version) => version + 1);
       }
     },
     [
-      upscaleConfirmData,
       getVideosService,
       getImagesService,
       notificationsService,
@@ -308,10 +257,159 @@ export function useEnhanceUpscale({
     ],
   );
 
+  const handleUpscale = useCallback(
+    async (ingredient: IIngredient) => {
+      if (
+        !isMounted.current ||
+        pendingTransformation.current ||
+        owner.current.scopeKey !== scopeKey
+      )
+        return;
+      activeUpscaleConfirmation.current = null;
+      setUpscaleConfirmData(null);
+      const isVideo = isVideoIngredient(ingredient);
+      const isImage = isImageIngredient(ingredient);
+
+      if (!isVideo && !isImage) {
+        return notificationsService.error(
+          'Cannot upscale this ingredient type',
+        );
+      }
+
+      const admission = getUpscaleAdmission(
+        ingredient,
+        imageUpscaleModels,
+        videoUpscaleModels,
+      );
+      if (!admission.confirmation) {
+        return notificationsService.error(
+          admission.availability.reason === 'priceUnavailable'
+            ? 'Upscale price unavailable. Refresh models before continuing.'
+            : 'Upscale model not available',
+        );
+      }
+      const confirmation: UpscaleConfirmData = {
+        ...admission.confirmation,
+        ingredient: { ...ingredient },
+      };
+      upscaleOwner.current = owner.current.epoch;
+      if (isImage) {
+        // Nothing to choose for an image: say what it costs and start.
+        notificationsService.info(
+          `Upscaling image with Topaz AI for ${formatNumberWithCommas(confirmation.cost)} credits.`,
+        );
+        await performUpscale(confirmation, owner.current.epoch);
+        return;
+      }
+      activeUpscaleConfirmation.current = confirmation;
+      setUpscaleConfirmData(confirmation);
+    },
+    [
+      videoUpscaleModels,
+      imageUpscaleModels,
+      notificationsService,
+      performUpscale,
+      scopeKey,
+    ],
+  );
+
+  const executeUpscale = useCallback(
+    async (selection?: VideoUpscaleSelection) => {
+      if (
+        !upscaleConfirmData?.ingredient ||
+        activeUpscaleConfirmation.current !== upscaleConfirmData
+      ) {
+        return;
+      }
+      await performUpscale(upscaleConfirmData, upscaleOwner.current, selection);
+    },
+    [performUpscale, upscaleConfirmData],
+  );
+
   const clearUpscaleConfirm = useCallback(() => {
     activeUpscaleConfirmation.current = null;
     setUpscaleConfirmData(null);
   }, []);
+
+  const performEnhance = useCallback(
+    async (confirmation: UpscaleConfirmData, confirmedEpoch: number) => {
+      if (!confirmation.ingredient || pendingTransformation.current) {
+        return;
+      }
+
+      const ingredient = confirmation.ingredient;
+      const isVideo = isVideoIngredient(ingredient);
+      const modelKey = confirmation.modelKey;
+
+      const isStillConfirmed = () => {
+        const models = isVideo
+          ? currentModels.current.videoUpscaleModels
+          : currentModels.current.imageUpscaleModels;
+        const current = models.find((model) => model.key === modelKey);
+        return Boolean(
+          isMounted.current &&
+            owner.current.epoch === confirmedEpoch &&
+            current &&
+            isKnownTransformCost(current.cost) &&
+            current.cost === confirmation.cost,
+        );
+      };
+      if (!isStillConfirmed())
+        return notificationsService.error(
+          'Enhance model or price changed. Review a new quote before continuing.',
+        );
+      pendingTransformation.current = true;
+      try {
+        await executeWithActionState({
+          errorMessage: 'Failed to enhance ingredient',
+          onSuccess: async () => {
+            if (isMounted.current && owner.current.epoch === confirmedEpoch)
+              await onRefresh?.();
+          },
+          operation: async () => {
+            if (isVideo) {
+              const service = await getVideosService();
+              if (!isStillConfirmed())
+                throw new Error('Enhance model or price changed');
+              const payload: TopazVideoEnhancePayload = {
+                category: IngredientCategory.VIDEO,
+                model: modelKey,
+                parent: ingredient.id,
+                prompt: TOPAZ_ENHANCE_PROMPT,
+              };
+
+              return service.postUpscale(ingredient.id, payload);
+            }
+
+            const service = await getImagesService();
+            if (!isStillConfirmed())
+              throw new Error('Enhance model or price changed');
+            const payload: TopazImageEnhancePayload = {
+              category: IngredientCategory.IMAGE,
+              model: modelKey,
+              parent: ingredient.id,
+              prompt: TOPAZ_ENHANCE_PROMPT,
+            };
+
+            return service.postUpscale(ingredient.id, payload);
+          },
+          setActionStates,
+          stateKey: 'isEnhancing',
+          successMessage: 'Enhance started successfully',
+          url: `POST /${isVideo ? 'videos' : 'images'}/${ingredient.id}/upscale [Topaz]`,
+        });
+      } finally {
+        pendingTransformation.current = false;
+      }
+    },
+    [
+      notificationsService,
+      getVideosService,
+      getImagesService,
+      onRefresh,
+      setActionStates,
+    ],
+  );
 
   const handleEnhance = useCallback(
     async (ingredient: IIngredient) => {
@@ -322,9 +420,7 @@ export function useEnhanceUpscale({
       )
         return;
       activeUpscaleConfirmation.current = null;
-      activeEnhanceConfirmation.current = null;
       setUpscaleConfirmData(null);
-      setEnhanceConfirmData(null);
       const isVideo = isVideoIngredient(ingredient);
       const isImage = isImageIngredient(ingredient);
 
@@ -357,131 +453,18 @@ export function useEnhanceUpscale({
         ingredient: { ...ingredient },
         modelKey: topazModel.key as string,
       };
-      enhanceOwner.current = owner.current.epoch;
-      activeEnhanceConfirmation.current = confirmation;
-      setEnhanceConfirmData(confirmation);
-    },
-    [videoUpscaleModels, imageUpscaleModels, notificationsService, scopeKey],
-  );
-
-  const executeEnhance = useCallback(async () => {
-    if (
-      !enhanceConfirmData?.ingredient ||
-      activeEnhanceConfirmation.current !== enhanceConfirmData ||
-      pendingTransformation.current
-    ) {
-      return;
-    }
-
-    const ingredient = enhanceConfirmData.ingredient;
-    const confirmedEpoch = enhanceOwner.current;
-    const isVideo = isVideoIngredient(ingredient);
-    const modelKey = enhanceConfirmData.modelKey;
-
-    const isStillConfirmed = () => {
-      const models = isVideo
-        ? currentModels.current.videoUpscaleModels
-        : currentModels.current.imageUpscaleModels;
-      const current = models.find((model) => model.key === modelKey);
-      return Boolean(
-        isMounted.current &&
-          owner.current.epoch === confirmedEpoch &&
-          current &&
-          isKnownTransformCost(current.cost) &&
-          current.cost === enhanceConfirmData.cost,
+      notificationsService.info(
+        `Enhancing ${isVideo ? 'video' : 'image'} with Topaz AI for ${formatNumberWithCommas(cost)} credits.`,
       );
-    };
-    if (!isStillConfirmed())
-      return notificationsService.error(
-        'Enhance model or price changed. Review a new quote before continuing.',
-      );
-    pendingTransformation.current = true;
-    activeEnhanceConfirmation.current = null;
-    setEnhanceConfirmData(null);
-    try {
-      await executeWithActionState({
-        errorMessage: 'Failed to enhance ingredient',
-        onSuccess: async () => {
-          if (isMounted.current && owner.current.epoch === confirmedEpoch)
-            await onRefresh?.();
-        },
-        operation: async () => {
-          if (isVideo) {
-            const service = await getVideosService();
-            if (!isStillConfirmed())
-              throw new Error('Enhance model or price changed');
-            const payload: TopazVideoEnhancePayload = {
-              category: IngredientCategory.VIDEO,
-              model: modelKey,
-              parent: ingredient.id,
-              prompt: TOPAZ_ENHANCE_PROMPT,
-            };
-
-            return service.postUpscale(ingredient.id, payload);
-          }
-
-          const service = await getImagesService();
-          if (!isStillConfirmed())
-            throw new Error('Enhance model or price changed');
-          const payload: TopazImageEnhancePayload = {
-            category: IngredientCategory.IMAGE,
-            model: modelKey,
-            parent: ingredient.id,
-            prompt: TOPAZ_ENHANCE_PROMPT,
-          };
-
-          return service.postUpscale(ingredient.id, payload);
-        },
-        setActionStates,
-        stateKey: 'isEnhancing',
-        successMessage: 'Enhance started successfully',
-        url: `POST /${isVideo ? 'videos' : 'images'}/${ingredient.id}/upscale [Topaz]`,
-      });
-    } finally {
-      pendingTransformation.current = false;
-    }
-  }, [
-    enhanceConfirmData,
-    notificationsService,
-    getVideosService,
-    getImagesService,
-    onRefresh,
-    setActionStates,
-  ]);
-
-  const clearEnhanceConfirm = useCallback(() => {
-    activeEnhanceConfirmation.current = null;
-    setEnhanceConfirmData(null);
-  }, []);
-
-  const formatConfirmMessage = useCallback(
-    (
-      action: string,
-      data: { ingredient: IIngredient | null; cost: number } | null,
-    ): string => {
-      if (!data) {
-        return '';
-      }
-      // Spelled out rather than interpolating the enum: IngredientCategory
-      // carries Prisma's SCREAMING_SNAKE labels (#2473), which read as
-      // "Upscale IMAGE with Topaz AI?" in a dialog shown to the user.
-      const noun =
-        data.ingredient?.category === IngredientCategory.VIDEO
-          ? 'video'
-          : 'image';
-      return `${action} ${noun} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(data.cost)} credits.`;
+      await performEnhance(confirmation, owner.current.epoch);
     },
-    [],
-  );
-
-  const enhanceConfirmMessage = useMemo(
-    () => formatConfirmMessage('Enhance', enhanceConfirmData),
-    [enhanceConfirmData, formatConfirmMessage],
-  );
-
-  const upscaleConfirmMessage = useMemo(
-    () => formatConfirmMessage('Upscale', upscaleConfirmData),
-    [upscaleConfirmData, formatConfirmMessage],
+    [
+      videoUpscaleModels,
+      imageUpscaleModels,
+      notificationsService,
+      performEnhance,
+      scopeKey,
+    ],
   );
 
   const upscalingSourceId =
@@ -492,21 +475,15 @@ export function useEnhanceUpscale({
   return {
     ...(upscalingSourceId ? { upscalingSourceId } : {}),
     getUpscaleAvailability,
-    clearEnhanceConfirm,
     // Cancel helpers
     clearUpscaleConfirm,
-    enhanceConfirmData:
-      enhanceOwner.current === owner.current.epoch ? enhanceConfirmData : null,
-    enhanceConfirmMessage,
-    executeEnhance,
     // Executors
     executeUpscale,
     handleEnhance,
     // Trigger
     handleUpscale,
-    // Confirm data and messages
+    // Confirm data
     upscaleConfirmData:
       upscaleOwner.current === owner.current.epoch ? upscaleConfirmData : null,
-    upscaleConfirmMessage,
   };
 }

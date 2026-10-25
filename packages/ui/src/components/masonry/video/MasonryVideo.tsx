@@ -269,9 +269,6 @@ function MasonryVideoTile({
           }
           executeUpscale={actions.executeUpscale}
           clearUpscaleConfirm={actions.clearUpscaleConfirm}
-          enhanceConfirmData={actions.enhanceConfirmData}
-          executeEnhance={actions.executeEnhance}
-          clearEnhanceConfirm={actions.clearEnhanceConfirm}
           extendConfirmData={
             transformActions ? null : actions.extendConfirmData
           }
