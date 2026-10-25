@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { RedisIoAdapter } from '@libs/adapters/redis-io.adapter';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test } from '@nestjs/testing';
 import * as redisAdapter from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import { Server } from 'socket.io';
@@ -14,6 +15,7 @@ import {
   type Mocked,
   vi,
 } from 'vitest';
+import { createLogger } from 'winston';
 
 vi.mock('@socket.io/redis-adapter', () => ({
   createAdapter: vi.fn(),
@@ -33,11 +35,7 @@ describe('RedisIoAdapter', () => {
     get: (key: string) => ({ REDIS_URL: redisUrl, ...env })[key],
   });
 
-  const loggerService: Mocked<Pick<LoggerService, 'error' | 'log' | 'warn'>> = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
+  const loggerService = new LoggerService(createLogger({ silent: true }));
 
   const buildMockClient = (): Mocked<RedisClientSubset> => {
     const client: RedisClientSubset = {
@@ -50,10 +48,14 @@ describe('RedisIoAdapter', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(loggerService, 'error');
+    vi.spyOn(loggerService, 'log');
+    vi.spyOn(loggerService, 'warn');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('shares one Socket.IO server resolution with the Nest adapter', () => {
@@ -76,7 +78,10 @@ describe('RedisIoAdapter', () => {
 
     pubClient.duplicate.mockReturnValue(subClient as unknown as Redis);
 
-    vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
+    function createRedisClient(): Redis {
+      return pubClient as unknown as Redis;
+    }
+    vi.mocked(Redis).mockImplementation(createRedisClient);
     vi.mocked(redisAdapter.createAdapter).mockReturnValue(
       adapterConstructor as unknown as ReturnType<
         typeof redisAdapter.createAdapter
@@ -99,7 +104,10 @@ describe('RedisIoAdapter', () => {
     const adapterConstructor = Symbol('adapter-constructor');
 
     pubClient.duplicate.mockReturnValue(subClient as unknown as Redis);
-    vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
+    function createRedisClient(): Redis {
+      return pubClient as unknown as Redis;
+    }
+    vi.mocked(Redis).mockImplementation(createRedisClient);
     vi.mocked(redisAdapter.createAdapter).mockReturnValue(
       adapterConstructor as unknown as ReturnType<
         typeof redisAdapter.createAdapter
@@ -136,7 +144,10 @@ describe('RedisIoAdapter', () => {
     pubClient.duplicate.mockReturnValue(subClient as unknown as Redis);
     pubClient.connect.mockRejectedValueOnce(new Error('connection failed'));
 
-    vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
+    function createRedisClient(): Redis {
+      return pubClient as unknown as Redis;
+    }
+    vi.mocked(Redis).mockImplementation(createRedisClient);
 
     const adapter = new RedisIoAdapter(undefined, accessor(), loggerService);
     await adapter.connectToRedis();
@@ -180,27 +191,21 @@ describe('RedisIoAdapter', () => {
       );
 
     const buildServerOrigins = (nodeEnv: string): (string | RegExp)[] => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = nodeEnv;
-      try {
-        const appRef = { getHttpServer: () => createServer() };
-        const adapter = new RedisIoAdapter(
-          appRef as unknown as never,
-          accessor(),
-          loggerService,
-        );
-        const server = adapter.createIOServer(0);
-        const origins =
-          (
-            server.engine as unknown as {
-              opts?: { cors?: { origin?: (string | RegExp)[] } };
-            }
-          ).opts?.cors?.origin ?? [];
-        server.close();
-        return origins;
-      } finally {
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      const appRef = { getHttpServer: () => createServer() };
+      const adapter = new RedisIoAdapter(
+        appRef as unknown as never,
+        accessor({ NODE_ENV: nodeEnv }),
+        loggerService,
+      );
+      const server = adapter.createIOServer(0);
+      const origins =
+        (
+          server.engine as unknown as {
+            opts?: { cors?: { origin?: (string | RegExp)[] } };
+          }
+        ).opts?.cors?.origin ?? [];
+      server.close();
+      return origins;
     };
 
     it('allows the production app origin app.genfeed.ai (the #1224 regression)', () => {
@@ -228,5 +233,78 @@ describe('RedisIoAdapter', () => {
       expect(originAllows(origins, 'http://localhost:3000')).toBe(true);
       expect(originAllows(origins, 'http://genfeed.localhost:3111')).toBe(true);
     });
+
+    it.each([
+      { raw: undefined, validated: 'development', isAllowed: true },
+      { raw: 'development', validated: 'development', isAllowed: true },
+      { raw: 'test', validated: 'test', isAllowed: true },
+      { raw: 'production', validated: 'production', isAllowed: false },
+      { raw: 'development', validated: 'production', isAllowed: false },
+      { raw: undefined, validated: 'production', isAllowed: false },
+      { raw: undefined, validated: undefined, isAllowed: false },
+    ])(
+      'uses validated $validated configuration when raw NODE_ENV is $raw',
+      async ({ raw, validated, isAllowed }) => {
+        vi.stubEnv('NODE_ENV', raw);
+        const moduleRef = await Test.createTestingModule({}).compile();
+        const app = moduleRef.createNestApplication({ logger: false });
+        const adapter = new RedisIoAdapter(
+          app,
+          accessor(validated ? { NODE_ENV: validated } : {}),
+          loggerService,
+        );
+        const server = adapter.createIOServer(0);
+
+        try {
+          await app.listen(0, '127.0.0.1');
+          const baseUrl = await app.getUrl();
+          const polling = await fetch(
+            `${baseUrl}/socket.io/?EIO=4&transport=polling`,
+            { headers: { Origin: 'http://localhost:3000' } },
+          );
+          expect(polling.status).toBe(200);
+          expect(await polling.text()).toMatch(/^0\{/);
+          expect(polling.headers.get('access-control-allow-origin')).toBe(
+            isAllowed ? 'http://localhost:3000' : null,
+          );
+
+          const preflight = await fetch(`${baseUrl}/socket.io/`, {
+            headers: {
+              Origin: 'http://localhost:3000',
+              'Access-Control-Request-Method': 'POST',
+              'Access-Control-Request-Headers': 'authorization',
+            },
+            method: 'OPTIONS',
+          });
+          expect(preflight.status).toBe(204);
+          expect(preflight.headers.get('access-control-allow-origin')).toBe(
+            isAllowed ? 'http://localhost:3000' : null,
+          );
+          expect(
+            preflight.headers.get('access-control-allow-credentials'),
+          ).toBe('true');
+
+          if (validated === 'production') {
+            for (const origin of [
+              'https://app.genfeed.ai',
+              'https://evil.genfeed.ai',
+              'http://app.genfeed.ai',
+            ]) {
+              const response = await fetch(
+                `${baseUrl}/socket.io/?EIO=4&transport=polling`,
+                { headers: { Origin: origin } },
+              );
+              await response.text();
+              expect(response.headers.get('access-control-allow-origin')).toBe(
+                origin === 'https://app.genfeed.ai' ? origin : null,
+              );
+            }
+          }
+        } finally {
+          await server.close();
+          await app.close();
+        }
+      },
+    );
   });
 });

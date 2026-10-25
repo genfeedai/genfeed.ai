@@ -6033,38 +6033,6 @@
       "workspace": "integrations"
     },
     {
-      "code": 2345,
-      "count": 3,
-      "file": "packages/libs/adapters/redis-io.adapter.spec.ts",
-      "fingerprint": "05188eafa739be78806e",
-      "message": "Argument of type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is not assignable to parameter of type 'LoggerService'.   Type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 35 more.",
-      "workspace": "libs"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "packages/libs/adapters/redis-io.adapter.spec.ts",
-      "fingerprint": "7ec2574fbb51738051cf",
-      "message": "Argument of type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is not assignable to parameter of type 'LoggerService'.   Type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 35 more.",
-      "workspace": "libs"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "packages/libs/adapters/redis-io.adapter.spec.ts",
-      "fingerprint": "beec56a0ad8f2612cfbc",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "libs"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "packages/libs/adapters/redis-io.adapter.spec.ts",
-      "fingerprint": "c96d978a08997b132120",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "libs"
-    },
-    {
       "code": 2493,
       "count": 1,
       "file": "packages/libs/auth/better-auth-jwks.verifier.spec.ts",

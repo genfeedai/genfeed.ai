@@ -113,6 +113,22 @@ export class AgentClient {
     );
   }
 
+  /**
+   * Whether this member's credit-spending calls must wait in the approvals queue
+   * ("Require approval for MCP requests": organization policy plus the member's own
+   * setting). Any failure reads as required, so a lookup can never waive an approval.
+   */
+  isApprovalRequired(): Promise<boolean> {
+    return this.base.request(
+      'reading the MCP approval policy',
+      async (http) => {
+        const response = await http.get('/mcp-approvals/policy');
+        return response.data?.data?.isApprovalRequired !== false;
+      },
+      () => true,
+    );
+  }
+
   getApproval(approvalId: string): Promise<McpApprovalResource | null> {
     return this.base.request(
       `fetching approval ${approvalId}`,

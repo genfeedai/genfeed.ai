@@ -332,4 +332,14 @@ export class CreateSettingDto {
     required: false,
   })
   readonly agentMode?: AgentThreadMode;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description:
+      "Whether this member's MCP requests that spend credits wait in the approvals queue. Only takes effect once the organization also turns its policy off.",
+    required: false,
+  })
+  readonly isMcpApprovalRequired?: boolean;
 }
