@@ -970,6 +970,8 @@ const UI_TEST_MESSAGES = {
       inspector: {
         copyPrompt: 'Copy prompt',
         created: 'Created',
+        credits: 'Credits',
+        creditsReserved: '{count} (running)',
         deletedReference: 'Deleted reference',
         dimensions: 'Dimensions',
         duration: 'Duration',

@@ -4,6 +4,7 @@ import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-
 import { McpApprovalsQueryDto } from '@api/collections/mcp-approvals/dto/mcp-approvals-query.dto';
 import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/services/mcp-approval-policy.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -62,6 +63,7 @@ type McpApprovalListResponse = {
 export class McpApprovalsController {
   constructor(
     private readonly service: McpApprovalsService,
+    private readonly policy: McpApprovalPolicyService,
     private readonly rolesGuard: RolesGuard,
     readonly _logger: LoggerService,
   ) {}
@@ -112,6 +114,23 @@ export class McpApprovalsController {
     const list = await this.service.findByOrganization(organization, query);
     const { links } = transformPaginationFormat(list);
     return { data: list.docs.map((a) => this.toResponse(a)), links };
+  }
+
+  @TenantReadPolicy('selected')
+  @Get('policy')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      "Whether the connected member's MCP requests that spend credits wait for approval",
+  })
+  async approvalPolicy(
+    @CurrentUser() user: User,
+  ): Promise<{ data: { isApprovalRequired: boolean } }> {
+    const isApprovalRequired = await this.policy.isApprovalRequired(
+      user.organizationId,
+      user.userId ?? user.id,
+    );
+    return { data: { isApprovalRequired } };
   }
 
   @TenantReadPolicy('selected')

@@ -7,6 +7,7 @@
 
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
+import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/services/mcp-approval-policy.service';
 import { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -17,13 +18,22 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [McpApprovalsController],
-  exports: [McpApprovalsService, McpApprovalPricingService],
+  exports: [
+    McpApprovalsService,
+    McpApprovalPricingService,
+    McpApprovalPolicyService,
+  ],
   imports: [
     ActivityRecordingModule,
     BrandAccessModule,
     RouterModule,
     ByokModule,
   ],
-  providers: [McpApprovalsService, McpApprovalPricingService, RolesGuard],
+  providers: [
+    McpApprovalsService,
+    McpApprovalPricingService,
+    McpApprovalPolicyService,
+    RolesGuard,
+  ],
 })
 export class McpApprovalsModule {}

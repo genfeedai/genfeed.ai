@@ -1133,3 +1133,86 @@ describe('capture_memory exact approval redemption', () => {
     expect(f.approvals.claimExecution).not.toHaveBeenCalled();
   });
 });
+
+describe('AgentToolMutationAuthorizationService MCP approval setting', () => {
+  function harness(isApprovalRequired: boolean) {
+    const approvals = {
+      createPending: vi
+        .fn()
+        .mockResolvedValue({ id: 'pending-id', status: 'PENDING' }),
+      findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
+    };
+    const policy = {
+      isApprovalRequired: vi.fn().mockResolvedValue(isApprovalRequired),
+    };
+    const service = new AgentToolMutationAuthorizationService(
+      {} as never,
+      approvals as never,
+      undefined,
+      undefined,
+      undefined,
+      policy as never,
+    );
+    const authorize = (
+      toolName: Parameters<typeof service.authorize>[0],
+      origin: ActionOrigin,
+      context: Partial<ToolExecutionContext> = {},
+    ) =>
+      runWithActionOrigin({ origin }, () =>
+        service.authorize(
+          toolName,
+          { prompt: 'A product shot' },
+          {
+            hostSupportsApproval: true,
+            organizationId: 'org',
+            userId: 'user',
+            ...context,
+          },
+          {} as never,
+        ),
+      );
+    return { approvals, authorize, policy };
+  }
+
+  it('queues an MCP credit spender while the setting still requires approval', async () => {
+    const { approvals, authorize, policy } = harness(true);
+    const result = await authorize('generate_turbo_content', ActionOrigin.MCP);
+
+    expect(result.kind).toBe('return');
+    expect(policy.isApprovalRequired).toHaveBeenCalledWith('org', 'user');
+    expect(approvals.createPending).toHaveBeenCalledOnce();
+  });
+
+  it('runs an MCP credit spender directly once the organization and member both opt out', async () => {
+    const { approvals, authorize, policy } = harness(false);
+    const result = await authorize('generate_turbo_content', ActionOrigin.MCP);
+
+    expect(result).toEqual({ kind: 'execute' });
+    expect(policy.isApprovalRequired).toHaveBeenCalledWith('org', 'user');
+    expect(approvals.createPending).not.toHaveBeenCalled();
+  });
+
+  it('never waives approval for an outbound tool', async () => {
+    const { approvals, authorize, policy } = harness(false);
+    const result = await authorize(
+      'create_scheduled_release',
+      ActionOrigin.MCP,
+    );
+
+    expect(result.kind).toBe('return');
+    expect(policy.isApprovalRequired).not.toHaveBeenCalled();
+    expect(approvals.createPending).toHaveBeenCalledOnce();
+  });
+
+  it.each([ActionOrigin.UI, ActionOrigin.API, ActionOrigin.CLI])(
+    'does not apply the MCP setting to %s calls',
+    async (origin) => {
+      const { approvals, authorize, policy } = harness(false);
+      const result = await authorize('generate_turbo_content', origin);
+
+      expect(result.kind).toBe('return');
+      expect(policy.isApprovalRequired).not.toHaveBeenCalled();
+      expect(approvals.createPending).toHaveBeenCalledOnce();
+    },
+  );
+});
