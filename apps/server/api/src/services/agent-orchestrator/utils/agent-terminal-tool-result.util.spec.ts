@@ -1,8 +1,15 @@
 import { resolveTerminalToolOutcome } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
-const card = { id: 'card', type: 'mutation_approval_card' } as const;
+const card: AgentUiAction = {
+  id: 'card',
+  title: 'Generate turbo content',
+  type: 'mutation_approval_card',
+};
 
 describe('resolveTerminalToolOutcome', () => {
   it('ends the turn while a mutation approval is pending', () => {
