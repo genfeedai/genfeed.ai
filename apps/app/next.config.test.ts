@@ -50,12 +50,6 @@ describe('app next.config', () => {
 
   it.each([
     [
-      '/acme/brand/workspace/inbox/all?taskId=t1',
-      '/acme/brand/workspace/inbox',
-      'view',
-      'all',
-    ],
-    [
       '/admin/automation/models/image?organization=o1',
       '/admin/automation/models',
       'type',
@@ -288,17 +282,14 @@ describe('app next.config', () => {
   });
 
   it.each(['', '/:orgSlug/:brandSlug', '/:orgSlug/~'])(
-    'redirects old filter paths under %s without redirecting the canonical inbox',
+    'redirects old filter paths under %s and leaves the inbox paths alone',
     async (prefix) => {
       const redirects = await config.redirects?.();
-      expect(redirects).toContainEqual({
-        source: `${prefix}/workspace/inbox/all`,
-        destination: `${prefix}/workspace/inbox?view=all`,
-        permanent: true,
-      });
+      // Inbox views are real paths (`/workspace/inbox/all`); nothing under
+      // /workspace/inbox is redirected by config.
       expect(
-        redirects?.some(
-          (entry) => entry.source === `${prefix}/workspace/inbox`,
+        redirects?.some((entry) =>
+          entry.source.startsWith(`${prefix}/workspace/inbox`),
         ),
       ).toBe(false);
       // Library places, shelves and types are real routes, never redirected.

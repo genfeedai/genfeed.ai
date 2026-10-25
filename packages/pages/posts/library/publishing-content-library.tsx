@@ -46,6 +46,7 @@ import PublishingContentLibraryToolbar, {
   PublishingContentLibrarySearch,
 } from '@pages/posts/library/publishing-content-library-toolbar';
 import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
+import PublishingViewToggle from '@pages/posts/library/publishing-view-toggle';
 import CapturedPostsList from '@pages/posts/list/captured-posts-list';
 import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
 import { parsePostsSource } from '@pages/posts/list/posts-list-query';
@@ -66,23 +67,13 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
-import {
-  CalendarDays,
-  ClipboardCheck,
-  Eye,
-  Files,
-  Kanban,
-  LayoutGrid,
-  RotateCcw,
-  Rows3,
-} from 'lucide-react';
+import { Eye, Files, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -101,15 +92,8 @@ const EMPTY_COLLECTIONS: PublishingContentCollections = {
   releases: [],
 };
 
-export default function PublishingContentLibrary({
-  approvals,
-  calendar,
-}: {
-  approvals?: React.ReactNode;
-  calendar?: React.ReactNode;
-}) {
+export default function PublishingContentLibrary() {
   const translate = useTranslations('pages.posts.list.collection');
-  const translateList = useTranslations('pages.posts.list');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { credentials } = useBrand();
   const isFetchReady = isCollectionFetchReady({
@@ -131,16 +115,13 @@ export default function PublishingContentLibrary({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams?.toString() ?? '';
   const view = new URLSearchParams(searchParamsString).get('view') || 'list';
-  const isCalendar = Boolean(calendar) && view === 'calendar';
-  const isApprovals = Boolean(approvals) && view === 'approvals';
-  const isEmbeddedView = isCalendar || isApprovals;
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
   const source = parsePostsSource(parsedSearchParams.get('source'));
   // The Extension source lists captured posts, not releases or articles.
-  const isCapturedView = source !== undefined && !isEmbeddedView;
+  const isCapturedView = source !== undefined;
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
@@ -606,8 +587,6 @@ export default function PublishingContentLibrary({
   ];
 
   useEffect(() => {
-    // The approval queue owns the toolbar while its view is open.
-    if (isApprovals) return;
     setLeadingNode(
       <PublishingContentLibrarySearch
         searchValue={search}
@@ -641,7 +620,6 @@ export default function PublishingContentLibrary({
     accountOptions,
     channel,
     channelOptions,
-    isApprovals,
     replaceQueryParam,
     search,
     setFiltersNode,
@@ -654,91 +632,33 @@ export default function PublishingContentLibrary({
 
   useEffect(() => {
     setViewToggleNode(
-      <ViewToggle
+      <PublishingViewToggle
         activeView={
-          isCalendar
-            ? ViewType.CALENDAR
-            : isApprovals
-              ? ViewType.APPROVALS
-              : view === 'board'
-                ? ViewType.KANBAN
-                : view === 'grid'
-                  ? ViewType.GRID
-                  : ViewType.LIST
+          view === 'board'
+            ? ViewType.KANBAN
+            : view === 'grid'
+              ? ViewType.GRID
+              : ViewType.LIST
         }
-        onChange={(next) =>
-          replaceQueryParam(
-            'view',
-            next === ViewType.CALENDAR
-              ? 'calendar'
-              : next === ViewType.APPROVALS
-                ? 'approvals'
-                : next === ViewType.KANBAN
-                  ? 'board'
-                  : next === ViewType.GRID
-                    ? 'grid'
-                    : 'list',
-          )
-        }
-        options={[
-          ...(calendar
-            ? [
-                {
-                  type: ViewType.CALENDAR,
-                  icon: <CalendarDays className="size-3.5" />,
-                  label: 'Calendar view',
-                },
-              ]
-            : []),
-          {
-            type: ViewType.LIST,
-            icon: <Rows3 className="size-3.5" />,
-            label: 'List',
-          },
-          {
-            type: ViewType.KANBAN,
-            icon: <Kanban className="size-3.5" />,
-            label: 'Board',
-          },
-          {
-            type: ViewType.GRID,
-            icon: <LayoutGrid className="size-3.5" />,
-            label: 'Grid',
-          },
-          ...(approvals
-            ? [
-                {
-                  type: ViewType.APPROVALS,
-                  icon: <ClipboardCheck className="size-3.5" />,
-                  label: translateList('viewToggle.approvals'),
-                },
-              ]
-            : []),
-        ]}
+        onViewModeChange={(mode) => replaceQueryParam('view', mode)}
       />,
     );
-    // The embedded views and the captured list own the refresh action.
-    if (!isEmbeddedView && !isCapturedView)
+    // The captured list owns the refresh action.
+    if (!isCapturedView)
       setRefresh(() => async () => {
         await refetch();
       });
     return () => {
       setViewToggleNode(null);
-      if (!isEmbeddedView && !isCapturedView) setRefresh(() => () => {});
+      if (!isCapturedView) setRefresh(() => () => {});
     };
   }, [
-    approvals,
-    calendar,
-    isApprovals,
-    isCalendar,
     isCapturedView,
-    isEmbeddedView,
     view,
     replaceQueryParam,
     refetch,
     setRefresh,
     setViewToggleNode,
-    translateList,
   ]);
 
   useEffect(() => {
@@ -764,8 +684,6 @@ export default function PublishingContentLibrary({
     />
   );
 
-  if (isCalendar) return <>{calendar}</>;
-  if (isApprovals) return <>{approvals}</>;
   if (isCapturedView) {
     const capturedPlatform = normalizePostsPlatform(channel);
     return (

@@ -236,6 +236,12 @@ vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
   default: () => <div data-testid="publishing-overview-page" />,
 }));
 
+vi.mock('@pages/posts/library/publishing-desk-view-toggle', () => ({
+  default: ({ activeView }: { activeView: string }) => (
+    <div data-active-view={activeView} data-testid="publishing-view-toggle" />
+  ),
+}));
+
 vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
   default: () => <div data-testid="publishing-review-queue" />,
 }));
@@ -676,27 +682,97 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
     expect(renderPostsListPageMock).toHaveBeenCalledWith({
-      approvals: expect.anything(),
       scope: PageScope.ORGANIZATION,
       searchParams,
     });
   });
 
-  it.each(['calendar', 'review'])(
-    'returns not found for the retired org publishing %s route',
-    async (segment) => {
-      // Calendar and approvals are Posts views (`/publishing/posts?view=…`);
-      // the old routes are hard-cut.
+  it('renders the org calendar at its own route', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['calendar'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
+    expect(screen.getByTestId('campaign-calendar-page')).toBeInTheDocument();
+    expect(screen.getByTestId('publishing-view-toggle')).toHaveAttribute(
+      'data-active-view',
+      'calendar',
+    );
+  });
+
+  it.each([
+    [['approvals']],
+    [['approvals', 'run-1']],
+    [['approvals', 'run-1', 'item-1']],
+  ])('renders the org approvals queue for %j', async (segments) => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments,
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('publishing-review-queue')).toBeInTheDocument();
+    expect(screen.getByTestId('publishing-view-toggle')).toHaveAttribute(
+      'data-active-view',
+      'approvals',
+    );
+  });
+
+  it('returns not found for approvals paths deeper than run and item', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+          segments: ['approvals', 'run-1', 'item-1', 'extra'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('returns not found for the retired org publishing review route', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+          segments: ['review'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['approvals', '/acme/~/publishing/approvals/run-1/item-1?filter=all'],
+    ['calendar', '/acme/~/publishing/calendar'],
+  ])(
+    'permanently redirects the legacy posts ?view=%s tab',
+    async (view, destination) => {
       await expect(
         OrgRootAppPage({
           params: Promise.resolve({
             orgRootApp: 'publishing',
             orgSlug: 'acme',
-            segments: [segment],
+            segments: ['posts'],
           }),
+          searchParams: Promise.resolve(
+            view === 'approvals'
+              ? { filter: 'all', item: 'item-1', run: 'run-1', view }
+              : { view },
+          ),
         }),
-      ).rejects.toThrow('NEXT_NOT_FOUND');
-      expect(redirectMock).not.toHaveBeenCalled();
+      ).rejects.toThrow(`NEXT_PERMANENT_REDIRECT:${destination}`);
     },
   );
 

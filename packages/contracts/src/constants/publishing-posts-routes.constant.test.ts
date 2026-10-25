@@ -5,27 +5,27 @@ import {
   createPublishingApprovalsRoute,
   createPublishingPostsFilterRoute,
   PUBLISHING_POSTS_QUERY_KEYS,
+  parsePublishingApprovalsPath,
   parsePublishingPostsViewMode,
 } from './publishing-posts-routes.constant';
 import { APP_ROUTES } from './routes.constant';
 
 describe('publishing-posts-routes.constant', () => {
-  it('opens the approvals Posts view (#5502)', () => {
-    expect(createPublishingApprovalsRoute()).toBe(APP_ROUTES.PUBLISHING.REVIEW);
-    expect(APP_ROUTES.PUBLISHING.REVIEW).toBe(
-      '/publishing/posts?view=approvals',
-    );
+  it('opens the approvals queue at its own path (#5502)', () => {
+    expect(createPublishingApprovalsRoute()).toBe('/publishing/approvals');
+    expect(APP_ROUTES.PUBLISHING.APPROVALS).toBe('/publishing/approvals');
   });
 
-  it('carries the Turbo run, filter and item, skipping empty values', () => {
+  it('puts the Turbo run and item in the path and keeps the filter a param', () => {
     expect(
       createPublishingApprovalsRoute({
         filter: 'ready',
         item: 'item-2',
         run: 'run-1',
       }),
-    ).toBe(
-      '/publishing/posts?view=approvals&run=run-1&filter=ready&item=item-2',
+    ).toBe('/publishing/approvals/run-1/item-2?filter=ready');
+    expect(createPublishingApprovalsRoute({ run: 'run-1' })).toBe(
+      '/publishing/approvals/run-1',
     );
     expect(
       createPublishingApprovalsRoute({
@@ -33,13 +33,45 @@ describe('publishing-posts-routes.constant', () => {
         item: '',
         run: null,
       }),
-    ).toBe('/publishing/posts?view=approvals');
+    ).toBe('/publishing/approvals');
+  });
+
+  it('rides an item without a run as a query param', () => {
+    expect(createPublishingApprovalsRoute({ item: 'item-2' })).toBe(
+      '/publishing/approvals?item=item-2',
+    );
   });
 
   it('focuses one review inbox gate (#7340)', () => {
     expect(
       createPublishingApprovalsRoute({ approval: 'mcp_approval:apr-1' }),
-    ).toBe('/publishing/posts?view=approvals&approval=mcp_approval%3Aapr-1');
+    ).toBe('/publishing/approvals?approval=mcp_approval%3Aapr-1');
+  });
+
+  it('reads the run and item back from a scoped pathname', () => {
+    expect(
+      parsePublishingApprovalsPath(
+        '/acme/brand/publishing/approvals/r%201/i-2',
+      ),
+    ).toEqual({
+      basePath: '/acme/brand/publishing/approvals',
+      item: 'i-2',
+      run: 'r 1',
+    });
+    expect(
+      parsePublishingApprovalsPath('/acme/brand/publishing/approvals'),
+    ).toEqual({
+      basePath: '/acme/brand/publishing/approvals',
+      item: null,
+      run: null,
+    });
+    expect(
+      parsePublishingApprovalsPath('/acme/brand/publishing/posts'),
+    ).toEqual({
+      basePath: '/acme/brand/publishing/posts',
+      item: null,
+      run: null,
+    });
   });
 
   it('returns the canonical library when no filters are provided', () => {

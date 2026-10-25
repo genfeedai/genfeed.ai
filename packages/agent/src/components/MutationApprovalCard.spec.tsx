@@ -54,6 +54,43 @@ function approval(status = 'pending'): AgentUiAction {
 }
 
 describe('MutationApprovalCard', () => {
+  it('renders a pending post as the platform preview instead of key/value rows', () => {
+    const card = approval();
+    card.data = {
+      ...card.data,
+      items: [{ label: 'Scheduled at', value: '2026-10-26T09:00:00Z' }],
+      postPreviews: [
+        {
+          caption: 'Ship it before lunch.',
+          mediaUrls: [],
+          platform: 'twitter',
+        },
+      ],
+    };
+
+    render(<MutationApprovalCard action={card} onUiAction={vi.fn()} />);
+
+    const previews = screen.getByTestId('mutation-approval-previews');
+    expect(previews).toHaveTextContent('Ship it before lunch.');
+    expect(previews).toHaveTextContent('X feed preview');
+    expect(screen.getByText('Scheduled at')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
+  });
+
+  it('ignores malformed preview entries', () => {
+    const card = approval();
+    card.data = {
+      ...card.data,
+      postPreviews: [null, { caption: '  ', platform: 'twitter' }, 'x'],
+    };
+
+    render(<MutationApprovalCard action={card} onUiAction={vi.fn()} />);
+
+    expect(
+      screen.queryByTestId('mutation-approval-previews'),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows prepared details and sends only server references, locking duplicate responses', async () => {
     let finish: ((value: boolean) => void) | undefined;
     const onUiAction = vi.fn(

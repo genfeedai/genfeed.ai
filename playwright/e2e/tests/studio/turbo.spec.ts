@@ -10,6 +10,7 @@ test.describe('Persisted Turbo projects', () => {
   }) => {
     const state = await mockTurboProject(page, TurboProjectKind.IDEAS);
     await page.goto(`${base}/persisted-project`);
+    await page.getByRole('button', { name: 'Options' }).click();
     await page
       .getByRole('textbox', { name: 'Creative angle' })
       .fill('Launch week');
@@ -17,6 +18,7 @@ test.describe('Persisted Turbo projects', () => {
       .poll(() => state.getProject().settings.ideas?.angle)
       .toBe('Launch week');
     await page.reload();
+    await page.getByRole('button', { name: 'Options' }).click();
     await expect(
       page.getByRole('textbox', { name: 'Creative angle' }),
     ).toHaveValue('Launch week');
@@ -24,12 +26,12 @@ test.describe('Persisted Turbo projects', () => {
       .getByRole('button', { name: 'Generate ideas', exact: true })
       .click();
     await expect(page.getByText('Launch idea', { exact: true })).toBeVisible();
-    await page.reload();
-    await expect(page.getByText('Launch idea', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Review generation cost' }).click();
+    // Generating also prices the ideas, so the quote is already waiting.
     await expect(
       page.getByRole('button', { name: 'Accept quote and generate' }),
     ).toBeVisible();
+    await page.reload();
+    await expect(page.getByText('Launch idea', { exact: true })).toBeVisible();
     await page.reload();
     await page
       .getByRole('button', { name: 'Accept quote and generate' })
@@ -100,7 +102,7 @@ test.describe('Persisted Turbo projects', () => {
       page.getByRole('button', { name: 'Approve', exact: true }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Open review inbox' }).click();
-    await expect(page).toHaveURL(/publishing\/posts\?view=approvals/);
+    await expect(page).toHaveURL(/publishing\/approvals/);
     await expect(
       page.getByText('Saved project output', { exact: true }).first(),
     ).toBeVisible();

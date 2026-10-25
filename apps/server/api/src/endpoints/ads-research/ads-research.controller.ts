@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AdsDiscoveryService } from '@api/endpoints/ads-research/ads-discovery.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
@@ -12,8 +13,12 @@ import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { PaidCreativePlatformReadiness } from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
+import type {
+  PaidCreativeIngestionResult,
+  PaidCreativePlatformReadiness,
+} from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { PaidCreativeResearchIngestionService } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import {
   AdsPlatform,
   type AdWatchlistPlatform,
@@ -48,6 +53,7 @@ export class AdsResearchController {
     private readonly adsResearchService: AdsResearchService,
     private readonly paidCreativeProviderRegistry: PaidCreativeProviderRegistry,
     private readonly adsDiscoveryService: AdsDiscoveryService,
+    private readonly paidCreativeResearchIngestionService: PaidCreativeResearchIngestionService,
   ) {}
 
   /**
@@ -87,6 +93,29 @@ export class AdsResearchController {
   @Get('watchlist-readiness')
   listWatchlistReadiness(): PaidCreativePlatformReadiness[] {
     return this.paidCreativeProviderRegistry.getReadiness();
+  }
+
+  /**
+   * Poll one watched competitor now instead of waiting for the scheduled
+   * workflow. The result carries the same machine error codes the watchlist
+   * row shows, so a blocked archive is explained rather than silent.
+   */
+  @Post('watchlist/:id/poll')
+  async pollWatchedAdvertiser(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<PaidCreativeIngestionResult> {
+    if (!isEntityId(id)) {
+      throw new BadRequestException('id is invalid');
+    }
+    return this.paidCreativeResearchIngestionService.pollWatchedAdvertiser(
+      user.organizationId,
+      id,
+      {
+        brandId: user.brandId ?? undefined,
+        principal: toWorkflowSchedulePrincipal(user),
+      },
+    );
   }
 
   @TenantReadPolicy('selected')

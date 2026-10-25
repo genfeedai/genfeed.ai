@@ -183,6 +183,41 @@ describe('useReviewInboxApprovals', () => {
     expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
   });
 
+  it('decides a selection in turn and reports one summary', async () => {
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    await act(() => result.current.onDecideMany([approval, gate], 'reject'));
+
+    expect(fixture.decide).toHaveBeenCalledTimes(2);
+    expect(fixture.notificationSuccess).toHaveBeenCalledTimes(1);
+    expect(fixture.notificationSuccess).toHaveBeenCalledWith(
+      'Rejected 2 requests',
+    );
+    expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
+    expect(result.current.isBulkDeciding).toBe(false);
+  });
+
+  it('keeps going past a failed row and says how many were saved', async () => {
+    fixture.decide
+      .mockRejectedValueOnce(new Error('already resolved'))
+      .mockResolvedValueOnce({ status: 'approved' });
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    await act(() => result.current.onDecideMany([approval, gate], 'approve'));
+
+    expect(fixture.decide).toHaveBeenCalledTimes(2);
+    expect(fixture.notificationError).toHaveBeenCalledWith(
+      'Decided 1, 1 could not be saved',
+    );
+    expect(fixture.notificationSuccess).not.toHaveBeenCalled();
+  });
+
   it('reports a failed decision and reloads the server state', async () => {
     fixture.decide.mockRejectedValue(new Error('already resolved'));
     const { result } = renderHook(() => useReviewInboxApprovals(), {

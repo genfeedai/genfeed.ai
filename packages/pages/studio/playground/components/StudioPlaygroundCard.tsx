@@ -19,6 +19,7 @@ import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioPlaygroundCardProps } from '@genfeedai/props/studio/studio-playground.props';
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StudioPlaygroundFailureNotice from '@pages/studio/playground/components/StudioPlaygroundFailureNotice';
 import { studioAssetAccessibleLabel } from '@pages/studio/playground/utils/studio-playground-recipe';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import { logger } from '@services/core/logger.service';
@@ -36,7 +37,6 @@ import {
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
-  AlertTriangle,
   Film,
   GitBranch,
   ImageOff,
@@ -656,29 +656,22 @@ export default function StudioPlaygroundCard({
             className="relative z-10"
             status="cancelled"
           />
-        ) : isFailed || isPreviewUnavailable ? (
+        ) : isFailed ? (
+          <StudioPlaygroundFailureNotice
+            assetId={job.id}
+            rawError={job.error}
+          />
+        ) : isPreviewUnavailable ? (
           <div
             data-testid={`studio-asset-media-status-${job.id}`}
             role="status"
-            className={`relative z-10 flex flex-col items-center gap-2 px-3 text-center ${
-              isFailed ? 'text-destructive' : 'text-muted-foreground'
-            }`}
+            className="relative z-10 flex flex-col items-center gap-2 px-3 text-center text-muted-foreground"
           >
-            {isFailed ? (
-              <AlertTriangle className="size-5" />
-            ) : (
-              <ImageOff className="size-5" />
-            )}
-            <span className="text-xs">
-              {isFailed
-                ? job.error || translate('generationFailed')
-                : translate('previewUnavailable')}
+            <ImageOff className="size-5" />
+            <span className="text-xs">{translate('previewUnavailable')}</span>
+            <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
+              {translate('previewUnavailableDescription')}
             </span>
-            {isPreviewUnavailable ? (
-              <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
-                {translate('previewUnavailableDescription')}
-              </span>
-            ) : null}
           </div>
         ) : null}
 

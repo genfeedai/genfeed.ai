@@ -3,6 +3,7 @@ import {
   brandOfferingSubjectLock,
   classifyBrandOffering,
   lockMediaUserPrompt,
+  RECRUITING_SUBJECT_LOCK,
   scoreBrandOfferingPrompt,
 } from './brand-offering.helper';
 
@@ -71,8 +72,17 @@ describe('lockMediaUserPrompt', () => {
       'Recruiting software for hiring managers and candidates.',
     );
     expect(locked.startsWith(brandOfferingSubjectLock('software'))).toBe(true);
-    expect(locked).toContain('finding the right person');
     expect(locked.endsWith('Open on the product.')).toBe(true);
+  });
+
+  it('adds the hiring feeling only when the prompt itself is about hiring', () => {
+    const corpus = 'Recruiting software for hiring managers and candidates.';
+    expect(
+      lockMediaUserPrompt('Explain the product to leaders.', corpus),
+    ).not.toContain('finding the right person');
+    expect(
+      lockMediaUserPrompt('A hiring manager meets a candidate.', corpus),
+    ).toContain(RECRUITING_SUBJECT_LOCK);
   });
 });
 

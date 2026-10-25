@@ -242,7 +242,7 @@ describe('MCP tool error contract', () => {
 
     expect(result.isError).toBe(true);
     const inboxUrl = appUrl(
-      `${APP_ROUTES.PUBLISHING.REVIEW}&approval=mcp_approval%3Aapr-1`,
+      `${APP_ROUTES.PUBLISHING.APPROVALS}?approval=mcp_approval%3Aapr-1`,
     );
     expect(result.structuredContent).toMatchObject({
       code: 'approval_pending',
@@ -252,7 +252,7 @@ describe('MCP tool error contract', () => {
     expect(result.structuredContent.approvalId).toBe('apr-1');
     expect(result.content[0].text).not.toContain('apr-1');
     expect(result.content[0].text).toContain(
-      `Continue in Genfeed: ${appUrl(APP_ROUTES.PUBLISHING.REVIEW)}`,
+      `Continue in Genfeed: ${appUrl(APP_ROUTES.PUBLISHING.APPROVALS)}`,
     );
     expect(result.structuredContent).not.toHaveProperty('retryAfterSeconds');
     expect(result.structuredContent).not.toHaveProperty('estimatedCredits');

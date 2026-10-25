@@ -8,6 +8,7 @@ import type { Server } from 'node:http';
 import process from 'node:process';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { BullRegistrar } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@workers/app.module';
@@ -103,6 +104,10 @@ async function main() {
   const port = configService.get('PORT');
 
   try {
+    // The context has completed all definition/handler registration and
+    // bootstrap validation. Only now may workers consume already queued jobs.
+    await app.get(BullRegistrar).register();
+
     const healthServer = await startHealthServer(port, logger);
 
     logger.debug(`Workers service is running on port ${port}`);

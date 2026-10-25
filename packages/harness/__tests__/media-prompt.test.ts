@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildMediaPromptFromHarness,
+  describeHexColor,
   isVisualContentKind,
   selectMediaKnowledgeSources,
 } from '../src/media-prompt';
@@ -108,6 +109,70 @@ describe('buildMediaPromptFromHarness', () => {
     expect(isVisualContentKind('ad-creative')).toBe(true);
     expect(isVisualContentKind('ugc')).toBe(true);
     expect(isVisualContentKind('post')).toBe(false);
+  });
+});
+
+describe('video brand look', () => {
+  const videoBrief = brief({
+    guardrails: [
+      'When confidence in brand fidelity is low, prefer narrower claims over invented certainty.',
+      'Never show competitor logos.',
+    ],
+    metadata: {
+      brandName: 'genfeed.ai',
+      contentType: 'video',
+      objective: 'awareness',
+    },
+    styleDirectives: [
+      'Primary color: #000000',
+      'Secondary color: #FFFFFF',
+      'Background color: transparent',
+      'Font family: MONTSERRAT_REGULAR',
+      'Prefer distinctive brand-native visuals over generic stock or template looks.',
+      'Lead with a strong first-frame / first-three-seconds hook.',
+    ],
+    systemDirectives: [
+      'Use this approved Brand OS as the authoritative brand identity.',
+    ],
+  });
+
+  it('names the palette in words and drops hex codes, type and policy text', () => {
+    const result = buildMediaPromptFromHarness(
+      'Founder at a desk',
+      videoBrief,
+      {
+        subjectLock: 'This brand is software. Depict the person.',
+      },
+    );
+
+    expect(result).toBe(
+      [
+        'Founder at a desk',
+        '',
+        'Brand palette: black and white. Brand look: Never show competitor logos.',
+      ].join('\n'),
+    );
+    expect(result).not.toMatch(
+      /#|Font|Montserrat|confidence|distinctive|software/i,
+    );
+  });
+
+  it('returns the prompt alone when the brand has no usable look', () => {
+    expect(
+      buildMediaPromptFromHarness(
+        'Founder at a desk',
+        brief({ metadata: { contentType: 'video', objective: 'awareness' } }),
+      ),
+    ).toBe('Founder at a desk');
+  });
+
+  it('describes hex colors as plain color words', () => {
+    expect(describeHexColor('#000')).toBe('black');
+    expect(describeHexColor('#ffffff')).toBe('white');
+    expect(describeHexColor('#ff0000')).toBe('red');
+    expect(describeHexColor('#1d4ed8')).toBe('blue');
+    expect(describeHexColor('#808080')).toBe('gray');
+    expect(describeHexColor('transparent')).toBeUndefined();
   });
 });
 
