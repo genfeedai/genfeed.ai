@@ -196,7 +196,7 @@ export function useReviewQueueContent() {
   }, [refetchTurboRun, refetchTurboRuns]);
 
   const actionableItems = useMemo(
-    () => activeTurboRun?.items.filter((item) => isReadyToReview(item)) ?? [],
+    () => activeTurboRun?.items?.filter((item) => isReadyToReview(item)) ?? [],
     [activeTurboRun],
   );
 
@@ -500,7 +500,7 @@ export function useReviewQueueContent() {
       return;
     }
 
-    const reviewableItemIds = activeTurboRun.items
+    const reviewableItemIds = (activeTurboRun.items ?? [])
       .filter((item) => isReadyToReview(item))
       .map((item) => item.id);
 
@@ -528,7 +528,7 @@ export function useReviewQueueContent() {
       }
 
       const approvedItem =
-        activeTurboRun?.items.find((item) => item.id === itemId) ?? null;
+        activeTurboRun?.items?.find((item) => item.id === itemId) ?? null;
       const remainingItems = visibleItems.filter((item) => item.id !== itemId);
 
       setIsActioning(true);
