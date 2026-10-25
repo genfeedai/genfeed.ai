@@ -505,7 +505,8 @@
   "dock": {
     "emptyTitle": "What do you want to do?",
     "emptyDescription": "Create, edit, or plan with your agent.",
-    "placeholder": "Describe a task..."
+    "placeholder": "Describe a task...",
+    "suggestionsAria": "Prompt suggestions"
   },
   "localCliRuntime": {
     "creditsNote": "Hosted runtimes use Genfeed credits instead of your {runtime} subscription.",

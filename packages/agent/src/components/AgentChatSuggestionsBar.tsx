@@ -3,6 +3,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { BotMessageSquare } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 
 interface AgentChatSuggestionsBarProps {
@@ -18,6 +19,7 @@ export function AgentChatSuggestionsBar({
   layout = 'compact',
   onSend,
 }: AgentChatSuggestionsBarProps): ReactElement | null {
+  const translate = useTranslations('agent.dock');
   // Plan is a reachable mode via the composer's mode dropdown (#4672) — a
   // "use Plan mode" suggestion is no longer blanket-suppressed.
   const normalized = useMemo(() => {
@@ -42,7 +44,7 @@ export function AgentChatSuggestionsBar({
   if (layout === 'dock') {
     return (
       <div
-        aria-label="Prompt suggestions"
+        aria-label={translate('suggestionsAria')}
         className="grid w-full min-w-0 grid-cols-2 gap-2"
         role="toolbar"
       >
