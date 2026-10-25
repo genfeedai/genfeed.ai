@@ -2076,6 +2076,43 @@ describe('BrandsService', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
 
+    it('splits a large idea count into batches that each fit one reply', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: { voice: { tone: 'bold' } },
+        id: brandId,
+        isDeleted: false,
+        label: 'Acme',
+        organizationId,
+      });
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify([
+                { caption: 'cap', format: 'image', hook: 'hook' },
+              ]),
+            },
+          },
+        ],
+      });
+
+      const result = await service.generateTurboIdeas(
+        brandId,
+        { count: 50, formats: ['image'] as TurboIdeaFormat[] },
+        organizationId,
+      );
+
+      // 50 ideas at no more than 9 per reply takes 6 calls.
+      expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(6);
+      const sizes = llmDispatcher.chatCompletion.mock.calls.map(
+        ([request]: [{ messages: { content: string }[] }]) =>
+          Number(/generate (\d+) distinct/.exec(request.messages[0].content)?.[1]),
+      );
+      expect(sizes.reduce((total, size) => total + size, 0)).toBe(50);
+      expect(Math.max(...sizes)).toBeLessThanOrEqual(9);
+      expect(result).toHaveLength(6);
+    });
+
     it('returns normalized ideas with unique generated ids for a configured brand', async () => {
       delegate.findFirst.mockResolvedValue({
         agentConfig: { voice: { tone: 'bold' } },

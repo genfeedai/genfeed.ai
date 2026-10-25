@@ -40,6 +40,20 @@ export type BrandFinder = (
   criteria: Record<string, unknown>,
 ) => Promise<BrandDocument | null>;
 
+/** One LLM reply stays well inside its token budget at this many ideas. */
+const TURBO_IDEAS_PER_LLM_CALL = 9;
+const TURBO_IDEA_BATCH_CONCURRENCY = 4;
+
+/** Splits an idea count into near-equal batches of at most TURBO_IDEAS_PER_LLM_CALL. */
+function splitTurboIdeaCount(count: number): number[] {
+  const batches = Math.ceil(count / TURBO_IDEAS_PER_LLM_CALL);
+  const base = Math.floor(count / batches);
+  const extra = count % batches;
+  return Array.from({ length: batches }, (_, index) =>
+    index < extra ? base + 1 : base,
+  );
+}
+
 @Injectable()
 export class BrandGenerationService {
   private readonly constructorName = this.constructor.name;
@@ -389,8 +403,23 @@ export class BrandGenerationService {
 
     const angleContext = dto.angle ? `\nCreative angle: ${dto.angle}` : '';
     const formatsList = dto.formats.join(', ');
+    const batchSizes = splitTurboIdeaCount(dto.count);
 
-    const prompt = `You are a short-form content strategist. Using ONLY the brand profile below, generate ${dto.count} distinct, ready-to-produce short-form content ideas distributed as evenly as possible across these formats: ${formatsList}.
+    const ideas: TurboIdea[] = [];
+    for (
+      let first = 0;
+      first < batchSizes.length;
+      first += TURBO_IDEA_BATCH_CONCURRENCY
+    ) {
+      const group = batchSizes.slice(first, first + TURBO_IDEA_BATCH_CONCURRENCY);
+      const results = await Promise.all(
+        group.map((size, offset) => {
+          // Parallel batches cannot see each other, so each takes its own lane.
+          const batchContext =
+            batchSizes.length > 1
+              ? `\nThis is batch ${first + offset + 1} of ${batchSizes.length}, written at the same time as the others. Build your ideas around a sub-theme of your own so they do not overlap with theirs.`
+              : '';
+          const prompt = `You are a short-form content strategist. Using ONLY the brand profile below, generate ${size} distinct, ready-to-produce short-form content ideas distributed as evenly as possible across these formats: ${formatsList}.
 
 Format meanings:
 - image: a single scroll-stopping still or slideshow frame
@@ -406,10 +435,28 @@ Return ONLY a JSON array (no markdown fences). Each element must be an object wi
 - speechText: ONLY for format "avatar" — the spoken script (2-4 sentences); omit for other formats
 
 Brand profile:
-${brandParts.join('\n')}${angleContext}
+${brandParts.join('\n')}${angleContext}${batchContext}
 
 Respond ONLY with the JSON array.`;
+          return this.generateTurboIdeaBatch(
+            prompt,
+            dto.formats,
+            organizationId,
+          );
+        }),
+      );
+      ideas.push(...results.flat());
+    }
 
+    return ideas;
+  }
+
+  /** One LLM call for up to TURBO_IDEAS_PER_LLM_CALL ideas; a bad reply yields none. */
+  private async generateTurboIdeaBatch(
+    prompt: string,
+    formats: TurboIdeaFormat[],
+    organizationId: string,
+  ): Promise<TurboIdea[]> {
     const completion = await this.llmDispatcherService.chatCompletion(
       {
         max_tokens: 2000,
@@ -438,7 +485,7 @@ Respond ONLY with the JSON array.`;
             item.format as TurboIdeaFormat,
           )
             ? (item.format as TurboIdeaFormat)
-            : dto.formats[0];
+            : formats[0];
 
           return {
             caption: typeof item.caption === 'string' ? item.caption : '',
