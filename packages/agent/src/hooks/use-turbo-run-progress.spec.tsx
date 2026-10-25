@@ -44,9 +44,8 @@ describe('useTurboRunProgress', () => {
       .mockResolvedValueOnce(run(TurboRunStatus.PROCESSING))
       .mockResolvedValue(run(TurboRunStatus.COMPLETED));
 
-    const { result } = renderHook(() =>
-      useTurboRunProgress({ getTurboRun }, 'run-1'),
-    );
+    const api = { getTurboRun };
+    const { result } = renderHook(() => useTurboRunProgress(api, 'run-1'));
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -72,9 +71,8 @@ describe('useTurboRunProgress', () => {
   it('does nothing without a run or a service', async () => {
     const getTurboRun = vi.fn();
 
-    const withoutRun = renderHook(() =>
-      useTurboRunProgress({ getTurboRun }, undefined),
-    );
+    const api = { getTurboRun };
+    const withoutRun = renderHook(() => useTurboRunProgress(api, undefined));
     const withoutService = renderHook(() => useTurboRunProgress(null, 'run-1'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
@@ -94,9 +92,8 @@ describe('useTurboRunProgress', () => {
       },
     );
 
-    const { unmount } = renderHook(() =>
-      useTurboRunProgress({ getTurboRun }, 'run-1'),
-    );
+    const api = { getTurboRun };
+    const { unmount } = renderHook(() => useTurboRunProgress(api, 'run-1'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -115,9 +112,8 @@ describe('useTurboRunProgress', () => {
       .mockResolvedValueOnce(run(TurboRunStatus.PROCESSING))
       .mockRejectedValue(new Error('offline'));
 
-    const { result } = renderHook(() =>
-      useTurboRunProgress({ getTurboRun }, 'run-1'),
-    );
+    const api = { getTurboRun };
+    const { result } = renderHook(() => useTurboRunProgress(api, 'run-1'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });

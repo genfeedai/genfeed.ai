@@ -116,7 +116,7 @@ describe('mutation approval summary', () => {
         },
       ]);
       expect(card.data?.items).toEqual([
-        { label: 'Scheduled at', value: '2026-10-26T09:00:00Z' },
+        { label: 'Scheduled At', value: '2026-10-26T09:00:00Z' },
       ]);
     });
 
@@ -144,7 +144,7 @@ describe('mutation approval summary', () => {
 
       expect(card.data?.postPreviews).toBeUndefined();
       expect(card.data?.items).toEqual([
-        { label: 'Content id', value: 'content-1' },
+        { label: 'Content Id', value: 'content-1' },
         { label: 'Platforms', value: 'twitter' },
       ]);
     });

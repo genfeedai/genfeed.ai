@@ -84,10 +84,11 @@ function buildPostPreviews(
   }
   if (previews.length > 0) return previews;
 
+  const platform = readText(parameters.platform);
   const platforms = [
     ...new Set([
       ...readTextList(parameters.platforms),
-      ...(readText(parameters.platform) ?? []),
+      ...(platform ? [platform] : []),
     ]),
   ];
   return defaultCaption
