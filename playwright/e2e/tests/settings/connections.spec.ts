@@ -57,6 +57,18 @@ async function mockApiKeyList(
   });
 }
 
+/** Resolves when the catalog list asks the API for models in `category`. */
+function waitForModelsCategoryRequest(page: Page, category: string) {
+  return page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      request.method() === 'GET' &&
+      /\/models\/?$/.test(url.pathname) &&
+      (url.searchParams.get('categories') ?? '').split(',').includes(category)
+    );
+  });
+}
+
 test.describe('Settings Connections & Sub-Pages', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
@@ -189,9 +201,15 @@ test.describe('Settings Connections & Sub-Pages', () => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await settingsPage.open(MODELS_ROUTE);
+      const videoRequest = waitForModelsCategoryRequest(
+        authenticatedPage,
+        'video',
+      );
       await settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }).click();
 
       await expect(authenticatedPage).toHaveURL(/[?&]type=video(?:&|$)/);
+      // The tab is not just highlighted: the list asks the API for that group.
+      await videoRequest;
       await expect(
         settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }),
       ).toHaveAttribute('aria-selected', 'true');
@@ -208,11 +226,16 @@ test.describe('Settings Connections & Sub-Pages', () => {
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
+      const imageRequest = waitForModelsCategoryRequest(
+        authenticatedPage,
+        'image',
+      );
       await settingsPage.open(`${MODELS_ROUTE}?type=images`);
 
       await expect(
         settingsPage.canvas.getByRole('tab', { name: /^Image\b/ }),
       ).toHaveAttribute('aria-selected', 'true');
+      await imageRequest;
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,

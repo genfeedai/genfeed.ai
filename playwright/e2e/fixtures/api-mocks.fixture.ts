@@ -4526,11 +4526,14 @@ function buildReleaseGroupCollectionDocument(
  * `generateMockPost` fixtures used elsewhere) to control exact placement --
  * e.g. compute dates from the browser's own `Date` (see
  * `currentWeekBrowserDates` in scheduling.spec.ts) so they always agree with
- * whatever "now" the app itself resolves to.
+ * whatever "now" the app itself resolves to. Pass `articles` to put article
+ * artifacts on the calendar beside the posts (the calendar dates an article
+ * by its `createdAt`).
  */
 export async function mockCalendarPosts(
   page: Page,
   posts?: Record<string, unknown>[],
+  articles: Array<{ id: string; attributes: Record<string, unknown> }> = [],
 ): Promise<void> {
   const now = new Date();
   const monday = new Date(now);
@@ -4609,7 +4612,7 @@ export async function mockCalendarPosts(
   await routeApiPattern(page, '/articles**', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
-        body: JSON.stringify(buildJsonApiCollection('articles', [])),
+        body: JSON.stringify(buildJsonApiCollection('articles', articles)),
         contentType: 'application/json',
         status: 200,
       });

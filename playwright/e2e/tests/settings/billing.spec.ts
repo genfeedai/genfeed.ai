@@ -9,13 +9,21 @@ import { SettingsPage } from '../../pages/settings.page';
  * org settings shell. The e2e app is built in community mode, where credit
  * reads are gated behind `hasOrganizationBillingHint()`, so the page renders
  * without a wallet balance. Balance, low-credit, cycle and retry states are
- * covered by the Credits page unit tests (`credits/content.test.tsx`).
+ * covered by the Credits page unit tests (`credits/content.test.tsx`) and, on the
+ * Cloud build, by `cloud/billing-credits.spec.ts` and
+ * `cloud/credits-recovery.spec.ts`.
  */
 test.describe('Billing Settings', () => {
   test('should open the credits route under organization settings', async ({
     authenticatedPage,
   }) => {
     const settingsPage = new SettingsPage(authenticatedPage);
+    const creditReads: string[] = [];
+    authenticatedPage.on('request', (request) => {
+      if (/\/subscriptions\/current\/credits/.test(request.url())) {
+        creditReads.push(request.url());
+      }
+    });
 
     await settingsPage.goToBilling();
 
@@ -29,6 +37,8 @@ test.describe('Billing Settings', () => {
         name: 'Credits',
       }),
     ).toBeAttached();
+    // Community builds never read a wallet balance.
+    expect(creditReads).toEqual([]);
   });
 
   test('should keep the credits route when the billing API fails', async ({

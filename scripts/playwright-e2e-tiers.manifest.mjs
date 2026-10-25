@@ -79,6 +79,18 @@ export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
       'Targets the marketing website app, not mocked Studio app-core. Covered by playwright-cross-app.config.ts.',
   },
   {
+    lane: 'cloud',
+    file: 'playwright/e2e/tests/cloud/billing-credits.spec.ts',
+    reason:
+      'Needs the Cloud build (`NEXT_PUBLIC_GENFEED_CLOUD=true`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
+  },
+  {
+    lane: 'cloud',
+    file: 'playwright/e2e/tests/cloud/credits-recovery.spec.ts',
+    reason:
+      'Needs the Cloud build (`NEXT_PUBLIC_GENFEED_CLOUD=true`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
+  },
+  {
     lane: 'release-install',
     file: 'playwright/e2e/tests/release/app-loads.spec.ts',
     reason:

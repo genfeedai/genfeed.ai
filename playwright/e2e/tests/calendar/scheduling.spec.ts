@@ -305,6 +305,57 @@ test.describe('Calendar — Scheduling', () => {
     );
   });
 
+  test('should render posts and articles together and open each in its own editor', async ({
+    authenticatedPage,
+  }) => {
+    const calendarPage = new CalendarPage(authenticatedPage);
+    const dates = currentWeekUtcDates();
+    const post = generateMockPost({
+      description: 'Social companion',
+      id: 'cal-mixed-post',
+      label: 'Mixed Social Post',
+      platform: 'twitter',
+      scheduledDate: dates.monday9am,
+      status: PostStatus.SCHEDULED,
+    });
+
+    await mockCalendarPosts(
+      authenticatedPage,
+      [post],
+      [
+        {
+          attributes: {
+            createdAt: dates.wednesday11am,
+            label: 'Mixed Launch Article',
+            status: 'draft',
+          },
+          id: 'cal-mixed-article',
+        },
+      ],
+    );
+    await mockPostDetail(authenticatedPage, post);
+    await calendarPage.gotoPosts();
+
+    // The retired Content type control no longer narrows the calendar: both
+    // kinds share the week, each inside its own day column.
+    const postEvent = dayColumn(authenticatedPage, dates.mondayDateKey).locator(
+      '.gen-calendar-event',
+      { hasText: 'Mixed Social Post' },
+    );
+    const articleEvent = dayColumn(
+      authenticatedPage,
+      dates.wednesdayDateKey,
+    ).locator('.gen-calendar-event', { hasText: 'Mixed Launch Article' });
+    await expect(postEvent).toBeVisible();
+    await expect(articleEvent).toBeVisible();
+
+    // Kind-specific navigation: an article opens its editor route directly.
+    await articleEvent.click();
+    await expect(authenticatedPage).toHaveURL(
+      /\/publishing\/posts\/cal-mixed-article/,
+    );
+  });
+
   test('should show list view link', async ({ authenticatedPage }) => {
     const calendarPage = new CalendarPage(authenticatedPage);
 

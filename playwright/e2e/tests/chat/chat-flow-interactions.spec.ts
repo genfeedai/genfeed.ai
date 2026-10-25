@@ -121,4 +121,17 @@ test.describe('Chat flow interactions', () => {
     await tryClick(authenticatedPage, '[role="menuitem"]');
     await assertHealthy(authenticatedPage);
   });
+
+  test('retired agent onboarding URL is a plain thread route, not a redirect', async ({
+    authenticatedPage,
+  }) => {
+    // Redirects for retired entries were removed (hard cuts). The old URL now
+    // resolves like any other thread id and canonical onboarding stays at
+    // /onboarding (see onboarding.spec.ts: "keeps the onboarding entry route").
+    await authenticatedPage.goto(`${ORG}/agent/onboarding`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding$/);
+    await expectNoErrorOverlay(authenticatedPage);
+  });
 });
