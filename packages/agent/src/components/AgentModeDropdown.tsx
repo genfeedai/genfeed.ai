@@ -17,6 +17,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
 import { ChevronDown, Hand, ListChecks, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
@@ -99,6 +100,7 @@ export function AgentModeDropdown({
       <DropdownMenuContent
         align="start"
         className="w-64"
+        onCloseAutoFocus={keepFocusOnSwitch}
         side="top"
         sideOffset={8}
       >

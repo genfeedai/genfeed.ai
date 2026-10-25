@@ -11,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
 import { Wand2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -50,6 +51,7 @@ export default function GenerationHarnessSettingsPopover({
         align="start"
         side="top"
         avoidCollisions={false}
+        onCloseAutoFocus={keepFocusOnSwitch}
         className={cn(
           'w-[min(360px,calc(100vw-2rem))]',
           'max-h-[min(560px,var(--radix-popover-content-available-height,70vh))]',

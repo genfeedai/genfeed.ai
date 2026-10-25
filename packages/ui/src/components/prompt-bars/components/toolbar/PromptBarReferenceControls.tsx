@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
+import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
 import { Link, Paperclip, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type ReactElement, useContext, useRef } from 'react';
@@ -169,6 +170,7 @@ export default function PromptBarReferenceControls({
         <DropdownMenuContent
           align="start"
           avoidCollisions={false}
+          onCloseAutoFocus={keepFocusOnSwitch}
           className={cn(
             'w-56',
             'max-h-[min(560px,var(--radix-dropdown-menu-content-available-height,70vh))]',
