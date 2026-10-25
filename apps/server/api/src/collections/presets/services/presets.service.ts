@@ -25,6 +25,7 @@ const PRESET_UPDATE_SCALAR_FIELDS = [
 ] as const;
 
 const PRESET_CONFIG_FIELDS = [
+  'adPreset',
   'aspectRatio',
   'blacklists',
   'camera',

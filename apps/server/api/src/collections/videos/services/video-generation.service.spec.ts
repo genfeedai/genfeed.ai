@@ -30,6 +30,10 @@ import {
   buildPrunaaiPVideoGenerationSource,
 } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  AD_PRESETS,
+  adPresetId,
+} from '@genfeedai/contracts/constants/ad-presets.constant';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -224,6 +228,13 @@ describe('VideoGenerationService', () => {
       findOne: vi.fn().mockResolvedValue(null),
     };
     const ingredientsService = {
+      prisma: {
+        preset: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ config: { adPreset: AD_PRESETS[0] } }),
+        },
+      },
       findOne: vi
         .fn()
         .mockImplementation(
@@ -389,6 +400,26 @@ describe('VideoGenerationService', () => {
       f.service.generateVideo(user, dto, request, async () => undefined),
     ).rejects.toMatchObject({ response: { code: 'CRUN_INVALID_INPUT' } });
     expect(f.crun.generate).toHaveBeenCalledTimes(1);
+    await expect(
+      f.service.generateVideo(
+        user,
+        {
+          ...dto,
+          adPreset: {
+            presetId: adPresetId(AD_PRESETS[0].key),
+            params: {
+              aspectRatio: '9:16',
+              lensMm: 24,
+              qualityLook: 'Phone selfie',
+              dialogue: 'Synthetic',
+              referenceRoles: [],
+            },
+          },
+        },
+        request,
+      ),
+    ).rejects.toMatchObject({ response: { code: 'UNSUPPORTED_MODEL' } });
+    expect(f.crun.generate).toHaveBeenCalledTimes(1);
   });
 
   function mockTenantIngredients(
@@ -430,6 +461,87 @@ describe('VideoGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('compiles an ad preset before admission and sends exact dialogue with attached audio', async () => {
+    const {
+      service,
+      ingredientsService,
+      replicateService,
+      enhancementService,
+    } = createService();
+    ingredientsService.findOne.mockImplementation(({ id }) =>
+      Promise.resolve({
+        id,
+        s3Key: `stored/${id}`,
+        metadata: { duration: 6.2 },
+      }),
+    );
+    const dialogue = 'SYNTHETIC dialogue.\nKeep "every" word!';
+    await service.generateVideo(
+      buildUser(),
+      baseDto({
+        text: undefined,
+        model: COMPILED_MODEL_MINIMAX,
+        references: ['person'],
+        audioReferences: ['voice'],
+        adPreset: {
+          presetId: adPresetId(AD_PRESETS[0].key),
+          params: {
+            aspectRatio: '9:16',
+            lensMm: 24,
+            qualityLook: 'Phone selfie',
+            dialogue,
+            referenceRoles: [
+              { token: '@Image1', role: 'person' },
+              { token: '@Audio1', role: 'voiceover' },
+            ],
+          },
+        },
+      }),
+      buildRequest(),
+    );
+    const dispatch = replicateService.generateTextToVideo.mock.calls[0][1];
+    expect(dispatch.duration).toBe(7);
+    expect(dispatch.prompt.split(dialogue)).toHaveLength(2);
+    expect(dispatch.prompt).toContain('no unchanged-audio guarantee');
+    expect(dispatch.reference_audio_urls).toHaveLength(1);
+    expect(dispatch).not.toHaveProperty('generate_audio');
+    expect(enhancementService.enhance).toHaveBeenCalledWith(
+      expect.objectContaining({ harness: false, brandMode: 'raw' }),
+    );
+  });
+
+  it('blocks invalid ad dialogue before output creation or provider submission', async () => {
+    const { service, ingredientsService, replicateService, sharedService } =
+      createService();
+    ingredientsService.findOne.mockResolvedValue({ metadata: { duration: 5 } });
+    await expect(
+      service.generateVideo(
+        buildUser(),
+        baseDto({
+          model: COMPILED_MODEL_MINIMAX,
+          references: ['person'],
+          audioReferences: ['voice'],
+          adPreset: {
+            presetId: adPresetId(AD_PRESETS[0].key),
+            params: {
+              aspectRatio: '9:16',
+              lensMm: 24,
+              qualityLook: 'Phone selfie',
+              dialogue: '',
+              referenceRoles: [
+                { token: '@Image1', role: 'person' },
+                { token: '@Audio1', role: 'voiceover' },
+              ],
+            },
+          },
+        }),
+        buildRequest(),
+      ),
+    ).rejects.toMatchObject({ response: { code: 'MISSING_DIALOGUE' } });
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
   });
 
   it('enhances once and stores the exact prompt sent to the video provider', async () => {

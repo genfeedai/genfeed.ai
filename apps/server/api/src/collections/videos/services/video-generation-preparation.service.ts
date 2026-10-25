@@ -9,6 +9,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
 import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import {
   assertAudioReferencesSupported,
@@ -138,7 +139,7 @@ export class VideoGenerationPreparationService {
     createVideoDto: CreateVideoDto,
     request: RequestWithSelectedModel<Request>,
   ): Promise<ResolvedVideoGenerationRequest> {
-    if (!requireVideoPromptInput(createVideoDto)) {
+    if (!createVideoDto.adPreset && !requireVideoPromptInput(createVideoDto)) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -198,6 +199,13 @@ export class VideoGenerationPreparationService {
           validationOrgId,
         )
       : undefined;
+    createVideoDto = await compileSubmittedAdPreset({
+      dto: createVideoDto,
+      ingredients: this.ingredientsService,
+      organizationId: user.organizationId,
+      brandId: brand.id,
+      model,
+    });
     const nativeReferenceLimit =
       registeredModel?.provider === ModelProvider.FAL
         ? seedanceVideoReferenceLimit(registeredModel.endpoint ?? '')

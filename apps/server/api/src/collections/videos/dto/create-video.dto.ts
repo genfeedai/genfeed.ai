@@ -8,6 +8,7 @@ import {
   RouterPriority,
   VideoTransition,
 } from '@genfeedai/contracts';
+import type { AdPresetSubmission } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
 import {
   GENERATION_PROMPT_AUTHORS,
   type GenerationPromptAuthor,
@@ -22,6 +23,7 @@ import {
   IsEnum,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -140,6 +142,15 @@ export class CreateMergedVideoDto {
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsObject()
+  @ApiProperty({
+    description:
+      'Saved ad preset and typed parameters. Reference audio steers the voice; there is no unchanged-audio guarantee.',
+    required: false,
+  })
+  readonly adPreset?: AdPresetSubmission;
+
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MinLength(1)
