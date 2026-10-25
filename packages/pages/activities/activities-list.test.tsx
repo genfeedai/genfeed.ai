@@ -306,10 +306,7 @@ describe('ActivitiesList', () => {
     expect(screen.getByText(/Provider timed out/)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open failed to generate/i }),
-    ).toHaveAttribute(
-      'href',
-      '/acme/news/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
-    );
+    ).toHaveAttribute('href', '/acme/news/library/images?asset=ing-9');
   });
 
   it('shows the empty state when there is no activity', () => {
@@ -346,7 +343,7 @@ describe('ActivitiesList', () => {
       const panel = await within(rail).findByTestId('activity-detail-panel');
       expect(within(panel).getByRole('link', { name: 'Open' })).toHaveAttribute(
         'href',
-        '/acme/news/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
+        '/acme/news/library/images?asset=ing-9',
       );
       expect(
         screen.getAllByRole('link', { name: /failed to generate/i })[0],

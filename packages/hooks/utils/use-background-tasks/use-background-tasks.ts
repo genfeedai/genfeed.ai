@@ -66,7 +66,7 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     return APP_ROUTES.STUDIO.PLAYGROUND;
   }
 
-  return APP_ROUTES.OVERVIEW.ACTIVITIES;
+  return APP_ROUTES.WORKSPACE.ACTIVITY;
 }
 
 function buildBackgroundTaskStartedMessage(

@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test';
 /**
  * Page Object Model for the Overview Page
  *
- * Covers /overview and /overview/activities routes.
+ * Covers the /overview route.
  *
  * @module overview.page
  */

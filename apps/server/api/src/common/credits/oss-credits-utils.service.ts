@@ -90,6 +90,7 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
   ): Promise<ICycleRemainingMetrics> {
     return {
       cycleTotal: 0,
+      cycleUsed: 0,
       remainingPercent: 100,
     };
   }

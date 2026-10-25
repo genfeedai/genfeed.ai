@@ -20,7 +20,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     label: 'Writing voice',
     description:
       'Tone, style, audience, writing rules, hooks, examples and platform overrides',
-    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
+    href: APP_ROUTES.SETTINGS.BRAND_KIT_VOICE,
     keywords: ['voice', 'tone', 'style', 'writing', 'hooks', 'exemplars'],
   },
   {
@@ -29,7 +29,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Brand Kit',
     label: 'Strategy',
     description: 'Topics, goals, platforms and publishing frequency',
-    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=strategy`,
+    href: APP_ROUTES.SETTINGS.BRAND_KIT_STRATEGY,
     keywords: ['strategy', 'topics', 'goals', 'frequency'],
   },
   {
@@ -56,7 +56,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Agent settings',
     label: 'Agent context',
     description: 'Context layers, prompts and memories',
-    href: `${APP_ROUTES.SETTINGS.AGENT}?tab=context`,
+    href: APP_ROUTES.SETTINGS.AGENT_CONTEXT,
     keywords: ['context', 'memory', 'prompts'],
   },
   {
@@ -65,7 +65,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Agent settings',
     label: 'Learning',
     description: 'Feedback and content memory',
-    href: `${APP_ROUTES.SETTINGS.AGENT}?tab=learning`,
+    href: APP_ROUTES.SETTINGS.AGENT_LEARNING,
     keywords: ['learning', 'feedback', 'memory'],
   },
   {
@@ -74,7 +74,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Agent settings',
     label: 'Generation receipts',
     description: 'Generation inputs and outcomes',
-    href: `${APP_ROUTES.SETTINGS.AGENT}?tab=receipts`,
+    href: APP_ROUTES.SETTINGS.AGENT_RECEIPTS,
     keywords: ['generation', 'receipts', 'audit'],
   },
   {
