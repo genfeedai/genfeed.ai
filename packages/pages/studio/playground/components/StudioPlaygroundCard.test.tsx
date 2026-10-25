@@ -423,6 +423,38 @@ describe('StudioPlaygroundCard', () => {
     expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
   });
 
+  it('leads a failed generation with a short reason and keeps the raw error behind details', () => {
+    const rawError =
+      'Async prediction failed: Exception: The request failed because the output video may be related to copyright restrictions. Request id: 0219 (request ID: cgt-20261025170538-1x71h)';
+    const job = {
+      ...generatedJob,
+      error: rawError,
+      status: IngredientStatus.FAILED,
+    };
+
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={job}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(
+      screen.getByText('Blocked by the provider: possible copyright content'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(rawError)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
+
+    expect(screen.getByText(rawError)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Hide details' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('separates reprompting a failed generation from removing it', () => {
     const assetActions = buildAssetActions();
     const onReprompt = vi.fn();

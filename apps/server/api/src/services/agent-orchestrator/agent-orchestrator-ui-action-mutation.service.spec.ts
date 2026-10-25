@@ -160,6 +160,43 @@ describe('persisted mutation approvals', () => {
       expect(executor.executeTool).not.toHaveBeenCalled();
     },
   );
+  it('reports a queued turbo run with its live card and the approval queue instead of claiming completion', async () => {
+    executor.executeTool.mockResolvedValueOnce({
+      success: true,
+      creditsUsed: 4,
+      data: { status: 'PENDING', totalCount: 3, turboRunId: 'run-1' },
+    });
+
+    await service.execute('confirm_mutation', params());
+
+    const [turn] = finalizer.finalizeStructuredAssistantTurn.mock.calls[0];
+    expect(turn.content).toContain('Generating 3 posts');
+    expect(turn.content).not.toContain('Approved action completed');
+    expect(turn.result.nextActions).toEqual([
+      expect.objectContaining({ type: 'mutation_approval_card' }),
+      expect.objectContaining({
+        completedCount: 0,
+        ctas: [
+          {
+            href: '/publishing/posts?view=approvals&run=run-1',
+            label: 'Open approval queue',
+          },
+        ],
+        data: { turboRunId: 'run-1' },
+        platforms: ['twitter'],
+        status: 'queued',
+        turboRunCount: 3,
+        type: 'turbo_run_result_card',
+      }),
+    ]);
+  });
+  it('keeps the generic completion for tools that finish inside the approval', async () => {
+    await service.execute('confirm_mutation', params());
+
+    const [turn] = finalizer.finalizeStructuredAssistantTurn.mock.calls[0];
+    expect(turn.content).toBe('Approved action completed.');
+    expect(turn.result.nextActions).toHaveLength(1);
+  });
   it('rejects a different thread', async () => {
     await expect(
       service.execute('confirm_mutation', { ...params(), threadId: 'other' }),
