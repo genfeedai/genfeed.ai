@@ -22,6 +22,13 @@ const logsCommand =
 let fixtureDirectory: string;
 
 beforeAll(async () => {
+  const tarLookup = spawnSync('sh', ['-c', 'command -v tar'], {
+    encoding: 'utf8',
+  });
+  if (tarLookup.error || tarLookup.status !== 0 || !tarLookup.stdout.trim()) {
+    throw new Error('tar is required for the offline CLI fixtures.');
+  }
+  const systemTar = await realpath(tarLookup.stdout.trim());
   fixtureDirectory = await realpath(
     await mkdtemp(join(tmpdir(), 'genfeed-cli-lifecycle-')),
   );
@@ -67,7 +74,7 @@ beforeAll(async () => {
     ),
   ]);
   const archive = join(fixtureDirectory, 'bundle.tar.gz');
-  const packed = spawnSync('tar', [
+  const packed = spawnSync(systemTar, [
     '-czf',
     archive,
     '-C',
@@ -151,7 +158,7 @@ beforeAll(async () => {
       writeFileSync(process.env.FIXTURE_READY, 'fixture:extract');
       setInterval(() => {}, 1000);
     } else {
-      const result = spawnSync('/usr/bin/tar', args, { stdio: 'inherit' });
+      const result = spawnSync(${JSON.stringify(systemTar)}, args, { stdio: 'inherit' });
       process.exit(result.status ?? 1);
     }
   `,
