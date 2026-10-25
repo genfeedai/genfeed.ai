@@ -82,8 +82,10 @@ account. To run a single-user workspace with no login wall instead, set
 | `BETTER_AUTH_TRUSTED_ORIGINS`     | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in                                                                   |
 | `BETTER_AUTH_SECRET`              | Generated                                               | Leave empty to let the container generate one and keep it at `/data/.better-auth-secret`     |
 
-The email and password accounts live in the local database and need no mail
-provider, but the login page itself offers only Google and Magic Link. See
+The login page offers **Email / Password** by default. Those accounts live in
+the local database and need no mail provider. **Magic Link** appears only when
+`RESEND_API_KEY` is set, and **Google** sign-in works only when
+`GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` are set. See
 [Create the first user](/self-host/installation#create-the-first-user) for how
 to create the first account. Add email or Google sign-in for the features that
 need them:

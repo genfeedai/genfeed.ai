@@ -29,13 +29,15 @@ const BUNDLE_COMMANDS = `curl -fLO https://github.com/genfeedai/genfeed.ai/relea
 curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
 sha256sum -c genfeed-selfhosted.tar.gz.sha256
 tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
-cp .env.example .env && docker compose --env-file .env -f compose.yml up -d`;
+cp .env.example .env
+# Edit .env: set OPENROUTER_API_KEY to your real OpenRouter key, then:
+docker compose --env-file .env -f compose.yml up -d`;
 
 const REQUIREMENTS = [
   'Docker Compose v2 (Docker Engine with the Compose plugin, or Docker Desktop)',
   'Node.js 24 (>=24 <25), only for the npx command. The release bundle does not need Node.',
   'About 10 GB of free disk (15 GB recommended)',
-  'Free ports 3000 (web), 3010 (API), and 3014 (MCP)',
+  'Free ports 3000 (web), 3010 (API), 3011 (WebSocket), and 3014 (MCP)',
 ] as const;
 
 const PROVIDER_KEYS = [
@@ -175,8 +177,8 @@ export default function SelfHostedContent() {
                 One command
               </h3>
               <p className="text-sm leading-relaxed text-surface/60">
-                Downloads the release bundle, verifies its checksum, and starts
-                it.
+                Asks for your OpenRouter API key, downloads the release bundle,
+                verifies its checksum, and starts it.
               </p>
               <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
                 {NPX_COMMAND}
@@ -221,9 +223,10 @@ export default function SelfHostedContent() {
                 Self-hosting does not include Genfeed credits. To generate
                 content, add your own keys ({PROVIDER_KEYS.join(', ')}) to{' '}
                 <code>.env</code> and pay those providers directly. An
-                OpenRouter key is required for text generation; the other keys
-                are optional. The Community image does not start GPU or
-                local-model services.
+                OpenRouter key is required: set OPENROUTER_API_KEY before the
+                first start, or the container exits. The other keys are
+                optional. The Community image does not start GPU or local-model
+                services.
               </p>
             </div>
           </div>
