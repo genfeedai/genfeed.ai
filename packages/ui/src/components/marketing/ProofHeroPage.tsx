@@ -28,8 +28,8 @@ export default function ProofHeroPage({
           <div
             className={[
               compact
-                ? 'grid items-start gap-10 pt-16 pb-4 lg:gap-14'
-                : 'grid min-h-[calc(100vh-8rem)] items-center gap-10 py-8 lg:gap-14',
+                ? 'grid grid-cols-1 items-start gap-10 pt-16 pb-4 lg:gap-14'
+                : 'grid grid-cols-1 min-h-[calc(100vh-8rem)] items-center gap-10 py-8 lg:gap-14',
               heroVisual
                 ? 'lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]'
                 : 'lg:grid-cols-1',

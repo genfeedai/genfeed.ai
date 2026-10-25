@@ -136,7 +136,15 @@ export default function DesktopContent({
                   isWindows ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
                 }
               >
-                <a href={downloadUrl}>{macButtonLabel}</a>
+                <a href={downloadUrl}>
+                  Download for macOS
+                  {buildDetail ? (
+                    <span className="hidden sm:inline">
+                      {' · '}
+                      {buildDetail}
+                    </span>
+                  ) : null}
+                </a>
               </Button>
             ) : (
               <Button isDisabled size={ButtonSize.PUBLIC}>

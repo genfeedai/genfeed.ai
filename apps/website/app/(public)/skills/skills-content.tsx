@@ -51,7 +51,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         heroActions={
           <div className="flex flex-col items-center gap-6">
             <InstallCommand />
-            <div className="flex gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
               <Button size={ButtonSize.PUBLIC} asChild>
                 <Link
                   href="https://github.com/genfeedai/skills"

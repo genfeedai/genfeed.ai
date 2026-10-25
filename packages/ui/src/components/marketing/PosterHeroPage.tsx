@@ -43,8 +43,8 @@ export default function PosterHeroPage({
           <div
             className={[
               compact
-                ? 'grid items-start gap-10 pt-16 pb-2 lg:gap-14'
-                : 'grid items-start gap-10 pt-16 pb-4 lg:gap-14 lg:pt-20',
+                ? 'grid grid-cols-1 items-start gap-10 pt-16 pb-2 lg:gap-14'
+                : 'grid grid-cols-1 items-start gap-10 pt-16 pb-4 lg:gap-14 lg:pt-20',
               heroVisual && !isHeroVisualStacked
                 ? 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]'
                 : 'lg:grid-cols-1',
