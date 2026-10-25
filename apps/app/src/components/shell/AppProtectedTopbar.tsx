@@ -11,7 +11,7 @@ import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSw
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
-import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
+import CreditsLiveSync from '@ui/topbars/credits-bar/CreditsLiveSync';
 import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -192,7 +192,7 @@ function AppProtectedTopbarContent({
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
           <div className="flex min-w-0 items-center gap-1 md:gap-1.5">
-            {!isAdminChrome ? <TopbarCreditsBar /> : null}
+            {!isAdminChrome ? <CreditsLiveSync /> : null}
 
             {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
 

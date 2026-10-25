@@ -3,7 +3,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Default mocked-auth workspace used by app-core fixtures.
@@ -50,4 +50,17 @@ export function sidebarLocator(page: Page): Locator {
     .getByTestId('sidebar-shell')
     .or(page.locator('[data-testid="sidebar"]'))
     .first();
+}
+
+/**
+ * Opens the account menu in the app rail and returns its credit wallet block.
+ * The balance is not shown in the topbar; it lives here.
+ */
+export async function openAccountCredits(page: Page): Promise<Locator> {
+  await page
+    .getByTestId('app-rail-account')
+    .getByRole('button', { name: 'Open account menu' })
+    .click();
+  await expect(page.getByRole('menu')).toBeVisible();
+  return page.getByTestId('account-credits');
 }

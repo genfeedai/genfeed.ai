@@ -43,6 +43,7 @@ vi.mock('@app-server/protected-bootstrap.server', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
   useParams: () => ({
     orgSlug: routeContext.orgSlug,
     brandSlug: routeContext.brandSlug,
@@ -143,6 +144,14 @@ vi.mock('@pages/library/browser/library-browser', () => ({
 
 vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../../[brandSlug]/library/library-credit-notice', () => ({
+  default: () => <div data-testid="library-credit-notice" />,
+}));
+
+vi.mock('../../../[brandSlug]/library/assets/asset-deep-link', () => ({
+  default: () => null,
 }));
 
 vi.mock('../../../[brandSlug]/library/captions/page', () => ({
@@ -351,6 +360,48 @@ describe('OrgRootAppPage', () => {
       'data-folder-navigation',
       'shell',
     );
+  });
+
+  it.each([
+    [{ place: 'trash' }, '/acme/~/library/trash'],
+    [
+      { shelf: 'approved', folder: 'f1' },
+      '/acme/~/library/shelf/approved?folder=f1',
+    ],
+    [
+      { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
+      '/acme/~/library/images?search=hero',
+    ],
+  ])(
+    'permanently moves the legacy library query %j to its route',
+    async (search, destination) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'library',
+            orgSlug: 'acme',
+            segments: ['assets'],
+          }),
+          searchParams: Promise.resolve(search),
+        }),
+      ).rejects.toThrow(`NEXT_PERMANENT_REDIRECT:${destination}`);
+    },
+  );
+
+  it('keeps All assets for filters that have no route of their own', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['assets'],
+      }),
+      searchParams: Promise.resolve({ categories: ['IMAGE'], folder: 'f1' }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-browser')).toBeInTheDocument();
+    expect(permanentRedirectMock).not.toHaveBeenCalled();
   });
 
   it('renders org type routes as presets over the unified browser', async () => {

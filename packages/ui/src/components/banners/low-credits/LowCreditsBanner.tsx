@@ -105,7 +105,7 @@ function LowCreditsContent({
   const isBillingEnabled = hasOrganizationBillingHint();
   const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
   const plansHref = orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION);
-  // Match TopbarCreditsBar: GEN wallet from topbar balances is the source of
+  // Match AccountCredits: GEN wallet from topbar balances is the source of
   // truth the operator already sees. creditsBreakdown can be null when the
   // subscription query is still loading or was historically gated on ACTIVE.
   // The shared query means this banner reuses the chip's response instead of

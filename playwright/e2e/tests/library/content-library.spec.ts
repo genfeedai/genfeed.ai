@@ -133,13 +133,14 @@ test.describe('Content Library', () => {
           .getByRole('menuitemradio', { name: place, exact: true })
           .click();
         await expect
-          .poll(() =>
-            new URL(authenticatedPage.url()).searchParams.get('place'),
-          )
-          .toBe(place.toLowerCase());
-        await expect
           .poll(() => new URL(authenticatedPage.url()).pathname)
-          .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
+          .toBe(
+            brandPath(
+              place === 'Recent'
+                ? APP_ROUTES.LIBRARY.RECENT
+                : APP_ROUTES.LIBRARY.STARRED,
+            ),
+          );
       }
 
       await expect(
