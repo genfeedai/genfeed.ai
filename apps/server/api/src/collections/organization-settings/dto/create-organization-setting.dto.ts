@@ -248,6 +248,16 @@ export class CreateOrganizationSettingDto {
   })
   readonly isBrandVisionChecksEnabled?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description:
+      'Whether MCP requests that spend credits wait in the approvals queue. On by default; owners and admins may turn it off, and a member skips the queue only when their own setting is off too.',
+    required: false,
+  })
+  readonly isMcpApprovalRequired?: boolean;
+
   @ValidateNested({ each: true })
   @Type(() => OnboardingJourneyMissionStateDto)
   @IsOptional()
