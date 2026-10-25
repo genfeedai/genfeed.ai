@@ -19,7 +19,7 @@ export async function assertReservedSystemActionAdmission(
   definitions: ReadonlyMap<string, SystemWorkflowGraphDefinition>,
   input: { actionId: string; nodeId: string; context: ExecutionContext },
 ): Promise<void> {
-  if (!input.actionId.startsWith('clip.')) return;
+  if (!input.actionId.startsWith('clipper.')) return;
   const context = input.context;
   const execution = context.executionId
     ? await prisma.workflowExecution.findFirst({
