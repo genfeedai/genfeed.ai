@@ -157,38 +157,6 @@ type AppRedirect = Awaited<
   ReturnType<NonNullable<NextConfig['redirects']>>
 >[number];
 
-/**
- * The former Studio apps moved from `/studio/<app>` to `/<app>`. Keep
- * bookmarked, emailed and agent-emitted links working in every scope: the
- * unscoped product path, and the brand route. The brand rule also matches the
- * org scope, where `~` takes the `:brandSlug` position. Each app gets its own
- * rule; there is deliberately no broad `/studio/*` wildcard, and a bare
- * `/studio` stays a 404.
- */
-const studioAppRedirects: AppRedirect[] = STUDIO_APP_ROUTE_PREFIXES.flatMap(
-  (appRoot) => [
-    {
-      destination: `${appRoot}/:path*`,
-      permanent: true,
-      source: `/studio${appRoot}/:path*`,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${appRoot}/:path*`,
-      ),
-      permanent: true,
-      // `v1` is the API prefix, never an organization (see appHomeRedirects).
-      source: createBrandAppRoute(
-        ':orgSlug((?!v1(?:/|$))[^/]+)',
-        ':brandSlug',
-        `/studio${appRoot}/:path*`,
-      ),
-    },
-  ],
-);
-
 const FILTER_ROUTE_SCOPES = [
   '',
   '/:orgSlug/:brandSlug',
@@ -366,7 +334,6 @@ const config = createAppNextConfig({
         '/agent/onboarding/:path*',
       ),
     },
-    ...studioAppRedirects,
     ...filterRouteRedirects,
     ...adminFilterRouteRedirects,
     // Market trends moved from Analytics (own-content measurement) to

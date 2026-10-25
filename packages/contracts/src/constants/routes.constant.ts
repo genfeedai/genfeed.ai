@@ -356,8 +356,8 @@ export const APP_ROUTES = {
   /**
    * The former Studio apps. Each is its own top-level product root
    * (`/turbo`, `/storyboard`, ...) with no Studio parent, so a bare `/studio`
-   * is not a route. Old `/studio/<app>` paths redirect here. These are
-   * production surfaces only: one-off "make me an image/video" generation
+   * is not a route; the old `/studio/<app>` paths are gone, not redirected.
+   * These are production surfaces only: one-off "make me an image/video" generation
    * lives in the Agent (`AGENT.NEW`).
    */
   STUDIO: {

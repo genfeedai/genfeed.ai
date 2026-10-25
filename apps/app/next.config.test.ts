@@ -526,83 +526,30 @@ describe('app next.config', () => {
     expect(legacyStudioSources).toEqual([]);
   });
 
-  it('does not define a broad studio wildcard redirect', async () => {
-    const redirects = await config.redirects?.();
-    const studioWildcards = redirects?.filter((redirect) =>
-      /\/studio\/:path\*$/.test(redirect.source),
-    );
+  it('keeps no redirect from the old /studio/<app> paths (hard cut)', async () => {
+    const redirects = (await config.redirects?.()) ?? [];
 
-    expect(studioWildcards).toEqual([]);
+    expect(
+      redirects.filter((redirect) => redirect.source.includes('/studio')),
+    ).toEqual([]);
   });
 
   it.each([
-    ['/studio/turbo', '/turbo'],
-    ['/studio/turbo/new?tab=ideas', '/turbo/new'],
-    ['/acme/brand/studio/turbo/abc123?tab=ideas', '/acme/brand/turbo/abc123'],
-    ['/acme/brand/studio/storyboard', '/acme/brand/storyboard'],
-    ['/acme/brand/studio/storyboard/run-1', '/acme/brand/storyboard/run-1'],
-    ['/acme/brand/studio/playground', '/acme/brand/playground'],
-    ['/acme/brand/studio/motion', '/acme/brand/motion'],
-    ['/acme/brand/studio/clips/new', '/acme/brand/clips/new'],
-    ['/acme/brand/studio/editor/project-1', '/acme/brand/editor/project-1'],
-    ['/acme/~/studio/editor/project-1', '/acme/~/editor/project-1'],
-    ['/acme/~/studio/playground', '/acme/~/playground'],
-  ])(
-    'permanently redirects the old Studio app path %s to %s',
-    async (source, pathname) => {
-      const response = await unstable_getResponseFromNextConfig({
-        url: `https://example.com${source}`,
-        nextConfig: { redirects: config.redirects },
-      });
-      expect(response.status).toBe(308);
-      const target = new URL(response.headers.get('location') ?? '');
-      expect(target.pathname).toBe(pathname);
-      new URL(`https://example.com${source}`).searchParams.forEach(
-        (entry, name) => {
-          expect(target.searchParams.get(name)).toBe(entry);
-        },
-      );
-    },
-  );
-
-  it.each([
+    '/studio/turbo',
+    '/studio/turbo/new',
+    '/acme/brand/studio/turbo/abc123',
+    '/acme/brand/studio/storyboard',
+    '/acme/brand/studio/playground',
+    '/acme/~/studio/editor/project-1',
     '/studio',
-    '/acme/brand/studio',
-    '/acme/brand/studio/models',
     '/v1/tags/studio/turbo',
-  ])(
-    'leaves %s alone: no Studio parent and no API path capture',
-    async (source) => {
-      const response = await unstable_getResponseFromNextConfig({
-        url: `https://example.com${source}`,
-        nextConfig: { redirects: config.redirects },
-      });
+  ])('does not redirect the retired path %s', async (source) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.com${source}`,
+      nextConfig: { redirects: config.redirects },
+    });
 
-      expect(response.status).not.toBe(308);
-    },
-  );
-
-  it('keeps the old Studio app redirects exact per app', async () => {
-    const redirects = (await config.redirects?.()) ?? [];
-    const studioSources = redirects
-      .map((redirect) => redirect.source)
-      .filter((source) => source.includes('/studio/'));
-
-    expect(studioSources.sort()).toEqual(
-      [
-        ...[
-          'clips',
-          'editor',
-          'motion',
-          'playground',
-          'storyboard',
-          'turbo',
-        ].flatMap((app) => [
-          `/studio/${app}/:path*`,
-          `/:orgSlug((?!v1(?:/|$))[^/]+)/:brandSlug/studio/${app}/:path*`,
-        ]),
-      ].sort(),
-    );
+    expect(response.status).not.toBe(308);
   });
 
   it('sends X-Robots-Tag: noindex, nofollow on every studio route', async () => {
