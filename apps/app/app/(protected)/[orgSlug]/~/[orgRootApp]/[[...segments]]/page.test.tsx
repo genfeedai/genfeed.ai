@@ -702,26 +702,20 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['approvals', '/acme/~/publishing/approvals/run-1/item-1?filter=all'],
-    ['calendar', '/acme/~/publishing/calendar'],
-  ])(
-    'permanently redirects the legacy posts ?view=%s tab',
-    async (view, destination) => {
-      await expect(
-        OrgRootAppPage({
-          params: Promise.resolve({
-            orgRootApp: 'publishing',
-            orgSlug: 'acme',
-            segments: ['posts'],
-          }),
-          searchParams: Promise.resolve(
-            view === 'approvals'
-              ? { filter: 'all', item: 'item-1', run: 'run-1', view }
-              : { view },
-          ),
+  it.each(['approvals', 'calendar'])(
+    'serves the posts list for a retired ?view=%s tab without redirecting',
+    async (view) => {
+      await OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+          segments: ['posts'],
         }),
-      ).rejects.toThrow(`NEXT_PERMANENT_REDIRECT:${destination}`);
+        searchParams: Promise.resolve({ view }),
+      });
+
+      expect(permanentRedirectMock).not.toHaveBeenCalled();
+      expect(redirectMock).not.toHaveBeenCalled();
     },
   );
 

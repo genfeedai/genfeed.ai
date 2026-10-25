@@ -63,24 +63,6 @@ describe('app next.config', () => {
       'shelf',
       'approved',
     ],
-    [
-      '/admin/automation/models/image?organization=o1',
-      '/admin/automation/models',
-      'type',
-      'image',
-    ],
-    [
-      '/admin/content/ingredients/images?search=hero',
-      '/admin/content/ingredients',
-      'assetType',
-      'images',
-    ],
-    [
-      '/admin/configuration/tags/account?search=hero',
-      '/admin/configuration/tags',
-      'filter',
-      'account',
-    ],
   ])(
     'preserves context when redirecting %s',
     async (source, pathname, key, value) => {
@@ -102,22 +84,20 @@ describe('app next.config', () => {
 
   it.each([
     '/acme/~/agent/onboarding',
-    '/acme/~/agent/onboarding/thread-1',
-    '/acme/brand/agent/onboarding',
     '/acme/brand/agent/onboarding/thread-1',
-  ])(
-    'sends the retired agent onboarding route %s to /onboarding',
-    async (source) => {
-      const response = await unstable_getResponseFromNextConfig({
-        url: `https://example.com${source}`,
-        nextConfig: { redirects: config.redirects },
-      });
-      expect(response.status).toBe(307);
-      expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
-        '/onboarding',
-      );
-    },
-  );
+    '/acme/brand/analytics/trends',
+    '/acme/brand/analytics/trend-turnover',
+    '/admin/automation/models/image',
+    '/admin/content/ingredients/images',
+    '/admin/configuration/tags/account',
+  ])('does not redirect the retired route %s (hard cut)', async (source) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.com${source}`,
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).not.toBe(307);
+    expect(response.status).not.toBe(308);
+  });
 
   it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
     const response = await unstable_getResponseFromNextConfig({
@@ -257,20 +237,6 @@ describe('app next.config', () => {
     expect(sources).toContain(
       '/:orgSlug((?!v1(?:/|$))[^/]+)/:brandSlug/library',
     );
-  });
-
-  it('redirects retired Analytics trends routes to Discovery', async () => {
-    const redirects = await config.redirects?.();
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/discovery/trends/:path*',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/analytics/trends/:path*',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/discovery/trend-turnover',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/analytics/trend-turnover',
-    });
   });
 
   it('hard-cuts the retired review routes (#5502): no redirects', async () => {

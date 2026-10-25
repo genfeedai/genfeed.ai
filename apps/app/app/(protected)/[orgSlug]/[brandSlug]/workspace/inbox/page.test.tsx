@@ -39,21 +39,10 @@ describe('WorkspaceInboxPage', () => {
     );
   });
 
-  it.each(['all', 'recent', 'unread'])(
-    'permanently moves the legacy ?view=%s link to its path',
-    async (view) => {
-      await expect(openInbox({ taskId: 't1', view })).rejects.toThrow(
-        `PERMANENT:/acme/moon/workspace/inbox/${view}?taskId=t1`,
-      );
-    },
-  );
-
-  it.each([{ view: 'nope' }, { view: ['all', 'recent'] }])(
-    'falls back to unread for the unusable view %j',
-    async (search) => {
-      await expect(openInbox(search)).rejects.toThrow(
-        'PERMANENT:/acme/moon/workspace/inbox/unread',
-      );
-    },
-  );
+  it('drops a retired ?view= param instead of redirecting permanently', async () => {
+    await expect(openInbox({ taskId: 't1', view: 'all' })).rejects.toThrow(
+      'TEMPORARY:/acme/moon/workspace/inbox/unread?taskId=t1',
+    );
+    expect(navigation.permanentRedirect).not.toHaveBeenCalled();
+  });
 });

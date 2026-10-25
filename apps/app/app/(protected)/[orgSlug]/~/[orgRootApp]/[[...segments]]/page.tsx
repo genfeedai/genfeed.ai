@@ -32,7 +32,7 @@ import PublishingDeskViewToggle from '@pages/posts/library/publishing-desk-view-
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { notFound, permanentRedirect, redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
@@ -45,7 +45,6 @@ import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
-import { resolveLegacyPublishingViewPath } from '../../../[brandSlug]/publishing/posts/legacy-view-redirect';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
@@ -366,14 +365,6 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'posts') {
-      const legacyViewPath = resolveLegacyPublishingViewPath(
-        (await searchParams) ?? {},
-      );
-
-      if (legacyViewPath) {
-        permanentRedirect(createOrganizationAppRoute(orgSlug, legacyViewPath));
-      }
-
       const postsListPage = await renderPostsListPage({
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
