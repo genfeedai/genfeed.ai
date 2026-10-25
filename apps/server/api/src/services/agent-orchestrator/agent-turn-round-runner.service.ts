@@ -24,6 +24,12 @@ import {
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import {
+  APPROVAL_PENDING_RESULT_SUMMARY,
+  isApprovalPendingResult,
+  resolveTerminalToolOutcome,
+  type TerminalToolOutcome,
+} from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
 import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
 import { buildToolResultSummary } from '@api/services/agent-orchestrator/utils/agent-tool-result-summary.util';
 import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
@@ -33,7 +39,6 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import {
   type CuratedActionName,
-  getVisualMediaGenerationType,
   MEDIA_GENERATION_TOOL_NAME,
   MEDIA_GENERATION_TYPE_PARAMETERS,
 } from '@genfeedai/actions';
@@ -52,41 +57,6 @@ import { Injectable } from '@nestjs/common';
 // cancellation was only observed between tools.
 const TOOL_EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
 const TOOL_CANCEL_POLL_INTERVAL_MS = 1500;
-
-const TERMINAL_RESULT_TOOLS = new Set<CuratedActionName>([
-  'suggest_ingredient_alternatives',
-]);
-
-/** Visual `generate` results end the turn; voice and music do not. */
-function isTerminalResultTool(
-  toolName: CuratedActionName,
-  parameters: Record<string, unknown>,
-): boolean {
-  return (
-    TERMINAL_RESULT_TOOLS.has(toolName) ||
-    getVisualMediaGenerationType(toolName, parameters) !== undefined
-  );
-}
-
-const APPROVAL_PENDING_TERMINAL_CONTENT =
-  'Review the details and approve to continue.';
-const APPROVAL_PENDING_RESULT_SUMMARY = 'Waiting for your approval';
-
-function getTerminalToolContent(
-  toolName: CuratedActionName,
-  parameters: Record<string, unknown>,
-): string {
-  if (toolName === 'ingest_source_media')
-    return 'Source needs attention. Retry or add another source.';
-  if (toolName === 'request_input') return 'Choose an option to continue.';
-  if (toolName === 'suggest_ingredient_alternatives') {
-    return 'Here are the ingredient alternatives.';
-  }
-  if (getVisualMediaGenerationType(toolName, parameters) === 'video') {
-    return 'Video generation accepted.';
-  }
-  return 'Image generation accepted.';
-}
 
 export type AgentToolRoundRiskLevel = 'low' | 'medium' | 'high';
 
@@ -417,9 +387,7 @@ export class AgentTurnRoundRunnerService {
       role: 'assistant' as const,
       tool_calls: toolCalls,
     });
-    let terminalToolName: CuratedActionName | undefined;
-    let terminalToolParams: Record<string, unknown> = {};
-    let isAwaitingApproval = false;
+    let terminal: TerminalToolOutcome | undefined;
 
     for (const toolCall of toolCalls) {
       if (strategy.onBeforeTool) {
@@ -620,33 +588,10 @@ export class AgentTurnRoundRunnerService {
       if (result.nextActions?.length) {
         state.uiActions.push(...result.nextActions);
       }
-      if (
-        result.success &&
-        result.nextActions?.length &&
-        isTerminalResultTool(toolName, toolParams)
-      ) {
-        terminalToolName = toolName;
-        terminalToolParams = toolParams;
-      }
-
-      if (result.data?.waitingForInput === true) {
-        terminalToolName = toolName;
-        terminalToolParams = toolParams;
-      }
+      terminal =
+        resolveTerminalToolOutcome(toolName, toolParams, result) ?? terminal;
       if (result.requiresConfirmation) {
         state.reviewRequired = true;
-      }
-      // A pending mutation approval is the end of the turn: nothing runs until
-      // the user decides, so a further model round would only keep the thread
-      // "Working" beside a card that is waiting on them (or retry the tool).
-      if (
-        result.success &&
-        result.approvalStatus === 'pending' &&
-        result.nextActions?.length
-      ) {
-        isAwaitingApproval = true;
-        terminalToolName = toolName;
-        terminalToolParams = toolParams;
       }
       this.recordRiskLevel(state, result.riskLevel);
 
@@ -682,7 +627,7 @@ export class AgentTurnRoundRunnerService {
         error: result.error,
         parameters: toolParams,
         ...buildToolResultSummary(toolName, modelVisibleResult),
-        ...(result.success && result.approvalStatus === 'pending'
+        ...(isApprovalPendingResult(result)
           ? { resultSummary: APPROVAL_PENDING_RESULT_SUMMARY }
           : {}),
         status: result.success ? 'completed' : 'failed',
@@ -751,12 +696,10 @@ export class AgentTurnRoundRunnerService {
 
     return {
       isCancelled: false,
-      ...(terminalToolName
+      ...(terminal
         ? {
-            terminalContent: isAwaitingApproval
-              ? APPROVAL_PENDING_TERMINAL_CONTENT
-              : getTerminalToolContent(terminalToolName, terminalToolParams),
-            terminalToolName,
+            terminalContent: terminal.content,
+            terminalToolName: terminal.toolName,
           }
         : {}),
     };
