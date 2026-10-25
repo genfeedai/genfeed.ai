@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import SettingsHomeAppCard from './settings-home-app-card';
+import SettingsMcpApprovalCard from './settings-mcp-approval-card';
 import SettingsRailCard from './settings-rail-card';
 
 type ExtendedSettingPatch = Partial<ISetting>;
@@ -286,6 +287,22 @@ export default function SettingsProfilePage() {
           {AGENT_MODE_DESCRIPTIONS[agentMode]}
         </p>
       </Card>
+
+      <SettingsMcpApprovalCard
+        isRequired={currentUser?.settings?.isMcpApprovalRequired !== false}
+        isSaving={isSaving}
+        onChange={(isRequired) => {
+          void patchSettings({ isMcpApprovalRequired: isRequired }).then(
+            (isSaved) => {
+              if (!isSaved) {
+                notifications.error(
+                  translate('settings.profile.mcpApproval.saveError'),
+                );
+              }
+            },
+          );
+        }}
+      />
     </div>
   );
 }

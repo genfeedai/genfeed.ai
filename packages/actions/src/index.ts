@@ -56,6 +56,7 @@ export {
   AGENT_ACTION_CLASS,
   getAgentActionClass,
   getVisualGenerationReviewType,
+  isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from './registry/agent-action-class';
 export {

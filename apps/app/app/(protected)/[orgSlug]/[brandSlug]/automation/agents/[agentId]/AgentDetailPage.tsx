@@ -416,7 +416,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           pendingReviewDescription={detail('needsYouPendingReview', {
             count: pendingReviewCount,
           })}
-          reviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+          reviewHref={href(APP_ROUTES.PUBLISHING.APPROVALS)}
           reviewLabel={detail('reviewContent')}
           runsHref={href(APP_ROUTES.AUTOMATION.RUNS)}
           title={detail('needsYouTitle')}

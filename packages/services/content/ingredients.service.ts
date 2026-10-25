@@ -13,6 +13,7 @@ import type {
   IBulkDeleteResult,
   IBulkTagResult,
   IIngredient,
+  IIngredientGenerationCost,
   IIngredientLineagePage,
   IPost,
   MediaDeliveryGrant,
@@ -580,6 +581,21 @@ export class IngredientsService<
       total: pagination?.total ?? items.length,
       totalPages,
     };
+  }
+
+  /** What a generated asset cost in credits; `credits` is null when nothing was charged. */
+  public async findGenerationCost(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IIngredientGenerationCost> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(
+        `${encodeURIComponent(id)}/generation-cost`,
+        {
+          signal,
+        },
+      )
+      .then((res) => this.extractResource<IIngredientGenerationCost>(res.data));
   }
 
   public async getPosts(id: string): Promise<IPost[]> {

@@ -1,6 +1,11 @@
-import { mockFetch, mockOk } from '@agent-tests/json-api-fetch.mock';
+import {
+  mockFetch,
+  mockJsonApiResource,
+  mockOk,
+} from '@agent-tests/json-api-fetch.mock';
 import {
   createManualReviewTurboRun,
+  getTurboRun,
   getWorkflowInterface,
   triggerWorkflow,
 } from '@genfeedai/agent/services/agent-api/agent-api.workflows';
@@ -100,6 +105,32 @@ describe('agent-api.workflows', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       'http://api.test/turbo-runs/manual-review',
       expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('getTurboRun reads one run with its items', async () => {
+    mockJsonApiResource(
+      {
+        completedCount: 1,
+        id: 'run-1',
+        items: [{ caption: 'Hello', id: 'item-1', platform: 'twitter' }],
+        status: 'PROCESSING',
+        totalCount: 2,
+      },
+      'turbo-run',
+    );
+
+    const result = await getTurboRun(makeApi(), 'run-1');
+
+    expect(result).toMatchObject({
+      completedCount: 1,
+      id: 'run-1',
+      items: [{ caption: 'Hello', id: 'item-1' }],
+      status: 'PROCESSING',
+    });
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://api.test/turbo-runs/run-1',
+      expect.any(Object),
     );
   });
 });

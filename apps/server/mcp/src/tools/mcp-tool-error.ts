@@ -108,7 +108,7 @@ function appUrl(path: string): string {
 function nextStepUrl(code: McpToolErrorCode): string | undefined {
   switch (code) {
     case 'approval_pending':
-      return appUrl(APP_ROUTES.PUBLISHING.REVIEW);
+      return appUrl(APP_ROUTES.PUBLISHING.APPROVALS);
     case 'insufficient_credits':
       return appUrl(APP_ROUTES.SETTINGS.CREDITS);
     case 'plan_required':

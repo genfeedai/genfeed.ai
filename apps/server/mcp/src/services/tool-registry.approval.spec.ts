@@ -111,6 +111,7 @@ function build() {
       .fn()
       .mockResolvedValue({ id: 'apr-1', status: 'APPROVED' }),
     claimApprovalExecution: vi.fn().mockResolvedValue(true),
+    isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn().mockResolvedValue({
       id: 'apr-1',
       status: 'PENDING',
@@ -301,7 +302,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result).toMatchObject({
       structuredContent: {
         nextStepUrl: expect.stringContaining(
-          '/publishing/posts?view=approvals&approval=mcp_approval%3Aapr-1',
+          '/publishing/approvals?approval=mcp_approval%3Aapr-1',
         ),
       },
     });
@@ -380,6 +381,28 @@ describe('ToolRegistryService — approval queue', () => {
       );
     },
   );
+
+  it('keeps a scheduled release in the queue even when the member opted out of approvals', async () => {
+    const { client, registry } = build();
+    client.isApprovalRequired.mockResolvedValue(false);
+
+    await registry.handleToolCall({
+      arguments: {
+        release: {
+          baseContent: 'Hello',
+          scheduledDate: '2026-12-01T10:00:00.000Z',
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+          timezone: 'Europe/Malta',
+          title: 'Launch',
+        },
+      },
+      name: 'create_scheduled_release',
+    });
+
+    expect(client.isApprovalRequired).not.toHaveBeenCalled();
+    expect(client.createApproval).toHaveBeenCalledOnce();
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+  });
 
   it('declines an approval without executing the deferred tool', async () => {
     const { client, registry } = build();

@@ -58,7 +58,7 @@ const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
   '/content/posts': APP_ROUTES.PUBLISHING.POSTS,
   '/content/articles': `${APP_ROUTES.PUBLISHING.POSTS}?type=article`,
   '/overview': APP_ROUTES.WORKSPACE.OVERVIEW,
-  '/review': APP_ROUTES.PUBLISHING.REVIEW,
+  '/review': APP_ROUTES.PUBLISHING.APPROVALS,
 };
 
 @Injectable()

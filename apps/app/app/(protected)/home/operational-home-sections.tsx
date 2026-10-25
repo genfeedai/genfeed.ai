@@ -230,7 +230,7 @@ function NeedsYouSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const reviewHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REVIEW)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.APPROVALS)
     : brandSetupHref;
   const reviewItemHref = (item: ReviewInboxItem) =>
     brandSlug
