@@ -12,10 +12,14 @@ import {
   ArrayMaxSize,
   IsArray,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsObject,
   IsString,
+  Max,
   MaxLength,
+  Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -45,6 +49,18 @@ export const STUDIO_GENERATE_DRAFT_MAX_ATTACHMENTS = 8;
 export class StudioGenerateDraftReferenceDto
   implements StudioGenerateDraftReference
 {
+  @ApiProperty({
+    description: 'Position across uploads and Library references',
+    minimum: 0,
+    maximum: 23,
+    required: false,
+  })
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsInt()
+  @Min(0)
+  @Max(23)
+  readonly order?: number;
+
   @ApiProperty({ description: 'Library ingredient id' })
   @IsString()
   @IsNotEmpty()

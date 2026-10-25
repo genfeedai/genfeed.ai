@@ -155,6 +155,7 @@ export default function StudioPlaygroundComposer({
   contextGroups,
   crunQuote,
   isCrunRestoreBlocked = false,
+  isPromptInvalid = false,
   crunReferenceCount,
   crunStartFrameId,
   crunEndFrameId,
@@ -551,6 +552,7 @@ export default function StudioPlaygroundComposer({
       estimate.unavailableReason ===
         AgentGenerationQuoteUnavailableReason.MISSING_SETTING);
   const isSubmitBlocked =
+    isPromptInvalid ||
     isCrunRestoreBlocked ||
     isEstimateBlocking ||
     (selectedModel?.provider === 'crun' && !crunQuote?.getCurrentQuote()) ||

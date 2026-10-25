@@ -73,6 +73,8 @@ export interface StudioPlaygroundComposerContextGroups {
 }
 
 export interface StudioPlaygroundComposerProps {
+  /** Blocks before quote/spend confirmation when inline prompt validation fails. */
+  isPromptInvalid?: boolean;
   isCrunRestoreBlocked?: boolean;
   crunQuote?: UseCrunGenerationQuoteReturn;
   crunReferenceCount?: number;

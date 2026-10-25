@@ -324,6 +324,8 @@ export type StudioPlaygroundReferenceRole =
 
 /** One Library asset the composer draft points at, with its role. */
 export interface StudioGenerateDraftReference {
+  /** Position across uploads and Library picks; absent in older drafts. */
+  order?: number;
   id: string;
   role: StudioPlaygroundReferenceRole;
 }

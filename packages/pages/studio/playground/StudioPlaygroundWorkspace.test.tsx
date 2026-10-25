@@ -26,6 +26,7 @@ import type {
   StudioPlaygroundComposerProps,
   StudioPlaygroundFocusedPreviewProps,
 } from '@genfeedai/props/studio/studio-playground.props';
+import type { UseStudioReferenceMentionsInput } from '@genfeedai/props/studio/studio-reference-mention.props';
 import type {
   AttachmentItem,
   UseAttachmentsOptions,
@@ -259,6 +260,15 @@ vi.mock('@genfeedai/agent/hooks/use-studio-character-mentions', () => ({
     mentions: [],
     resolveSubmit: characterMentionMocks.resolveSubmit,
   }),
+}));
+
+vi.mock('@pages/studio/playground/hooks/useStudioReferenceMentions', () => ({
+  useStudioReferenceMentions: ({
+    characterExtensions,
+  }: UseStudioReferenceMentionsInput) => [
+    ...characterExtensions,
+    { name: 'referenceMention' },
+  ],
 }));
 
 vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
@@ -1303,6 +1313,7 @@ describe('StudioPlaygroundWorkspace', () => {
     // `/` command palette.
     expect(initialProps.extraExtensions).toEqual([
       ...characterMentionMocks.extraExtensions,
+      expect.objectContaining({ name: 'referenceMention' }),
       expect.objectContaining({ name: 'promptCommands' }),
     ]);
     act(() => initialProps.onPromptChange('Use this composition'));
@@ -1324,6 +1335,50 @@ describe('StudioPlaygroundWorkspace', () => {
         videoReferenceIds: [],
       },
       { originalText: 'Use this composition' },
+    );
+  });
+
+  it.each(['@Image9', '@Video1', '@Audio1'])(
+    'blocks unmatched %s inline before submit',
+    (token) => {
+      render(<StudioPlaygroundWorkspace />);
+      const composer = () =>
+        mocks.composer.mock.calls.at(-1)?.[0] as StudioPlaygroundComposerProps;
+      act(() => composer().onPromptChange(`Use ${token}`));
+      expect(composer().isPromptInvalid).toBe(true);
+      expect(
+        screen.getByTestId('studio-reference-mention-error'),
+      ).toHaveTextContent(`${token} has no attached reference`);
+      act(() => composer().onSubmit());
+      expect(mocks.submit).not.toHaveBeenCalled();
+      act(() => composer().onPromptChange('Use the reference'));
+      expect(composer().isPromptInvalid).toBe(false);
+      expect(
+        screen.queryByTestId('studio-reference-mention-error'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('keeps unused attachments nonblocking and sends their ordered IDs with literal tokens', () => {
+    render(<StudioPlaygroundWorkspace />);
+    const composer = () =>
+      mocks.composer.mock.calls.at(-1)?.[0] as StudioPlaygroundComposerProps;
+    act(() => composer().onPromptChange('Use this composition'));
+    expect(
+      screen.getByTestId('studio-reference-mention-notice'),
+    ).toHaveTextContent('Attached but not mentioned: @Image1');
+    expect(composer().isPromptInvalid).toBe(false);
+    act(() => composer().onPromptChange('Use @Image1'));
+    expect(
+      screen.queryByTestId('studio-reference-mention-notice'),
+    ).not.toBeInTheDocument();
+    act(() => composer().onSubmit());
+    expect(mocks.submit).toHaveBeenCalledWith(
+      'Use @Image1',
+      expect.objectContaining({
+        imageReferenceIds: ['ingredient-1', 'img-anna'],
+      }),
+      expect.any(Object),
     );
   });
 
@@ -2757,87 +2812,138 @@ describe('StudioPlaygroundWorkspace', () => {
         'audio/*',
       );
     });
-    it('restores recorded uploads plus voice/music Library assets with audio kinds and stable audio ordering', async () => {
-      configureVideo();
-      mocks.attachments.mockImplementation((options: UseAttachmentsOptions) => {
-        const [items, setItems] = useState<AttachmentItem[]>([]);
-        useEffect(
-          () => setItems(options.initialAttachments ?? []),
-          [options.initialAttachments],
+    it.each([false, true])(
+      'restores recorded uploads plus voice/music Library assets with audio kinds and stable audio ordering (saved order: %s)',
+      async (hasSavedOrder) => {
+        configureVideo();
+        mocks.attachments.mockImplementation(
+          (options: UseAttachmentsOptions) => {
+            const [items, setItems] = useState<AttachmentItem[]>([]);
+            useEffect(
+              () => setItems(options.initialAttachments ?? []),
+              [options.initialAttachments],
+            );
+            return {
+              addFiles: vi.fn(),
+              attachments: items,
+              clearAll: mocks.clearAttachments,
+              dragHandlers: {},
+              dragState: { isActive: false },
+              getCompletedAttachments: () =>
+                items.flatMap((item) =>
+                  item.ingredientId
+                    ? [
+                        {
+                          ingredientId: item.ingredientId,
+                          kind: item.kind,
+                          url: item.url ?? '',
+                        },
+                      ]
+                    : [],
+                ),
+              isUploading: false,
+              removeAttachment: vi.fn(),
+            };
+          },
         );
-        return {
-          addFiles: vi.fn(),
-          attachments: items,
-          clearAll: mocks.clearAttachments,
-          dragHandlers: {},
-          dragState: { isActive: false },
-          getCompletedAttachments: () =>
-            items.flatMap((item) =>
-              item.ingredientId
-                ? [
-                    {
-                      ingredientId: item.ingredientId,
-                      kind: item.kind,
-                      url: item.url ?? '',
-                    },
-                  ]
-                : [],
+        mocks.getDraft.mockResolvedValueOnce({
+          id: 'draft-audio',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          prompt: 'Audio restore',
+          type: 'video',
+          settingsByType: {
+            video: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+          },
+          knowledgeSelection: {},
+          attachments: [
+            {
+              id: 'recorded',
+              role: 'audioReference',
+              ...(hasSavedOrder ? { order: 1 } : {}),
+            },
+          ],
+          references: [
+            {
+              id: 'voice',
+              role: 'audioReference',
+              ...(hasSavedOrder ? { order: 0 } : {}),
+            },
+            {
+              id: 'music',
+              role: 'audioReference',
+              ...(hasSavedOrder ? { order: 2 } : {}),
+            },
+            {
+              id: 'still',
+              role: 'startFrame',
+              ...(hasSavedOrder ? { order: 3 } : {}),
+            },
+          ],
+          droppedReferenceIds: [],
+        });
+        mocks.findByIds.mockResolvedValueOnce([
+          audioAsset('recorded', IngredientCategory.AUDIO, 'Recorded audio'),
+          audioAsset('voice', IngredientCategory.VOICE, 'Narration'),
+          audioAsset('music', IngredientCategory.MUSIC, 'Track'),
+          new Ingredient({
+            id: 'still',
+            category: IngredientCategory.IMAGE,
+            cdnUrl: 'https://cdn.example/still.png',
+          }),
+        ]);
+        await renderLoaded();
+        await waitFor(() =>
+          expect(
+            composer().attachedAssets?.filter(
+              (asset) => asset.kind === 'audio',
             ),
-          isUploading: false,
-          removeAttachment: vi.fn(),
-        };
-      });
-      mocks.getDraft.mockResolvedValueOnce({
-        id: 'draft-audio',
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        userId: 'user-1',
-        prompt: 'Audio restore',
-        type: 'video',
-        settingsByType: {
-          video: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
-        },
-        knowledgeSelection: {},
-        attachments: [{ id: 'recorded', role: 'audioReference' }],
-        references: [
-          { id: 'voice', role: 'audioReference' },
-          { id: 'music', role: 'audioReference' },
-          { id: 'still', role: 'startFrame' },
-        ],
-        droppedReferenceIds: [],
-      });
-      mocks.findByIds.mockResolvedValueOnce([
-        audioAsset('recorded', IngredientCategory.AUDIO, 'Recorded audio'),
-        audioAsset('voice', IngredientCategory.VOICE, 'Narration'),
-        audioAsset('music', IngredientCategory.MUSIC, 'Track'),
-        new Ingredient({
-          id: 'still',
-          category: IngredientCategory.IMAGE,
-          cdnUrl: 'https://cdn.example/still.png',
-        }),
-      ]);
-      await renderLoaded();
-      await waitFor(() =>
+          ).toHaveLength(3),
+        );
         expect(
-          composer().attachedAssets?.filter((asset) => asset.kind === 'audio'),
-        ).toHaveLength(3),
-      );
-      expect(
-        composer()
-          .attachedAssets?.filter((asset) => asset.kind === 'audio')
-          .every((asset) => asset.role === 'audioReference'),
-      ).toBe(true);
-      act(() => composer().onSubmit());
-      expect(mocks.submit).toHaveBeenLastCalledWith(
-        'Audio restore',
-        expect.objectContaining({
-          audioReferenceIds: ['recorded', 'voice', 'music'],
-          imageReferenceIds: ['still', 'img-anna'],
-          videoReferenceIds: [],
-        }),
-        expect.anything(),
-      );
-    });
+          composer()
+            .attachedAssets?.filter((asset) => asset.kind === 'audio')
+            .every((asset) => asset.role === 'audioReference'),
+        ).toBe(true);
+        if (hasSavedOrder) {
+          act(() =>
+            composer().onPromptChange('Use @Audio1 @Audio2 @Audio3 @Image1'),
+          );
+          expect(composer().isPromptInvalid).toBe(false);
+          await waitFor(() =>
+            expect(mocks.saveDraft).toHaveBeenCalledWith(
+              'brand-1',
+              expect.objectContaining({
+                attachments: [
+                  { id: 'recorded', role: 'audioReference', order: 1 },
+                ],
+                references: [
+                  { id: 'voice', role: 'audioReference', order: 0 },
+                  { id: 'music', role: 'audioReference', order: 2 },
+                  { id: 'still', role: 'startFrame', order: 3 },
+                ],
+              }),
+              expect.objectContaining({ isKeepalive: false }),
+            ),
+          );
+        }
+        act(() => composer().onSubmit());
+        expect(mocks.submit).toHaveBeenLastCalledWith(
+          hasSavedOrder
+            ? 'Use @Audio1 @Audio2 @Audio3 @Image1'
+            : 'Audio restore',
+          expect.objectContaining({
+            audioReferenceIds: hasSavedOrder
+              ? ['voice', 'recorded', 'music']
+              : ['recorded', 'voice', 'music'],
+            imageReferenceIds: ['still', 'img-anna'],
+            videoReferenceIds: [],
+          }),
+          expect.anything(),
+        );
+      },
+    );
     it('rejects audio uploads and avoids audio reads for unflagged models', async () => {
       const addFiles = vi.fn();
       mocks.attachments.mockReturnValue({

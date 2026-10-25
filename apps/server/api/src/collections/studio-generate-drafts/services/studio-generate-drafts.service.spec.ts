@@ -211,6 +211,38 @@ describe('StudioGenerateDraftsService', () => {
     expect(logger.warn).toHaveBeenCalledOnce();
   });
 
+  it('roundtrips mixed upload and Library order through existing scoped draft JSON', async () => {
+    const references = [{ id: 'library-1', role: 'reference', order: 0 }];
+    const attachments = [{ id: 'upload-1', role: 'startFrame', order: 1 }];
+    const row = buildRow({ references, attachments });
+    ingredient.findMany.mockResolvedValue([
+      { id: 'library-1' },
+      { id: 'upload-1' },
+    ]);
+    studioGenerateDraft.findFirst.mockResolvedValue(row);
+    const writeDto: UpsertStudioGenerateDraftDto = {
+      ...dto,
+      references: [{ id: 'library-1', role: 'reference', order: 0 }],
+      attachments: [{ id: 'upload-1', role: 'startFrame', order: 1 }],
+    };
+    const saved = await service.upsertCurrent(writeDto, scope);
+    expect(studioGenerateDraft.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ references, attachments }),
+        where: expect.objectContaining({
+          organizationId: scope.organizationId,
+          isDeleted: false,
+          userId: scope.userId,
+        }),
+      }),
+    );
+    expect(saved).toMatchObject({ references, attachments });
+    expect(await service.findCurrent(scope)).toMatchObject({
+      references,
+      attachments,
+    });
+  });
+
   it('discards malformed stored JSON instead of returning it', async () => {
     studioGenerateDraft.findFirst.mockResolvedValueOnce(
       buildRow({
