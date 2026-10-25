@@ -1,6 +1,7 @@
-import type {
-  AdWatchedAdvertiser,
-  AdWatchlistPlatformReadiness,
+import {
+  AdsPlatform,
+  type AdWatchedAdvertiser,
+  type AdWatchlistPlatformReadiness,
 } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -189,7 +190,7 @@ describe('AdsResearchWatchlistPanel', () => {
           advertiserHandle: 'argil.ai',
           freshnessState: 'unavailable',
           id: 'watched-3',
-          platform: 'meta',
+          platform: AdsPlatform.META,
         },
       ],
     });
