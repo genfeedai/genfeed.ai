@@ -21,6 +21,7 @@ export type AdsResearchWatchlistApi = {
   loadError?: string;
   readiness: AdWatchlistPlatformReadiness[];
   addAdvertiser: (input: CreateAdWatchedAdvertiserInput) => Promise<boolean>;
+  pollAdvertiser: (id: string) => Promise<void>;
   removeAdvertiser: (id: string) => Promise<void>;
 };
 
@@ -30,7 +31,9 @@ export type AdsResearchWatchlistApi = {
  * the research query surface stays one concern and the watchlist can be
  * rendered — or dropped — without touching it.
  */
-export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
+export function useAdsResearchWatchlist(
+  onPolled?: () => void,
+): AdsResearchWatchlistApi {
   const { brandId, isReady } = useBrand();
   const getWatchlistService = useAuthedService((token: string) =>
     AdWatchedAdvertisersService.getInstance(token),
@@ -105,6 +108,29 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
     }
   }
 
+  async function pollAdvertiser(id: string): Promise<void> {
+    setAddError(undefined);
+    setBusyId(id);
+    try {
+      const service = await getAdsResearchService();
+      await service.pollWatchedAdvertiser(id);
+      // A poll can write the first snapshot, so the Ads results that the page
+      // loads separately have to be refreshed too, but only when it succeeded.
+      onPolled?.();
+    } catch (error) {
+      setAddError(
+        error instanceof Error
+          ? error.message
+          : 'Could not poll that advertiser.',
+      );
+    } finally {
+      // The poll records its own outcome (fresh, empty or the blocker code) on
+      // the row, so refetch even when the request itself failed.
+      await refetch();
+      setBusyId(undefined);
+    }
+  }
+
   async function removeAdvertiser(id: string): Promise<void> {
     setAddError(undefined);
     setBusyId(id);
@@ -131,6 +157,7 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
     isAdding,
     isLoading,
     ...(loadError instanceof Error ? { loadError: loadError.message } : {}),
+    pollAdvertiser,
     readiness,
     removeAdvertiser,
   };

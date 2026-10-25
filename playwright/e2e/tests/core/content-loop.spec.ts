@@ -79,7 +79,7 @@ test.describe('Core Content Loop', () => {
     );
     await expect(sidebar.getByRole('link', { name: 'Inbox' })).toHaveAttribute(
       'href',
-      /\/workspace\/inbox$/,
+      /\/workspace\/inbox\/unread$/,
     );
     await expect(sidebar.getByRole('link', { name: 'Tasks' })).toHaveAttribute(
       'href',

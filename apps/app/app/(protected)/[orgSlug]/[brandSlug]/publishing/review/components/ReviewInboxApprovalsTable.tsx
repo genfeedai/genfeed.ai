@@ -29,6 +29,9 @@ export default function ReviewInboxApprovalsTable({
   items,
   highlightedItemId,
   decidingItemId,
+  isBulkDeciding,
+  selectedIds,
+  onSelectionChange,
   onDecide,
 }: ReviewInboxApprovalsTableProps) {
   const translate = useTranslations('pages.publishing.review.inbox');
@@ -37,7 +40,7 @@ export default function ReviewInboxApprovalsTable({
     () => [
       {
         icon: <Check className="size-3.5" />,
-        isDisabled: () => decidingItemId !== null,
+        isDisabled: () => decidingItemId !== null || isBulkDeciding,
         isVisible: (item) => item.isResolvable,
         onClick: (item) => {
           void onDecide(item, 'approve');
@@ -47,7 +50,7 @@ export default function ReviewInboxApprovalsTable({
       },
       {
         icon: <X className="size-3.5" />,
-        isDisabled: () => decidingItemId !== null,
+        isDisabled: () => decidingItemId !== null || isBulkDeciding,
         isVisible: (item) => item.isResolvable,
         onClick: (item) => {
           void onDecide(item, 'reject');
@@ -56,7 +59,7 @@ export default function ReviewInboxApprovalsTable({
         tooltipPosition: 'left',
       },
     ],
-    [decidingItemId, onDecide, translate],
+    [decidingItemId, isBulkDeciding, onDecide, translate],
   );
 
   const columns = useMemo<TableColumn<IReviewInboxItem>[]>(
@@ -141,8 +144,12 @@ export default function ReviewInboxApprovalsTable({
           item.id === decidingItemId && 'opacity-60',
         )
       }
+      getItemId={(item) => item.id}
       getRowKey={(item) => item.id}
       items={items}
+      onSelectionChange={onSelectionChange}
+      selectable
+      selectedIds={selectedIds}
     />
   );
 }
