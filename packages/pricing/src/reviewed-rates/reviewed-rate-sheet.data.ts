@@ -3152,22 +3152,23 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-21T20:55:14.793Z',
   },
   {
-    // fal states $0.08 to 24 MP, $0.16 to 48 MP, $0.32 to 96 MP and $1.36 at
-    // 512 MP: every started 24 MP block, as on Replicate.
+    // fal's pricing API (GET /v1/models/pricing, 2026-10-25) returns a flat
+    // $0.01 per megapixel. The model page still prints the old 24 MP block
+    // table ($0.08 to 24 MP), which is stale. fal states no rounding, so each
+    // started megapixel is billed, as on the other fal megapixel rates.
     endpoint: 'fal-ai/topaz/upscale/image',
     provider: 'fal',
     rates: [
       {
         component: 'output',
         unit: 'megapixel',
-        unitPriceUsd: 0.08 / 24,
+        unitPriceUsd: 0.01,
         when: {},
         isPerOutput: true,
-        minimumUnits: 24,
-        roundUnitsTo: 24,
+        roundUnitsTo: 1,
       },
     ],
-    sourceUrl: 'https://fal.ai/models/fal-ai/topaz/upscale/image',
-    verifiedAt: '2026-10-21T20:55:50.190Z',
+    sourceUrl: 'https://api.fal.ai/v1/models/pricing',
+    verifiedAt: '2026-10-25T19:29:00.000Z',
   },
 ];
