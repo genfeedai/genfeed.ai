@@ -192,8 +192,9 @@ jobs:
           trap 'kill "${server_pid}"' EXIT
 
           GENFEED_RELEASE_DOWNLOAD_BASE_URL=http://127.0.0.1:8765 \
+            OPENROUTER_API_KEY=sk-or-offline-fixture \
             "${create_bin}" "${RUNNER_TEMP}/genfeed-install" \
-              --release "${RELEASE_TAG}" --no-start
+              --release "${RELEASE_TAG}" --no-start --yes
 
           test "$(jq -r '.releaseTag' "${RUNNER_TEMP}/genfeed-install/release.json")" = "${RELEASE_TAG}"
           test "$(jq -r '.image' "${RUNNER_TEMP}/genfeed-install/release.json")" = \
