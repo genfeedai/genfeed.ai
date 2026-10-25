@@ -28,10 +28,7 @@ export default function IngredientPosts({
   if (!ingredient || ingredient?.id === 'undefined') {
     return (
       <PublicListPage>
-        <CardEmpty
-          label="Ingredient not found"
-          description="The ingredient you are looking for does not exist."
-        />
+        <CardEmpty label="Ingredient not found" />
       </PublicListPage>
     );
   }
@@ -107,10 +104,7 @@ export default function IngredientPosts({
       </div>
 
       {posts.length === 0 ? (
-        <CardEmpty
-          label={EMPTY_STATES.POSTS_YET}
-          description="This ingredient hasn't been used in any public posts yet."
-        />
+        <CardEmpty label={EMPTY_STATES.POSTS_YET} />
       ) : (
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">

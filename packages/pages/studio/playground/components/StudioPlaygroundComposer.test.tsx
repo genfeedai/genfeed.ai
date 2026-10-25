@@ -2478,7 +2478,6 @@ describe('StudioPlaygroundComposer', () => {
     );
     const generate = screen.getByRole('button', {
       name: 'Generate',
-      exact: true,
     });
     expect(generate).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(generate);
