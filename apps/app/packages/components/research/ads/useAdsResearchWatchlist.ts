@@ -21,6 +21,7 @@ export type AdsResearchWatchlistApi = {
   loadError?: string;
   readiness: AdWatchlistPlatformReadiness[];
   addAdvertiser: (input: CreateAdWatchedAdvertiserInput) => Promise<boolean>;
+  pollAdvertiser: (id: string) => Promise<void>;
   removeAdvertiser: (id: string) => Promise<void>;
 };
 
@@ -105,6 +106,26 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
     }
   }
 
+  async function pollAdvertiser(id: string): Promise<void> {
+    setAddError(undefined);
+    setBusyId(id);
+    try {
+      const service = await getAdsResearchService();
+      await service.pollWatchedAdvertiser(id);
+    } catch (error) {
+      setAddError(
+        error instanceof Error
+          ? error.message
+          : 'Could not poll that advertiser.',
+      );
+    } finally {
+      // The poll records its own outcome (fresh, empty or the blocker code) on
+      // the row, so refetch even when the request itself failed.
+      await refetch();
+      setBusyId(undefined);
+    }
+  }
+
   async function removeAdvertiser(id: string): Promise<void> {
     setAddError(undefined);
     setBusyId(id);
@@ -131,6 +152,7 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
     isAdding,
     isLoading,
     ...(loadError instanceof Error ? { loadError: loadError.message } : {}),
+    pollAdvertiser,
     readiness,
     removeAdvertiser,
   };

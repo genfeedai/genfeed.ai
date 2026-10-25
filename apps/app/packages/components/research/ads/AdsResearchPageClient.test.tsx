@@ -249,6 +249,7 @@ vi.mock('./useAdsResearchWatchlist', () => ({
     isAdding: false,
     isLoading: false,
     readiness: [],
+    pollAdvertiser: vi.fn(),
     removeAdvertiser: vi.fn(),
   }),
 }));

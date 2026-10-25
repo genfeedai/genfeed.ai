@@ -11,7 +11,11 @@ import {
 } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import type { NormalizedPaidCreativeRecord } from '@genfeedai/integrations/ads';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { ServiceUnavailableException } from '@nestjs/common';
+import {
+  HttpException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 const READY: PaidCreativeReadiness = {
   available: true,
@@ -52,6 +56,7 @@ type Harness = {
   };
   adWatchedAdvertisersService: {
     findAllByAccount: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     recordIngestionResult: ReturnType<typeof vi.fn>;
   };
   adapter: {
@@ -79,6 +84,7 @@ function buildHarness(
   };
   const adWatchedAdvertisersService = {
     findAllByAccount: vi.fn().mockResolvedValue(watched),
+    findOne: vi.fn().mockResolvedValue(watched[0] ?? null),
     recordIngestionResult: vi.fn().mockResolvedValue(null),
   };
   const providerRegistry = {
@@ -424,6 +430,76 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
     expect(
       harness.adWatchedAdvertisersService.findAllByAccount,
     ).toHaveBeenCalledWith('org-1', 'brand-1', 'tiktok');
+  });
+
+  describe('pollWatchedAdvertiser', () => {
+    it('ingests the advertiser inside the caller organization', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+
+      const result = await harness.service.pollWatchedAdvertiser(
+        'org-1',
+        'watch-1',
+        { brandId: 'brand-1' },
+      );
+
+      expect(harness.adWatchedAdvertisersService.findOne).toHaveBeenCalledWith({
+        id: 'watch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      expect(result).toMatchObject({ advertiserId: 'watch-1', status: 'success' });
+    });
+
+    it('does not reveal an advertiser that belongs to another brand', async () => {
+      const harness = buildHarness([META_ADVERTISER]);
+
+      await expect(
+        harness.service.pollWatchedAdvertiser('org-1', 'watch-1', {
+          brandId: 'brand-2',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown advertiser', async () => {
+      const harness = buildHarness([]);
+
+      await expect(
+        harness.service.pollWatchedAdvertiser('org-1', 'missing'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('refuses a repeat poll while the last run that spent money is recent', async () => {
+      const harness = buildHarness([
+        {
+          ...META_ADVERTISER,
+          lastAttemptedAt: new Date(Date.now() - 60 * 1000),
+          lastIngestionStatus: 'success',
+        },
+      ]);
+
+      await expect(
+        harness.service.pollWatchedAdvertiser('org-1', 'watch-1'),
+      ).rejects.toBeInstanceOf(HttpException);
+      expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+    });
+
+    it('lets a blocked advertiser be retried immediately', async () => {
+      const harness = buildHarness([
+        {
+          ...META_ADVERTISER,
+          lastAttemptedAt: new Date(Date.now() - 60 * 1000),
+          lastIngestionStatus: 'unavailable',
+        },
+      ]);
+
+      const result = await harness.service.pollWatchedAdvertiser(
+        'org-1',
+        'watch-1',
+      );
+
+      expect(result.status).toBe('success');
+    });
   });
 
   it('completes the run when freshness bookkeeping itself fails', async () => {

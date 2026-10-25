@@ -326,6 +326,7 @@ export default function AdsResearchPageClient() {
           isLoading={watchlist.isLoading}
           readiness={watchlist.readiness}
           onAdd={watchlist.addAdvertiser}
+          onPoll={watchlist.pollAdvertiser}
           onRemove={watchlist.removeAdvertiser}
           {...(watchlist.addError ? { addError: watchlist.addError } : {})}
           {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}

@@ -19,10 +19,22 @@ import {
   resolvePaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 /** Ads pulled per advertiser per run. Transparency archives are long tails. */
 const DEFAULT_CREATIVE_LIMIT = 50;
+
+/**
+ * Minimum gap between manual polls of one advertiser. A poll that actually ran
+ * an archive actor is billed, so repeating it inside this window is refused.
+ */
+const MANUAL_POLL_COOLDOWN_MS = 10 * 60 * 1000;
 
 export type WatchedAdvertiserScope = {
   advertiserHandle: string;
@@ -86,6 +98,52 @@ export class PaidCreativeResearchIngestionService {
       options.brandId,
       options.platform,
     )) as WatchedAdvertiserScope[];
+  }
+
+  /**
+   * Poll one watched advertiser on demand, outside the scheduled workflow.
+   *
+   * Scoped to the caller's organization (and brand when the session has one).
+   * A previous attempt that never reached an archive (`unavailable`) can be
+   * retried at once; one that ran an actor is rate-limited because it spent
+   * money.
+   */
+  async pollWatchedAdvertiser(
+    organizationId: string,
+    advertiserId: string,
+    scope: { brandId?: string } = {},
+  ): Promise<PaidCreativeIngestionResult> {
+    const advertiser = (await this.adWatchedAdvertisersService.findOne({
+      id: advertiserId,
+      isDeleted: false,
+      organizationId,
+    })) as (WatchedAdvertiserScope & {
+      lastAttemptedAt?: Date | null;
+      lastIngestionStatus?: string | null;
+    }) | null;
+
+    if (
+      !advertiser ||
+      (scope.brandId && advertiser.brandId !== scope.brandId)
+    ) {
+      throw new NotFoundException('Watched advertiser not found');
+    }
+
+    const lastAttemptedAt = advertiser.lastAttemptedAt
+      ? new Date(advertiser.lastAttemptedAt).getTime()
+      : null;
+    if (
+      lastAttemptedAt !== null &&
+      advertiser.lastIngestionStatus !== 'unavailable' &&
+      Date.now() - lastAttemptedAt < MANUAL_POLL_COOLDOWN_MS
+    ) {
+      throw new HttpException(
+        'This advertiser was polled a few minutes ago. Try again shortly.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    return this.ingestOne(organizationId, advertiser, {});
   }
 
   async ingestOne(

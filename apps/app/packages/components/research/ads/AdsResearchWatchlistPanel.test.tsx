@@ -124,6 +124,7 @@ function renderPanel(
   overrides: Partial<Parameters<typeof AdsResearchWatchlistPanel>[0]> = {},
 ) {
   const onAdd = vi.fn();
+  const onPoll = vi.fn();
   const onRemove = vi.fn();
 
   render(
@@ -133,12 +134,13 @@ function renderPanel(
       isLoading={false}
       readiness={readiness}
       onAdd={onAdd}
+      onPoll={onPoll}
       onRemove={onRemove}
       {...overrides}
     />,
   );
 
-  return { onAdd, onRemove };
+  return { onAdd, onPoll, onRemove };
 }
 
 describe('AdsResearchWatchlistPanel', () => {
@@ -172,12 +174,42 @@ describe('AdsResearchWatchlistPanel', () => {
 
     expect(screen.getByText('Nike')).toBeInTheDocument();
     expect(screen.getByText('12 creatives')).toBeInTheDocument();
-    expect(screen.getByText('Not polled')).toBeInTheDocument();
+    expect(screen.getByText('Last poll blocked')).toBeInTheDocument();
     expect(
       screen.getByText(
         'The archive scraper credential is not configured on this deployment.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('tells a never-polled competitor apart from one whose poll was blocked', () => {
+    renderPanel({
+      advertisers: [
+        {
+          advertiserHandle: 'argil.ai',
+          freshnessState: 'unavailable',
+          id: 'watched-3',
+          platform: 'meta',
+        },
+      ],
+    });
+
+    expect(screen.getByText('Not polled yet')).toBeInTheDocument();
+  });
+
+  it('polls one competitor on demand', () => {
+    const { onPoll } = renderPanel();
+
+    fireEvent.click(screen.getByLabelText('Poll adidas now'));
+
+    expect(onPoll).toHaveBeenCalledWith('watched-2');
+  });
+
+  it('disables polling while that competitor is busy', () => {
+    renderPanel({ busyId: 'watched-2' });
+
+    expect(screen.getByLabelText('Poll adidas now')).toBeDisabled();
+    expect(screen.getByLabelText('Poll nike now')).toBeEnabled();
   });
 
   it('tells the operator an unconfirmed collection start is safe to retry (#5212)', () => {

@@ -244,6 +244,14 @@ export interface AdWatchedAdvertiser {
   platform: AdWatchlistPlatform;
 }
 
+/** Outcome of polling one watched advertiser on demand. */
+export interface AdWatchedAdvertiserPollResult {
+  advertiserId: string;
+  errorCode?: string;
+  recordCount: number;
+  status: 'error' | 'success' | 'unavailable';
+}
+
 export interface CreateAdWatchedAdvertiserInput {
   externalAdvertiserId?: string;
   advertiserHandle: string;
