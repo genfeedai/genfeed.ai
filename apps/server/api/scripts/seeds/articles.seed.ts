@@ -87,7 +87,7 @@ export type SeedOwner = {
 type OrganizationSelector = {
   id?: string;
   isDeleted: false;
-  label?: string;
+  label?: { equals: string; mode: 'insensitive' };
   userId?: string;
 };
 
@@ -235,7 +235,11 @@ export function buildOrganizationSelector(
   return {
     ...(organizationId ? { id: organizationId } : {}),
     isDeleted: false,
-    ...(organizationLabel ? { label: organizationLabel } : {}),
+    // Labels are display names ("Genfeed.ai"); a pinned value that differs only
+    // by case must still find the organization, not fail the run.
+    ...(organizationLabel
+      ? { label: { equals: organizationLabel, mode: 'insensitive' as const } }
+      : {}),
     ...(ownerUserId ? { userId: ownerUserId } : {}),
   };
 }
@@ -899,14 +903,12 @@ export async function runArticlesSeed(): Promise<void> {
     );
   }
 
-  if (
-    args.env === 'production' &&
-    !args.dryRun &&
-    !args.brandId &&
-    !args.brandSlug
-  ) {
+  // Without a brand the seed falls back to the organization's default brand
+  // and reassigns every existing row to it, so a dry run would report a
+  // different outcome than the run the operator means. Name it every time.
+  if (args.env === 'production' && !args.brandId && !args.brandSlug) {
     throw new Error(
-      'A live production seed must name its review brand: pass --brandId=<id> or --brandSlug=<slug>',
+      'A production seed must name its review brand: pass --brandId=<id> or --brandSlug=<slug>',
     );
   }
 

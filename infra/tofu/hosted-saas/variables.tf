@@ -123,6 +123,12 @@ variable "organization_label" {
   description = "Organization label passed to the articles-seed one-off task."
 }
 
+variable "articles_brand_slug" {
+  type        = string
+  default     = "genfeedai"
+  description = "Review brand slug passed to the articles-seed one-off task. The seed refuses a production run without one."
+}
+
 variable "harness_seed_ssm_path" {
   type        = string
   default     = ""

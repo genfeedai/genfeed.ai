@@ -9,6 +9,7 @@ import {
   parseArticlesSeedArgs,
   REQUIRED_ARTICLE_COLUMNS,
   resolveSeedPublishedAt,
+  runArticlesSeed,
 } from './articles.seed';
 
 describe('articles seed schema preflight', () => {
@@ -81,7 +82,7 @@ describe('articles seed schema preflight', () => {
     expect(buildOrganizationSelector('org-1', 'genfeed.ai', 'user-1')).toEqual({
       id: 'org-1',
       isDeleted: false,
-      label: 'genfeed.ai',
+      label: { equals: 'genfeed.ai', mode: 'insensitive' },
       userId: 'user-1',
     });
     expect(buildOrganizationSelector('org-1', null, null)).toEqual({
@@ -127,6 +128,24 @@ describe('articles seed schema preflight', () => {
       organizationId: 'org-1',
       slug: 'genfeed',
     });
+  });
+
+  it('refuses a production run that names no review brand, dry run included', async () => {
+    const argv = process.argv;
+    process.argv = [
+      'bun',
+      'articles.seed.ts',
+      '--env=production',
+      '--ownerEmail=owner@example.com',
+    ];
+
+    try {
+      await expect(runArticlesSeed()).rejects.toThrow(
+        'must name its review brand',
+      );
+    } finally {
+      process.argv = argv;
+    }
   });
 
   it('moves only the known launch batch timestamp to an editorial date', () => {

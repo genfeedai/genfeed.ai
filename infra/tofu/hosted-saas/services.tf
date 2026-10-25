@@ -228,6 +228,7 @@ resource "aws_ecs_task_definition" "articles_seed" {
       "--env=production",
       "--ownerEmail=${var.owner_email}",
       "--organizationLabel=${var.organization_label}",
+      "--brandSlug=${var.articles_brand_slug}",
     ]
     secrets = local.service_task_secrets
     environment = concat(local.internal_env, [
