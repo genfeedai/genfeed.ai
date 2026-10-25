@@ -5,6 +5,8 @@ import type {
   WorkflowTriggerScope,
 } from '@genfeedai/agent/services/agent-api.types';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 
 export async function getWorkflowInterface(
   api: AgentBaseApiService,
@@ -70,5 +72,19 @@ export async function createManualReviewTurboRun(
       signal,
     },
     'Failed to create manual review batch',
+  );
+}
+
+/** Live state of one run, so its chat card can show progress and the drafts. */
+export async function getTurboRun(
+  api: AgentBaseApiService,
+  turboRunId: string,
+  signal?: AbortSignal,
+): Promise<ITurboRunSummary> {
+  return api.fetchResource<ITurboRunSummary>(
+    `${api.config.baseUrl}${API_ENDPOINTS.TURBO_RUNS}/${encodeURIComponent(turboRunId)}`,
+    { signal },
+    'Failed to fetch the Turbo run',
+    'Invalid Turbo run response.',
   );
 }

@@ -7,7 +7,7 @@ const { dispatchOpenTaskComposer, push } = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/brand/publishing/review',
+  usePathname: () => '/acme/brand/publishing/approvals',
   useRouter: () => ({ push }),
 }));
 

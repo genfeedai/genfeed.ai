@@ -144,6 +144,21 @@
     "tooltip": "A short, silent, lower-resolution preview of this video. Generate the full version once you like it."
   },
   "generationFailed": "Generation failed",
+  "failure": {
+    "reasons": {
+      "contentPolicy": "Blocked by the provider’s content filter",
+      "copyright": "Blocked by the provider: possible copyright content",
+      "credits": "The provider account is out of credits",
+      "generic": "Generation failed",
+      "rateLimit": "The provider is rate limiting requests. Try again shortly.",
+      "timeout": "The provider timed out. Try again.",
+      "unavailable": "The provider is temporarily unavailable. Try again."
+    },
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "copyDetails": "Copy details",
+    "detailsLabel": "Provider error details"
+  },
   "history": {
     "loadFailedTitle": "Generation history couldn’t load",
     "loadFailedDescription": "Try again to see your saved generations.",

@@ -1,4 +1,5 @@
 import { TurboRunStatus } from '@genfeedai/contracts';
+import { parsePublishingApprovalsPath } from '@genfeedai/contracts/constants';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
@@ -23,29 +24,40 @@ import { useTurboRewriteJob } from './useTurboRewriteJob';
 
 const DEFAULT_STATUS_FILTERS: ReviewStatusFilter[] = ['ready'];
 
-function buildReviewQuery(input: {
+/**
+ * `/publishing/approvals[/<run>[/<item>]]?filter=…`. The run and item are path
+ * segments; the filter is omitted at its default so the common URL stays clean.
+ */
+function buildReviewHref(input: {
+  basePath: string;
   turboRunId: string | null;
   filters: readonly ReviewStatusFilter[];
   itemId: string | null;
   baseParams: URLSearchParams;
 }): string {
   const params = new URLSearchParams(input.baseParams.toString());
+  let path = input.basePath;
 
   if (input.turboRunId) {
-    params.set('run', input.turboRunId);
-  } else {
-    params.delete('run');
-  }
-
-  params.set('filter', serializeReviewFilters(input.filters));
-
-  if (input.itemId) {
+    path += `/${encodeURIComponent(input.turboRunId)}`;
+    if (input.itemId) {
+      path += `/${encodeURIComponent(input.itemId)}`;
+    }
+    params.delete('item');
+  } else if (input.itemId) {
     params.set('item', input.itemId);
   } else {
     params.delete('item');
   }
 
-  return params.toString();
+  if (areReviewFiltersEqual(input.filters, DEFAULT_STATUS_FILTERS)) {
+    params.delete('filter');
+  } else {
+    params.set('filter', serializeReviewFilters(input.filters));
+  }
+
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 export function useReviewQueueContent() {
@@ -59,10 +71,17 @@ export function useReviewQueueContent() {
   const { replace } = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const requestedTurboRunId = searchParams.get('run');
+  const currentHref = searchParamsString
+    ? `${pathname}?${searchParamsString}`
+    : pathname;
+  const approvalsPath = useMemo(
+    () => parsePublishingApprovalsPath(pathname),
+    [pathname],
+  );
+  const requestedTurboRunId = approvalsPath.run;
   const filterParam = searchParams.get('filter');
   const requestedFilters = parseReviewFilters(filterParam);
-  const requestedItemId = searchParams.get('item');
+  const requestedItemId = approvalsPath.item ?? searchParams.get('item');
 
   const [selectedTurboRunId, setSelectedTurboRunId] = useState<string | null>(
     requestedTurboRunId,
@@ -77,8 +96,8 @@ export function useReviewQueueContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isActioning, setIsActioning] = useState(false);
 
-  // Last query we wrote — ignore echo updates from our own replace().
-  const lastWrittenQueryRef = useRef<string | null>(null);
+  // Last href we wrote — ignore echo updates from our own replace().
+  const lastWrittenHrefRef = useRef<string | null>(null);
   const hasExplainedAutoBroadenRef = useRef(false);
 
   const {
@@ -116,29 +135,29 @@ export function useReviewQueueContent() {
       const nextItemId =
         input.itemId === undefined ? activeItemId : input.itemId;
 
-      const nextQuery = buildReviewQuery({
+      const nextHref = buildReviewHref({
         baseParams: new URLSearchParams(searchParamsString),
+        basePath: approvalsPath.basePath,
         turboRunId: nextTurboRunId,
         filters: nextFilters,
         itemId: nextItemId,
       });
 
       // Critical: no-op when nothing changed — replace() on an identical URL
-      // still churns searchParams in App Router and retriggers effects.
-      if (nextQuery === searchParamsString) {
-        lastWrittenQueryRef.current = nextQuery;
+      // still churns the router state in App Router and retriggers effects.
+      lastWrittenHrefRef.current = nextHref;
+      if (nextHref === currentHref) {
         return;
       }
 
-      lastWrittenQueryRef.current = nextQuery;
-      const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
       replace(nextHref, { scroll: false });
     },
     [
       activeTurboRunId,
       activeFilters,
       activeItemId,
-      pathname,
+      approvalsPath.basePath,
+      currentHref,
       replace,
       searchParamsString,
     ],
@@ -177,7 +196,7 @@ export function useReviewQueueContent() {
   }, [refetchTurboRun, refetchTurboRuns]);
 
   const actionableItems = useMemo(
-    () => activeTurboRun?.items.filter((item) => isReadyToReview(item)) ?? [],
+    () => activeTurboRun?.items?.filter((item) => isReadyToReview(item)) ?? [],
     [activeTurboRun],
   );
 
@@ -212,7 +231,7 @@ export function useReviewQueueContent() {
 
   // External URL changes only (back/forward / pasted link). Skip our own writes.
   useEffect(() => {
-    if (searchParamsString === lastWrittenQueryRef.current) {
+    if (currentHref === lastWrittenHrefRef.current) {
       return;
     }
 
@@ -236,7 +255,7 @@ export function useReviewQueueContent() {
       // URL dropped item — keep local selection until visible-items guard runs.
       return current;
     });
-  }, [filterParam, requestedTurboRunId, requestedItemId, searchParamsString]);
+  }, [currentHref, filterParam, requestedTurboRunId, requestedItemId]);
 
   // Ensure the active row is always inside the current filter window (local only).
   // URL writes happen once below when local + URL actually disagree.
@@ -481,7 +500,7 @@ export function useReviewQueueContent() {
       return;
     }
 
-    const reviewableItemIds = activeTurboRun.items
+    const reviewableItemIds = (activeTurboRun.items ?? [])
       .filter((item) => isReadyToReview(item))
       .map((item) => item.id);
 
@@ -509,7 +528,7 @@ export function useReviewQueueContent() {
       }
 
       const approvedItem =
-        activeTurboRun?.items.find((item) => item.id === itemId) ?? null;
+        activeTurboRun?.items?.find((item) => item.id === itemId) ?? null;
       const remainingItems = visibleItems.filter((item) => item.id !== itemId);
 
       setIsActioning(true);

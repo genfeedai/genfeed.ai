@@ -62,7 +62,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Publish',
     name: 'publish',
     requiredScope: 'brand',
-    route: APP_ROUTES.PUBLISHING.REVIEW,
+    route: APP_ROUTES.PUBLISHING.APPROVALS,
   },
   {
     description: 'Content analytics',

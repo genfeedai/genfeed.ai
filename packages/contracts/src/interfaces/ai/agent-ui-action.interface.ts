@@ -49,6 +49,14 @@ export interface AgentMutationApprovalItem {
   value: string;
 }
 
+/** One account's draft as it will read on its platform, for the approval card. */
+export interface AgentMutationApprovalPostPreview {
+  caption: string;
+  credentialId?: string;
+  mediaUrls: string[];
+  platform: string;
+}
+
 export interface AgentMutationApprovalData {
   approvalId: string;
   sourceActionId: string;
@@ -59,6 +67,8 @@ export interface AgentMutationApprovalData {
   brandId: string | null;
   expiresAt: string;
   estimatedCredits?: number;
+  /** Set for `create_post`: the draft per target, so the card can render the platform preview. */
+  postPreviews?: AgentMutationApprovalPostPreview[];
   executionStatus?: 'completed' | 'failed' | 'cancelled';
   error?: string;
 }
