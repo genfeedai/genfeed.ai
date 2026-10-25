@@ -545,7 +545,9 @@ describe('useEnhanceUpscale', () => {
       async (cost) => {
         mockUseElements.mockReturnValue({
           ...defaultElements,
-          imageUpscaleModels: [{ ...defaultElements.imageUpscaleModels[0], cost }],
+          imageUpscaleModels: [
+            { ...defaultElements.imageUpscaleModels[0], cost },
+          ],
         });
         const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
         await act(async () => {
@@ -566,7 +568,9 @@ describe('useEnhanceUpscale', () => {
     it('accepts an explicit zero image price', async () => {
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        imageUpscaleModels: [{ ...defaultElements.imageUpscaleModels[0], cost: 0 }],
+        imageUpscaleModels: [
+          { ...defaultElements.imageUpscaleModels[0], cost: 0 },
+        ],
       });
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
       await act(async () => {
@@ -853,7 +857,9 @@ describe('useEnhanceUpscale', () => {
       });
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        imageUpscaleModels: [{ ...defaultElements.imageUpscaleModels[0], cost: 11 }],
+        imageUpscaleModels: [
+          { ...defaultElements.imageUpscaleModels[0], cost: 11 },
+        ],
       });
       rerender();
       await act(async () => {

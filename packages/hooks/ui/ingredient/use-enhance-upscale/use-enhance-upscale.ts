@@ -131,8 +131,11 @@ export function useEnhanceUpscale({
     (ingredient: IIngredient) => {
       if (pendingTransformation.current)
         return { isAvailable: false, reason: 'pending' as const };
-      return getUpscaleAdmission(ingredient, imageUpscaleModels, videoUpscaleModels)
-        .availability;
+      return getUpscaleAdmission(
+        ingredient,
+        imageUpscaleModels,
+        videoUpscaleModels,
+      ).availability;
     },
     [imageUpscaleModels, videoUpscaleModels],
   );
