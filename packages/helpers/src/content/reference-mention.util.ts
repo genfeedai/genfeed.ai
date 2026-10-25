@@ -79,6 +79,11 @@ export function findReferenceMentionTokens(text: string): RegExpMatchArray[] {
   return [...text.matchAll(/(?<![\w@])@(Image|Video|Audio)\d+\b/g)];
 }
 
+/** The mention tokens in `text`, in reading order, repeats included. */
+export function listReferenceMentionTokens(text: string): string[] {
+  return findReferenceMentionTokens(text).map((match) => match[0]);
+}
+
 export function validateReferenceMentions(
   text: string,
   references: readonly StudioReferenceMention[],
@@ -91,9 +96,7 @@ export function validateReferenceMentions(
   const byKey = new Map(
     references.map((reference) => [reference.key, reference]),
   );
-  const tokens = new Set(
-    findReferenceMentionTokens(text).map((match) => match[0]),
-  );
+  const tokens = new Set(listReferenceMentionTokens(text));
   const errors = new Set<string>();
   if (
     [...tokens].some((token) => token.startsWith('@Image')) &&

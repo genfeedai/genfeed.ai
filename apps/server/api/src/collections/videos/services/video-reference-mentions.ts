@@ -4,7 +4,7 @@ import type {
   StudioReferenceMentionInvariantInput,
   StudioVideoReferenceMentionBindingInput,
 } from '@genfeedai/contracts/interfaces/studio/studio-reference-mention.interface';
-import { findReferenceMentionTokens } from '@genfeedai/helpers/content/reference-mention.util';
+import { listReferenceMentionTokens } from '@genfeedai/helpers/content/reference-mention.util';
 import {
   BadRequestException,
   UnprocessableEntityException,
@@ -17,9 +17,7 @@ import {
 export function resolveVideoReferenceMentionBindings(
   input: StudioVideoReferenceMentionBindingInput,
 ): GenerationBriefReference[] | undefined {
-  const tokens = findReferenceMentionTokens(input.text).map(
-    (match) => match[0],
-  );
+  const tokens = listReferenceMentionTokens(input.text);
   if (!tokens.length) return undefined;
   const arrays = [
     { prefix: '@Image', ids: input.imageReferenceIds ?? [] },
@@ -102,12 +100,8 @@ export function assertReferenceMentionInvariant({
   originalText,
   preparedText,
 }: StudioReferenceMentionInvariantInput): void {
-  const original = findReferenceMentionTokens(originalText)
-    .map((match) => match[0])
-    .sort();
-  const prepared = findReferenceMentionTokens(preparedText)
-    .map((match) => match[0])
-    .sort();
+  const original = listReferenceMentionTokens(originalText).sort();
+  const prepared = listReferenceMentionTokens(preparedText).sort();
   if (
     original.length === prepared.length &&
     original.every((token, index) => token === prepared[index])
