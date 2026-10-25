@@ -128,8 +128,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Suites that call this workflow from a dispatch or schedule (release,
+      # nightly) have no pull request or merge group to qualify; the job must
+      # still run, so they require the core result directly.
+      - name: Require core validation for called suites
+        if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' && github.event_name != 'push' }}
+        env:
+          CORE_RESULT: ${{ needs.core.result }}
+        run: test "$CORE_RESULT" = success
       # A superseded bridge can finish only its own verdict within this ceiling.
       - name: Qualify genuine current-attempt validation verdict
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push' }}
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_EVENT: ${{ github.event_name }}
