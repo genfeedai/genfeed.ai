@@ -20,9 +20,16 @@ export interface ReviewInboxApprovalsState {
   /** Set when a deep link points at a row that is no longer pending. */
   isHighlightedItemMissing: boolean;
   decidingItemId: string | null;
+  /** A bulk decision is running, so no other decision may start. */
+  isBulkDeciding: boolean;
   onSourceFilterChange: (sources: ReviewInboxItemSource[]) => void;
   onDecide: (
     item: IReviewInboxItem,
+    decision: ReviewInboxDecision,
+  ) => Promise<void>;
+  /** Decides each item in turn; one summary notification, one refetch. */
+  onDecideMany: (
+    items: readonly IReviewInboxItem[],
     decision: ReviewInboxDecision,
   ) => Promise<void>;
   refresh: () => Promise<void>;
@@ -32,6 +39,9 @@ export interface ReviewInboxApprovalsTableProps {
   items: IReviewInboxItem[];
   highlightedItemId: string | null;
   decidingItemId: string | null;
+  isBulkDeciding: boolean;
+  selectedIds: string[];
+  onSelectionChange: (selectedIds: string[]) => void;
   onDecide: (
     item: IReviewInboxItem,
     decision: ReviewInboxDecision,
@@ -47,4 +57,16 @@ export interface ReviewInboxApprovalsSectionProps {
 export interface ReviewSourceFiltersProps {
   activeSources: readonly ReviewInboxItemSource[];
   onSourceChange: (sources: ReviewInboxItemSource[]) => void;
+}
+
+export interface ReviewInboxBulkBarProps {
+  /** Rows selected, across pages. */
+  selectedCount: number;
+  /** Rows that can be decided at all, the ceiling for "Select all". */
+  totalCount: number;
+  isDisabled: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+  onClear: () => void;
+  onSelectAll: () => void;
 }

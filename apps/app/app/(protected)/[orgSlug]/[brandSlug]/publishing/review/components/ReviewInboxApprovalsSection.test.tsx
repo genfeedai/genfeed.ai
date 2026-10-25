@@ -4,6 +4,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ReviewInboxApprovalsSection from './ReviewInboxApprovalsSection';
 
+const confirmMocks = vi.hoisted(() => ({ openConfirm: vi.fn() }));
+
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: () => ({ openConfirm: confirmMocks.openConfirm }),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
@@ -40,10 +46,12 @@ function state(
     decidingItemId: null,
     error: null,
     highlightedItemId: null,
+    isBulkDeciding: false,
     isHighlightedItemMissing: false,
     isLoading: false,
     items: [approval],
     onDecide: vi.fn().mockResolvedValue(undefined),
+    onDecideMany: vi.fn().mockResolvedValue(undefined),
     onSourceFilterChange: vi.fn(),
     refresh: vi.fn(),
     sourceFilters: [],
@@ -208,5 +216,64 @@ describe('ReviewInboxApprovalsSection', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+  describe('bulk decisions', () => {
+    const second: IReviewInboxItem = {
+      ...approval,
+      estimatedCredits: 6,
+      id: 'mcp_approval:apr-2',
+    };
+
+    it('rejects every request after Select all, once confirmed', async () => {
+      const approvals = state({ items: [approval, second] });
+      confirmMocks.openConfirm.mockClear();
+      render(<ReviewInboxApprovalsSection approvals={approvals} />);
+
+      fireEvent.click((await screen.findAllByRole('checkbox'))[1]);
+      expect(screen.getByText('selected')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select all 2' }));
+      fireEvent.click(screen.getAllByRole('button', { name: 'Reject' })[0]);
+
+      expect(confirmMocks.openConfirm).toHaveBeenCalledTimes(1);
+      const config = confirmMocks.openConfirm.mock.calls[0][0];
+      expect(config.label).toBe('Reject 2 requests?');
+      await config.onConfirm();
+      expect(approvals.onDecideMany).toHaveBeenCalledWith(
+        [approval, second],
+        'reject',
+      );
+    });
+
+    it('states the total credits before approving a selection', async () => {
+      confirmMocks.openConfirm.mockClear();
+      render(
+        <ReviewInboxApprovalsSection
+          approvals={state({ items: [approval, second] })}
+        />,
+      );
+
+      fireEvent.click((await screen.findAllByRole('checkbox'))[0]);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Approve' })[0]);
+
+      expect(confirmMocks.openConfirm.mock.calls[0][0].message).toContain(
+        '10 credits',
+      );
+    });
+
+    it('never selects a request nobody can decide', async () => {
+      const locked: IReviewInboxItem = {
+        ...approval,
+        id: 'mcp_approval:apr-3',
+        isResolvable: false,
+      };
+      render(
+        <ReviewInboxApprovalsSection approvals={state({ items: [locked] })} />,
+      );
+
+      fireEvent.click((await screen.findAllByRole('checkbox'))[0]);
+
+      expect(screen.queryByText('selected')).not.toBeInTheDocument();
+    });
   });
 });
