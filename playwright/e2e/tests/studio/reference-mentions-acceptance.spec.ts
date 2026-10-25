@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
 import { createAuthenticatedPage } from '../../fixtures/auth.fixture';
 import { installWorkspaceSplitFixture } from '../../fixtures/studio-workspace-split.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
-import { brandPath } from '../../utils/app-chrome';
+import { brandPath, E2E_BRAND_BASE } from '../../utils/app-chrome';
 
 // Opt-in evidence only. The same source file captures both variants; never
 // invoke Quote, Generate, a provider, or a real backend while collecting it.
@@ -16,6 +16,8 @@ const output = process.env.STUDIO_REFERENCE_EVIDENCE_DIR;
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: before/after changes assertions, not application behavior
 const variant = process.env.STUDIO_REFERENCE_EVIDENCE_VARIANT;
 const model = MODEL_KEYS.REPLICATE_MINIMAX_H3;
+const previewSvg =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#53677a"/><circle cx="32" cy="23" r="12" fill="#dfbd9e"/><path d="M12 64v-9a20 20 0 0 1 40 0v9" fill="#273442"/></svg>';
 const references = [
   {
     id: 'reference-person',
@@ -40,6 +42,7 @@ const sourceFiles = [
   'packages/pages/studio/playground/StudioPlaygroundWorkspace.tsx',
   'packages/pages/studio/playground/components/StudioPlaygroundComposer.tsx',
   'packages/props/studio/studio-playground.props.ts',
+  'playwright/e2e/tests/studio/reference-mentions-acceptance.spec.ts',
 ];
 
 for (const width of [1440, 390]) {
@@ -70,6 +73,11 @@ for (const width of [1440, 390]) {
         const url = new URL(route.request().url());
         if (url.origin === origin && !url.pathname.startsWith('/v1/'))
           return route.continue();
+        if (url.hostname === 'cdn.genfeed.ai')
+          return route.fulfill({
+            contentType: 'image/svg+xml',
+            body: previewSvg,
+          });
         blockedRequests.push(
           `${route.request().method()} ${url.origin}${url.pathname}`,
         );
@@ -91,14 +99,25 @@ for (const width of [1440, 390]) {
         localStorage.setItem('theme', value);
         Object.assign(window, { __playwright_socket_fixture: true });
       }, theme);
-      await createAuthenticatedPage(page, context, {}, '/playwright-ready');
+      await context.addCookies([
+        { name: '__playwright_test', value: 'true', url: origin },
+        {
+          name: '__playwright_workspace',
+          value: E2E_BRAND_BASE,
+          url: origin,
+        },
+      ]);
+      await createAuthenticatedPage(page, context);
       await installWorkspaceSplitFixture(page);
       await page.route('**/v1/auth/bootstrap**', (route) => {
         const bootstrap = buildProtectedAppBootstrapPayload();
         return route.fulfill({
           json: {
             ...bootstrap,
-            currentUser: { ...bootstrap.currentUser, settings: { theme } },
+            currentUser: {
+              ...bootstrap.currentUser,
+              settings: { theme, isAdvancedMode: true },
+            },
             settings: { ...bootstrap.settings, enabledModelIds: [model] },
           },
         });
@@ -212,7 +231,7 @@ for (const width of [1440, 390]) {
         if (url.hostname === 'cdn.genfeed.ai')
           return route.fulfill({
             contentType: 'image/svg+xml',
-            body: '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#53677a"/><circle cx="32" cy="23" r="12" fill="#dfbd9e"/><path d="M12 64v-9a20 20 0 0 1 40 0v9" fill="#273442"/></svg>',
+            body: previewSvg,
           });
         blockedRequests.push(
           `${request.method()} ${url.origin}${url.pathname}`,
@@ -227,12 +246,14 @@ for (const width of [1440, 390]) {
         .getByRole('textbox');
       await expect(editor).toBeVisible();
       await expect(editor).toContainText('Use the attached references.');
-      await expect(page.locator('html')).toHaveClass(
-        new RegExp(`\\b${theme}\\b`),
-      );
+      for (const name of ['Person', 'Facial driver', 'Voiceover'])
+        await expect(
+          page.getByRole('button', { name: `Remove ${name}`, exact: true }),
+        ).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await page.evaluate(() => document.fonts.ready);
       await editor.press('End');
-      await editor.pressSequentially('@');
+      await editor.pressSequentially(' @');
       if (variant === 'after') {
         const menu = page.getByTestId('studio-reference-mention-list');
         await expect(menu).toBeVisible();
