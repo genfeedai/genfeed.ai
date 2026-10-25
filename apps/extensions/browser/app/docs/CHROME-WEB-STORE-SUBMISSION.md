@@ -10,7 +10,7 @@ Everything the Developer Dashboard asks for, ready to paste, plus the order to d
 2. Package a build without submitting. Run the `Browser Extension - Package and Submit` workflow from `master` with `submit` off, and download the `browser-extension-build` artifact (`chrome-mv3-prod.zip`).
 3. **Owner**: in the dashboard choose **Add new item** and upload that ZIP. Do not submit yet. The upload creates the item and its permanent ID.
 4. **Owner**: open the item's **Package** tab and copy the **Item ID** and the **public key**. Send both to the release thread.
-5. Release thread: put the public key in `package.json` under `manifest.key`, set `CHROME_EXTENSION_ID` on the API (CORS rejects the extension without it), rebuild and re-upload. See [Extension ID](#extension-id-and-api-access).
+5. Release thread: put the public key in `package.json` under `manifest.key`, set `CHROME_EXTENSION_ID` on the API (CORS rejects the extension without it), so local builds get the store's ID (the submitted package never carries the key). See [Extension ID](#extension-id-and-api-access).
 6. **Owner**: fill the Store listing, Privacy, Distribution and Test instructions tabs from this page.
 7. **Owner**: create the OAuth credentials and the `EXTENSION_SUBMIT_KEYS` secret (see [Publishing keys](#publishing-keys)).
 8. Tag `extension-browser-v<package version>` from `master`. The workflow tests, builds, validates the secret and submits.
@@ -21,7 +21,7 @@ The Chrome Web Store assigns the ID when the item is first uploaded, and the pub
 
 The API only allows `chrome-extension://<CHROME_EXTENSION_ID>` as a CORS origin in production (`packages/libs/config/cors.config.ts`); with the variable unset the extension gets no access. The `extId` in `EXTENSION_SUBMIT_KEYS` must be the same 32-letter ID.
 
-Google's own guidance only describes copying the dashboard's key into the manifest for development builds. It does not say whether a `key` field may stay in the package you submit. If the dashboard rejects the upload for the `key` field, remove it from the submitted build and keep it only for development.
+The dashboard rejects an uploaded package whose manifest has a `key` field ("key field is not allowed in manifest"). The key is for development builds only, so the packaging workflow removes it from `chrome-mv3-prod.zip` and fails if it is still there. Keep it in `package.json` for local builds, and never add it to a package you upload by hand.
 
 ## Listing
 
