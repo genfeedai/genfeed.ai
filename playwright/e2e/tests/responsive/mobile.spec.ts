@@ -178,7 +178,7 @@ test.describe('Mobile Responsive', () => {
 
       // Tap on navigation links to verify touch works
       const navLinks = authenticatedPage.locator(
-        'a[href*="/studio"],' +
+        'a[href*="/playground"],' +
           ' a[href*="/analytics"],' +
           ' a[href*="/settings/brands"]',
       );

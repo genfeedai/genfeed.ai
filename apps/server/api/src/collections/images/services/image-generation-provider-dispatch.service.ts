@@ -17,10 +17,7 @@ import {
   failUnproducedBatchOutput,
   requireExternalId,
 } from '@api/collections/images/services/image-generation-batch.util';
-import {
-  completeImageGeneration,
-  type RealizedImageDimensions,
-} from '@api/collections/images/services/image-generation-completion.util';
+import { completeImageGeneration } from '@api/collections/images/services/image-generation-completion.util';
 import {
   resolveImageDispatchExecutePath,
   shouldFailAdditionalActivity,
@@ -40,6 +37,7 @@ import {
 } from '@api/collections/images/services/image-generation-routed-dispatch.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { prepareImageGenerationProvider } from '@api/collections/images/services/prepare-image-generation-provider.util';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -66,7 +64,6 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
-import type { GenerationWebhookOutput } from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -342,9 +339,10 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
     provider: PreparedImageGenerationProvider,
   ): Promise<string> {
+    const id = context.ingredientData.id.toString();
     try {
       if (!provider.tracksSubmissionStarted)
-        this.beginSubmission(context, [context.ingredientData.id]);
+        this.beginSubmission(context, [id]);
       const result = await provider.generate();
       if (result.kind !== 'inline-buffer') {
         throw new Error('Inline image provider returned an external result');
@@ -352,7 +350,7 @@ export class ImageGenerationProviderDispatchService {
       this.receipts.accepted(context, context.ingredientData.id);
 
       const uploadMeta = await this.filesClientService.uploadToS3(
-        context.ingredientData.id.toString(),
+        id,
         'images',
         {
           contentType: 'image/png',
@@ -370,49 +368,36 @@ export class ImageGenerationProviderDispatchService {
           width: uploadMeta.width,
         }),
       );
-      const claimed = await this.imagesService.patchAll(
-        {
-          id: context.ingredientData.id,
-          organizationId: context.user.organizationId,
-          isDeleted: false,
-          status: IngredientStatus.PROCESSING,
-        },
-        {
-          promptId: context.promptData.id,
-          s3Key:
-            typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
-          status: IngredientStatus.GENERATED,
-        },
-      );
-      if (claimed.modifiedCount !== 1)
-        return context.ingredientData.id.toString();
+      const claimed = await this.claimOutputDisposition(context, id, {
+        promptId: context.promptData.id,
+        s3Key: optionalUploadString(uploadMeta.s3Key),
+        status: IngredientStatus.GENERATED,
+      });
+      if (!claimed) return id;
       await this.websocketService.publishVideoComplete(
         context.websocketUrl,
         {
-          id: context.ingredientData.id.toString(),
-          ingredientId: context.ingredientData.id.toString(),
+          id: id,
+          ingredientId: id,
           status: 'completed',
         },
         context.user.id,
         getUserRoomName(context.user.id),
       );
 
-      await this.emitGenerationCompleted(
+      await completeImageGeneration(
+        this.completionServices,
         context,
-        context.ingredientData.id,
+        id,
         {
           mimeType: 'image/png',
-          storageKey:
-            typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : null,
-          url:
-            typeof uploadMeta.publicUrl === 'string'
-              ? uploadMeta.publicUrl
-              : null,
+          storageKey: optionalUploadString(uploadMeta.s3Key) ?? null,
+          url: optionalUploadString(uploadMeta.publicUrl) ?? null,
         },
         { height: uploadMeta.height, width: uploadMeta.width },
       );
 
-      return context.ingredientData.id.toString();
+      return id;
     } catch (error: unknown) {
       return this.handleProviderFailure(context, error, provider.failureLabel);
     }
@@ -558,7 +543,9 @@ export class ImageGenerationProviderDispatchService {
     ingredientId: string,
   ): Promise<void> {
     if (
-      await failUnproducedBatchOutput(this.imagesService, context, ingredientId)
+      await this.claimOutputDisposition(context, ingredientId, () =>
+        failUnproducedBatchOutput(this.imagesService, context, ingredientId),
+      )
     )
       await this.releaseOutputCredits(context, ingredientId);
   }
@@ -817,9 +804,14 @@ export class ImageGenerationProviderDispatchService {
       organizationId: context.user.organizationId,
       isDeleted: false,
     });
-    if (!isProcessingIngredient(current)) {
+    if (
+      !isProcessingIngredient(current) &&
+      !(
+        current?.status === IngredientStatus.FAILED &&
+        current.generationError === INGREDIENT_PROCESSING_TIMEOUT_ERROR
+      )
+    )
       return;
-    }
 
     const outputUrl = result.outputUrls?.[outputIndex];
     if (!outputUrl) {
@@ -841,20 +833,12 @@ export class ImageGenerationProviderDispatchService {
         width: uploadMeta.width,
       }),
     );
-    const claimed = await this.imagesService.patchAll(
-      {
-        id: ingredientId,
-        organizationId: context.user.organizationId,
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      {
-        promptId: context.promptData.id,
-        s3Key: optionalUploadString(uploadMeta.s3Key),
-        status: IngredientStatus.GENERATED,
-      },
-    );
-    if (claimed.modifiedCount !== 1) return;
+    const claimed = await this.claimOutputDisposition(context, ingredientId, {
+      promptId: context.promptData.id,
+      s3Key: optionalUploadString(uploadMeta.s3Key),
+      status: IngredientStatus.GENERATED,
+    });
+    if (!claimed) return;
     await this.websocketService.publishVideoComplete(
       WebSocketPaths.image(ingredientId),
       { id, ingredientId: id, status: 'completed' },
@@ -862,7 +846,8 @@ export class ImageGenerationProviderDispatchService {
       getUserRoomName(context.user.id),
     );
 
-    await this.emitGenerationCompleted(
+    await completeImageGeneration(
+      this.completionServices,
       context,
       ingredientId,
       {
@@ -899,21 +884,17 @@ export class ImageGenerationProviderDispatchService {
       );
       throw error;
     }
-    const errorMessage = getErrorMessage(error);
-    const claimed = await this.imagesService.patchAll(
-      {
-        id: ingredientId,
-        organizationId: context.user.organizationId,
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      {
-        generationError: errorMessage,
-        status: IngredientStatus.FAILED,
-        isGenerationFailureConfirmed: true,
-      },
-    );
-    if (claimed.modifiedCount !== 1) throw error;
+    const providerMessage = getErrorMessage(error);
+    const errorMessage =
+      providerMessage === INGREDIENT_PROCESSING_TIMEOUT_ERROR
+        ? 'Generation failed'
+        : providerMessage;
+    const claimed = await this.claimOutputDisposition(context, ingredientId, {
+      generationError: errorMessage,
+      status: IngredientStatus.FAILED,
+      isGenerationFailureConfirmed: true,
+    });
+    if (!claimed) throw error;
     this.loggerService.error(`${label} failed`, error);
     await this.releaseOutputCredits(context, ingredientId);
     await this.failedGenerationService.notifyFailedImageGeneration(
@@ -934,6 +915,39 @@ export class ImageGenerationProviderDispatchService {
     });
 
     throw error;
+  }
+
+  /** Retry only the cron's projection; cancellation and confirmed failures keep ownership. */
+  private async claimOutputDisposition(
+    context: ImageGenerationContext,
+    ingredientId: string,
+    update: Parameters<ImagesService['patchAll']>[1] | (() => Promise<boolean>),
+  ): Promise<boolean> {
+    const where = {
+      id: ingredientId,
+      organizationId: context.user.organizationId,
+      isDeleted: false,
+    };
+    const claim =
+      typeof update === 'function'
+        ? update
+        : async () =>
+            (
+              await this.imagesService.patchAll(
+                { ...where, status: IngredientStatus.PROCESSING },
+                update,
+              )
+            ).modifiedCount === 1;
+    if (await claim()) return true;
+    const reopened = await this.imagesService.patchAll(
+      {
+        ...where,
+        status: IngredientStatus.FAILED,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      },
+      { status: IngredientStatus.PROCESSING, generationError: null },
+    );
+    return reopened.modifiedCount === 1 && (await claim());
   }
 
   private billingRequest(
@@ -975,23 +989,12 @@ export class ImageGenerationProviderDispatchService {
     }
   }
 
-  private async emitGenerationCompleted(
-    context: ImageGenerationContext,
-    ingredientId: ImageGenerationSavedIngredient['id'],
-    output: GenerationWebhookOutput,
-    dimensions: RealizedImageDimensions,
-  ): Promise<void> {
-    await completeImageGeneration(
-      {
-        generationBilling: this.generationBilling,
-        loggerService: this.loggerService,
-        mediaGenerationCostService: this.mediaGenerationCostService,
-        generationEventWebhookService: this.generationEventWebhookService,
-      },
-      context,
-      ingredientId,
-      output,
-      dimensions,
-    );
+  private get completionServices() {
+    return {
+      generationBilling: this.generationBilling,
+      loggerService: this.loggerService,
+      mediaGenerationCostService: this.mediaGenerationCostService,
+      generationEventWebhookService: this.generationEventWebhookService,
+    };
   }
 }

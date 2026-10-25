@@ -1,4 +1,7 @@
-import { TURBO_IDEA_FORMATS } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
+import {
+  TURBO_IDEA_FORMATS,
+  TURBO_IDEA_MAX_COUNT,
+} from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -15,8 +18,6 @@ import {
 
 /** Workflow projects run at most this many inputs, matching the project runner. */
 export const TURBO_PROJECT_MAX_INPUTS = 100;
-/** Idea projects hold at most one full idea set per format. */
-export const TURBO_PROJECT_MAX_IDEAS = 27;
 
 export class TurboProjectIdeaDto {
   @ApiProperty()
@@ -68,7 +69,7 @@ export class AddTurboProjectItemsDto {
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(TURBO_PROJECT_MAX_IDEAS)
+  @ArrayMaxSize(TURBO_IDEA_MAX_COUNT)
   @ValidateNested({ each: true })
   @Type(() => TurboProjectIdeaDto)
   readonly ideas?: TurboProjectIdeaDto[];

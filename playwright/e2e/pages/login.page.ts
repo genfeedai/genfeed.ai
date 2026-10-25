@@ -254,9 +254,9 @@ export class LoginPage {
     // Common post-login destinations
     const validUrls = [
       '/overview',
-      '/studio',
+      '/playground',
       '/g',
-      '/studio/editor',
+      '/editor',
       '/automation/workflows',
       '/',
     ];

@@ -252,7 +252,7 @@ describe('useStoryboardRun', () => {
       }),
     );
     expect(mocks.push).toHaveBeenCalledWith(
-      '/acme/northstar/studio/storyboard/run-variation-1',
+      '/acme/northstar/storyboard/run-variation-1',
     );
   });
 

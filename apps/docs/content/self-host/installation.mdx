@@ -15,8 +15,9 @@ and neither needs a repository clone.
 | [Release bundle](#option-2-release-bundle-with-docker-compose) | Servers, CI, or machines without Node.js | Docker Compose v2 |
 | [From source](#option-3-from-source-contributors) | Contributors changing Genfeed itself | Node.js 24, Bun, Git, Docker Compose v2 |
 
-Check the [system requirements](/self-host/system-requirements) first. Plan on about
-10 GB of free disk (15 GB recommended), and free ports `3000`, `3010`, and `3014`.
+Check the [system requirements](/self-host/system-requirements) first. Plan on at
+least 15 GB of free disk (the app image alone is 9.15 GB), and free ports `3000` (web), `3010` (API),
+`3011` (WebSocket), and `3014` (MCP).
 
 Whichever option you pick, you configure the instance with one `.env` file of
 environment variables. After you edit it, recreate the stack
@@ -26,8 +27,9 @@ not re-read `.env`. When something looks wrong, start with
 [Troubleshooting](/self-host/troubleshooting).
 
 **Before you start:** have an [OpenRouter key](/self-host/provider-api-keys) ready.
-You can start the stack without it, but the first text generation fails until it
-is set.
+It is required. Since v0.2.15 the container refuses to start without a real,
+non-placeholder `OPENROUTER_API_KEY` and exits with
+`[entrypoint] FATAL: OPENROUTER_API_KEY is required and must contain a non-placeholder OpenRouter key. Set it before starting.`
 
 ## Option 1: `npx` one command
 
@@ -35,8 +37,9 @@ is set.
 npx @genfeedai/create my-genfeed
 ```
 
-This downloads the release bundle, verifies its checksum and manifest, validates
-the Compose file, and starts it with Docker Compose.
+The wizard asks for your OpenRouter API key (it refuses an empty or placeholder
+value), then downloads the release bundle, verifies its checksum and manifest,
+validates the Compose file, and starts it with Docker Compose.
 
 It needs Node.js 24 (`>=24 <25`). On any other Node version, use the release
 bundle below. `@genfeedai/create` is separate from the
@@ -56,8 +59,12 @@ sha256sum -c genfeed-selfhosted.tar.gz.sha256
 tar -xzf genfeed-selfhosted.tar.gz
 cd genfeed-selfhosted-v*
 cp .env.example .env
+# Edit .env: set OPENROUTER_API_KEY to your real OpenRouter key, then:
 docker compose --env-file .env -f compose.yml up -d
 ```
+
+Set `OPENROUTER_API_KEY` in `.env` **before** the first `docker compose up`.
+Without it the container exits at start.
 
 On macOS, use `shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256` for the
 checksum step.
@@ -75,6 +82,10 @@ sign-in turned on, so you create your own account on first visit.
 | Web UI     | `http://localhost:3000` |
 | REST API   | `http://localhost:3010` |
 | MCP server | `http://localhost:3014` |
+| WebSocket  | `ws://localhost:3011`   |
+
+The browser connects to `ws://localhost:3011/socket.io/` for live agent replies
+and notifications, so keep port `3011` reachable.
 
 PostgreSQL is reachable only inside the Compose network, and Redis runs inside
 the Genfeed container. Neither is published on a host port.
@@ -90,9 +101,8 @@ any model provider are ready.
 
 ### Create the first user
 
-How you get in depends on one setting, `BETTER_AUTH_ENABLED`. These steps were
-read from the code and have not been run end to end on a clean install, so tell
-us if something differs.
+How you get in depends on one setting, `BETTER_AUTH_ENABLED`. The default path
+below was verified end to end on a clean Ubuntu 24.04 install of v0.2.15.
 
 **Optional no-login mode (`BETTER_AUTH_ENABLED=false`):**
 Open `http://localhost:3000`. The first boot seeded one local user
@@ -117,8 +127,9 @@ installations on your own machine or behind your network's access controls.
    in `/data/.better-auth-secret`.
 2. Create your account. Open `http://localhost:3000/sign-up` and choose
    **Email & password**. It needs no email provider and no Google client.
-   **Magic Link** appears only once `RESEND_API_KEY` is set, and **Google**
-   needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`. You can also
+   **Magic Link** appears only once `RESEND_API_KEY` is set. **Google** works
+   only once `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` are set;
+   on a default install use email and password. You can also
    create the account through the API, then sign in at `/login/password`:
 
    ```bash
@@ -149,10 +160,10 @@ What to expect:
 
 ### Add your own keys
 
-Self-hosted Genfeed has no Genfeed credits. **Add an OpenRouter key before your
-first generation:** set `OPENROUTER_API_KEY` in `.env` to a real key, and
-recreate the stack. Without it, text generation fails with
-`Missing provider key: OPENROUTER_API_KEY`. Other keys are optional. See
+Self-hosted Genfeed has no Genfeed credits. **An OpenRouter key is required:**
+set `OPENROUTER_API_KEY` in `.env` to a real key before the first start (the
+container exits without it). To change it later, edit `.env` and recreate the
+stack. Other keys are optional. See
 [Provider API keys](/self-host/provider-api-keys).
 
 ### Source checkout Compose file

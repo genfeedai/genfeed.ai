@@ -157,7 +157,7 @@ describe('StoryboardRunPage', () => {
     );
     expect(
       screen.getByRole('link', { name: 'All storyboards' }),
-    ).toHaveAttribute('href', '/acme/northstar/studio/storyboard');
+    ).toHaveAttribute('href', '/acme/northstar/storyboard');
   });
 
   it('keeps a failed load recoverable', () => {
@@ -232,7 +232,7 @@ describe('StoryboardRunPage', () => {
     const href = screen
       .getByRole('link', { name: 'Open in Editor' })
       .getAttribute('href');
-    expect(href?.startsWith('/acme/northstar/studio/editor/new?')).toBe(true);
+    expect(href?.startsWith('/acme/northstar/editor/new?')).toBe(true);
     expect(
       new URL(href ?? '', 'https://example.test').searchParams.getAll('video'),
     ).toEqual(['clip-b', 'clip-a']);

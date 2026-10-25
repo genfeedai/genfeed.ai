@@ -1,3 +1,4 @@
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import {
   ByokProvider,
   IngredientCategory,
@@ -181,6 +182,128 @@ describe('ReplicatePollProcessor', () => {
       'ingredient-1',
       'Replicate polling timed out',
     );
+  });
+
+  it.each(['succeeded', 'failed'])(
+    'resolves a processing-timeout projection through the shared lifecycle when the provider is %s',
+    async (status) => {
+      ingredients.findOne.mockResolvedValue({
+        status: IngredientStatus.FAILED,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      });
+      replicate.getPrediction.mockResolvedValue({
+        status,
+        error: 'provider failed',
+        output: 'https://replicate.delivery/pbxt/late.mp4',
+      });
+
+      await processor.process(buildJob());
+
+      expect(ingredients.findOne).toHaveBeenCalledWith({
+        id: 'ingredient-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+      });
+      expect(replicate.getPrediction).toHaveBeenCalledWith(
+        'prediction-1',
+        undefined,
+      );
+      if (status === 'succeeded') {
+        expect(
+          webhooks.processMediaForIngredient,
+        ).toHaveBeenCalledExactlyOnceWith(
+          'ingredient-1',
+          IngredientCategory.VIDEO,
+          'https://replicate.delivery/pbxt/late.mp4',
+          'prediction-1',
+        );
+        expect(
+          webhooks.handleFailedGenerationForIngredient,
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(
+          webhooks.handleFailedGenerationForIngredient,
+        ).toHaveBeenCalledExactlyOnceWith('ingredient-1', 'provider failed');
+        expect(webhooks.processMediaForIngredient).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it.each(['Cancelled by user', 'Provider rejected the prompt', null])(
+    'does not poll a failed generation with a different terminal reason: %s',
+    async (generationError) => {
+      ingredients.findOne.mockResolvedValue({
+        status: IngredientStatus.FAILED,
+        generationError,
+      });
+      await processor.process(buildJob());
+      expect(replicate.getPrediction).not.toHaveBeenCalled();
+      expect(webhooks.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(
+        webhooks.handleFailedGenerationForIngredient,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['processing', 'unknown'])(
+    'retains unconfirmed timeout funding at the existing polling ceiling (%s)',
+    async (status) => {
+      ingredients.findOne.mockResolvedValue({
+        status: IngredientStatus.FAILED,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      });
+      replicate.getPrediction.mockResolvedValue({ status });
+      await processor.process(
+        buildJob({ attempt: REPLICATE_POLL_MAX_ATTEMPTS }),
+      );
+      expect(replicate.getPrediction).toHaveBeenCalledOnce();
+      expect(pollQueue.schedule).not.toHaveBeenCalled();
+      expect(
+        webhooks.handleFailedGenerationForIngredient,
+      ).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
+    },
+  );
+
+  it('retains a timed-out BYOK output when its key is unavailable', async () => {
+    ingredients.findOne.mockResolvedValue({
+      status: IngredientStatus.FAILED,
+      generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+    });
+    byok.lookupApiKey.mockResolvedValue(undefined);
+    await processor.process(buildJob({ isByok: true }));
+    expect(replicate.getPrediction).not.toHaveBeenCalled();
+    expect(webhooks.handleFailedGenerationForIngredient).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('keeps the existing retry limit while a timed-out provider is still processing', async () => {
+    ingredients.findOne.mockResolvedValue({
+      status: IngredientStatus.FAILED,
+      generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+    });
+    replicate.getPrediction.mockResolvedValue({ status: 'processing' });
+    await processor.process(
+      buildJob({ attempt: REPLICATE_POLL_MAX_ATTEMPTS - 1 }),
+    );
+    expect(pollQueue.schedule).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ attempt: REPLICATE_POLL_MAX_ATTEMPTS }),
+    );
+    expect(webhooks.handleFailedGenerationForIngredient).not.toHaveBeenCalled();
+  });
+
+  it('retains timeout funding when BYOK key lookup errors at the polling ceiling', async () => {
+    ingredients.findOne.mockResolvedValue({
+      status: IngredientStatus.FAILED,
+      generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+    });
+    byok.lookupApiKey.mockRejectedValueOnce(new Error('lookup unavailable'));
+    await processor.process(
+      buildJob({ isByok: true, attempt: REPLICATE_POLL_MAX_ATTEMPTS }),
+    );
+    expect(replicate.getPrediction).not.toHaveBeenCalled();
+    expect(pollQueue.schedule).not.toHaveBeenCalled();
+    expect(webhooks.handleFailedGenerationForIngredient).not.toHaveBeenCalled();
   });
 
   it('skips provider calls after another completion path settles the asset', async () => {

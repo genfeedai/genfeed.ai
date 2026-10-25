@@ -18,8 +18,8 @@ const threadId = testId('thread');
 
 describe('operator-shell helpers', () => {
   it('normalizes brand and org scoped protected routes', () => {
-    expect(normalizeProtectedPathname('/acme/brand-x/studio/storyboard')).toBe(
-      '/studio/storyboard',
+    expect(normalizeProtectedPathname('/acme/brand-x/storyboard')).toBe(
+      '/storyboard',
     );
     expect(
       normalizeProtectedPathname('/acme/brand-x/platforms/instagram'),
@@ -91,17 +91,15 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/analytics/overview')).toBe(
       '/analytics/overview',
     );
-    expect(normalizeProtectedPathname('/studio/storyboard')).toBe(
-      '/studio/storyboard',
-    );
+    expect(normalizeProtectedPathname('/storyboard')).toBe('/storyboard');
   });
 
   it('keeps the current brand-scoped path when switching brands', () => {
     expect(getCurrentBrandScopedPath('/acme/moonrise/workspace')).toBe(
       '/workspace',
     );
-    expect(getCurrentBrandScopedPath('/acme/moonrise/studio/storyboard')).toBe(
-      '/studio/storyboard',
+    expect(getCurrentBrandScopedPath('/acme/moonrise/storyboard')).toBe(
+      '/storyboard',
     );
     expect(getCurrentBrandScopedPath('/acme/~/workspace/overview')).toBe(
       '/workspace/overview',
@@ -117,9 +115,7 @@ describe('operator-shell helpers', () => {
       '/agent/new',
     );
     expect(resolveBrandSwitchSurfacePath('/agent/new')).toBe('/agent/new');
-    expect(resolveBrandSwitchSurfacePath('/studio/storyboard')).toBe(
-      '/studio/storyboard',
-    );
+    expect(resolveBrandSwitchSurfacePath('/storyboard')).toBe('/storyboard');
   });
 
   it('maps brand-only settings to the org brands hub when leaving brand scope', () => {
@@ -163,9 +159,7 @@ describe('operator-shell helpers', () => {
     );
     expect(resolveOrganizationScopePath('/agent')).toBe('/agent/new');
     expect(resolveOrganizationScopePath('/agent/new')).toBe('/agent/new');
-    expect(resolveOrganizationScopePath('/studio/storyboard')).toBe(
-      '/studio/storyboard',
-    );
+    expect(resolveOrganizationScopePath('/storyboard')).toBe('/storyboard');
   });
 
   it('gates the first-asset unlock sections (and their subpaths) only', () => {
@@ -189,7 +183,7 @@ describe('operator-shell helpers', () => {
       '/agent/new',
       '/settings',
       '/settings/organization',
-      '/studio/storyboard',
+      '/storyboard',
       '/discovery/overview',
       '/publishing',
       '/messages',
@@ -231,9 +225,9 @@ describe('operator-shell helpers', () => {
       getBrandSwitchHref({
         nextBrandSlug: 'sunrise',
         nextOrgSlug: 'acme',
-        pathname: '/acme/moonrise/studio/storyboard',
+        pathname: '/acme/moonrise/storyboard',
       }),
-    ).toBe('/acme/sunrise/studio/storyboard');
+    ).toBe('/acme/sunrise/storyboard');
   });
 
   it('picks and appends only task context params', () => {
@@ -248,8 +242,8 @@ describe('operator-shell helpers', () => {
     expect(params.toString()).toBe(
       'taskId=task-1&taskTitle=Draft+launch+brief',
     );
-    expect(appendSearchParamsToHref('/studio/storyboard', params)).toBe(
-      '/studio/storyboard?taskId=task-1&taskTitle=Draft+launch+brief',
+    expect(appendSearchParamsToHref('/storyboard', params)).toBe(
+      '/storyboard?taskId=task-1&taskTitle=Draft+launch+brief',
     );
   });
 
@@ -265,7 +259,7 @@ describe('operator-shell helpers', () => {
       '/agent/new?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
     expect(buildTaskLaunchHref(task, 'editor')).toBe(
-      '/studio/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+      '/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
   });
 

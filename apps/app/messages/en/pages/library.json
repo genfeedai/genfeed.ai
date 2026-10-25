@@ -244,6 +244,10 @@
       "budget": "Up to {passages} passages · ~{tokens} tokens"
     }
   },
+  "imported": {
+    "description": "Files you uploaded and posts or pages you imported. Generated output lives in Assets.",
+    "label": "Imported"
+  },
   "assetDeepLink": {
     "opening": "Opening your asset…",
     "unavailable": "This asset is unavailable in this brand, or you no longer have access to it."

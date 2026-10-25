@@ -64,8 +64,8 @@ describe('useOrgUrl', () => {
 
   it('should handle paths without leading slash', () => {
     const { result } = renderHook(() => useOrgUrl());
-    expect(result.current.href('studio/storyboard')).toBe(
-      '/genfeed-ai/my-brand/studio/storyboard',
+    expect(result.current.href('storyboard')).toBe(
+      '/genfeed-ai/my-brand/storyboard',
     );
     expect(result.current.orgHref('billing')).toBe('/genfeed-ai/~/billing');
   });

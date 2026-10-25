@@ -577,7 +577,7 @@ describe('RoutedOrganizationProvider', () => {
   });
 
   it('moves another tab to the authoritative organization while preserving its current surface', async () => {
-    pathname = '/alpha/moonrise/studio/playground';
+    pathname = '/alpha/moonrise/playground';
     getMyOrganizationsMock
       .mockResolvedValueOnce(ALPHA_ACTIVE)
       .mockResolvedValue(BRAVO_ACTIVE);
@@ -596,7 +596,7 @@ describe('RoutedOrganizationProvider', () => {
     });
 
     await waitFor(() =>
-      expect(replaceMock).toHaveBeenCalledWith('/bravo/~/studio/playground'),
+      expect(replaceMock).toHaveBeenCalledWith('/bravo/~/playground'),
     );
     expect(screen.getByTestId('status')).toHaveTextContent('switching');
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');

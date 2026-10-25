@@ -45,7 +45,7 @@ const CONTRACTS: PageContextContract[] = [
   {
     // Studio tools are separate apps (#5502); a single-page one has no
     // secondary nav column (#6693).
-    route: `${BRAND_BASE}/studio/storyboard`,
+    route: `${BRAND_BASE}/storyboard`,
     currentApp: 'storyboard',
     hasSecondaryNav: false,
     sectionLabel: 'Storyboard',
@@ -53,7 +53,7 @@ const CONTRACTS: PageContextContract[] = [
   },
   {
     // The Remotion timeline is the Editor app (#5461).
-    route: `${BRAND_BASE}/studio/editor`,
+    route: `${BRAND_BASE}/editor`,
     currentApp: 'editor',
     hasSecondaryNav: false,
     sectionLabel: 'Editor',

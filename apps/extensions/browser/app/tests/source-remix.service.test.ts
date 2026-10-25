@@ -246,7 +246,7 @@ describe('Source remix service', () => {
         ok([{ id: 'org-1', isActive: true, label: 'Acme', slug: 'acme' }]),
       );
     expect(await resolveSourceRemixStudioUrl(REMIX_RUN)).toBe(
-      `https://app.genfeed.ai/acme/moonrise/studio/storyboard/${REMIX_RUN}`,
+      `https://app.genfeed.ai/acme/moonrise/storyboard/${REMIX_RUN}`,
     );
   });
 

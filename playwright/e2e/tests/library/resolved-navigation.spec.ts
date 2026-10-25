@@ -47,7 +47,7 @@ test('library list navigation preserves resolved tenant parameters', async ({
   const destination = createBrandAppRoute(
     'test-org',
     'brand-1',
-    APP_ROUTES.LIBRARY.ASSETS,
+    APP_ROUTES.LIBRARY.RECENT,
   );
   // #5502: Recent is the asset browser's Show filter, not a nav link.
   // It is the Show facet of the shared Filters menu (#7567).
@@ -58,16 +58,14 @@ test('library list navigation preserves resolved tenant parameters', async ({
     await show
       .getByRole('menuitemradio', { name: 'Recent', exact: true })
       .click();
-    // Place presets preserve the Images type preset's category filters.
+    // Recent is a route of its own and keeps the Images type's category filters.
     await authenticatedPage.waitForURL(
       (url) =>
         url.pathname === destination &&
-        url.searchParams.get('place') === 'recent' &&
         url.searchParams.getAll('categories').join(',') === 'IMAGE,IMAGE_EDIT',
     );
     const url = new URL(authenticatedPage.url());
     expect(url.pathname).toBe(destination);
-    expect(url.searchParams.get('place')).toBe('recent');
     expect(url.searchParams.getAll('categories')).toEqual([
       'IMAGE',
       'IMAGE_EDIT',

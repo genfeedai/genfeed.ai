@@ -272,13 +272,26 @@ describe('IngredientInspectorRail', () => {
 
   it.each([
     [IngredientOrigin.UPLOADED, 'Uploaded'],
-    [IngredientOrigin.GENERATED, 'Generated'],
     [IngredientOrigin.IMPORTED, 'Imported'],
   ])('labels a %s asset in the detail panel', (origin, label) => {
     render(<IngredientInspectorRail ingredient={{ ...ingredient, origin }} />);
 
-    expect(screen.getByText('Origin')).toBeInTheDocument();
-    expect(screen.getByText(label)).toBeInTheDocument();
+    // The header shelf badge also reads "Imported" for a reference asset, so
+    // read the label from the Origin row itself.
+    expect(
+      screen.getByText('Origin').closest('div')?.querySelector('dd'),
+    ).toHaveTextContent(label);
+  });
+
+  it('has no Origin row for a generated asset', () => {
+    render(
+      <IngredientInspectorRail
+        ingredient={{ ...ingredient, origin: IngredientOrigin.GENERATED }}
+      />,
+    );
+
+    expect(screen.queryByText('Origin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
   });
 
   it('shows what produced a generated asset and its file details', () => {

@@ -85,7 +85,8 @@ function initializePlatformIntegration(): void {
     attachSourceButton(currentPlatform);
 
     // The compose modal and the home composer have no post in the URL; the
-    // group still belongs beside their Post button.
+    // group still belongs beside their Post button, with only the draft
+    // actions, since the others read a post.
     const postId = currentPlatform.extractPostId();
     const postUrl = postId
       ? currentPlatform.constructPostUrl(postId)
@@ -100,7 +101,12 @@ function initializePlatformIntegration(): void {
       }
       mountGenfeedGroup(
         submit,
-        buildMenuGroups({ platform: currentPlatform, platformName, postUrl }),
+        buildMenuGroups({
+          hasPost: Boolean(postId),
+          platform: currentPlatform,
+          platformName,
+          postUrl,
+        }),
         boundary ?? undefined,
       );
     }

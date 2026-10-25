@@ -13,7 +13,7 @@ export const MCP_EDITOR_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Open existing videos in the Studio Editor. Creates a draft Editor project seeded with sourceVideoIds in order (one clip each, up to 50) and returns its id and /studio/editor path. Does not generate, render, or publish.',
+      'Open existing videos in the Studio Editor. Creates a draft Editor project seeded with sourceVideoIds in order (one clip each, up to 50) and returns its id and /editor path. Does not generate, render, or publish.',
     name: 'open_in_editor',
     parameters: {
       additionalProperties: false,

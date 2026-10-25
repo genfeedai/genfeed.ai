@@ -32,7 +32,10 @@ function fixture() {
   };
   const tx = {
     ingredient: {
-      findFirst: vi.fn().mockResolvedValue({ generationBilling: receipt }),
+      findFirst: vi.fn().mockResolvedValue({
+        generationBilling: receipt,
+        status: IngredientStatus.PROCESSING,
+      }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     creditReservation: {
@@ -42,7 +45,10 @@ function fixture() {
   };
   const prisma = {
     ingredient: {
-      findFirst: vi.fn().mockResolvedValue({ generationBilling: receipt }),
+      findFirst: vi.fn().mockResolvedValue({
+        generationBilling: receipt,
+        status: IngredientStatus.PROCESSING,
+      }),
     },
     $transaction: vi.fn(async (run) => run(tx)),
   };
@@ -194,6 +200,117 @@ describe('persistQuoteGroupDisposition', () => {
     ).resolves.toEqual({ count: 0 });
     expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
   });
+  it.each([
+    [IngredientStatus.GENERATED, CreditReservationStatus.SETTLED],
+    [IngredientStatus.FAILED, CreditReservationStatus.RELEASED],
+  ])(
+    'returns a lost claim for a %s output even when its hold is %s',
+    async (status, holdStatus) => {
+      const state = fixture();
+      state.tx.ingredient.findFirst.mockResolvedValue({
+        generationBilling: state.receipt,
+        status,
+      });
+      state.tx.creditReservation.findFirst.mockResolvedValue({
+        ...state.hold,
+        status: holdStatus,
+      });
+
+      await expect(
+        persistQuoteGroupDisposition(
+          state.prisma as never,
+          where,
+          { status: IngredientStatus.FAILED },
+          true,
+        ),
+      ).resolves.toEqual({ count: 0 });
+
+      expect(state.tx.ingredient.findFirst).toHaveBeenCalledWith({
+        where: { id: 'image-0', organizationId: 'org-1', isDeleted: false },
+        select: { generationBilling: true, status: true },
+      });
+      expect(state.tx.creditReservation.findFirst).not.toHaveBeenCalled();
+      expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    CreditReservationStatus.SETTLED,
+    CreditReservationStatus.RELEASED,
+    null,
+  ])(
+    'keeps the funding error for a processing output with a %s hold',
+    async (holdStatus) => {
+      const state = fixture();
+      state.tx.creditReservation.findFirst.mockResolvedValue(
+        holdStatus === null ? null : { ...state.hold, status: holdStatus },
+      );
+
+      await expect(
+        persistQuoteGroupDisposition(
+          state.prisma as never,
+          where,
+          { status: IngredientStatus.FAILED },
+          true,
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Completed generation quote hold is unavailable',
+        }),
+      });
+      expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it('reloads terminal ownership after a serializable cancellation conflict', async () => {
+    const state = fixture();
+    state.tx.ingredient.findFirst
+      .mockResolvedValueOnce({
+        generationBilling: state.receipt,
+        status: IngredientStatus.PROCESSING,
+      })
+      .mockResolvedValue({
+        generationBilling: state.receipt,
+        status: IngredientStatus.GENERATED,
+      });
+    state.tx.ingredient.updateMany.mockRejectedValueOnce({ code: 'P2034' });
+    state.tx.creditReservation.findFirst
+      .mockResolvedValueOnce(state.hold)
+      .mockResolvedValue({
+        ...state.hold,
+        status: CreditReservationStatus.SETTLED,
+      });
+
+    await expect(
+      persistQuoteGroupDisposition(
+        state.prisma as never,
+        where,
+        { status: IngredientStatus.FAILED },
+        true,
+      ),
+    ).resolves.toEqual({ count: 0 });
+    expect(state.prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(state.tx.ingredient.updateMany).toHaveBeenCalledOnce();
+    expect(state.tx.creditReservation.findFirst).toHaveBeenCalledOnce();
+    expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('preserves the legacy fallback for an already-terminal output without a quote receipt', async () => {
+    const state = fixture();
+    state.tx.ingredient.findFirst.mockResolvedValue({
+      generationBilling: null,
+      status: IngredientStatus.GENERATED,
+    });
+
+    await expect(
+      persistQuoteGroupDisposition(state.prisma as never, where, data),
+    ).resolves.toBeNull();
+    expect(state.tx.creditReservation.findFirst).not.toHaveBeenCalled();
+    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
+  });
+
   it('propagates evidence persistence failure so the transaction rolls back the GENERATED write', async () => {
     const state = fixture();
     state.tx.creditReservation.updateMany.mockRejectedValue(

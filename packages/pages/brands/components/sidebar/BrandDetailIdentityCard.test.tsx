@@ -266,7 +266,7 @@ describe('BrandDetailIdentityCard.tsx', () => {
       screen.getByRole('button', { name: /Browse Avatar Library/i }),
     );
     expect(mockPush).toHaveBeenLastCalledWith(
-      '/acme/owner-brand/library/assets?categories=AVATAR',
+      '/acme/owner-brand/library/avatars',
     );
     fireEvent.click(
       screen.getByRole('button', { name: /Browse Voice Library/i }),

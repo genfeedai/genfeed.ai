@@ -4177,6 +4177,14 @@
       "workspace": "app"
     },
     {
+      "code": 2614,
+      "count": 1,
+      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/clips/components/HighlightReviewCard.test.tsx",
+      "fingerprint": "fa7602680832cac49bc7",
+      "message": "Module '\"./HighlightReviewCard\"' has no exported member 'IHighlight'. Did you mean to use 'import IHighlight from \"./HighlightReviewCard\"' instead?",
+      "workspace": "app"
+    },
+    {
       "code": 2352,
       "count": 1,
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/captions/captions-list.test.tsx",
@@ -4326,14 +4334,6 @@
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
       "fingerprint": "c7394186a1eec887adb8",
       "message": "Type '{}' is missing the following properties from type '{ autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }': autoPublish, schedule",
-      "workspace": "app"
-    },
-    {
-      "code": 2614,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/HighlightReviewCard.test.tsx",
-      "fingerprint": "e55a6c68290c9c3ef47c",
-      "message": "Module '\"./HighlightReviewCard\"' has no exported member 'IHighlight'. Did you mean to use 'import IHighlight from \"./HighlightReviewCard\"' instead?",
       "workspace": "app"
     },
     {

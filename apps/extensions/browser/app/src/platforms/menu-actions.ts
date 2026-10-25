@@ -10,6 +10,8 @@ import { showToast } from '~platforms/ui/toast';
 import type { MenuGroupSpec, MenuItemSpec } from '~types/genfeed-menu';
 
 interface MenuGroupsOptions {
+  /** False in a composer with no post open (a new post), where only the draft actions apply. */
+  hasPost?: boolean;
   platform: PlatformConfig | null;
   platformName: string;
   postUrl?: string;
@@ -28,6 +30,7 @@ const MEDIA_ITEMS: {
 
 /** The actions in the Genfeed menu, grouped by what they do to the reply box. */
 export function buildMenuGroups({
+  hasPost = true,
   platform,
   platformName,
   postUrl,
@@ -114,6 +117,10 @@ export function buildMenuGroups({
       }
     },
   };
+
+  if (!hasPost) {
+    return [{ id: 'write', items: textActions, label: 'Write' }];
+  }
 
   const saveSource = createSourceMenuItem(platform);
 

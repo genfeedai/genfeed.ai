@@ -359,9 +359,9 @@ const TOOL_DOCUMENTATION = new Map([
     'open_in_editor',
     {
       original:
-        'Open existing videos in the Studio Editor. Creates a draft Editor project seeded with sourceVideoIds in order (one clip each, up to 50) and returns its id and /studio/editor path. Does not generate, render, or publish.',
+        'Open existing videos in the Studio Editor. Creates a draft Editor project seeded with sourceVideoIds in order (one clip each, up to 50) and returns its id and /editor path. Does not generate, render, or publish.',
       concise:
-        'Create a Studio Editor draft from sourceVideoIds in order (one clip each, max 50). Return project id and /studio/editor path. No generation, render or publication.',
+        'Create a Studio Editor draft from sourceVideoIds in order (one clip each, max 50). Return project id and /editor path. No generation, render or publication.',
     },
   ],
   [

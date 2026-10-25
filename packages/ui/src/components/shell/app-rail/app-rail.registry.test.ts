@@ -68,12 +68,12 @@ describe('app rail registry', () => {
     ).toEqual([
       '/acme/selected/agent',
       '/acme/~/workspace/overview',
-      '/acme/selected/studio/playground',
-      '/acme/selected/studio/turbo',
-      '/acme/selected/studio/editor',
+      '/acme/selected/playground',
+      '/acme/selected/turbo',
+      '/acme/selected/editor',
     ]);
     expect(getAppRailHref(app('clips'), { orgSlug: 'acme' })).toBe(
-      '/acme/~/studio/clips',
+      '/acme/~/clips',
     );
     expect(
       getAppRailHref(app('agent'), { ...scope, brandSlug: 'routed' }),
@@ -95,12 +95,12 @@ describe('app rail registry', () => {
   });
 
   it('identifies nested product routes without inventing a source app for settings', () => {
-    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio/clips')).toBe(
+    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/clips')).toBe(
       'clips',
     );
-    expect(
-      getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio/turbo/new'),
-    ).toBe('turbo');
+    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/turbo/new')).toBe(
+      'turbo',
+    );
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio')).toBe(
       undefined,
     );
@@ -114,13 +114,9 @@ describe('app rail registry', () => {
   });
 
   it('maps a route to the module flag that gates it (#5468)', () => {
-    expect(getAppRailFlagKeyForPath('/acme/brand/studio/clips')).toBe('clips');
-    expect(getAppRailFlagKeyForPath('/acme/brand/studio/motion')).toBe(
-      'motion',
-    );
-    expect(getAppRailFlagKeyForPath('/acme/brand/studio/playground')).toBe(
-      'studio',
-    );
+    expect(getAppRailFlagKeyForPath('/acme/brand/clips')).toBe('clips');
+    expect(getAppRailFlagKeyForPath('/acme/brand/motion')).toBe('motion');
+    expect(getAppRailFlagKeyForPath('/acme/brand/playground')).toBe('studio');
     expect(getAppRailFlagKeyForPath('/acme/~/messages/replies')).toBe(
       'messages',
     );
@@ -166,13 +162,13 @@ describe('app rail registry', () => {
   });
 
   it('answers whether the app behind a path is on', () => {
-    expect(
-      isAppRailPathEnabled('/acme/brand/studio/motion', { motion: false }),
-    ).toBe(false);
-    expect(
-      isAppRailPathEnabled('/acme/brand/studio/motion', { studio: false }),
-    ).toBe(true);
-    expect(isAppRailPathEnabled('/acme/brand/studio/motion', {})).toBe(true);
+    expect(isAppRailPathEnabled('/acme/brand/motion', { motion: false })).toBe(
+      false,
+    );
+    expect(isAppRailPathEnabled('/acme/brand/motion', { studio: false })).toBe(
+      true,
+    );
+    expect(isAppRailPathEnabled('/acme/brand/motion', {})).toBe(true);
     expect(isAppRailPathEnabled(null, { studio: false })).toBe(true);
   });
 
@@ -234,7 +230,7 @@ describe('app rail registry', () => {
       );
       expect(getRailAppRoute('agent', 'acme')).toBe('/acme/~/agent');
       expect(getRailAppRoute('turbo', 'acme', 'moonrise')).toBe(
-        '/acme/moonrise/studio/turbo',
+        '/acme/moonrise/turbo',
       );
     });
 

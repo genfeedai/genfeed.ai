@@ -72,6 +72,10 @@ import { HeyGenIdentityService } from '@api/services/integrations/heygen/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import {
+  BRAND_HANDLE_RESERVED_MESSAGE,
+  isReservedAppRootSegment,
+} from '@genfeedai/contracts/constants';
 import type {
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
@@ -166,10 +170,13 @@ export class BrandsService extends BaseService<
       typeof createBrandDto.label === 'string' && createBrandDto.label.trim()
         ? createBrandDto.label.trim()
         : 'brand';
+    const requestedSlug =
+      typeof createBrandDto.slug === 'string' ? createBrandDto.slug.trim() : '';
+    if (isReservedAppRootSegment(requestedSlug)) {
+      throw new BadRequestException(BRAND_HANDLE_RESERVED_MESSAGE);
+    }
     const preferredSlug =
-      typeof createBrandDto.slug === 'string' && createBrandDto.slug.trim()
-        ? createBrandDto.slug.trim()
-        : await this.generateUniqueSlug(label);
+      requestedSlug || (await this.generateUniqueSlug(label));
     const allocationBase = slugAllocationBase(preferredSlug);
 
     this.logger.debug('Creating brand', {
@@ -600,7 +607,10 @@ export class BrandsService extends BaseService<
       if (excludeBrandId) {
         filter.id = { not: excludeBrandId };
       }
-      if (!(await findBrandSlugHolder(this.delegate, { where: filter }))) {
+      if (
+        !isReservedAppRootSegment(candidate) &&
+        !(await findBrandSlugHolder(this.delegate, { where: filter }))
+      ) {
         break;
       }
       candidate = `${base}-${counter}`;
@@ -612,8 +622,12 @@ export class BrandsService extends BaseService<
 
   /**
    * Whether `slug` is free for `brandId`; global like the database constraint.
+   * Top-level app route names (`turbo`, `clips`, ...) are never free.
    */
   async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
+    if (isReservedAppRootSegment(slug)) {
+      return false;
+    }
     return !(await findBrandSlugHolder(this.delegate, {
       select: { id: true },
       where: { id: { not: brandId }, slug },

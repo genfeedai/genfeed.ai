@@ -3,7 +3,7 @@ import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
 
-const base = '/test-org/brand-1/studio/turbo';
+const base = '/test-org/brand-1/turbo';
 test.describe('Persisted Turbo projects', () => {
   test('idea choices, generated ideas, quote, approval and per-target timing survive reloads', async ({
     authenticatedPage: page,

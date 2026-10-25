@@ -31,17 +31,15 @@ describe('extractAgentConversationId', () => {
 
 describe('extractStoryboardRunId', () => {
   it('reads the run id of a storyboard detail route', () => {
-    expect(
-      extractStoryboardRunId('/default/default/studio/storyboard/run-1'),
-    ).toBe('run-1');
+    expect(extractStoryboardRunId('/default/default/storyboard/run-1')).toBe(
+      'run-1',
+    );
   });
 
   it('ignores the storyboard list and create routes', () => {
+    expect(extractStoryboardRunId('/default/default/storyboard')).toBeNull();
     expect(
-      extractStoryboardRunId('/default/default/studio/storyboard'),
-    ).toBeNull();
-    expect(
-      extractStoryboardRunId('/default/default/studio/storyboard/new'),
+      extractStoryboardRunId('/default/default/storyboard/new'),
     ).toBeNull();
     expect(extractStoryboardRunId('/default/default/agent/run-1')).toBeNull();
     expect(extractStoryboardRunId(null)).toBeNull();

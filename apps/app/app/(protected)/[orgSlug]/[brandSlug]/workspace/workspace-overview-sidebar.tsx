@@ -1,3 +1,4 @@
+import { getStudioAppForPath } from '@app-config/studio-menu-items.config';
 import {
   ButtonSize,
   ButtonVariant,
@@ -53,7 +54,7 @@ export function WorkspaceOverviewSidebar({
   const { flags } = useFeatureFlagContext();
   const availableAdvancedTools = advancedTools.filter(
     (tool) =>
-      !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT) ||
+      !getStudioAppForPath(tool.href) ||
       (isStudioEnabled && isAppRailPathEnabled(tool.href, flags)),
   );
   const taskStreamContent =
