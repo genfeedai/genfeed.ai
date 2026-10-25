@@ -54,6 +54,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'isBreakoutAutoPublishEnabled',
   'isBrandVisionChecksEnabled',
   'isMcpApprovalRequired',
+  'subscriptionTier',
   'hasOrganizationBilling',
   'hasPaidModuleSubscription',
   'fleetEvaluationPolicy',
