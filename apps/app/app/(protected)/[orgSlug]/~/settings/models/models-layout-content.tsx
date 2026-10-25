@@ -5,7 +5,6 @@ import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { hasTrainingAccess } from '@genfeedai/pricing';
-import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
@@ -19,7 +18,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Cpu, Plus } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
@@ -43,8 +42,7 @@ export default function ModelsLayoutContent({
   const translateCustomModels = useTranslations(
     'common.settings.organizationCustomModels',
   );
-  const searchParams = useSearchParams();
-  const search = searchParams?.toString() ?? '';
+  const pathname = usePathname();
   const router = useRouter();
   const { orgHref } = useOrgUrl();
   const { settings } = useBrand();
@@ -56,10 +54,12 @@ export default function ModelsLayoutContent({
   const { refreshModels, isRefreshing: isRefreshingModels } =
     useModelsContext();
 
+  // The path names the view: /settings/models is the catalog, the others are
+  // /settings/models/<type>.
+  const activeSegment = pathname?.split('/').filter(Boolean).pop();
   const activeType: ModelTypeValue =
-    MODEL_TYPE_OPTIONS.find(
-      (option) => option.value === searchParams?.get('type'),
-    )?.value ?? 'all';
+    MODEL_TYPE_OPTIONS.find((option) => option.value === activeSegment)
+      ?.value ?? 'all';
 
   const isTrainingsTab = activeType === 'trainings';
   const isCustomModelsTab = activeType === 'custom-models';
@@ -84,11 +84,13 @@ export default function ModelsLayoutContent({
         return;
       }
       router.push(
-        createFilterHref(orgHref('/settings/models'), search, 'type', value),
+        orgHref(
+          value === 'all' ? '/settings/models' : `/settings/models/${value}`,
+        ),
         { scroll: false },
       );
     },
-    [activeType, orgHref, router, search],
+    [activeType, orgHref, router],
   );
 
   return (

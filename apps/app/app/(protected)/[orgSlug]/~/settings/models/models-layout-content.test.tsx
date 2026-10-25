@@ -5,7 +5,7 @@ import '@testing-library/jest-dom/vitest';
 import ModelsLayoutContent from './models-layout-content';
 
 const mockPush = vi.fn();
-const mockSearchParams = vi.hoisted(() => ({ value: '' }));
+const mockPathname = vi.hoisted(() => ({ value: '/acme/~/settings/models' }));
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
@@ -14,7 +14,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
-  usePathname: () => '/acme/~/settings/models/all',
+  usePathname: () => mockPathname.value,
   useRouter: () => ({
     back: vi.fn(),
     forward: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock('next/navigation', () => ({
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
-  useSearchParams: () => new URLSearchParams(mockSearchParams.value),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@contexts/models/models-context/models-context', () => ({
@@ -59,7 +59,7 @@ beforeAll(() => {
 
 describe('ModelsLayoutContent', () => {
   beforeEach(() => {
-    mockSearchParams.value = '';
+    mockPathname.value = '/acme/~/settings/models';
   });
 
   it('should render without crashing', () => {
@@ -120,10 +120,9 @@ describe('ModelsLayoutContent', () => {
     await user.click(screen.getByRole('combobox', { name: 'Model type' }));
     await user.click(await screen.findByRole('option', { name: 'Trainings' }));
 
-    expect(mockPush).toHaveBeenCalledWith(
-      '/acme/~/settings/models?type=trainings',
-      { scroll: false },
-    );
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/models/trainings', {
+      scroll: false,
+    });
   });
 
   it('keeps the type filter on one non-wrapping row and refresh in the refresh slot', () => {
@@ -147,7 +146,7 @@ describe('ModelsLayoutContent', () => {
   });
 
   it('hides refresh on the Custom Models tab', () => {
-    mockSearchParams.value = 'type=custom-models';
+    mockPathname.value = '/acme/~/settings/models/custom-models';
 
     render(
       <ModelsLayoutContent>

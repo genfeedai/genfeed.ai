@@ -68,6 +68,7 @@ describe('OssCreditsUtilsService', () => {
       ),
     ).resolves.toEqual({
       cycleTotal: 0,
+      cycleUsed: 0,
       remainingPercent: 100,
     });
   });

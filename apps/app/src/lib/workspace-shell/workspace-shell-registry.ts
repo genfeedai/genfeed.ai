@@ -150,8 +150,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/discovery/trends/detail/:id': 'Trend Detail',
   '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform':
     ':platform Trends',
-  '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
-  '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/assets': 'Assets',
   '/:orgSlug/:brandSlug/library/imported': 'Imported',
@@ -166,6 +164,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/library/images': 'Assets',
   '/:orgSlug/:brandSlug/library/music': 'Assets',
   '/:orgSlug/:brandSlug/library/shelf/:shelf': ':shelf',
+  '/:orgSlug/:brandSlug/library/recent': 'Recent',
+  '/:orgSlug/:brandSlug/library/starred': 'Starred',
   '/:orgSlug/:brandSlug/library/trash': 'Trash',
   '/:orgSlug/:brandSlug/library/videos': 'Assets',
   '/:orgSlug/:brandSlug/library/voices': 'Assets',
@@ -808,7 +808,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/workspace/tasks',
       '/:orgSlug/:brandSlug/workspace/tasks/:id',
-      '/:orgSlug/:brandSlug/overview/activities',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/workspace',
@@ -892,21 +891,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/edit/article/:id',
-      '/:orgSlug/:brandSlug/edit/newsletter/:id',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/publishing/posts',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'artifact-editor',
-      switcherItems: ['publishing'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
       '/:orgSlug/:brandSlug/editor',
       '/:orgSlug/:brandSlug/editor/new',
       '/:orgSlug/:brandSlug/editor/:id',
@@ -928,6 +912,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/imported',
       '/:orgSlug/:brandSlug/library/overview',
       '/:orgSlug/:brandSlug/library/references',
+      '/:orgSlug/:brandSlug/library/recent',
+      '/:orgSlug/:brandSlug/library/starred',
       '/:orgSlug/:brandSlug/library/trash',
       '/:orgSlug/:brandSlug/library/shelf/:shelf',
       '/:orgSlug/:brandSlug/library/videos',
@@ -1106,7 +1092,9 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/connected-accounts',
       '/:orgSlug/:brandSlug/settings/brand-kit/content-rules',
       '/:orgSlug/:brandSlug/settings/brand-kit/guided-setup',
+      '/:orgSlug/:brandSlug/settings/brand-kit/:tab',
       '/:orgSlug/:brandSlug/settings/agent/context',
+      '/:orgSlug/:brandSlug/settings/agent/learning',
       '/:orgSlug/:brandSlug/settings/publishing',
       '/:orgSlug/:brandSlug/settings/agent',
       '/:orgSlug/:brandSlug/settings/skills',

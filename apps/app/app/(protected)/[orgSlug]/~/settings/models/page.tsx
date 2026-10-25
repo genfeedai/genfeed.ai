@@ -1,13 +1,8 @@
-import FilteredListRoute from '@app/(protected)/[orgSlug]/~/settings/models/FilteredListRoute';
+import ModelsTypePageClientContent from '@app/(protected)/[orgSlug]/~/settings/models/[type]/page-content';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Models');
 
-export default function FilteredListPage() {
-  return (
-    <Suspense fallback={null}>
-      <FilteredListRoute />
-    </Suspense>
-  );
+export default function ModelsCatalogPage() {
+  return <ModelsTypePageClientContent type="all" />;
 }
