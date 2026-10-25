@@ -190,7 +190,6 @@ export default function ArticleDetail({
       <div className="flex min-h-screen flex-col items-center justify-center">
         <CardEmpty
           label="Article not found"
-          description="The article you are looking for does not exist."
           actions={
             <Link
               href="/articles"
