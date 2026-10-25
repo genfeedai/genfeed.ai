@@ -1,7 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
-import type { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
+import { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   type PrismaTransactionClient,
@@ -32,6 +32,9 @@ describe('OnboardingCreditGrantsService', () => {
   };
   const historicalGift = vi.fn();
   const findOrganization = vi.fn();
+  const userFindFirst = vi.fn();
+  const sessionFindFirst = vi.fn();
+  const countGrants = vi.fn();
   const effects = vi.fn();
   const trialState = vi.fn<() => Promise<IFreeTrialState>>();
   const logger = { log: vi.fn(), warn: vi.fn() };
@@ -60,7 +63,9 @@ describe('OnboardingCreditGrantsService', () => {
       };
       const tx = Object.assign(state, {
         organization: { findFirst: findOrganization },
-        creditTransaction: { findFirst: historicalGift },
+        creditTransaction: { findFirst: historicalGift, count: countGrants },
+        user: { findFirst: userFindFirst },
+        session: { findFirst: sessionFindFirst },
         organizationSetting: {
           findFirst: async () => ({
             id: 'settings',
@@ -110,6 +115,12 @@ describe('OnboardingCreditGrantsService', () => {
     ledger = [];
     failUpdate = false;
     historicalGift.mockResolvedValue(null);
+    userFindFirst.mockResolvedValue({
+      email: 'verified@example.com',
+      emailVerified: true,
+    });
+    sessionFindFirst.mockResolvedValue(null);
+    countGrants.mockResolvedValue(0);
     findOrganization.mockResolvedValue(organization);
     trialState.mockResolvedValue({
       isTrialExpired: false,
@@ -542,6 +553,93 @@ describe('OnboardingCreditGrantsService', () => {
       missions.find((m) => m.id === 'complete_company_info')?.isCompleted,
     ).toBe(true);
     expect(grants).not.toHaveBeenCalled();
+  });
+  describe('deferred hosted signup gifts', () => {
+    const guarded = new OnboardingCreditGrantsService(
+      { runInTransaction: transaction } as unknown as TransactionUtil,
+      {} as OrganizationSettingsService,
+      {
+        addPromotionalCreditsInTransaction: grants,
+        publishCreditAddition: effects,
+      } as unknown as CreditsUtilsService,
+      { getState: trialState } as unknown as FreeTrialService,
+      logger as unknown as LoggerService,
+      undefined,
+      new SignupGrantEligibilityService(logger as unknown as LoggerService),
+    );
+
+    it('defers a verified OAuth gift without an IP and settles once after session creation, including concurrent retries', async () => {
+      await guarded.grantSignupGift('org', 'user');
+      expect(balance).toBe(0);
+      expect(grants).not.toHaveBeenCalled();
+
+      sessionFindFirst.mockResolvedValue({ ipAddress: '203.0.113.7' });
+      await Promise.all([
+        guarded.grantSignupGift('org', 'user'),
+        guarded.grantSignupGift('org', 'user'),
+      ]);
+      await guarded.grantSignupGift('org', 'user');
+
+      expect(balance).toBe(ONBOARDING_SIGNUP_GIFT_CREDITS);
+      expect(ledger).toEqual(['onboarding:welcome:user']);
+      expect(grants).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            metadata: expect.objectContaining({
+              emailKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+              ipKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+            }),
+          }),
+        }),
+        expect.anything(),
+      );
+      expect(JSON.stringify(grants.mock.calls)).not.toContain('203.0.113.7');
+    });
+
+    it('still withholds a session-backed gift from an unverified or previously rewarded canonical mailbox', async () => {
+      sessionFindFirst.mockResolvedValue({ ipAddress: '203.0.113.7' });
+      userFindFirst.mockResolvedValue({
+        email: 'verified@example.com',
+        emailVerified: false,
+      });
+      await guarded.grantSignupGift('org', 'user');
+      expect(balance).toBe(0);
+
+      userFindFirst.mockResolvedValue({
+        email: 'verified+alias@example.com',
+        emailVerified: true,
+      });
+      historicalGift
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'other-account-gift' });
+      await guarded.grantSignupGift('org', 'user');
+      expect(grants).not.toHaveBeenCalled();
+    });
+
+    it('refuses a deferred gift at the durable daily IP limit', async () => {
+      await guarded.grantSignupGift('org', 'user');
+      sessionFindFirst.mockResolvedValue({ ipAddress: '203.0.113.7' });
+      countGrants.mockResolvedValue(5);
+      await guarded.grantSignupGift('org', 'user');
+      expect(balance).toBe(0);
+      expect(grants).not.toHaveBeenCalled();
+      expect(countGrants).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          source: 'onboarding-signup-gift',
+          metadata: {
+            path: ['ipKey'],
+            equals: expect.stringMatching(/^[0-9a-f]{64}$/),
+          },
+        }),
+      });
+    });
+
+    it('preserves the self-hosted exemption when there is no session IP', async () => {
+      vi.mocked(deployment.isSelfHostedDeployment).mockReturnValue(true);
+      await guarded.grantSignupGift('org', 'user');
+      expect(balance).toBe(ONBOARDING_SIGNUP_GIFT_CREDITS);
+      expect(userFindFirst).not.toHaveBeenCalled();
+    });
   });
   describe('free-credit eligibility', () => {
     const evaluate = vi.fn();

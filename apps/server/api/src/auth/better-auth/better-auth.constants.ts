@@ -32,3 +32,6 @@ export const BETTER_AUTH_USER_CREATED_EVENT = 'better-auth.user.created';
  * once a user follows their verification link.
  */
 export const BETTER_AUTH_EMAIL_VERIFIED_EVENT = 'better-auth.email.verified';
+
+/** Awaited after session persistence so deferred signup gifts can be IP-checked. */
+export const BETTER_AUTH_SESSION_CREATED_EVENT = 'better-auth.session.created';

@@ -23,5 +23,7 @@ export function pinBetterAuthClientIp(
   const clientIp = request.ip || request.socket?.remoteAddress;
   if (clientIp) {
     request.headers['x-forwarded-for'] = clientIp;
+  } else {
+    delete request.headers['x-forwarded-for'];
   }
 }
