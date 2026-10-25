@@ -48,6 +48,7 @@ import { ConfigService } from '@workers/config/config.service';
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
+      extraOptions: { manualRegistration: true },
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {

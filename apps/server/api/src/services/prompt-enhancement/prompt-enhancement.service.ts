@@ -11,8 +11,10 @@ import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.uti
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
-  MEDIA_PROMPT_OUTPUT_CONTRACT,
+  formatCreativeDirection,
+  type MediaCreativeDirection,
   parseMediaPromptOutput,
+  resolveMediaPromptOutputContract,
 } from '@api/services/prompt-enhancement/media-prompt-output.util';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
@@ -35,6 +37,14 @@ export interface PromptEnhancementInput {
   requestedSkillSlugs?: string[];
   model?: string;
   contentType?: 'image' | 'video';
+  /** The user's explicit Studio picks, bound into the media prompt. */
+  creativeDirection?: MediaCreativeDirection;
+  /**
+   * Operator rule on what the media may depict (brand offering lock). Sent as
+   * guidance, never as part of the user's prompt, so the model does not treat
+   * it as a scene to illustrate.
+   */
+  subjectRule?: string;
 }
 
 /** Existing AiActions context assembly and BYOK credentials; never accepted from an HTTP DTO. */
@@ -128,7 +138,16 @@ export class PromptEnhancementService {
       ? `${basePrompt}\n\n${skillSections}`
       : basePrompt;
     const systemContent = input.contentType
-      ? `${guidance}\n\n${MEDIA_PROMPT_OUTPUT_CONTRACT}`
+      ? [
+          guidance,
+          resolveMediaPromptOutputContract(input.contentType),
+          input.subjectRule?.trim()
+            ? `Subject rule (applies to what is depicted, never to be quoted):\n${input.subjectRule.trim()}`
+            : '',
+          formatCreativeDirection(input.creativeDirection),
+        ]
+          .filter(Boolean)
+          .join('\n\n')
       : guidance;
     await this.skills?.recordPromptEvidence?.({
       actorUserId: input.actorUserId,

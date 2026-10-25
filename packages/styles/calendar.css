@@ -5,100 +5,13 @@
   min-height: 600px;
 }
 
-/* Calendar wrapper */
-.fc {
-  width: 100%;
-}
-
-/* Header toolbar */
-.fc .fc-toolbar {
-  padding: 1rem;
-  background-color: hsl(var(--muted));
-  border-bottom: 1px solid hsl(var(--border));
-}
-
-.fc .fc-toolbar-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-}
-
-.fc .fc-button {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: none;
-  background-color: transparent;
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border)) !important;
-  box-shadow: none !important;
-  transition:
-    color 0.2s,
-    background-color 0.2s,
-    border-color 0.2s;
-}
-
-.fc .fc-button:hover {
-  background-color: hsl(var(--foreground) / 0.05);
-  border-color: hsl(var(--foreground)) !important;
-}
-
-.fc .fc-button-active {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-color: hsl(var(--primary)) !important;
-  opacity: 1;
-}
-
-.fc .fc-button-group {
-  gap: 0.25rem;
-}
-
-/* Today button - use secondary color for distinction */
-.fc .fc-today-button {
-  background-color: hsl(var(--secondary));
-  color: hsl(var(--secondary-foreground));
-  border-color: hsl(var(--secondary)) !important;
-}
-
-.fc .fc-today-button:hover {
-  background-color: hsl(var(--secondary));
-  opacity: 0.9;
-  border-color: hsl(var(--secondary)) !important;
-}
-
-.fc .fc-today-button:disabled {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  opacity: 0.5;
-  border-color: hsl(var(--border)) !important;
-}
-
-/* Calendar body */
-.fc .fc-view-harness {
-  background-color: hsl(var(--card));
-}
-
-/* Time grid */
-.fc .fc-timegrid-slot {
-  border-color: hsl(var(--border));
-  height: 3rem !important;
-}
-
-.fc .fc-timegrid-slot-label {
-  font-size: 0.875rem;
-  color: hsl(var(--foreground) / 0.6);
-  padding-right: 0.5rem;
-}
-
 .gen-calendar-custom-day {
   height: auto;
   min-height: 0;
 }
 
-.gen-calendar-custom-day .fc-timegrid-body,
-.gen-calendar-custom-day .fc-timegrid-slots,
-.gen-calendar-custom-day .fc-timegrid-divider {
+/* The custom rows replace the FullCalendar time grid in day view. */
+.gen-calendar-custom-day [data-calendar-host] {
   display: none;
 }
 
@@ -144,147 +57,16 @@
   padding: 0.375rem 0.25rem;
 }
 
-/* Column headers */
-.fc .fc-col-header-cell {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  font-weight: 600;
-  border-color: hsl(var(--border));
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-}
-
-.fc .fc-col-header-cell-cushion {
-  font-size: 0.875rem;
-}
-
-/* Day cells */
-.fc .fc-daygrid-day {
-  border-color: hsl(var(--border));
-}
-
-.fc .fc-timegrid-col {
-  border-color: hsl(var(--border));
-}
-
-/* Events */
-.fc-event {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border: none;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition:
-    box-shadow 0.2s,
-    opacity 0.2s;
-}
-
-.fc-event:hover {
-  box-shadow: var(--shadow-md);
-  opacity: 0.9;
-}
-
-.fc-event-title {
-  font-weight: 500;
-  font-size: 0.75rem;
-}
-
-.fc-event-time {
-  font-size: 0.75rem;
-  opacity: 0.9;
-}
-
-/* Disabled events - past or published */
-.fc-event.event-disabled {
-  opacity: 0.5;
-  cursor: not-allowed !important;
-}
-
-.fc-event.event-disabled:hover {
-  box-shadow: var(--shadow-sm);
-  opacity: 0.5;
-}
-
-.fc-event.event-disabled .fc-event-title,
-.fc-event.event-disabled .fc-event-time {
-  opacity: 0.7;
-}
-
-/* Now indicator */
-.fc .fc-timegrid-now-indicator-line {
-  border-color: hsl(var(--destructive));
-}
-
-.fc .fc-timegrid-now-indicator-arrow {
-  border-color: hsl(var(--destructive));
-}
-
-/* Grid lines */
-.fc-theme-standard td,
-.fc-theme-standard th {
-  border-color: hsl(var(--border));
-}
-
-/* Scrollbars */
-.fc-scroller::-webkit-scrollbar {
-  width: 0.5rem;
-  height: 0.5rem;
-}
-
-.fc-scroller::-webkit-scrollbar-track {
-  background-color: hsl(var(--muted));
-}
-
-.fc-scroller::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--border));
-  border-radius: 9999px;
-}
-
-.fc-scroller::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--foreground) / 0.3);
-}
-
-/* Today highlight */
-.fc .fc-day-today {
-  background-color: hsl(var(--primary) / 0.05);
-}
-
-.fc .fc-timegrid-col.fc-day-today {
-  background-color: hsl(var(--primary) / 0.05);
-}
-
-/* Today column header - enhanced visibility */
-.fc .fc-col-header-cell.fc-day-today {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  font-weight: 700;
-}
-
-.fc .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
-  color: hsl(var(--primary-foreground));
-}
-
-/* Remove default background colors */
-.fc-theme-standard .fc-scrollgrid {
-  border-color: transparent;
-}
-
-/* Better spacing */
-.fc .fc-toolbar-chunk {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 /*
  * Event cell with a status badge.
  *
  * These classes are applied to DOM built at runtime inside FullCalendar's
  * `eventContent` callback, so they are plain CSS rather than utility classes —
- * Tailwind cannot see class names that never appear in source.
+ * Tailwind cannot see class names that never appear in source. They are also
+ * deliberately not scoped under a FullCalendar class: v7 hashes its own class
+ * names, so there is no stable `.fc` ancestor to hang a selector on.
  */
-.fc .gen-calendar-event {
+.gen-calendar-event {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -293,7 +75,7 @@
   padding: 0 0.125rem;
 }
 
-.fc .gen-calendar-event-time {
+.gen-calendar-event-time {
   flex: none;
   font-size: 0.75rem;
   opacity: 0.9;
@@ -303,15 +85,15 @@
  * Channel icons are cloned into runtime DOM from a hidden sprite, so sizing is
  * plain CSS for the same reason as the badge classes below.
  */
-.fc .gen-calendar-event-channels {
+.gen-calendar-event-channels {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 0.125rem;
 }
 
-.fc .gen-calendar-event-channel-icon,
-.fc .gen-calendar-event-channels svg {
+.gen-calendar-event-channel-icon,
+.gen-calendar-event-channels svg {
   width: 0.75rem;
   height: 0.75rem;
   flex: none;
@@ -322,7 +104,7 @@
  * "failed" in full, and an ellipsised title is far more recoverable than a
  * truncated status.
  */
-.fc .gen-calendar-event-title {
+.gen-calendar-event-title {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -332,7 +114,7 @@
   font-weight: 500;
 }
 
-.fc .gen-calendar-event-indicators {
+.gen-calendar-event-indicators {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -344,17 +126,17 @@
   white-space: nowrap;
 }
 
-.fc .gen-calendar-event-indicator {
+.gen-calendar-event-indicator {
   border-radius: 9999px;
   padding: 0 0.25rem;
   background-color: hsl(var(--foreground) / 0.2);
 }
 
-.fc .gen-calendar-event-indicator-more {
+.gen-calendar-event-indicator-more {
   opacity: 0.8;
 }
 
-.fc .gen-calendar-event-badge {
+.gen-calendar-event-badge {
   flex: none;
   border-radius: 9999px;
   padding: 0 0.375rem;
@@ -368,112 +150,80 @@
   color: hsl(var(--primary-foreground));
 }
 
-.fc .gen-calendar-event-badge--danger {
+.gen-calendar-event-badge--danger {
   background-color: hsl(var(--destructive));
   color: hsl(var(--destructive-foreground));
 }
 
-.fc .gen-calendar-event-badge--warning {
+.gen-calendar-event-badge--warning {
   background-color: hsl(var(--warning, 38 92% 50%));
   color: hsl(var(--background));
 }
 
-.fc .gen-calendar-event-badge--success {
+.gen-calendar-event-badge--success {
   background-color: hsl(var(--success, 142 71% 45%));
   color: hsl(var(--background));
 }
 
-.fc .gen-calendar-event-badge--info {
+.gen-calendar-event-badge--info {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
-.fc .gen-calendar-event-badge--muted {
+.gen-calendar-event-badge--muted {
   background-color: hsl(var(--muted));
   color: hsl(var(--muted-foreground));
 }
 
 /*
- * Density states. Missing ghosts stay lighter than filled items so a two-hour
- * cadence remains scannable; generating and failed keep their own weight.
+ * Density states, applied through the event `className`. Missing ghosts stay
+ * lighter than filled items so a two-hour cadence remains scannable;
+ * generating and failed keep their own weight.
  */
-.fc .fc-event.gen-calendar-event-host--missing {
+.gen-calendar-event-host--missing {
   opacity: 0.72;
 }
 
-.fc .fc-event.gen-calendar-event-host--generating {
+.gen-calendar-event-host--generating {
   opacity: 0.9;
 }
 
-.fc .fc-event.gen-calendar-event-host--generate-failed {
+.gen-calendar-event-host--generate-failed {
   opacity: 1;
 }
 
-.fc .fc-event:focus,
-.fc .fc-event:focus-visible {
+/* Disabled events - past or published */
+.event-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+.gen-calendar-event-draggable {
+  cursor: grab;
+}
+
+.gen-calendar-event-draggable:active {
+  cursor: grabbing;
+}
+
+/* Marked on the event element when it carries inline actions. */
+[data-calendar-slot="focusable"]:focus,
+[data-calendar-slot="focusable"]:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 1px;
 }
 
-.fc .gen-calendar-event-actions-root,
-.fc .gen-calendar-event-actions {
+.gen-calendar-event-actions-root,
+.gen-calendar-event-actions {
   display: none;
   flex: none;
   align-items: center;
   gap: 0.25rem;
 }
 
-.fc .fc-event:focus .gen-calendar-event-actions-root,
-.fc .fc-event:focus-within .gen-calendar-event-actions-root,
-.fc .fc-event:focus .gen-calendar-event-actions,
-.fc .fc-event:focus-within .gen-calendar-event-actions {
+[data-calendar-slot="focusable"]:focus .gen-calendar-event-actions-root,
+[data-calendar-slot="focusable"]:focus-within .gen-calendar-event-actions-root,
+[data-calendar-slot="focusable"]:focus .gen-calendar-event-actions,
+[data-calendar-slot="focusable"]:focus-within .gen-calendar-event-actions {
   display: inline-flex;
-}
-
-/* List view */
-.fc .fc-list {
-  border-color: hsl(var(--border));
-}
-
-.fc .fc-list-day-cushion {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-}
-
-.fc .fc-list-event:hover td {
-  background-color: hsl(var(--primary) / 0.05);
-}
-
-.fc .fc-list-event-title .gen-calendar-event {
-  padding: 0;
-}
-
-/* Drag affordance - FullCalendar marks only the events it will let you move */
-.fc .fc-event-draggable {
-  cursor: grab;
-}
-
-.fc .fc-event-draggable:active {
-  cursor: grabbing;
-}
-
-/* Responsive text sizes */
-@media (max-width: 640px) {
-  .fc .fc-toolbar-title {
-    font-size: 1rem;
-  }
-
-  .fc .fc-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .fc .fc-col-header-cell-cushion {
-    font-size: 0.75rem;
-  }
-
-  .fc .gen-calendar-event-badge {
-    padding: 0 0.25rem;
-    font-size: 0.5625rem;
-  }
 }

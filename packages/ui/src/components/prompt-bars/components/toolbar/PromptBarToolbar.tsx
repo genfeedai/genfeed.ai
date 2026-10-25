@@ -4,8 +4,9 @@ import type { ReactElement } from 'react';
 
 /**
  * The one prompt-bar toolbar row shared by Agent, Studio and every other
- * composer: tools on the left, setup and submission on the right. Surfaces
- * only fill the slots.
+ * composer: tools on the left, submission on the right. Surfaces only fill the
+ * slots, and the left group always reads in the same order: mode, setup chips,
+ * enhance, then the `+` that adds references.
  *
  * Nothing in the row scrolls. Submission keeps its size on the right and the
  * tools wrap onto further lines when they run out of room. The tools group is
@@ -15,8 +16,11 @@ import type { ReactElement } from 'react';
  */
 export default function PromptBarToolbar({
   className,
+  enhance,
   leading,
   leadingLabel,
+  mode,
+  reference,
   trailing,
   trailingLabel,
 }: PromptBarToolbarProps): ReactElement {
@@ -35,7 +39,10 @@ export default function PromptBarToolbar({
         data-prompt-bar-leading=""
         role="group"
       >
+        {mode}
         {leading}
+        {enhance}
+        {reference}
       </div>
       <div
         aria-label={trailingLabel}

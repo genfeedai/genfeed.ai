@@ -98,25 +98,31 @@ function AgentChatInputToolbarInner({
 
   return (
     <PromptBarToolbar
-      leading={
+      mode={
         isAgentControlsHidden ? null : (
-          <>
-            <PromptBarReferenceControls
-              isAttachmentDisabled={disabled}
-              isLibraryDisabled={disabled || !hasEditor}
-              onAddFiles={onAddFiles}
-              onOpenLibrary={onInsertReference}
-            />
-            <AgentModeDropdown
-              isDisabled={disabled || showStop}
-              mode={agentMode}
-              onChange={onAgentModeChange}
-            />
-            <GenerationHarnessSettingsPopover
-              className="size-8"
-              isDisabled={disabled || showStop}
-            />
-          </>
+          <AgentModeDropdown
+            isDisabled={disabled || showStop}
+            mode={agentMode}
+            onChange={onAgentModeChange}
+          />
+        )
+      }
+      enhance={
+        isAgentControlsHidden ? null : (
+          <GenerationHarnessSettingsPopover
+            className="size-8"
+            isDisabled={disabled || showStop}
+          />
+        )
+      }
+      reference={
+        isAgentControlsHidden ? null : (
+          <PromptBarReferenceControls
+            isAttachmentDisabled={disabled}
+            isLibraryDisabled={disabled || !hasEditor}
+            onAddFiles={onAddFiles}
+            onOpenLibrary={onInsertReference}
+          />
         )
       }
       trailing={

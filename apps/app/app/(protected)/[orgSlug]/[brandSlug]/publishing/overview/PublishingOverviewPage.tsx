@@ -378,7 +378,7 @@ export default function PublishingOverviewPage() {
           : reviewPulse.ready > 0
             ? `${reviewPulse.ready} item${reviewPulse.ready === 1 ? '' : 's'} ready to approve or reject.`
             : 'Approve or reject generated posts.',
-      href: href(APP_ROUTES.PUBLISHING.REVIEW),
+      href: href(APP_ROUTES.PUBLISHING.APPROVALS),
       icon: ClipboardCheck,
       id: 'review',
       label: 'Review queue',

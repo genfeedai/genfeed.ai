@@ -242,17 +242,6 @@ export default function StoryboardCreate() {
               leading={
                 mode === 'brief' ? (
                   <>
-                    <Button
-                      ariaLabel={translateWorkspace('references')}
-                      icon={<Paperclip className="size-4" />}
-                      isDisabled={isCreating}
-                      onClick={chooseStartingImage}
-                      size={ButtonSize.ICON}
-                      tooltip={translateWorkspace('references')}
-                      tooltipPosition="top"
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    />
                     <PromptBarCompactSelect
                       ariaLabel={translate('formatAria')}
                       isDisabled={isCreating}
@@ -275,6 +264,21 @@ export default function StoryboardCreate() {
                       onChange={setBudget}
                     />
                   </>
+                ) : null
+              }
+              reference={
+                mode === 'brief' ? (
+                  <Button
+                    ariaLabel={translateWorkspace('references')}
+                    icon={<Paperclip className="size-4" />}
+                    isDisabled={isCreating}
+                    onClick={chooseStartingImage}
+                    size={ButtonSize.ICON}
+                    tooltip={translateWorkspace('references')}
+                    tooltipPosition="top"
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  />
                 ) : null
               }
               trailing={

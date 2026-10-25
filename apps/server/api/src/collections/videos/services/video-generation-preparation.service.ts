@@ -33,6 +33,7 @@ import type {
   VideoGenerationContext,
   VideoGenerationResolvedBrand,
 } from '@api/collections/videos/services/video-generation.types';
+import { buildVideoDirection } from '@api/collections/videos/services/video-generation-direction.util';
 import {
   brandPromptLabel,
   emptyStyleToNull,
@@ -516,6 +517,7 @@ export class VideoGenerationPreparationService {
       brandId,
       prompt: promptText,
       contentType: 'video',
+      creativeDirection: buildVideoDirection(createVideoDto).enhancer,
       model,
       harness: createVideoDto.harness,
       ...(createVideoDto.brandMode
@@ -697,12 +699,7 @@ export class VideoGenerationPreparationService {
     evidence: VideoGenerationBriefPersistedEvidence;
     generationSource: string;
   } {
-    const composition = [
-      params.createVideoDto.camera,
-      params.createVideoDto.lens,
-    ]
-      .filter((value): value is string => Boolean(value?.trim()))
-      .join(', ');
+    const direction = buildVideoDirection(params.createVideoDto).brief;
     const avoid = [
       ...(params.createVideoDto.blacklist ?? []),
       ...(params.createVideoDto.negativePrompt
@@ -717,24 +714,23 @@ export class VideoGenerationPreparationService {
         avoid,
         brandContext: params.briefBrandContext,
         brandingMode: params.createVideoDto.brandingMode,
-        composition,
+        composition: direction.composition,
         durationSeconds: params.createVideoDto.duration,
         fidelityMode: params.createVideoDto.fidelityMode,
         endFrameId: params.createVideoDto.endFrame,
         height: params.height,
         isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
-        lighting: params.createVideoDto.lighting,
+        lighting: direction.lighting,
         model: params.model,
-        motion: params.createVideoDto.cameraMovement,
+        motion: direction.motion,
         objective: params.generationHarness.enhancedPrompt,
         referenceIds: params.referenceIds,
         references: resolveAdPresetBriefReferences(params),
         resolution: params.createVideoDto.resolution,
-        scene: params.createVideoDto.scene,
+        scene: direction.scene,
         seed: params.createVideoDto.seed,
         surface: 'studio',
-        visualDirection:
-          params.createVideoDto.style || params.createVideoDto.mood,
+        visualDirection: direction.visualDirection,
         videoReferenceIds: params.createVideoDto.videoReferences,
         width: params.width,
       });

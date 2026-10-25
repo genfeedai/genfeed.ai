@@ -108,7 +108,7 @@ export type GenerationSetupChipId =
 /**
  * Advanced mode lays the setup out as toolbar chips: Model first, then
  * `afterModel` (the surface's own pickers), then Aspect ratio, Duration and
- * Output, Look, Brand and Presets, then `trailing`.
+ * Output, Look, Brand and Presets.
  */
 export interface GenerationSetupSectionChipsProps
   extends Omit<GenerationSetupCustomizePanelProps, 'initialSection'> {
@@ -122,8 +122,6 @@ export interface GenerationSetupSectionChipsProps
   outputControls?: ReactNode;
   referenceCount?: number;
   showPresets?: boolean;
-  /** Rendered after the last chip. */
-  trailing?: ReactNode;
 }
 
 export interface GenerationSetupPresetsSectionProps {
@@ -150,6 +148,11 @@ export interface GenerationSetupMenuOption {
 
 /** The body of one nested submenu: an optional search box and a preview pane. */
 export interface GenerationSetupSubmenuListProps {
+  /**
+   * Keeps the menu open after a pick, for a list nested under another menu so
+   * several fields can be changed without reopening it.
+   */
+  isMenuKeptOpen?: boolean;
   /** Appended as a row that returns the field to the agent's pick. */
   onReset?: () => void;
   onValueChange: (value: string) => void;

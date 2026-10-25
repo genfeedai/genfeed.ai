@@ -17,13 +17,33 @@ import type {
   MediaDeliveryScope,
 } from '@genfeedai/contracts/interfaces';
 import { MEDIA_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
+import { isAxiosError } from 'axios';
 import type { Queue } from 'bullmq';
 
 const FAILED_RETRY_COOLDOWN_MS = 60_000;
+const FILES_FAILURE_DETAIL_LIMIT = 300;
+
+/**
+ * The files service answers a refused render with a 4xx body that the axios
+ * error message ("Request failed with status code 400") drops, so a failing
+ * source cannot be diagnosed from Sentry. Keep the status and a bounded reason.
+ */
+function describeFilesFailure(error: unknown): Record<string, unknown> {
+  if (!isAxiosError(error) || !error.response) return {};
+  const { data, status } = error.response;
+  const reason = isRecord(data) ? data.message : data;
+  return {
+    filesStatus: status,
+    ...(typeof reason === 'string'
+      ? { filesReason: reason.slice(0, FILES_FAILURE_DETAIL_LIMIT) }
+      : {}),
+  };
+}
 
 /** Producer plus durable variant state. Rendering is owned by the worker. */
 @Injectable()
@@ -157,7 +177,12 @@ export class MediaDerivativePreparationService {
           identity,
       },
     });
-    if (!isSupported || variant.state === 'READY') return;
+    if (
+      !isSupported ||
+      variant.state === 'READY' ||
+      variant.state === 'UNSUPPORTED'
+    )
+      return;
     // A failed render is rendered again on request, but not on every request:
     // a source that cannot be rendered would otherwise queue three attempts
     // each time its tile is viewed.
@@ -214,7 +239,12 @@ export class MediaDerivativePreparationService {
       sourceIdentity: data.sourceIdentity,
     };
     const variant = await this.prisma.mediaDeliveryVariant.findFirst({ where });
-    if (!variant || variant.state === 'READY') return;
+    if (
+      !variant ||
+      variant.state === 'READY' ||
+      variant.state === 'UNSUPPORTED'
+    )
+      return;
     const category = protectedPreviewCategory(source);
     if (!category) return;
     await this.prisma.mediaDeliveryVariant.updateMany({
@@ -225,6 +255,7 @@ export class MediaDerivativePreparationService {
         organizationId: data.organizationId,
       },
     });
+    let watermarkExportPending = false;
     try {
       const preparedPreview =
         data.purpose === 'preview'
@@ -237,6 +268,7 @@ export class MediaDerivativePreparationService {
         preparedPreview.storageKey !== source.s3Key
           ? preparedPreview.storageKey
           : null;
+      watermarkExportPending = !reusableKey;
       const rendered = reusableKey
         ? { storageKey: reusableKey }
         : await this.files.watermarkExport({
@@ -244,6 +276,7 @@ export class MediaDerivativePreparationService {
             layers: PLATFORM_PREVIEW_LAYERS.map((layer) => ({ ...layer })),
             storageKey: requireStoredMediaKey(source),
           });
+      watermarkExportPending = false;
       requireStoredMediaKey({ s3Key: rendered.storageKey });
       if (
         !rendered.storageKey.startsWith('exports/watermarked/') ||
@@ -294,10 +327,17 @@ export class MediaDerivativePreparationService {
         },
       });
     } catch (error: unknown) {
+      const filesFailure = describeFilesFailure(error);
+      const unsupportedDimensions =
+        watermarkExportPending &&
+        filesFailure.filesStatus === 400 &&
+        filesFailure.filesReason === 'Unsupported media dimensions';
       await this.prisma.mediaDeliveryVariant.updateMany({
         data: {
-          failureCode: 'PREPARATION_FAILED',
-          state: 'FAILED',
+          failureCode: unsupportedDimensions
+            ? 'UNSUPPORTED_DIMENSIONS'
+            : 'PREPARATION_FAILED',
+          state: unsupportedDimensions ? 'UNSUPPORTED' : 'FAILED',
           storageKey: null,
         },
         where: {
@@ -306,11 +346,13 @@ export class MediaDerivativePreparationService {
           organizationId: data.organizationId,
         },
       });
+      if (unsupportedDimensions) return;
       // A failed render leaves the asset without a preview and nothing else
       // records why: BullMQ drops the job (`removeOnFail`). Report it, or a
       // broken renderer shows up only as every tile reading "Preview unavailable".
       Sentry.captureException(error, {
         extra: {
+          ...filesFailure,
           ingredientId: data.ingredientId,
           organizationId: data.organizationId,
           purpose: data.purpose,

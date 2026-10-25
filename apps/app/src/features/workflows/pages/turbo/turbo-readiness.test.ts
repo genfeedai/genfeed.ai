@@ -1,24 +1,6 @@
-import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { isBrandReadyForTurbo } from './turbo-readiness';
-
-function makeCredential(platform: string): ICredential {
-  return {
-    id: `cred-${platform}`,
-    platform: platform as ICredential['platform'],
-    isConnected: true,
-    externalId: 'ext-1',
-    externalHandle: 'handle',
-    brandId: 'brand-1',
-    organizationId: 'org-1',
-    userId: 'user-1',
-    user: {} as ICredential['user'],
-    organization: {} as ICredential['organization'],
-    isDeleted: false,
-    createdAt: '',
-    updatedAt: '',
-  };
-}
 
 function makeBrand(overrides: Partial<IBrand> = {}): IBrand {
   return {
@@ -50,40 +32,17 @@ function makeBrand(overrides: Partial<IBrand> = {}): IBrand {
   };
 }
 
-const shortFormCred = makeCredential('tiktok');
-
-// ────────────────────────────────────────────────────────────
-// Tests
-// ────────────────────────────────────────────────────────────
-
 describe('isBrandReadyForTurbo', () => {
   it('returns not-ready for null brand', () => {
-    const result = isBrandReadyForTurbo(null, [shortFormCred]);
+    const result = isBrandReadyForTurbo(null);
     expect(result.ready).toBe(false);
     expect(result.reasons).toContain('No brand selected');
   });
 
-  it('returns not-ready when social credential is missing but voice + reference are set', () => {
-    const brand = makeBrand();
-    const result = isBrandReadyForTurbo(brand, []); // no credentials
-    expect(result.ready).toBe(false);
-    expect(result.reasons.some((r) => r.toLowerCase().includes('tiktok'))).toBe(
-      true,
-    );
-  });
-
-  it('returns ready for fully-configured brand', () => {
-    const brand = makeBrand();
-    const result = isBrandReadyForTurbo(brand, [shortFormCred]);
-    expect(result.ready).toBe(true);
-    expect(result.reasons).toHaveLength(0);
-  });
-
-  it('accepts uppercase platform value (case-insensitive check)', () => {
-    const brand = makeBrand();
-    const upperCaseCred = makeCredential('INSTAGRAM');
-    const result = isBrandReadyForTurbo(brand, [upperCaseCred]);
-    expect(result.ready).toBe(true);
+  it('is ready for a brand with no references, voice tone or accounts', () => {
+    const brand = makeBrand({ agentConfig: {}, references: [] });
+    expect(isBrandReadyForTurbo(brand, ['image', 'video']).ready).toBe(true);
+    expect(isBrandReadyForTurbo(brand).ready).toBe(true);
   });
 
   it('requires avatar + voice when avatar format is requested', () => {
@@ -93,7 +52,7 @@ describe('isBrandReadyForTurbo', () => {
         // no defaultAvatarIngredientId, no defaultVoiceId
       },
     });
-    const result = isBrandReadyForTurbo(brand, [shortFormCred], ['avatar']);
+    const result = isBrandReadyForTurbo(brand, ['avatar']);
     expect(result.ready).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes('avatar'))).toBe(
       true,
@@ -111,8 +70,7 @@ describe('isBrandReadyForTurbo', () => {
         defaultVoiceId: 'voice-1',
       },
     });
-    const result = isBrandReadyForTurbo(brand, [shortFormCred], ['avatar']);
-    expect(result.ready).toBe(true);
+    expect(isBrandReadyForTurbo(brand, ['avatar']).ready).toBe(true);
   });
 
   it('does NOT accept defaultAvatarPhotoUrl alone for avatar format (needs an ingredient id)', () => {
@@ -123,32 +81,10 @@ describe('isBrandReadyForTurbo', () => {
         defaultVoiceId: 'voice-1',
       },
     });
-    const result = isBrandReadyForTurbo(brand, [shortFormCred], ['avatar']);
+    const result = isBrandReadyForTurbo(brand, ['avatar']);
     expect(result.ready).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes('avatar'))).toBe(
       true,
     );
-  });
-
-  it('returns not-ready when voice tone is missing', () => {
-    const brand = makeBrand({
-      agentConfig: {
-        voice: { tone: '' },
-      },
-    });
-    const result = isBrandReadyForTurbo(brand, [shortFormCred]);
-    expect(result.ready).toBe(false);
-    expect(result.reasons.some((r) => r.toLowerCase().includes('tone'))).toBe(
-      true,
-    );
-  });
-
-  it('returns not-ready when no reference images', () => {
-    const brand = makeBrand({ references: [] });
-    const result = isBrandReadyForTurbo(brand, [shortFormCred]);
-    expect(result.ready).toBe(false);
-    expect(
-      result.reasons.some((r) => r.toLowerCase().includes('reference')),
-    ).toBe(true);
   });
 });

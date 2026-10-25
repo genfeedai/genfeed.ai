@@ -1,6 +1,9 @@
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import { buildPaidCreativeReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
+import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   PaidCreativeIngestionErrorCode,
   PaidCreativeIngestionResult,
@@ -19,10 +22,21 @@ import {
   resolvePaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 /** Ads pulled per advertiser per run. Transparency archives are long tails. */
 const DEFAULT_CREATIVE_LIMIT = 50;
+
+/**
+ * Minimum gap between manual polls of one advertiser. A poll that actually ran
+ * an archive actor is billed, so repeating it inside this window is refused.
+ */
+const MANUAL_POLL_COOLDOWN_MS = 10 * 60 * 1000;
 
 export type WatchedAdvertiserScope = {
   advertiserHandle: string;
@@ -65,6 +79,7 @@ export class PaidCreativeResearchIngestionService {
     private readonly loggerService: LoggerService,
     private readonly providerRegistry: PaidCreativeProviderRegistry,
     private readonly researchAccessService: ResearchAccessService,
+    private readonly autonomousProducerInstallService: AutonomousProducerInstallService,
   ) {}
 
   assertCollectionAccess(
@@ -86,6 +101,77 @@ export class PaidCreativeResearchIngestionService {
       options.brandId,
       options.platform,
     )) as WatchedAdvertiserScope[];
+  }
+
+  /**
+   * Poll one watched advertiser on demand, outside the scheduled workflow.
+   *
+   * Scoped to the caller's organization (and brand when the session has one).
+   * With a `principal`, a successful poll also installs the daily workflow.
+   * Any attempt, including a blocked or failed one, starts a 10-minute
+   * cooldown: a fetch that fails can still have spent an archive actor, and
+   * the claim is taken before the fetch so concurrent requests cannot all run.
+   */
+  async pollWatchedAdvertiser(
+    organizationId: string,
+    advertiserId: string,
+    scope: { brandId?: string; principal?: WorkflowSchedulePrincipal } = {},
+  ): Promise<PaidCreativeIngestionResult> {
+    const advertiser = (await this.adWatchedAdvertisersService.findOne({
+      id: advertiserId,
+      isDeleted: false,
+      organizationId,
+    })) as WatchedAdvertiserScope | null;
+
+    if (
+      !advertiser ||
+      (scope.brandId && advertiser.brandId !== scope.brandId)
+    ) {
+      throw new NotFoundException('Watched advertiser');
+    }
+
+    const isClaimed = await this.adWatchedAdvertisersService.claimManualPoll(
+      advertiser.id,
+      organizationId,
+      MANUAL_POLL_COOLDOWN_MS,
+    );
+    if (!isClaimed) {
+      throw new HttpException(
+        'This advertiser was polled a few minutes ago. Try again shortly.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const result = await this.ingestOne(organizationId, advertiser, {});
+    if (result.status === 'success' && scope.principal) {
+      await this.installDailyPolling(organizationId, scope.principal);
+    }
+
+    return result;
+  }
+
+  /**
+   * A successful poll proves the organization is activated (collection access
+   * passed), so it opts the organization in to the daily check. An existing
+   * install, including a paused or deleted one, is kept as the tenant left it,
+   * and a failed install never fails the poll.
+   */
+  private async installDailyPolling(
+    organizationId: string,
+    principal: WorkflowSchedulePrincipal,
+  ): Promise<void> {
+    try {
+      await this.autonomousProducerInstallService.installOnOptIn({
+        organizationId,
+        principal,
+        producer: 'paidCreativeResearch',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.logContext} daily polling install failed for ${organizationId}`,
+        error,
+      );
+    }
   }
 
   async ingestOne(

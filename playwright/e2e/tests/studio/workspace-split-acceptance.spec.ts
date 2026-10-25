@@ -8,10 +8,7 @@ import { renderCounterScript } from '../../../../scripts/acceptance/studio-works
 import { createAuthenticatedPage } from '../../fixtures/auth.fixture';
 import { installWorkspaceSplitFixture } from '../../fixtures/studio-workspace-split.fixture';
 import { brandPath } from '../../utils/app-chrome';
-import {
-  confirmGenerationSpend,
-  selectAdvancedModel,
-} from '../../utils/generation-setup';
+import { selectAdvancedModel } from '../../utils/generation-setup';
 
 // Opt-in evidence setup; ordinary CI does not capture or replace baselines.
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: direct evidence runner, never a cached Turbo task
@@ -112,7 +109,6 @@ for (const width of [375, 1440]) {
     await editor.fill('Synthetic workspace acceptance image');
     await page.evaluate('window.__studioSplitCounter.reset()');
     await page.getByRole('button', { name: 'Generate', exact: true }).click();
-    await confirmGenerationSpend(page);
     await expect.poll(fixture.hasAdmission).toBe(true);
     await fixture.admit();
     const tile = page.getByTestId(`studio-asset-${fixture.id}`);

@@ -2,10 +2,16 @@ import type { ReactNode } from 'react';
 
 export interface PromptBarToolbarProps {
   className?: string;
-  /** Left group: `+` menu, the surface's leading chip, then surface tools. */
-  leading: ReactNode;
+  /** Left group, first: what the bar does (Agent mode, Studio type and Auto / Advanced). */
+  mode?: ReactNode;
+  /** Left group, after mode: the surface's own setup chips. */
+  leading?: ReactNode;
+  /** Left group, after the setup chips: improve the prompt (action or settings). */
+  enhance?: ReactNode;
+  /** Left group, last: the `+` that adds references. */
+  reference?: ReactNode;
   leadingLabel?: string;
-  /** Right group: setup, enhance, then the submit slot. */
+  /** Right group: price and the submit slot. */
   trailing: ReactNode;
   trailingLabel?: string;
 }

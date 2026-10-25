@@ -1,15 +1,10 @@
 'use client';
 
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import {
-  formatCreditBalanceExact,
-  hasSourceDerivedAspect,
-} from '@genfeedai/contracts/constants';
+import { hasSourceDerivedAspect } from '@genfeedai/contracts/constants';
 import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import type { AgentGenerationQuote } from '@genfeedai/contracts/interfaces/ai/agent-generation-quote.interface';
 import type { StudioSubmitOptions } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
-import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
-import type { StudioSpendConfirmationInput } from '@genfeedai/props/studio/studio-playground.props';
+import type { StudioSpendQuoteInput } from '@genfeedai/props/studio/studio-playground.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { RouterService } from '@services/ai/router.service';
 import { logger } from '@services/core/logger.service';
@@ -19,17 +14,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type SpendApproval = (options?: StudioSubmitOptions) => void;
 
-export interface UseStudioSpendConfirmationReturn {
+export interface UseStudioSpendQuoteReturn {
   /**
-   * Prices the generation with the server quote that admission charges, asks
-   * the operator to confirm that amount, and only then calls `onApproved`.
-   * An Auto choice is priced at the model it resolves to, and that model is
-   * handed to `onApproved` so the submit does not route a second time.
+   * Prices the generation with the server quote that admission charges, then
+   * calls `onSubmit`; a price the server cannot confirm submits nothing. An
+   * Auto choice is priced at the model it resolves to, that model is handed to
+   * `onSubmit` so the submit does not route a second time, and a toast says
+   * which model Auto chose and what it costs.
    */
-  confirmSpend: (
-    input: StudioSpendConfirmationInput,
-    onApproved: SpendApproval,
-  ) => void;
+  quoteSpend: (input: StudioSpendQuoteInput, onSubmit: SpendApproval) => void;
   /** True while the price is being fetched, before the dialog opens. */
   isQuoting: boolean;
 }
@@ -40,13 +33,11 @@ function readReason(
   return quote.unavailableReason ?? AgentGenerationQuoteUnavailableReason.ERROR;
 }
 
-export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
+export function useStudioSpendQuote(): UseStudioSpendQuoteReturn {
   const translate = useTranslations('pages.studioPlayground.spend');
   const translateReason = useTranslations(
     'pages.studioPlayground.summary.estimateReasons',
   );
-  const { openConfirm } = useConfirmModal();
-  const { genfeedBalance } = useTopbarBalances();
   const getRouterService = useAuthedService((token: string) =>
     RouterService.getInstance(token),
   );
@@ -57,8 +48,6 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
   const [isQuoting, setIsQuoting] = useState(false);
   const isQuotingRef = useRef(false);
   const controllerRef = useRef<AbortController | null>(null);
-  const balanceRef = useRef(genfeedBalance);
-  balanceRef.current = genfeedBalance;
 
   useEffect(
     () => () => {
@@ -76,71 +65,34 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
     [notificationsService, translate, translateReason],
   );
 
-  const openDialog = useCallback(
-    (details: {
-      credits: number;
-      isStillCurrent?: () => boolean;
-      modelKey?: string;
-      modelLabel?: string;
-      onApproved: () => void;
-    }) => {
-      const balance = balanceRef.current;
-      const hasBalance =
-        typeof balance === 'number' && Number.isFinite(balance);
-      const formattedBalance = hasBalance
-        ? formatCreditBalanceExact(balance)
-        : '';
-      const values = {
-        balance: formattedBalance,
-        credits: details.credits,
-        model: details.modelLabel ?? '',
-      };
-      const messageKey = details.modelLabel
-        ? hasBalance
-          ? 'messageAutoWithBalance'
-          : 'messageAuto'
-        : hasBalance
-          ? 'messageWithBalance'
-          : 'message';
-      openConfirm({
-        confirmLabel: translate('confirm', values),
-        isOpen: true,
-        label: translate('title', values),
-        message:
-          details.modelKey && hasSourceDerivedAspect(details.modelKey)
-            ? `${translate(messageKey, values)} ${translate('sourceAspectNote')}`
-            : translate(messageKey, values),
-        onConfirm: () => {
-          if (details.isStillCurrent && !details.isStillCurrent()) {
-            notificationsService.error(translate('priceChanged'));
-            return;
-          }
-          details.onApproved();
-        },
-      });
+  // The Generate button already shows the price of a chosen model; only the
+  // source-sized note and the model Auto picked need saying.
+  const announce = useCallback(
+    (details: { credits?: number; modelKey?: string; modelLabel?: string }) => {
+      if (details.modelLabel && details.credits !== undefined) {
+        notificationsService.info(
+          translate('autoChose', {
+            credits: details.credits,
+            model: details.modelLabel,
+          }),
+        );
+      }
+      if (details.modelKey && hasSourceDerivedAspect(details.modelKey)) {
+        notificationsService.info(translate('sourceAspectNote'));
+      }
     },
-    [notificationsService, openConfirm, translate],
+    [notificationsService, translate],
   );
 
-  const confirmSpend = useCallback(
-    (input: StudioSpendConfirmationInput, onApproved: SpendApproval) => {
+  const quoteSpend = useCallback(
+    (input: StudioSpendQuoteInput, onSubmit: SpendApproval) => {
       const { modelKey, models, source } = input;
       if (isQuotingRef.current) return;
-      if (source.kind === 'unpriced') {
-        onApproved();
-        return;
-      }
-      if (source.kind === 'known') {
-        if (source.isByok || source.credits <= 0) {
-          onApproved();
-          return;
+      if (source.kind === 'unpriced' || source.kind === 'known') {
+        if (source.kind === 'known' && !source.isByok && source.credits > 0) {
+          announce({ modelKey });
         }
-        openDialog({
-          credits: source.credits,
-          isStillCurrent: source.isStillCurrent,
-          modelKey,
-          onApproved: () => onApproved(),
-        });
+        onSubmit();
         return;
       }
 
@@ -192,21 +144,17 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
             reportUnavailable(readReason(quote));
             return;
           }
-          const approved = () =>
-            onApproved(pinnedModelKey ? { pinnedModelKey } : undefined);
-          if (quote.credits <= 0) {
-            approved();
-            return;
+          if (quote.credits > 0) {
+            announce({
+              credits: quote.credits,
+              modelKey: pinnedModelKey ?? modelKey,
+              modelLabel: pinnedModelKey
+                ? (models.find((model) => model.key === pinnedModelKey)
+                    ?.label ?? pinnedModelKey)
+                : undefined,
+            });
           }
-          openDialog({
-            credits: quote.credits,
-            modelKey: pinnedModelKey ?? modelKey,
-            modelLabel: pinnedModelKey
-              ? (models.find((model) => model.key === pinnedModelKey)?.label ??
-                pinnedModelKey)
-              : undefined,
-            onApproved: approved,
-          });
+          onSubmit(pinnedModelKey ? { pinnedModelKey } : undefined);
         } catch (error: unknown) {
           if (controller.signal.aborted) return;
           logger.error('Studio generation price check failed', error);
@@ -219,8 +167,8 @@ export function useStudioSpendConfirmation(): UseStudioSpendConfirmationReturn {
         }
       })();
     },
-    [getRouterService, openDialog, reportUnavailable],
+    [announce, getRouterService, reportUnavailable],
   );
 
-  return { confirmSpend, isQuoting };
+  return { isQuoting, quoteSpend };
 }

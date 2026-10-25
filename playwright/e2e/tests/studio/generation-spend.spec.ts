@@ -14,16 +14,12 @@ import type { Page, Request } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
-import {
-  confirmGenerationSpend,
-  mockGenerationQuote,
-  spendConfirmation,
-} from '../../utils/generation-setup';
+import { mockGenerationQuote } from '../../utils/generation-setup';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 // #7674 / #7675 / #7676 / #7494: the money path of a Studio generation.
-// Generate shows the price and asks first, so Cancel and an unpriceable quote
-// spend nothing; a confirmed submit pins the quoted model and moves the topbar
+// Generate quotes the price first, so an unpriceable quote spends nothing; an
+// Auto submit pins the quoted model, names it in a toast and moves the topbar
 // wallet without a reload; edit mode opens on Ideogram 4.5 and offers the edit
 // instructions behind `/`. Every paid write is mocked and recorded.
 
@@ -313,31 +309,6 @@ test.describe('Studio generation spend', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
   });
 
-  test('Generate shows the price first and Cancel spends nothing', async ({
-    authenticatedPage: page,
-  }) => {
-    test.setTimeout(90_000);
-    const { editor, generationWrites } = await mountPlayground(page, {
-      routedModelKey: imageModel,
-    });
-    await editor.fill('A lighthouse at dusk');
-
-    await page.getByRole('button', { name: 'Generate', exact: true }).click();
-
-    const dialog = spendConfirmation(page);
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('Generate for 8 credits?');
-    await expect(dialog).toContainText('This generation costs 8 credits.');
-    expect(generationWrites).toEqual([]);
-
-    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-
-    await expect(dialog).toBeHidden();
-    expect(generationWrites).toEqual([]);
-    await expect(editor).toHaveText('A lighthouse at dusk');
-    await expectNoErrorOverlay(page);
-  });
-
   test('a price the server cannot confirm submits nothing', async ({
     authenticatedPage: page,
   }) => {
@@ -359,13 +330,12 @@ test.describe('Studio generation spend', () => {
     await expect(
       page.getByText(/nothing was generated/i).first(),
     ).toBeVisible();
-    await expect(spendConfirmation(page)).toHaveCount(0);
     expect(generationWrites).toEqual([]);
     await expect(editor).toHaveText('A lighthouse at dusk');
     await expectNoErrorOverlay(page);
   });
 
-  test('confirming submits once, pinned to the quoted model, and the wallet chip follows', async ({
+  test('Auto submits once, pinned to the quoted model, says which model and price, and the wallet chip follows', async ({
     authenticatedPage: page,
   }) => {
     test.setTimeout(90_000);
@@ -379,11 +349,9 @@ test.describe('Studio generation spend', () => {
     await editor.fill('A lighthouse at dusk');
 
     await page.getByRole('button', { name: 'Generate', exact: true }).click();
-    await expect(spendConfirmation(page)).toContainText(
-      'Auto chose FLUX.3. This generation costs 8 credits.',
-    );
-    expect(generationWrites).toEqual([]);
-    await confirmGenerationSpend(page);
+    await expect(
+      page.getByText('Auto chose FLUX.3. This generation costs 8 credits.'),
+    ).toBeVisible();
 
     await expect.poll(() => generationBodies.length).toBe(1);
     expect(generationWrites).toHaveLength(1);

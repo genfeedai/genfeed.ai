@@ -1,6 +1,9 @@
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import { MEDIA_PROMPT_OUTPUT_CONTRACT } from '@api/services/prompt-enhancement/media-prompt-output.util';
+import {
+  MEDIA_PROMPT_OUTPUT_CONTRACT,
+  VIDEO_PROMPT_OUTPUT_CONTRACT,
+} from '@api/services/prompt-enhancement/media-prompt-output.util';
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { PromptStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
@@ -285,5 +288,42 @@ describe('PromptEnhancementService', () => {
     expect(JSON.stringify(openRouter.chatCompletion.mock.calls)).not.toContain(
       ':free',
     );
+  });
+
+  it('gives a video rewrite the clip contract, the subject rule and the binding direction', async () => {
+    const { service, openRouter } = setup();
+
+    await service.enhance({
+      ...input,
+      contentType: 'video',
+      creativeDirection: {
+        durationSeconds: 10,
+        lines: ['Camera movement: static', 'Style: 3D animated'],
+      },
+      subjectRule: 'This brand is software. Depict the person.',
+    });
+
+    const { messages } = openRouter.chatCompletion.mock.calls[0]?.[0] ?? {};
+    const [system, user] = messages;
+    expect(system.content).toContain(VIDEO_PROMPT_OUTPUT_CONTRACT);
+    expect(system.content).not.toContain(MEDIA_PROMPT_OUTPUT_CONTRACT);
+    expect(system.content).toContain(
+      'Subject rule (applies to what is depicted, never to be quoted):\nThis brand is software. Depict the person.',
+    );
+    expect(system.content).toContain(
+      'Creative direction chosen by the user (binding):\n- Camera movement: static\n- Style: 3D animated\n- Clip length: 10 seconds',
+    );
+    expect(user).toEqual({ role: 'user', content: input.userPrompt });
+  });
+
+  it('keeps the image contract for image rewrites and adds no direction block', async () => {
+    const { service, openRouter } = setup();
+
+    await service.enhance({ ...input, contentType: 'image' });
+
+    const system = openRouter.chatCompletion.mock.calls[0]?.[0].messages[0];
+    expect(system.content).toContain(MEDIA_PROMPT_OUTPUT_CONTRACT);
+    expect(system.content).not.toContain('Creative direction');
+    expect(system.content).not.toContain('Subject rule');
   });
 });
