@@ -82,7 +82,7 @@ export function useEnhanceUpscale({
   const notificationsService = NotificationsService.getInstance();
 
   // Get models for cost lookup
-  const { imageEditModels, videoEditModels } = useElements();
+  const { imageUpscaleModels, videoUpscaleModels } = useElements();
   const pendingTransformation = useRef(false);
   const pendingUpscaleSource = useRef<{ id: string; epoch: number } | null>(
     null,
@@ -90,8 +90,8 @@ export function useEnhanceUpscale({
   const isMounted = useRef(true);
   const activeUpscaleConfirmation = useRef<UpscaleConfirmData | null>(null);
   const activeEnhanceConfirmation = useRef<UpscaleConfirmData | null>(null);
-  const currentModels = useRef({ imageEditModels, videoEditModels });
-  currentModels.current = { imageEditModels, videoEditModels };
+  const currentModels = useRef({ imageUpscaleModels, videoUpscaleModels });
+  currentModels.current = { imageUpscaleModels, videoUpscaleModels };
   const owner = useRef({ scopeKey, epoch: 0 });
   if (owner.current.scopeKey !== scopeKey)
     owner.current = { scopeKey, epoch: owner.current.epoch + 1 };
@@ -131,10 +131,10 @@ export function useEnhanceUpscale({
     (ingredient: IIngredient) => {
       if (pendingTransformation.current)
         return { isAvailable: false, reason: 'pending' as const };
-      return getUpscaleAdmission(ingredient, imageEditModels, videoEditModels)
+      return getUpscaleAdmission(ingredient, imageUpscaleModels, videoUpscaleModels)
         .availability;
     },
-    [imageEditModels, videoEditModels],
+    [imageUpscaleModels, videoUpscaleModels],
   );
 
   const handleUpscale = useCallback(
@@ -160,8 +160,8 @@ export function useEnhanceUpscale({
 
       const admission = getUpscaleAdmission(
         ingredient,
-        imageEditModels,
-        videoEditModels,
+        imageUpscaleModels,
+        videoUpscaleModels,
       );
       if (!admission.confirmation) {
         return notificationsService.error(
@@ -178,7 +178,7 @@ export function useEnhanceUpscale({
       activeUpscaleConfirmation.current = confirmation;
       setUpscaleConfirmData(confirmation);
     },
-    [videoEditModels, imageEditModels, notificationsService, scopeKey],
+    [videoUpscaleModels, imageUpscaleModels, notificationsService, scopeKey],
   );
 
   const executeUpscale = useCallback(
@@ -225,8 +225,8 @@ export function useEnhanceUpscale({
           : quotedCost;
       const isStillConfirmed = () => {
         const models = isVideo
-          ? currentModels.current.videoEditModels
-          : currentModels.current.imageEditModels;
+          ? currentModels.current.videoUpscaleModels
+          : currentModels.current.imageUpscaleModels;
         const current = models.find((model) => model.key === modelKey);
         return Boolean(
           isMounted.current &&
@@ -329,7 +329,7 @@ export function useEnhanceUpscale({
         return notificationsService.error('Can only enhance images and videos');
       }
 
-      const models = isVideo ? videoEditModels : imageEditModels;
+      const models = isVideo ? videoUpscaleModels : imageUpscaleModels;
       const topazModel = models.find(
         (model) =>
           model.key ===
@@ -358,7 +358,7 @@ export function useEnhanceUpscale({
       activeEnhanceConfirmation.current = confirmation;
       setEnhanceConfirmData(confirmation);
     },
-    [videoEditModels, imageEditModels, notificationsService, scopeKey],
+    [videoUpscaleModels, imageUpscaleModels, notificationsService, scopeKey],
   );
 
   const executeEnhance = useCallback(async () => {
@@ -377,8 +377,8 @@ export function useEnhanceUpscale({
 
     const isStillConfirmed = () => {
       const models = isVideo
-        ? currentModels.current.videoEditModels
-        : currentModels.current.imageEditModels;
+        ? currentModels.current.videoUpscaleModels
+        : currentModels.current.imageUpscaleModels;
       const current = models.find((model) => model.key === modelKey);
       return Boolean(
         isMounted.current &&

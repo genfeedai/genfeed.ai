@@ -13,14 +13,14 @@ const mockError = vi.fn();
 const mockUseElements = vi.hoisted(() => vi.fn());
 
 const defaultElements = {
-  imageEditModels: [
+  imageUpscaleModels: [
     {
       cost: 10,
       key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       name: 'Topaz Image Upscale',
     },
   ],
-  videoEditModels: [
+  videoUpscaleModels: [
     {
       cost: 20,
       key: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
@@ -258,8 +258,8 @@ describe('useEnhanceUpscale', () => {
 
     it('uses ByteDance when it is the only active video upscale model', async () => {
       mockUseElements.mockReturnValue({
-        imageEditModels: defaultElements.imageEditModels,
-        videoEditModels: [defaultElements.videoEditModels[1]],
+        imageUpscaleModels: defaultElements.imageUpscaleModels,
+        videoUpscaleModels: [defaultElements.videoUpscaleModels[1]],
       });
       const ingredient: Partial<IIngredient> = {
         category: IngredientCategory.VIDEO,
@@ -545,7 +545,7 @@ describe('useEnhanceUpscale', () => {
       async (cost) => {
         mockUseElements.mockReturnValue({
           ...defaultElements,
-          imageEditModels: [{ ...defaultElements.imageEditModels[0], cost }],
+          imageUpscaleModels: [{ ...defaultElements.imageUpscaleModels[0], cost }],
         });
         const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
         await act(async () => {
@@ -566,7 +566,7 @@ describe('useEnhanceUpscale', () => {
     it('accepts an explicit zero image price', async () => {
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        imageEditModels: [{ ...defaultElements.imageEditModels[0], cost: 0 }],
+        imageUpscaleModels: [{ ...defaultElements.imageUpscaleModels[0], cost: 0 }],
       });
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
       await act(async () => {
@@ -582,9 +582,9 @@ describe('useEnhanceUpscale', () => {
     it('does not substitute ByteDance when Topaz has unknown pricing', async () => {
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        videoEditModels: [
-          { ...defaultElements.videoEditModels[0], cost: undefined },
-          defaultElements.videoEditModels[1],
+        videoUpscaleModels: [
+          { ...defaultElements.videoUpscaleModels[0], cost: undefined },
+          defaultElements.videoUpscaleModels[1],
         ],
       });
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
@@ -600,9 +600,9 @@ describe('useEnhanceUpscale', () => {
     it('excludes unpriced alternate video models from the confirmation', async () => {
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        videoEditModels: [
-          defaultElements.videoEditModels[0],
-          { ...defaultElements.videoEditModels[1], cost: undefined },
+        videoUpscaleModels: [
+          defaultElements.videoUpscaleModels[0],
+          { ...defaultElements.videoUpscaleModels[1], cost: undefined },
         ],
       });
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
@@ -627,10 +627,10 @@ describe('useEnhanceUpscale', () => {
         });
         mockUseElements.mockReturnValue({
           ...defaultElements,
-          imageEditModels:
+          imageUpscaleModels:
             change === 'removed'
               ? []
-              : [{ ...defaultElements.imageEditModels[0], cost: 11 }],
+              : [{ ...defaultElements.imageUpscaleModels[0], cost: 11 }],
         });
         rerender();
         await act(async () => {
@@ -655,7 +655,7 @@ describe('useEnhanceUpscale', () => {
       });
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        videoEditModels: [defaultElements.videoEditModels[1]],
+        videoUpscaleModels: [defaultElements.videoUpscaleModels[1]],
       });
       rerender();
       await act(async () => {
@@ -754,7 +754,7 @@ describe('useEnhanceUpscale', () => {
       });
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        imageEditModels: [],
+        imageUpscaleModels: [],
       });
       rerender();
       await act(async () => {
@@ -853,7 +853,7 @@ describe('useEnhanceUpscale', () => {
       });
       mockUseElements.mockReturnValue({
         ...defaultElements,
-        imageEditModels: [{ ...defaultElements.imageEditModels[0], cost: 11 }],
+        imageUpscaleModels: [{ ...defaultElements.imageUpscaleModels[0], cost: 11 }],
       });
       rerender();
       await act(async () => {
