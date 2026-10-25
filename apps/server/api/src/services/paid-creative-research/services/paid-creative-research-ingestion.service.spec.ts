@@ -1,5 +1,6 @@
 import type { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   PaidCreativeProviderAdapter,
   PaidCreativeReadiness,
@@ -11,11 +12,7 @@ import {
 } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import type { NormalizedPaidCreativeRecord } from '@genfeedai/integrations/ads';
 import type { LoggerService } from '@libs/logger/logger.service';
-import {
-  HttpException,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { HttpException, ServiceUnavailableException } from '@nestjs/common';
 
 const READY: PaidCreativeReadiness = {
   available: true,
@@ -447,7 +444,10 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
         isDeleted: false,
         organizationId: 'org-1',
       });
-      expect(result).toMatchObject({ advertiserId: 'watch-1', status: 'success' });
+      expect(result).toMatchObject({
+        advertiserId: 'watch-1',
+        status: 'success',
+      });
     });
 
     it('does not reveal an advertiser that belongs to another brand', async () => {

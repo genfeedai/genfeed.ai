@@ -1,6 +1,7 @@
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import { buildPaidCreativeReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   PaidCreativeIngestionErrorCode,
   PaidCreativeIngestionResult,
@@ -23,7 +24,6 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
@@ -117,16 +117,18 @@ export class PaidCreativeResearchIngestionService {
       id: advertiserId,
       isDeleted: false,
       organizationId,
-    })) as (WatchedAdvertiserScope & {
-      lastAttemptedAt?: Date | null;
-      lastIngestionStatus?: string | null;
-    }) | null;
+    })) as
+      | (WatchedAdvertiserScope & {
+          lastAttemptedAt?: Date | null;
+          lastIngestionStatus?: string | null;
+        })
+      | null;
 
     if (
       !advertiser ||
       (scope.brandId && advertiser.brandId !== scope.brandId)
     ) {
-      throw new NotFoundException('Watched advertiser not found');
+      throw new NotFoundException('Watched advertiser');
     }
 
     const lastAttemptedAt = advertiser.lastAttemptedAt
