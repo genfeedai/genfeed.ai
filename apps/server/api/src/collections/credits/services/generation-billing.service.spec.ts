@@ -1181,7 +1181,7 @@ describe('GenerationBillingService', () => {
           ['Cancelled by user', 'release', CreditReservationStatus.RELEASED],
           ['Processing timed out', 'expiry', CreditReservationStatus.EXPIRED],
         ] as const)(
-          'returns the 8 GEN hold and publishes the spendable wallet exactly once for %s',
+          'returns the 8 GEN hold once for %s across reconciliation and generation retries',
           async (generationError, reason, terminalStatus) => {
             let reservationStatus: CreditReservationStatus =
               CreditReservationStatus.RESERVED;
@@ -1271,6 +1271,22 @@ describe('GenerationBillingService', () => {
 
               await service.reconcile(NOW);
               await service.reconcile(NOW);
+              await expect(
+                service.releaseOutput('intent', 'org_1', reason),
+              ).resolves.toBe('released');
+              expect(
+                credits.releaseReservation,
+              ).toHaveBeenCalledExactlyOnceWith({
+                organizationId: 'org_1',
+                reservationId: 'hold_intent',
+                reason,
+              });
+              expect(publisher.emit).toHaveBeenCalledExactlyOnceWith(
+                '/credits/org_1',
+                { balance: 1442 },
+              );
+
+              // A direct wallet replay republishes an absolute balance snapshot.
               await realCredits.releaseReservation({
                 organizationId: 'org_1',
                 reservationId: 'hold_intent',
@@ -1289,9 +1305,10 @@ describe('GenerationBillingService', () => {
                 ledger,
                 'hold_intent',
               );
-              expect(publisher.emit).toHaveBeenCalledWith('/credits/org_1', {
-                balance: 1442,
-              });
+              expect(publisher.emit.mock.calls).toEqual([
+                ['/credits/org_1', { balance: 1442 }],
+                ['/credits/org_1', { balance: 1442 }],
+              ]);
               expect(
                 transactions.createTransactionEntry,
               ).not.toHaveBeenCalled();
