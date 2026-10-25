@@ -18,10 +18,7 @@ vi.mock(
   () => ({
     default: vi.fn(() => ({
       actionStates: {},
-      clearEnhanceConfirm: vi.fn(),
       clearUpscaleConfirm: vi.fn(),
-      enhanceConfirmData: null,
-      executeEnhance: vi.fn(),
       executeUpscale: vi.fn(),
       handlers: {
         handleClone: vi.fn(),

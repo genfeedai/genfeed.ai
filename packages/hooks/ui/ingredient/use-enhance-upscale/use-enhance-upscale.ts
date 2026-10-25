@@ -66,7 +66,6 @@ export interface UpscaleConfirmData {
 export interface UseEnhanceUpscaleParams {
   scopeKey?: string;
   onRefresh?: () => void | Promise<void>;
-  autoConfirm?: boolean; // not used here (parent typically opens confirm), kept for parity
   getVideosService: () => Promise<VideosService>;
   getImagesService: () => Promise<ImagesService>;
   setActionStates: Dispatch<SetStateAction<MasonryActionStates>>;
@@ -111,13 +110,50 @@ export function useEnhanceUpscale({
   const [upscaleConfirmData, setUpscaleConfirmData] =
     useState<UpscaleConfirmData | null>(null);
 
+  const clearUpscaleConfirm = useCallback(() => {
+    activeUpscaleConfirmation.current = null;
+    setUpscaleConfirmData(null);
+  }, []);
+
   const lastCommittedScope = useRef(scopeKey);
   useEffect(() => {
     if (lastCommittedScope.current === scopeKey) return;
     lastCommittedScope.current = scopeKey;
-    activeUpscaleConfirmation.current = null;
-    setUpscaleConfirmData(null);
-  }, [scopeKey]);
+    clearUpscaleConfirm();
+  }, [scopeKey, clearUpscaleConfirm]);
+
+  // A quote only holds while this hook is still mounted in the same scope and
+  // the catalog still prices the model exactly as quoted.
+  const isQuoteCurrent = useCallback(
+    (
+      isVideo: boolean,
+      modelKey: string,
+      quotedCost: number | undefined,
+      confirmedEpoch: number,
+    ) => {
+      const models = isVideo
+        ? currentModels.current.videoUpscaleModels
+        : currentModels.current.imageUpscaleModels;
+      const current = models.find((model) => model.key === modelKey);
+      return Boolean(
+        isMounted.current &&
+          owner.current.epoch === confirmedEpoch &&
+          current &&
+          isKnownTransformCost(quotedCost) &&
+          isKnownTransformCost(current.cost) &&
+          current.cost === quotedCost,
+      );
+    },
+    [],
+  );
+
+  const canStartTransform = useCallback(
+    () =>
+      isMounted.current &&
+      !pendingTransformation.current &&
+      owner.current.scopeKey === scopeKey,
+    [scopeKey],
+  );
 
   const getUpscaleAvailability = useCallback(
     (ingredient: IIngredient) => {
@@ -173,20 +209,8 @@ export function useEnhanceUpscale({
               targetFps,
             )
           : quotedCost;
-      const isStillConfirmed = () => {
-        const models = isVideo
-          ? currentModels.current.videoUpscaleModels
-          : currentModels.current.imageUpscaleModels;
-        const current = models.find((model) => model.key === modelKey);
-        return Boolean(
-          isMounted.current &&
-            owner.current.epoch === confirmedEpoch &&
-            current &&
-            isKnownTransformCost(quotedCost) &&
-            isKnownTransformCost(current.cost) &&
-            current.cost === quotedCost,
-        );
-      };
+      const isStillConfirmed = () =>
+        isQuoteCurrent(isVideo, modelKey, quotedCost, confirmedEpoch);
       if (
         !isStillConfirmed() ||
         (isVideo &&
@@ -206,8 +230,7 @@ export function useEnhanceUpscale({
         epoch: confirmedEpoch,
       };
       setPendingSourceVersion((version) => version + 1);
-      activeUpscaleConfirmation.current = null;
-      setUpscaleConfirmData(null);
+      clearUpscaleConfirm();
       try {
         await executeSilentWithActionState({
           errorMessage: 'Failed to upscale ingredient',
@@ -249,8 +272,10 @@ export function useEnhanceUpscale({
       }
     },
     [
+      clearUpscaleConfirm,
       getVideosService,
       getImagesService,
+      isQuoteCurrent,
       notificationsService,
       onRefresh,
       setActionStates,
@@ -259,14 +284,8 @@ export function useEnhanceUpscale({
 
   const handleUpscale = useCallback(
     async (ingredient: IIngredient) => {
-      if (
-        !isMounted.current ||
-        pendingTransformation.current ||
-        owner.current.scopeKey !== scopeKey
-      )
-        return;
-      activeUpscaleConfirmation.current = null;
-      setUpscaleConfirmData(null);
+      if (!canStartTransform()) return;
+      clearUpscaleConfirm();
       const isVideo = isVideoIngredient(ingredient);
       const isImage = isImageIngredient(ingredient);
 
@@ -305,11 +324,12 @@ export function useEnhanceUpscale({
       setUpscaleConfirmData(confirmation);
     },
     [
+      canStartTransform,
+      clearUpscaleConfirm,
       videoUpscaleModels,
       imageUpscaleModels,
       notificationsService,
       performUpscale,
-      scopeKey,
     ],
   );
 
@@ -326,11 +346,6 @@ export function useEnhanceUpscale({
     [performUpscale, upscaleConfirmData],
   );
 
-  const clearUpscaleConfirm = useCallback(() => {
-    activeUpscaleConfirmation.current = null;
-    setUpscaleConfirmData(null);
-  }, []);
-
   const performEnhance = useCallback(
     async (confirmation: UpscaleConfirmData, confirmedEpoch: number) => {
       if (!confirmation.ingredient || pendingTransformation.current) {
@@ -341,19 +356,8 @@ export function useEnhanceUpscale({
       const isVideo = isVideoIngredient(ingredient);
       const modelKey = confirmation.modelKey;
 
-      const isStillConfirmed = () => {
-        const models = isVideo
-          ? currentModels.current.videoUpscaleModels
-          : currentModels.current.imageUpscaleModels;
-        const current = models.find((model) => model.key === modelKey);
-        return Boolean(
-          isMounted.current &&
-            owner.current.epoch === confirmedEpoch &&
-            current &&
-            isKnownTransformCost(current.cost) &&
-            current.cost === confirmation.cost,
-        );
-      };
+      const isStillConfirmed = () =>
+        isQuoteCurrent(isVideo, modelKey, confirmation.cost, confirmedEpoch);
       if (!isStillConfirmed())
         return notificationsService.error(
           'Enhance model or price changed. Review a new quote before continuing.',
@@ -403,6 +407,7 @@ export function useEnhanceUpscale({
       }
     },
     [
+      isQuoteCurrent,
       notificationsService,
       getVideosService,
       getImagesService,
@@ -413,14 +418,8 @@ export function useEnhanceUpscale({
 
   const handleEnhance = useCallback(
     async (ingredient: IIngredient) => {
-      if (
-        !isMounted.current ||
-        pendingTransformation.current ||
-        owner.current.scopeKey !== scopeKey
-      )
-        return;
-      activeUpscaleConfirmation.current = null;
-      setUpscaleConfirmData(null);
+      if (!canStartTransform()) return;
+      clearUpscaleConfirm();
       const isVideo = isVideoIngredient(ingredient);
       const isImage = isImageIngredient(ingredient);
 
@@ -459,11 +458,12 @@ export function useEnhanceUpscale({
       await performEnhance(confirmation, owner.current.epoch);
     },
     [
+      canStartTransform,
+      clearUpscaleConfirm,
       videoUpscaleModels,
       imageUpscaleModels,
       notificationsService,
       performEnhance,
-      scopeKey,
     ],
   );
 

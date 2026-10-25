@@ -125,11 +125,7 @@ vi.mock('@genfeedai/utils/media/ingredient-type.util', () => ({
 vi.mock('@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale', () => ({
   useEnhanceUpscale: vi.fn(
     ({ getImagesService, getVideosService, onRefresh }) => ({
-      clearEnhanceConfirm: vi.fn(),
       clearUpscaleConfirm: vi.fn(),
-      enhanceConfirmData: null,
-      enhanceConfirmMessage: '',
-      executeEnhance: vi.fn(),
       executeUpscale: vi.fn(),
       handleEnhance: vi.fn(),
       handleUpscale: async (ingredient) => {
