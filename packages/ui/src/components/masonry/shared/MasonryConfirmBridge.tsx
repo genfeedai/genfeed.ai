@@ -27,6 +27,23 @@ export interface MasonryConfirmBridgeProps {
   clearExtendConfirm?: () => void;
 }
 
+const confirmationKeys = new WeakMap<object, number>();
+let lastConfirmationKey = 0;
+
+/**
+ * A key per confirmation object, so a replacement for the same ingredient
+ * (a fresh quote, a second click) remounts the pickers with its own options.
+ */
+function getConfirmationKey(confirmation: object): number {
+  const known = confirmationKeys.get(confirmation);
+  if (known !== undefined) {
+    return known;
+  }
+  lastConfirmationKey += 1;
+  confirmationKeys.set(confirmation, lastConfirmationKey);
+  return lastConfirmationKey;
+}
+
 interface UpscalePopoverProps {
   data: UpscaleConfirmData;
   execute: (selection?: VideoUpscaleSelection) => Promise<void>;
@@ -118,7 +135,7 @@ export default function MasonryConfirmBridge({
   if (upscaleConfirmData) {
     return (
       <UpscalePopover
-        key={upscaleConfirmData.ingredient?.id ?? 'upscale'}
+        key={getConfirmationKey(upscaleConfirmData)}
         data={upscaleConfirmData}
         execute={executeUpscale}
         clear={clearUpscaleConfirm}
@@ -129,7 +146,7 @@ export default function MasonryConfirmBridge({
   if (extendConfirmData && executeExtend && clearExtendConfirm) {
     return (
       <ExtendPopover
-        key={extendConfirmData.ingredient?.id ?? 'extend'}
+        key={getConfirmationKey(extendConfirmData)}
         data={extendConfirmData}
         execute={executeExtend}
         clear={clearExtendConfirm}

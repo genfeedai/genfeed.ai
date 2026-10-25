@@ -9,18 +9,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import {
-  compileSubmittedAdPreset,
-  resolveAdPresetBriefReferences,
-} from '@api/collections/videos/services/ad-preset-submit.util';
-import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
-import {
-  assertAudioReferencesSupported,
-  assertMinimaxH3ReferenceDurations,
-} from '@api/collections/videos/services/minimax-h3-reference.util';
+import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
+import { assertAudioReferencesSupported } from '@api/collections/videos/services/minimax-h3-reference.util';
 import {
   assertSeedanceReferenceBinding,
-  assertSeedanceReferenceVideoDuration,
   bindSeedanceVideoReferences,
   requireSeedanceStoredReferenceKey,
   type SeedanceVideoReferenceEvidence,
@@ -31,8 +23,11 @@ import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
   VideoGenerationContext,
-  VideoGenerationResolvedBrand,
 } from '@api/collections/videos/services/video-generation.types';
+import {
+  collectGenerationSourceIds,
+  prepareGenerationBrief,
+} from '@api/collections/videos/services/video-generation-brief.util';
 import { buildVideoDirection } from '@api/collections/videos/services/video-generation-direction.util';
 import {
   brandPromptLabel,
@@ -47,11 +42,7 @@ import {
   resolveInlinePromptText,
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
-import {
-  resolveCompiledAudioReferences,
-  resolveStoredAudioReferences,
-  resolveStoredVideoReference,
-} from '@api/collections/videos/services/video-generation-reference.util';
+import { resolveStoredAudioReferences } from '@api/collections/videos/services/video-generation-reference.util';
 import {
   assertReferenceMentionInvariant,
   resolveVideoReferenceMentionBindings,
@@ -67,14 +58,7 @@ import {
 } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import {
-  GenerationBriefCompileError,
-  resolveGenerationBriefBrandContext,
-  resolveIsGenerationBriefBrandVoiceOn,
-  runVideoGenerationBrief,
-  toRedactedVideoGenerationBriefProviderData,
-} from '@api/services/generation-brief';
-import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
+import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -89,18 +73,11 @@ import {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/contracts';
-import type {
-  GenerationBriefReference,
-  VideoGenerationBrief,
-} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
-import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
-import { buildVideoGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
   getModelMaxVideoReferences,
   hasVideoReferences,
-  MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import { resolveGenerationDimensions } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -304,36 +281,28 @@ export class VideoGenerationPreparationService {
       promptText,
     );
 
-    const briefBrandContext = await this.resolveBriefBrandContext(
-      brand,
-      createVideoDto,
-      user.organizationId,
-    );
-
     const {
+      compiledDispatch,
       brief: generationBrief,
-      dispatch: rawCompiledDispatch,
       evidence: briefEvidence,
       generationSource,
-    } = this.compileVideoGenerationBrief({
-      briefBrandContext,
-      createVideoDto,
-      height,
-      model,
-      generationHarness,
-      referenceIds,
-      runReferences: runReferences ?? positionalReferences,
-      width,
-    });
-    const compiledDispatch = rawCompiledDispatch
-      ? await this.resolveCompiledDispatchReferenceUrls(
-          rawCompiledDispatch,
-          user.organizationId,
-          resolved.grantedAvatarOwners,
-          resolved.model,
-          resolved.audioReferenceUrls,
-        )
-      : undefined;
+    } = await prepareGenerationBrief(
+      {
+        configService: this.configService,
+        filesClientService: this.filesClientService,
+        ingredientsService: this.ingredientsService,
+        loggerService: this.loggerService,
+        referenceUrls: this.referenceUrls,
+        templatesService: this.templatesService,
+      },
+      {
+        generationHarness,
+        height,
+        resolved,
+        runReferences: runReferences ?? positionalReferences,
+        width,
+      },
+    );
 
     const { promptParams, templateUsed, templateVersion } =
       await this.resolvePromptParams({
@@ -394,14 +363,7 @@ export class VideoGenerationPreparationService {
         resolution: createVideoDto.resolution,
         scope: createVideoDto.scope,
         sourceActionId: createVideoDto.sourceActionId,
-        sourceIds: [
-          ...new Set([
-            ...referenceIds,
-            ...(createVideoDto.endFrame ? [createVideoDto.endFrame] : []),
-            ...(createVideoDto.videoReferences ?? []),
-            ...(createVideoDto.audioReferences ?? []),
-          ]),
-        ],
+        sourceIds: collectGenerationSourceIds(createVideoDto, referenceIds),
         status: IngredientStatus.PROCESSING,
         style: emptyStyleToNull(createVideoDto.style),
         tagIds: createVideoDto.tags,
@@ -660,255 +622,6 @@ export class VideoGenerationPreparationService {
       templateUsed: built.templateUsed,
       templateVersion: built.templateVersion,
     };
-  }
-
-  /**
-   * Brand voice must reach every model, including brief-compiled ones — see
-   * `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
-   * setting, never on the fidelity mode `avoid` terms can also force. A
-   * template-lookup failure (e.g. a database error) must never fail the
-   * whole generation (#4676) — proceed without brand context instead.
-   */
-  private async resolveBriefBrandContext(
-    brand: VideoGenerationResolvedBrand,
-    createVideoDto: CreateVideoDto,
-    organizationId: string,
-  ): Promise<string | undefined> {
-    if (
-      !resolveIsGenerationBriefBrandVoiceOn({
-        brandingMode: createVideoDto.brandingMode,
-        isBrandingEnabled: createVideoDto.isBrandingEnabled,
-      })
-    ) {
-      return undefined;
-    }
-
-    try {
-      return await resolveGenerationBriefBrandContext({
-        brand: {
-          description: optionalBrandString(brand.description),
-          label: brandPromptLabel(brand.label),
-          text: optionalBrandString(brand.text),
-        },
-        branding: buildPromptBrandingFromBrand(brand),
-        organizationId,
-        templatesService: this.templatesService,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        'Failed to resolve brand context for the generation brief; proceeding without it',
-        { error, organizationId },
-      );
-      return undefined;
-    }
-  }
-
-  private compileVideoGenerationBrief(params: {
-    briefBrandContext?: string;
-    createVideoDto: CreateVideoDto;
-    height: number;
-    model: string;
-    generationHarness: GenerationHarnessReceipt;
-    referenceIds: string[];
-    runReferences?: readonly GenerationBriefReference[];
-    width: number;
-  }): {
-    brief?: VideoGenerationBrief;
-    dispatch?: Record<string, unknown>;
-    evidence: VideoGenerationBriefPersistedEvidence;
-    generationSource: string;
-  } {
-    const direction = buildVideoDirection(params.createVideoDto).brief;
-    const avoid = [
-      ...(params.createVideoDto.blacklist ?? []),
-      ...(params.createVideoDto.negativePrompt
-        ? [params.createVideoDto.negativePrompt]
-        : []),
-    ];
-
-    try {
-      const compiled = runVideoGenerationBrief({
-        audioDirection: params.createVideoDto.speech,
-        audioReferenceIds: params.createVideoDto.audioReferences,
-        avoid,
-        brandContext: params.briefBrandContext,
-        brandingMode: params.createVideoDto.brandingMode,
-        composition: direction.composition,
-        durationSeconds: params.createVideoDto.duration,
-        fidelityMode: params.createVideoDto.fidelityMode,
-        endFrameId: params.createVideoDto.endFrame,
-        height: params.height,
-        isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
-        lighting: direction.lighting,
-        model: params.model,
-        motion: direction.motion,
-        objective: params.generationHarness.enhancedPrompt,
-        referenceIds: params.referenceIds,
-        references: resolveAdPresetBriefReferences(params),
-        resolution: params.createVideoDto.resolution,
-        scene: direction.scene,
-        seed: params.createVideoDto.seed,
-        surface: 'studio',
-        visualDirection: direction.visualDirection,
-        videoReferenceIds: params.createVideoDto.videoReferences,
-        width: params.width,
-      });
-      if (params.generationHarness.status === 'skipped') {
-        compiled.evidence = {
-          ...rawPromptBriefEvidence(compiled.evidence),
-          actionVerb: compiled.evidence.actionVerb,
-          dispatchMode: compiled.evidence.dispatchMode,
-        };
-        compiled.generationSource = buildVideoGenerationBriefExemptionSource(
-          'raw_prompt_requested',
-        );
-      }
-      attachAvatarAudioToCompiledDispatch(
-        params.model,
-        compiled.dispatch,
-        params.createVideoDto.audioUrl,
-      );
-      return compiled;
-    } catch (error: unknown) {
-      if (error instanceof GenerationBriefCompileError) {
-        throw new HttpException(
-          {
-            detail: error.message,
-            title: 'Generation brief compilation failed',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      throw error;
-    }
-  }
-
-  private async resolveCompiledDispatchReferenceUrls(
-    dispatch: Record<string, unknown>,
-    organizationId: string,
-    grantedOwners?: ReadonlyMap<string, string>,
-    model?: string,
-    audioReferenceUrls: ReadonlyMap<string, string> = new Map(),
-  ): Promise<Record<string, unknown>> {
-    const resolveUrl = async (
-      referenceId: string,
-      role: string,
-    ): Promise<string> => {
-      const url = await this.referenceUrls.resolveUrl({
-        grantedOwners,
-        organizationId,
-        referenceId,
-      });
-      if (!url) {
-        throw new HttpException(
-          {
-            detail: `Could not resolve a source URL for the ${role} reference`,
-            title: 'Generation brief reference resolution failed',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      return url;
-    };
-
-    const stringFields = [
-      'first_frame_image',
-      'last_frame_image',
-      'image',
-      'image_url',
-      'start_image',
-      'input_reference',
-      'last_frame',
-      'end_image',
-      'last_image',
-    ] as const;
-    const videoStringFields = ['reference_video'] as const;
-    const arrayFields = [
-      'image_urls',
-      'reference_image_urls',
-      'reference_images',
-    ] as const;
-    const videoArrayFields = [
-      'reference_video_urls',
-      'reference_videos',
-    ] as const;
-
-    const resolved: Record<string, unknown> = { ...dispatch };
-
-    for (const field of stringFields) {
-      const value = dispatch[field];
-      if (typeof value === 'string' && value.length > 0) {
-        resolved[field] = await resolveUrl(value, field);
-      }
-    }
-
-    for (const field of arrayFields) {
-      const value = dispatch[field];
-      if (Array.isArray(value)) {
-        resolved[field] = await Promise.all(
-          value
-            .filter((entry): entry is string => typeof entry === 'string')
-            .map((entry) => resolveUrl(entry, field)),
-        );
-      }
-    }
-
-    for (const field of videoStringFields) {
-      const value = dispatch[field];
-      if (typeof value === 'string' && value.length > 0) {
-        resolved[field] = (
-          await resolveStoredVideoReference(
-            this.ingredientsService,
-            this.filesClientService,
-            this.configService,
-            value,
-            organizationId,
-            field,
-          )
-        ).url;
-      }
-    }
-
-    for (const field of videoArrayFields) {
-      const value = dispatch[field];
-      if (Array.isArray(value)) {
-        const references = await Promise.all(
-          value
-            .filter((entry): entry is string => typeof entry === 'string')
-            .map((entry) =>
-              resolveStoredVideoReference(
-                this.ingredientsService,
-                this.filesClientService,
-                this.configService,
-                entry,
-                organizationId,
-                field,
-              ),
-            ),
-        );
-        if (model === MODEL_KEYS.REPLICATE_MINIMAX_H3) {
-          assertMinimaxH3ReferenceDurations(
-            references.map((reference) => reference.duration),
-            'video',
-          );
-        }
-        if (field === 'reference_videos') {
-          assertSeedanceReferenceVideoDuration(
-            references.map((reference) => reference.duration),
-          );
-        }
-        resolved[field] = references.map((reference) => reference.url);
-      }
-    }
-
-    const audioIds = dispatch.reference_audio_urls;
-    if (Array.isArray(audioIds)) {
-      resolved.reference_audio_urls = resolveCompiledAudioReferences(
-        audioIds,
-        audioReferenceUrls,
-      );
-    }
-    return resolved;
   }
 
   private async resolveReferenceUrls(
