@@ -24,9 +24,8 @@ async function useListView(page: Page): Promise<void> {
  * Navigate with the explicit E2E org+brand slugs (brandPath), not the bare
  * path: the proxy's active-workspace resolution for a bare `/library/*` path
  * is cached server-side per session and is not deterministic across parallel
- * workers sharing one dev server. Library places are query filters on
- * `/library/assets` (#5135), so the avatars route lands on
- * `/library/avatars`.
+ * workers sharing one dev server. A library type is its own route (#8067),
+ * so the avatars route stays on `/library/avatars`.
  */
 async function gotoAvatarLibrary(page: Page): Promise<void> {
   const avatarsRoute = brandPath(APP_ROUTES.LIBRARY.AVATARS);
@@ -35,7 +34,7 @@ async function gotoAvatarLibrary(page: Page): Promise<void> {
     waitUntil: 'domcontentloaded',
   });
   await assertNoErrorBoundaryFallback(page, avatarsRoute);
-  await expect(page).toHaveURL(/library\/assets\?categories=AVATAR/);
+  await expect(page).toHaveURL(/library\/avatars/);
 }
 
 /**

@@ -119,7 +119,7 @@ test.describe('Workflow templates & executions interactions', () => {
     const template = testWorkflowTemplates[0];
 
     await authenticatedPage.goto(
-      brandPath(`${WORKFLOW_TEMPLATES_ROUTE}&template=${template.id}`),
+      brandPath(`${WORKFLOW_TEMPLATES_ROUTE}?template=${template.id}`),
       { waitUntil: 'domcontentloaded' },
     );
 

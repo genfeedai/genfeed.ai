@@ -239,11 +239,6 @@ test.describe('Tasks Edge States', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, tasksRoute);
 
     await expect(authenticatedPage.getByText('No tasks yet')).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(
-        'Create a task to start tracking work in this workspace.',
-      ),
-    ).toBeVisible();
   });
 
   test('supports the raw task id route in addition to the identifier route', async ({

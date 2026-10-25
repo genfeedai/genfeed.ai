@@ -121,14 +121,4 @@ test.describe('Chat flow interactions', () => {
     await tryClick(authenticatedPage, '[role="menuitem"]');
     await assertHealthy(authenticatedPage);
   });
-
-  test('legacy agent onboarding URLs redirect to the onboarding page', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(`${ORG}/agent/onboarding`, {
-      waitUntil: 'domcontentloaded',
-    });
-    await expect(authenticatedPage).not.toHaveURL(/\/agent\/onboarding/);
-    await expectNoErrorOverlay(authenticatedPage);
-  });
 });

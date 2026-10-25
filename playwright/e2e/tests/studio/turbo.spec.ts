@@ -128,6 +128,8 @@ test.describe('Persisted Turbo projects', () => {
       .getByRole('button', { name: 'Create project', exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${base}/persisted-project`));
+    // A fresh idea draft keeps its name under the collapsed Options.
+    await page.getByRole('button', { name: 'Options' }).click();
     await expect(
       page.getByRole('textbox', { name: 'Project name' }),
     ).toHaveValue('Launch collection');
@@ -153,6 +155,7 @@ test.describe('Persisted Turbo projects', () => {
     );
     expect(overflow).toBe(false);
     await page.getByRole('link', { name: 'Open', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Options' }).click();
     await expect(
       page.getByRole('textbox', { name: 'Project name' }),
     ).toHaveValue('Launch collection');

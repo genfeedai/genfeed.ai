@@ -42,10 +42,10 @@ test.describe('Analytics — Trends (deep interactions)', () => {
   test.setTimeout(90_000);
 
   const routes = [
-    `${BRAND}/analytics/trends`,
-    `${BRAND}/analytics/trends/detail/mock-id`,
-    `${BRAND}/analytics/trends/platforms/tiktok`,
-    `${BRAND}/analytics/trend-turnover`,
+    `${BRAND}/discovery/trends`,
+    `${BRAND}/discovery/trends/detail/mock-id`,
+    `${BRAND}/discovery/trends/platforms/tiktok`,
+    `${BRAND}/discovery/trend-turnover`,
     `${BRAND}/analytics/streaks`,
     `${BRAND}/analytics/hooks`,
   ];
@@ -60,7 +60,7 @@ test.describe('Analytics — Trends (deep interactions)', () => {
   test('trends list switches platform tabs and opens a trend', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND}/analytics/trends`);
+    await assertRouteRenders(authenticatedPage, `${BRAND}/discovery/trends`);
 
     await tryClick(authenticatedPage, '[role="tab"]');
     await tryClick(authenticatedPage, '[role="combobox"]');
@@ -71,7 +71,7 @@ test.describe('Analytics — Trends (deep interactions)', () => {
     // Open a trend → detail by following the first trend link or table row.
     const isOpened = await tryClick(
       authenticatedPage,
-      'a[href*="/analytics/trends/detail/"]',
+      'a[href*="/discovery/trends/detail/"]',
     );
     if (!isOpened) {
       await tryClick(authenticatedPage, 'tbody tr');
@@ -86,13 +86,13 @@ test.describe('Analytics — Trends (deep interactions)', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND}/analytics/trends/detail/mock-id`,
+      `${BRAND}/discovery/trends/detail/mock-id`,
     );
 
     await tryClick(authenticatedPage, '[role="tab"]');
     await tryClick(authenticatedPage, '[role="tab"]:nth-of-type(2)');
     await exerciseDateRange(authenticatedPage);
-    await tryClick(authenticatedPage, 'a[href*="/analytics/trends"]');
+    await tryClick(authenticatedPage, 'a[href*="/discovery/trends"]');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -103,7 +103,7 @@ test.describe('Analytics — Trends (deep interactions)', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND}/analytics/trends/platforms/tiktok`,
+      `${BRAND}/discovery/trends/platforms/tiktok`,
     );
 
     await tryClick(authenticatedPage, '[role="tab"]');
@@ -121,7 +121,7 @@ test.describe('Analytics — Trends (deep interactions)', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND}/analytics/trend-turnover`,
+      `${BRAND}/discovery/trend-turnover`,
     );
 
     await exerciseDateRange(authenticatedPage);
