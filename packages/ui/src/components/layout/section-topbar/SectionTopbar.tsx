@@ -29,7 +29,6 @@ import ContextInspectorToggle, {
  */
 export default function SectionTopbar({
   title,
-  subtitle,
   icon: Icon,
   actions,
   refresh,
@@ -187,11 +186,6 @@ export default function SectionTopbar({
                   {title}
                 </h1>
               </div>
-              {subtitle ? (
-                <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
-                  {subtitle}
-                </p>
-              ) : null}
             </div>
           </div>
 

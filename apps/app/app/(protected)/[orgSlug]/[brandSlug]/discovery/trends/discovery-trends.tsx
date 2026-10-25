@@ -67,7 +67,6 @@ export default function DiscoveryTrends() {
     <>
       <SectionTopbar
         title={translate('heading')}
-        subtitle={translate('subtitle')}
         icon={Flame}
         tabs={<SocialsNavigation active="overview" />}
       />

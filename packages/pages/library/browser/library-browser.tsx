@@ -24,7 +24,6 @@ import { useMemo, useState } from 'react';
 import LibraryActiveFilters from './library-active-filters';
 import {
   LIBRARY_PLACE_COPY,
-  LIBRARY_SHELF_DESCRIPTIONS,
   LIBRARY_SORT_OPTIONS,
 } from './library-browser.config';
 import LibraryBrowserToolbar, {
@@ -113,44 +112,16 @@ export default function LibraryBrowser({
     shelf === LibraryShelf.FAILED && scope === PageScope.BRAND;
 
   const destination = useMemo(() => {
-    const adaptDescription = (description: string) =>
-      scope === PageScope.ORGANIZATION
-        ? description.replace('this brand', 'this organization')
-        : description;
-
     if (shelf) {
-      return {
-        description: adaptDescription(LIBRARY_SHELF_DESCRIPTIONS[shelf]),
-        label: LIBRARY_SHELF_LABELS[shelf],
-      };
+      return { label: LIBRARY_SHELF_LABELS[shelf] };
     }
 
     if (preset) {
-      return {
-        ...preset,
-        description: adaptDescription(preset.description),
-      };
+      return { label: preset.label };
     }
 
-    const placeCopy = LIBRARY_PLACE_COPY[place ?? LibraryPlace.ASSETS];
-
-    return {
-      ...placeCopy,
-      description: adaptDescription(placeCopy.description),
-    };
-  }, [place, preset, scope, shelf]);
-
-  const description = headerMeta ? (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span>{destination.description}</span>
-      <span aria-hidden="true" className="text-foreground/50">
-        •
-      </span>
-      <span className="text-foreground/70">{headerMeta}</span>
-    </div>
-  ) : (
-    destination.description
-  );
+    return { label: LIBRARY_PLACE_COPY[place ?? LibraryPlace.ASSETS].label };
+  }, [place, preset, shelf]);
 
   // Stable identities — an inline object here re-renders (and remounts) the
   // whole list on every parent pass.
@@ -170,7 +141,6 @@ export default function LibraryBrowser({
       <IngredientsProvider value={contextValue}>
         <Container
           className="@container/library"
-          description={isRecoveryView ? undefined : description}
           icon={Library}
           isTopbarPinned
           label={destination.label}

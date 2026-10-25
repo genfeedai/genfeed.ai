@@ -221,11 +221,7 @@ export default function AnalyticsBrandOverview({
   }, [publishedPosts]);
 
   return (
-    <Container
-      label={`${brandName || 'Brand'} Analytics`}
-      description="Performance metrics and content overview."
-      icon={ChartColumn}
-    >
+    <Container label={`${brandName || 'Brand'} Analytics`} icon={ChartColumn}>
       <div className="space-y-6">
         <BrandKPISection
           analytics={analytics}

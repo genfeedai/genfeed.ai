@@ -50,7 +50,6 @@ export interface LibraryBrowserProps {
  */
 export interface LibraryBrowserPreset {
   label: string;
-  description: string;
 }
 
 export interface LibraryBrowserSortOption {

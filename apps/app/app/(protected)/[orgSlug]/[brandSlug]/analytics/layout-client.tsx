@@ -22,7 +22,6 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
   return (
     <Container
       label={translate('brand.title')}
-      description={translate('brand.description')}
       icon={ChartColumn}
       refresh={
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />

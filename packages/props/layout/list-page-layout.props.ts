@@ -13,7 +13,6 @@ import type { ReactNode } from 'react';
 
 export interface ListPageLayoutProps<T> {
   title: string;
-  description?: string;
   icon?: IconComponent;
   items: T[];
   columns: TableColumn<T>[];

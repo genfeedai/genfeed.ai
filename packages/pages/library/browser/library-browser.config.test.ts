@@ -1,13 +1,7 @@
-import {
-  IngredientCategory,
-  LibraryPlace,
-  LibraryShelf,
-} from '@genfeedai/contracts';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
-  LIBRARY_PLACE_COPY,
-  LIBRARY_SHELF_DESCRIPTIONS,
   LIBRARY_SORT_OPTIONS,
   LIBRARY_TYPE_CHIPS,
   LIBRARY_TYPE_PRESETS,
@@ -70,32 +64,6 @@ describe('LIBRARY_TYPE_PRESETS', () => {
         APP_ROUTES.LIBRARY.VIDEOS,
       ].sort(),
     );
-  });
-});
-
-describe('Library copy', () => {
-  it('points All assets at References for uploads and imports instead of claiming to hold them', () => {
-    const copy = [
-      LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description,
-      ...Object.values(LIBRARY_TYPE_PRESETS).map(
-        (preset) => preset.description,
-      ),
-    ];
-
-    expect(LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description).toBe(
-      'Generated output for this brand. Uploads and imports live on the Imported page.',
-    );
-    for (const description of copy) {
-      expect(description).not.toMatch(/this brand (has )?generated/);
-    }
-  });
-});
-
-describe('LIBRARY_SHELF_DESCRIPTIONS', () => {
-  it('describes every shelf', () => {
-    for (const shelf of Object.values(LibraryShelf)) {
-      expect(LIBRARY_SHELF_DESCRIPTIONS[shelf]).toBeTruthy();
-    }
   });
 });
 

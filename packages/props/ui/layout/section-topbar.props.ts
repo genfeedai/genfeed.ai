@@ -12,8 +12,6 @@ import type { ReactNode } from 'react';
 export interface SectionTopbarProps {
   /** Section title, rendered as the page h1 */
   title: string;
-  /** Optional muted one-line subtitle, hidden on narrow widths */
-  subtitle?: string;
   /** Optional leading icon next to the title */
   icon?: IconComponent;
   /** Right-aligned controls: dropdowns followed by the primary action */

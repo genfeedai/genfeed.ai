@@ -65,7 +65,6 @@ export interface CardIconProps {
 
 interface ContainerBaseProps {
   label?: ReactNode;
-  description?: ReactNode;
   icon?: IconComponent | ReactNode;
   titleVisibility?: 'visible' | 'sr-only';
   activeTab?: string;

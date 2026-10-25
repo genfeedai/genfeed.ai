@@ -331,7 +331,6 @@ function BrandsListContent() {
   return (
     <Container
       label="Brands"
-      description="Manage brands and settings."
       icon={Building2}
       right={
         <div className="flex items-center gap-2">

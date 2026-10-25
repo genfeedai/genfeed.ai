@@ -526,7 +526,6 @@ export default function AgentHubPage() {
   return (
     <Container
       label="Agents"
-      description="Content agents that fill workflow prompts and assets, then run deterministic graphs."
       icon={Users}
       right={
         isEmpty ? undefined : (

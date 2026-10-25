@@ -83,10 +83,7 @@ export default function AutomationOverviewPage() {
   );
 
   return (
-    <Container
-      label={APP_DISPLAY_LABELS.automation}
-      description="Live runs, failures, and scheduled work across this brand"
-    >
+    <Container label={APP_DISPLAY_LABELS.automation}>
       {isError && executions.length === 0 ? (
         <ErrorFallback
           title="Automation activity could not be loaded."

@@ -6,7 +6,6 @@ import CardIcon from '@ui/card/icon/CardIcon';
 
 export default function ContainerTitle({
   title,
-  description,
   icon,
   titleVisibility = 'visible',
 }: ContainerTitleProps) {
@@ -27,10 +26,6 @@ export default function ContainerTitle({
   const hasBreadcrumb = Boolean(
     activeGroupId || (activePageLabel && !isDuplicatePageLabel),
   );
-
-  const isTextDescription =
-    typeof description === 'number' || typeof description === 'string';
-  const DescriptionTag = isTextDescription ? 'p' : 'div';
 
   const titleContent = (
     <>
@@ -56,11 +51,6 @@ export default function ContainerTitle({
             </span>
           ) : null}
         </nav>
-      ) : null}
-      {description ? (
-        <DescriptionTag className="mt-1 max-w-3xl text-xs leading-snug text-foreground/55">
-          {description}
-        </DescriptionTag>
       ) : null}
     </>
   );

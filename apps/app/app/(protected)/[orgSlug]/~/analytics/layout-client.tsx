@@ -21,7 +21,6 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
   return (
     <Container
       label={translate('organization.title')}
-      description={translate('organization.description')}
       icon={ChartColumn}
       refresh={
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />

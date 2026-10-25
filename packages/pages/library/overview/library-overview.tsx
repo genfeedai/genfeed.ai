@@ -132,7 +132,6 @@ export default function LibraryOverview({
     <OverviewLayout
       actionsTitle={translate('actionsTitle')}
       cards={cards}
-      description={translate('description')}
       header={
         <KPISection
           error={error ? translate('error') : null}

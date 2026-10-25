@@ -122,18 +122,15 @@ vi.mock('next-intl', async () => {
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    description,
     label,
     right,
   }: {
     children?: ReactNode;
-    description?: string;
     label?: string;
     right?: ReactNode;
   }) => (
     <main>
       <h1>{label}</h1>
-      <p>{description}</p>
       {right}
       {children}
     </main>
@@ -327,11 +324,6 @@ describe('AgentHubPage', () => {
     const { rerender } = render(<AgentHubPage />);
 
     expect(screen.getByText('Agents')).toBeVisible();
-    expect(
-      screen.getByText(
-        'Content agents that fill workflow prompts and assets, then run deterministic graphs.',
-      ),
-    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Add agent' })).toBeVisible();
 
     const all = getSection('all');

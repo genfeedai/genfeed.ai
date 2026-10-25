@@ -29,7 +29,6 @@ export default function ImportedLibrary() {
     <LibraryBrowser
       place={LibraryPlace.ASSETS}
       preset={{
-        description: translate('description'),
         label: translate('label'),
       }}
       scope={PageScope.BRAND}

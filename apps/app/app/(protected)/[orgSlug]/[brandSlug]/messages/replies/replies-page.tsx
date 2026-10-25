@@ -44,9 +44,6 @@ import RepliesReplyComposer from './replies-reply-composer';
 import RepliesWarmupQueue from './replies-warmup-queue';
 import RepliesWarmupTargets from './replies-warmup-targets';
 
-const REPLIES_DESCRIPTION =
-  'Answer people who comment on your posts. Draft replies in your brand voice, or turn on auto-replies for new comments.';
-
 function intentBadgeVariant(
   intent: ReplyIntent,
 ): 'default' | 'success' | 'warning' | 'destructive' | 'outline' | 'info' {
@@ -286,7 +283,7 @@ export default function RepliesPage() {
 
   if (pageScope === 'org' && !brandId) {
     return (
-      <Container label="Replies" description={REPLIES_DESCRIPTION}>
+      <Container label="Replies">
         <EmptyState
           title="Choose a brand to review replies"
           description="Replies belong to a brand's connected social accounts. Select a brand in the top bar to open its inbox."
@@ -309,7 +306,6 @@ export default function RepliesPage() {
     <Container
       className="flex flex-col gap-6"
       label="Replies"
-      description={REPLIES_DESCRIPTION}
       refresh={
         <ButtonRefresh
           onClick={() => void loadInbox()}

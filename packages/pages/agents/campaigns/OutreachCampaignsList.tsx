@@ -247,7 +247,6 @@ export default function OutreachCampaignsList() {
   return (
     <Container
       label="Outreach sequences"
-      description="DM and growth sequences for launches and distribution."
       icon={Rocket}
       refresh={
         <ButtonRefresh

@@ -382,7 +382,6 @@ function WorkspacePageContentContent({
   return (
     <Container
       label={sectionCopy.title}
-      description={sectionCopy.description}
       icon={LayoutGrid}
       fullWidth
       titleVisibility="sr-only"

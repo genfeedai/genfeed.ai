@@ -53,7 +53,6 @@ export default function BrandConnectedAccountsPage() {
 
   return (
     <Container
-      description={translateIntegrations('description')}
       icon={Plug}
       label={translateIntegrations('title')}
       right={

@@ -199,7 +199,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         // posts library toolbar) instead of wrapping onto a second row.
         className="@container/publishing"
         label={translate('title')}
-        description={translate('description')}
         icon={Newspaper}
         titleVisibility="sr-only"
         leading={leadingNode}

@@ -2731,7 +2731,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             value={search}
           />
         }
-        subtitle={translate('description')}
         title={translate('title')}
       />
 

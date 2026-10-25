@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 
 export interface OverviewContentProps {
   label?: string;
-  description?: string;
   icon?: IconComponent;
   cards?: OverviewCard[];
   actionsTitle?: string;

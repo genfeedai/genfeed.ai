@@ -344,7 +344,6 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   return (
     <Container
       label={strategy.label}
-      description={`${typeLabel} agent`}
       icon={Cpu}
       left={
         <Link href={href(APP_ROUTES.AUTOMATION.AGENTS)}>

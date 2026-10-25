@@ -105,7 +105,6 @@ export default function DiscoveryTrendTurnover() {
   return (
     <Container
       label={translate('heading')}
-      description={translate('description')}
       icon={Repeat}
       moduleChrome
       headerTabs={{

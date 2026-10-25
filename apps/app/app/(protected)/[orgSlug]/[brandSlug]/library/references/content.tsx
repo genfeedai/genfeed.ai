@@ -67,7 +67,6 @@ export default function LibraryCharactersPage(): ReactElement {
   return (
     <>
       <Container
-        description={translateReferences('description')}
         label={translateReferences('title')}
         right={
           !isLoading && characters.length > 0 ? (

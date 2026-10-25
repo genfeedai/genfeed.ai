@@ -13,7 +13,6 @@ export default function LibraryCaptionsPage({
   return (
     <Container
       label="Captions"
-      description="Captions, subtitles, and transcripts."
       icon={MessageSquareText}
       right={<LibraryAssetTypeFilter />}
       titleVisibility="sr-only"

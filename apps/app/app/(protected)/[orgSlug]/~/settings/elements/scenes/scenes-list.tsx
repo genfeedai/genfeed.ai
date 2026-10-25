@@ -64,10 +64,7 @@ function ScenesListContent() {
   }, [findAllScenes]);
 
   return (
-    <Container
-      label="Scenes"
-      description="Reusable scene elements for generation"
-    >
+    <Container label="Scenes">
       <AppTable<ElementScene>
         items={scenes ?? []}
         columns={columns}

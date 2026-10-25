@@ -245,7 +245,6 @@
     }
   },
   "imported": {
-    "description": "Files you uploaded and posts or pages you imported. Generated output lives in Assets.",
     "label": "Imported"
   },
   "assetDeepLink": {
@@ -260,7 +259,6 @@
     "viewMoreVersions": "View more versions"
   },
   "references": {
-    "description": "Reusable characters that generations reference by name.",
     "title": "References"
   },
   "overview": {
@@ -292,7 +290,6 @@
         "label": "Starred"
       }
     },
-    "description": "Everything this brand has uploaded, imported or generated, and what needs you.",
     "error": "Library counts could not be loaded.",
     "kpi": {
       "failed": "Failed",

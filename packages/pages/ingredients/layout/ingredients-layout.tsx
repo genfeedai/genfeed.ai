@@ -54,18 +54,6 @@ export default function IngredientsLayout({
     setHeaderMeta,
   } = useIngredientsLayout({ scope, defaultType });
 
-  const description = headerMeta ? (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span>{currentIngredient.description}</span>
-      <span className="text-foreground/50" aria-hidden="true">
-        •
-      </span>
-      <span className="text-foreground/70">{headerMeta}</span>
-    </div>
-  ) : (
-    currentIngredient.description
-  );
-
   // Stable context identity — avoid `value={{ ... }}` inline objects that
   // force every consumer to re-render (and can remount list chrome) on each
   // parent pass, even when setHeaderMeta itself is stable.
@@ -80,7 +68,6 @@ export default function IngredientsLayout({
         <Container
           isTopbarPinned
           label={currentIngredient.label}
-          description={description}
           icon={Image}
           {...(hideTypeTabs
             ? {}

@@ -406,7 +406,6 @@ export default function ReplyCampaignsPage() {
   return (
     <Container
       label="Reply drip"
-      description="Create and monitor throttled reply campaigns across open conversations."
       refresh={
         <ButtonRefresh
           onClick={replyCampaigns.refresh}

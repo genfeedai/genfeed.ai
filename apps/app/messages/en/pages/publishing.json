@@ -1,6 +1,5 @@
 {
   "layout": {
-    "description": "Manage and publish across platforms.",
     "newPost": "New post",
     "title": "Publishing"
   },
@@ -55,7 +54,6 @@
     "generateMessage": "Creates draft platform variants from this brief. Nothing publishes. Credentials that already have campaign content are skipped.",
     "generateTitle": "Generate campaign content?",
     "generated": "Campaign content generated. {succeeded} succeeded, {skipped} skipped, {failed} failed.",
-    "listDescription": "Named content programs across connected channels.",
     "nameRequired": "A campaign name is required.",
     "newCampaign": "New campaign",
     "openCampaign": "Open {name}",

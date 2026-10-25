@@ -382,7 +382,6 @@ export default function DiscoveryDesk() {
   return (
     <>
       <Container
-        description={translateDesk('subtitle')}
         headerTabs={{
           activeTab: sourceParam,
           ariaLabel: translateDesk('sourcesLabel'),

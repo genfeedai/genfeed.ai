@@ -1,8 +1,4 @@
-import {
-  type IngredientCategory,
-  LibraryPlace,
-  LibraryShelf,
-} from '@genfeedai/contracts';
+import { type IngredientCategory, LibraryPlace } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   LIBRARY_TYPE_PRESET_CATEGORIES,
@@ -24,7 +20,6 @@ export const LIBRARY_TYPE_CHIPS: readonly LibraryTypeChip[] =
 
 export interface LibraryTypePreset {
   label: string;
-  description: string;
   categories: readonly IngredientCategory[];
 }
 
@@ -41,81 +36,48 @@ export const LIBRARY_TYPE_PRESETS: Readonly<Record<string, LibraryTypePreset>> =
     [APP_ROUTES.LIBRARY.AVATARS]: {
       categories:
         LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.AVATARS] ?? [],
-      description: 'Avatars in this brand. Clear the chip to see the rest.',
       label: 'Avatars',
     },
     [APP_ROUTES.LIBRARY.GIFS]: {
       categories: LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.GIFS] ?? [],
-      description: 'GIFs in this brand. Clear the chip to see the rest.',
       label: 'GIFs',
     },
     [APP_ROUTES.LIBRARY.IMAGES]: {
       categories:
         LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.IMAGES] ?? [],
-      description:
-        'Images and edits in this brand. Clear the chip to see the rest.',
       label: 'Images',
     },
     [APP_ROUTES.LIBRARY.MUSIC]: {
       categories:
         LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.MUSIC] ?? [],
-      description: 'Music and audio beds. Clear the chip to see the rest.',
       label: 'Music',
     },
     [APP_ROUTES.LIBRARY.VIDEOS]: {
       categories:
         LIBRARY_TYPE_PRESET_CATEGORIES[APP_ROUTES.LIBRARY.VIDEOS] ?? [],
-      description:
-        'Videos and edits in this brand. Clear the chip to see the rest.',
       label: 'Videos',
     },
   };
 
 export interface LibraryDestinationCopy {
   label: string;
-  description: string;
 }
 
 export const LIBRARY_PLACE_COPY: Readonly<
   Record<LibraryPlace, LibraryDestinationCopy>
 > = {
   [LibraryPlace.ASSETS]: {
-    description:
-      'Generated output for this brand. Uploads and imports live on the Imported page.',
     label: 'All assets',
   },
   [LibraryPlace.RECENT]: {
-    description: 'What you and your agents touched most recently.',
     label: 'Recent',
   },
   [LibraryPlace.STARRED]: {
-    description: 'The assets you marked worth coming back to.',
     label: 'Starred',
   },
   [LibraryPlace.TRASH]: {
-    description: 'Deleted assets, still recoverable.',
     label: 'Trash',
   },
-};
-
-/**
- * Shelf descriptions. Labels stay in `LIBRARY_SHELF_LABELS` so the sidebar and
- * the browser header can never drift apart.
- */
-export const LIBRARY_SHELF_DESCRIPTIONS: Readonly<
-  Record<LibraryShelf, string>
-> = {
-  [LibraryShelf.APPROVED]: 'Signed off and safe to publish.',
-  [LibraryShelf.ARCHIVED]: 'Retired assets — out of the way, not gone.',
-  [LibraryShelf.REJECTED]: 'Assets rejected during review, kept for reference.',
-  [LibraryShelf.FAILED]: 'Generations that did not finish. Retry or discard.',
-  [LibraryShelf.GENERATING]: 'Still rendering. This shelf empties itself.',
-  [LibraryShelf.NEEDS_REVIEW]:
-    'Waiting on a human decision before it can ship.',
-  [LibraryShelf.REFERENCES]:
-    'What you uploaded or imported, kept apart from generated output.',
-  [LibraryShelf.UNSORTED]:
-    'Generated assets nobody has filed into a folder yet.',
 };
 
 /** `sort` is the API's `field: direction` string, not a UI-only token. */

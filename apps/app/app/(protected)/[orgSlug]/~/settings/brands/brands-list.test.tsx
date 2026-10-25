@@ -168,10 +168,9 @@ describe('BrandsList', () => {
     expect(rootElement).not.toHaveClass('max-w-[1280px]');
   });
 
-  it('should display the page title and description', () => {
+  it('should display the page title', () => {
     render(<BrandsList />);
     expect(screen.getByText('Brands')).toBeInTheDocument();
-    expect(screen.getByText('Manage brands and settings.')).toBeInTheDocument();
   });
 
   it('should render add brand button', () => {

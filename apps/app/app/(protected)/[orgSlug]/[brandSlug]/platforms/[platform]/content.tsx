@@ -107,10 +107,7 @@ export default function PlatformHomePage({
   const primaryConnection = pickPrimaryConnection(connections);
   if (!primaryConnection) {
     return (
-      <Container
-        label={translate('title', { platform: platformLabel })}
-        description={translate('description', { platform: platformLabel })}
-      >
+      <Container label={translate('title', { platform: platformLabel })}>
         <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
           <EmptyStateCard
             title={translate('empty.title', { platform: platformLabel })}
@@ -250,7 +247,6 @@ export default function PlatformHomePage({
   return (
     <OverviewLayout
       label={translate('title', { platform: platformLabel })}
-      description={translate('description', { platform: platformLabel })}
       actionsTitle={translate('actionsTitle')}
       cards={cards}
       header={

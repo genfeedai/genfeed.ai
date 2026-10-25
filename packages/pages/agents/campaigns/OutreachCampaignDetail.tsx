@@ -143,11 +143,7 @@ export default function OutreachCampaignDetail() {
 
   if (!isLoading && !campaign) {
     return (
-      <Container
-        label={translate('notFoundTitle')}
-        description={translate('notFoundDescription')}
-        icon={Rocket}
-      >
+      <Container label={translate('notFoundTitle')} icon={Rocket}>
         <Button
           label={
             <>
@@ -205,7 +201,6 @@ export default function OutreachCampaignDetail() {
   return (
     <Container
       label={campaign?.label ?? translate('fallbackTitle')}
-      description={campaign?.description || translate('fallbackDescription')}
       icon={Rocket}
       refresh={
         <ButtonRefresh

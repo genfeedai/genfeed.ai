@@ -19,43 +19,10 @@ describe('ContainerTitle', () => {
     mockSidebarNavigation.hasCanonicalBreadcrumb = false;
   });
 
-  it('renders plain text descriptions inside a paragraph', () => {
-    render(
-      <ContainerTitle title="Images" description="Generated assets library" />,
-    );
-
-    expect(screen.getByText('Generated assets library').tagName).toStrictEqual(
-      'P',
-    );
-  });
-
-  it('renders rich descriptions without nesting block elements inside paragraphs', () => {
-    render(
-      <ContainerTitle
-        title="Images"
-        description={
-          <div data-testid="rich-description">
-            <span>Generated assets library</span>
-          </div>
-        }
-      />,
-    );
-
-    const richDescription = screen.getByTestId('rich-description');
-
-    expect(richDescription).toBeInTheDocument();
-    expect(richDescription.closest('p')).toBeNull();
-  });
-
   it('suppresses duplicate single-page breadcrumbs', () => {
     mockSidebarNavigation.activePageLabel = 'Dashboard';
 
-    render(
-      <ContainerTitle
-        title="Dashboard"
-        description="Workspace control plane"
-      />,
-    );
+    render(<ContainerTitle title="Dashboard" />);
 
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
@@ -87,12 +54,7 @@ describe('ContainerTitle', () => {
   it('defers visible page identity to a canonical shell breadcrumb', () => {
     mockSidebarNavigation.hasCanonicalBreadcrumb = true;
 
-    render(
-      <ContainerTitle
-        title="Library"
-        description="Browse reusable assets across your workspace."
-      />,
-    );
+    render(<ContainerTitle title="Library" />);
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Library' }),

@@ -246,11 +246,7 @@ export default function AgentCampaignDetailPage() {
 
   if (!isFetchReady || isLoading || isChangingBrand) {
     return (
-      <Container
-        label="Loading..."
-        description="Loading Program details"
-        icon={LayoutDashboard}
-      >
+      <Container label="Loading..." icon={LayoutDashboard}>
         <div className="flex items-center justify-center py-20">
           <div className="animate-pulse text-foreground/50">Loading…</div>
         </div>
@@ -260,11 +256,7 @@ export default function AgentCampaignDetailPage() {
 
   if (!campaign) {
     return (
-      <Container
-        label="Program Not Found"
-        description="The requested Program could not be found"
-        icon={LayoutDashboard}
-      >
+      <Container label="Program Not Found" icon={LayoutDashboard}>
         <Button
           label={
             <>
@@ -286,7 +278,6 @@ export default function AgentCampaignDetailPage() {
   return (
     <Container
       label={campaign.label}
-      description={campaign.brief || 'Program details and execution status'}
       icon={LayoutDashboard}
       refresh={
         <ButtonRefresh

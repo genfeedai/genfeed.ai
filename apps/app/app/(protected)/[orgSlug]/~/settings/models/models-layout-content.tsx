@@ -96,7 +96,6 @@ export default function ModelsLayoutContent({
   return (
     <Container
       label="Models"
-      description="Manage available AI models."
       icon={Cpu}
       refresh={
         isCustomModelsTab ? undefined : (

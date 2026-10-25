@@ -19,7 +19,6 @@ import { Plus } from 'lucide-react';
  * ```typescript
  * <ListPageLayout
  *   title="Tags"
- *   description="Manage your tags"
  *   filters={filters}
  *   onFiltersChange={handleFiltersChange}
  *   onCreate={() => openModal(ModalEnum.TAG)}
@@ -33,7 +32,6 @@ import { Plus } from 'lucide-react';
  */
 export default function ListPageLayout<T extends { id: string }>({
   title,
-  description,
   icon,
   items,
   columns,
@@ -83,7 +81,6 @@ export default function ListPageLayout<T extends { id: string }>({
   return (
     <Container
       label={title}
-      description={description}
       icon={icon}
       refresh={
         onRefresh ? (

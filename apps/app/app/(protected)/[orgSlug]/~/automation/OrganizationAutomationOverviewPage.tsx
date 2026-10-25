@@ -100,11 +100,7 @@ export default function OrganizationAutomationOverviewPage() {
   );
 
   return (
-    <OverviewLayout
-      label={APP_DISPLAY_LABELS.automation}
-      description={translate('description')}
-      icon={Workflow}
-    >
+    <OverviewLayout label={APP_DISPLAY_LABELS.automation} icon={Workflow}>
       {isReady && brandCards.length === 0 ? (
         <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
           <Workflow className="size-10 text-foreground/20" />

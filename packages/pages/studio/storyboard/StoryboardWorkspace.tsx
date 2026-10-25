@@ -16,7 +16,6 @@ export default function StoryboardWorkspace() {
   return (
     <Container
       label={translate('workspace.newTitle')}
-      description={translate('workspace.newDescription')}
       right={
         <div className="flex flex-wrap gap-2">
           <Button asChild variant={ButtonVariant.SECONDARY}>

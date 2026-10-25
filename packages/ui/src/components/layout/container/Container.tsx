@@ -41,7 +41,6 @@ const ContainerInsetContext = createContext(false);
  */
 export default function Container({
   label,
-  description,
   icon,
   titleVisibility = 'visible',
   tabs,
@@ -175,10 +174,6 @@ export default function Container({
 
   const sectionTitle =
     typeof label === 'string' && label.length > 0 ? label : 'Page';
-  const sectionSubtitle =
-    hasVisibleTitle && typeof description === 'string'
-      ? description
-      : undefined;
   const sectionIcon =
     hasVisibleTitle && typeof icon === 'function'
       ? (icon as IconComponent)
@@ -201,7 +196,6 @@ export default function Container({
   const moduleSectionTopbar = (
     <SectionTopbar
       title={sectionTitle}
-      subtitle={sectionSubtitle}
       icon={sectionIcon}
       titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
       leading={leading}
@@ -251,11 +245,7 @@ export default function Container({
         {usesModuleLocalChrome && isNested ? (
           <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             {hasVisibleTitle ? (
-              <ContainerTitle
-                title={label}
-                description={description}
-                icon={icon}
-              />
+              <ContainerTitle title={label} icon={icon} />
             ) : (
               <h1 className="sr-only">{sectionTitle}</h1>
             )}
@@ -287,11 +277,7 @@ export default function Container({
               insetClassName,
             )}
           >
-            <ContainerTitle
-              title={label}
-              description={description}
-              icon={icon}
-            />
+            <ContainerTitle title={label} icon={icon} />
             <div
               data-testid="container-header-actions"
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
@@ -307,11 +293,7 @@ export default function Container({
         !usesModuleLocalChrome &&
         !usesTitleActionToolbar ? (
           <div className={cn('mb-4 pb-3', insetClassName)}>
-            <ContainerTitle
-              title={label}
-              description={description}
-              icon={icon}
-            />
+            <ContainerTitle title={label} icon={icon} />
           </div>
         ) : null}
 

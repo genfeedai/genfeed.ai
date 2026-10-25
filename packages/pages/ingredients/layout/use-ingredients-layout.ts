@@ -276,10 +276,7 @@ export function useIngredientsLayout({
   const currentIngredient =
     ingredientCategory && INGREDIENT_LABELS[ingredientCategory]
       ? INGREDIENT_LABELS[ingredientCategory]
-      : {
-          description: 'Everything you need for your creations',
-          label: 'Ingredients',
-        };
+      : { label: 'Ingredients' };
 
   const config = useMemo(() => {
     const configKey = ingredientCategory as keyof typeof INGREDIENT_CONFIGS;

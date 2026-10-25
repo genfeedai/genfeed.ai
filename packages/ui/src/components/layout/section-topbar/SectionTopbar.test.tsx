@@ -140,18 +140,14 @@ describe('SectionTopbar', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders subtitle and actions inside the title row', () => {
+  it('renders actions inside the title row', () => {
     render(
       <SectionTopbar
         title="Trending Content"
-        subtitle="Actual posts and videos trending across platforms."
         actions={<button type="button">Refresh</button>}
       />,
     );
 
-    expect(
-      screen.getByText('Actual posts and videos trending across platforms.'),
-    ).toBeInTheDocument();
     expect(screen.getByTestId('section-topbar-actions')).toContainElement(
       screen.getByRole('button', { name: 'Refresh' }),
     );
@@ -203,13 +199,12 @@ describe('SectionTopbar', () => {
     expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
   });
 
-  it('defers its visible title and subtitle to a canonical breadcrumb', () => {
+  it('defers its visible title to a canonical breadcrumb', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
       <SectionTopbar
         title="Trending Content"
-        subtitle="Actual posts and videos trending across platforms."
         actions={<button type="button">Refresh</button>}
       />,
     );
@@ -217,9 +212,6 @@ describe('SectionTopbar', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Trending Content' }),
     ).toHaveClass('sr-only');
-    expect(
-      screen.queryByText('Actual posts and videos trending across platforms.'),
-    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 

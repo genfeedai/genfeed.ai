@@ -182,9 +182,6 @@ export default function CampaignFormPage({
 
   return (
     <Container
-      description={
-        isEdit ? translate('editDescription') : translate('createDescription')
-      }
       icon={Flag}
       label={isEdit ? translate('editTitle') : translate('newCampaign')}
       titleVisibility="sr-only"

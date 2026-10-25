@@ -19,7 +19,6 @@ export default function BrandSettingsKnowledgePage() {
 
   return (
     <Container
-      description={translate('description')}
       icon={BookOpen}
       label={translate('title')}
       right={

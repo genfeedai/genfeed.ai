@@ -25,7 +25,6 @@
       "cta": "Create for {platform}",
       "label": "Create"
     },
-    "description": "Queue, engage, and connection health for {platform} — without leaving this brand.",
     "empty": {
       "connect": "Connect {platform}",
       "description": "Connect this destination to see its queue, engage inbox, and health.",

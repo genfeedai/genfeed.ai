@@ -191,7 +191,6 @@ export default function CampaignsListPage({
 
   return (
     <Container
-      description={translate('listDescription')}
       icon={Flag}
       label={translate('title')}
       right={

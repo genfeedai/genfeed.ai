@@ -109,11 +109,7 @@ export default function ContentTeamHirePage({
   }
 
   return (
-    <Container
-      description={translate('description')}
-      icon={UserPlus}
-      label={translate('title')}
-    >
+    <Container icon={UserPlus} label={translate('title')}>
       {content}
     </Container>
   );

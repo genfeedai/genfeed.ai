@@ -314,7 +314,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   return (
     <Container
       label="Folders"
-      description="Organize content into folders."
       icon={FolderOpen}
       refresh={
         <ButtonRefresh

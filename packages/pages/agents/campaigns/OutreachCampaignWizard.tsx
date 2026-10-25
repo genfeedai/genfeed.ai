@@ -164,11 +164,7 @@ export default function OutreachCampaignWizard() {
   };
 
   return (
-    <Container
-      label={translate('createTitle')}
-      description={translate('createDescription')}
-      icon={Rocket}
-    >
+    <Container label={translate('createTitle')} icon={Rocket}>
       <div className="mx-auto max-w-2xl space-y-8">
         <div className="flex items-center justify-between">
           {STEPS.map((step, index) => (

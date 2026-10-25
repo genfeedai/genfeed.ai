@@ -400,7 +400,6 @@ export default function ActivitiesList({
   return (
     <Container
       label={translate('title')}
-      description={translate('description')}
       icon={ClipboardList}
       titleVisibility="sr-only"
       refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}

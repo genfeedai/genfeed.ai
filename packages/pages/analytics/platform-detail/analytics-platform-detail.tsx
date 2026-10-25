@@ -65,7 +65,6 @@ export default function AnalyticsPlatformDetail({
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [brandName, setBrandName] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,9 +72,6 @@ export default function AnalyticsPlatformDetail({
       setIsLoading(true);
       try {
         const service = await getBrandsService();
-
-        const brand = await service.findOne(brandId);
-        setBrandName(brand.label);
 
         const postsData = await service.findBrandPosts(brandId, {
           limit: ITEMS_PER_PAGE * 8,
@@ -89,7 +85,6 @@ export default function AnalyticsPlatformDetail({
         setPosts(platformPosts);
       } catch (error) {
         logger.error('Failed to fetch platform analytics', error);
-        setBrandName('');
         setPosts([]);
       } finally {
         setIsLoading(false);
@@ -153,7 +148,6 @@ export default function AnalyticsPlatformDetail({
   return (
     <Container
       label={`${platformLabel} Performance`}
-      description={`${brandName} - ${posts.length} posts on ${platformLabel}`}
       icon={ChartColumn}
       left={
         <Button

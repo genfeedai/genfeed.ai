@@ -262,36 +262,26 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
   },
 };
 
-export const INGREDIENT_LABELS: Record<
-  string,
-  { label: string; description: string }
-> = {
+export const INGREDIENT_LABELS: Record<string, { label: string }> = {
   avatars: {
-    description: 'Create and manage AI avatars for video presentations',
     label: 'Avatars',
   },
   gifs: {
-    description: 'Browse and manage your animated GIF assets',
     label: 'GIFs',
   },
   images: {
-    description: 'Organize and enhance your image assets for content creation',
     label: 'Images',
   },
   ingredients: {
-    description: 'Every asset across images, videos, GIFs and music',
     label: 'Assets',
   },
   musics: {
-    description: 'Browse and manage your audio tracks and background music',
     label: 'Music',
   },
   videos: {
-    description: 'Manage your video library and create stunning visual content',
     label: 'Videos',
   },
   voices: {
-    description: 'Access AI-generated voices and manage voice clones',
     label: 'Voices',
   },
 };

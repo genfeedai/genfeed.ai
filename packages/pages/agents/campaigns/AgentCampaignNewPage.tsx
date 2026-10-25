@@ -304,11 +304,7 @@ export default function AgentCampaignNewPage() {
 
   if (!isBrandReady || !brandId) {
     return (
-      <Container
-        description="Coordinate agents for content production."
-        icon={LayoutDashboard}
-        label="New Program"
-      >
+      <Container icon={LayoutDashboard} label="New Program">
         <p className="text-sm text-muted-foreground">
           {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
         </p>
@@ -317,11 +313,7 @@ export default function AgentCampaignNewPage() {
   }
 
   return (
-    <Container
-      description="Coordinate agents for content production."
-      icon={LayoutDashboard}
-      label="New Program"
-    >
+    <Container icon={LayoutDashboard} label="New Program">
       <Form spacing="section" className="max-w-3xl" onSubmit={handleSubmit}>
         <ProgramTemplatePicker
           selectedTemplateId={selectedTemplateId}

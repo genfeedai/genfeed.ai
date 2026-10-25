@@ -202,7 +202,6 @@ export default function AdsResearchPageClient() {
   return (
     <Container
       label="Ads"
-      description="Find winning ads and remix for your brand."
       headerTabs={{
         activeTab: effectivePlatform,
         fullWidth: false,

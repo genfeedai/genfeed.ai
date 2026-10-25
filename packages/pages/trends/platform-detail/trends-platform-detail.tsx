@@ -222,7 +222,6 @@ export default function TrendsPlatformDetail({
     <>
       <SectionTopbar
         title={`${label} Trends`}
-        subtitle="Platform-specific trending posts and videos."
         icon={TrendingUp}
         refresh={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />

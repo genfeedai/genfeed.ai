@@ -81,10 +81,7 @@ export default function LivestreamChatBotPage({
   );
 
   return (
-    <Container
-      label="Livestream Chat Bot"
-      description="YouTube is treated as the primary platform. Save the bot, connect the channel targets, then control the live session from the same screen."
-    >
+    <Container label="Livestream Chat Bot">
       <div className="space-y-6">
         <LivestreamBotConfigCard
           form={form}

@@ -225,7 +225,6 @@ export default function CampaignDetailShell({
 
   return (
     <Container
-      description={resolvedCampaign.objective || translate('listDescription')}
       headerTabs={{
         items: [
           {

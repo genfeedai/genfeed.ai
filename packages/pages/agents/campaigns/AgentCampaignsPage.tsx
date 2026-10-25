@@ -373,7 +373,6 @@ export default function AgentCampaignsPage() {
   return (
     <Container
       label="Programs"
-      description="Coordinate agents for multi-agent content production."
       icon={LayoutDashboard}
       right={
         isEmpty ? undefined : (

@@ -147,12 +147,7 @@ export default function ContentRunListPage() {
   );
 
   return (
-    <Container
-      label="Content Runs"
-      description="Briefs handed off from Discovery, tracked through remix, publish, and analytics."
-      icon={CirclePlay}
-      leading={statusFilter}
-    >
+    <Container label="Content Runs" icon={CirclePlay} leading={statusFilter}>
       {pageScope === 'org' && !isBrandReady ? (
         <p className="mt-6 text-sm text-muted-foreground">
           {translate('selectBrand')}

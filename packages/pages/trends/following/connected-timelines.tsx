@@ -242,11 +242,7 @@ export default function ConnectedTimelines() {
   });
   return (
     <>
-      <SectionTopbar
-        title={translate('following')}
-        subtitle={translate('followingDescription')}
-        icon={AtSign}
-      />
+      <SectionTopbar title={translate('following')} icon={AtSign} />
       <Container bodyClassName="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">

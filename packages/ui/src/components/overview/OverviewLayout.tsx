@@ -128,11 +128,7 @@ export function OverviewContent({
 
 export default function OverviewLayout(props: OverviewContentProps) {
   return (
-    <Container
-      label={props.label}
-      description={props.description}
-      icon={props.icon}
-    >
+    <Container label={props.label} icon={props.icon}>
       <div className="max-w-6xl">
         <OverviewContent {...props} />
       </div>
