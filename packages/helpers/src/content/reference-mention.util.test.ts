@@ -2,6 +2,7 @@ import type { StudioReferenceMentionSource } from '@genfeedai/contracts/interfac
 import {
   numberReferenceMentions,
   reconcileReferenceMentionOrder,
+  resolveAttachedReferenceSources,
   restoreReferenceMentionOrder,
   validateReferenceMentions,
 } from '@genfeedai/helpers/content/reference-mention.util';
@@ -17,7 +18,12 @@ function source(
     key: `${origin}:${id}`,
     kind,
     name: id,
-    role: 'reference',
+    role:
+      kind === 'video'
+        ? 'videoReference'
+        : kind === 'audio'
+          ? 'audioReference'
+          : 'reference',
     source: origin,
   };
 }
@@ -141,5 +147,44 @@ describe('Studio positional reference mentions', () => {
         attrs: { id: 'gone', key: 'gone', label: '@Image1' },
       }).errors,
     ).toEqual([]);
+  });
+  it('keeps dedicated frame/edit images out of positional slots and rejects ambiguous image-token mixtures', () => {
+    const dedicated = [
+      'startFrame',
+      'endFrame',
+      'editSource',
+      'editMask',
+    ] as const;
+    for (const role of dedicated) {
+      const attachments = [{ ...source('dedicated'), role }, source('person')];
+      const references = numberReferenceMentions(attachments);
+      expect(references.map(({ token, id }) => [token, id])).toEqual([
+        ['@Image1', 'person'],
+      ]);
+      expect(
+        validateReferenceMentions('Use @Image1', references, null, attachments)
+          .errors[0],
+      ).toContain('dedicated frames');
+      expect(
+        validateReferenceMentions(
+          'Use the frames',
+          references,
+          null,
+          attachments,
+        ).errors,
+      ).toEqual([]);
+    }
+  });
+  it('preserves the same asset in distinct dedicated roles for ordinary frame transport', () => {
+    const sources = [
+      { ...source('still'), key: 'start', role: 'startFrame' as const },
+      { ...source('still'), key: 'end', role: 'endFrame' as const },
+    ];
+    const attached = resolveAttachedReferenceSources(sources);
+    expect(attached.map(({ role, id }) => [role, id])).toEqual([
+      ['startFrame', 'still'],
+      ['endFrame', 'still'],
+    ]);
+    expect(numberReferenceMentions(attached)).toEqual([]);
   });
 });

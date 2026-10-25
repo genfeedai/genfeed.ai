@@ -49,6 +49,7 @@ import type { StudioReferenceMentionSource } from '@genfeedai/contracts/interfac
 import {
   numberReferenceMentions,
   reconcileReferenceMentionOrder,
+  resolveAttachedReferenceSources,
   restoreReferenceMentionOrder,
   validateReferenceMentions,
 } from '@genfeedai/helpers/content/reference-mention.util';
@@ -1150,9 +1151,13 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     restoredAttachments,
     pendingRestoredUploadIds,
   ]);
-  const referenceMentions = useMemo(
-    () => numberReferenceMentions(orderedReferenceSources),
+  const attachedReferenceSources = useMemo(
+    () => resolveAttachedReferenceSources(orderedReferenceSources),
     [orderedReferenceSources],
+  );
+  const referenceMentions = useMemo(
+    () => numberReferenceMentions(attachedReferenceSources),
+    [attachedReferenceSources],
   );
   const referenceExtensions = useStudioReferenceMentions({
     references: referenceMentions,
@@ -1171,12 +1176,18 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         prompt,
         referenceMentions,
         promptDocumentRef.current,
+        attachedReferenceSources,
       ),
-    [prompt, referenceMentions, quoteDocumentRevision],
+    [
+      prompt,
+      referenceMentions,
+      attachedReferenceSources,
+      quoteDocumentRevision,
+    ],
   );
 
   const resolvedReferences = useMemo(() => {
-    const entries = referenceMentions;
+    const entries = attachedReferenceSources;
     return {
       audioReferenceIds: studioAudioReferenceIds(entries),
       editSourceIds: entries
@@ -1198,7 +1209,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         .filter((entry) => entry.role === 'videoReference')
         .map((entry) => entry.id),
     };
-  }, [referenceMentions, settings.editPrimaryId]);
+  }, [attachedReferenceSources, settings.editPrimaryId]);
 
   useEffect(() => {
     if (type !== 'image-edit' || !resolvedReferences.editSourceIds.length)
@@ -1444,6 +1455,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           prompt,
           referenceMentions,
           promptDocumentRef.current,
+          attachedReferenceSources,
         ).errors.length
       )
         return;
@@ -1560,6 +1572,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       prompt,
       resolvedReferences,
       referenceMentions,
+      attachedReferenceSources,
       resolveCharacterMentions,
       rejectUnsupportedSkillSelection,
       resolvePromptCommands,
@@ -2127,9 +2140,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const draftReferenceOrder = useMemo(
     () =>
       new Map(
-        referenceMentions.map((reference, order) => [reference.id, order]),
+        attachedReferenceSources.map((reference, order) => [
+          reference.id,
+          order,
+        ]),
       ),
-    [referenceMentions],
+    [attachedReferenceSources],
   );
   const draftPayload = useMemo<StudioGenerateDraftPayload>(
     () => ({

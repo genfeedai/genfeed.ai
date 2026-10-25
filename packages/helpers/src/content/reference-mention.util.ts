@@ -1,4 +1,5 @@
 import type {
+  StudioAttachedReference,
   StudioReferenceMention,
   StudioReferenceMentionDocument,
   StudioReferenceMentionSource,
@@ -38,19 +39,36 @@ export function reconcileReferenceMentionOrder(
   });
 }
 
+/** Completed attachments retain their role and transport independently of tokens. */
+export function resolveAttachedReferenceSources(
+  references: readonly StudioReferenceMentionSource[],
+): StudioAttachedReference[] {
+  const seen = new Set<string>();
+  return references.flatMap((reference) => {
+    if (!reference.id) return [];
+    const identity = `${reference.role}:${reference.id}`;
+    if (seen.has(identity)) return [];
+    seen.add(identity);
+    return [{ ...reference, id: reference.id }];
+  });
+}
+
 export function numberReferenceMentions(
   references: readonly StudioReferenceMentionSource[],
 ): StudioReferenceMention[] {
   const counts = { audio: 0, image: 0, video: 0 };
-  const seen = new Set<string>();
-  return references.flatMap((reference) => {
-    if (!reference.id || seen.has(reference.id)) return [];
-    seen.add(reference.id);
+  return resolveAttachedReferenceSources(references).flatMap((reference) => {
+    // Dedicated frame/edit fields do not consume a provider reference-array slot.
+    if (
+      reference.role !== 'reference' &&
+      reference.role !== 'videoReference' &&
+      reference.role !== 'audioReference'
+    )
+      return [];
     counts[reference.kind] += 1;
     return [
       {
         ...reference,
-        id: reference.id,
         token: `@${TOKEN_PREFIX[reference.kind]}${counts[reference.kind]}`,
       },
     ];
@@ -65,6 +83,7 @@ export function validateReferenceMentions(
   text: string,
   references: readonly StudioReferenceMention[],
   document?: StudioReferenceMentionDocument | null,
+  attachedReferences: readonly StudioReferenceMentionSource[] = references,
 ): StudioReferenceMentionValidation {
   const byToken = new Map(
     references.map((reference) => [reference.token, reference]),
@@ -76,6 +95,16 @@ export function validateReferenceMentions(
     findReferenceMentionTokens(text).map((match) => match[0]),
   );
   const errors = new Set<string>();
+  if (
+    [...tokens].some((token) => token.startsWith('@Image')) &&
+    attachedReferences.some(
+      (reference) =>
+        reference.kind === 'image' && reference.role !== 'reference',
+    )
+  )
+    errors.add(
+      'Positional image tokens cannot be combined with dedicated frames, editing sources or masks. Remove those attachments or remove the tokens.',
+    );
   for (const token of tokens) {
     if (!byToken.has(token))
       errors.add(

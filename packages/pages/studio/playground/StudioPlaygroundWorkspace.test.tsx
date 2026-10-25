@@ -2877,7 +2877,7 @@ describe('StudioPlaygroundWorkspace', () => {
             },
             {
               id: 'still',
-              role: 'startFrame',
+              role: hasSavedOrder ? 'reference' : 'startFrame',
               ...(hasSavedOrder ? { order: 3 } : {}),
             },
           ],
@@ -2921,7 +2921,7 @@ describe('StudioPlaygroundWorkspace', () => {
                 references: [
                   { id: 'voice', role: 'audioReference', order: 0 },
                   { id: 'music', role: 'audioReference', order: 2 },
-                  { id: 'still', role: 'startFrame', order: 3 },
+                  { id: 'still', role: 'reference', order: 3 },
                 ],
               }),
               expect.objectContaining({ isKeepalive: false }),

@@ -12,8 +12,11 @@ export interface StudioReferenceMentionSource {
   source: 'upload' | 'library';
 }
 
-export interface StudioReferenceMention extends StudioReferenceMentionSource {
+export interface StudioAttachedReference extends StudioReferenceMentionSource {
   id: string;
+}
+
+export interface StudioReferenceMention extends StudioAttachedReference {
   token: string;
 }
 
