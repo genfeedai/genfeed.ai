@@ -140,7 +140,7 @@ function DropdownMenuItem({
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 
 const selectableItemClassName =
-  'dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[state=checked]:font-medium';
+  'group dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[state=checked]:font-medium';
 
 interface SelectableItemContentProps {
   children: ReactNode;
@@ -149,8 +149,9 @@ interface SelectableItemContentProps {
 }
 
 /**
- * Label, then the optional count badge, then a fixed-width selected slot, so
- * badges stay in one right-aligned column whether or not a row is selected.
+ * Label, then one trailing slot: the count badge while the row is unselected,
+ * the check in its place once it is. A single slot keeps both in one
+ * right-aligned column with no gap between them.
  */
 function SelectableItemContent({
   children,
@@ -159,15 +160,15 @@ function SelectableItemContent({
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>
-      {typeof count === 'number' ? (
-        <Badge
-          className="min-w-5 shrink-0 justify-center tabular-nums"
-          variant="secondary"
-        >
-          {count}
-        </Badge>
-      ) : null}
-      <span className="flex size-4 shrink-0 items-center justify-center">
+      <span className="flex h-5 min-w-5 shrink-0 items-center justify-center">
+        {typeof count === 'number' ? (
+          <Badge
+            className="min-w-5 justify-center tabular-nums group-data-[state=checked]:hidden"
+            variant="secondary"
+          >
+            {count}
+          </Badge>
+        ) : null}
         <DropdownMenuPrimitive.ItemIndicator>
           <Check aria-hidden="true" className="size-3.5" />
         </DropdownMenuPrimitive.ItemIndicator>

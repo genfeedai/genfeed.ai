@@ -79,7 +79,11 @@ describe('FilterMenu', () => {
       name: /^Unsorted\s*32$/,
     });
     expect(unsorted).toHaveTextContent(/^Unsorted32$/);
-    expect(screen.getByText('32')).toHaveClass('tabular-nums');
+    // The check takes the badge's place once the row is selected.
+    expect(screen.getByText('32')).toHaveClass(
+      'tabular-nums',
+      'group-data-[state=checked]:hidden',
+    );
     expect(screen.getByRole('menuitemradio', { name: 'All' })).toBeVisible();
   });
 
