@@ -278,7 +278,6 @@ export class ImageGenerationService {
     const {
       referenceIds,
       referenceImageUrls,
-      referenceImageUrl,
       generationHarness,
       grantedAvatarOwners,
       personaId,
@@ -376,7 +375,7 @@ export class ImageGenerationService {
       promptBuilderBrand,
       promptData,
       referenceIds,
-      referenceImageUrl,
+      referenceImageUrl: referenceImageUrls[0] || null,
       referenceImageUrls,
       request,
       style,
@@ -891,8 +890,6 @@ export class ImageGenerationService {
             grantedAvatarOwners,
           ));
 
-    const referenceImageUrl: string | null = referenceImageUrls[0] || null;
-
     const generationHarness: GenerationHarnessReceipt = editing
       ? {
           originalPrompt: promptOriginalText,
@@ -914,7 +911,6 @@ export class ImageGenerationService {
     return {
       referenceIds,
       referenceImageUrls,
-      referenceImageUrl,
       generationHarness,
       grantedAvatarOwners,
       personaId,
