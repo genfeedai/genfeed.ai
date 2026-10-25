@@ -19,7 +19,7 @@
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --organizationLabel=<label>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --ownerEmail=<email>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --userId=<id>
- *   bun run apps/server/api/scripts/seeds/articles.seed.ts --env=production --live --ownerEmail=<email>
+ *   bun run apps/server/api/scripts/seeds/articles.seed.ts --env=production --live --ownerEmail=<email> --brandSlug=<slug>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --all-clusters
  */
 
@@ -116,7 +116,10 @@ function loadEnvFile(envArg?: string): void {
       }
       const key = trimmed.slice(0, eqIndex).trim();
       const value = trimmed.slice(eqIndex + 1).trim();
-      if (envArg || !process.env[key]) {
+      // A variable already exported in the shell wins over the file, so
+      // `DATABASE_URL=… bun run seed:articles:prod` is not silently replaced by a
+      // stale or template `.env.production`.
+      if (!process.env[key]) {
         process.env[key] = value;
       }
     }
