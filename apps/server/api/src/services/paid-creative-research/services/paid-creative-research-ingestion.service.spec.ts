@@ -48,7 +48,9 @@ function buildCreative(
 
 type Harness = {
   access: { decide: ReturnType<typeof vi.fn> };
-  autonomousProducerInstallService: { installOnOptIn: ReturnType<typeof vi.fn> };
+  autonomousProducerInstallService: {
+    installOnOptIn: ReturnType<typeof vi.fn>;
+  };
   adPerformanceService: {
     markResearchSnapshotStale: ReturnType<typeof vi.fn>;
     replaceResearchSnapshot: ReturnType<typeof vi.fn>;

@@ -66,7 +66,9 @@ describe('AutonomousProducerInstallService', () => {
       producer: 'paidCreativeResearch',
     });
 
-    expect(outcomes).toEqual({ 'paid-creative-research-ingestion': 'installed' });
+    expect(outcomes).toEqual({
+      'paid-creative-research-ingestion': 'installed',
+    });
     expect(s.catalog.install).toHaveBeenCalledWith({
       canonicalId: 'paid-creative-research-ingestion',
       organizationId: 'org-1',
