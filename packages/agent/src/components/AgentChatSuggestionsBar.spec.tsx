@@ -1,5 +1,5 @@
 import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSuggestionsBar';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -28,17 +28,18 @@ const suggestedActions = [
 ];
 
 describe('AgentChatSuggestionsBar', () => {
-  it('keeps descriptive dock shortcuts compact instead of using tall cards', () => {
+  it('renders dock suggestions as squared shared cards with icons and sends the full prompt', () => {
+    const onSend = vi.fn();
     render(
       <AgentChatSuggestionsBar
         isReadOnly={false}
         layout="dock"
-        onSend={vi.fn()}
+        onSend={onSend}
         suggestedActions={[
           {
-            label: 'Configure',
-            prompt: 'Configure this page',
-            description: 'Review your settings and connected accounts',
+            label: 'Review selection',
+            prompt: 'Review all selected records in detail',
+            description: 'Get a second opinion',
           },
         ]}
       />,
@@ -47,9 +48,31 @@ describe('AgentChatSuggestionsBar', () => {
     const suggestions = screen.getByRole('toolbar', {
       name: 'Prompt suggestions',
     });
-    expect(suggestions).toHaveAttribute('data-variant', 'chips');
-    expect(suggestions).toHaveClass('justify-start');
-    expect(suggestions).not.toHaveClass('sm:grid-cols-3');
+    expect(suggestions).toHaveClass('grid-cols-2');
+    const action = screen.getByRole('button', { name: 'Review selection' });
+    expect(action).toHaveClass('rounded-card');
+    expect(action.querySelector('.lucide-bot-message-square')).not.toBeNull();
+    expect(screen.getByText('Get a second opinion')).toBeInTheDocument();
+    fireEvent.click(action);
+    expect(onSend).toHaveBeenCalledWith(
+      'Review all selected records in detail',
+    );
+  });
+
+  it('disables dock cards for a read-only conversation', () => {
+    const onSend = vi.fn();
+    render(
+      <AgentChatSuggestionsBar
+        isReadOnly
+        layout="dock"
+        onSend={onSend}
+        suggestedActions={suggestedActions}
+      />,
+    );
+    const action = screen.getByRole('button', { name: 'Generate posts' });
+    expect(action).toBeDisabled();
+    fireEvent.click(action);
+    expect(onSend).not.toHaveBeenCalled();
   });
 
   it('aligns new-conversation actions to three equal desktop columns', () => {

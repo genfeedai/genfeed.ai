@@ -1,5 +1,6 @@
 import type { AgentChatInputToolbarProps } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
+import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -53,6 +54,36 @@ describe('AgentChatInputToolbar', () => {
       screen.queryByTestId('generation-setup-popover'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/^Lock /)).not.toBeInTheDocument();
+  });
+
+  it('labels real setup and attachment controls only inside the sidebar', async () => {
+    const onInsertReference = vi.fn();
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Library"
+        draftScopeKey={null}
+        placement="dock"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInputToolbar {...buildDefaultProps({ onInsertReference })} />
+      </ConversationComposerShellProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Agent mode: Manual' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Prompt enhancement settings' }),
+    ).toHaveTextContent('Settings');
+    const attach = screen.getByRole('button', { name: 'Attach' });
+    expect(attach).toHaveTextContent('Attach');
+    fireEvent.pointerDown(attach);
+    fireEvent.click(
+      await screen.findByRole('menuitem', {
+        name: 'Reference library content',
+      }),
+    );
+    expect(onInsertReference).toHaveBeenCalledOnce();
   });
 
   it('hides the agent-only controls but keeps Send for other hosts', () => {

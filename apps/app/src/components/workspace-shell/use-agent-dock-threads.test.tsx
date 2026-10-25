@@ -1,11 +1,12 @@
 import {
-  type AgentApiService,
+  type AgentChatMessage,
   type AgentThread,
   useAgentChatStore,
 } from '@genfeedai/agent';
-import { act, renderHook } from '@testing-library/react';
+import { AgentThreadStatus } from '@genfeedai/contracts';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NEW_CHAT_TAB_ID, useAgentDockThreads } from './use-agent-dock-threads';
+import { useAgentDockThreads } from './use-agent-dock-threads';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -13,110 +14,86 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
-
 function makeThread(id: string, title: string): AgentThread {
-  return { id, title } as AgentThread;
+  return {
+    id,
+    title,
+    contextVersion: 0,
+    status: AgentThreadStatus.ACTIVE,
+    createdAt: '2026-10-25T00:00:00Z',
+    updatedAt: '2026-10-25T00:00:00Z',
+  };
 }
-
-const apiService = {
-  getMessages: vi.fn().mockResolvedValue([]),
-} as unknown as AgentApiService;
-
-function renderThreads() {
-  return renderHook(() => useAgentDockThreads(apiService, false));
-}
-
-describe('useAgentDockThreads chat tabs', () => {
+const getMessages = vi.fn(async (): Promise<AgentChatMessage[]> => []);
+const getThreads = vi.fn(async (): Promise<AgentThread[]> => []);
+const apiService = { getMessages, getThreads } satisfies Parameters<
+  typeof useAgentDockThreads
+>[0];
+describe('useAgentDockThreads history and lifecycle', () => {
   beforeEach(() => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
-    const { setThreads } = useAgentChatStore.getState();
-    setThreads([
-      makeThread('thread-1', 'Spring launch plan'),
-      makeThread('thread-2', 'Caption ideas'),
-    ]);
+    getMessages.mockReset().mockResolvedValue([]);
+    getThreads.mockReset().mockResolvedValue([]);
+    useAgentChatStore
+      .getState()
+      .setThreads([
+        makeThread('thread-1', 'Spring launch plan'),
+        makeThread('thread-2', 'Caption ideas'),
+      ]);
   });
-
-  it('starts with the unsaved chat as its only tab', () => {
-    const { result } = renderThreads();
-
-    expect(result.current.chatTabs).toEqual([
-      { id: NEW_CHAT_TAB_ID, title: 'New chat' },
-    ]);
-  });
-
-  it('opens a tab for each chat that comes to the front, in the order opened', async () => {
-    const { result } = renderThreads();
-
-    await act(async () => {
-      await result.current.selectThread('thread-1');
-    });
-    await act(async () => {
-      await result.current.selectThread('thread-2');
-    });
-
-    expect(result.current.chatTabs).toEqual([
+  it('offers actual stored conversations without creating a parallel chat-tab model', () => {
+    const { result } = renderHook(() => useAgentDockThreads(apiService, false));
+    expect(result.current.threads).toEqual([
       { id: 'thread-1', title: 'Spring launch plan' },
       { id: 'thread-2', title: 'Caption ideas' },
     ]);
+    expect(getThreads).not.toHaveBeenCalled();
   });
-
-  it('adds the unsaved chat back after the open ones when a new thread starts', async () => {
-    const { result } = renderThreads();
-    await act(async () => {
-      await result.current.selectThread('thread-1');
-    });
-
-    act(() => result.current.startThread());
-
-    expect(result.current.chatTabs.map((tab) => tab.id)).toEqual([
-      'thread-1',
-      NEW_CHAT_TAB_ID,
-    ]);
+  it('loads real History and publishes its loading state', async () => {
+    getThreads.mockResolvedValue([makeThread('loaded', 'Loaded conversation')]);
+    const { result } = renderHook(() => useAgentDockThreads(apiService, true));
+    await waitFor(() =>
+      expect(result.current.threads).toEqual([
+        { id: 'loaded', title: 'Loaded conversation' },
+      ]),
+    );
+    expect(result.current.isThreadListLoading).toBe(false);
+    expect(getThreads).toHaveBeenCalledWith(
+      { limit: 30, status: AgentThreadStatus.ACTIVE },
+      expect.any(AbortSignal),
+    );
   });
-
-  it('moves to the neighbouring chat when the front one is closed', async () => {
-    const { result } = renderThreads();
+  it('selects the actual thread and restores cached messages when revisiting it', async () => {
+    const message: AgentChatMessage = {
+      id: 'message-1',
+      threadId: 'thread-1',
+      role: 'assistant',
+      content: 'Existing draft',
+      createdAt: '2026-10-25T00:00:00Z',
+    };
+    getMessages.mockResolvedValueOnce([message]);
+    const { result } = renderHook(() => useAgentDockThreads(apiService, false));
     await act(async () => {
       await result.current.selectThread('thread-1');
     });
     await act(async () => {
       await result.current.selectThread('thread-2');
     });
-
     await act(async () => {
-      result.current.closeChatTab('thread-2');
+      await result.current.selectThread('thread-1');
     });
-
     expect(result.current.activeThreadId).toBe('thread-1');
-    expect(result.current.chatTabs.map((tab) => tab.id)).toEqual(['thread-1']);
+    expect(useAgentChatStore.getState().messages).toEqual([message]);
+    expect(getMessages).toHaveBeenCalledTimes(2);
   });
-
-  it('falls back to an unsaved chat when the last chat is closed', async () => {
-    const { result } = renderThreads();
+  it('starts a new unsaved conversation through the existing store reset', async () => {
+    const { result } = renderHook(() => useAgentDockThreads(apiService, false));
     await act(async () => {
       await result.current.selectThread('thread-1');
     });
-
-    act(() => result.current.closeChatTab('thread-1'));
-
+    act(() => result.current.startThread());
     expect(result.current.activeThreadId).toBeNull();
-    expect(result.current.chatTabs.map((tab) => tab.id)).toEqual([
-      NEW_CHAT_TAB_ID,
-    ]);
-  });
-
-  it('keeps the front chat when a background tab is closed', async () => {
-    const { result } = renderThreads();
-    await act(async () => {
-      await result.current.selectThread('thread-1');
-    });
-    await act(async () => {
-      await result.current.selectThread('thread-2');
-    });
-
-    act(() => result.current.closeChatTab('thread-1'));
-
-    expect(result.current.activeThreadId).toBe('thread-2');
-    expect(result.current.chatTabs.map((tab) => tab.id)).toEqual(['thread-2']);
+    expect(useAgentChatStore.getState().messages).toEqual([]);
+    expect(result.current.threads).toHaveLength(2);
   });
 });

@@ -1,9 +1,12 @@
 import type { AgentPageContext as AgentRequestPageContext } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import type { MemberRole } from '@genfeedai/contracts';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 
 export interface AgentPageContextState extends AgentRequestPageContext {
   placeholder?: string;
+  dockSuggestedActions?: SuggestedAction[];
+  memberRole?: MemberRole;
   route: string;
   suggestedActions: SuggestedAction[];
 }

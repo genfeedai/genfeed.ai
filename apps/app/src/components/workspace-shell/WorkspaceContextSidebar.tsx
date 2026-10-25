@@ -23,6 +23,7 @@ type WorkspaceContextSidebarRailProps = WorkspaceContextSidebarProps & {
    * content instead of a second bar with its own collapse button.
    */
   readonly isTopbarHosted?: boolean;
+  readonly target?: 'desktop' | 'mobile';
 };
 
 const OUTLET_CLASS_NAME =
@@ -37,6 +38,7 @@ const OUTLET_CLASS_NAME =
 export function WorkspaceContextSidebarRail({
   contextSidebar,
   isTopbarHosted = false,
+  target = 'desktop',
 }: WorkspaceContextSidebarRailProps) {
   const translate = useTranslations('common.contextSidebar');
   const { selection } = contextSidebar;
@@ -81,6 +83,7 @@ export function WorkspaceContextSidebarRail({
       )}
       <ContextSidebarOutlet
         className={OUTLET_CLASS_NAME}
+        target={target}
         testId="context-sidebar-outlet"
       />
     </div>

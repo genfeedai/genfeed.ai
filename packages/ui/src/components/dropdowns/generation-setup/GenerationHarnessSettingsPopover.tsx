@@ -30,6 +30,7 @@ function SettingsContent() {
 export default function GenerationHarnessSettingsPopover({
   className,
   isDisabled,
+  label,
 }: GenerationHarnessSettingsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const translate = useTranslations('ui.generationHarness');
@@ -42,10 +43,12 @@ export default function GenerationHarnessSettingsPopover({
           tooltip={translate('settings')}
           icon={<Wand2 aria-hidden="true" className="size-4 stroke-[1.75]" />}
           isDisabled={isDisabled}
-          size={ButtonSize.ICON}
+          size={label ? ButtonSize.SM : ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
-        />
+        >
+          {label}
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"

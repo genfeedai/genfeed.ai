@@ -841,6 +841,14 @@ against the page. Menu items use ghost semantics: transparent,
 `hover:bg-hover`, active is `bg-hover text-foreground`.
 Section labels are `caption` type, uppercase, `text-muted`.
 
+The contextual agent panel has one header: Chat, Context, and History tabs,
+a labeled More menu for conversation commands, and Close. Context includes the
+current page, scope, selected records, and their existing details. Switching
+views preserves the conversation, draft, and running work. Empty sidebar actions
+use shared Card controls in a compact grid, with the same icons as their matching
+features. Sidebar composer controls use labeled Attach, mode, and Settings
+triggers. The full-page agent keeps its existing presentation.
+
 ### App Rail
 
 Persistent top-level navigation at the far left, 40px wide, the same `gray-100`

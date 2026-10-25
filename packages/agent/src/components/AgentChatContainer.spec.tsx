@@ -5,6 +5,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import {
   type AgentRunRecord,
@@ -1865,6 +1866,55 @@ describe('AgentChatContainer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reprompt' }));
     expect(onSendMessage).toHaveBeenCalledOnce();
     expect(sendNonStreaming).toHaveBeenCalled();
+  });
+
+  it('sends sidebar action cards with the exact selected record references', () => {
+    const apiService = new AgentApiService({
+      baseUrl: 'https://api.example.test',
+      getToken: async () => null,
+    });
+    vi.spyOn(apiService, 'getActiveWorkflowExecutions').mockResolvedValue([]);
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    const reference = {
+      kind: 'ingredient',
+      serializer: 'ingredient',
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      recordId: 'asset-1',
+    } satisfies import('@genfeedai/contracts/interfaces').AgentArtifactReference;
+    render(
+      <ConversationComposerShellProvider
+        artifactReferences={[{ label: 'Selected asset', reference }]}
+        brandId="brand-1"
+        contextLabel="Library"
+        draftScopeKey="library"
+        placement="dock"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer
+          apiService={apiService}
+          suggestedActions={[
+            {
+              id: 'review-selection',
+              label: 'Review selection',
+              prompt: 'Review this selected asset',
+            },
+          ]}
+        />
+      </ConversationComposerShellProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Review selection' }));
+    expect(sendNonStreaming).toHaveBeenCalledWith(
+      'Review this selected asset',
+      {
+        attachments: undefined,
+        agentMode: AgentThreadMode.MANUAL,
+        artifactReferences: [reference],
+        brandId: 'brand-1',
+      },
+    );
   });
 
   it('submits a shared suggestion chip through chat send in the empty state', async () => {

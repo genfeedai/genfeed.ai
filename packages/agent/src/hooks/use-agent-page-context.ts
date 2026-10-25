@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/agent/constants/agent-quick-prompts.constant';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { createLibraryDockSuggestions } from '@genfeedai/agent/utils/agent-dock-suggestions.util';
 import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-surface-suggestions.util';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -40,6 +41,7 @@ import { createElement, useEffect, useMemo } from 'react';
 
 interface PageContextConfig {
   suggestedActions: SuggestedAction[];
+  dockSuggestedActions?: SuggestedAction[];
   placeholder: string;
 }
 
@@ -708,6 +710,11 @@ export function useAgentPageContext(
     ).slice(0, 3);
     return {
       ...base,
+      dockSuggestedActions: contextPathname.startsWith(
+        APP_ROUTE_PREFIXES.LIBRARY,
+      )
+        ? filterActionsByRole(createLibraryDockSuggestions(), role)
+        : routeActions,
       suggestedActions: pageHelp
         ? [createPageHelpAction(pageHelp), ...routeSuggestions]
         : routeSuggestions,
@@ -717,12 +724,17 @@ export function useAgentPageContext(
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     if (currentContext?.route === pathname && currentContext.draftType) {
+      if (currentContext.memberRole !== role) {
+        setPageContext({ ...currentContext, memberRole: role });
+      }
       return;
     }
 
     setPageContext({
       ...(currentContext?.route === pathname ? currentContext : {}),
       placeholder: config.placeholder,
+      dockSuggestedActions: config.dockSuggestedActions,
+      memberRole: role,
       route: pathname,
       suggestedActions: config.suggestedActions,
     });
@@ -733,7 +745,7 @@ export function useAgentPageContext(
         setPageContext(null);
       }
     };
-  }, [pathname, config, setPageContext]);
+  }, [pathname, config, role, setPageContext]);
 
   return config;
 }

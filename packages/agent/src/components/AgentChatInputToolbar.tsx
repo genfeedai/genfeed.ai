@@ -1,4 +1,5 @@
 import { AgentModeDropdown } from '@genfeedai/agent/components/AgentModeDropdown';
+import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import type { ConversationComposerGenerationMode } from '@genfeedai/agent/models/conversation-composer.model';
 import {
   AgentGenerationMode,
@@ -10,6 +11,7 @@ import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/Promp
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import { useTranslations } from 'next-intl';
 import { memo, type ReactElement, useEffect } from 'react';
 
 export interface AgentChatInputToolbarProps {
@@ -66,6 +68,8 @@ function AgentChatInputToolbarInner({
   showStop,
   willQueueFollowUp = false,
 }: AgentChatInputToolbarProps): ReactElement {
+  const translate = useTranslations('agent.composerToolbar');
+  const isDock = useConversationComposerShell()?.placement === 'dock';
   // The Agent infers output type from the prompt itself (#4672) — there is no
   // user control for it any more, only the mode dropdown (Auto/Manual/Plan).
   useEffect(() => {
@@ -110,7 +114,8 @@ function AgentChatInputToolbarInner({
       enhance={
         isAgentControlsHidden ? null : (
           <GenerationHarnessSettingsPopover
-            className="size-8"
+            className={isDock ? undefined : 'size-8'}
+            label={isDock ? translate('settingsLabel') : undefined}
             isDisabled={disabled || showStop}
           />
         )
@@ -118,6 +123,7 @@ function AgentChatInputToolbarInner({
       reference={
         isAgentControlsHidden ? null : (
           <PromptBarReferenceControls
+            label={isDock ? translate('attachLabel') : undefined}
             isAttachmentDisabled={disabled}
             isLibraryDisabled={disabled || !hasEditor}
             onAddFiles={onAddFiles}

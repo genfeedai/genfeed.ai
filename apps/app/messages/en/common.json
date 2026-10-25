@@ -1211,7 +1211,17 @@
     "label": "Side panel",
     "newThread": "New thread",
     "openFullPage": "Open full page",
-    "tabs": "Panel tabs"
+    "tabs": "Panel tabs",
+    "chat": "Chat",
+    "context": "Context",
+    "history": "History",
+    "more": "More",
+    "closeLabel": "Close",
+    "currentPage": "Current page",
+    "scope": "Conversation scope",
+    "selection": "Selection",
+    "noSelection": "Select a record on the page to include it in the conversation.",
+    "selectedRecords": "{count, plural, one {# selected record} other {# selected records}}"
   },
   "desktop": {
     "generationCost": {

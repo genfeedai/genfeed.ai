@@ -1,19 +1,15 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AgentDockBodyOutletProps,
-  AgentDockHeaderProps,
   AgentDockProps,
 } from '@props/ui/agent-dock.props';
-import { Button } from '@ui/primitives/button';
 import {
   Drawer,
   DrawerContent,
   DrawerDescription,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import { Maximize2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -24,7 +20,6 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import AgentDockThreadMenu from './AgentDockThreadMenu';
 
 const BODY_CLASS_NAME = 'flex min-h-0 flex-1 flex-col';
 
@@ -42,66 +37,6 @@ function isPersistedReturnFocus(
     element.isConnected &&
     element !== document.body &&
     element !== document.documentElement
-  );
-}
-
-function AgentDockHeader({
-  activeThreadId,
-  isThreadListLoading = false,
-  onClose,
-  onNewThread,
-  onOpenFullPage,
-  onSelectThread,
-  threadTitle,
-  threads = [],
-  title,
-}: AgentDockHeaderProps) {
-  const translate = useTranslations('common.agentDock');
-  const hasThreadMenu = Boolean(onNewThread && onSelectThread);
-
-  return (
-    <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-      <div className="flex min-w-0 items-center gap-2">
-        {title}
-        {hasThreadMenu ? (
-          <AgentDockThreadMenu
-            activeThreadId={activeThreadId}
-            isThreadListLoading={isThreadListLoading}
-            onNewThread={onNewThread}
-            onSelectThread={onSelectThread}
-            threadTitle={threadTitle}
-            threads={threads}
-          />
-        ) : threadTitle ? (
-          <p
-            className="truncate text-xs text-muted-foreground"
-            data-testid="agent-dock-thread-title"
-          >
-            {threadTitle}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button
-          ariaLabel={translate('openFullPage')}
-          data-testid="agent-dock-full-page"
-          icon={<Maximize2 className="size-4" />}
-          onClick={onOpenFullPage}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        />
-        <Button
-          ariaLabel={translate('close')}
-          data-testid="agent-dock-close"
-          icon={<X className="size-4" />}
-          onClick={onClose}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        />
-      </div>
-    </div>
   );
 }
 
@@ -155,19 +90,15 @@ function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
  * conversation, so uploads, streams and drafts survive.
  */
 export default function AgentDock({
+  alternateContent,
   children,
   composerSlotRef,
+  header,
+  onClose,
   dock,
   isCompact,
   isTabActive = true,
-  activeThreadId,
-  isThreadListLoading = false,
-  onNewThread,
-  onOpenFullPage,
-  onSelectThread,
   scopeControls,
-  threadTitle,
-  threads,
 }: AgentDockProps) {
   const translate = useTranslations('common.agentDock');
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -179,7 +110,8 @@ export default function AgentDock({
     node.className = BODY_CLASS_NAME;
     return node;
   });
-  const { close, isOpen } = dock;
+  const { isOpen } = dock;
+  const close = onClose ?? dock.close;
   const isPresented = isOpen && (isCompact || isTabActive);
   // The panel and the sheet chrome around the body.
   const isInsideDock = useCallback(
@@ -235,22 +167,29 @@ export default function AgentDock({
         // The body is a React portal: its key events never reach the section's
         // handler, so Escape is handled here too.
         <div className="contents" onKeyDown={handleKeyDown}>
-          <div
-            className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-1 empty:hidden"
-            data-testid="agent-dock-scope"
-          >
-            {scopeControls}
-          </div>
-          {/* The transcript shrinks and scrolls. The composer keeps its own
+          <div className="flex min-h-0 flex-1 flex-col" hidden={!isTabActive}>
+            <div
+              className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-1 empty:hidden"
+              data-testid="agent-dock-scope"
+            >
+              {scopeControls}
+            </div>
+            {/* The transcript shrinks and scrolls. The composer keeps its own
               height so the panel's height cannot slice the prompt. */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {children}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              {children}
+            </div>
+            <div
+              className="flex shrink-0 flex-col px-4 pb-4 pt-2 empty:hidden"
+              data-testid="agent-dock-composer-slot"
+              ref={composerSlotRef}
+            />
           </div>
-          <div
-            className="flex shrink-0 flex-col px-4 pb-4 pt-2 empty:hidden"
-            data-testid="agent-dock-composer-slot"
-            ref={composerSlotRef}
-          />
+          {isCompact ? (
+            <div className="flex min-h-0 flex-1 flex-col" hidden={isTabActive}>
+              {alternateContent}
+            </div>
+          ) : null}
         </div>,
         bodyNode,
       )
@@ -275,21 +214,8 @@ export default function AgentDock({
             data-testid="agent-dock"
             id="workspace-agent-dock"
           >
-            <AgentDockHeader
-              activeThreadId={activeThreadId}
-              isThreadListLoading={isThreadListLoading}
-              onClose={close}
-              onNewThread={onNewThread}
-              onOpenFullPage={onOpenFullPage}
-              onSelectThread={onSelectThread}
-              threadTitle={threadTitle}
-              threads={threads}
-              title={
-                <DrawerTitle className="text-sm font-medium">
-                  {translate('title')}
-                </DrawerTitle>
-              }
-            />
+            <DrawerTitle className="sr-only">{translate('title')}</DrawerTitle>
+            {header}
             <DrawerDescription className="sr-only">
               {translate('description')}
             </DrawerDescription>

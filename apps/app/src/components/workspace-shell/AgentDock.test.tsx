@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentDock from './AgentDock';
+import WorkspacePanelTabs from './WorkspacePanelTabs';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -38,8 +39,16 @@ function renderDock(
       composerSlotRef={composerSlotRef}
       dock={dock}
       isCompact={options.isCompact ?? false}
-      onOpenFullPage={onOpenFullPage}
-      threadTitle="Spring launch plan"
+      header={
+        <WorkspacePanelTabs
+          activeTab="agent"
+          hasAgent
+          onClose={dock.close}
+          onNewThread={vi.fn()}
+          onOpenFullPage={onOpenFullPage}
+          onSelectTab={vi.fn()}
+        />
+      }
     >
       <p>Conversation transcript</p>
       <div contentEditable suppressContentEditableWarning>
@@ -74,7 +83,33 @@ function StatefulConversation() {
 
 function renderStateful(dock: AgentDockContextValue, isCompact: boolean) {
   return (
-    <AgentDock dock={dock} isCompact={isCompact} onOpenFullPage={vi.fn()}>
+    <AgentDock dock={dock} isCompact={isCompact} header={<p>Header</p>}>
+      <StatefulConversation />
+    </AgentDock>
+  );
+}
+
+function CompactViews({ dock }: { dock: AgentDockContextValue }) {
+  const [tab, setTab] = useState<'agent' | 'details' | 'history'>('agent');
+  return (
+    <AgentDock
+      dock={dock}
+      isCompact
+      isTabActive={tab === 'agent'}
+      header={
+        <WorkspacePanelTabs
+          activeTab={tab}
+          hasAgent
+          onClose={dock.close}
+          onNewThread={vi.fn()}
+          onOpenFullPage={vi.fn()}
+          onSelectTab={setTab}
+        />
+      }
+      alternateContent={
+        <p>{tab === 'history' ? 'Real history view' : 'Actual context view'}</p>
+      }
+    >
       <StatefulConversation />
     </AgentDock>
   );
@@ -96,7 +131,7 @@ describe('AgentDock', () => {
       <AgentDock
         dock={buildDock()}
         isCompact={false}
-        onOpenFullPage={vi.fn()}
+        header={<p>Header</p>}
         scopeControls={<span>Acme · Moonrise</span>}
       >
         <p>Conversation transcript</p>
@@ -126,7 +161,7 @@ describe('AgentDock', () => {
         dock={buildDock()}
         isCompact={false}
         isTabActive={false}
-        onOpenFullPage={vi.fn()}
+        header={<p>Header</p>}
       >
         <p>Conversation transcript</p>
       </AgentDock>,
@@ -154,7 +189,7 @@ describe('AgentDock', () => {
       <AgentDock
         dock={{ ...dock, isOpen: false }}
         isCompact={false}
-        onOpenFullPage={vi.fn()}
+        header={<p>Header</p>}
       >
         <div contentEditable suppressContentEditableWarning>
           composer
@@ -179,7 +214,7 @@ describe('AgentDock', () => {
     }
   });
 
-  it('renders as a bottom sheet below xl', () => {
+  it('renders the unified header in the bottom sheet below xl', async () => {
     const dock = buildDock();
     const { onOpenFullPage } = renderDock(dock, { isCompact: true });
 
@@ -187,10 +222,15 @@ describe('AgentDock', () => {
     expect(sheet).toHaveTextContent('Conversation transcript');
     expect(screen.queryByRole('separator')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
+    fireEvent.keyDown(screen.getByRole('button', { name: 'More' }), {
+      key: 'Enter',
+    });
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Open full page' }),
+    );
     expect(onOpenFullPage).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close agent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
     expect(dock.close).toHaveBeenCalled();
   });
 
@@ -231,7 +271,7 @@ describe('AgentDock', () => {
         dock={dock}
         isCompact={false}
         isTabActive={false}
-        onOpenFullPage={vi.fn()}
+        header={<p>Header</p>}
       >
         <StatefulConversation />
       </AgentDock>,
@@ -260,45 +300,23 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('switches threads and starts a new one from the sheet header menu', async () => {
-    const onNewThread = vi.fn();
-    const onSelectThread = vi.fn();
-    render(
-      <AgentDock
-        activeThreadId="thread-1"
-        dock={buildDock()}
-        isCompact
-        onNewThread={onNewThread}
-        onOpenFullPage={vi.fn()}
-        onSelectThread={onSelectThread}
-        threads={[
-          { id: 'thread-1', title: 'Spring launch plan' },
-          { id: 'thread-2', title: 'Make three stronger variations' },
-        ]}
-      >
-        <p>Conversation transcript</p>
-      </AgentDock>,
-    );
-
-    fireEvent.keyDown(
-      screen.getByRole('button', { name: 'Spring launch plan' }),
-      { key: 'Enter' },
-    );
-    fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'New thread' }),
-    );
-    expect(onNewThread).toHaveBeenCalledTimes(1);
-
-    fireEvent.keyDown(
-      screen.getByRole('button', { name: 'Spring launch plan' }),
-      { key: 'Enter' },
-    );
-    fireEvent.click(
-      await screen.findByRole('menuitem', {
-        name: 'Make three stronger variations',
-      }),
-    );
-    expect(onSelectThread).toHaveBeenCalledWith('thread-2');
+  it('keeps one compact header and the same draft across Context and History views', () => {
+    lifecycle.mounts = 0;
+    lifecycle.unmounts = 0;
+    const dock = buildDock();
+    render(<CompactViews dock={dock} />);
+    expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Draft: empty' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Context' }));
+    expect(screen.getByText('Actual context view')).toBeVisible();
+    expect(screen.getByText('Draft: half-written')).not.toBeVisible();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'History' }));
+    expect(screen.getByText('Real history view')).toBeVisible();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Chat' }));
+    expect(
+      screen.getByRole('button', { name: 'Draft: half-written' }),
+    ).toBeVisible();
+    expect(lifecycle).toEqual({ mounts: 1, unmounts: 0 });
   });
 
   it('keeps focus in the conversation when it moves across the breakpoint', () => {

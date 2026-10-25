@@ -10,123 +10,75 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
-
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/moonrise/workspace',
   useSearchParams: () => new URLSearchParams(),
 }));
-
 function renderTabs(overrides: Partial<WorkspacePanelTabsProps> = {}) {
   const props: WorkspacePanelTabsProps = {
-    activeChatId: 'thread-1',
     activeTab: 'agent',
-    chatTabs: [
-      { id: 'thread-1', title: 'Spring launch plan' },
-      { id: 'thread-2', title: 'Caption ideas' },
-    ],
-    hasDetails: true,
+    hasAgent: true,
     onClose: vi.fn(),
-    onCloseChat: vi.fn(),
     onNewThread: vi.fn(),
     onOpenFullPage: vi.fn(),
-    onSelectChat: vi.fn(),
     onSelectTab: vi.fn(),
-    threadMenu: {},
     ...overrides,
   };
-
   return { ...render(<WorkspacePanelTabs {...props} />), props };
 }
-
 describe('WorkspacePanelTabs', () => {
-  it('lists every open chat and Details, and marks the one in front', () => {
+  it('has one header with stable named views and labeled actions', () => {
     renderTabs();
-
-    expect(screen.getByRole('tablist', { name: 'Panel tabs' })).toBeVisible();
-    expect(
-      screen.getByRole('tab', { name: 'Spring launch plan' }),
-    ).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Caption ideas' })).toHaveAttribute(
-      'aria-selected',
-      'false',
-    );
-    expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute(
-      'aria-selected',
-      'false',
-    );
-  });
-
-  it('puts Details in front when it is the active tab', () => {
-    renderTabs({ activeTab: 'details' });
-
-    expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute(
+    expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'Chat',
+      'Context',
+      'History',
+    ]);
+    expect(screen.getByRole('tab', { name: 'Chat' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    expect(
-      screen.getByRole('tab', { name: 'Spring launch plan' }),
-    ).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('button', { name: 'More' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Close panel' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'New thread' })).toBeNull();
   });
-
-  it('selects a chat or Details on press', () => {
+  it('selects Context and History without selecting a conversation', () => {
     const { props } = renderTabs();
-
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Caption ideas' }));
-    expect(props.onSelectChat).toHaveBeenCalledWith('thread-2');
-
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Details' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Context' }));
     expect(props.onSelectTab).toHaveBeenCalledWith('details');
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'History' }));
+    expect(props.onSelectTab).toHaveBeenCalledWith('history');
   });
-
-  it('closes a chat from its own control without selecting it', () => {
-    const { props } = renderTabs();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Close Caption ideas' }),
-    );
-
-    expect(props.onCloseChat).toHaveBeenCalledWith('thread-2');
-    expect(props.onSelectChat).not.toHaveBeenCalled();
-  });
-
-  it('offers no close control while the only chat is unsaved', () => {
-    renderTabs({
-      activeChatId: 'new',
-      chatTabs: [{ id: 'new', title: 'New chat' }],
-      hasDetails: false,
-      onCloseChat: undefined,
-    });
-
-    expect(screen.getByRole('tab', { name: 'New chat' })).toHaveAttribute(
+  it('marks History active and still offers Chat and empty Context', () => {
+    renderTabs({ activeTab: 'history' });
+    expect(screen.getByRole('tab', { name: 'History' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    expect(
-      screen.queryByRole('button', { name: /^Close New chat/ }),
-    ).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Context' })).toBeVisible();
   });
-
-  it('only lists Details when the shell hosts no agent', () => {
-    renderTabs({ activeTab: 'details', chatTabs: [] });
-
-    expect(screen.getAllByRole('tab')).toHaveLength(1);
-    expect(screen.getByRole('tab', { name: 'Details' })).toBeVisible();
-    expect(screen.queryByTestId('workspace-panel-new-thread')).toBeNull();
-  });
-
-  it('starts a chat and opens the full page from the agent controls', () => {
+  it('starts a conversation and hands off full-page from the shared More menu', async () => {
     const { props } = renderTabs();
-
-    fireEvent.click(screen.getByRole('button', { name: 'New thread' }));
+    fireEvent.keyDown(screen.getByRole('button', { name: 'More' }), {
+      key: 'Enter',
+    });
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'New thread' }),
+    );
     expect(props.onNewThread).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
+    fireEvent.keyDown(screen.getByRole('button', { name: 'More' }), {
+      key: 'Enter',
+    });
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Open full page' }),
+    );
     expect(props.onOpenFullPage).toHaveBeenCalledTimes(1);
   });
-
-  it('hides the full page control while Details is in front, and still closes the panel', () => {
-    const { props } = renderTabs({ activeTab: 'details' });
-
-    expect(screen.queryByTestId('workspace-panel-full-page')).toBeNull();
+  it('keeps selection-only surfaces focused on Context', () => {
+    const { props } = renderTabs({ activeTab: 'details', hasAgent: false });
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'More' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
     expect(props.onClose).toHaveBeenCalledTimes(1);
   });

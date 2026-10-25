@@ -1,6 +1,8 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
+import { BotMessageSquare } from 'lucide-react';
 import { type ReactElement, useMemo } from 'react';
 
 interface AgentChatSuggestionsBarProps {
@@ -37,6 +39,31 @@ export function AgentChatSuggestionsBar({
     return null;
   }
 
+  if (layout === 'dock') {
+    return (
+      <div
+        aria-label="Prompt suggestions"
+        className="grid w-full min-w-0 grid-cols-2 gap-2"
+        role="toolbar"
+      >
+        {normalized.slice(0, 4).map((action) => (
+          <Card
+            key={action.id}
+            bodyClassName="h-full p-3 [&>div]:flex-col [&>div]:gap-2"
+            className="min-h-28 min-w-0 normal-case"
+            description={action.description}
+            icon={action.icon ?? <BotMessageSquare className="size-4" />}
+            iconWrapperClassName="text-muted-foreground"
+            isDisabled={isReadOnly}
+            isLabelWrapped
+            label={action.label}
+            onClick={() => onSend(action.prompt)}
+          />
+        ))}
+      </div>
+    );
+  }
+
   // Short follow-up labels (e.g. post-analytics "Create a remix") are
   // one-liner chips — PostHog-style. Cards only when any item has a
   // multi-line description worth the taller tile.
@@ -53,20 +80,18 @@ export function AgentChatSuggestionsBar({
       }}
       isDisabled={isReadOnly}
       maxSuggestions={4}
-      variant={hasDescriptions && layout !== 'dock' ? 'cards' : 'chips'}
+      variant={hasDescriptions ? 'cards' : 'chips'}
       className={
-        layout === 'dock'
-          ? 'justify-start'
-          : layout === 'equal' && !hasDescriptions
-            ? cn(
-                'grid grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
-                // A fourth tile (the leading "About this page" action) gets
-                // its own column instead of orphaning onto a second row.
-                normalized.length > 3
-                  ? 'sm:grid-cols-2 lg:grid-cols-4'
-                  : 'sm:grid-cols-3',
-              )
-            : undefined
+        layout === 'equal' && !hasDescriptions
+          ? cn(
+              'grid grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
+              // A fourth tile (the leading "About this page" action) gets
+              // its own column instead of orphaning onto a second row.
+              normalized.length > 3
+                ? 'sm:grid-cols-2 lg:grid-cols-4'
+                : 'sm:grid-cols-3',
+            )
+          : undefined
       }
     />
   );

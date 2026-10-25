@@ -49,22 +49,12 @@ export interface AgentDockThreadOption {
   readonly title: string;
 }
 
-/** Thread picker shared by the panel tabs and the compact sheet header. */
-export interface AgentDockThreadMenuProps {
+/** The real conversation list shown in the History view. */
+export interface AgentDockHistoryProps {
   readonly activeThreadId?: string | null;
   readonly isThreadListLoading?: boolean;
-  /** Renders the picker as a history icon, for a strip that already names chats. */
-  readonly isTriggerIconOnly?: boolean;
-  readonly onNewThread?: () => void;
   readonly onSelectThread?: (threadId: string) => void;
-  readonly threadTitle?: string | null;
   readonly threads?: readonly AgentDockThreadOption[];
-}
-
-export interface AgentDockHeaderProps extends AgentDockThreadMenuProps {
-  readonly onClose: () => void;
-  readonly onOpenFullPage: () => void;
-  readonly title: ReactNode;
 }
 
 export interface AgentDockBodyOutletProps {
@@ -76,7 +66,12 @@ export interface AgentDockProviderProps {
   readonly children: ReactNode;
 }
 
-export interface AgentDockProps extends AgentDockThreadMenuProps {
+export interface AgentDockProps {
+  /** The same unified header used by the desktop sidebar. */
+  readonly header: ReactNode;
+  readonly onClose?: () => void;
+  /** Context or History body for the compact sheet; conversation stays mounted. */
+  readonly alternateContent?: ReactNode;
   /** The conversation; `null` until the dock has been opened once. */
   readonly children: ReactNode;
   /** Receives the composer slot; `undefined` while an overlay owns the composer. */
@@ -89,7 +84,6 @@ export interface AgentDockProps extends AgentDockThreadMenuProps {
   readonly isTabActive?: boolean;
   /** Below `xl` the panel renders as a bottom sheet. */
   readonly isCompact: boolean;
-  readonly onOpenFullPage: () => void;
   /** Organization and brand scope for the conversation, plus page context chips. */
   readonly scopeControls?: ReactNode;
 }

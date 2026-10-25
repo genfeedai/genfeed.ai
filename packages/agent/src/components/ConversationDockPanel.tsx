@@ -1,6 +1,8 @@
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { resolveAgentDockSuggestions } from '@genfeedai/agent/utils/agent-dock-suggestions.util';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -31,7 +33,12 @@ export function ConversationDockPanel({
 }: ConversationDockPanelProps): ReactElement {
   const translate = useTranslations('agent.dock');
   const pageContext = useAgentChatStore((state) => state.pageContext);
-  const suggestedActions = pageContext?.suggestedActions ?? [];
+  const composerShell = useConversationComposerShell();
+  const suggestedActions = resolveAgentDockSuggestions(
+    composerShell?.artifactReferences,
+    pageContext?.dockSuggestedActions ?? pageContext?.suggestedActions ?? [],
+    pageContext?.memberRole,
+  );
   const placeholder =
     pageContext?.placeholder?.trim() || translate('placeholder');
 

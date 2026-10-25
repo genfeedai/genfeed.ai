@@ -49,6 +49,31 @@ describe('useAgentPageContext', () => {
     expect(result.current.suggestedActions).toHaveLength(3);
   });
 
+  it('publishes separate icon-backed Library actions for the sidebar', () => {
+    renderAt('/acme/main/library/assets', MemberRole.CREATOR);
+    const context = useAgentChatStore.getState().pageContext;
+    expect(
+      context?.dockSuggestedActions?.map((action) => action.label),
+    ).toEqual([
+      'Find an asset',
+      'Organize library',
+      'Draft a post',
+      'Review recent assets',
+    ]);
+    expect(context?.dockSuggestedActions?.every((action) => action.icon)).toBe(
+      true,
+    );
+  });
+
+  it('filters sidebar Library creation commands for a read-only member', () => {
+    renderAt('/acme/main/library/assets', MemberRole.USER);
+    const context = useAgentChatStore.getState().pageContext;
+    expect(context?.memberRole).toBe(MemberRole.USER);
+    expect(
+      context?.dockSuggestedActions?.map((action) => action.label),
+    ).toEqual(['Find an asset', 'Review recent assets']);
+  });
+
   describe('page help', () => {
     const help: PageHelpContent = {
       body: 'Browse and organize every image and video you have made.',
@@ -171,8 +196,11 @@ describe('useAgentPageContext', () => {
       },
     });
 
-    renderHook(() => useAgentPageContext());
+    renderHook(() => useAgentPageContext(MemberRole.CREATOR));
 
+    expect(useAgentChatStore.getState().pageContext?.memberRole).toBe(
+      MemberRole.CREATOR,
+    );
     expect(useAgentChatStore.getState().pageContext?.placeholder).toBe(
       'Keep me',
     );

@@ -103,13 +103,12 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
-import { NEW_CHAT_TAB_ID, useAgentDockThreads } from './use-agent-dock-threads';
+import AgentDockHistory from './AgentDockHistory';
+import { useAgentDockThreads } from './use-agent-dock-threads';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
-import {
-  WorkspaceContextSidebarDrawerBody,
-  WorkspaceContextSidebarRail,
-} from './WorkspaceContextSidebar';
+import WorkspaceAgentContext from './WorkspaceAgentContext';
+import { WorkspaceContextSidebarDrawerBody } from './WorkspaceContextSidebar';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 import WorkspacePanelTabs from './WorkspacePanelTabs';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
@@ -652,12 +651,10 @@ function UniversalWorkspaceShellContent({
   const isPanelOpen = isInspectorOpen || isAgentPanelOpen;
   const [panelTabPreference, setPanelTabPreference] =
     useState<WorkspacePanelTab>('agent');
+  const requestedPanelTabRef = useRef<WorkspacePanelTab | null>(null);
+  const isMobileContextOpen = activeContextSidebar?.isMobileOpen ?? false;
   const activePanelTab: WorkspacePanelTab =
-    isAgentPanelOpen && isInspectorOpen
-      ? panelTabPreference
-      : isInspectorOpen
-        ? 'details'
-        : 'agent';
+    isAgentDockHost && isAgentDockOpen ? panelTabPreference : 'details';
   const selectionKey = activeContextSidebar?.selection
     ? `${activeContextSidebar.selection.kind}:${activeContextSidebar.selection.id}`
     : null;
@@ -665,52 +662,71 @@ function UniversalWorkspaceShellContent({
   // A new selection brings the Details tab forward; opening the agent brings
   // the conversation forward.
   useEffect(() => {
-    if (selectionKey && isInspectorOpen) {
+    if (selectionKey && (isInspectorOpen || isMobileContextOpen)) {
       setPanelTabPreference('details');
     }
-  }, [isInspectorOpen, selectionKey]);
+  }, [isInspectorOpen, isMobileContextOpen, selectionKey]);
 
   useEffect(() => {
     if (isAgentDockOpen) {
-      setPanelTabPreference('agent');
+      setPanelTabPreference(
+        requestedPanelTabRef.current ??
+          (isCompactViewport && isMobileContextOpen ? 'details' : 'agent'),
+      );
+      requestedPanelTabRef.current = null;
     }
-  }, [isAgentDockOpen]);
+  }, [isAgentDockOpen, isCompactViewport, isMobileContextOpen]);
+
+  useEffect(() => {
+    if (isCompactViewport && isAgentDockHost && isMobileContextOpen) {
+      openAgentDock?.();
+    }
+  }, [isAgentDockHost, isCompactViewport, isMobileContextOpen, openAgentDock]);
 
   const handleSelectPanelTab = useCallback(
     (tab: WorkspacePanelTab) => {
-      if (tab === 'agent') {
+      if (isAgentDockHost) {
+        requestedPanelTabRef.current = isAgentDockOpen ? null : tab;
         openAgentDock?.();
-      } else if (!isInspectorOpen) {
-        // Details can be offered for a collapsed selection: open it.
-        activeContextSidebar?.reveal();
       }
+      if (
+        tab === 'details' &&
+        (!isInspectorOpen || (isCompactViewport && !isMobileContextOpen))
+      )
+        activeContextSidebar?.reveal();
       setPanelTabPreference(tab);
     },
-    [activeContextSidebar, isInspectorOpen, openAgentDock],
+    [
+      activeContextSidebar,
+      isAgentDockHost,
+      isAgentDockOpen,
+      isCompactViewport,
+      isInspectorOpen,
+      isMobileContextOpen,
+      openAgentDock,
+    ],
   );
 
   const selectDockThread = dockThreads.selectThread;
-  const handleSelectChat = useCallback(
-    (chatId: string) => {
+  const handleSelectThread = useCallback(
+    (threadId: string) => {
       openAgentDock?.();
       setPanelTabPreference('agent');
-      if (chatId !== NEW_CHAT_TAB_ID) {
-        void selectDockThread(chatId);
-      }
+      void selectDockThread(threadId);
     },
     [openAgentDock, selectDockThread],
   );
-  // The lone unsaved chat has nothing to close; any other chat can go.
-  const hasClosableChat =
-    dockThreads.chatTabs.length > 1 ||
-    dockThreads.chatTabs[0]?.id !== NEW_CHAT_TAB_ID;
-
   const handleClosePanel = useCallback(() => {
     closeAgentDock?.();
-    if (isInspectorOpen) {
+    if (isInspectorOpen || isMobileContextOpen) {
       activeContextSidebar?.close();
     }
-  }, [activeContextSidebar, closeAgentDock, isInspectorOpen]);
+  }, [
+    activeContextSidebar,
+    closeAgentDock,
+    isInspectorOpen,
+    isMobileContextOpen,
+  ]);
 
   useEffect(() => {
     if (!setIsAgentDockAvailable) {
@@ -1065,6 +1081,60 @@ function UniversalWorkspaceShellContent({
     [resolveInspectorWidth],
   );
 
+  const panelHeader = (
+    <WorkspacePanelTabs
+      activeTab={activePanelTab}
+      hasAgent={isAgentDockHost}
+      onClose={handleClosePanel}
+      onNewThread={() => {
+        dockThreads.startThread();
+        handleSelectPanelTab('agent');
+      }}
+      onOpenFullPage={handleOpenFullConversation}
+      onSelectTab={handleSelectPanelTab}
+    />
+  );
+  const alternatePanelContent = (
+    <>
+      <div
+        aria-label={translateSidePanel('context')}
+        className="flex min-h-0 flex-1 flex-col"
+        hidden={activePanelTab !== 'details'}
+        id="workspace-details-panel"
+        role="tabpanel"
+      >
+        <WorkspaceAgentContext
+          contextSidebar={contextSidebar}
+          pageLabel={effectiveShellContextLabel}
+          referenceCount={
+            (
+              surfaceReferences ??
+              resolvedWorkspaceSurfaceAdapter?.artifactReferences
+            )?.length ?? 0
+          }
+          scopeLabel={conversationScope.contextLabel}
+          target={isCompactViewport ? 'mobile' : 'desktop'}
+        />
+      </div>
+      {isAgentDockHost ? (
+        <div
+          aria-label={translateSidePanel('history')}
+          className="flex min-h-0 flex-1 flex-col"
+          hidden={activePanelTab !== 'history'}
+          id="workspace-history-panel"
+          role="tabpanel"
+        >
+          <AgentDockHistory
+            activeThreadId={dockThreads.activeThreadId}
+            isThreadListLoading={dockThreads.isThreadListLoading}
+            onSelectThread={handleSelectThread}
+            threads={dockThreads.threads}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <ConversationComposerShellProvider
       artifactReferences={
@@ -1228,30 +1298,7 @@ function UniversalWorkspaceShellContent({
                 width: expandedInspectorWidth,
               }}
             >
-              <WorkspacePanelTabs
-                activeChatId={dockThreads.activeThreadId ?? NEW_CHAT_TAB_ID}
-                activeTab={activePanelTab}
-                chatTabs={isAgentDockHost ? dockThreads.chatTabs : []}
-                hasDetails={Boolean(activeContextSidebar)}
-                onClose={handleClosePanel}
-                onCloseChat={
-                  hasClosableChat ? dockThreads.closeChatTab : undefined
-                }
-                onNewThread={dockThreads.startThread}
-                onOpenFullPage={handleOpenFullConversation}
-                onSelectChat={handleSelectChat}
-                onSelectTab={handleSelectPanelTab}
-                threadMenu={{
-                  activeThreadId: dockThreads.activeThreadId,
-                  isThreadListLoading: dockThreads.isThreadListLoading,
-                  onNewThread: dockThreads.startThread,
-                  onSelectThread: (threadId) => {
-                    void dockThreads.selectThread(threadId);
-                  },
-                  threadTitle: activeThread?.title,
-                  threads: dockThreads.threads,
-                }}
-              />
+              {isCompactViewport ? null : panelHeader}
               {isAgentDockHost && agentDock ? (
                 <AgentDock
                   composerSlotRef={
@@ -1260,13 +1307,9 @@ function UniversalWorkspaceShellContent({
                   dock={agentDock}
                   isCompact={isCompactViewport}
                   isTabActive={activePanelTab === 'agent'}
-                  activeThreadId={dockThreads.activeThreadId}
-                  isThreadListLoading={dockThreads.isThreadListLoading}
-                  onNewThread={dockThreads.startThread}
-                  onOpenFullPage={handleOpenFullConversation}
-                  onSelectThread={(threadId) => {
-                    void dockThreads.selectThread(threadId);
-                  }}
+                  alternateContent={alternatePanelContent}
+                  header={panelHeader}
+                  onClose={handleClosePanel}
                   // Organization and brand are switched from the shell chrome;
                   // the panel only surfaces scope notices and page context.
                   scopeControls={
@@ -1276,34 +1319,21 @@ function UniversalWorkspaceShellContent({
                       {effectiveSurfaceAdapter?.composerContext}
                     </>
                   }
-                  threadTitle={activeThread?.title}
-                  threads={dockThreads.threads}
                 >
                   {hasOpenedAgentDock ? (
                     <ConversationDockPanel apiService={agentApiService} />
                   ) : null}
                 </AgentDock>
               ) : null}
-              {contextSidebar ? (
-                <div
-                  aria-label={translateSidePanel('details')}
-                  className="flex min-h-0 flex-1 flex-col"
-                  hidden={!activeContextSidebar || activePanelTab !== 'details'}
-                  id="workspace-details-panel"
-                  role="tabpanel"
-                >
-                  <WorkspaceContextSidebarRail
-                    contextSidebar={contextSidebar}
-                    isTopbarHosted
-                  />
-                </div>
-              ) : null}
+              {isCompactViewport ? null : alternatePanelContent}
             </div>
           </aside>
         </div>
 
         <Drawer
-          open={activeContextSidebar?.isMobileOpen ?? false}
+          open={
+            !isAgentDockHost && (activeContextSidebar?.isMobileOpen ?? false)
+          }
           onOpenChange={(isOpen: boolean) => {
             // Dismissing the drawer is the mobile close: it deselects, so
             // tapping the item again reopens it.
