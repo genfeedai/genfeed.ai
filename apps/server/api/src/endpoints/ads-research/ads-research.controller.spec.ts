@@ -157,7 +157,10 @@ describe('AdsResearchController', () => {
       expect(ingestionService.pollWatchedAdvertiser).toHaveBeenCalledWith(
         organizationId,
         expect.any(String),
-        { brandId },
+        {
+          brandId,
+          principal: expect.objectContaining({ organizationId, userId }),
+        },
       );
       expect(result).toMatchObject({ recordCount: 3, status: 'success' });
     });

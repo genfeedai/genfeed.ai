@@ -57,6 +57,24 @@ describe('AutonomousProducerInstallService', () => {
       });
   });
 
+  it('installs the daily competitor ad research workflow for its producer', async () => {
+    const s = setup();
+
+    const outcomes = await s.service.installOnOptIn({
+      organizationId: 'org-1',
+      principal,
+      producer: 'paidCreativeResearch',
+    });
+
+    expect(outcomes).toEqual({ 'paid-creative-research-ingestion': 'installed' });
+    expect(s.catalog.install).toHaveBeenCalledWith({
+      canonicalId: 'paid-creative-research-ingestion',
+      organizationId: 'org-1',
+      schedulePrincipal: principal,
+      userId: 'user-1',
+    });
+  });
+
   it('keeps an existing row, including a paused or deleted one, untouched', async () => {
     const s = setup();
     s.prisma.workflow.findFirst.mockResolvedValue({ id: 'paused-clone' });

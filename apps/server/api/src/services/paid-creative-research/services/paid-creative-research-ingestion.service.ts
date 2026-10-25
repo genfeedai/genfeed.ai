@@ -1,6 +1,8 @@
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import { buildPaidCreativeReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
+import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   PaidCreativeIngestionErrorCode,
@@ -77,6 +79,7 @@ export class PaidCreativeResearchIngestionService {
     private readonly loggerService: LoggerService,
     private readonly providerRegistry: PaidCreativeProviderRegistry,
     private readonly researchAccessService: ResearchAccessService,
+    private readonly autonomousProducerInstallService: AutonomousProducerInstallService,
   ) {}
 
   assertCollectionAccess(
@@ -104,6 +107,7 @@ export class PaidCreativeResearchIngestionService {
    * Poll one watched advertiser on demand, outside the scheduled workflow.
    *
    * Scoped to the caller's organization (and brand when the session has one).
+   * With a `principal`, a successful poll also installs the daily workflow.
    * Any attempt, including a blocked or failed one, starts a 10-minute
    * cooldown: a fetch that fails can still have spent an archive actor, and
    * the claim is taken before the fetch so concurrent requests cannot all run.
@@ -111,7 +115,7 @@ export class PaidCreativeResearchIngestionService {
   async pollWatchedAdvertiser(
     organizationId: string,
     advertiserId: string,
-    scope: { brandId?: string } = {},
+    scope: { brandId?: string; principal?: WorkflowSchedulePrincipal } = {},
   ): Promise<PaidCreativeIngestionResult> {
     const advertiser = (await this.adWatchedAdvertisersService.findOne({
       id: advertiserId,
@@ -138,7 +142,36 @@ export class PaidCreativeResearchIngestionService {
       );
     }
 
-    return this.ingestOne(organizationId, advertiser, {});
+    const result = await this.ingestOne(organizationId, advertiser, {});
+    if (result.status === 'success' && scope.principal) {
+      await this.installDailyPolling(organizationId, scope.principal);
+    }
+
+    return result;
+  }
+
+  /**
+   * A successful poll proves the organization is activated (collection access
+   * passed), so it opts the organization in to the daily check. An existing
+   * install, including a paused or deleted one, is kept as the tenant left it,
+   * and a failed install never fails the poll.
+   */
+  private async installDailyPolling(
+    organizationId: string,
+    principal: WorkflowSchedulePrincipal,
+  ): Promise<void> {
+    try {
+      await this.autonomousProducerInstallService.installOnOptIn({
+        organizationId,
+        principal,
+        producer: 'paidCreativeResearch',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.logContext} daily polling install failed for ${organizationId}`,
+        error,
+      );
+    }
   }
 
   async ingestOne(

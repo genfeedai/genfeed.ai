@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AdsDiscoveryService } from '@api/endpoints/ads-research/ads-discovery.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
@@ -110,7 +111,10 @@ export class AdsResearchController {
     return this.paidCreativeResearchIngestionService.pollWatchedAdvertiser(
       user.organizationId,
       id,
-      { brandId: user.brandId ?? undefined },
+      {
+        brandId: user.brandId ?? undefined,
+        principal: toWorkflowSchedulePrincipal(user),
+      },
     );
   }
 
