@@ -3,6 +3,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
+// Cloud build only: see playwright-full-nightly.yml (e2e-cloud-billing).
 test('a failed credit balance explains the failure and recovers without checkout', async ({
   authenticatedPage: page,
 }, testInfo) => {

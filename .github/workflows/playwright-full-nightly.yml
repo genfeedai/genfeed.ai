@@ -92,6 +92,19 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
+      # Artifact downloads are not always reachable from where failures are
+      # triaged, so surface the page snapshot Playwright wrote for each failure.
+      - name: Print failure snapshots (full shard ${{ matrix.shard }})
+        if: failure()
+        run: |
+          for f in playwright/artifacts/results/*/error-context.md; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            head -c 4000 "$f"
+            echo
+            echo "::endgroup::"
+          done
+
       - name: Upload shard JSON inventory
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -115,6 +128,59 @@ jobs:
         if: always()
         with:
           name: playwright-full-results-${{ matrix.shard }}
+          path: playwright/artifacts/results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  e2e-cloud-billing:
+    name: Playwright Cloud billing cohort
+    needs: [discover]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The full tier builds the Community default, where credit reads are gated
+      # behind hasOrganizationBillingHint(). The billing specs need the
+      # canonical Cloud flag, so they run against their own Cloud build.
+      - name: Build Cloud app for Playwright
+        uses: ./.github/actions/setup-playwright-app
+        with:
+          genfeed-cloud: 'true'
+          better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+
+      - name: Run Cloud billing specs
+        run: bunx playwright test --config=playwright/configs/playwright.config.ts --project=app-core --reporter=list --trace retain-on-failure playwright/e2e/tests/cloud
+        env:
+          CI: true
+          APP_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
+          E2E_EXPECT_TIMEOUT_MS: "15000"
+          E2E_RETRIES: "0"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+
+      # Artifact downloads are not always reachable from where failures are
+      # triaged, so surface the page snapshot Playwright wrote for each failure.
+      - name: Print Cloud billing failure snapshots
+        if: failure()
+        run: |
+          for f in playwright/artifacts/results/*/error-context.md; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            head -c 4000 "$f"
+            echo
+            echo "::endgroup::"
+          done
+
+      - name: Upload Cloud billing traces and screenshots
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: playwright-cloud-billing-results
           path: playwright/artifacts/results/
           retention-days: 7
           if-no-files-found: ignore
@@ -232,12 +298,14 @@ jobs:
 
   nightly-failure-report:
     name: Report nightly Playwright full-tier failure
-    needs: [e2e-frontend-full, summarize]
+    needs: [e2e-frontend-full, e2e-cloud-billing, summarize]
     if: >-
       !cancelled()
       && github.event_name == 'schedule'
       && (needs.e2e-frontend-full.result == 'failure'
         || needs.e2e-frontend-full.result == 'cancelled'
+        || needs.e2e-cloud-billing.result == 'failure'
+        || needs.e2e-cloud-billing.result == 'cancelled'
         || needs.summarize.result == 'failure'
         || needs.summarize.result == 'cancelled')
     concurrency:
@@ -343,13 +411,27 @@ jobs:
                 job.name === 'Write full-tier inventory' &&
                 ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
             );
+            const failedCloudJobs = jobs.filter(
+              (job) =>
+                job.name === 'Playwright Cloud billing cohort' &&
+                ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            const failedLaneJobs = [
+              ...failedShards.map((job) => ({
+                ...job,
+                trackerJob: 'e2e-frontend-full',
+                fallbackExcerpt,
+              })),
+              ...failedCloudJobs.map((job) => ({
+                ...job,
+                trackerJob: 'e2e-cloud-billing',
+                fallbackExcerpt:
+                  'The Cloud billing cohort failed: see the job log for the failing scenario.',
+              })),
+            ];
             const jobsForTracking =
-              failedShards.length > 0
-                ? failedShards.map((job) => ({
-                    ...job,
-                    trackerJob: 'e2e-frontend-full',
-                    fallbackExcerpt,
-                  }))
+              failedLaneJobs.length > 0
+                ? failedLaneJobs
                 : summaryJobs.map((job) => ({
                     ...job,
                     trackerJob: 'summarize',
@@ -380,11 +462,12 @@ jobs:
 
   nightly-recovery-report:
     name: Record nightly Playwright full-tier recovery
-    needs: [e2e-frontend-full, summarize]
+    needs: [e2e-frontend-full, e2e-cloud-billing, summarize]
     if: >-
       !cancelled()
       && github.event_name == 'schedule'
       && needs.e2e-frontend-full.result == 'success'
+      && needs.e2e-cloud-billing.result == 'success'
       && needs.summarize.result == 'success'
     concurrency:
       group: nightly-playwright-full-failure-reporter

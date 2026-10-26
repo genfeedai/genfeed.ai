@@ -19,12 +19,6 @@ export class CalendarPage {
   readonly mainContent: Locator;
   readonly loadingFallback: Locator;
 
-  // Content-type filter. Posts vs Articles is a `type` query-param filter
-  // on the unified content library toolbar now, not a separate calendar tab
-  // -- the toolbar stays mounted (via PostsLayoutContext) even in calendar
-  // view. See #5381.
-  readonly contentTypeFilterTrigger: Locator;
-
   readonly calendarGrid: Locator;
   readonly calendarEvent: Locator;
   readonly calendarDayCell: Locator;
@@ -53,12 +47,6 @@ export class CalendarPage {
     this.mainContent = page.locator('main, [data-testid="main-content"]');
     this.loadingFallback = page.locator(
       '[data-testid="loading"], .loading, .spinner',
-    );
-
-    // Posts calendar is canonical. Articles are a type-filtered view of the
-    // unified Publishing content library, selected from this Select.
-    this.contentTypeFilterTrigger = page.locator(
-      'button[role="combobox"][aria-label="Content type"]',
     );
 
     // Calendar grid elements
@@ -166,24 +154,6 @@ export class CalendarPage {
     );
   }
 
-  // ── Content-type filter interactions ───────────────────
-
-  async switchToPostsTab(): Promise<void> {
-    await this.contentTypeFilterTrigger.click();
-    await this.page
-      .getByRole('option', { name: 'Social posts', exact: true })
-      .click();
-    await this.waitForPageLoad();
-  }
-
-  async switchToArticlesTab(): Promise<void> {
-    await this.contentTypeFilterTrigger.click();
-    await this.page
-      .getByRole('option', { name: 'Articles', exact: true })
-      .click();
-    await this.waitForPageLoad();
-  }
-
   // ── Date navigation ────────────────────────────────────
 
   async goToPreviousPeriod(): Promise<void> {
@@ -273,27 +243,5 @@ export class CalendarPage {
         url.searchParams.get('type') !== 'article' &&
         url.searchParams.get('type') !== 'newsletter',
     );
-  }
-
-  /**
-   * Stricter than `assertPostsTabActive`: asserts the type filter is
-   * explicitly `post` (e.g. right after `switchToPostsTab()` picks "Social
-   * posts" from the Select), not merely "not article/newsletter".
-   */
-  async assertSocialPostsFilterActive(): Promise<void> {
-    await expect(this.page).toHaveURL(
-      (url) =>
-        url.pathname.endsWith(APP_ROUTES.PUBLISHING.CALENDAR) &&
-        url.searchParams.get('type') === 'post',
-    );
-  }
-
-  async assertArticlesTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(
-      (url) =>
-        url.pathname.endsWith(APP_ROUTES.PUBLISHING.CALENDAR) &&
-        url.searchParams.get('type') === 'article',
-    );
-    await expect(this.mainContent.first()).toBeVisible();
   }
 }

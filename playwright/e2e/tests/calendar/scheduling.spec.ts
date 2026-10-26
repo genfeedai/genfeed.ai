@@ -17,7 +17,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * No real backend calls occur.
  */
 
-interface CurrentWeekBrowserDates {
+interface CurrentWeekDates {
   monday9am: string;
   wednesday11am: string;
   mondayDateKey: string;
@@ -25,48 +25,42 @@ interface CurrentWeekBrowserDates {
 }
 
 /**
- * Monday 9am / Wednesday 11am of the *browser's* current week, plus their
- * FullCalendar day-cell `data-date` keys, computed inside the page so they
- * agree with whatever "now" `useCalendarWeekRange` and FullCalendar's own
- * `firstDay: 1` week resolve to -- the pinned `America/New_York` project
- * timezone, never the test-runner host's, which can disagree on the
- * calendar day near midnight in either zone.
+ * Monday 9am / Wednesday 11am UTC of the current week, plus their FullCalendar
+ * day-cell `data-date` keys. The calendar renders in the selected brand's
+ * schedule timezone and falls back to UTC when the brand has none (the e2e
+ * brand has none), so the fixtures are expressed in UTC to land on the same
+ * day and clock label regardless of the runner's or the pinned browser's zone.
  */
-async function currentWeekBrowserDates(
-  page: Page,
-): Promise<CurrentWeekBrowserDates> {
-  return page.evaluate(() => {
-    const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    monday.setHours(0, 0, 0, 0);
+function currentWeekUtcDates(): CurrentWeekDates {
+  const now = new Date();
+  const monday = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - ((now.getUTCDay() + 6) % 7),
+    ),
+  );
+  const at = (offsetDays: number, hour: number) =>
+    new Date(
+      Date.UTC(
+        monday.getUTCFullYear(),
+        monday.getUTCMonth(),
+        monday.getUTCDate() + offsetDays,
+        hour,
+      ),
+    ).toISOString();
+  const dateKey = (offsetDays: number) =>
+    at(offsetDays, 0).slice(0, 'YYYY-MM-DD'.length);
 
-    const at = (offsetDays: number, hour: number) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + offsetDays);
-      d.setHours(hour, 0, 0, 0);
-      return d.toISOString();
-    };
-    const dateKey = (offsetDays: number) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + offsetDays);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    // Both morning hours: FullCalendar's default event-time label omits
-    // the meridiem but keeps a 12-hour clock, so "14:00" would otherwise
-    // render as "02:00" -- picking two AM hours keeps the label
-    // unambiguous in either convention.
-    return {
-      monday9am: at(0, 9),
-      mondayDateKey: dateKey(0),
-      wednesday11am: at(2, 11),
-      wednesdayDateKey: dateKey(2),
-    };
-  });
+  // Both morning hours: FullCalendar's default event-time label omits the
+  // meridiem but keeps a 12-hour clock, so "14:00" would otherwise render as
+  // "02:00" -- picking two AM hours keeps the label unambiguous.
+  return {
+    monday9am: at(0, 9),
+    mondayDateKey: dateKey(0),
+    wednesday11am: at(2, 11),
+    wednesdayDateKey: dateKey(2),
+  };
 }
 
 /**
@@ -103,7 +97,7 @@ test.describe('Calendar — Scheduling', () => {
     authenticatedPage,
   }) => {
     const calendarPage = new CalendarPage(authenticatedPage);
-    const dates = await currentWeekBrowserDates(authenticatedPage);
+    const dates = currentWeekUtcDates();
 
     const scheduledPosts = [
       generateMockPost({
@@ -194,7 +188,7 @@ test.describe('Calendar — Scheduling', () => {
     authenticatedPage,
   }) => {
     const calendarPage = new CalendarPage(authenticatedPage);
-    const dates = await currentWeekBrowserDates(authenticatedPage);
+    const dates = currentWeekUtcDates();
 
     await mockCalendarPosts(authenticatedPage, [
       generateMockPost({
@@ -242,7 +236,7 @@ test.describe('Calendar — Scheduling', () => {
     authenticatedPage,
   }) => {
     const calendarPage = new CalendarPage(authenticatedPage);
-    const dates = await currentWeekBrowserDates(authenticatedPage);
+    const dates = currentWeekUtcDates();
 
     await mockCalendarPosts(authenticatedPage, [
       generateMockPost({
@@ -270,7 +264,7 @@ test.describe('Calendar — Scheduling', () => {
     authenticatedPage,
   }) => {
     const calendarPage = new CalendarPage(authenticatedPage);
-    const dates = await currentWeekBrowserDates(authenticatedPage);
+    const dates = currentWeekUtcDates();
 
     const targetPost = generateMockPost({
       description: 'Opens the editor',
@@ -311,22 +305,59 @@ test.describe('Calendar — Scheduling', () => {
     );
   });
 
-  test('should switch between posts and articles tabs', async ({
+  test('should render posts and articles together and open each in its own editor', async ({
     authenticatedPage,
   }) => {
     const calendarPage = new CalendarPage(authenticatedPage);
+    const dates = currentWeekUtcDates();
+    const post = generateMockPost({
+      description: 'Social companion',
+      id: 'cal-mixed-post',
+      label: 'Mixed Social Post',
+      platform: 'twitter',
+      scheduledDate: dates.monday9am,
+      status: PostStatus.SCHEDULED,
+    });
 
-    await mockCalendarPosts(authenticatedPage);
+    await mockCalendarPosts(
+      authenticatedPage,
+      [post],
+      [
+        {
+          attributes: {
+            createdAt: dates.wednesday11am,
+            label: 'Mixed Launch Article',
+            status: 'draft',
+          },
+          id: 'cal-mixed-article',
+        },
+      ],
+    );
+    await mockPostDetail(authenticatedPage, post);
     await calendarPage.gotoPosts();
-    await calendarPage.assertPostsTabActive();
 
-    // Switch to articles tab
-    await calendarPage.switchToArticlesTab();
-    await calendarPage.assertArticlesTabActive();
+    // The retired Content type control no longer narrows the calendar: both
+    // kinds share the week, each inside its own day column.
+    const postEvent = dayColumn(authenticatedPage, dates.mondayDateKey).locator(
+      '.gen-calendar-event',
+      { hasText: 'Mixed Social Post' },
+    );
+    // Articles carry no channel, badge or indicator, so the calendar leaves
+    // them to FullCalendar's default event markup. Its classes are
+    // build-hashed in FullCalendar 7, so find the article by its title inside
+    // its own day column instead of by a class.
+    const articleEvent = dayColumn(
+      authenticatedPage,
+      dates.wednesdayDateKey,
+    ).getByText('Mixed Launch Article');
+    await expect(postEvent).toBeVisible();
+    await expect(articleEvent).toBeVisible();
 
-    // Switch back to posts tab
-    await calendarPage.switchToPostsTab();
-    await calendarPage.assertSocialPostsFilterActive();
+    // Kind-specific navigation: an article opens its editor route directly.
+    await articleEvent.click();
+    await expect(authenticatedPage).toHaveURL(
+      /\/publishing\/posts\/cal-mixed-article/,
+    );
   });
 
   test('should show list view link', async ({ authenticatedPage }) => {

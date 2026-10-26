@@ -41,8 +41,6 @@
     "title": "Tasks",
     "noMatchingTasks": "No matching tasks",
     "noTasksYet": "No tasks yet",
-    "noMatchingTasksDescription": "Try a different status, or clear the filter to see every task.",
-    "noTasksYetDescription": "Create a task to start tracking work in this workspace.",
     "newTask": "New Task",
     "taskColumn": "Task",
     "statusColumn": "Status",

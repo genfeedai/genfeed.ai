@@ -22,6 +22,26 @@ const HOSTED_GENFEED_URL_ENV_KEYS = [
 ] as const;
 
 /**
+ * Read one deployment env var from `process.env`. Next inlines `NEXT_PUBLIC_*`
+ * values into the browser bundle only for literal `process.env.NAME` reads, and
+ * `process.env[key]` is undefined there. The two explicit cloud flags are read
+ * literally so an explicit `NEXT_PUBLIC_GENFEED_CLOUD` is honoured in the
+ * browser as it is on the server. The hosted-URL keys keep their dynamic read
+ * on purpose: in the browser the hostname rule decides, and inlining the URLs
+ * would make any build whose API endpoint is on `*.genfeed.ai` Cloud there.
+ */
+function readDeploymentEnv(key: string): string | undefined {
+  switch (key) {
+    case 'GENFEED_CLOUD':
+      return process.env.GENFEED_CLOUD;
+    case 'NEXT_PUBLIC_GENFEED_CLOUD':
+      return process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    default:
+      return process.env[key];
+  }
+}
+
+/**
  * Resolve a boolean environment flag consistently across server and browser
  * bundles. Whitespace and casing are ignored; only `1` and `true` enable it.
  */
@@ -177,7 +197,7 @@ export function resolveTrustProxyFromReader(
 }
 
 export function getDeployment(): Deployment {
-  const fromEnv = getDeploymentFromReader((key) => process.env[key]);
+  const fromEnv = getDeploymentFromReader(readDeploymentEnv);
   if (fromEnv === 'cloud') {
     return 'cloud';
   }

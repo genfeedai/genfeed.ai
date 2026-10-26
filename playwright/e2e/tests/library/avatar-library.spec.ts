@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import {
@@ -7,6 +8,7 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
 import { openFilterFacet } from '../../utils/filter-menu';
+import { waitForIngredientsRead } from '../../utils/ingredients-requests';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -24,18 +26,20 @@ async function useListView(page: Page): Promise<void> {
  * Navigate with the explicit E2E org+brand slugs (brandPath), not the bare
  * path: the proxy's active-workspace resolution for a bare `/library/*` path
  * is cached server-side per session and is not deterministic across parallel
- * workers sharing one dev server. Library places are query filters on
- * `/library/assets` (#5135), so the avatars route lands on
- * `/library/avatars`.
+ * workers sharing one dev server. A library type is its own route (#8067),
+ * so the avatars route stays on `/library/avatars`.
  */
 async function gotoAvatarLibrary(page: Page): Promise<void> {
   const avatarsRoute = brandPath(APP_ROUTES.LIBRARY.AVATARS);
+  // The avatars route seeds the AVATAR type into the library read.
+  const avatarsRead = waitForIngredientsRead(page, [IngredientCategory.AVATAR]);
   await page.goto(avatarsRoute, {
     timeout: 60000,
     waitUntil: 'domcontentloaded',
   });
   await assertNoErrorBoundaryFallback(page, avatarsRoute);
-  await expect(page).toHaveURL(/library\/assets\?categories=AVATAR/);
+  await expect(page).toHaveURL(/library\/avatars/);
+  await avatarsRead;
 }
 
 /**
@@ -83,12 +87,12 @@ test.describe('Avatar Library', () => {
     // Status reads /ingredients/summary (ILibrarySummary). It is a facet of
     // the shared Filters menu (#7567): one radio row per shelf.
     const status = await openFilterFacet(authenticatedPage, 'Status');
-    await expect(
-      status.getByRole('menuitemradio', {
-        name: 'Needs review (2)',
-        exact: true,
-      }),
-    ).toBeVisible();
+    // The shelf count is a trailing badge (#8054), not part of the label.
+    const needsReview = status.getByRole('menuitemradio', {
+      name: /^Needs review\b/,
+    });
+    await expect(needsReview).toBeVisible();
+    await expect(needsReview).toContainText('2');
   });
 
   // Choosing the organization and brand default avatar moved out of the asset

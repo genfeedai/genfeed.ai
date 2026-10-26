@@ -1097,7 +1097,29 @@ test('pins mocked core E2E builds to Community mode', () => {
     ),
     'utf8',
   );
-  assert.match(setup, /NEXT_PUBLIC_GENFEED_CLOUD: 'false'/);
+  // The action builds Community unless a caller opts into Cloud explicitly.
+  assert.match(
+    setup,
+    /NEXT_PUBLIC_GENFEED_CLOUD: \$\{\{ inputs\.genfeed-cloud \}\}/,
+  );
+  assert.match(setup, /genfeed-cloud:[\s\S]*?default: 'false'/);
+  assert.doesNotMatch(
+    frontendJob,
+    /genfeed-cloud/,
+    'core E2E must keep the Community default',
+  );
+  const nightly = readWorkflow('playwright-full-nightly.yml');
+  const cloudJob = jobBlock(
+    nightly,
+    'e2e-cloud-billing',
+    'playwright-full-nightly.yml',
+  );
+  assert.match(cloudJob, /genfeed-cloud: 'true'/);
+  assert.equal(
+    (nightly.match(/genfeed-cloud: 'true'/g) ?? []).length,
+    1,
+    'only the Cloud billing cohort builds Cloud',
+  );
   assert.match(setup, /default: https:\/\/api\.genfeed\.ai\/v1/);
   assert.match(setup, /test-mode:[\s\S]*?default: 'true'/);
   assert.match(

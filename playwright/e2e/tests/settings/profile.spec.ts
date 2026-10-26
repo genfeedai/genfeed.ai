@@ -233,12 +233,6 @@ test.describe('Personal Settings', () => {
           name: 'Credits',
         }),
       ).toBeVisible();
-      await expect(
-        settingsPage.canvas.getByRole('heading', {
-          exact: true,
-          name: 'Balance',
-        }),
-      ).toBeVisible();
     });
   });
 

@@ -99,6 +99,13 @@ describe('isHostedGenfeedCloud', () => {
     expect(isSaaS()).toBe(true);
   });
 
+  it('honours an explicit NEXT_PUBLIC_GENFEED_CLOUD flag without a hosted URL', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '1');
+
+    expect(getDeployment()).toBe('cloud');
+  });
+
   it('is true from the browser hostname on app.genfeed.ai', () => {
     vi.stubEnv('GENFEED_CLOUD', '');
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');

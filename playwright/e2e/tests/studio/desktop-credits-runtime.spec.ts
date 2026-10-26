@@ -14,7 +14,7 @@ import type {
 import type { BrowserContext, Page } from '@playwright/test';
 import { test as authenticatedTest, expect } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
-import { brandPath, openAccountCredits } from '../../utils/app-chrome';
+import { brandPath, expectNoAccountCredits } from '../../utils/app-chrome';
 import {
   assertNoErrorBoundaryFallback,
   expectNoErrorOverlay,
@@ -424,8 +424,7 @@ for (const theme of ['light', 'dark'] as const)
         await generate.press('Escape');
         await expect(summary).toHaveCount(0);
         releaseWallet();
-        await expect(await openAccountCredits(page)).toHaveCount(0);
-        await page.keyboard.press('Escape');
+        await expectNoAccountCredits(page);
         await expect(generate).toBeDisabled();
         await expect(generate).toHaveAttribute('aria-disabled', 'true');
         await prompt.focus();
@@ -512,16 +511,17 @@ for (const mode of [
         await route.fulfill({ json: walletBody });
       });
       await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
-      const summary = await openGenerationSummary(page);
+      let summary = await openGenerationSummary(page);
       await expect(summary.getByRole('status')).toHaveText(
         mode === 'local'
           ? 'This Studio generator requires a server connection'
           : 'Cost context unavailable',
       );
-      await expect(await openAccountCredits(page)).toHaveCount(0);
-      await page.keyboard.press('Escape');
+      await expectNoAccountCredits(page);
       expect(walletRequests).toBe(0);
       expect(desktopNetwork.walletRequests).toBe(0);
+      // Opening the account menu dismissed the cost summary; open it again.
+      summary = await openGenerationSummary(page);
       await expect(summary).not.toContainText('Estimated');
       await expect(
         summary.getByRole('status', { name: /^Estimated/ }),

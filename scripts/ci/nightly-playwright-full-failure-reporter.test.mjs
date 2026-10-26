@@ -68,6 +68,9 @@ test('full-tier reporter separates failed scenarios from matrix job logs', () =>
   );
   assert.match(WORKFLOW, /collectScheduledRunFailures/u);
   assert.match(WORKFLOW, /trackerJob: 'e2e-frontend-full'/u);
+  // A Cloud-only failure still reaches a tracker.
+  assert.match(WORKFLOW, /name === 'Playwright Cloud billing cohort'/u);
+  assert.match(WORKFLOW, /trackerJob: 'e2e-cloud-billing'/u);
 });
 
 test('full-tier failure step separates repository and project credentials', () => {

@@ -13,6 +13,9 @@ inputs:
   better-auth-enabled:
     description: Inline the Better Auth feature flag
     default: 'true'
+  genfeed-cloud:
+    description: Inline NEXT_PUBLIC_GENFEED_CLOUD. 'false' builds the Community default; 'true' builds the Cloud cohort that exercises org billing.
+    default: 'false'
   install-command:
     description: Dependency installation command
     default: bun install --frozen-lockfile
@@ -28,7 +31,7 @@ runs:
       shell: bash
       env:
         NEXT_PUBLIC_PLAYWRIGHT_TEST: ${{ inputs.test-mode }}
-        NEXT_PUBLIC_GENFEED_CLOUD: 'false'
+        NEXT_PUBLIC_GENFEED_CLOUD: ${{ inputs.genfeed-cloud }}
         NEXT_PUBLIC_API_ENDPOINT: ${{ inputs.api-endpoint }}
         NEXT_PUBLIC_API_URL: ${{ inputs.api-endpoint }}
         NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ inputs.better-auth-enabled }}

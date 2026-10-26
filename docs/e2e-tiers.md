@@ -61,7 +61,11 @@ or emptied selector directories fail before Playwright starts. The changed
 command compares against `origin/master` by default.
 
 `PLAYWRIGHT_E2E_LANE_EXCLUSIONS` records specs assigned to real-auth, cross-app,
-and release-install execution. These are not broken-test quarantines, and their
+release-install, and Cloud execution. The `cloud` lane (`playwright/e2e/tests/cloud/`)
+needs the Cloud build (`NEXT_PUBLIC_GENFEED_CLOUD=true`, the `genfeed-cloud` input of
+`setup-playwright-app`) because the Community-built full tier gates credit reads
+behind `hasOrganizationBillingHint()`; the `e2e-cloud-billing` job of
+`playwright-full-nightly.yml` runs it and counts toward the nightly verdict. These are not broken-test quarantines, and their
 presence does not prove that the other lane ran. Visual specs remain quarantined
 until a stable baseline job and update process exist. Quarantines retain owners,
 tracking issues, and expiry checks; they must not be moved into another-lane
