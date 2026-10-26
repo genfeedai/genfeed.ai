@@ -2,6 +2,7 @@
 
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -212,9 +213,9 @@ function EnumSelect({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-muted-foreground">
+      <Label className="text-xs text-muted-foreground font-normal">
         {formatLabel(propertyKey, property.title)}
-      </label>
+      </Label>
       <Select
         value={String(value ?? property.default ?? options[0])}
         onValueChange={onChange}
@@ -257,9 +258,12 @@ function SliderInput({
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={inputId} className="text-xs text-muted-foreground">
+      <Label
+        htmlFor={inputId}
+        className="text-xs text-muted-foreground font-normal"
+      >
         {formatLabel(propertyKey, property.title)}
-      </label>
+      </Label>
 
       <div className="flex items-center gap-2 nodrag">
         <Slider
@@ -317,12 +321,12 @@ function CheckboxInput({
           }
         }}
       />
-      <label
+      <Label
         htmlFor={inputId}
-        className="text-sm text-foreground cursor-pointer"
+        className="text-foreground cursor-pointer font-normal"
       >
         {formatLabel(propertyKey, property.title)}
-      </label>
+      </Label>
     </div>
   );
 }
@@ -349,9 +353,12 @@ function NumberInput({
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={inputId} className="text-xs text-muted-foreground">
+      <Label
+        htmlFor={inputId}
+        className="text-xs text-muted-foreground font-normal"
+      >
         {formatLabel(propertyKey, property.title)}
-      </label>
+      </Label>
       <Input
         id={inputId}
         type="number"

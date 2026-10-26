@@ -1,6 +1,7 @@
 import type { WorkflowInterfaceField } from '@genfeedai/agent/services/agent-api.service';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -34,28 +35,28 @@ export function WorkflowExecuteCardInputsForm({
 
         const fieldId = `workflow-input-${key}`;
         return (
-          <div key={key}>
-            <label
-              className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+          <div key={key} className="flex flex-col gap-1.5">
+            <Label
+              className="text-2xs uppercase tracking-wider text-muted-foreground"
               htmlFor={fieldId}
             >
               {label}
               {field.required ? ' *' : ''}
-            </label>
+            </Label>
             {field.description && (
               <p className="mb-1 text-xs text-muted-foreground">
                 {field.description}
               </p>
             )}
             {field.type === 'boolean' ? (
-              <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
+              <Label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground font-normal leading-normal">
                 <Checkbox
                   id={fieldId}
                   isChecked={Boolean(value)}
                   onChange={(event) => onChange(key, event.target.checked)}
                 />
                 <span>{label}</span>
-              </label>
+              </Label>
             ) : field.type === 'select' &&
               Array.isArray(field.validation?.options) ? (
               <Select

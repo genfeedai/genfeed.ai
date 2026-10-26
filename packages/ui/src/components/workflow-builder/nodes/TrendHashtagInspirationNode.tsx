@@ -4,6 +4,7 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import type {
   ContentPreference,
@@ -153,13 +154,13 @@ function TrendHashtagInspirationNodeComponent({
       {/* Manual hashtag input */}
       {!data.auto && (
         <div>
-          <label
+          <Label
             htmlFor={hashtagInputId}
-            className="text-xs text-muted-foreground flex items-center gap-1"
+            className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal"
           >
             <Hash className="size-3" />
             Specific Hashtag
-          </label>
+          </Label>
           <Input
             id={hashtagInputId}
             type="text"

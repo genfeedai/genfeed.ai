@@ -2,6 +2,7 @@
 
 import type { AgentProfilePlatformOverrideFieldsProps } from '@props/pages/brand-detail.props';
 import { EditableText } from '@ui/primitives/editable-text';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -22,13 +23,13 @@ export default function AgentProfilePlatformOverrideFields({
 }: AgentProfilePlatformOverrideFieldsProps) {
   return (
     <>
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
+      <div className="flex flex-col gap-1.5">
+        <Label
+          className="text-xs"
           htmlFor={`${platformValue}-canonical-source`}
         >
           Voice Source Override
-        </label>
+        </Label>
         <Select
           disabled={isDisabled}
           value={override.canonicalSource || AUTO_MODEL_SELECT_VALUE}
@@ -57,13 +58,10 @@ export default function AgentProfilePlatformOverrideFields({
         </Select>
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-default-model`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-default-model`}>
           Model Override
-        </label>
+        </Label>
         <Select
           disabled={isDisabled}
           value={override.defaultModel || AUTO_MODEL_SELECT_VALUE}
@@ -92,13 +90,10 @@ export default function AgentProfilePlatformOverrideFields({
         </Select>
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-tone`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-tone`}>
           Tone Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Tone Override`}
           displayClassName="text-sm"
@@ -108,13 +103,10 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-style`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-style`}>
           Style Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Style Override`}
           displayClassName="text-sm"
@@ -124,13 +116,10 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-frequency`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-frequency`}>
           Frequency Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Frequency Override`}
           displayClassName="text-sm"
@@ -140,13 +129,10 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-audience`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-audience`}>
           Audience Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Audience Override`}
           displayClassName="text-sm"
@@ -157,13 +143,10 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-goals`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-goals`}>
           Goals Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Goals Override`}
           displayClassName="text-sm"
@@ -174,13 +157,13 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
+      <div className="flex flex-col gap-1.5">
+        <Label
+          className="text-xs"
           htmlFor={`${platformValue}-messaging-pillars`}
         >
           Messaging Pillars Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Messaging Pillars Override`}
           displayClassName="text-sm"
@@ -191,13 +174,10 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-approved-hooks`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-approved-hooks`}>
           Approved Hooks Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Approved Hooks Override`}
           displayClassName="text-sm"
@@ -208,13 +188,10 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-banned-phrases`}
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={`${platformValue}-banned-phrases`}>
           Banned Phrases Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Banned Phrases Override`}
           displayClassName="text-sm"
@@ -225,13 +202,13 @@ export default function AgentProfilePlatformOverrideFields({
         />
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-xs font-medium"
+      <div className="flex flex-col gap-1.5">
+        <Label
+          className="text-xs"
           htmlFor={`${platformValue}-do-not-sound-like`}
         >
           Avoid Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Avoid Override`}
           displayClassName="text-sm"

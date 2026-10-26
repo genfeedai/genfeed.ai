@@ -1,6 +1,7 @@
 import type { CreditGovernanceCardProps } from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 
 export default function CreditGovernanceCard({
   agentDailyCreditCap,
@@ -12,12 +13,7 @@ export default function CreditGovernanceCard({
     <Card label="Credit Governance" bodyClassName="gap-3 p-4">
       <div className="grid gap-3 md:grid-cols-2">
         <div>
-          <label
-            htmlFor="brand-daily-credit-cap"
-            className="text-sm font-medium"
-          >
-            Brand Daily Cap
-          </label>
+          <Label htmlFor="brand-daily-credit-cap">Brand Daily Cap</Label>
           <Input
             id="brand-daily-credit-cap"
             className="mt-2"
@@ -35,12 +31,7 @@ export default function CreditGovernanceCard({
         </div>
 
         <div>
-          <label
-            htmlFor="agent-daily-credit-cap"
-            className="text-sm font-medium"
-          >
-            Agent Daily Cap
-          </label>
+          <Label htmlFor="agent-daily-credit-cap">Agent Daily Cap</Label>
           <Input
             id="agent-daily-credit-cap"
             className="mt-2"

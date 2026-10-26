@@ -3,6 +3,7 @@
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { Slider } from '@ui/primitives/slider';
 import Spinner from '@ui/primitives/spinner';
 import type {
@@ -152,12 +153,12 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Min Viral Score */}
       <div>
-        <label
+        <Label
           htmlFor={minViralScoreId}
-          className="text-xs text-muted-foreground"
+          className="text-xs text-muted-foreground font-normal"
         >
           Min Viral Score: {data.minViralScore}
-        </label>
+        </Label>
         <Slider
           id={minViralScoreId}
           min={0}

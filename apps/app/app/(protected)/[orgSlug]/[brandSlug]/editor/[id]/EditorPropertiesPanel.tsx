@@ -9,6 +9,7 @@ import type { IEditorClip } from '@genfeedai/contracts/interfaces';
 import type { EditorPropertiesPanelProps } from '@props/studio/editor-properties-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Slider } from '@ui/primitives/slider';
 import { useCallback } from 'react';
 import { formatPreciseFrameTime } from './editor-time-format.util';
@@ -181,10 +182,10 @@ function EditorPropertiesPanel({
             Audio
           </h4>
 
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground font-normal">
               Track Volume: {selectedTrack.volume}%
-            </label>
+            </Label>
             <Slider
               disabled={isReadOnly}
               min={0}
@@ -196,10 +197,10 @@ function EditorPropertiesPanel({
           </div>
 
           {selectedClip.volume !== undefined && (
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground font-normal">
                 Clip Volume: {selectedClip.volume}%
-              </label>
+              </Label>
               <Slider
                 disabled={isReadOnly}
                 min={0}

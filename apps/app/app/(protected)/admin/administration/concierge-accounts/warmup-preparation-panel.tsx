@@ -13,6 +13,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -205,9 +206,9 @@ export default function WarmupPreparationPanel({
               </legend>
               {Object.values(preparation.context.fields).map((field) =>
                 field && field.proposedValue !== undefined ? (
-                  <label
+                  <Label
                     key={field.key}
-                    className="flex items-start gap-3 text-sm"
+                    className="flex items-start gap-3 text-sm font-normal leading-normal"
                   >
                     <Checkbox
                       className="mt-1 size-4"
@@ -238,7 +239,7 @@ export default function WarmupPreparationPanel({
                         </span>
                       )}
                     </span>
-                  </label>
+                  </Label>
                 ) : null,
               )}
               <Button
@@ -288,9 +289,9 @@ export default function WarmupPreparationPanel({
                 {preparation.context?.assetCandidates
                   .filter((asset) => asset.url)
                   .map((asset) => (
-                    <label
+                    <Label
                       key={asset.candidateId}
-                      className="flex items-start gap-2 text-sm"
+                      className="flex items-start gap-2 text-sm font-normal leading-normal"
                     >
                       <RadioGroupItem
                         value={asset.candidateId}
@@ -302,7 +303,7 @@ export default function WarmupPreparationPanel({
                           {asset.url}
                         </span>
                       </span>
-                    </label>
+                    </Label>
                   ))}
               </RadioGroup>
               <Button

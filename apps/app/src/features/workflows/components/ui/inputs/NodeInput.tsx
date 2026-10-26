@@ -2,6 +2,7 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 
 interface NodeInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -21,7 +22,9 @@ export function NodeInput({
   return (
     <div>
       {label && (
-        <label className="text-xs text-muted-foreground">{label}</label>
+        <Label className="text-xs text-muted-foreground font-normal">
+          {label}
+        </Label>
       )}
       <Input
         className={cn(baseInputClasses, label && 'mt-1', className)}

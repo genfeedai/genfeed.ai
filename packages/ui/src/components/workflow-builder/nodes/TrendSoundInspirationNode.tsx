@@ -4,6 +4,7 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Music, TrendingUp } from 'lucide-react';
@@ -63,13 +64,13 @@ function TrendSoundInspirationNodeComponent({
     <div className="space-y-3">
       {/* Min Usage Count */}
       <div>
-        <label
+        <Label
           htmlFor={minUsageCountId}
-          className="text-xs text-muted-foreground flex items-center gap-1"
+          className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal"
         >
           <TrendingUp className="size-3" />
           Min Usage Count
-        </label>
+        </Label>
         <Input
           id={minUsageCountId}
           type="number"
@@ -85,12 +86,12 @@ function TrendSoundInspirationNodeComponent({
 
       {/* Max Duration */}
       <div>
-        <label
+        <Label
           htmlFor={maxDurationId}
-          className="text-xs text-muted-foreground"
+          className="text-xs text-muted-foreground font-normal"
         >
           Max Duration (seconds, optional)
-        </label>
+        </Label>
         <Input
           id={maxDurationId}
           type="number"

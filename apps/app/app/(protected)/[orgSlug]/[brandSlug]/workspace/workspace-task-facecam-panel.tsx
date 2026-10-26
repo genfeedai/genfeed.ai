@@ -2,6 +2,7 @@ import { CardVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskFacecamPanelProps } from '@props/workspace/workspace-task-facecam-panel.props';
 import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -37,12 +38,12 @@ export function WorkspaceTaskFacecamPanel({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label
+          <Label
             htmlFor="facecam-avatar"
-            className="text-2xs text-foreground/55"
+            className="text-2xs text-foreground/55 font-normal"
           >
             Avatar
-          </label>
+          </Label>
           <Select
             value={avatarId}
             onValueChange={onAvatarChange}
@@ -66,12 +67,12 @@ export function WorkspaceTaskFacecamPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label
+          <Label
             htmlFor="facecam-voice"
-            className="text-2xs text-foreground/55"
+            className="text-2xs text-foreground/55 font-normal"
           >
             Voice
-          </label>
+          </Label>
           <Select
             value={voiceId}
             onValueChange={(value) => {

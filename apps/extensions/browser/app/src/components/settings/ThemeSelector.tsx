@@ -2,6 +2,7 @@ import {
   isThemePreference,
   type ThemePreference,
 } from '@genfeedai/contracts/constants';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -35,12 +36,12 @@ export function ThemeSelector(): ReactElement {
   return (
     <div className="flex items-center justify-between gap-3">
       <div>
-        <label
-          className="text-sm text-foreground"
+        <Label
+          className="text-foreground font-normal"
           htmlFor="extension-appearance"
         >
           Appearance
-        </label>
+        </Label>
         <p className="text-2xs text-muted-foreground">
           Match your device or choose a theme
         </p>

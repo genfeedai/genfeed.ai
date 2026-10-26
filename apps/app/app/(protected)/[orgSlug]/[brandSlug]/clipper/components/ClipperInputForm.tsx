@@ -7,6 +7,7 @@ import type {
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Popover,
   PopoverContent,
@@ -232,16 +233,16 @@ export default function ClipperInputForm({
                       sideOffset={8}
                     >
                       <div className="grid gap-4">
-                        <div>
-                          <label
+                        <div className="flex flex-col gap-1.5">
+                          <Label
                             htmlFor="max-clips"
-                            className="mb-1.5 flex items-center justify-between text-xs font-medium text-foreground"
+                            className="flex items-center justify-between text-xs font-medium text-foreground leading-normal"
                           >
                             <span>{t('maxClips')}</span>
                             <span className="text-muted-foreground">
                               {maxClips}
                             </span>
-                          </label>
+                          </Label>
                           <Input
                             id="max-clips"
                             type="range"
@@ -254,16 +255,16 @@ export default function ClipperInputForm({
                             className="w-full accent-primary"
                           />
                         </div>
-                        <div>
-                          <label
+                        <div className="flex flex-col gap-1.5">
+                          <Label
                             htmlFor="min-virality"
-                            className="mb-1.5 flex items-center justify-between text-xs font-medium text-foreground"
+                            className="flex items-center justify-between text-xs font-medium text-foreground leading-normal"
                           >
                             <span>{t('minViralityScore')}</span>
                             <span className="text-muted-foreground">
                               {minViralityScore}
                             </span>
-                          </label>
+                          </Label>
                           <Input
                             id="min-virality"
                             type="range"

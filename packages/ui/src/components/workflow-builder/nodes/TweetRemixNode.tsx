@@ -2,6 +2,7 @@
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -73,9 +74,12 @@ function TweetRemixNodeComponent({
   return (
     <div className="space-y-3">
       <div>
-        <label htmlFor={toneId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={toneId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           Tone
-        </label>
+        </Label>
         <Select
           value={data.tone}
           onValueChange={(value) => onUpdate(id, { tone: value as TweetTone })}
@@ -94,9 +98,12 @@ function TweetRemixNodeComponent({
       </div>
 
       <div>
-        <label htmlFor={maxLengthId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={maxLengthId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           Max Length: {data.maxLength}
-        </label>
+        </Label>
         <Slider
           id={maxLengthId}
           min={100}

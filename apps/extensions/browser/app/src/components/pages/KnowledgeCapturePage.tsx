@@ -1,6 +1,7 @@
 import { ButtonVariant, KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -250,9 +251,9 @@ export function KnowledgeCapturePage({
         </p>
       )}
       <div className="space-y-1">
-        <label htmlFor="capture-mode" className="text-xs font-medium">
+        <Label htmlFor="capture-mode" className="text-xs">
           Capture
-        </label>
+        </Label>
         <Select
           value={snapshot.mode}
           onValueChange={(value) => update({ mode: value as CaptureMode })}
@@ -276,9 +277,9 @@ export function KnowledgeCapturePage({
         </Button>
       </div>
       <div className="space-y-1">
-        <label htmlFor="capture-url" className="text-xs font-medium">
+        <Label htmlFor="capture-url" className="text-xs">
           Source URL
-        </label>
+        </Label>
         <Input
           id="capture-url"
           value={snapshot.url}
@@ -287,9 +288,9 @@ export function KnowledgeCapturePage({
         />
       </div>
       <div className="space-y-1">
-        <label htmlFor="capture-title" className="text-xs font-medium">
+        <Label htmlFor="capture-title" className="text-xs">
           Title
-        </label>
+        </Label>
         <Input
           id="capture-title"
           maxLength={500}
@@ -299,9 +300,9 @@ export function KnowledgeCapturePage({
         />
       </div>
       <div className="space-y-1">
-        <label htmlFor="capture-text" className="text-xs font-medium">
+        <Label htmlFor="capture-text" className="text-xs">
           Captured text
-        </label>
+        </Label>
         <Textarea
           id="capture-text"
           rows={7}
@@ -315,9 +316,9 @@ export function KnowledgeCapturePage({
         </p>
       </div>
       <div className="space-y-1">
-        <label htmlFor="capture-purpose" className="text-xs font-medium">
+        <Label htmlFor="capture-purpose" className="text-xs">
           Purpose
-        </label>
+        </Label>
         <Select
           value={purpose}
           onValueChange={(value) => {
@@ -343,9 +344,9 @@ export function KnowledgeCapturePage({
         </Select>
       </div>
       <div className="space-y-1">
-        <label htmlFor="capture-space" className="text-xs font-medium">
+        <Label htmlFor="capture-space" className="text-xs">
           Space
-        </label>
+        </Label>
         <Select
           value={spaceId}
           onValueChange={(value) => {

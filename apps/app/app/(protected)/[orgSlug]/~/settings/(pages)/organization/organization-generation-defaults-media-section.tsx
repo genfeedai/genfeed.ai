@@ -1,4 +1,5 @@
 import type { MediaSectionProps } from '@props/settings/organization-generation-defaults-media-section.props';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -34,13 +35,8 @@ export default function OrganizationGenerationDefaultsMediaSection({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label
-            htmlFor="org-default-image-model"
-            className="mb-1 block text-sm font-medium"
-          >
-            Default Image Model
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-image-model">Default Image Model</Label>
           <Select
             onValueChange={(value) =>
               onDefaultImageModelChange(value === 'none' ? '' : value)
@@ -61,13 +57,8 @@ export default function OrganizationGenerationDefaultsMediaSection({
           </Select>
         </div>
 
-        <div>
-          <label
-            htmlFor="org-default-video-model"
-            className="mb-1 block text-sm font-medium"
-          >
-            Default Video Model
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-video-model">Default Video Model</Label>
           <Select
             onValueChange={(value) =>
               onDefaultVideoModelChange(value === 'none' ? '' : value)
@@ -88,13 +79,10 @@ export default function OrganizationGenerationDefaultsMediaSection({
           </Select>
         </div>
 
-        <div>
-          <label
-            htmlFor="org-default-image-to-video-model"
-            className="mb-1 block text-sm font-medium"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-image-to-video-model">
             Default Image-to-Video Model
-          </label>
+          </Label>
           <Select
             onValueChange={(value) =>
               onDefaultImageToVideoModelChange(value === 'none' ? '' : value)
@@ -118,13 +106,8 @@ export default function OrganizationGenerationDefaultsMediaSection({
           </Select>
         </div>
 
-        <div>
-          <label
-            htmlFor="org-default-music-model"
-            className="mb-1 block text-sm font-medium"
-          >
-            Default Music Model
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-music-model">Default Music Model</Label>
           <Select
             onValueChange={(value) =>
               onDefaultMusicModelChange(value === 'none' ? '' : value)

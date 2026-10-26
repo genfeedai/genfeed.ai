@@ -1,4 +1,5 @@
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import type { ReactElement } from 'react';
 
 type Props = {
@@ -22,12 +23,12 @@ export function AgentStrategyBudgetSection({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label
+          <Label
             htmlFor="strategy-daily-budget"
-            className="text-xs font-medium text-foreground"
+            className="text-xs text-foreground"
           >
             Daily Credit Budget
-          </label>
+          </Label>
           <Input
             id="strategy-daily-budget"
             type="number"
@@ -38,12 +39,12 @@ export function AgentStrategyBudgetSection({
         </div>
 
         <div className="space-y-1">
-          <label
+          <Label
             htmlFor="strategy-weekly-budget"
-            className="text-xs font-medium text-foreground"
+            className="text-xs text-foreground"
           >
             Weekly Credit Budget
-          </label>
+          </Label>
           <Input
             id="strategy-weekly-budget"
             type="number"

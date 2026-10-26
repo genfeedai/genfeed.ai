@@ -6,6 +6,7 @@ import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Label } from '@genfeedai/ui/primitives/label';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
@@ -80,20 +81,20 @@ function VoiceChangeNodeComponent(props: NodeProps) {
             checked={nodeData.preserveOriginalAudio}
             onCheckedChange={handlePreserveOriginalChange}
           />
-          <label
+          <Label
             htmlFor={`preserve-${id}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+            className="text-xs text-muted-foreground cursor-pointer font-normal"
           >
             Mix with original audio
-          </label>
+          </Label>
         </div>
 
         {/* Audio Mix Level (only when preserving original) */}
         {nodeData.preserveOriginalAudio && (
           <div>
-            <label className="text-xs text-muted-foreground">
+            <Label className="text-xs text-muted-foreground font-normal">
               Mix Level: {Math.round(nodeData.audioMixLevel * 100)}%
-            </label>
+            </Label>
             <Slider
               value={[nodeData.audioMixLevel]}
               min={0}

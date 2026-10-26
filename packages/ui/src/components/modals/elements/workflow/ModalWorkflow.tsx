@@ -21,6 +21,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useState } from 'react';
@@ -178,9 +179,9 @@ export default function ModalWorkflow({
               </div>
               <div className="grid grid-cols-1 gap-2">
                 {AVAILABLE_TASKS.map((task) => (
-                  <label
+                  <Label
                     key={task.value}
-                    className="flex items-center gap-x-3 cursor-pointer hover:bg-background p-2"
+                    className="flex items-center gap-x-3 cursor-pointer hover:bg-background p-2 font-normal leading-normal"
                   >
                     <Checkbox
                       isChecked={selectedTasks.includes(task.value)}
@@ -191,7 +192,7 @@ export default function ModalWorkflow({
                     <span className="text-xs text-foreground/60 font-mono">
                       {task.value}
                     </span>
-                  </label>
+                  </Label>
                 ))}
               </div>
             </div>

@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -79,12 +80,12 @@ function LipSyncNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         <div>
-          <label
+          <Label
             htmlFor={`lipsync-model-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             Model
-          </label>
+          </Label>
           <Select value={nodeData.model} onValueChange={handleModelChange}>
             <SelectTrigger
               id={`lipsync-model-${id}`}
@@ -105,12 +106,12 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Sync Mode (only for Sync Labs models) */}
         {isSyncModel && (
           <div>
-            <label
+            <Label
               htmlFor={`lipsync-sync-mode-${id}`}
-              className="text-xs text-muted-foreground"
+              className="text-xs text-muted-foreground font-normal"
             >
               Sync Mode
-            </label>
+            </Label>
             <Select
               value={nodeData.syncMode}
               onValueChange={handleSyncModeChange}

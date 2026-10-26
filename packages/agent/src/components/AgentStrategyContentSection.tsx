@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import type { ReactElement } from 'react';
 
@@ -47,12 +48,9 @@ export function AgentStrategyContentSection({
       </h3>
 
       <div className="space-y-1">
-        <label
-          htmlFor="strategy-label"
-          className="text-xs font-medium text-foreground"
-        >
+        <Label htmlFor="strategy-label" className="text-xs text-foreground">
           Label
-        </label>
+        </Label>
         <Input
           id="strategy-label"
           type="text"
@@ -63,12 +61,12 @@ export function AgentStrategyContentSection({
       </div>
 
       <div className="space-y-1">
-        <label
+        <Label
           htmlFor="strategy-topic-input"
-          className="text-xs font-medium text-foreground"
+          className="text-xs text-foreground"
         >
           Topics
-        </label>
+        </Label>
         <div className="flex gap-2">
           <Input
             id="strategy-topic-input"
@@ -115,12 +113,9 @@ export function AgentStrategyContentSection({
       </div>
 
       <div className="space-y-1">
-        <label
-          htmlFor="strategy-voice"
-          className="text-xs font-medium text-foreground"
-        >
+        <Label htmlFor="strategy-voice" className="text-xs text-foreground">
           Voice
-        </label>
+        </Label>
         <Textarea
           id="strategy-voice"
           value={voice}

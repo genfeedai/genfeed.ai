@@ -10,6 +10,7 @@ import type {
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -90,12 +91,12 @@ function MotionModeSelect({
 }) {
   return (
     <div>
-      <label
-        className="text-xs text-muted-foreground"
+      <Label
+        className="text-xs text-muted-foreground font-normal"
         htmlFor={`motion-mode-${id}`}
       >
         Mode
-      </label>
+      </Label>
       <Select value={mode} onValueChange={onModeChange}>
         <SelectTrigger id={`motion-mode-${id}`} className="nodrag h-8 w-full">
           <SelectValue />
@@ -130,12 +131,12 @@ function VideoTransferSettings({
   return (
     <>
       <div>
-        <label
-          className="text-xs text-muted-foreground"
+        <Label
+          className="text-xs text-muted-foreground font-normal"
           htmlFor={`motion-quality-${id}`}
         >
           Quality
-        </label>
+        </Label>
         <Select
           value={nodeData.qualityMode}
           onValueChange={onQualityModeChange}
@@ -157,12 +158,12 @@ function VideoTransferSettings({
       </div>
 
       <div>
-        <label
-          className="text-xs text-muted-foreground"
+        <Label
+          className="text-xs text-muted-foreground font-normal"
           htmlFor={`motion-character-orientation-${id}`}
         >
           Character Orientation
-        </label>
+        </Label>
         <Select
           value={nodeData.characterOrientation}
           onValueChange={onCharacterOrientationChange}
@@ -189,12 +190,12 @@ function VideoTransferSettings({
           checked={nodeData.keepOriginalSound}
           onCheckedChange={onKeepOriginalSoundToggle}
         />
-        <label
+        <Label
           htmlFor={`keep-sound-${id}`}
-          className="text-sm text-foreground cursor-pointer"
+          className="text-foreground cursor-pointer font-normal"
         >
           Keep Original Sound
-        </label>
+        </Label>
       </div>
     </>
   );
@@ -219,12 +220,12 @@ function StandardMotionSettings({
     <>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label
-            className="text-xs text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`motion-duration-${id}`}
           >
             Duration
-          </label>
+          </Label>
           <Select
             value={String(nodeData.duration)}
             onValueChange={onDurationChange}
@@ -246,12 +247,12 @@ function StandardMotionSettings({
         </div>
 
         <div>
-          <label
-            className="text-xs text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`motion-aspect-ratio-${id}`}
           >
             Aspect Ratio
-          </label>
+          </Label>
           <Select
             value={nodeData.aspectRatio}
             onValueChange={onAspectRatioChange}
@@ -274,9 +275,9 @@ function StandardMotionSettings({
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground">
+        <Label className="text-xs text-muted-foreground font-normal">
           Motion Strength: {nodeData.motionStrength}%
-        </label>
+        </Label>
         <Slider
           value={[nodeData.motionStrength]}
           min={0}

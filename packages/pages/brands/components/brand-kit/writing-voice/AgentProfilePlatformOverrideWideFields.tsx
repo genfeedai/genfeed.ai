@@ -2,6 +2,7 @@
 
 import type { AgentProfilePlatformOverrideWideFieldsProps } from '@props/pages/brand-detail.props';
 import { EditableText } from '@ui/primitives/editable-text';
+import { Label } from '@ui/primitives/label';
 
 export default function AgentProfilePlatformOverrideWideFields({
   isDisabled,
@@ -11,13 +12,10 @@ export default function AgentProfilePlatformOverrideWideFields({
 }: AgentProfilePlatformOverrideWideFieldsProps) {
   return (
     <>
-      <div className="md:col-span-2">
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-content-types`}
-        >
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <Label className="text-xs" htmlFor={`${platformValue}-content-types`}>
           Content Types Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Content Types Override`}
           displayClassName="text-sm"
@@ -28,13 +26,10 @@ export default function AgentProfilePlatformOverrideWideFields({
         />
       </div>
 
-      <div className="md:col-span-2">
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-writing-rules`}
-        >
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <Label className="text-xs" htmlFor={`${platformValue}-writing-rules`}>
           Writing Rules Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Writing Rules Override`}
           displayClassName="text-sm"
@@ -45,13 +40,10 @@ export default function AgentProfilePlatformOverrideWideFields({
         />
       </div>
 
-      <div className="md:col-span-2">
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-persona`}
-        >
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <Label className="text-xs" htmlFor={`${platformValue}-persona`}>
           Persona Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Persona Override`}
           className="w-full"
@@ -63,13 +55,10 @@ export default function AgentProfilePlatformOverrideWideFields({
         />
       </div>
 
-      <div className="md:col-span-2">
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-sample-output`}
-        >
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <Label className="text-xs" htmlFor={`${platformValue}-sample-output`}>
           Sample Output Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Sample Output Override`}
           className="w-full"
@@ -82,13 +71,10 @@ export default function AgentProfilePlatformOverrideWideFields({
         />
       </div>
 
-      <div className="md:col-span-2">
-        <label
-          className="mb-1 block text-xs font-medium"
-          htmlFor={`${platformValue}-exemplar-texts`}
-        >
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <Label className="text-xs" htmlFor={`${platformValue}-exemplar-texts`}>
           Exemplar Texts Override
-        </label>
+        </Label>
         <EditableText
           ariaLabel={`${platformValue} Exemplar Texts Override`}
           displayClassName="text-sm leading-6"

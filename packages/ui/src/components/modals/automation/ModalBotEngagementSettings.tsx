@@ -3,6 +3,7 @@ import type { IEngagementBotSettings } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import type { KeyboardEvent } from 'react';
 
@@ -42,9 +43,9 @@ export default function ModalBotEngagementSettings({
       <FormControl label="Actions to Perform">
         <div className="flex flex-wrap gap-3">
           {ENGAGEMENT_ACTIONS.map(({ value, label }) => (
-            <label
+            <Label
               key={value}
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
             >
               <Checkbox
                 isChecked={engagementSettings.actions?.includes(value) ?? false}
@@ -56,7 +57,7 @@ export default function ModalBotEngagementSettings({
                 isDisabled={isSubmitting}
               />
               <span className="text-sm">{label}</span>
-            </label>
+            </Label>
           ))}
         </div>
       </FormControl>

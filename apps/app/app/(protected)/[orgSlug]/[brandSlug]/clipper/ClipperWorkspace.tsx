@@ -18,6 +18,7 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -396,13 +397,13 @@ function ClipperProjectControls({
                 </h3>
                 {!isManagedProvider ? (
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label
+                    <div className="flex flex-col gap-1.5">
+                      <Label
                         htmlFor="avatar-id-review"
-                        className="mb-1 block text-xs text-muted-foreground"
+                        className="text-xs text-muted-foreground font-normal"
                       >
                         Avatar ID
-                      </label>
+                      </Label>
                       <Input
                         id="avatar-id-review"
                         type="text"
@@ -411,13 +412,13 @@ function ClipperProjectControls({
                         placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} avatar ID`}
                       />
                     </div>
-                    <div>
-                      <label
+                    <div className="flex flex-col gap-1.5">
+                      <Label
                         htmlFor="voice-id-review"
-                        className="mb-1 block text-xs text-muted-foreground"
+                        className="text-xs text-muted-foreground font-normal"
                       >
                         Voice ID
-                      </label>
+                      </Label>
                       <Input
                         id="voice-id-review"
                         type="text"

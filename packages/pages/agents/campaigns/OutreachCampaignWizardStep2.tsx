@@ -76,12 +76,9 @@ export default function OutreachCampaignWizardStep2({
   return (
     <div className="space-y-6">
       <div className="space-y-1.5">
-        <label
-          htmlFor="campaign-wizard-name"
-          className="text-sm font-medium text-foreground"
-        >
+        <Label htmlFor="campaign-wizard-name" className="text-foreground">
           {translate('campaignName')}
-        </label>
+        </Label>
         <Input
           id="campaign-wizard-name"
           placeholder="e.g., Product Launch Q1"
@@ -108,12 +105,9 @@ export default function OutreachCampaignWizardStep2({
       </div>
 
       <div className="space-y-1.5">
-        <label
-          className="text-sm font-medium text-foreground"
-          htmlFor="campaign-wizard-credential"
-        >
+        <Label className="text-foreground" htmlFor="campaign-wizard-credential">
           {translate('credential')}
-        </label>
+        </Label>
         <Select value={credential} onValueChange={onCredentialChange} required>
           <SelectTrigger id="campaign-wizard-credential">
             <SelectValue placeholder="Select a credential" />
@@ -175,12 +169,12 @@ export default function OutreachCampaignWizardStep2({
       {campaignType === CampaignType.DISCOVERY && (
         <>
           <div className="space-y-1.5">
-            <label
+            <Label
               htmlFor="campaign-wizard-keywords"
-              className="text-sm font-medium text-foreground"
+              className="text-foreground"
             >
               {translate('keywords')}
-            </label>
+            </Label>
             <Input
               id="campaign-wizard-keywords"
               placeholder="startup, saas, tech"
@@ -190,12 +184,12 @@ export default function OutreachCampaignWizardStep2({
           </div>
 
           <div className="space-y-1.5">
-            <label
+            <Label
               htmlFor="campaign-wizard-hashtags"
-              className="text-sm font-medium text-foreground"
+              className="text-foreground"
             >
               {translate('hashtags')}
-            </label>
+            </Label>
             <Input
               id="campaign-wizard-hashtags"
               placeholder="buildinpublic, startup"
@@ -206,12 +200,12 @@ export default function OutreachCampaignWizardStep2({
 
           {platform === CampaignPlatform.REDDIT && (
             <div className="space-y-1.5">
-              <label
+              <Label
                 htmlFor="campaign-wizard-subreddits"
-                className="text-sm font-medium text-foreground"
+                className="text-foreground"
               >
                 {translate('subreddits')}
-              </label>
+              </Label>
               <Input
                 id="campaign-wizard-subreddits"
                 placeholder="entrepreneur, startups"

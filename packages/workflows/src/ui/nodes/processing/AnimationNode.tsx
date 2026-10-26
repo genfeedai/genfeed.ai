@@ -8,6 +8,7 @@ import type {
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -152,12 +153,12 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Preset Selector */}
         {nodeData.curveType === 'preset' && (
           <div>
-            <label
-              className="text-xs text-muted-foreground"
+            <Label
+              className="text-xs text-muted-foreground font-normal"
               htmlFor={`animation-easing-preset-${id}`}
             >
               Easing Preset
-            </label>
+            </Label>
             <Select value={nodeData.preset} onValueChange={handlePresetChange}>
               <SelectTrigger
                 id={`animation-easing-preset-${id}`}
@@ -217,9 +218,9 @@ function AnimationNodeComponent(props: NodeProps) {
 
         {/* Speed Multiplier */}
         <div>
-          <label className="text-xs text-muted-foreground">
+          <Label className="text-xs text-muted-foreground font-normal">
             Speed: {nodeData.speedMultiplier.toFixed(1)}x
-          </label>
+          </Label>
           <Slider
             value={[nodeData.speedMultiplier]}
             min={0.25}

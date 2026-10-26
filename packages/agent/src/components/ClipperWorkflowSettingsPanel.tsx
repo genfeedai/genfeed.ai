@@ -2,6 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -74,12 +75,12 @@ export function ClipperWorkflowSettingsPanel({
   return (
     <>
       <div className="flex flex-col gap-1 text-xs">
-        <label
+        <Label
           htmlFor="clipper-workflow-prompt"
-          className="text-muted-foreground"
+          className="text-muted-foreground font-normal"
         >
           Prompt
-        </label>
+        </Label>
         <Textarea
           id="clipper-workflow-prompt"
           className="min-h-[72px]"
@@ -110,9 +111,9 @@ export function ClipperWorkflowSettingsPanel({
             onChange={(e) => onMergeGeneratedVideosChange(e.target.checked)}
           />
         </div>
-        <label
+        <Label
           htmlFor="clipper-workflow-duration-seconds"
-          className="flex items-center gap-2 border border-border p-2"
+          className="flex items-center gap-2 border border-border p-2 font-normal leading-normal"
         >
           <span>Duration (s)</span>
           <Input
@@ -128,11 +129,11 @@ export function ClipperWorkflowSettingsPanel({
             }
             className="w-16 px-1.5 py-0.5 text-right"
           />
-        </label>
+        </Label>
       </div>
 
       {workflows != null && workflows.length > 0 && (
-        <label className="flex flex-col gap-1 text-xs">
+        <Label className="flex flex-col gap-1 text-xs font-normal leading-normal">
           <span className="text-muted-foreground">Workflow</span>
           <Select
             value={workflowId ?? ''}
@@ -153,7 +154,7 @@ export function ClipperWorkflowSettingsPanel({
               ))}
             </SelectContent>
           </Select>
-        </label>
+        </Label>
       )}
 
       <div className="flex flex-wrap gap-2">

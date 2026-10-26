@@ -1,4 +1,5 @@
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -52,12 +53,12 @@ export function AgentStrategyScheduleSection({
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label
+          <Label
             htmlFor="strategy-run-frequency"
-            className="text-xs font-medium text-foreground"
+            className="text-xs text-foreground"
           >
             Run Frequency
-          </label>
+          </Label>
           <Select value={runFrequency} onValueChange={setRunFrequency}>
             <SelectTrigger id="strategy-run-frequency">
               <SelectValue />
@@ -73,12 +74,12 @@ export function AgentStrategyScheduleSection({
         </div>
 
         <div className="space-y-1">
-          <label
+          <Label
             htmlFor="strategy-timezone"
-            className="text-xs font-medium text-foreground"
+            className="text-xs text-foreground"
           >
             Timezone
-          </label>
+          </Label>
           <Select value={timezone} onValueChange={setTimezone}>
             <SelectTrigger id="strategy-timezone">
               <SelectValue />
@@ -94,12 +95,12 @@ export function AgentStrategyScheduleSection({
         </div>
 
         <div className="space-y-1">
-          <label
+          <Label
             htmlFor="strategy-posts-per-week"
-            className="text-xs font-medium text-foreground"
+            className="text-xs text-foreground"
           >
             Posts / Week
-          </label>
+          </Label>
           <Input
             id="strategy-posts-per-week"
             type="number"

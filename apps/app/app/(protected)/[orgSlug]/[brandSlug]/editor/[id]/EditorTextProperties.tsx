@@ -2,6 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { EditorTextPropertiesProps } from '@props/studio/editor-text-properties.props';
 import { Button } from '@ui/primitives/button';
 import { ColorInput } from '@ui/primitives/color-input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -81,10 +82,10 @@ function EditorTextProperties({
         </Select>
       </div>
 
-      <div>
-        <label className="text-xs text-muted-foreground block mb-1">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground font-normal">
           Size: {overlay.fontSize}px
-        </label>
+        </Label>
         <Slider
           disabled={isReadOnly}
           min={12}
@@ -186,10 +187,10 @@ function EditorTextProperties({
       </div>
 
       {/* Position X */}
-      <div>
-        <label className="text-xs text-muted-foreground block mb-1">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground font-normal">
           X Position: {overlay.position.x}%
-        </label>
+        </Label>
         <Slider
           disabled={isReadOnly}
           min={0}
@@ -205,10 +206,10 @@ function EditorTextProperties({
       </div>
 
       {/* Position Y */}
-      <div>
-        <label className="text-xs text-muted-foreground block mb-1">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground font-normal">
           Y Position: {overlay.position.y}%
-        </label>
+        </Label>
         <Slider
           disabled={isReadOnly}
           min={0}

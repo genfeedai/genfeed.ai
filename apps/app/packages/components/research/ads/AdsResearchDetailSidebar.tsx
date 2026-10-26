@@ -16,6 +16,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Bookmark, ExternalLink, Rocket, Sparkles, Wrench } from 'lucide-react';
 import Link from 'next/link';
@@ -416,12 +417,12 @@ export function DetailSidebar({
             </Button>
             {detail.savedAdId ? (
               <div className="space-y-2 rounded-md border border-border p-3">
-                <label
-                  className="text-xs font-medium text-foreground"
+                <Label
+                  className="text-xs text-foreground"
                   htmlFor="saved-ad-note"
                 >
                   {translate('noteLabel')}
-                </label>
+                </Label>
                 <Textarea
                   id="saved-ad-note"
                   value={note}

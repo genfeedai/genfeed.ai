@@ -4,6 +4,7 @@ import { ButtonVariant, PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -93,8 +94,8 @@ export default function CharacterGrantsFields({
             value={organizationId}
           >
             {organizations.map((item) => (
-              <label
-                className="flex items-center gap-2 text-sm"
+              <Label
+                className="flex items-center gap-2 text-sm font-normal leading-normal"
                 htmlFor={`character-grant-org-${item.id}`}
                 key={item.id}
               >
@@ -103,7 +104,7 @@ export default function CharacterGrantsFields({
                   value={item.id}
                 />
                 <span>{item.label}</span>
-              </label>
+              </Label>
             ))}
           </RadioGroup>
 
@@ -121,8 +122,8 @@ export default function CharacterGrantsFields({
                   PersonaAvailabilityMode.ALL_BRANDS,
                   PersonaAvailabilityMode.SELECTED_BRANDS,
                 ].map((value) => (
-                  <label
-                    className="flex items-center gap-2 text-sm"
+                  <Label
+                    className="flex items-center gap-2 text-sm font-normal leading-normal"
                     htmlFor={`character-grant-mode-${value}`}
                     key={value}
                   >
@@ -137,7 +138,7 @@ export default function CharacterGrantsFields({
                           : 'selectedBrands',
                       )}
                     </span>
-                  </label>
+                  </Label>
                 ))}
               </RadioGroup>
               {isSelectedMode ? (

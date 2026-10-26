@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -103,12 +104,12 @@ export function AgentStrategyEngagementSection({
           {isEngagementEnabled && (
             <>
               <div className="space-y-1">
-                <label
+                <Label
                   htmlFor="strategy-keyword-input"
-                  className="text-xs font-medium text-foreground"
+                  className="text-xs text-foreground"
                 >
                   Keywords
-                </label>
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     id="strategy-keyword-input"
@@ -156,12 +157,12 @@ export function AgentStrategyEngagementSection({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label
+                  <Label
                     htmlFor="strategy-tone"
-                    className="text-xs font-medium text-foreground"
+                    className="text-xs text-foreground"
                   >
                     Tone
-                  </label>
+                  </Label>
                   <Select
                     value={engagementTone}
                     onValueChange={setEngagementTone}
@@ -180,12 +181,12 @@ export function AgentStrategyEngagementSection({
                 </div>
 
                 <div className="space-y-1">
-                  <label
+                  <Label
                     htmlFor="strategy-max-per-day"
-                    className="text-xs font-medium text-foreground"
+                    className="text-xs text-foreground"
                   >
                     Max / Day
-                  </label>
+                  </Label>
                   <Input
                     id="strategy-max-per-day"
                     type="number"

@@ -5,6 +5,7 @@ import {
   NATIVE_HOST_PROVIDER_LABELS,
 } from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -80,12 +81,12 @@ export function LocalFallbackSettings(): ReactElement {
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <label
-            className="text-sm text-foreground"
+          <Label
+            className="text-foreground font-normal"
             htmlFor="extension-local-fallback"
           >
             Local fallback
-          </label>
+          </Label>
           <p className="text-2xs text-muted-foreground">
             Genfeed is always tried first. If it is down, at its request limit
             or out of credits, the same action can run on this computer.

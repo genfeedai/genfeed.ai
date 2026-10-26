@@ -14,6 +14,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -312,9 +313,9 @@ export default function PublishingRssSourcesSection({
           ) : (
             <div className="flex flex-col gap-2">
               {credentials.map((credential) => (
-                <label
+                <Label
                   key={credential.id}
-                  className="flex items-center gap-2 text-sm"
+                  className="flex items-center gap-2 text-sm font-normal leading-normal"
                   htmlFor={`rss-channel-${credential.id}`}
                 >
                   <Checkbox
@@ -324,7 +325,7 @@ export default function PublishingRssSourcesSection({
                   />
                   <span>{getCredentialLabel(credential)}</span>
                   <Badge variant="outline">{credential.platform}</Badge>
-                </label>
+                </Label>
               ))}
             </div>
           )}

@@ -3,6 +3,7 @@ import type { IMonitoringBotSettings } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -97,9 +98,9 @@ export default function ModalBotMonitoringSettings({
       <FormControl label="Alert Types">
         <div className="flex flex-wrap gap-3">
           {ALERT_TYPES.map(({ value, label }) => (
-            <label
+            <Label
               key={value}
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
             >
               <Checkbox
                 isChecked={
@@ -113,7 +114,7 @@ export default function ModalBotMonitoringSettings({
                 isDisabled={isSubmitting}
               />
               <span className="text-sm">{label}</span>
-            </label>
+            </Label>
           ))}
         </div>
       </FormControl>

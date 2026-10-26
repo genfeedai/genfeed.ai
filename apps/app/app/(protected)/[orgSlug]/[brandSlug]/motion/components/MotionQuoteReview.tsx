@@ -3,6 +3,7 @@
 import type { MotionQuoteReviewProps } from '@genfeedai/props/studio/motion-composer.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -51,7 +52,7 @@ export default function MotionQuoteReview({
       </dl>
       <p className="text-muted-foreground">{t('billingHint')}</p>
       {isVisionUnverified ? <p>{t('unverifiedVision')}</p> : null}
-      <label className="flex items-start gap-2">
+      <Label className="flex items-start gap-2 font-normal leading-normal">
         <Checkbox
           aria-label={t('acknowledge', { maximum: quote.maximumCredits })}
           checked={isAcknowledged}
@@ -60,7 +61,7 @@ export default function MotionQuoteReview({
           }
         />
         {t('acknowledge', { maximum: quote.maximumCredits })}
-      </label>
+      </Label>
       <div>
         <Button isDisabled={!isAcknowledged || isBusy} onClick={onConfirm}>
           {isBusy ? t('submitting') : t('confirm')}

@@ -1,6 +1,7 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
 
@@ -15,10 +16,10 @@ export default function IllustrationPreview({
 }: Props) {
   return (
     <div className="space-y-3">
-      <div className="bg-card shadow-border p-4">
-        <label className="mb-2 block text-sm font-medium">
+      <div className="flex flex-col gap-2 bg-card shadow-border p-4">
+        <Label>
           {generatedImageUrl ? 'Generated Image Preview' : 'Processing…'}
-        </label>
+        </Label>
 
         <div className="relative w-full overflow-hidden">
           {generatedImageUrl ? (

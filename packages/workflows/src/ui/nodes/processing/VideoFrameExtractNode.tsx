@@ -8,6 +8,7 @@ import type {
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -59,13 +60,13 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
         </div>
 
         {/* Selection Mode */}
-        <div>
-          <label
-            className="text-xs text-muted-foreground block mb-1"
+        <div className="flex flex-col gap-1.5">
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`video-frame-selection-${id}`}
           >
             Frame Selection
-          </label>
+          </Label>
           <Select
             value={nodeData.selectionMode}
             onValueChange={handleModeChange}

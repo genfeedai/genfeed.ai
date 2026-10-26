@@ -1,6 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, FastForward, MessageSquare, Pencil } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
@@ -86,13 +87,13 @@ export function EngagementOpportunityCard({
         </div>
       )}
 
-      <div className="mb-3">
-        <label
+      <div className="flex flex-col gap-1.5 mb-3">
+        <Label
           htmlFor="engagement-reply"
-          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
         >
           Draft Reply
-        </label>
+        </Label>
         {isEditing ? (
           <Textarea
             id="engagement-reply"

@@ -5,6 +5,7 @@ import type { LLMNodeData, TextModel } from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Expand, RefreshCw } from 'lucide-react';
@@ -133,12 +134,12 @@ function LLMNodeComponent(props: NodeProps) {
         )}
 
         <div>
-          <label
+          <Label
             htmlFor={`llm-system-prompt-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             System Prompt <span className="text-destructive">*</span>
-          </label>
+          </Label>
           <Textarea
             id={`llm-system-prompt-${id}`}
             value={nodeData.systemPrompt}
@@ -173,12 +174,12 @@ function LLMNodeComponent(props: NodeProps) {
         </div>
 
         <div>
-          <label
+          <Label
             htmlFor={`llm-max-tokens-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             Max Tokens
-          </label>
+          </Label>
           <Input
             aria-label="Max Tokens"
             id={`llm-max-tokens-${id}`}

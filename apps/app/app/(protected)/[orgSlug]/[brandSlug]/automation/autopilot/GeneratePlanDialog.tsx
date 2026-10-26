@@ -30,6 +30,7 @@ import {
 } from '@ui/primitives/dialog';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Switch } from '@ui/primitives/switch';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -106,12 +107,9 @@ export default function GeneratePlanDialog({
         <Form onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="plan-period-start"
-              >
+              <Label className="text-foreground" htmlFor="plan-period-start">
                 {translate('dialogPeriodStart')}
-              </label>
+              </Label>
               <Input
                 id="plan-period-start"
                 type="date"
@@ -127,12 +125,9 @@ export default function GeneratePlanDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="plan-period-end"
-              >
+              <Label className="text-foreground" htmlFor="plan-period-end">
                 {translate('dialogPeriodEnd')}
-              </label>
+              </Label>
               <Input
                 id="plan-period-end"
                 type="date"
@@ -149,12 +144,9 @@ export default function GeneratePlanDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="plan-item-count"
-            >
+            <Label className="text-foreground" htmlFor="plan-item-count">
               {translate('dialogItemCount')}
-            </label>
+            </Label>
             <Input
               id="plan-item-count"
               type="number"
@@ -171,12 +163,9 @@ export default function GeneratePlanDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="plan-topics"
-            >
+            <Label className="text-foreground" htmlFor="plan-topics">
               {translate('dialogAdditionalTopics')}
-            </label>
+            </Label>
             <Input
               id="plan-topics"
               value={form.topics}

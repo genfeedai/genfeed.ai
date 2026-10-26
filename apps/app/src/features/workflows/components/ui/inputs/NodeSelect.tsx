@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Label } from '@ui/primitives/label';
 import {
   SelectContent,
   SelectGroup,
@@ -129,9 +130,12 @@ export function NodeSelect({
   return (
     <div>
       {label && (
-        <label htmlFor={resolvedId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={resolvedId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           {label}
-        </label>
+        </Label>
       )}
       <UiSelect
         defaultValue={currentDefaultValue}

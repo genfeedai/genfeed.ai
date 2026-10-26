@@ -17,6 +17,7 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function scheduledDateToISOString(value: string, timezone: string): string {
@@ -247,9 +248,7 @@ export default function EvergreenSeriesControls({
       {!isExhausted ? (
         <>
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="series-next-date">
-              Next occurrence
-            </label>
+            <Label htmlFor="series-next-date">Next occurrence</Label>
             <Input
               id="series-next-date"
               type="datetime-local"

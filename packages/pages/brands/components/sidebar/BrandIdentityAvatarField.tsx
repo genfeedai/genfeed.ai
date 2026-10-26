@@ -7,6 +7,7 @@ import type {
 import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -34,13 +35,8 @@ export default function BrandIdentityAvatarField({
   onAvatarChange,
 }: BrandIdentityAvatarFieldProps) {
   return (
-    <div>
-      <label
-        htmlFor="brand-default-avatar"
-        className="mb-1 block text-sm font-medium"
-      >
-        Default Avatar
-      </label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="brand-default-avatar">Default Avatar</Label>
       <Select
         disabled={isLoadingAvatars}
         onValueChange={(value) => onAvatarChange(value === 'none' ? '' : value)}

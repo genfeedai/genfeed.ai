@@ -4,6 +4,7 @@ import BrandOsSettingsCard from '@genfeedai/pages/brands/components/brand-kit/Br
 import type { BrandGuidePanelProps } from '@genfeedai/props/onboarding/brand-guide.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useBrandGuideScan } from './use-brand-guide-scan';
@@ -57,9 +58,9 @@ export default function BrandGuidePanel({
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-semibold">{t('scan.title')}</h1>
-      <label htmlFor="brand-guide-website" className="block text-sm">
+      <Label htmlFor="brand-guide-website" className="font-normal">
         {t('fields.website.label')}
-      </label>
+      </Label>
       <Input
         id="brand-guide-website"
         value={websiteUrl}

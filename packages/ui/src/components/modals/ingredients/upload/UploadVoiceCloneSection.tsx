@@ -3,6 +3,7 @@
 import { ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { Mic, Square } from 'lucide-react';
 
@@ -53,8 +54,8 @@ export default function UploadVoiceCloneSection({
           }
           value={voiceCloneProvider}
         >
-          <label
-            className="flex cursor-pointer items-center gap-2 text-sm"
+          <Label
+            className="flex cursor-pointer items-center gap-2 text-sm font-normal leading-normal"
             htmlFor="voice-provider-elevenlabs"
           >
             <RadioGroupItem
@@ -62,10 +63,10 @@ export default function UploadVoiceCloneSection({
               value={VoiceProvider.ELEVENLABS}
             />
             <span>ElevenLabs</span>
-          </label>
+          </Label>
           {isSelfHostedVoiceAvailable && (
-            <label
-              className="flex cursor-pointer items-center gap-2 text-sm"
+            <Label
+              className="flex cursor-pointer items-center gap-2 text-sm font-normal leading-normal"
               htmlFor="voice-provider-genfeed-ai"
             >
               <RadioGroupItem
@@ -73,7 +74,7 @@ export default function UploadVoiceCloneSection({
                 value={VoiceProvider.GENFEED_AI}
               />
               <span>Genfeed AI</span>
-            </label>
+            </Label>
           )}
         </RadioGroup>
       </div>

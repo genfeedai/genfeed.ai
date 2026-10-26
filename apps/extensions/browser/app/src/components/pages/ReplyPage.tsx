@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer } from 'react';
@@ -478,12 +479,12 @@ export function ReplyPage({
         </section>
       ) : (
         <div className="flex flex-col gap-2">
-          <label
-            className="text-xs font-medium text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground"
             htmlFor="reply-post-content"
           >
             Open a post to reply to it, or paste one here
-          </label>
+          </Label>
           <Textarea
             id="reply-post-content"
             value={postContent}

@@ -5,6 +5,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -224,13 +225,13 @@ export function WorkflowRunPanel({
 
             return (
               <div key={variable.key} className="space-y-1.5">
-                <label
+                <Label
                   htmlFor={`workflow-run-${variable.key}`}
-                  className="block text-sm font-medium text-foreground"
+                  className="text-foreground"
                 >
                   {variable.label}
                   {variable.required ? ' *' : ''}
-                </label>
+                </Label>
                 {variable.description && (
                   <p className="text-xs leading-5 text-muted-foreground">
                     {variable.description}

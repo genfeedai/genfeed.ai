@@ -15,6 +15,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { Repeat2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -142,9 +143,9 @@ export default function ModalPostRepurpose({
             {platformOptions.map((option) => {
               const Icon = getPlatformIconComponent(option.platform);
               return (
-                <label
+                <Label
                   key={option.platform}
-                  className={`flex items-center gap-2 cursor-pointer p-2 border ${
+                  className={`flex items-center gap-2 cursor-pointer p-2 border font-normal leading-normal ${
                     platform === option.platform
                       ? 'border-primary bg-primary/10'
                       : 'border-white/[0.08]'
@@ -156,7 +157,7 @@ export default function ModalPostRepurpose({
                   />
                   {Icon && <Icon className="size-4" />}
                   <span className="text-sm">{option.label}</span>
-                </label>
+                </Label>
               );
             })}
           </RadioGroup>
@@ -173,9 +174,9 @@ export default function ModalPostRepurpose({
                 isLoading ||
                 (option.mode === PostRepurposeMode.AGENT && !isAgentAvailable);
               return (
-                <label
+                <Label
                   key={option.mode}
-                  className={`flex items-start gap-3 p-3 border ${
+                  className={`flex items-start gap-3 p-3 border font-normal leading-normal ${
                     isDisabled ? 'opacity-50' : 'cursor-pointer'
                   } ${
                     effectiveMode === option.mode
@@ -197,7 +198,7 @@ export default function ModalPostRepurpose({
                         : option.description}
                     </span>
                   </span>
-                </label>
+                </Label>
               );
             })}
           </RadioGroup>

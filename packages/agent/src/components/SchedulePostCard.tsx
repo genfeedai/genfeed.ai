@@ -14,6 +14,7 @@ import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -424,14 +425,14 @@ export function SchedulePostCard({
         </Select>
       </div>
 
-      <div className="mb-3">
-        <label
-          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+      <div className="flex flex-col gap-1.5 mb-3">
+        <Label
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
           htmlFor="schedule-post-date-time"
         >
           <Clock className="mr-1 inline size-3" />
           Date & Time
-        </label>
+        </Label>
         <Input
           id="schedule-post-date-time"
           onChange={(event) => setDateTime(event.target.value)}
@@ -532,10 +533,10 @@ export function SchedulePostCard({
           </div>
           <div className="flex flex-wrap gap-2">
             {availablePlatforms.map((platform) => (
-              <label
+              <Label
                 key={platform}
                 htmlFor={`schedule-post-platform-${platform}`}
-                className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors ${
+                className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs font-normal leading-normal transition-colors ${
                   selectedPlatforms.has(platform)
                     ? 'border-primary bg-primary/5 text-foreground'
                     : 'border-border text-muted-foreground hover:border-primary/50'
@@ -549,7 +550,7 @@ export function SchedulePostCard({
                   type="checkbox"
                 />
                 {platform.charAt(0).toUpperCase() + platform.slice(1)}
-              </label>
+              </Label>
             ))}
           </div>
         </div>

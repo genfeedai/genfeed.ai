@@ -3,6 +3,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { StoryboardConflictReviewProps } from '@genfeedai/props/studio/storyboard.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -48,9 +49,9 @@ export default function StoryboardConflictReview({
                 disabled={working}
               >
                 {(['local', 'remote'] as const).map((choice) => (
-                  <label
+                  <Label
                     key={choice}
-                    className="space-y-2 rounded-md border border-border p-3 text-sm"
+                    className="space-y-2 rounded-md border border-border p-3 font-normal"
                   >
                     <span className="flex items-center gap-2">
                       <RadioGroupItem
@@ -68,7 +69,7 @@ export default function StoryboardConflictReview({
                     <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs">
                       {display(conflict[choice])}
                     </pre>
-                  </label>
+                  </Label>
                 ))}
               </RadioGroup>
             </fieldset>

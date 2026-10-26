@@ -132,9 +132,12 @@ function SocialPublishNodeComponent({
 
       {/* Title */}
       <div>
-        <label htmlFor={titleId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={titleId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           Title
-        </label>
+        </Label>
         <Input
           id={titleId}
           type="text"
@@ -164,9 +167,12 @@ function SocialPublishNodeComponent({
 
       {/* Tags */}
       <div>
-        <label htmlFor={tagsId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={tagsId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           Tags (comma-separated)
-        </label>
+        </Label>
         <Input
           id={tagsId}
           type="text"
@@ -179,9 +185,12 @@ function SocialPublishNodeComponent({
 
       {/* Visibility */}
       <div>
-        <label htmlFor={visibilityId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={visibilityId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           Visibility
-        </label>
+        </Label>
         <Select
           value={data.visibility}
           onValueChange={(value) =>

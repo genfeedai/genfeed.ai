@@ -26,6 +26,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Card from '@ui/card/Card';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -227,13 +228,8 @@ export default function OrganizationIdentityDefaultsCard() {
       data-testid="org-identity-defaults-card"
     >
       <div className="space-y-3">
-        <div>
-          <label
-            htmlFor="org-default-avatar"
-            className="mb-1 block text-sm font-medium"
-          >
-            {translate('avatarLabel')}
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-avatar">{translate('avatarLabel')}</Label>
           <Select
             disabled={isLoadingAvatars}
             onValueChange={(value) =>
@@ -301,13 +297,10 @@ export default function OrganizationIdentityDefaultsCard() {
           ) : null}
         </div>
 
-        <div>
-          <label
-            htmlFor="org-default-voice-ref"
-            className="mb-1 block text-sm font-medium"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-voice-ref">
             {translate('voiceLabel')}
-          </label>
+          </Label>
           <Select
             disabled={isLoadingCatalog}
             onValueChange={(value) =>

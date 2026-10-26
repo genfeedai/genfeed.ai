@@ -4,6 +4,7 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Slider } from '@ui/primitives/slider';
 import Spinner from '@ui/primitives/spinner';
 import type {
@@ -130,10 +131,10 @@ function SoundOverlayNodeComponent({
       {/* Volume Controls */}
       <div className="space-y-2">
         <div>
-          <label className="text-xs text-muted-foreground flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal">
             <Volume2 className="size-3" />
             Audio Volume: {data.audioVolume}%
-          </label>
+          </Label>
           <Slider
             min={0}
             max={100}
@@ -146,10 +147,10 @@ function SoundOverlayNodeComponent({
 
         {data.mixMode !== 'replace' && (
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal">
               <Video className="size-3" />
               Video Volume: {data.videoVolume}%
-            </label>
+            </Label>
             <Slider
               min={0}
               max={100}
@@ -165,9 +166,12 @@ function SoundOverlayNodeComponent({
       {/* Fade Controls */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label htmlFor={fadeInId} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={fadeInId}
+            className="text-xs text-muted-foreground font-normal"
+          >
             Fade In (s)
-          </label>
+          </Label>
           <Input
             id={fadeInId}
             type="number"
@@ -179,9 +183,12 @@ function SoundOverlayNodeComponent({
           />
         </div>
         <div>
-          <label htmlFor={fadeOutId} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={fadeOutId}
+            className="text-xs text-muted-foreground font-normal"
+          >
             Fade Out (s)
-          </label>
+          </Label>
           <Input
             id={fadeOutId}
             type="number"

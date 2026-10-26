@@ -3,6 +3,7 @@
 import { ButtonVariant, PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type { CharacterOwnershipFieldsProps } from '@props/characters/characters-page.props';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -49,8 +50,8 @@ export default function CharacterOwnershipFields({
         value={targetBrandId}
       >
         {candidates.map((brand) => (
-          <label
-            className="flex items-center gap-2 text-sm"
+          <Label
+            className="flex items-center gap-2 text-sm font-normal leading-normal"
             htmlFor={`character-ownership-${brand.id}`}
             key={brand.id}
           >
@@ -59,7 +60,7 @@ export default function CharacterOwnershipFields({
               value={brand.id}
             />
             <span>{brand.label}</span>
-          </label>
+          </Label>
         ))}
       </RadioGroup>
       <div className="flex justify-end">

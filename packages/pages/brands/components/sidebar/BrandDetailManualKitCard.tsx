@@ -596,7 +596,7 @@ export default function BrandDetailManualKitCard({
             />
           </FormControl>
 
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/30">
+          <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/30 font-normal leading-normal">
             <FileText className="size-4" />
             <span>{form.guidanceDocumentName || 'Upload guidance file'}</span>
             <Input
@@ -608,7 +608,7 @@ export default function BrandDetailManualKitCard({
                 void handleGuidanceFileChange(event);
               }}
             />
-          </label>
+          </Label>
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -710,9 +710,9 @@ export default function BrandDetailManualKitCard({
                   // painted the same colour reads as one flat block separated
                   // only by `shadow-border`. Step it back down to the base
                   // surface so each selectable field is legible as its own row.
-                  <label
+                  <Label
                     key={key}
-                    className="flex cursor-pointer items-start gap-2 rounded-md bg-background p-2 text-sm shadow-border hover:bg-background/70"
+                    className="flex cursor-pointer items-start gap-2 rounded-md bg-background p-2 text-sm shadow-border hover:bg-background/70 font-normal leading-normal"
                   >
                     <Checkbox
                       aria-label={`Select ${label}`}
@@ -726,7 +726,7 @@ export default function BrandDetailManualKitCard({
                         {formatProposedValue(proposedValue)}
                       </span>
                     </span>
-                  </label>
+                  </Label>
                 );
               })}
             </div>

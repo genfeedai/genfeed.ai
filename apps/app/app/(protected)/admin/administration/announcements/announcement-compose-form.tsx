@@ -3,6 +3,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Globe } from 'lucide-react';
 
@@ -19,12 +20,9 @@ export default function AnnouncementComposeForm({
   return (
     <Form spacing="section" className="max-w-2xl" onSubmit={onSubmit}>
       <div className="flex flex-col gap-2">
-        <label
-          htmlFor="announcement-body"
-          className="text-sm font-medium text-foreground"
-        >
+        <Label htmlFor="announcement-body" className="text-foreground">
           Body <span className="text-muted-foreground">*</span>
-        </label>
+        </Label>
         <Textarea
           id="announcement-body"
           className="w-full min-h-[160px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-y focus:outline-none transition-colors"
@@ -37,13 +35,10 @@ export default function AnnouncementComposeForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <label
-          htmlFor="announcement-tweet"
-          className="text-sm font-medium text-foreground"
-        >
+        <Label htmlFor="announcement-tweet" className="text-foreground">
           Tweet text{' '}
           <span className="text-foreground/50">(optional, max 280)</span>
-        </label>
+        </Label>
         <div className="relative">
           <Textarea
             id="announcement-tweet"
@@ -83,13 +78,13 @@ export default function AnnouncementComposeForm({
 
         {form.discordEnabled && (
           <div className="ml-7 flex flex-col gap-2">
-            <label
+            <Label
               htmlFor="discord-channel-id"
-              className="text-xs text-foreground/60"
+              className="text-xs text-foreground/60 font-normal"
             >
               Discord channel ID{' '}
               <span className="text-muted-foreground">*</span>
-            </label>
+            </Label>
             <Input
               id="discord-channel-id"
               type="text"

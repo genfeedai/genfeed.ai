@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -244,12 +245,12 @@ export function WorkflowScheduleDialog({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
-                <label
-                  className="block text-sm font-medium text-foreground"
+                <Label
+                  className="text-foreground"
                   htmlFor="workflow-schedule-cadence"
                 >
                   {translate('cadence.label')}
-                </label>
+                </Label>
                 <Select
                   disabled={isSaving}
                   value={cadenceSelectValue}
@@ -286,12 +287,12 @@ export function WorkflowScheduleDialog({
                 </Select>
                 {isCustomCadence ? (
                   <div className="space-y-1.5 pt-2">
-                    <label
-                      className="block text-xs font-medium text-muted-foreground"
+                    <Label
+                      className="text-xs text-muted-foreground"
                       htmlFor="workflow-schedule-custom-cron"
                     >
                       {translate('custom.title')}
-                    </label>
+                    </Label>
                     <Input
                       aria-label={translate('custom.title')}
                       disabled={isSaving}
@@ -310,12 +311,12 @@ export function WorkflowScheduleDialog({
               </div>
 
               <div className="space-y-1.5">
-                <label
-                  className="block text-sm font-medium text-foreground"
+                <Label
+                  className="text-foreground"
                   htmlFor="workflow-schedule-timezone"
                 >
                   {translate('timezone.label')}
-                </label>
+                </Label>
                 <Select
                   disabled={isSaving}
                   value={timezone || 'UTC'}

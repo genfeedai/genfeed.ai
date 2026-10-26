@@ -12,6 +12,7 @@ import {
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
 import { EditableText } from '@ui/primitives/editable-text';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -208,13 +209,8 @@ export default function BrandWritingVoiceEditor({
       {(!section || section === 'strategy') && (
         <Card label="Strategy">
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="brand-agent-content-types"
-              >
-                Content Types
-              </label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="brand-agent-content-types">Content Types</Label>
               <EditableText
                 ariaLabel="Content Types"
                 displayClassName="text-sm"
@@ -227,13 +223,8 @@ export default function BrandWritingVoiceEditor({
               />
             </div>
 
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="brand-agent-platforms"
-              >
-                Target Platforms
-              </label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="brand-agent-platforms">Target Platforms</Label>
               <EditableText
                 ariaLabel="Target Platforms"
                 displayClassName="text-sm"
@@ -244,13 +235,8 @@ export default function BrandWritingVoiceEditor({
               />
             </div>
 
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="brand-agent-frequency"
-              >
-                Frequency
-              </label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="brand-agent-frequency">Frequency</Label>
               <EditableText
                 ariaLabel="Frequency"
                 displayClassName="text-sm"
@@ -261,13 +247,8 @@ export default function BrandWritingVoiceEditor({
               />
             </div>
 
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="brand-agent-goals"
-              >
-                Goals
-              </label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="brand-agent-goals">Goals</Label>
               <EditableText
                 ariaLabel="Goals"
                 displayClassName="text-sm"
@@ -313,13 +294,10 @@ export default function BrandWritingVoiceEditor({
             <Card label="Platform overrides">
               <div className="grid gap-4 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] lg:items-start">
                 <div className="space-y-3">
-                  <div>
-                    <label
-                      className="mb-1 block text-sm font-medium"
-                      htmlFor="brand-agent-platform-override-select"
-                    >
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="brand-agent-platform-override-select">
                       Platform
-                    </label>
+                    </Label>
                     <Select
                       value={selectedPlatform}
                       onValueChange={setSelectedPlatform}

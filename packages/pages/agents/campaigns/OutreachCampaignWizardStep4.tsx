@@ -2,6 +2,7 @@
 
 import { CampaignType } from '@genfeedai/contracts';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 
 type Props = {
   campaignType: CampaignType;
@@ -25,12 +26,12 @@ export default function OutreachCampaignWizardStep4({
   return (
     <div className="space-y-6">
       <div className="space-y-1.5">
-        <label
+        <Label
           htmlFor="campaign-wizard-max-per-hour"
-          className="text-sm font-medium text-foreground"
+          className="text-foreground"
         >
           Max Replies per Hour
-        </label>
+        </Label>
         <Input
           id="campaign-wizard-max-per-hour"
           type="number"
@@ -44,12 +45,12 @@ export default function OutreachCampaignWizardStep4({
       </div>
 
       <div className="space-y-1.5">
-        <label
+        <Label
           htmlFor="campaign-wizard-max-per-day"
-          className="text-sm font-medium text-foreground"
+          className="text-foreground"
         >
           Max Replies per Day
-        </label>
+        </Label>
         <Input
           id="campaign-wizard-max-per-day"
           type="number"
@@ -63,12 +64,12 @@ export default function OutreachCampaignWizardStep4({
       </div>
 
       <div className="space-y-1.5">
-        <label
+        <Label
           htmlFor="campaign-wizard-delay-between-replies"
-          className="text-sm font-medium text-foreground"
+          className="text-foreground"
         >
           Delay Between Replies (seconds)
-        </label>
+        </Label>
         <Input
           id="campaign-wizard-delay-between-replies"
           type="number"

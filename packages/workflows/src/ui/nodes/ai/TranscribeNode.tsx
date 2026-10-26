@@ -9,6 +9,7 @@ import type {
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -101,12 +102,12 @@ function TranscribeNodeComponent(props: NodeProps) {
         </div>
 
         <div>
-          <label
+          <Label
             htmlFor={`transcribe-language-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             Language
-          </label>
+          </Label>
           <Select
             value={nodeData.language}
             onValueChange={handleLanguageChange}
@@ -134,12 +135,12 @@ function TranscribeNodeComponent(props: NodeProps) {
             checked={nodeData.timestamps}
             onCheckedChange={handleTimestampsChange}
           />
-          <label
+          <Label
             htmlFor={`timestamps-${id}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+            className="text-xs text-muted-foreground cursor-pointer font-normal"
           >
             Include timestamps
-          </label>
+          </Label>
         </div>
 
         {/* Output Transcript */}

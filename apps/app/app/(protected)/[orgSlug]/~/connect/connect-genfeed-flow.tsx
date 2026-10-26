@@ -34,6 +34,7 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   ArrowRight,
   CircleCheck,
@@ -754,13 +755,10 @@ export default function ConnectGenfeedFlow() {
           >
             <div className="space-y-4">
               {!createdPlainKey ? (
-                <div>
-                  <label
-                    className="mb-1 block text-xs font-medium"
-                    htmlFor="connect-genfeed-key"
-                  >
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs" htmlFor="connect-genfeed-key">
                     {translate('storedKeyLabel')}
-                  </label>
+                  </Label>
                   <Input
                     autoComplete="off"
                     id="connect-genfeed-key"

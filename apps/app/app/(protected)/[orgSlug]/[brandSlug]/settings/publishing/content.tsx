@@ -28,6 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -461,12 +462,9 @@ export default function BrandSettingsPublishingPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label
-                className="block text-sm font-medium text-foreground"
-                htmlFor="publishing-cadence"
-              >
+              <Label className="text-foreground" htmlFor="publishing-cadence">
                 Cadence
-              </label>
+              </Label>
               <Select
                 disabled={isSaving || !isScheduleEnabled}
                 value={scheduleSelectValue}
@@ -499,12 +497,12 @@ export default function BrandSettingsPublishingPage() {
               </Select>
               {isCustomSchedule ? (
                 <div className="space-y-1.5 pt-2">
-                  <label
-                    className="block text-xs font-medium text-muted-foreground"
+                  <Label
+                    className="text-xs text-muted-foreground"
                     htmlFor="publishing-custom-schedule"
                   >
                     Custom schedule
-                  </label>
+                  </Label>
                   <Input
                     aria-label="Custom schedule"
                     disabled={isSaving || !isScheduleEnabled}
@@ -527,12 +525,9 @@ export default function BrandSettingsPublishingPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label
-                className="block text-sm font-medium text-foreground"
-                htmlFor="publishing-timezone"
-              >
+              <Label className="text-foreground" htmlFor="publishing-timezone">
                 Timezone
-              </label>
+              </Label>
               <Select
                 disabled={isSaving || !isScheduleEnabled}
                 value={timezone || 'UTC'}
@@ -577,12 +572,9 @@ export default function BrandSettingsPublishingPage() {
           ) : null}
 
           <div className="space-y-1.5">
-            <label
-              className="block text-sm font-medium text-foreground"
-              htmlFor="confidence-threshold"
-            >
+            <Label className="text-foreground" htmlFor="confidence-threshold">
               Confidence threshold
-            </label>
+            </Label>
             <Input
               aria-label="Confidence threshold"
               disabled={isSaving || !isAutoPublishEnabled}

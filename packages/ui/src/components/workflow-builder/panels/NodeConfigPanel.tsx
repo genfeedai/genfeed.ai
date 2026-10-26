@@ -8,6 +8,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ColorInput } from '@ui/primitives/color-input';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -181,10 +182,10 @@ function ConfigField({
   return (
     <div className="mb-3">
       <div className="mb-1 flex items-center justify-between">
-        <label className="text-sm font-medium">
+        <Label>
           {field.label}
           {field.required && <span className="text-destructive ml-1">*</span>}
-        </label>
+        </Label>
         {variables.length > 0 && (
           <Button
             type="button"

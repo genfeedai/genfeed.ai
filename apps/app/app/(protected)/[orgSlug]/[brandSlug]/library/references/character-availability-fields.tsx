@@ -3,6 +3,7 @@
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type { CharacterAvailabilityFieldsProps } from '@props/characters/characters-page.props';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
 
@@ -49,8 +50,8 @@ export default function CharacterAvailabilityFields({
         value={draft.mode}
       >
         {MODES.map((mode) => (
-          <label
-            className="flex items-start gap-2 text-sm"
+          <Label
+            className="flex items-start gap-2 text-sm font-normal leading-normal"
             key={mode}
             htmlFor={`character-availability-${mode}`}
           >
@@ -65,7 +66,7 @@ export default function CharacterAvailabilityFields({
                 {translate(`availability.modes.${MODE_KEYS[mode]}.description`)}
               </span>
             </span>
-          </label>
+          </Label>
         ))}
       </RadioGroup>
 

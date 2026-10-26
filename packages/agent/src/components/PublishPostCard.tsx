@@ -11,6 +11,7 @@ import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -78,14 +79,14 @@ function PublishTargetSettingField(params: {
 
   if (field.type === 'boolean') {
     return (
-      <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
+      <Label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground font-normal leading-normal">
         <Checkbox
           id={fieldId}
           isChecked={value === true}
           onChange={(event) => onChange(event.target.checked)}
         />
         <span>{field.label}</span>
-      </label>
+      </Label>
     );
   }
 
@@ -542,13 +543,13 @@ export function PublishPostCard({
         sets={sets}
       />
 
-      <div className="mb-3">
-        <label
+      <div className="flex flex-col gap-1.5 mb-3">
+        <Label
           htmlFor="publish-caption"
-          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
         >
           {translate('caption')}
-        </label>
+        </Label>
         <Textarea
           id="publish-caption"
           value={caption}
@@ -598,15 +599,15 @@ export function PublishPostCard({
 
                   {isSelected ? (
                     <>
-                      <div className="mb-2">
-                        <label
+                      <div className="flex flex-col gap-1.5 mb-2">
+                        <Label
                           htmlFor={`publish-caption-${target.id}`}
-                          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+                          className="text-2xs uppercase tracking-wider text-muted-foreground"
                         >
                           {translate('channelCaption', {
                             platform: target.label,
                           })}
-                        </label>
+                        </Label>
                         <Textarea
                           id={`publish-caption-${target.id}`}
                           value={captionOverrides[target.id] ?? ''}
@@ -677,15 +678,18 @@ export function PublishPostCard({
                           {settingFields.map((field) => {
                             const fieldId = `${target.id}-${field.key}`;
                             return (
-                              <div key={field.key}>
+                              <div
+                                className="flex flex-col gap-1.5"
+                                key={field.key}
+                              >
                                 {field.type === 'boolean' ? null : (
-                                  <label
+                                  <Label
                                     htmlFor={fieldId}
-                                    className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+                                    className="text-2xs uppercase tracking-wider text-muted-foreground"
                                   >
                                     {field.label}
                                     {field.required ? ' *' : ''}
-                                  </label>
+                                  </Label>
                                 )}
                                 <PublishTargetSettingField
                                   field={field}
@@ -799,14 +803,14 @@ export function PublishPostCard({
         </Select>
       </div>
 
-      <div className="mb-4">
-        <label
+      <div className="flex flex-col gap-1.5 mb-4">
+        <Label
           htmlFor="publish-schedule"
-          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
         >
           <Calendar className="mr-1 inline size-3" />
           {translate('scheduleForLater')}
-        </label>
+        </Label>
         <Input
           id="publish-schedule"
           type="datetime-local"

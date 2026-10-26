@@ -23,6 +23,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { EditableText } from '@ui/primitives/editable-text';
 import Field from '@ui/primitives/field';
+import { Label } from '@ui/primitives/label';
 import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
 import {
@@ -239,7 +240,7 @@ export default function StoryboardShotCard({
                   }
                 />
               </Field>
-              <label className="flex h-8 items-center gap-2 text-sm">
+              <Label className="flex h-8 items-center gap-2 text-sm font-normal leading-normal">
                 <Checkbox
                   checked={shot.onScreenSpeaker}
                   disabled={isDisabled || !speaker?.avatarAssetId}
@@ -248,7 +249,7 @@ export default function StoryboardShotCard({
                   }
                 />
                 {translate('speakerOnScreen')}
-              </label>
+              </Label>
             </div>
             <Field label={translate('notes')}>
               <Textarea

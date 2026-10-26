@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/props/studio/motion-composer.props';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -47,7 +48,10 @@ export default function MotionAdvancedSettings({
         <>
           <div className="grid grid-cols-2 gap-3">
             {SETTING_KEYS.map((key) => (
-              <label key={key} className="grid gap-1.5 text-xs">
+              <Label
+                key={key}
+                className="grid gap-1.5 text-xs font-normal leading-normal"
+              >
                 {t(key)}
                 <Input
                   type="number"
@@ -56,10 +60,10 @@ export default function MotionAdvancedSettings({
                     onSettingChange(key, Number(event.target.value))
                   }
                 />
-              </label>
+              </Label>
             ))}
           </div>
-          <label className="grid gap-1.5 text-xs">
+          <Label className="grid gap-1.5 text-xs font-normal leading-normal">
             {t('props')}
             <Textarea
               rows={3}
@@ -67,7 +71,7 @@ export default function MotionAdvancedSettings({
               onChange={(event) => onPropsTextChange(event.target.value)}
               className="font-mono text-xs"
             />
-          </label>
+          </Label>
           <fieldset className="grid gap-1.5">
             <legend className="text-xs">{t('libraryAssets')}</legend>
             <p className="text-xs text-muted-foreground">{t('libraryHint')}</p>
@@ -100,7 +104,10 @@ export default function MotionAdvancedSettings({
         ) : null}
         <div className="flex gap-4">
           {OUTPUT_FORMATS.map((format) => (
-            <label key={format} className="flex items-center gap-2 text-xs">
+            <Label
+              key={format}
+              className="flex items-center gap-2 text-xs font-normal leading-normal"
+            >
               <Checkbox
                 aria-label={format.toUpperCase()}
                 checked={formats.includes(format)}
@@ -109,17 +116,17 @@ export default function MotionAdvancedSettings({
                 }
               />
               {format.toUpperCase()}
-            </label>
+            </Label>
           ))}
         </div>
         {formats.some((format) => format !== 'mp4') ? (
-          <label className="grid gap-1.5 text-xs">
+          <Label className="grid gap-1.5 text-xs font-normal leading-normal">
             {t('frames')}
             <Input
               value={frames}
               onChange={(event) => onFramesChange(event.target.value)}
             />
-          </label>
+          </Label>
         ) : null}
       </fieldset>
       <p className="text-xs text-muted-foreground">{t('limits')}</p>

@@ -1,4 +1,5 @@
 import type { TextSectionProps } from '@props/settings/organization-generation-defaults-text-section.props';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -30,13 +31,10 @@ export default function OrganizationGenerationDefaultsTextSection({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div>
-          <label
-            htmlFor="org-default-content-model"
-            className="mb-1 block text-sm font-medium"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-content-model">
             Content Generation Model
-          </label>
+          </Label>
           <Select
             onValueChange={(value) =>
               onDefaultModelChange(value === 'none' ? '' : value)
@@ -57,13 +55,10 @@ export default function OrganizationGenerationDefaultsTextSection({
           </Select>
         </div>
 
-        <div>
-          <label
-            htmlFor="org-default-content-review-model"
-            className="mb-1 block text-sm font-medium"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-content-review-model">
             Content Review Model
-          </label>
+          </Label>
           <Select
             onValueChange={(value) =>
               onDefaultModelReviewChange(value === 'none' ? '' : value)
@@ -87,13 +82,10 @@ export default function OrganizationGenerationDefaultsTextSection({
           </Select>
         </div>
 
-        <div>
-          <label
-            htmlFor="org-default-content-revision-model"
-            className="mb-1 block text-sm font-medium"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-default-content-revision-model">
             Content Revision Model
-          </label>
+          </Label>
           <Select
             onValueChange={(value) =>
               onDefaultModelUpdateChange(value === 'none' ? '' : value)

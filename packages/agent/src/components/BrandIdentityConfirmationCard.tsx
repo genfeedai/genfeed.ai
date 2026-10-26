@@ -7,6 +7,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Building2, CircleCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -205,13 +206,13 @@ export function BrandIdentityConfirmationCard({
       ) : null}
 
       <div className="grid gap-3">
-        <div>
-          <label
-            className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+        <div className="flex flex-col gap-1.5">
+          <Label
+            className="text-2xs uppercase tracking-wider text-muted-foreground"
             htmlFor={labelInputId}
           >
             {translate('labelField')}
-          </label>
+          </Label>
           <Input
             id={labelInputId}
             value={label}
@@ -221,13 +222,13 @@ export function BrandIdentityConfirmationCard({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+        <div className="flex flex-col gap-1.5">
+          <Label
+            className="text-2xs uppercase tracking-wider text-muted-foreground"
             htmlFor={slugInputId}
           >
             {translate('slugField')}
-          </label>
+          </Label>
           <Input
             id={slugInputId}
             value={slug}
@@ -238,13 +239,13 @@ export function BrandIdentityConfirmationCard({
         </div>
 
         {operation === 'create' ? (
-          <div>
-            <label
-              className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+          <div className="flex flex-col gap-1.5">
+            <Label
+              className="text-2xs uppercase tracking-wider text-muted-foreground"
               htmlFor={descriptionInputId}
             >
               {translate('descriptionField')}
-            </label>
+            </Label>
             <Textarea
               id={descriptionInputId}
               value={description}

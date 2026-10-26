@@ -8,6 +8,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -158,9 +159,9 @@ export default function SchedulePanel({
           )}
 
           <div className="flex items-center justify-between">
-            <label htmlFor={enableScheduleId} className="text-sm">
+            <Label htmlFor={enableScheduleId} className="font-normal">
               Enable Schedule
-            </label>
+            </Label>
             <Switch
               id={enableScheduleId}
               checked={enabled}
@@ -190,9 +191,9 @@ export default function SchedulePanel({
 
           {isCustom ? (
             <div>
-              <label htmlFor={cronExpressionId} className="text-xs font-medium">
+              <Label htmlFor={cronExpressionId} className="text-xs">
                 Cron Expression
-              </label>
+              </Label>
               <Input
                 id={cronExpressionId}
                 type="text"
@@ -225,9 +226,9 @@ export default function SchedulePanel({
           )}
 
           <div>
-            <label htmlFor={timezoneId} className="text-xs font-medium">
+            <Label htmlFor={timezoneId} className="text-xs">
               Timezone
-            </label>
+            </Label>
             <Select value={timezone} onValueChange={setTimezone}>
               <SelectTrigger id={timezoneId} className="mt-1 h-8">
                 <SelectValue placeholder="Select a timezone" />

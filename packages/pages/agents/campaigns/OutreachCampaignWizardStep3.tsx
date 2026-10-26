@@ -92,12 +92,9 @@ export default function OutreachCampaignWizardStep3({
       {campaignType === CampaignType.DM_OUTREACH ? (
         <>
           <div className="flex items-center gap-4">
-            <label
-              className="text-sm font-medium"
-              htmlFor="campaign-wizard-dm-use-ai"
-            >
+            <Label htmlFor="campaign-wizard-dm-use-ai">
               {translate('useAiGeneration')}
-            </label>
+            </Label>
             <Checkbox
               id="campaign-wizard-dm-use-ai"
               checked={dmUseAiGeneration}
@@ -127,12 +124,12 @@ export default function OutreachCampaignWizardStep3({
               </div>
 
               <div className="space-y-1.5">
-                <label
+                <Label
                   htmlFor="campaign-wizard-dm-offer"
-                  className="text-sm font-medium text-foreground"
+                  className="text-foreground"
                 >
                   {translate('offer')}
-                </label>
+                </Label>
                 <Input
                   id="campaign-wizard-dm-offer"
                   placeholder="e.g., 30-Day Content Sprint"
@@ -142,12 +139,12 @@ export default function OutreachCampaignWizardStep3({
               </div>
 
               <div className="space-y-1.5">
-                <label
+                <Label
                   htmlFor="campaign-wizard-dm-cta-link"
-                  className="text-sm font-medium text-foreground"
+                  className="text-foreground"
                 >
                   {translate('ctaLink')}
-                </label>
+                </Label>
                 <Input
                   id="campaign-wizard-dm-cta-link"
                   placeholder="https://academy.genfeed.ai"
@@ -193,12 +190,9 @@ export default function OutreachCampaignWizardStep3({
       ) : (
         <>
           <div className="flex items-center gap-4">
-            <label
-              className="text-sm font-medium"
-              htmlFor="campaign-wizard-use-ai"
-            >
+            <Label htmlFor="campaign-wizard-use-ai">
               {translate('useAiGeneration')}
-            </label>
+            </Label>
             <Checkbox
               id="campaign-wizard-use-ai"
               checked={useAiGeneration}
@@ -212,12 +206,12 @@ export default function OutreachCampaignWizardStep3({
           {useAiGeneration ? (
             <>
               <div className="space-y-1.5">
-                <label
-                  className="text-sm font-medium text-foreground"
+                <Label
+                  className="text-foreground"
                   htmlFor="campaign-wizard-reply-tone"
                 >
                   {translate('replyTone')}
-                </label>
+                </Label>
                 <Select
                   value={tone}
                   onValueChange={(value) => onToneChange(value as ReplyTone)}
@@ -236,12 +230,12 @@ export default function OutreachCampaignWizardStep3({
               </div>
 
               <div className="space-y-1.5">
-                <label
-                  className="text-sm font-medium text-foreground"
+                <Label
+                  className="text-foreground"
                   htmlFor="campaign-wizard-reply-length"
                 >
                   {translate('replyLength')}
-                </label>
+                </Label>
                 <Select
                   value={length}
                   onValueChange={(value) =>
@@ -294,12 +288,12 @@ export default function OutreachCampaignWizardStep3({
               </div>
 
               <div className="space-y-1.5">
-                <label
+                <Label
                   htmlFor="campaign-wizard-cta-link"
-                  className="text-sm font-medium text-foreground"
+                  className="text-foreground"
                 >
                   {translate('ctaLink')}
-                </label>
+                </Label>
                 <Input
                   id="campaign-wizard-cta-link"
                   placeholder="https://your-product.com"

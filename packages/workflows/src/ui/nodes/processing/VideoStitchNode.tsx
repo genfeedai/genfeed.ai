@@ -10,6 +10,7 @@ import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -121,12 +122,12 @@ function VideoStitchNodeComponent(props: NodeProps) {
         </div>
 
         <div>
-          <label
-            className="text-xs text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`video-stitch-transition-${id}`}
           >
             Transition
-          </label>
+          </Label>
           <Select
             value={nodeData.transitionType}
             onValueChange={handleTransitionChange}
@@ -175,22 +176,22 @@ function VideoStitchNodeComponent(props: NodeProps) {
             checked={nodeData.seamlessLoop}
             onCheckedChange={handleLoopToggle}
           />
-          <label
+          <Label
             htmlFor={`seamless-loop-${id}`}
-            className="text-sm text-foreground cursor-pointer"
+            className="text-foreground cursor-pointer font-normal"
           >
             Seamless Loop
-          </label>
+          </Label>
         </div>
 
         {/* Audio Codec */}
         <div>
-          <label
-            className="text-xs text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`video-stitch-audio-codec-${id}`}
           >
             Audio Codec
-          </label>
+          </Label>
           <Select
             value={nodeData.audioCodec}
             onValueChange={handleAudioCodecChange}
@@ -218,13 +219,13 @@ function VideoStitchNodeComponent(props: NodeProps) {
             checked={nodeData.outputQuality === 'draft'}
             onCheckedChange={handleQualityToggle}
           />
-          <label
+          <Label
             htmlFor={`draft-quality-${id}`}
-            className="text-sm text-foreground cursor-pointer flex items-center gap-1"
+            className="text-sm text-foreground cursor-pointer flex items-center gap-1 font-normal leading-normal"
           >
             <Zap className="size-3" />
             Draft Quality
-          </label>
+          </Label>
           {nodeData.outputQuality === 'draft' && (
             <span className="text-xs text-muted-foreground">
               (720p, faster)

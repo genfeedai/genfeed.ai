@@ -16,6 +16,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
 import TagsManager from '@ui/tags/manager/TagsManager';
@@ -195,13 +196,8 @@ export default function IngredientTabsTags({
         <h3 className="text-lg font-semibold mb-4">Add Tags</h3>
 
         {/* Create New Tag */}
-        <div className="mb-4">
-          <label
-            htmlFor="ingredient-tabs-new-tag-name"
-            className="text-sm font-medium mb-1 block"
-          >
-            Create New Tag
-          </label>
+        <div className="mb-4 flex flex-col gap-1.5">
+          <Label htmlFor="ingredient-tabs-new-tag-name">Create New Tag</Label>
           <div className="flex gap-2">
             <Input
               id="ingredient-tabs-new-tag-name"
@@ -232,13 +228,10 @@ export default function IngredientTabsTags({
         </div>
 
         {/* Search Existing Tags */}
-        <div>
-          <label
-            htmlFor="ingredient-tabs-search-tags"
-            className="text-sm font-medium mb-1 block"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="ingredient-tabs-search-tags">
             Select Existing Tags
-          </label>
+          </Label>
           <Input
             id="ingredient-tabs-search-tags"
             type="text"

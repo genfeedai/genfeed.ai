@@ -10,6 +10,7 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Check, DollarSign, Layers } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
@@ -147,12 +148,12 @@ export function TurboRunCard({
       {/* Stack controls — never put count + CTAs on one nowrap row (that was
           forcing the conversation track past the viewport). */}
       <div className="mb-3 min-w-0 space-y-1.5">
-        <label
+        <Label
           htmlFor="run-count"
-          className="block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
         >
           Number of items
-        </label>
+        </Label>
         <Input
           id="run-count"
           type="number"
@@ -170,10 +171,10 @@ export function TurboRunCard({
         </span>
         <div className="flex min-w-0 flex-wrap gap-2">
           {AVAILABLE_PLATFORMS.map((platform) => (
-            <label
+            <Label
               key={platform}
               className={cn(
-                'inline-flex max-w-full shrink-0 cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors',
+                'inline-flex max-w-full shrink-0 cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs font-normal leading-normal transition-colors',
                 selectedPlatforms.has(platform)
                   ? 'border-primary bg-primary/5 text-foreground'
                   : 'border-border text-muted-foreground hover:border-primary/50',
@@ -186,7 +187,7 @@ export function TurboRunCard({
                 className="sr-only"
               />
               {platform.charAt(0).toUpperCase() + platform.slice(1)}
-            </label>
+            </Label>
           ))}
         </div>
       </div>

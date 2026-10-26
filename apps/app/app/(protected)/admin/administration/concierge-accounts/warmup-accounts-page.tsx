@@ -28,6 +28,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import {
   Ban,
@@ -717,10 +718,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
+      <Label htmlFor={htmlFor} className="text-foreground">
         {label}
         {required ? <span className="text-muted-foreground"> *</span> : null}
-      </label>
+      </Label>
       {children}
     </div>
   );

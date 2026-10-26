@@ -8,6 +8,7 @@ import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { useKnowledgeLibrary } from '@pages/library/knowledge/hooks/use-knowledge-library';
 import type { KnowledgeReferenceSectionProps } from '@props/content/knowledge-library.props';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -91,7 +92,7 @@ export default function KnowledgeReferenceSection({
       <p className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
         {translate('title')}
       </p>
-      <label className="flex items-start gap-2 text-sm">
+      <Label className="flex items-start gap-2 text-sm font-normal leading-normal">
         <Checkbox
           aria-label={translate('auto')}
           checked={!isExplicit}
@@ -110,7 +111,7 @@ export default function KnowledgeReferenceSection({
             {isExplicit ? translate('explicitHint') : translate('autoHint')}
           </span>
         </span>
-      </label>
+      </Label>
       {isExplicit ? (
         <div className="flex flex-col gap-2 pl-6">
           {spaces.length > 0 ? (
@@ -121,8 +122,8 @@ export default function KnowledgeReferenceSection({
               {spaces.map((space) => {
                 const label = space.isInbox ? translate('inbox') : space.title;
                 return (
-                  <label
-                    className="flex items-center gap-2 text-sm"
+                  <Label
+                    className="flex items-center gap-2 text-sm font-normal leading-normal"
                     key={space.id}
                   >
                     <Checkbox
@@ -136,7 +137,7 @@ export default function KnowledgeReferenceSection({
                       }
                     />
                     {label}
-                  </label>
+                  </Label>
                 );
               })}
             </fieldset>
@@ -155,8 +156,8 @@ export default function KnowledgeReferenceSection({
               </span>
             ) : (
               readyRows.map((row) => (
-                <label
-                  className="flex items-center gap-2 text-sm"
+                <Label
+                  className="flex items-center gap-2 text-sm font-normal leading-normal"
                   key={row.source.id}
                 >
                   <Checkbox
@@ -173,7 +174,7 @@ export default function KnowledgeReferenceSection({
                   <span className="ml-auto text-2xs uppercase text-muted-foreground">
                     {translatePurpose(PURPOSE_KEY[row.source.purpose])}
                   </span>
-                </label>
+                </Label>
               ))
             )}
           </fieldset>

@@ -234,7 +234,7 @@ const LEGACY_IMPORT_PATTERNS = [/@ui\/inputs\//g];
 const RAW_INPUT_PATTERN = /<input\b[\s\S]*?>/g;
 const RAW_SELECT_PATTERN = /<select\b[\s\S]*?>/g;
 const RAW_HTML_ELEMENT_PATTERN =
-  /<(input|button|textarea|select|dialog|table|details|summary|progress|hr|form)\b/g;
+  /<(input|button|textarea|select|dialog|table|details|summary|progress|hr|form|label)\b/g;
 const BANNED_IMPORT_PATTERNS = [
   /@\/components\/ui\/input/g,
   /@\/components\/ui\/textarea/g,

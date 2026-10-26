@@ -2,6 +2,7 @@
 
 import type { Voice } from '@models/ingredients/voice.model';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -35,13 +36,8 @@ export default function BrandIdentityVoiceField({
   onVoiceChange,
 }: BrandIdentityVoiceFieldProps) {
   return (
-    <div>
-      <label
-        htmlFor="brand-default-voice-ref"
-        className="mb-1 block text-sm font-medium"
-      >
-        Default speaking voice
-      </label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="brand-default-voice-ref">Default speaking voice</Label>
       <Select
         disabled={isLoadingCatalog}
         onValueChange={(value) => onVoiceChange(value === 'none' ? '' : value)}

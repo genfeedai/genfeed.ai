@@ -9,6 +9,7 @@ import type {
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Switch } from '@ui/primitives/switch';
 import { useCallback, useState } from 'react';
 
@@ -27,7 +28,7 @@ function SettingInput({
     case 'boolean':
       return (
         <Field label={label}>
-          <label className="flex items-center gap-3 cursor-pointer">
+          <Label className="flex items-center gap-3 cursor-pointer font-normal leading-normal">
             <Switch
               checked={!!editedValue}
               onCheckedChange={onBooleanToggle}
@@ -35,7 +36,7 @@ function SettingInput({
               aria-label={`Toggle ${label}`}
             />
             <span>{editedValue ? 'Enabled' : 'Disabled'}</span>
-          </label>
+          </Label>
         </Field>
       );
     case 'number':

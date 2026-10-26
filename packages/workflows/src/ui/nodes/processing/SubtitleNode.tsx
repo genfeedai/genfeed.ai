@@ -10,6 +10,7 @@ import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -91,13 +92,13 @@ function SubtitleNodeComponent(props: NodeProps) {
             : 'Connect video and subtitle text'}
         </div>
 
-        <div>
-          <label
-            className="text-xs text-muted-foreground block mb-1"
+        <div className="flex flex-col gap-1.5">
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`subtitle-style-${id}`}
           >
             Style
-          </label>
+          </Label>
           <Select value={nodeData.style} onValueChange={handleStyleChange}>
             <SelectTrigger
               id={`subtitle-style-${id}`}
@@ -116,13 +117,13 @@ function SubtitleNodeComponent(props: NodeProps) {
         </div>
 
         {/* Position Selection */}
-        <div>
-          <label
-            className="text-xs text-muted-foreground block mb-1"
+        <div className="flex flex-col gap-1.5">
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`subtitle-position-${id}`}
           >
             Position
-          </label>
+          </Label>
           <Select
             value={nodeData.position}
             onValueChange={handlePositionChange}
@@ -163,12 +164,12 @@ function SubtitleNodeComponent(props: NodeProps) {
 
         {/* Font Color */}
         <div className="flex items-center gap-2">
-          <label
-            className="text-xs text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`subtitle-color-${id}`}
           >
             Color
-          </label>
+          </Label>
           <Input
             aria-label="Subtitle color"
             id={`subtitle-color-${id}`}

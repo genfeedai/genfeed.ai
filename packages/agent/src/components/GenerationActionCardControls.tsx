@@ -28,6 +28,7 @@ import {
   DialogPortal,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -147,9 +148,9 @@ export function GenerationActionCardControls({
   return (
     <>
       <div>
-        <label htmlFor="gen-action-prompt" className="sr-only">
+        <Label htmlFor="gen-action-prompt" className="sr-only font-normal">
           {translate('promptLabel')}
-        </label>
+        </Label>
         <div className="flex items-center gap-1.5">
           <Textarea
             id="gen-action-prompt"

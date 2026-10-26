@@ -9,6 +9,7 @@ import type {
 import { Code } from '@genfeedai/ui';
 import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -146,12 +147,12 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         )}
 
         <div>
-          <label
+          <Label
             htmlFor={`tts-provider-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             Provider
-          </label>
+          </Label>
           <Select
             value={nodeData.provider}
             onValueChange={handleProviderChange}
@@ -174,12 +175,12 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Voice Selection */}
         <div>
-          <label
+          <Label
             htmlFor={`tts-voice-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             Voice
-          </label>
+          </Label>
           <Select value={nodeData.voice} onValueChange={handleVoiceChange}>
             <SelectTrigger id={`tts-voice-${id}`} className="nodrag h-8 w-full">
               <SelectValue />

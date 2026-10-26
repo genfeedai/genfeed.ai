@@ -2,6 +2,7 @@
 
 import type { AgentProfileVoiceFieldsProps } from '@props/pages/brand-detail.props';
 import { EditableText } from '@ui/primitives/editable-text';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -30,13 +31,10 @@ export default function AgentProfileVoiceFields({
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-canonical-source"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-canonical-source">
             Canonical Voice Source
-          </label>
+          </Label>
           <Select
             disabled={isDisabled}
             value={voiceCanonicalSource}
@@ -55,13 +53,8 @@ export default function AgentProfileVoiceFields({
           </Select>
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-tone"
-          >
-            Tone
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-tone">Tone</Label>
           <EditableText
             ariaLabel="Tone"
             displayClassName="text-sm"
@@ -71,13 +64,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-style"
-          >
-            Style
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-style">Style</Label>
           <EditableText
             ariaLabel="Style"
             displayClassName="text-sm"
@@ -87,13 +75,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-audience"
-          >
-            Audience
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-audience">Audience</Label>
           <EditableText
             ariaLabel="Audience"
             displayClassName="text-sm"
@@ -104,13 +87,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-values"
-          >
-            Values
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-values">Values</Label>
           <EditableText
             ariaLabel="Values"
             displayClassName="text-sm"
@@ -121,13 +99,10 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-messaging-pillars"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-messaging-pillars">
             Messaging Pillars
-          </label>
+          </Label>
           <EditableText
             ariaLabel="Messaging Pillars"
             displayClassName="text-sm"
@@ -138,13 +113,10 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-do-not-sound-like"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-do-not-sound-like">
             Do Not Sound Like
-          </label>
+          </Label>
           <EditableText
             ariaLabel="Do Not Sound Like"
             displayClassName="text-sm"
@@ -155,13 +127,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-approved-hooks"
-          >
-            Approved Hooks
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-approved-hooks">Approved Hooks</Label>
           <EditableText
             ariaLabel="Approved Hooks"
             displayClassName="text-sm"
@@ -172,13 +139,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-banned-phrases"
-          >
-            Banned Phrases
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-banned-phrases">Banned Phrases</Label>
           <EditableText
             ariaLabel="Banned Phrases"
             displayClassName="text-sm"
@@ -189,13 +151,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-writing-rules"
-          >
-            Writing Rules
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-writing-rules">Writing Rules</Label>
           <EditableText
             ariaLabel="Writing Rules"
             displayClassName="text-sm"
@@ -207,13 +164,8 @@ export default function AgentProfileVoiceFields({
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-agent-exemplar-texts"
-          >
-            Exemplar Texts
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="brand-agent-exemplar-texts">Exemplar Texts</Label>
           <EditableText
             ariaLabel="Exemplar Texts"
             displayClassName="text-sm leading-6"
@@ -228,13 +180,8 @@ export default function AgentProfileVoiceFields({
         </div>
       </div>
 
-      <div>
-        <label
-          className="mb-1 block text-sm font-medium"
-          htmlFor="brand-agent-sample-output"
-        >
-          Sample Output
-        </label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="brand-agent-sample-output">Sample Output</Label>
         <EditableText
           ariaLabel="Sample Output"
           className="w-full"

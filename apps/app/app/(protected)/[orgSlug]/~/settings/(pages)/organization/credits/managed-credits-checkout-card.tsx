@@ -3,6 +3,7 @@ import { ManagedCreditsService } from '@services/billing/managed-credits.service
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { useEffect, useState } from 'react';
 import CreditTopUpPanel from './credit-top-up-panel';
 
@@ -60,12 +61,12 @@ export default function ManagedCreditsCheckoutCard() {
       title="Buy credits"
       helperContent={
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <label
+          <Label
             htmlFor="provisioning-email"
-            className="shrink-0 text-sm font-medium text-foreground"
+            className="shrink-0 text-foreground"
           >
             Receipt email
-          </label>
+          </Label>
           <Input
             id="provisioning-email"
             type="email"

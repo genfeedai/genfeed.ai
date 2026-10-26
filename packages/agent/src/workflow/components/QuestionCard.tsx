@@ -3,6 +3,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { CircleQuestionMark, Send } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
@@ -53,10 +54,10 @@ function QuestionCardInner({
       {question.type === 'multiple_choice' && question.options ? (
         <div className="space-y-2 ml-8">
           {question.options.map((option) => (
-            <label
+            <Label
               key={option}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer transition-all',
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-normal leading-normal cursor-pointer transition-all',
                 selectedOption === option
                   ? 'bg-info/15 text-info ring-1 ring-info/30'
                   : 'bg-foreground/5 text-foreground/70 hover:bg-foreground/10',
@@ -85,7 +86,7 @@ function QuestionCardInner({
                 )}
               </span>
               {option}
-            </label>
+            </Label>
           ))}
         </div>
       ) : (

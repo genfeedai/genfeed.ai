@@ -12,6 +12,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -135,9 +136,9 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               <div className="flex flex-wrap gap-4">
                 {BOT_PLATFORMS_LIST.map(
                   ({ platform, icon: Icon, color, label }) => (
-                    <label
+                    <Label
                       key={platform}
-                      className="flex items-center gap-2 cursor-pointer"
+                      className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
                     >
                       <Checkbox
                         isChecked={platforms.includes(platform)}
@@ -146,7 +147,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       />
                       <Icon className={color} />
                       <span className="text-sm">{label}</span>
-                    </label>
+                    </Label>
                   ),
                 )}
               </div>

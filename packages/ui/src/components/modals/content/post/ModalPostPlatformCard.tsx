@@ -13,6 +13,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Sparkles } from 'lucide-react';
@@ -148,12 +149,11 @@ export default function ModalPostPlatformCard({
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label
+          <Label
             htmlFor={`platform-description-${config.credentialId || config.platform}`}
-            className="text-sm font-medium"
           >
             {isTwitter ? 'Tweet' : 'Description'}
-          </label>
+          </Label>
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}

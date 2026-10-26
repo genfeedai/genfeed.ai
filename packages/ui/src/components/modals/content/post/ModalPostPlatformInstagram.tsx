@@ -2,6 +2,7 @@
 
 import { PostCategory } from '@genfeedai/contracts';
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 
 type Props = {
@@ -56,8 +57,8 @@ export default function ModalPostPlatformInstagram({
         value={radioValue}
         onValueChange={handleChange}
       >
-        <label
-          className="flex items-center gap-2 cursor-pointer"
+        <Label
+          className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
           htmlFor={`${config.credentialId}-instagram-image`}
         >
           <RadioGroupItem
@@ -65,10 +66,10 @@ export default function ModalPostPlatformInstagram({
             value="image"
           />
           <span className="text-sm">Image Post</span>
-        </label>
+        </Label>
 
-        <label
-          className="flex items-center gap-2 cursor-pointer"
+        <Label
+          className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
           htmlFor={`${config.credentialId}-instagram-video-only`}
         >
           <RadioGroupItem
@@ -76,10 +77,10 @@ export default function ModalPostPlatformInstagram({
             value="video-only"
           />
           <span className="text-sm">Reel only</span>
-        </label>
+        </Label>
 
-        <label
-          className="flex items-center gap-2 cursor-pointer"
+        <Label
+          className="flex items-center gap-2 cursor-pointer font-normal leading-normal"
           htmlFor={`${config.credentialId}-instagram-video-feed`}
         >
           <RadioGroupItem
@@ -87,7 +88,7 @@ export default function ModalPostPlatformInstagram({
             value="video-feed"
           />
           <span className="text-sm">Reel + Feed</span>
-        </label>
+        </Label>
       </RadioGroup>
     </div>
   );

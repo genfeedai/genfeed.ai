@@ -11,6 +11,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { CircleCheck, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -253,12 +254,9 @@ export default function AgentAuthClaimContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="agent-auth-user-code"
-                  >
+                  <Label htmlFor="agent-auth-user-code">
                     {translate('code.label')}
-                  </label>
+                  </Label>
                   <Input
                     autoComplete="one-time-code"
                     id="agent-auth-user-code"

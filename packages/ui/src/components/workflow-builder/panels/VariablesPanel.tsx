@@ -10,6 +10,7 @@ import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -69,9 +70,9 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
       {isExpanded && (
         <div className="border-t border-white/[0.08] p-3 space-y-3">
           <div>
-            <label htmlFor={keyId} className="text-xs font-medium">
+            <Label htmlFor={keyId} className="text-xs">
               Key
-            </label>
+            </Label>
             <Input
               id={keyId}
               type="text"
@@ -83,9 +84,9 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
           </div>
 
           <div>
-            <label htmlFor={labelId} className="text-xs font-medium">
+            <Label htmlFor={labelId} className="text-xs">
               Label
-            </label>
+            </Label>
             <Input
               id={labelId}
               type="text"
@@ -97,9 +98,9 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
           </div>
 
           <div>
-            <label htmlFor={typeId} className="text-xs font-medium">
+            <Label htmlFor={typeId} className="text-xs">
               Type
-            </label>
+            </Label>
             <Select
               value={variable.type}
               onValueChange={(value) =>
@@ -120,9 +121,9 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
           </div>
 
           <div>
-            <label htmlFor={descriptionId} className="text-xs font-medium">
+            <Label htmlFor={descriptionId} className="text-xs">
               Description
-            </label>
+            </Label>
             <Input
               id={descriptionId}
               type="text"
@@ -142,9 +143,9 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
               }
               aria-label={`Toggle required for ${variable.label}`}
             />
-            <label htmlFor={requiredId} className="text-sm">
+            <Label htmlFor={requiredId} className="font-normal">
               Required
-            </label>
+            </Label>
           </div>
 
           <Button

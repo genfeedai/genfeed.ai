@@ -31,6 +31,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { Trash2 } from 'lucide-react';
 import { type ChangeEvent, useEffect } from 'react';
@@ -154,9 +155,9 @@ export default function ModalMonitoredAccount({
               }
             >
               {PLATFORMS.map(({ platform, icon: Icon, color, label }) => (
-                <label
+                <Label
                   key={platform}
-                  className={`flex items-center gap-2 cursor-pointer p-2 border ${
+                  className={`flex items-center gap-2 cursor-pointer p-2 border font-normal leading-normal ${
                     form.watch('platform') === platform
                       ? 'border-primary bg-primary/10'
                       : 'border-white/[0.08]'
@@ -165,7 +166,7 @@ export default function ModalMonitoredAccount({
                   <RadioGroupItem value={platform} disabled={isSubmitting} />
                   <Icon className={color} />
                   <span className="text-sm">{label}</span>
-                </label>
+                </Label>
               ))}
             </RadioGroup>
           </FormControl>

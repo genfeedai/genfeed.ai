@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Sparkles } from 'lucide-react';
 
 type Props = {
@@ -37,12 +38,11 @@ export default function ModalPostPlatformTitleField({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label
+        <Label
           htmlFor={`platform-title-${config.credentialId || config.platform}`}
-          className="text-sm font-medium"
         >
           Title
-        </label>
+        </Label>
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}

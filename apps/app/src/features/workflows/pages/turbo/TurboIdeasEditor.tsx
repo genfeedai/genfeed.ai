@@ -10,6 +10,7 @@ import {
 } from '@ui/primitives/collapsible';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -55,7 +56,10 @@ export default function TurboIdeasEditor({
                 const isUnavailable = format === 'avatar' && !isAvatarReady;
                 const isChecked = settings.formats.includes(format);
                 return (
-                  <label key={format} className="flex items-center gap-2">
+                  <Label
+                    key={format}
+                    className="flex items-center gap-2 font-normal leading-normal"
+                  >
                     <Checkbox
                       checked={isChecked}
                       disabled={
@@ -80,7 +84,7 @@ export default function TurboIdeasEditor({
                         {t('avatarSetupNeeded')}
                       </span>
                     )}
-                  </label>
+                  </Label>
                 );
               })}
             </div>

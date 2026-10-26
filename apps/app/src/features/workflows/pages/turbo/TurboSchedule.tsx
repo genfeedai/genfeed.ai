@@ -2,6 +2,7 @@
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 import type { TurboScheduleProps } from './turbo-project.types';
 
@@ -52,7 +53,7 @@ export default function TurboSchedule({
             key={credential.id}
             className="flex flex-wrap items-center gap-3"
           >
-            <label className="flex items-center gap-2">
+            <Label className="flex items-center gap-2 font-normal leading-normal">
               <Checkbox
                 checked={target?.isSelected ?? false}
                 disabled={disabled}
@@ -61,7 +62,7 @@ export default function TurboSchedule({
                 }
               />
               {label}
-            </label>
+            </Label>
             <Input
               aria-label={t('scheduleFor', { name: label })}
               type="datetime-local"

@@ -8,6 +8,7 @@ import type {
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -48,12 +49,12 @@ function GridConfiguration({
   return (
     <div className="grid grid-cols-2 gap-2">
       <div>
-        <label
-          className="text-xs text-muted-foreground"
+        <Label
+          className="text-xs text-muted-foreground font-normal"
           htmlFor={`image-grid-rows-${id}`}
         >
           Rows
-        </label>
+        </Label>
         <Input
           aria-label="Rows"
           id={`image-grid-rows-${id}`}
@@ -66,12 +67,12 @@ function GridConfiguration({
         />
       </div>
       <div>
-        <label
-          className="text-xs text-muted-foreground"
+        <Label
+          className="text-xs text-muted-foreground font-normal"
           htmlFor={`image-grid-columns-${id}`}
         >
           Columns
-        </label>
+        </Label>
         <Input
           aria-label="Columns"
           id={`image-grid-columns-${id}`}
@@ -158,12 +159,12 @@ function GridOutputSettings({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label
-            className="text-xs text-muted-foreground"
+          <Label
+            className="text-xs text-muted-foreground font-normal"
             htmlFor={`image-grid-format-${id}`}
           >
             Format
-          </label>
+          </Label>
           <Select value={nodeData.outputFormat} onValueChange={onFormatChange}>
             <SelectTrigger
               id={`image-grid-format-${id}`}

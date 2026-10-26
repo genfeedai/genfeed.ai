@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo, useCallback, useId, useMemo, useState } from 'react';
 
@@ -180,12 +181,12 @@ function NegativePromptSelectorComponent({
                     }}
                     className="size-3.5"
                   />
-                  <label
+                  <Label
                     htmlFor={checkboxId}
-                    className="text-sm text-foreground truncate cursor-pointer"
+                    className="text-foreground truncate cursor-pointer font-normal"
                   >
                     {option.label}
-                  </label>
+                  </Label>
                 </div>
               );
             })}
@@ -193,12 +194,12 @@ function NegativePromptSelectorComponent({
 
           {/* Custom terms input */}
           <div className="flex flex-col gap-1 mt-1">
-            <label
-              className="text-xs text-muted-foreground"
+            <Label
+              className="text-xs text-muted-foreground font-normal"
               htmlFor={customInputId}
             >
               Custom
-            </label>
+            </Label>
             <Input
               id={customInputId}
               type="text"

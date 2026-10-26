@@ -2,6 +2,7 @@
 
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { platformColors, platformIcons } from './platform-map.constants';
 
 type Props = {
@@ -38,8 +39,8 @@ export default function ModalPostPlatformGrid({
                     : ''
               }`}
             >
-              <label
-                className={`flex items-center gap-2 ${
+              <Label
+                className={`flex items-center gap-2 font-normal leading-normal ${
                   hasCredential ? 'cursor-pointer' : 'cursor-not-allowed'
                 }`}
               >
@@ -63,7 +64,7 @@ export default function ModalPostPlatformGrid({
                     </span>
                   )}
                 </div>
-              </label>
+              </Label>
               {hasCredential && !isCredentialValid && (
                 <span className="text-xs text-warning">
                   Reconnect account to enable

@@ -2,6 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
@@ -70,13 +71,13 @@ export function BrandCreateCard({
         </p>
       )}
 
-      <div className="mb-3">
-        <label
-          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+      <div className="flex flex-col gap-1.5 mb-3">
+        <Label
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
           htmlFor="brand-create-name"
         >
           Brand Name
-        </label>
+        </Label>
         <Input
           id="brand-create-name"
           type="text"
@@ -86,13 +87,13 @@ export function BrandCreateCard({
         />
       </div>
 
-      <div className="mb-3">
-        <label
-          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+      <div className="flex flex-col gap-1.5 mb-3">
+        <Label
+          className="text-2xs uppercase tracking-wider text-muted-foreground"
           htmlFor="brand-create-description"
         >
           Description
-        </label>
+        </Label>
         <Textarea
           id="brand-create-description"
           value={description}

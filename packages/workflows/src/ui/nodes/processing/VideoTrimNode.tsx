@@ -7,6 +7,7 @@ import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/dur
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
@@ -100,12 +101,12 @@ function VideoTrimNodeComponent(props: NodeProps) {
 
         {/* Start Time */}
         <div>
-          <label
+          <Label
             htmlFor={`trim-start-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             Start: {formatMinutesSeconds(nodeData.startTime)}
-          </label>
+          </Label>
           <Slider
             value={[nodeData.startTime]}
             min={0}
@@ -127,12 +128,12 @@ function VideoTrimNodeComponent(props: NodeProps) {
 
         {/* End Time */}
         <div>
-          <label
+          <Label
             htmlFor={`trim-end-${id}`}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground font-normal"
           >
             End: {formatMinutesSeconds(nodeData.endTime)}
-          </label>
+          </Label>
           <Slider
             value={[nodeData.endTime]}
             min={0}

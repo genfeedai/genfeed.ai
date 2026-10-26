@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ReviewInboxDecision } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { Check, ClipboardList, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -151,9 +152,9 @@ export function ReviewGateCard({
 
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {pendingItems.map((item) => (
-          <label
+          <Label
             key={item.id}
-            className={`flex items-center gap-3 p-2 cursor-pointer transition-colors ${
+            className={`flex items-center gap-3 p-2 cursor-pointer font-normal leading-normal transition-colors ${
               selected.has(item.id)
                 ? 'bg-info/10  border border-info/20 '
                 : 'bg-muted border border-transparent'
@@ -175,7 +176,7 @@ export function ReviewGateCard({
                 </span>
               )}
             </div>
-          </label>
+          </Label>
         ))}
       </div>
 

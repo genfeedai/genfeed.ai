@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -126,9 +127,12 @@ function TrendTriggerNodeComponent({
 
       {/* Trend Type */}
       <div>
-        <label htmlFor={trendTypeId} className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={trendTypeId}
+          className="text-xs text-muted-foreground font-normal"
+        >
           Trend Type
-        </label>
+        </Label>
         <Select
           value={data.trendType}
           onValueChange={(value) =>
@@ -150,13 +154,13 @@ function TrendTriggerNodeComponent({
 
       {/* Min Viral Score */}
       <div>
-        <label
+        <Label
           htmlFor={minViralScoreId}
-          className="text-xs text-muted-foreground flex items-center gap-1"
+          className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal"
         >
           <TrendingUp className="size-3" />
           Min Viral Score: {data.minViralScore}
-        </label>
+        </Label>
         <Slider
           id={minViralScoreId}
           min={0}
@@ -170,13 +174,13 @@ function TrendTriggerNodeComponent({
 
       {/* Check Frequency */}
       <div>
-        <label
+        <Label
           htmlFor={checkFrequencyId}
-          className="text-xs text-muted-foreground flex items-center gap-1"
+          className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal"
         >
           <Clock className="size-3" />
           Check Frequency
-        </label>
+        </Label>
         <Select
           value={data.checkFrequency}
           onValueChange={(value) =>
@@ -198,13 +202,13 @@ function TrendTriggerNodeComponent({
 
       {/* Keywords Filter */}
       <div>
-        <label
+        <Label
           htmlFor={keywordsInputId}
-          className="text-xs text-muted-foreground flex items-center gap-1"
+          className="text-xs text-muted-foreground flex items-center gap-1 font-normal leading-normal"
         >
           <Hash className="size-3" />
           Keywords (optional)
-        </label>
+        </Label>
         <div className="flex gap-1 mt-1">
           <Input
             id={keywordsInputId}

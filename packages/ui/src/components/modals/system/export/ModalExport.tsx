@@ -14,6 +14,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Label } from '@ui/primitives/label';
 import { SelectField } from '@ui/primitives/select';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -98,13 +99,8 @@ export default function ModalExport({
   return (
     <Modal id={ModalEnum.EXPORT} title="Export Data">
       <div className="space-y-4">
-        <div>
-          <label
-            htmlFor="export-format"
-            className="text-sm font-medium mb-1 block"
-          >
-            Export Format
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="export-format">Export Format</Label>
 
           <SelectField
             name="format"
