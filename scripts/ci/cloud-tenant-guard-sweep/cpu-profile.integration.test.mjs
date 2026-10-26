@@ -58,7 +58,18 @@ test('actual worker inspector seals main-isolate CPU while deterministic main co
   assert.equal(result.isolatedEnv, true);
   assert.equal(result.isolatedImports, true);
   assert.equal(readFileSync(importCount, 'utf8'), 'x');
-  assert.equal(result.sealedWhileBusy, true);
+  let sealDiagnostic;
+  if (result.sealedWhileBusy !== true) {
+    try {
+      sealDiagnostic = readFileSync(
+        join(directory, 'cpu-profile-seal.json'),
+        'utf8',
+      );
+    } catch {
+      sealDiagnostic = 'CPU profile seal unavailable';
+    }
+  }
+  assert.equal(result.sealedWhileBusy, true, sealDiagnostic);
   assert.equal(result.delayedTimerRan, false);
   const raw = JSON.parse(
     readFileSync(join(directory, 'cpu-profile.raw.json'), 'utf8'),
