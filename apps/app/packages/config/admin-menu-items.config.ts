@@ -13,6 +13,7 @@ import {
   Box,
   Building2,
   ChartPie,
+  Cog,
   Cpu,
   CreditCard,
   Eye,
@@ -344,6 +345,15 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.SYSTEM_EMAILS],
     outline: Send,
     solid: Send,
+  },
+  {
+    group: 'Administration',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.LEARNING,
+    label: 'Learning',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.LEARNING],
+    outline: Cog,
+    solid: Cog,
   },
   {
     group: 'Administration',

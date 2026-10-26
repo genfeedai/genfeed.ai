@@ -6,6 +6,7 @@ import adminCreditHolds from './pages/adminCreditHolds.json';
 import adminEconomics from './pages/adminEconomics.json';
 import adminFlags from './pages/adminFlags.json';
 import adminGenerations from './pages/adminGenerations.json';
+import adminLearning from './pages/adminLearning.json';
 import adminModelDetail from './pages/adminModelDetail.json';
 import adminModelPricing from './pages/adminModelPricing.json';
 import adminOrganizationReleases from './pages/adminOrganizationReleases.json';
@@ -78,6 +79,7 @@ const pages = {
   adminCreditHolds,
   adminEconomics,
   adminFlags,
+  adminLearning,
   adminGenerations,
   adminModelDetail,
   adminModelPricing,

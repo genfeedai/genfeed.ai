@@ -11,7 +11,6 @@ import {
   LearningRunControlDto,
   LearningRunDto,
 } from '@api/collections/content-learning/dto/learning-run.dto';
-import type { LearningPromptSlotOutcomeReport } from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningPromptSlotOutcomeService } from '@api/collections/content-learning/services/learning-prompt-slot-outcome.service';
@@ -28,6 +27,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { LearningPromptSlotOutcomeReport } from '@genfeedai/contracts/interfaces';
 import {
   ContentLearningAccountSerializer,
   ContentLearningDatasetSerializer,

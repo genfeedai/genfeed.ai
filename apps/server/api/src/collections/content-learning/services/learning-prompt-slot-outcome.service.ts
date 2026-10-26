@@ -1,10 +1,10 @@
-import type {
-  LearningPromptSlotOutcomeGroup,
-  LearningPromptSlotOutcomeQuery,
-  LearningPromptSlotOutcomeReport,
-} from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
+import type { LearningPromptSlotOutcomeQuery } from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import type {
+  LearningPromptSlotOutcomeGroup,
+  LearningPromptSlotOutcomeReport,
+} from '@genfeedai/contracts/interfaces';
 import {
   compareStructuredPromptSlots,
   hasStructuredPrompt,

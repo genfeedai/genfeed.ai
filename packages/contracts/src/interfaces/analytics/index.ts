@@ -8,6 +8,7 @@ export * from './breakout-response.interface';
 export * from './content-learning.interface';
 export * from './evaluation.interface';
 export * from './fleet-evaluation-policy.interface';
+export * from './learning-prompt-slot-outcome.interface';
 export * from './outlier-baseline.interface';
 export * from './outlier-persistence.interface';
 export * from './saved-ad.interface';
