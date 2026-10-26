@@ -129,12 +129,6 @@ export default function StudioPlaygroundInspector({
       ? job.ingredient
       : null;
   const isSourceUnavailable = Boolean(job.ingredient && !ingredient);
-  // Uploads and imports were never charged; a job's ingredient may not carry
-  // its origin yet, so only a known reference origin skips the read.
-  const generationCost = useIngredientGenerationCost(
-    ingredient?.id ?? '',
-    Boolean(ingredient) && !isLibraryReferenceOrigin(ingredient?.origin),
-  );
   const previewScope = [
     job.id,
     ingredientId,
@@ -170,6 +164,14 @@ export default function StudioPlaygroundInspector({
     !receiptAsset.isDeleted
       ? receiptAsset
       : null;
+  // Uploads and imports were never charged; an asset may not carry its origin
+  // yet, so only a known reference origin skips the read. A job that only has
+  // an ingredient id is priced from the receipt asset once it loads.
+  const costAsset = ingredient ?? currentReceipt;
+  const generationCost = useIngredientGenerationCost(
+    costAsset?.id ?? '',
+    Boolean(costAsset) && !isLibraryReferenceOrigin(costAsset?.origin),
+  );
   const isPreviewLoading =
     loadingPreviewScope === previewScope || mediaPreview?.state === 'PENDING';
   const hasPreviewError =

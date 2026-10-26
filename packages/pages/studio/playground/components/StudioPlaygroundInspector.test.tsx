@@ -663,6 +663,40 @@ describe('StudioPlaygroundInspector', () => {
     expect(mocks.ingredientsFindOne).not.toHaveBeenCalled();
   });
 
+  it('prices a job that only has an ingredient id from the loaded receipt asset', async () => {
+    mocks.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'ing-1',
+      origin: IngredientOrigin.GENERATED,
+    });
+    mocks.findGenerationCost.mockResolvedValue({
+      credits: 12,
+      id: 'ing-1',
+      status: 'settled',
+    });
+
+    render(
+      <StudioPlaygroundInspector
+        job={recipeJob}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('studio-playground-inspector'),
+      ).toHaveTextContent('Credits12'),
+    );
+    expect(mocks.findGenerationCost).toHaveBeenCalledWith(
+      'ing-1',
+      expect.any(AbortSignal),
+    );
+  });
+
   it('shows the Knowledge versions folded into the submitted prompt', async () => {
     mocks.findOne.mockResolvedValue({
       id: 'ing-1',
