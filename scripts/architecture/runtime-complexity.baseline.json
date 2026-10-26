@@ -150,7 +150,7 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 1117,
+    "actual": 1115,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts"
