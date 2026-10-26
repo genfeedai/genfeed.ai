@@ -59,6 +59,10 @@ import {
   scheduleApprovedReviewPost,
 } from '@api/services/turbo-run/turbo-run-review-approval';
 import {
+  hasBeenRewritten,
+  recordTurboReviewFeedback,
+} from '@api/services/turbo-run/turbo-run-review-harness-feedback';
+import {
   getSelectedPostIds,
   toReviewInboxItemSummary,
 } from '@api/services/turbo-run/turbo-run-review-items.util';
@@ -275,11 +279,13 @@ export class TurboRunReviewService {
       },
     );
 
-    this.recordHarnessApprovals(
+    recordTurboReviewFeedback(
+      this.harnessReviewFeedbackService,
       uneditedApprovals,
+      ReviewDecision.APPROVED,
       orgId,
       approvedBrandId,
-      createdByUserId,
+      { userId: createdByUserId },
     );
 
     this.logger.log(`Approved ${itemIds.length} items in run ${turboRunId}`, {
@@ -434,77 +440,6 @@ export class TurboRunReviewService {
     return toTurboRunWithConfig(updated);
   }
 
-  /**
-   * Feeds human rejections/change-requests on generated Turbo run items back
-   * into the brand's harness profile (anti-examples) so future generations
-   * avoid repeating the rejected pattern. Fire-and-forget: the harness
-   * service never throws, but this is still not awaited so a slow or failed
-   * feedback write can never delay or fail the review action itself.
-   */
-  private recordHarnessReviewFeedback(
-    items: TurboRunItemFull[],
-    decision:
-      | typeof ReviewDecision.REJECTED
-      | typeof ReviewDecision.REQUEST_CHANGES,
-    organizationId: string,
-    brandId: string | undefined,
-    reason?: string,
-    userId?: string,
-  ): void {
-    if (!this.harnessReviewFeedbackService || items.length === 0) {
-      return;
-    }
-
-    for (const item of items) {
-      const content = item.caption ?? item.prompt;
-      if (!content) {
-        continue;
-      }
-      void this.harnessReviewFeedbackService.recordReviewDecision({
-        brandId,
-        content,
-        decision,
-        organizationId,
-        reason,
-        sourceId: item.id,
-        sourceType: 'turbo_run_item',
-        userId,
-      });
-    }
-  }
-
-  /**
-   * Saves drafts a person approved without rewriting them as positive
-   * examples on the brand's harness profile. Fire-and-forget like the
-   * rejection path: the harness service never throws.
-   */
-  private recordHarnessApprovals(
-    items: TurboRunItemFull[],
-    organizationId: string,
-    brandId: string | undefined,
-    userId: string,
-  ): void {
-    if (!this.harnessReviewFeedbackService) {
-      return;
-    }
-
-    for (const item of items) {
-      const content = item.caption ?? item.prompt;
-      if (!content) {
-        continue;
-      }
-      void this.harnessReviewFeedbackService.recordReviewDecision({
-        brandId,
-        content,
-        decision: ReviewDecision.APPROVED,
-        organizationId,
-        sourceId: item.id,
-        sourceType: 'turbo_run_item',
-        userId,
-      });
-    }
-  }
-
   async rejectItems(
     turboRunId: string,
     itemIds: string[],
@@ -634,13 +569,13 @@ export class TurboRunReviewService {
         return turboRun;
       },
     );
-    this.recordHarnessReviewFeedback(
+    recordTurboReviewFeedback(
+      this.harnessReviewFeedbackService,
       changed,
       decision,
       orgId,
       updated.brandId ?? undefined,
-      feedback,
-      actorUserId,
+      { reason: feedback, userId: actorUserId },
     );
     return this.summaryService.toTurboRunSummary(updated);
   }
@@ -1020,11 +955,4 @@ export class TurboRunReviewService {
 
     return this.summaryService.toTurboRunSummary(updatedTurboRun);
   }
-}
-
-/** A rewrite is logged as a `Content rewritten` change request on the item. */
-function hasBeenRewritten(item: TurboRunItemFull): boolean {
-  return (item.reviewEvents ?? []).some(
-    (event) => event.decision === ReviewDecision.REQUEST_CHANGES,
-  );
 }
