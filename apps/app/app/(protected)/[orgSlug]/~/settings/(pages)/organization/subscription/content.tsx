@@ -35,8 +35,10 @@ const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   scale: getPlanLabel('scale'),
 };
 
-function formatSubscriptionTierLabel(tier?: string): string {
-  return (tier && SUBSCRIPTION_TIER_LABELS[tier]) || 'Free';
+function formatSubscriptionTierLabel(tier?: string | null): string {
+  const normalizedTier = tier?.trim().toLowerCase();
+
+  return (normalizedTier && SUBSCRIPTION_TIER_LABELS[normalizedTier]) || 'Free';
 }
 
 function formatPlanLimit(limit: number | null): string {
@@ -105,9 +107,11 @@ function SettingsSubscriptionContent() {
   const isPlanLoading = !isReady || isLoading;
   // Provisioning creates an INCOMPLETE row before Stripe checkout. Free is
   // usable without checkout; an actual Stripe subscription keeps its status.
+  // A tier the page cannot map (stale casing, legacy value) is shown and
+  // entitled as Free, so it must also read as Free here.
   const isFreePlanActive =
-    (settings?.subscriptionTier || SubscriptionTier.FREE) ===
-      SubscriptionTier.FREE &&
+    formatSubscriptionTierLabel(settings?.subscriptionTier) ===
+      SUBSCRIPTION_TIER_LABELS[SubscriptionTier.FREE] &&
     !subscription?.stripeSubscriptionId &&
     (!subscription || subscription.status === SubscriptionStatus.INCOMPLETE);
   const displayedStatus = isFreePlanActive
