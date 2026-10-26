@@ -26,6 +26,14 @@ const passages = [
   },
 ];
 
+/** Account-management results carry no structured content, so narrow first. */
+function structuredContentOf(result: object): object {
+  if (!('structuredContent' in result) || !result.structuredContent) {
+    throw new Error('Expected structured content');
+  }
+  return result.structuredContent;
+}
+
 describe('search_knowledge over MCP', () => {
   const client = {
     evaluateMcpToolResult: vi.fn(),
@@ -60,7 +68,7 @@ describe('search_knowledge over MCP', () => {
       name: 'search_knowledge',
     });
 
-    const structured = result.structuredContent as {
+    const structured = structuredContentOf(result) as {
       data: { passages: unknown[] };
       receipts: KnowledgeReceipt[];
     };
@@ -94,7 +102,8 @@ describe('search_knowledge over MCP', () => {
     });
 
     expect(
-      (result.structuredContent as { receipts: KnowledgeReceipt[] }).receipts,
+      (structuredContentOf(result) as { receipts: KnowledgeReceipt[] })
+        .receipts,
     ).toEqual([]);
   });
 
@@ -110,6 +119,6 @@ describe('search_knowledge over MCP', () => {
       name: 'list_knowledge_sources',
     });
 
-    expect(result.structuredContent).not.toHaveProperty('receipts');
+    expect(structuredContentOf(result)).not.toHaveProperty('receipts');
   });
 });
