@@ -25,9 +25,8 @@ The extension only reads a page when you ask it to: by opening the Genfeed menu 
 | --- | --- |
 | `x.com`, `twitter.com`, `linkedin.com`, `reddit.com`, `threads.com`, `threads.net`, `facebook.com`, `instagram.com`, `tiktok.com`, `youtube.com` | Adds the Genfeed button beside the reply box and reads the post you are replying to when you use it. |
 | `genfeed.ai`, `app.genfeed.ai`, `api.genfeed.ai` | Signs you in with your Genfeed session and sends requests to the Genfeed API. |
-| `genfeed.localhost` | Development hosts. They have no effect for users. |
 
-The extension no longer requests the `cookies` permission. It signs in by sending your Genfeed session with its requests to the Genfeed API, which the host permissions above already allow.
+The extension no longer requests the `cookies` permission. It signs in by sending your Genfeed session with its requests to the Genfeed API, which the host permissions above already allow. Development builds also list `genfeed.localhost`; the store package does not.
 
 ## What leaves your browser
 

@@ -48,6 +48,19 @@ export function validateBrowserRelease({ version, ref, submit, keys }) {
   }
 }
 
+// The store package must not carry the development `key` (the dashboard
+// rejects it) or the localhost development hosts (reviewers flag unused hosts).
+export function prepareBrowserStoreManifest(manifest) {
+  const result = structuredClone(manifest);
+  delete result.key;
+  if (Array.isArray(result.host_permissions)) {
+    result.host_permissions = result.host_permissions.filter(
+      (host) => !/\blocalhost\b/.test(host),
+    );
+  }
+  return result;
+}
+
 export function prepareMobileConfig({
   config,
   version,
@@ -98,6 +111,13 @@ if (
         submit: process.env.SUBMIT === 'true',
         keys: process.env.EXTENSION_SUBMIT_KEYS,
       });
+    } else if (process.argv[2] === 'browser-store-manifest') {
+      const file = process.argv[3];
+      if (!file) throw new Error('Pass the manifest.json path to prepare.');
+      writeFileSync(
+        file,
+        JSON.stringify(prepareBrowserStoreManifest(readJson(file))),
+      );
     } else if (process.argv[2] === 'mobile') {
       const file = 'apps/mobile/app/app.json';
       const build = process.env.REMOTE_BUILD === 'true';
