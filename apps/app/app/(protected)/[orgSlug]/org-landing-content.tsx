@@ -7,7 +7,12 @@ import {
   hasSingleStepOnboarding,
   isCloudDeployment,
 } from '@genfeedai/config/deployment';
-import { ButtonVariant, MemberRole, ViewType } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  MemberRole,
+  ViewType,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -30,6 +35,7 @@ import { useAccessState } from '@providers/access-state/access-state.provider';
 import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
@@ -267,26 +273,15 @@ export default function OrgLandingContent() {
   }
 
   return (
-    <div
-      aria-busy={isResolving || undefined}
-      className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12"
-    >
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-foreground">
-            {translate('title')}
-          </h2>
-          {isResolving ? null : (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {translate('brandCount', { count: brands.length })}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
+    <Container
+      icon={Building2}
+      label={translate('title')}
+      right={
+        <>
           <CollectionViewToggle onViewChange={setView} view={view} />
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-md bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
+            size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           >
@@ -295,23 +290,25 @@ export default function OrgLandingContent() {
               {translate('newBrand')}
             </Link>
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div aria-busy={isResolving || undefined}>
+        <CollectionView
+          data-testid="org-brands"
+          getItemKey={(brand) => brand.id}
+          isLoading={isResolving}
+          items={brands}
+          maxColumns={3}
+          renderGridItem={(brand) => (
+            <BrandCard brand={brand} href={getBrandHomeHref(brand.slug)} />
+          )}
+          renderListItem={(brand) => (
+            <BrandRow brand={brand} href={getBrandHomeHref(brand.slug)} />
+          )}
+          view={view}
+        />
       </div>
-
-      <CollectionView
-        data-testid="org-brands"
-        getItemKey={(brand) => brand.id}
-        isLoading={isResolving}
-        items={brands}
-        maxColumns={3}
-        renderGridItem={(brand) => (
-          <BrandCard brand={brand} href={getBrandHomeHref(brand.slug)} />
-        )}
-        renderListItem={(brand) => (
-          <BrandRow brand={brand} href={getBrandHomeHref(brand.slug)} />
-        )}
-        view={view}
-      />
-    </div>
+    </Container>
   );
 }

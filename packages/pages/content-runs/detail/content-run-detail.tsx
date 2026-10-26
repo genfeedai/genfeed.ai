@@ -15,6 +15,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
@@ -213,14 +214,6 @@ function Section({
   );
 }
 
-function EmptyState({ label }: { label: string }) {
-  return (
-    <div className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground/55">
-      {label}
-    </div>
-  );
-}
-
 function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 border-border border-t py-3 first:border-t-0">
@@ -234,7 +227,7 @@ function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
 
 function BriefSection({ brief }: { brief?: ContentRunBrief }) {
   if (!brief) {
-    return <EmptyState label="No brief has been attached to this run." />;
+    return <CardEmptyContent label="No brief has been attached to this run." />;
   }
 
   return (
@@ -269,7 +262,7 @@ function BriefSection({ brief }: { brief?: ContentRunBrief }) {
 
 function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
   if (!variants?.length) {
-    return <EmptyState label="No remix variants have been stored yet." />;
+    return <CardEmptyContent label="No remix variants have been stored yet." />;
   }
 
   return (
@@ -300,7 +293,9 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
 
 function PublishSection({ publish }: { publish?: ContentRunPublishContext }) {
   if (!publish) {
-    return <EmptyState label="No publish context has been captured yet." />;
+    return (
+      <CardEmptyContent label="No publish context has been captured yet." />
+    );
   }
 
   return (
@@ -335,7 +330,9 @@ function AnalyticsSection({
   analytics?: ContentRunAnalyticsSummary;
 }) {
   if (!analytics) {
-    return <EmptyState label="No analytics summary has been synced yet." />;
+    return (
+      <CardEmptyContent label="No analytics summary has been synced yet." />
+    );
   }
 
   return (
@@ -392,7 +389,7 @@ function RecommendationsSection({
 }) {
   if (!recommendations?.length) {
     return (
-      <EmptyState label="No recommended actions have been generated yet." />
+      <CardEmptyContent label="No recommended actions have been generated yet." />
     );
   }
 

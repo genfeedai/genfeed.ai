@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { DataSource } from '@genfeedai/props/workflows/workflow-templates-page.props';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -346,9 +347,7 @@ function WorkflowTemplatesPageContent() {
         </CollectionSection>
 
         {isCatalogEmpty ? (
-          <p className="py-16 text-center text-sm text-foreground/50">
-            {translate('emptyCatalog')}
-          </p>
+          <CardEmptyContent label={translate('emptyCatalog')} />
         ) : null}
       </div>
       <WorkflowTemplateDetailsPanel

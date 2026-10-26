@@ -17,7 +17,7 @@ import type {
   FollowingDeckPostProps,
   FollowingDeckProps,
 } from '@props/trends/following-deck.props';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
@@ -378,14 +378,7 @@ function FollowingDeckColumnView({
             />
           ))
         ) : (
-          <Text
-            as="p"
-            className="px-2 py-6 text-center"
-            color="subtle-60"
-            size="sm"
-          >
-            {translate('columnEmpty')}
-          </Text>
+          <CardEmptyContent label={translate('columnEmpty')} />
         )}
       </div>
     </section>

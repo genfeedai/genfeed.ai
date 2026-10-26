@@ -6,6 +6,7 @@ import type {
   ProviderModel,
   ProviderType,
 } from '@genfeedai/contracts/types';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -213,10 +214,7 @@ function ModelBrowserModalComponent({
                   {searchQuery ? `Results for "${searchQuery}"` : 'All Models'}
                 </h3>
                 {models.length === 0 ? (
-                  <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
-                    <Sparkles className="mb-2 size-8" />
-                    <p className="text-sm">No models found</p>
-                  </div>
+                  <CardEmptyContent icon={Sparkles} label="No models found" />
                 ) : (
                   <CollectionGrid maxColumns={2}>
                     {models.map((model) => (

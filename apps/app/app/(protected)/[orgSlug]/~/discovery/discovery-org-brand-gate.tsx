@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import { TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -80,19 +81,21 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
 
   if (brandChoices.length === 0) {
     return (
-      <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
-        <TrendingUp className="size-10 text-foreground/20" />
-        <h1 className="text-lg font-semibold text-foreground text-balance">
-          Discovery needs a brand
-        </h1>
-        <p className="max-w-md text-sm text-foreground/55 text-pretty">
-          Create or connect a brand first, then open Discovery to explore trends
-          and ads for that brand.
-        </p>
-        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.SECONDARY}>
-          <Link href={`/${orgSlug}/~/settings/brands`}>Go to brands</Link>
-        </Button>
-      </div>
+      <CardEmpty
+        actions={
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={`/${orgSlug}/~/settings/brands`}>Go to brands</Link>
+          </Button>
+        }
+        className="mx-auto max-w-xl"
+        description="Create or connect a brand first, then open Discovery to explore trends and ads for that brand."
+        icon={TrendingUp}
+        label="Discovery needs a brand"
+      />
     );
   }
 

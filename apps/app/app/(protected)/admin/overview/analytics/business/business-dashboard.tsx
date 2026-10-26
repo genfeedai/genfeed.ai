@@ -15,6 +15,7 @@ import {
 } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
@@ -53,7 +54,7 @@ function LeaderTable({
     <Card bodyClassName="gap-0 p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {leaders.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No data available</p>
+        <CardEmptyContent label="No data available" />
       ) : (
         <Table className="w-full text-sm">
           <TableHeader>
@@ -136,7 +137,7 @@ function DailySeriesChart({
     return (
       <Card bodyClassName="gap-0 p-4">
         <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
-        <p className="text-sm text-muted-foreground">No data available</p>
+        <CardEmptyContent label="No data available" />
       </Card>
     );
   }

@@ -14,10 +14,10 @@ import {
   toTrendSoundFinding,
   toTrendVideoFinding,
 } from '@pages/research/work-surface/research-work-surface.types';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionView from '@ui/collection/CollectionView';
 import { Film, Hash, Music } from 'lucide-react';
 import type { ReactNode } from 'react';
-
 import RelatedMetricCard from './related-metric-card';
 
 type TrendsPlatformRelatedSectionsProps = {
@@ -45,14 +45,6 @@ function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
       <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
         {title}
       </h2>
-    </div>
-  );
-}
-
-function EmptyBlock({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-card bg-background px-4 py-6 text-sm text-muted-foreground shadow-border">
-      {children}
     </div>
   );
 }
@@ -134,7 +126,7 @@ export default function TrendsPlatformRelatedSections({
             data-testid="trends-related-videos-grid"
             density="tile"
             emptyState={
-              <EmptyBlock>No viral videos available right now.</EmptyBlock>
+              <CardEmptyContent label="No viral videos available right now." />
             }
             getItemKey={(video) => video.id}
             isLoading={isLoadingVideos}
@@ -158,7 +150,7 @@ export default function TrendsPlatformRelatedSections({
             data-testid="trends-related-hashtags-grid"
             density="tile"
             emptyState={
-              <EmptyBlock>No trending hashtags available right now.</EmptyBlock>
+              <CardEmptyContent label="No trending hashtags available right now." />
             }
             getItemKey={(hashtag) => hashtag.id || hashtag.hashtag}
             isLoading={isLoadingHashtags}
@@ -182,7 +174,7 @@ export default function TrendsPlatformRelatedSections({
             data-testid="trends-related-sounds-grid"
             density="tile"
             emptyState={
-              <EmptyBlock>No trending sounds available right now.</EmptyBlock>
+              <CardEmptyContent label="No trending sounds available right now." />
             }
             getItemKey={(sound) => sound.soundId}
             isLoading={isLoadingSounds}

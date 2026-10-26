@@ -65,4 +65,13 @@ describe('CardEmpty', () => {
       'text-base',
     );
   });
+
+  it('renders the supporting description under the title', () => {
+    render(<CardEmpty label="No voices yet" description="Clone one." />);
+
+    expect(
+      screen.getByRole('heading', { name: 'No voices yet' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Clone one.')).toBeInTheDocument();
+  });
 });

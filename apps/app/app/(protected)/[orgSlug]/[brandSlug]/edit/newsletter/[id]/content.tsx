@@ -2,6 +2,7 @@
 
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { ArtifactEditorPageProps } from '@props/content/artifact-editor.props';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import ArtifactEditorShell from '../../artifact-editor-shell';
@@ -42,10 +43,7 @@ export default function NewsletterEditorContent({
         {isLoading ? (
           <SkeletonCard />
         ) : (
-          <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
-            This newsletter is unavailable. It may have been archived or
-            removed.
-          </div>
+          <CardEmptyContent label="This newsletter is unavailable. It may have been archived or removed." />
         )}
       </ArtifactEditorShell>
     );

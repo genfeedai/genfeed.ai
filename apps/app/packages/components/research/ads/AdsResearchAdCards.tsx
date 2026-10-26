@@ -7,6 +7,7 @@ import {
   type AdsResearchMetric,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -20,7 +21,6 @@ import {
 import { Bookmark, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-
 import {
   formatLongevity,
   formatMetric,
@@ -284,11 +284,13 @@ export function AdsResearchAdGrid({
 
   if (ads.length === 0 && !isLoading) {
     return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        {search.trim()
-          ? translate('emptySearch')
-          : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')}
-      </div>
+      <CardEmptyContent
+        label={
+          search.trim()
+            ? translate('emptySearch')
+            : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')
+        }
+      />
     );
   }
 
@@ -381,15 +383,16 @@ export function AdsResearchAdTable({
         <TableBody>
           {ads.length === 0 ? (
             <TableRow>
-              <TableCell
-                colSpan={9}
-                className="px-4 py-8 text-center text-sm text-muted-foreground"
-              >
-                {search.trim()
-                  ? translateSwipeFile('emptySearch')
-                  : translateSwipeFile(
-                      isSavedView ? 'emptyFilters' : 'emptyLiveFilters',
-                    )}
+              <TableCell colSpan={9} className="p-0">
+                <CardEmptyContent
+                  label={
+                    search.trim()
+                      ? translateSwipeFile('emptySearch')
+                      : translateSwipeFile(
+                          isSavedView ? 'emptyFilters' : 'emptyLiveFilters',
+                        )
+                  }
+                />
               </TableCell>
             </TableRow>
           ) : (

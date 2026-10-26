@@ -10,12 +10,12 @@ import type { ContentTeamHirePageProps } from '@props/automation/content-team-hi
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
-
 import AgentMarketplace from './AgentMarketplace';
 
 export default function ContentTeamHirePage({
@@ -93,9 +93,9 @@ export default function ContentTeamHirePage({
 
   const content =
     !isBrandReady || !brandId ? (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
-      </p>
+      <CardEmptyContent
+        label={translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
+      />
     ) : (
       <AgentMarketplace
         isSubmitting={isSubmitting}

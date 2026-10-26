@@ -7,6 +7,7 @@ import type { ExtendedIngredientTabsChildrenProps } from '@genfeedai/props/conte
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import Loading from '@ui/loading/default/Loading';
 import { useEffect, useState } from 'react';
@@ -54,33 +55,29 @@ export default function IngredientTabsChildren({
   return (
     <div className="space-y-6">
       {children.length === 0 ? (
-        <div className="text-center py-8 text-foreground/60">
-          <p>No child assets found</p>
-        </div>
+        <CardEmptyContent label="No child assets found" />
       ) : (
-        <>
-          {captionedChildren.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <span>📝</span> Captioned Versions ({captionedChildren.length})
-              </h3>
-              <Card className="p-4">
-                <div className="text-sm text-foreground/70 mb-3">
-                  These versions include captions and can be used for social
-                  media platforms.
-                </div>
+        captionedChildren.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <span>📝</span> Captioned Versions ({captionedChildren.length})
+            </h3>
+            <Card className="p-4">
+              <div className="text-sm text-foreground/70 mb-3">
+                These versions include captions and can be used for social media
+                platforms.
+              </div>
 
-                <IngredientsMediaGrid
-                  isActionsEnabled={false}
-                  isLoading={false}
-                  isTimeGroupingEnabled={false}
-                  items={captionedChildren}
-                  onClickIngredient={onViewChild}
-                />
-              </Card>
-            </div>
-          )}
-        </>
+              <IngredientsMediaGrid
+                isActionsEnabled={false}
+                isLoading={false}
+                isTimeGroupingEnabled={false}
+                items={captionedChildren}
+                onClickIngredient={onViewChild}
+              />
+            </Card>
+          </div>
+        )
       )}
     </div>
   );

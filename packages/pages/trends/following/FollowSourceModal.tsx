@@ -20,6 +20,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -508,9 +509,7 @@ export default function FollowSourceModal({
           !postReference &&
           hasSearched &&
           !candidates.length ? (
-            <div className="rounded-card border border-border px-4 py-8 text-center text-sm text-foreground/62">
-              {translate('noAccounts')}
-            </div>
+            <CardEmptyContent label={translate('noAccounts')} />
           ) : null}
 
           {!isSearching && !postReference && candidates.length > 0 ? (
@@ -668,9 +667,7 @@ export default function FollowSourceModal({
           ) : null}
 
           {!isSearching && !postReference && !hasSearched ? (
-            <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm leading-6 text-foreground/58">
-              {translate('emptyHint')}
-            </div>
+            <CardEmptyContent label={translate('emptyHint')} />
           ) : null}
         </div>
 

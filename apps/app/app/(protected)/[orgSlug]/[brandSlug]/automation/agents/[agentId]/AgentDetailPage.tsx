@@ -29,6 +29,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -331,12 +332,18 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   if (!strategy) {
     return (
       <Container label={detail('title')} icon={Cpu}>
-        <div className="py-16 text-center text-foreground/50">
-          {detail('notFound')}{' '}
-          <Link href={href(APP_ROUTES.AUTOMATION.AGENTS)} className="underline">
-            {detail('backToHub')}
-          </Link>
-        </div>
+        <CardEmptyContent
+          icon={Cpu}
+          label={detail('notFound')}
+          actions={
+            <Link
+              href={href(APP_ROUTES.AUTOMATION.AGENTS)}
+              className="mt-1 text-xs underline"
+            >
+              {detail('backToHub')}
+            </Link>
+          }
+        />
       </Container>
     );
   }

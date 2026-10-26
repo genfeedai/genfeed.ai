@@ -2,7 +2,6 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   ButtonSize,
   ButtonVariant,
-  CardVariant,
   PageScope,
   TurboRunStatus,
 } from '@genfeedai/contracts';
@@ -10,7 +9,7 @@ import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
-import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
@@ -222,13 +221,10 @@ export default function ReviewQueueView({
     }
     if (!hasApprovalsContent) {
       return (
-        <Card
-          variant={CardVariant.DEFAULT}
+        <CardEmpty
           icon={ClipboardCheck}
           label={translateInbox('emptyFilteredTitle')}
           description={translateInbox('emptyFilteredDescription')}
-          bodyClassName="items-center py-12 text-center"
-          iconWrapperClassName="bg-muted text-muted-foreground"
           className="max-w-xl mx-auto"
         />
       );
@@ -240,16 +236,13 @@ export default function ReviewQueueView({
     return (
       <>
         {approvalsSection}
-        <Card
-          variant={CardVariant.DEFAULT}
+        <CardEmpty
           icon={TriangleAlert}
           label={translateReview('queue.loadFailed')}
           description={getJsonApiErrorMessage(
             turboRunsError,
             translateReview('queue.invalidResponse'),
           )}
-          bodyClassName="items-center py-12 text-center"
-          iconWrapperClassName="bg-destructive/10 text-destructive"
           className="max-w-xl mx-auto"
         />
       </>
@@ -264,13 +257,10 @@ export default function ReviewQueueView({
       return approvalsSection;
     }
     return (
-      <Card
-        variant={CardVariant.DEFAULT}
+      <CardEmpty
         icon={ClipboardCheck}
         label={translateReview('queue.emptyTitle')}
         description={translateReview('queue.emptyDescription')}
-        bodyClassName="items-center py-12 text-center"
-        iconWrapperClassName="bg-muted text-muted-foreground"
         className="max-w-xl mx-auto"
       />
     );
@@ -299,13 +289,10 @@ export default function ReviewQueueView({
       {isTurboRunLoading && !activeTurboRun ? (
         <Loading />
       ) : activeTurboRunError ? (
-        <Card
-          variant={CardVariant.DEFAULT}
+        <CardEmpty
           icon={TriangleAlert}
           label={translateReview('queue.batchLoadFailed')}
           description={translateReview('queue.batchLoadDescription')}
-          bodyClassName="items-center py-12 text-center"
-          iconWrapperClassName="bg-warning/10 text-warning"
           className="max-w-xl mx-auto"
         />
       ) : activeTurboRun ? (
@@ -336,13 +323,10 @@ export default function ReviewQueueView({
           )}
         </>
       ) : (
-        <Card
-          variant={CardVariant.DEFAULT}
+        <CardEmpty
           icon={TriangleAlert}
           label={translateReview('queue.noDetails')}
           description={translateReview('queue.noDetailsDescription')}
-          bodyClassName="items-center py-12 text-center"
-          iconWrapperClassName="bg-warning/10 text-warning"
           className="max-w-xl mx-auto"
         />
       )}

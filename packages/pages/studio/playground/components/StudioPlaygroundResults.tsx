@@ -5,6 +5,7 @@ import type { StudioPlaygroundResultsProps } from '@genfeedai/props/studio/studi
 import StudioPlaygroundCard from '@pages/studio/playground/components/StudioPlaygroundCard';
 import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
 import { groupStudioPlaygroundJobsByRun } from '@pages/studio/playground/utils/studio-playground-recipe';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { useTranslations } from 'next-intl';
@@ -119,12 +120,10 @@ export default function StudioPlaygroundResults({
         isLoading ? (
           <ResultsSkeleton />
         ) : (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
-            <p className="text-sm text-foreground">{translate('emptyTitle')}</p>
-            <p className="text-xs text-muted-foreground">
-              {translate('emptyDescription')}
-            </p>
-          </div>
+          <CardEmptyContent
+            label={translate('emptyTitle')}
+            description={translate('emptyDescription')}
+          />
         )
       ) : view === ViewType.GRID ? (
         <>

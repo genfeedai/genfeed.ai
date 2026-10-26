@@ -671,7 +671,10 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       await screen.findByText('No workflow templates are available yet.'),
     ).toBeInTheDocument();
-    expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
+    // The empty state's own title is the only level-2 heading: no sections.
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+    ).toEqual(['No workflow templates are available yet.']);
   });
 
   it('renders catalog and templates without mixing in the saved library', async () => {

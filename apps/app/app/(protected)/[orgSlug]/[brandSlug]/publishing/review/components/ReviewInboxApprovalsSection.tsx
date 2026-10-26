@@ -1,8 +1,7 @@
-import { CardVariant } from '@genfeedai/contracts';
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
 import type { ReviewInboxApprovalsSectionProps } from '@props/publishing/review-inbox-approvals.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
-import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { TriangleAlert } from 'lucide-react';
@@ -116,12 +115,9 @@ export default function ReviewInboxApprovalsSection({
 
   if (approvals.error) {
     return (
-      <Card
-        variant={CardVariant.DEFAULT}
+      <CardEmpty
         icon={TriangleAlert}
         label={translate('loadFailed')}
-        bodyClassName="items-center py-6 text-center"
-        iconWrapperClassName="bg-warning/10 text-warning"
         className="mx-auto mb-6 max-w-xl"
       />
     );

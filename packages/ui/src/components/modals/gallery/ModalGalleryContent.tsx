@@ -4,6 +4,7 @@ import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/glob
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IImage, IMusic, IVideo } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryContentProps } from '@genfeedai/props/modals/modal-gallery.props';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
@@ -13,7 +14,6 @@ import ModalGalleryCreationsTab from '@ui/modals/gallery/ModalGalleryCreationsTa
 import ModalGalleryReferencesTab from '@ui/modals/gallery/ModalGalleryReferencesTab';
 import ModalGalleryUploadsTab from '@ui/modals/gallery/ModalGalleryUploadsTab';
 import { Image, Music, Video } from 'lucide-react';
-import { createElement } from 'react';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -115,22 +115,17 @@ export default function ModalGalleryContent({
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        {createElement(emptyIcon, {
-          className: 'text-5xl text-foreground/20 mx-auto mb-3',
-        })}
-
-        <p className="text-foreground/60">{emptyMessage}</p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Generate some{' '}
-          {category === IngredientCategory.VIDEO
+      <CardEmptyContent
+        icon={emptyIcon}
+        label={emptyMessage}
+        description={`Generate some ${
+          category === IngredientCategory.VIDEO
             ? 'videos'
             : category === IngredientCategory.MUSIC
               ? 'music'
-              : 'images'}{' '}
-          first
-        </p>
-      </div>
+              : 'images'
+        } first`}
+      />
     );
   }
 

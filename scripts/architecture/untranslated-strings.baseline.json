@@ -548,7 +548,6 @@
     "packages/ui/src/components/modals/elements/tag/ModalTag.tsx": 17,
     "packages/ui/src/components/modals/elements/workflow/ModalWorkflow.tsx": 29,
     "packages/ui/src/components/modals/gallery/ModalGallery.tsx": 2,
-    "packages/ui/src/components/modals/gallery/ModalGalleryContent.tsx": 2,
     "packages/ui/src/components/modals/gallery/ModalGalleryCreationsTab.tsx": 2,
     "packages/ui/src/components/modals/gallery/ModalGalleryFooter.tsx": 5,
     "packages/ui/src/components/modals/gallery/ModalGalleryHeader.tsx": 8,

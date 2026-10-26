@@ -17,6 +17,8 @@ export interface CardEmptyProps {
   icon?: IconComponent;
   iconClassName?: string;
   label?: string;
+  /** One supporting sentence under the title: why it is empty, or what to do next. */
+  description?: string;
   action?: CardEmptyAction;
   /**
    * Custom action node rendered in place of the built-in single `action`

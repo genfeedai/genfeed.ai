@@ -19,7 +19,7 @@ import {
   type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
@@ -118,9 +118,7 @@ function KanbanColumn({
           <IssueCard issue={issue} key={issue.id} onSelect={onSelect} />
         ))}
         {issues.length === 0 ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">
-            {translate('noTasksKanban')}
-          </p>
+          <CardEmptyContent label={translate('noTasksKanban')} />
         ) : null}
       </div>
     </section>

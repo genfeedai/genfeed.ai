@@ -26,6 +26,7 @@ export function CardEmptyContent({
   icon: Icon,
   iconClassName,
   label,
+  description,
   action,
   actions,
   className,
@@ -53,6 +54,12 @@ export function CardEmptyContent({
 
       {label && <h2 className={cn(SIZE_CLASSES[size].title)}>{label}</h2>}
 
+      {description && (
+        <p className="max-w-md text-xs leading-5 text-muted-foreground">
+          {description}
+        </p>
+      )}
+
       {actions
         ? actions
         : action && (
@@ -79,6 +86,7 @@ export default function CardEmpty({
   icon,
   iconClassName,
   label,
+  description,
   action,
   actions,
   className,
@@ -96,6 +104,7 @@ export default function CardEmpty({
         icon={icon}
         iconClassName={iconClassName}
         label={label}
+        description={description}
         action={action}
         actions={actions}
         className="min-h-[12rem] w-full"

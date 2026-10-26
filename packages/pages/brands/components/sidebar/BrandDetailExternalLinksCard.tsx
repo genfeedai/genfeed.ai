@@ -3,13 +3,11 @@
 import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-
-const EMPTY_STATE_CLASSNAME =
-  'rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground';
 
 const SECTION_LABEL_CLASSNAME =
   'text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground';
@@ -105,7 +103,7 @@ export default function BrandDetailExternalLinksCard({
               </div>
             ))
           ) : (
-            <div className={EMPTY_STATE_CLASSNAME}>No website links yet.</div>
+            <CardEmptyContent label="No website links yet." />
           )}
 
           <Button

@@ -12,6 +12,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -253,9 +254,11 @@ export default function IngredientTabsTags({
                 <Spinner className="inline-block size-5" />
               </div>
             ) : filteredAvailableTags.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                {searchQuery ? 'No matching tags found' : 'No available tags'}
-              </p>
+              <CardEmptyContent
+                label={
+                  searchQuery ? 'No matching tags found' : 'No available tags'
+                }
+              />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {filteredAvailableTags.map((tag) => (

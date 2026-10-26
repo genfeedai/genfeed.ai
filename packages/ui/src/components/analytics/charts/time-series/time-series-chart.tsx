@@ -7,6 +7,7 @@ import {
   formatPercentageSimple,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TimeSeriesChartProps } from '@genfeedai/props/analytics/analytics.props';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
@@ -110,12 +111,10 @@ export function TimeSeriesChart({
         className={`flex items-center justify-center ${className}`}
         style={{ height }}
       >
-        <div className="text-center">
-          <p className="mb-2 text-muted-foreground">No data available</p>
-          <p className="text-sm text-muted-foreground/70">
-            Try selecting a different date range
-          </p>
-        </div>
+        <CardEmptyContent
+          label="No data available"
+          description="Try selecting a different date range"
+        />
       </div>
     );
   }

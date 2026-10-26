@@ -6,6 +6,7 @@ import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { ViralVideoLeaderboardProps } from '@genfeedai/props/analytics/trends.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
@@ -47,13 +48,12 @@ export function ViralVideoLeaderboard({
 
   if (videos.length === 0) {
     return (
-      <div className={`text-center py-12 ${className}`}>
-        <Flame className="size-12 mx-auto mb-3 opacity-30" />
-        <p className="text-foreground/60">No viral videos found</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Check back later for trending content
-        </p>
-      </div>
+      <CardEmptyContent
+        className={className}
+        icon={Flame}
+        label="No viral videos found"
+        description="Check back later for trending content"
+      />
     );
   }
 

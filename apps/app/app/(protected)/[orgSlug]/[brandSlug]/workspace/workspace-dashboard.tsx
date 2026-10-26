@@ -20,6 +20,7 @@ import type {
 import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -32,7 +33,6 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 const DASHBOARD_ROW_LIMIT = 5;
@@ -365,9 +365,7 @@ export function DashboardRecentActivity({
           })}
         </div>
       ) : (
-        <p className="px-4 py-6 text-center text-xs text-muted-foreground sm:px-5">
-          {translate('recentActivity.empty')}
-        </p>
+        <CardEmptyContent label={translate('recentActivity.empty')} />
       )}
     </WorkspaceSurface>
   );
@@ -443,9 +441,7 @@ export function DashboardRecentTasks({
           ))}
         </div>
       ) : (
-        <p className="px-4 py-6 text-center text-xs text-muted-foreground sm:px-5">
-          {translate('recentTasks.empty')}
-        </p>
+        <CardEmptyContent label={translate('recentTasks.empty')} />
       )}
     </WorkspaceSurface>
   );

@@ -11,6 +11,7 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -257,7 +258,7 @@ export default function ExecutionDetailPage({
         <h2 className="mb-4 text-lg font-semibold">Node Execution Log</h2>
 
         {execution.nodeResults.length === 0 ? (
-          <p className="text-muted-foreground">No node results recorded</p>
+          <CardEmptyContent label="No node results recorded" />
         ) : (
           <div className="space-y-3">
             {execution.nodeResults.map((result) => (

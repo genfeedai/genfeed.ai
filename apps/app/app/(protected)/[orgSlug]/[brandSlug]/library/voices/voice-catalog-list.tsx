@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { VoiceCatalogListProps } from '@props/library/voice-catalog-list.props';
-import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -17,22 +17,19 @@ export default function VoiceCatalogList({
 
   if (voices.length === 0) {
     return (
-      <Card className="border-dashed" bodyClassName="p-8">
-        <div className="max-w-xl space-y-4">
-          <div className="space-y-1">
-            <h3 className="text-lg font-semibold text-foreground">
-              {hasActiveFilters
-                ? 'No voices match the current filters'
-                : 'No voices available yet'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {hasActiveFilters
-                ? 'Clear the current filters or clone a new voice sample to populate this library.'
-                : 'Generate a voice with Agent or clone one from an uploaded or recorded sample.'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+      <CardEmpty
+        label={
+          hasActiveFilters
+            ? 'No voices match the current filters'
+            : 'No voices available yet'
+        }
+        description={
+          hasActiveFilters
+            ? 'Clear the current filters or clone a new voice sample to populate this library.'
+            : 'Generate a voice with Agent or clone one from an uploaded or recorded sample.'
+        }
+        actions={
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
             {hasActiveFilters ? (
               <Button onClick={onClearFilters} withWrapper={false}>
                 {translate('clearFilters')}
@@ -51,8 +48,8 @@ export default function VoiceCatalogList({
               {translate('cloneVoice')}
             </Button>
           </div>
-        </div>
-      </Card>
+        }
+      />
     );
   }
 

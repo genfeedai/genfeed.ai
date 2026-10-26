@@ -14,6 +14,7 @@ import type {
   OrganizationAutomationBrandCardProps,
 } from '@props/automation/organization-automation-overview-page.props';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -102,24 +103,23 @@ export default function OrganizationAutomationOverviewPage() {
   return (
     <OverviewLayout label={APP_DISPLAY_LABELS.automation} icon={Workflow}>
       {isReady && brandCards.length === 0 ? (
-        <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
-          <Workflow className="size-10 text-foreground/20" />
-          <h2 className="text-lg font-semibold text-foreground">
-            {translate('emptyTitle')}
-          </h2>
-          <p className="max-w-md text-sm text-foreground/55">
-            {translate('emptyDescription')}
-          </p>
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link href={`/${orgSlug}/~/settings/brands`}>
-              {translate('emptyAction')}
-            </Link>
-          </Button>
-        </div>
+        <CardEmpty
+          actions={
+            <Button
+              asChild
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link href={`/${orgSlug}/~/settings/brands`}>
+                {translate('emptyAction')}
+              </Link>
+            </Button>
+          }
+          className="mx-auto max-w-xl"
+          description={translate('emptyDescription')}
+          icon={Workflow}
+          label={translate('emptyTitle')}
+        />
       ) : null}
 
       <CollectionSection

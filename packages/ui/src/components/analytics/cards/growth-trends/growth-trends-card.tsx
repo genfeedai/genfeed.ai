@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
@@ -73,9 +74,7 @@ export function GrowthTrendsCard({
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Growth Trends
         </h3>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No growth data available</p>
-        </div>
+        <CardEmptyContent label="No growth data available" />
       </div>
     );
   }

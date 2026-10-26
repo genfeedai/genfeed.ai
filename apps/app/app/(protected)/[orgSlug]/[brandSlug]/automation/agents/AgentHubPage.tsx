@@ -35,6 +35,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -552,33 +553,29 @@ export default function AgentHubPage() {
       }
     >
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-muted-foreground">
-            <Users className="size-8" />
-          </span>
-          <div>
-            <p className="text-lg font-medium">{translate('empty.title')}</p>
-            <p className="mt-1 text-sm text-foreground/50">
-              {translate('empty.description')}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button
-              label="Add your first agent"
-              variant={ButtonVariant.DEFAULT}
-              icon={<UserPlus className="size-4" />}
-              isDisabled={!isBrandReady || !brandId}
-              onClick={handleOpenAddAgent}
-            />
-            <Button
-              icon={<Store className="size-4" />}
-              isDisabled={!isBrandReady || !brandId}
-              label={translate('browseMarketplace')}
-              onClick={() => setIsMarketplaceOpen(true)}
-              variant={ButtonVariant.SECONDARY}
-            />
-          </div>
-        </div>
+        <CardEmptyContent
+          icon={Users}
+          label={translate('empty.title')}
+          description={translate('empty.description')}
+          actions={
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <Button
+                label="Add your first agent"
+                variant={ButtonVariant.DEFAULT}
+                icon={<UserPlus className="size-4" />}
+                isDisabled={!isBrandReady || !brandId}
+                onClick={handleOpenAddAgent}
+              />
+              <Button
+                icon={<Store className="size-4" />}
+                isDisabled={!isBrandReady || !brandId}
+                label={translate('browseMarketplace')}
+                onClick={() => setIsMarketplaceOpen(true)}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-8">
           <CollectionSection

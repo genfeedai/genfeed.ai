@@ -8,6 +8,7 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Database } from 'lucide-react';
@@ -56,10 +57,10 @@ export default function TrainingSourcesTab() {
     isLoading && sourceImages.length === 0 ? (
       <IngredientsMediaGrid isLoading items={[]} />
     ) : sourceImages.length === 0 ? (
-      <div className="text-center py-12">
-        <Database className="mx-auto size-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">No training sources available.</p>
-      </div>
+      <CardEmptyContent
+        icon={Database}
+        label="No training sources available."
+      />
     ) : (
       <IngredientsMediaGrid
         isActionsEnabled={false}

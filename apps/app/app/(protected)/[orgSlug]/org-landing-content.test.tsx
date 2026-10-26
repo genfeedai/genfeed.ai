@@ -444,7 +444,7 @@ describe('OrgLandingContent', () => {
 
     const collection = screen.getByTestId('org-brands');
     expect(screen.getByText('Projects')).toBeVisible();
-    expect(screen.getByText('Projects').closest('[aria-busy]')).toHaveAttribute(
+    expect(collection.closest('[aria-busy]')).toHaveAttribute(
       'aria-busy',
       'true',
     );
