@@ -5,7 +5,25 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe.each(['0', '1'])('Google auth availability (cloud=%s)', (cloud) => {
+describe('Google auth availability (Cloud)', () => {
+  it.each([
+    { clientId: undefined, clientSecret: undefined },
+    { clientId: 'test-client-id', clientSecret: undefined },
+    { clientId: '', clientSecret: '' },
+    { clientId: 'test-client-id', clientSecret: 'test-client-secret' },
+  ])(
+    'is available without web-app credentials: $clientId / $clientSecret',
+    ({ clientId, clientSecret }) => {
+      vi.stubEnv('GENFEED_CLOUD', '1');
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', clientId);
+      vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', clientSecret);
+
+      expect(readGoogleSignInAvailableFromEnv()).toBe(true);
+    },
+  );
+});
+
+describe('Google auth availability (self-hosted)', () => {
   it.each([
     { clientId: undefined, clientSecret: undefined, expected: false },
     { clientId: 'test-client-id', clientSecret: undefined, expected: false },
@@ -25,7 +43,7 @@ describe.each(['0', '1'])('Google auth availability (cloud=%s)', (cloud) => {
   ])(
     'requires both trimmed credentials: $clientId / $clientSecret',
     ({ clientId, clientSecret, expected }) => {
-      vi.stubEnv('GENFEED_CLOUD', cloud);
+      vi.stubEnv('GENFEED_CLOUD', '0');
       vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', clientId);
       vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', clientSecret);
 
@@ -34,7 +52,7 @@ describe.each(['0', '1'])('Google auth availability (cloud=%s)', (cloud) => {
   );
 
   it('reads changed runtime credentials without rebuilding', () => {
-    vi.stubEnv('GENFEED_CLOUD', cloud);
+    vi.stubEnv('GENFEED_CLOUD', '0');
     vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', 'test-client-id');
     vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', undefined);
     expect(readGoogleSignInAvailableFromEnv()).toBe(false);
