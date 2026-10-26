@@ -6,6 +6,7 @@ import {
   parseScopedAppPath,
   ROUTED_ORGANIZATION_STORAGE_KEY,
 } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
@@ -13,6 +14,7 @@ import {
   cancelAndClearAllServiceInstances,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
+import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,7 +29,10 @@ import {
   useState,
 } from 'react';
 import { clearClientProtectedBootstrapCache } from '../../providers/protected-bootstrap/client-protected-bootstrap';
-import { useContextAuthedService } from '../internal/context-authed-service';
+import {
+  ContextAuthenticationTokenUnavailableError,
+  useContextAuthedService,
+} from '../internal/context-authed-service';
 
 export type RoutedOrganizationStatus =
   | 'failed'
@@ -92,12 +97,28 @@ type RoutedOrganizationFailure =
 
 const VERIFICATION_FAILED_MESSAGE = 'Organization context verification failed';
 
+/**
+ * What `fetch` itself rejects with when the request never got a response,
+ * which the auth token exchange lets through unwrapped.
+ */
+const FETCH_TRANSPORT_MESSAGE =
+  /^(Failed to fetch|Load failed|NetworkError when attempting to fetch resource|Network request failed)\.?$/;
+
 function classifyFailure(error: unknown): RoutedOrganizationFailure {
   if (typeof error === 'object' && error !== null) {
     const record = error as Record<string, unknown>;
     if (record.isNetworkError === true) return 'network';
     if (record.isTimeout === true) return 'timeout';
     if (record.isAuthError === true) return 'auth';
+  }
+  if (error instanceof ContextAuthenticationTokenUnavailableError) {
+    return 'auth';
+  }
+  if (
+    error instanceof TypeError &&
+    FETCH_TRANSPORT_MESSAGE.test(error.message)
+  ) {
+    return 'network';
   }
   return error instanceof Error && error.message === VERIFICATION_FAILED_MESSAGE
     ? 'verification'
@@ -106,11 +127,40 @@ function classifyFailure(error: unknown): RoutedOrganizationFailure {
 
 /**
  * The error's class name, so an `unknown` failure can be told apart in Sentry.
- * Only a short identifier is kept; the message and any payload stay out.
+ * Only a short identifier is kept; the message and any payload stay out. A
+ * rejection that is not an `Error` (the production interceptor rethrows a
+ * JSON:API response body as is) is named `NonError`.
  */
 function errorNameOf(error: unknown): string | undefined {
-  const name = error instanceof Error ? error.name : undefined;
-  return name && /^[A-Za-z][A-Za-z0-9_]{0,39}$/.test(name) ? name : undefined;
+  if (!(error instanceof Error)) return 'NonError';
+  return /^[A-Za-z][A-Za-z0-9_]{0,39}$/.test(error.name)
+    ? error.name
+    : undefined;
+}
+
+function toHttpStatus(value: unknown): number | undefined {
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 100 &&
+    value <= 599
+    ? value
+    : undefined;
+}
+
+/**
+ * The numeric HTTP status of a failed request, wherever the rejection carries
+ * it: on the error, on its response, or on the first JSON:API error member.
+ * Only the number is kept.
+ */
+function errorStatusOf(error: unknown): string | undefined {
+  if (!isRecord(error)) return undefined;
+  const status =
+    toHttpStatus(error.status) ??
+    toHttpStatus(
+      isRecord(error.response) ? error.response.status : undefined,
+    ) ??
+    toHttpStatus(getJsonApiErrorMember(error)?.status);
+  return status === undefined ? undefined : String(status);
 }
 
 function emitSanitizedMismatch(
@@ -119,6 +169,7 @@ function emitSanitizedMismatch(
 ): void {
   const failure = error === undefined ? undefined : classifyFailure(error);
   const errorName = failure === 'unknown' ? errorNameOf(error) : undefined;
+  const errorStatus = failure === 'unknown' ? errorStatusOf(error) : undefined;
   // A request that never reached the server (offline, aborted by a
   // navigation, timed out) says nothing about which organization is active,
   // so it is logged with its cause but is not a context mismatch to alert on.
@@ -131,6 +182,7 @@ function emitSanitizedMismatch(
       eventType: 'organization-context-mismatch',
       ...(failure ? { failure } : {}),
       ...(errorName ? { errorName } : {}),
+      ...(errorStatus ? { errorStatus } : {}),
       reason,
     },
   });

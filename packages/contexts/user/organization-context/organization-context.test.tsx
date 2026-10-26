@@ -12,6 +12,7 @@ import {
 } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ContextAuthenticationTokenUnavailableError } from '../internal/context-authed-service';
 import {
   RoutedOrganizationProvider,
   useRoutedOrganization,
@@ -47,7 +48,10 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => useAuthIdentityMock(),
 }));
 
-vi.mock('../internal/context-authed-service', () => ({
+vi.mock('../internal/context-authed-service', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('../internal/context-authed-service')
+  >()),
   useContextAuthedService: () => getOrganizationsServiceMock,
 }));
 
@@ -842,6 +846,141 @@ describe('RoutedOrganizationProvider', () => {
       },
     );
   });
+
+  it('tags a rejected switch with its numeric status from a JSON:API body, never its text', async () => {
+    getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+    switchOrganizationMock.mockRejectedValueOnce({
+      errors: [
+        {
+          detail: 'user_secret_id is not a member of acme-corp',
+          status: '403',
+          title: 'Forbidden',
+        },
+      ],
+    });
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: true,
+        tags: {
+          errorName: 'NonError',
+          errorStatus: '403',
+          eventType: 'organization-context-mismatch',
+          failure: 'unknown',
+          reason: 'switch-failed',
+        },
+      },
+    );
+  });
+
+  it('tags the status of an Error that carries one and drops an out-of-range value', async () => {
+    getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+    switchOrganizationMock.mockRejectedValueOnce(
+      Object.assign(new Error('Request failed with status 502'), {
+        status: 502,
+      }),
+    );
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenLastCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: true,
+        tags: {
+          errorName: 'Error',
+          errorStatus: '502',
+          eventType: 'organization-context-mismatch',
+          failure: 'unknown',
+          reason: 'switch-failed',
+        },
+      },
+    );
+
+    loggerWarnMock.mockClear();
+    getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+    switchOrganizationMock.mockRejectedValueOnce(
+      Object.assign(new Error('odd'), { status: 70000 }),
+    );
+    fireEvent.click(screen.getByText('Retry'));
+
+    await waitFor(() =>
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        'Routed organization context mismatch',
+        {
+          reportToSentry: true,
+          tags: {
+            errorName: 'Error',
+            eventType: 'organization-context-mismatch',
+            failure: 'unknown',
+            reason: 'switch-failed',
+          },
+        },
+      ),
+    );
+  });
+
+  it('classifies an unavailable auth token as an auth failure', async () => {
+    getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+    getOrganizationsServiceMock.mockRejectedValueOnce(
+      new ContextAuthenticationTokenUnavailableError(),
+    );
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: true,
+        tags: {
+          eventType: 'organization-context-mismatch',
+          failure: 'auth',
+          reason: 'switch-failed',
+        },
+      },
+    );
+  });
+
+  it.each([
+    'Failed to fetch',
+    'Load failed',
+    'NetworkError when attempting to fetch resource.',
+  ])(
+    'treats a fetch rejection (%s) as a transport failure, not a mismatch',
+    async (message) => {
+      getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+      switchOrganizationMock.mockRejectedValueOnce(new TypeError(message));
+
+      renderProvider();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+      );
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        'Routed organization context mismatch',
+        {
+          reportToSentry: false,
+          tags: {
+            eventType: 'organization-context-mismatch',
+            failure: 'network',
+            reason: 'switch-failed',
+          },
+        },
+      );
+    },
+  );
 
   it('fails closed without reporting when the post-switch read stays cancelled', async () => {
     getMyOrganizationsMock
