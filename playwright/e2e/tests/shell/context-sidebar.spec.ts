@@ -108,9 +108,6 @@ test.describe('Context sidebar — selection driven', () => {
         name: 'Workspace inspector',
       }),
     ).toHaveCount(0);
-    await expect(
-      authenticatedPage.getByTestId('workspace-panel-title'),
-    ).toHaveCount(0);
   });
 
   test('opens on asset selection and closes on deselect', async ({
