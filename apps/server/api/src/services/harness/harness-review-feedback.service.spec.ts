@@ -95,7 +95,22 @@ describe('HarnessReviewFeedbackService', () => {
     expect(harnessProfilesService.update).toHaveBeenCalledTimes(1);
   });
 
-  it('is a no-op for approved decisions (promote-winners owns positive reinforcement)', async () => {
+  it('appends an approved draft to examples.good after curated examples, newest first', async () => {
+    const profile = createProfile({
+      examples: { avoid: [], good: ['Curated example'] },
+      goodFeedback: [
+        {
+          addedAt: '2026-10-01T00:00:00.000Z',
+          content: 'Earlier approval',
+          source: 'turbo_run_item:item-0',
+        },
+      ],
+    });
+    // The earlier approval is already part of examples.good.
+    profile.examples.good.push('Earlier approval');
+    harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
+    harnessProfilesService.update.mockResolvedValue(profile);
+
     await service.recordReviewDecision({
       brandId: 'brand-1',
       content: 'Great post!',
@@ -105,7 +120,77 @@ describe('HarnessReviewFeedbackService', () => {
       sourceType: 'turbo_run_item',
     });
 
-    expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
+    const [, dto] = harnessProfilesService.update.mock.calls[0];
+    expect(dto.examples).toEqual({
+      good: ['Curated example', 'Great post!', 'Earlier approval'],
+    });
+    expect(dto.goodFeedback).toHaveLength(2);
+    expect(dto.goodFeedback[0]).toMatchObject({
+      content: 'Great post!',
+      source: 'turbo_run_item:item-3',
+    });
+    expect(dto.avoidFeedback).toBeUndefined();
+  });
+
+  it('keeps only the newest five approvals and leaves curated examples alone', async () => {
+    const goodFeedback = Array.from({ length: 5 }, (_, index) => ({
+      addedAt: `2026-10-0${index + 1}T00:00:00.000Z`,
+      content: `Approved ${index + 1}`,
+      source: `turbo_run_item:old-${index + 1}`,
+    }));
+    const profile = createProfile({
+      examples: {
+        avoid: [],
+        good: ['Curated example', ...goodFeedback.map((fb) => fb.content)],
+      },
+      goodFeedback,
+    });
+    harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
+    harnessProfilesService.update.mockResolvedValue(profile);
+
+    await service.recordReviewDecision({
+      brandId: 'brand-1',
+      content: 'Approved newest',
+      decision: ReviewDecision.APPROVED,
+      organizationId: 'org-1',
+      sourceId: 'new',
+      sourceType: 'turbo_run_item',
+    });
+
+    const [, dto] = harnessProfilesService.update.mock.calls[0];
+    expect(dto.examples.good).toEqual([
+      'Curated example',
+      'Approved newest',
+      'Approved 5',
+      'Approved 4',
+      'Approved 3',
+      'Approved 2',
+    ]);
+    expect(dto.goodFeedback).toHaveLength(5);
+  });
+
+  it('does not save the same approval twice', async () => {
+    harnessProfilesService.getActiveForBrand.mockResolvedValue(
+      createProfile({
+        goodFeedback: [
+          {
+            addedAt: '2026-10-01T00:00:00.000Z',
+            content: 'Great post!',
+            source: 'turbo_run_item:item-3',
+          },
+        ],
+      }),
+    );
+
+    await service.recordReviewDecision({
+      brandId: 'brand-1',
+      content: 'Great post!',
+      decision: ReviewDecision.APPROVED,
+      organizationId: 'org-1',
+      sourceId: 'item-3',
+      sourceType: 'turbo_run_item',
+    });
+
     expect(harnessProfilesService.update).not.toHaveBeenCalled();
   });
 

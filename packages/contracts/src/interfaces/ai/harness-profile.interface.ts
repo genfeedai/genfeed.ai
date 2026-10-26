@@ -65,6 +65,20 @@ export interface IHarnessAvoidFeedbackEntry {
   isAutoAdded: boolean;
 }
 
+/**
+ * Audit trail for positive examples appended from drafts a person approved
+ * without editing. Tracked apart from performance winners and from
+ * operator-curated `examples.good` so the cap only evicts these.
+ */
+export interface IHarnessGoodFeedbackEntry {
+  /** Excerpted, length-capped copy of the approved draft. */
+  content: string;
+  /** `${sourceType}:${sourceId}` stamp of the review decision, for audit + dedupe. */
+  source: string;
+  /** ISO timestamp the entry was recorded. */
+  addedAt: string;
+}
+
 export interface IHarnessProfile extends IBaseEntity {
   organization?: string;
   organizationId?: string;
@@ -86,6 +100,8 @@ export interface IHarnessProfile extends IBaseEntity {
   examples: IHarnessProfileExamples;
   /** Auto-added anti-example audit trail. See `IHarnessAvoidFeedbackEntry`. */
   avoidFeedback?: IHarnessAvoidFeedbackEntry[];
+  /** Approved-draft positive example audit trail. See `IHarnessGoodFeedbackEntry`. */
+  goodFeedback?: IHarnessGoodFeedbackEntry[];
   guardrails: string[];
   metadata?: Record<string, unknown>;
   /** Server-computed Expert Path positioning scorecard. Read-only for clients. */

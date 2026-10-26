@@ -1,4 +1,7 @@
-import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/contracts/interfaces';
+import type {
+  IHarnessAvoidFeedbackEntry,
+  IHarnessGoodFeedbackEntry,
+} from '@genfeedai/contracts/interfaces';
 import {
   IsArray,
   IsBoolean,
@@ -68,6 +71,14 @@ export class UpsertHarnessProfileDto {
   @IsOptional()
   @IsArray()
   avoidFeedback?: IHarnessAvoidFeedbackEntry[];
+
+  /**
+   * Approved-draft positive example audit trail (see
+   * `IHarnessGoodFeedbackEntry`). System-managed by `HarnessReviewFeedbackService`.
+   */
+  @IsOptional()
+  @IsArray()
+  goodFeedback?: IHarnessGoodFeedbackEntry[];
 
   @IsOptional()
   @IsArray()

@@ -439,6 +439,92 @@ describe('TurboRunReviewService harness review feedback', () => {
     });
   });
 
+  describe('approvals', () => {
+    const approvedRun = createTurboRunRecord([]);
+
+    beforeEach(() => {
+      vi.spyOn(
+        service as never as {
+          approveItemsInTransaction: () => Promise<unknown>;
+        },
+        'approveItemsInTransaction',
+      ).mockResolvedValue(approvedRun);
+    });
+
+    it('saves a person-approved, unedited draft as a positive example', async () => {
+      turboRun.findFirst.mockResolvedValue(
+        createTurboRunRecord([
+          {
+            caption: 'Shipping beats polishing.',
+            id: 'item-5',
+            postId: 'post-5',
+            status: TurboRunItemStatus.COMPLETED,
+          },
+        ]),
+      );
+
+      await service.approveItems('run-1', ['item-5'], 'org-1', 'user-1');
+
+      expect(
+        harnessReviewFeedbackService.recordReviewDecision,
+      ).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        content: 'Shipping beats polishing.',
+        decision: ReviewDecision.APPROVED,
+        organizationId: 'org-1',
+        sourceId: 'item-5',
+        sourceType: 'turbo_run_item',
+        userId: 'user-1',
+      });
+    });
+
+    it('does not learn from a draft that was rewritten before approval', async () => {
+      turboRun.findFirst.mockResolvedValue(
+        createTurboRunRecord([
+          {
+            caption: 'Rewritten copy',
+            id: 'item-6',
+            postId: 'post-6',
+            reviewEvents: [
+              {
+                decision: ReviewDecision.REQUEST_CHANGES,
+                feedback: 'Content rewritten',
+                reviewedAt: '2026-10-26T10:00:00.000Z',
+              },
+            ],
+            status: TurboRunItemStatus.COMPLETED,
+          },
+        ]),
+      );
+
+      await service.approveItems('run-1', ['item-6'], 'org-1', 'user-1');
+
+      expect(
+        harnessReviewFeedbackService.recordReviewDecision,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does not learn from items that were already approved', async () => {
+      turboRun.findFirst.mockResolvedValue(
+        createTurboRunRecord([
+          {
+            caption: 'Already approved copy',
+            id: 'item-7',
+            postId: 'post-7',
+            reviewDecision: ReviewDecision.APPROVED,
+            status: TurboRunItemStatus.COMPLETED,
+          },
+        ]),
+      );
+
+      await service.approveItems('run-1', ['item-7'], 'org-1', 'user-1');
+
+      expect(
+        harnessReviewFeedbackService.recordReviewDecision,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   it('skips items with no caption or prompt content', async () => {
     turboRun.findFirst.mockResolvedValue(
       createTurboRunRecord([

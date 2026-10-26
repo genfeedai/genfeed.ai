@@ -1,7 +1,10 @@
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { ReviewDecision } from '@genfeedai/contracts';
-import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/contracts/interfaces';
+import type {
+  IHarnessAvoidFeedbackEntry,
+  IHarnessGoodFeedbackEntry,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -10,10 +13,14 @@ import { ModuleRef } from '@nestjs/core';
 const FEEDBACK_PROFILE_LABEL = 'Brand harness';
 /** Excerpt length cap for content copied into a harness anti-example. */
 const AVOID_EXCERPT_MAX_LENGTH = 480;
+/** Excerpt length cap for an approved draft copied into a positive example. */
+const GOOD_EXCERPT_MAX_LENGTH = 480;
 /** Reason length cap for the rejection note shown next to an anti-example. */
 const AVOID_REASON_MAX_LENGTH = 240;
 /** Total avoidFeedback entries kept per profile; oldest auto-added evicted first. */
 const AVOID_FEEDBACK_CAP = 20;
+/** Approved drafts kept as positive examples per profile; oldest evicted first. */
+const GOOD_FEEDBACK_CAP = 5;
 
 export type RecordReviewDecisionParams = {
   organizationId: string;
@@ -46,9 +53,11 @@ export type RecordReviewDecisionParams = {
  * ("<excerpt> — because <reason>") so it reaches later prompts, and a brand
  * with no active harness profile gets one so the feedback is not dropped.
  *
- * `approved` is an intentional no-op here — positive reinforcement from
- * high-performing content is owned by `HarnessWinnerPromotionService`
- * (performance-winners promotion), not this pipeline.
+ * `approved` appends the approved draft to `examples.good`, newest first,
+ * tracked via a parallel `goodFeedback` trail and capped at
+ * `GOOD_FEEDBACK_CAP`. Callers only send it for drafts a person approved
+ * without editing. Performance-based positive reinforcement stays with
+ * `HarnessWinnerPromotionService`; the two trails never mix.
  *
  * Every call is fire-and-forget safe: failures are logged and swallowed so a
  * harness feedback write can never fail the review action that triggered it.
@@ -87,12 +96,13 @@ export class HarnessReviewFeedbackService {
   private async applyDecision(
     params: RecordReviewDecisionParams,
   ): Promise<void> {
+    const isApproval = params.decision === ReviewDecision.APPROVED;
     if (
+      !isApproval &&
       params.decision !== ReviewDecision.REJECTED &&
       params.decision !== ReviewDecision.REQUEST_CHANGES
     ) {
-      // `approved` (positive reinforcement lives in promote-winners) and
-      // `unset` both no-op here.
+      // `unset` no-ops here.
       return;
     }
 
@@ -136,6 +146,16 @@ export class HarnessReviewFeedbackService {
       ));
 
     const source = `${params.sourceType}:${params.sourceId}`;
+    if (isApproval) {
+      await this.recordApproval(
+        harnessProfilesService,
+        profile,
+        params,
+        content,
+      );
+      return;
+    }
+
     const existingFeedback = profile.avoidFeedback ?? [];
     if (existingFeedback.some((entry) => entry.source === source)) {
       // Already recorded for this exact review decision — dedupe by source.
@@ -184,6 +204,61 @@ export class HarnessReviewFeedbackService {
       {
         brandId: params.brandId,
         decision: params.decision,
+        organizationId: params.organizationId,
+        profileId: profile.id,
+        source,
+      },
+    );
+  }
+
+  private async recordApproval(
+    harnessProfilesService: HarnessProfilesService,
+    profile: Awaited<ReturnType<HarnessProfilesService['getActiveForBrand']>>,
+    params: RecordReviewDecisionParams,
+    content: string,
+  ): Promise<void> {
+    if (!profile) {
+      return;
+    }
+
+    const source = `${params.sourceType}:${params.sourceId}`;
+    const existingFeedback = profile.goodFeedback ?? [];
+    if (existingFeedback.some((entry) => entry.source === source)) {
+      return;
+    }
+
+    const entry: IHarnessGoodFeedbackEntry = {
+      addedAt: new Date().toISOString(),
+      content: truncateExcerpt(content, GOOD_EXCERPT_MAX_LENGTH),
+      source,
+    };
+    const cappedFeedback = [...existingFeedback, entry]
+      .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
+      .slice(0, GOOD_FEEDBACK_CAP);
+
+    // Good strings never tracked by a feedback entry are operator/seed-curated
+    // — keep them first and uncapped, then the approvals, newest first.
+    const curatedGood = (profile.examples?.good ?? []).filter(
+      (item) => !existingFeedback.some((fb) => fb.content === item),
+    );
+    const nextGood = dedupeAvoidList([
+      ...curatedGood,
+      ...cappedFeedback.map((fb) => fb.content),
+    ]);
+
+    await harnessProfilesService.update(
+      profile.id,
+      {
+        examples: { good: nextGood },
+        goodFeedback: cappedFeedback,
+      },
+      params.organizationId,
+    );
+
+    this.logger.log(
+      `${this.constructorName} recorded positive example from approved draft`,
+      {
+        brandId: params.brandId,
         organizationId: params.organizationId,
         profileId: profile.id,
         source,

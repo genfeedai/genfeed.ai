@@ -20,6 +20,7 @@ import type {
   IExpertPositioningDimensionScore,
   IExpertPositioningScore,
   IHarnessAvoidFeedbackEntry,
+  IHarnessGoodFeedbackEntry,
   IHarnessProfileExamples,
   IHarnessProfileStructure,
   IHarnessProfileThesis,
@@ -154,6 +155,19 @@ function readAvoidFeedback(value: unknown): IHarnessAvoidFeedbackEntry[] {
         .map((item) => readAvoidFeedbackEntry(item))
         .filter((item): item is IHarnessAvoidFeedbackEntry => Boolean(item))
     : [];
+}
+
+function readGoodFeedback(value: unknown): IHarnessGoodFeedbackEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((item) => {
+    const record = readRecord(item);
+    const content = readString(record.content);
+    const source = readString(record.source);
+    const addedAt = readString(record.addedAt);
+    return content && source && addedAt ? [{ addedAt, content, source }] : [];
+  });
 }
 
 function readNumber(value: unknown): number | undefined {
@@ -622,6 +636,7 @@ export class HarnessProfilesService {
       ...data,
       audience: readStringArray(data.audience),
       avoidFeedback: readAvoidFeedback(data.avoidFeedback),
+      goodFeedback: readGoodFeedback(data.goodFeedback),
       brandId: readString(data.brandId) ?? '',
       createdBy: profile.createdById,
       description: readString(data.description),
@@ -668,6 +683,7 @@ export class HarnessProfilesService {
       ...(positioning ? { positioning } : {}),
       audience: readStringArray(dto.audience),
       avoidFeedback: readAvoidFeedback(dto.avoidFeedback),
+      goodFeedback: readGoodFeedback(dto.goodFeedback),
       brandId: dto.brandId,
       description: readString(dto.description),
       examples: readStringArrayRecord(dto.examples),

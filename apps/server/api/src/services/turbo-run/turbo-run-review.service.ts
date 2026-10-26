@@ -239,6 +239,8 @@ export class TurboRunReviewService {
   ): Promise<ITurboRunSummary> {
     if (autonomous)
       await this.prejudgeAutonomousDrafts(turboRunId, itemIds, orgId);
+    let uneditedApprovals: TurboRunItemFull[] = [];
+    let approvedBrandId: string | undefined;
     const updatedTurboRun = await this.withLockedTurboRun(
       turboRunId,
       orgId,
@@ -246,6 +248,18 @@ export class TurboRunReviewService {
         const turboRunItems = resolveTurboRunItems(turboRunRecord);
         const itemIdSet = new Set(itemIds);
         assertExpectedPostSet(turboRunItems, itemIds, expectedPostVersions);
+        // A person approving a draft nobody rewrote is the signal; read it
+        // before the approval mutates the items.
+        uneditedApprovals = autonomous
+          ? []
+          : turboRunItems.filter(
+              (item) =>
+                itemIdSet.has(item.id) &&
+                item.status === TurboRunItemStatus.COMPLETED &&
+                item.reviewDecision !== ReviewDecision.APPROVED &&
+                !hasBeenRewritten(item),
+            );
+        approvedBrandId = turboRunRecord.brandId ?? undefined;
         return this.approveItemsInTransaction(transaction, {
           turboRunId,
           turboRunItems,
@@ -259,6 +273,13 @@ export class TurboRunReviewService {
           selectedPostIds: getSelectedPostIds(turboRunItems, itemIdSet),
         });
       },
+    );
+
+    this.recordHarnessApprovals(
+      uneditedApprovals,
+      orgId,
+      approvedBrandId,
+      createdByUserId,
     );
 
     this.logger.log(`Approved ${itemIds.length} items in run ${turboRunId}`, {
@@ -445,6 +466,38 @@ export class TurboRunReviewService {
         decision,
         organizationId,
         reason,
+        sourceId: item.id,
+        sourceType: 'turbo_run_item',
+        userId,
+      });
+    }
+  }
+
+  /**
+   * Saves drafts a person approved without rewriting them as positive
+   * examples on the brand's harness profile. Fire-and-forget like the
+   * rejection path: the harness service never throws.
+   */
+  private recordHarnessApprovals(
+    items: TurboRunItemFull[],
+    organizationId: string,
+    brandId: string | undefined,
+    userId: string,
+  ): void {
+    if (!this.harnessReviewFeedbackService) {
+      return;
+    }
+
+    for (const item of items) {
+      const content = item.caption ?? item.prompt;
+      if (!content) {
+        continue;
+      }
+      void this.harnessReviewFeedbackService.recordReviewDecision({
+        brandId,
+        content,
+        decision: ReviewDecision.APPROVED,
+        organizationId,
         sourceId: item.id,
         sourceType: 'turbo_run_item',
         userId,
@@ -967,4 +1020,11 @@ export class TurboRunReviewService {
 
     return this.summaryService.toTurboRunSummary(updatedTurboRun);
   }
+}
+
+/** A rewrite is logged as a `Content rewritten` change request on the item. */
+function hasBeenRewritten(item: TurboRunItemFull): boolean {
+  return (item.reviewEvents ?? []).some(
+    (event) => event.decision === ReviewDecision.REQUEST_CHANGES,
+  );
 }
