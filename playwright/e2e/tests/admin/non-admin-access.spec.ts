@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 
 /**
@@ -18,7 +19,7 @@ test.describe('Admin access without superadmin', () => {
       })),
     );
 
-    await authenticatedPage.goto('/admin/overview/dashboard', {
+    await authenticatedPage.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
       waitUntil: 'domcontentloaded',
     });
 

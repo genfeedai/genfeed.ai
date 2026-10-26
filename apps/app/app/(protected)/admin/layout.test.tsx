@@ -29,7 +29,7 @@ describe('app/(protected)/admin/layout.tsx', () => {
 
     expect(source).toContain('loadServerSuperAdmin');
     expect(source).toContain('isProtectedBootstrapBypassed');
-    expect(source).toContain("redirect('/')");
+    expect(source).toContain('redirect(APP_ROUTES.ROOT)');
     expect(source).not.toContain('notFound');
 
     // Self-host / local Portless superadmins must reach admin too. The guard's

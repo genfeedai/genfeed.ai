@@ -5,6 +5,7 @@ import {
   isProtectedBootstrapBypassed,
   loadServerSuperAdmin,
 } from '@app-server/protected-bootstrap.server';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { redirect } from 'next/navigation';
 import AdminContextSidebar from '@/components/workspace-shell/AdminContextSidebar';
@@ -36,7 +37,7 @@ export default async function AdminLayout({ children }: LayoutProps) {
   if (!isSuperAdmin) {
     // Send the visitor back to their workspace. Rendering a 404 here would
     // leave the admin shell's rails around it.
-    redirect('/');
+    redirect(APP_ROUTES.ROOT);
   }
 
   return (
