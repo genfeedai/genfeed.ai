@@ -9,23 +9,20 @@ import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { CharactersTableProps } from '@props/characters/characters-page.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, Images, Plus, Share2, UserRound } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
-const VISIBLE_REFERENCE_THUMBNAILS = 4;
+import CharacterImage from './character-image';
+import { useCharacterIngredients } from './use-character-ingredients';
 
-function resolveCharacterImageUrl(id: string): string {
-  return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;
-}
+const VISIBLE_REFERENCE_THUMBNAILS = 4;
 
 export default function CharactersTable({
   canManageSharing,
@@ -37,6 +34,21 @@ export default function CharactersTable({
 }: CharactersTableProps) {
   const translate = useTranslations('common.settings.characters');
   const { href } = useOrgUrl();
+  const ingredients = useCharacterIngredients(
+    useMemo(
+      () =>
+        characters.flatMap((character) => [
+          ...(character.avatarIngredientId
+            ? [character.avatarIngredientId]
+            : []),
+          ...character.referenceIngredientIds.slice(
+            0,
+            VISIBLE_REFERENCE_THUMBNAILS,
+          ),
+        ]),
+      [characters],
+    ),
+  );
 
   const columns = useMemo<TableColumn<BrandCharacterListItem>[]>(
     () => [
@@ -46,12 +58,11 @@ export default function CharactersTable({
         render: (character) => (
           <div className="flex items-center gap-3">
             {character.avatarIngredientId ? (
-              <Image
+              <CharacterImage
                 alt={character.label}
                 className="size-10 rounded object-cover outline-media"
-                height={40}
-                src={resolveCharacterImageUrl(character.avatarIngredientId)}
-                width={40}
+                ingredient={ingredients.get(character.avatarIngredientId)}
+                size={40}
               />
             ) : (
               <span className="flex size-10 items-center justify-center rounded bg-background-tertiary text-muted-foreground">
@@ -88,7 +99,7 @@ export default function CharactersTable({
               {referenceIds
                 .slice(0, VISIBLE_REFERENCE_THUMBNAILS)
                 .map((ingredientId, index) => (
-                  <Image
+                  <CharacterImage
                     alt={translate('references.imageAlt', {
                       name: character.label,
                       position: index + 1,
@@ -98,13 +109,12 @@ export default function CharactersTable({
                         ? 'size-8 rounded object-cover outline-media ring-2 ring-primary'
                         : 'size-8 rounded object-cover outline-media'
                     }
-                    height={32}
+                    ingredient={ingredients.get(ingredientId)}
                     key={ingredientId}
-                    src={resolveCharacterImageUrl(ingredientId)}
+                    size={32}
                     title={
                       index === 0 ? translate('references.primary') : undefined
                     }
-                    width={32}
                   />
                 ))}
               {hiddenCount > 0 ? (
@@ -143,7 +153,7 @@ export default function CharactersTable({
         ),
       },
     ],
-    [translate],
+    [ingredients, translate],
   );
 
   const actions = useMemo<TableAction<BrandCharacterListItem>[]>(
@@ -152,15 +162,17 @@ export default function CharactersTable({
         icon: <Images />,
         isVisible: (character) => !character.isGranted,
         onClick: onManageReferences,
-        tooltip: (character) =>
+        ariaLabel: (character) =>
           translate('references.manageFor', { name: character.label }),
+        tooltip: translate('references.column'),
       },
       {
         icon: <Share2 />,
         isVisible: (character) => canManageSharing && !character.isGranted,
         onClick: onManageAvailability,
-        tooltip: (character) =>
+        ariaLabel: (character) =>
           translate('availability.manageFor', { name: character.label }),
+        tooltip: translate('availability.column'),
       },
       {
         href: (character) =>
@@ -170,8 +182,9 @@ export default function CharactersTable({
             }),
           ),
         icon: <FolderOpen />,
-        tooltip: (character) =>
+        ariaLabel: (character) =>
           translate('list.viewInLibraryFor', { name: character.label }),
+        tooltip: translate('list.libraryColumn'),
       },
     ],
     [

@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { MAX_CHARACTER_REFERENCES } from '@genfeedai/contracts/constants';
 import type { CharacterReferencesDialogProps } from '@props/characters/characters-page.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -15,14 +14,11 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
+import CharacterImage from './character-image';
+import { useCharacterIngredients } from './use-character-ingredients';
 import { useCharacterReferences } from './use-character-references';
-
-function resolveCharacterImageUrl(id: string): string {
-  return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;
-}
 
 export default function CharacterReferencesDialog({
   character,
@@ -32,6 +28,7 @@ export default function CharacterReferencesDialog({
   const translate = useTranslations('common.settings.characters');
   const { add, isBusy, isFull, move, referenceIds, remove } =
     useCharacterReferences({ character, onChanged });
+  const ingredients = useCharacterIngredients(referenceIds);
 
   return (
     <Dialog
@@ -60,15 +57,14 @@ export default function CharacterReferencesDialog({
                 className="flex items-center gap-3 rounded border border-border p-2"
                 key={ingredientId}
               >
-                <Image
+                <CharacterImage
                   alt={translate('references.imageAlt', {
                     name: character.label,
                     position,
                   })}
                   className="size-12 rounded object-cover outline-media"
-                  height={48}
-                  src={resolveCharacterImageUrl(ingredientId)}
-                  width={48}
+                  ingredient={ingredients.get(ingredientId)}
+                  size={48}
                 />
                 <span className="text-sm text-muted-foreground">
                   {position}

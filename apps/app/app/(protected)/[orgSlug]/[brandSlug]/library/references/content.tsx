@@ -2,13 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 
@@ -20,7 +18,6 @@ import { useCharactersPage } from './use-characters-page';
 
 export default function LibraryCharactersPage(): ReactElement {
   const translate = useTranslations('common.settings.characters');
-  const helpTranslate = useTranslations('pages.help');
   const translateReferences = useTranslations('pages.library.references');
   const { brandId } = useBrand();
   const [referencesCharacterId, setReferencesCharacterId] = useState<
@@ -93,12 +90,6 @@ export default function LibraryCharactersPage(): ReactElement {
         {!isLoading && characters.length > 0 ? (
           <AutoPagination showTotal totalLabel="characters" />
         ) : null}
-        <Link
-          href={`${APP_ROUTES.SETTINGS.HELP}#characters`}
-          className="text-sm text-muted-foreground underline underline-offset-4"
-        >
-          {helpTranslate('characterLink')}
-        </Link>
       </Container>
 
       <CharacterAvailabilityDialog

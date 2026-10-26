@@ -6,7 +6,7 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CharactersTable from './characters-table';
 
 vi.mock('next/image', () => ({
@@ -27,13 +27,65 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
 
-vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: {
-    ingredientsEndpoint: 'https://cdn.test/ingredients',
-  },
+const mocks = vi.hoisted(() => ({
+  ingredients: new Map<string, unknown>(),
+}));
+
+vi.mock('./use-character-ingredients', () => ({
+  useCharacterIngredients: () => mocks.ingredients,
+}));
+
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: (
+    ingredient: {
+      mediaDelivery?: { url: string | null };
+    } | null,
+  ) => ingredient?.mediaDelivery ?? null,
 }));
 
 describe('CharactersTable', () => {
+  beforeEach(() => {
+    mocks.ingredients = new Map();
+  });
+
+  it('shows avatar and references through the issued media grant', () => {
+    mocks.ingredients = new Map([
+      [
+        'img-1',
+        {
+          id: 'img-1',
+          mediaDelivery: { url: 'https://signed.test/img-1?sig=1' },
+        },
+      ],
+    ]);
+    render(
+      <CharactersTable
+        canManageSharing={false}
+        characters={[
+          {
+            avatarIngredientId: 'img-1',
+            id: 'p1',
+            label: 'Anna',
+            referenceIngredientIds: ['img-1', 'img-2'],
+          },
+        ]}
+        isLoading={false}
+        onCreate={vi.fn()}
+        onManageAvailability={vi.fn()}
+        onManageReferences={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Anna', { selector: 'span' })).toHaveAttribute(
+      'data-src',
+      'https://signed.test/img-1?sig=1',
+    );
+    // A reference without a readable URL shows a placeholder, not a broken image.
+    expect(
+      screen.getByRole('img', { name: 'Reference 2 of Anna' }),
+    ).not.toHaveAttribute('data-src');
+  });
+
   it('renders the empty state with a CTA when there are no characters', () => {
     const onCreate = vi.fn();
     render(
@@ -103,6 +155,12 @@ describe('CharactersTable', () => {
   });
 
   it('shows the first four reference thumbnails and counts the rest', () => {
+    mocks.ingredients = new Map(
+      ['img-1', 'img-2', 'img-3', 'img-4'].map((id) => [
+        id,
+        { id, ingredientUrl: `https://cdn.test/${id}.jpg` },
+      ]),
+    );
     render(
       <CharactersTable
         canManageSharing={false}

@@ -95,6 +95,33 @@ describe('Table', () => {
     expect(group?.className).not.toMatch(/translate-x|transition/);
   });
 
+  it('keeps a one-word tooltip and a longer accessible name per row', async () => {
+    const user = userEvent.setup();
+    render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        actions={[
+          {
+            ariaLabel: (item) => `Open ${item.name} in Library`,
+            icon: 'Open',
+            onClick: () => {},
+            tooltip: 'Library',
+          },
+        ]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const action = screen.getByRole('button', {
+      name: 'Open First item in Library',
+    });
+    await user.hover(action);
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Library');
+    expect(tooltip.closest('[data-side]')).toHaveAttribute('data-side', 'top');
+  });
+
   it('renders link row actions as icon-only anchors and omits unresolved ones', () => {
     render(
       <Table

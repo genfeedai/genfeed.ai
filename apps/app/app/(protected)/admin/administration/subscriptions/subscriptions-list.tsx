@@ -212,7 +212,6 @@ export default function SubscriptionsList() {
         openSubscriptionModal(row.organizationId),
       size: ButtonSize.SM,
       tooltip: t('editSubscription'),
-      tooltipPosition: 'left',
       variant: ButtonVariant.DEFAULT,
     },
   ];

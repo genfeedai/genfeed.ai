@@ -700,6 +700,10 @@ export default function AppTable<T>({
                                     typeof action.tooltip === 'function'
                                       ? action.tooltip(item)
                                       : action.tooltip;
+                                  const actionAriaLabel =
+                                    typeof action.ariaLabel === 'function'
+                                      ? action.ariaLabel(item)
+                                      : (action.ariaLabel ?? tooltipText);
                                   const isActionDisabled =
                                     action.isDisabled?.(item) ?? false;
                                   const actionClassName = cn(
@@ -717,10 +721,10 @@ export default function AppTable<T>({
                                       <Button
                                         key={key}
                                         asChild
-                                        ariaLabel={tooltipText}
+                                        ariaLabel={actionAriaLabel}
                                         tooltip={tooltipText}
                                         tooltipPosition={
-                                          action.tooltipPosition || 'left'
+                                          action.tooltipPosition || 'top'
                                         }
                                         data-testid="action-button"
                                         variant={ButtonVariant.GHOST}
@@ -753,14 +757,14 @@ export default function AppTable<T>({
                                       <Button
                                         key={key}
                                         icon={iconContent}
-                                        ariaLabel={tooltipText}
+                                        ariaLabel={actionAriaLabel}
                                         onClick={() =>
                                           handleActionClick(action, item)
                                         }
                                         isDisabled={isActionDisabled}
                                         tooltip={tooltipText}
                                         tooltipPosition={
-                                          action.tooltipPosition || 'left'
+                                          action.tooltipPosition || 'top'
                                         }
                                         data-testid="action-button"
                                         variant={ButtonVariant.GHOST}

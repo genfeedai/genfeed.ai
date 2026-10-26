@@ -144,8 +144,10 @@ export type TableProps<T> = TableBaseProps<T> &
 
 interface TableActionBase<T> {
   icon: ReactNode | ((item: T) => ReactNode);
-  /** Tooltip text and the icon-only control's accessible name. */
+  /** Tooltip text; also the icon-only control's accessible name unless `ariaLabel` is set. */
   tooltip: string | ((item: T) => string);
+  /** A longer accessible name for the control when the tooltip is one word. */
+  ariaLabel?: string | ((item: T) => string);
   className?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;

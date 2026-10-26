@@ -46,7 +46,6 @@ export default function ReviewInboxApprovalsTable({
           void onDecide(item, 'approve');
         },
         tooltip: translate('approve'),
-        tooltipPosition: 'left',
       },
       {
         icon: <X className="size-3.5" />,
@@ -56,7 +55,6 @@ export default function ReviewInboxApprovalsTable({
           void onDecide(item, 'reject');
         },
         tooltip: translate('reject'),
-        tooltipPosition: 'left',
       },
     ],
     [decidingItemId, isBulkDeciding, onDecide, translate],

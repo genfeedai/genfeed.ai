@@ -46,7 +46,15 @@ const mocks = vi.hoisted(() => {
     revokeGrant,
     updateAvailability,
   };
-  const imagesService = { post: postImage };
+  const imagesService = {
+    findByIds: vi.fn(async (ids: string[]) =>
+      ids.map((id) => ({
+        id,
+        ingredientUrl: `https://cdn.test/ingredients/images/${id}`,
+      })),
+    ),
+    post: postImage,
+  };
   return {
     addReferences,
     openGallery,
@@ -111,6 +119,10 @@ vi.mock(
     }),
   }),
 );
+
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: () => null,
+}));
 
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
@@ -243,14 +255,14 @@ describe('LibraryCharactersPage', () => {
     });
   });
 
-  it('links to character guidance without adding another creation action', async () => {
+  it('adds no footer link and a single creation action', async () => {
     render(<LibraryCharactersPage />);
     await screen.findByText('New character');
     expect(
-      screen.getByRole('link', {
+      screen.queryByRole('link', {
         name: 'Learn how to create, save, and reuse characters',
       }),
-    ).toHaveAttribute('href', '/settings/help#characters');
+    ).toBeNull();
     expect(
       screen.getAllByRole('button', { name: 'New character' }),
     ).toHaveLength(1);
@@ -670,7 +682,7 @@ describe('LibraryCharactersPage', () => {
 
     function referenceOrder(dialog: HTMLElement): string[] {
       return within(dialog)
-        .getAllByText(/^Reference \d+ of Anna$/)
+        .queryAllByText(/^Reference \d+ of Anna$/)
         .map((image) => image.getAttribute('data-src') ?? '');
     }
 
@@ -680,9 +692,9 @@ describe('LibraryCharactersPage', () => {
 
       await screen.findByText('@anna');
       expect(
-        screen
-          .getAllByText(/^Reference \d+ of Anna$/)
-          .map((image) => image.getAttribute('data-src')),
+        (await screen.findAllByText(/^Reference \d+ of Anna$/)).map((image) =>
+          image.getAttribute('data-src'),
+        ),
       ).toEqual([
         'https://cdn.test/ingredients/images/img-a',
         'https://cdn.test/ingredients/images/img-b',

@@ -58,7 +58,6 @@ export default function ReviewItemsTable({
           );
         },
         tooltip: translateReview('table.openContext'),
-        tooltipPosition: 'left',
       },
       {
         icon: <ArrowUpRight className="size-3.5" />,
@@ -70,7 +69,6 @@ export default function ReviewItemsTable({
           router.push(href(getPublishingPostHref(item.postId)));
         },
         tooltip: translateReview('table.openPost'),
-        tooltipPosition: 'left',
       },
       {
         icon: <ExternalLink className="size-3.5" />,
@@ -82,7 +80,6 @@ export default function ReviewItemsTable({
           window.open(item.postUrl, '_blank', 'noopener,noreferrer');
         },
         tooltip: translateReview('table.openPublished'),
-        tooltipPosition: 'left',
       },
     ],
     [href, onSelectItem, router, translateReview],
