@@ -111,7 +111,9 @@ describe('recipeFromPromptData', () => {
       action: 'walking toward the camera',
       subject: 'a courier',
     });
-    expect(formatStudioRecipePrompt(recipe)).toContain('a courier');
+    const formatted = formatStudioRecipePrompt(recipe);
+    expect(formatted).toContain('Subject: a courier');
+    expect(formatted).toContain('Action: walking toward the camera');
   });
 
   it('never records brand enrichment on for music, avatar, or voice (#4676)', () => {
