@@ -296,11 +296,11 @@ describe('PostsList', () => {
   });
 
   it.each([
-    [PostStatus.PENDING, 'Pending'],
-    [PostStatus.PROCESSING, 'Publishing'],
+    { label: 'Pending', status: PostStatus.PENDING },
+    { label: 'Publishing', status: PostStatus.PROCESSING },
   ] as const)(
-    'selects the %s publisher view in the Filters menu (%s)',
-    (status) => {
+    'selects the $status publisher view in the Filters menu ($label)',
+    ({ status }) => {
       render(
         <PostsList
           scope={PageScope.PUBLISHING}
