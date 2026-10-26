@@ -149,7 +149,7 @@ describe('Toolbar actions', () => {
 
     try {
       render(<Toolbar />);
-      fireEvent.click(screen.getByText('File'));
+      fireEvent.keyDown(screen.getByText('File'), { key: 'Enter' });
       fireEvent.click(screen.getByText('Export Workflow'));
 
       expect(stores.exportWorkflow).toHaveBeenCalledTimes(1);
@@ -182,7 +182,7 @@ describe('Toolbar actions', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('Extras'));
+    fireEvent.keyDown(screen.getByText('Extras'), { key: 'Enter' });
     fireEvent.click(screen.getByText('Custom Action'));
     expect(menuAction).toHaveBeenCalledTimes(1);
   });
@@ -190,7 +190,8 @@ describe('Toolbar actions', () => {
   it('does not offer Save As in the File menu', () => {
     render(<Toolbar />);
 
-    fireEvent.click(screen.getByText('File'));
+    fireEvent.keyDown(screen.getByText('File'), { key: 'Enter' });
+    expect(screen.getByText('Export Workflow')).toBeInTheDocument();
     expect(screen.queryByText('Save As...')).not.toBeInTheDocument();
   });
 });
