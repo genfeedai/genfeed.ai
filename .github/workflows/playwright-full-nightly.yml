@@ -92,6 +92,19 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
+      # Artifact downloads are not always reachable from where failures are
+      # triaged, so surface the page snapshot Playwright wrote for each failure.
+      - name: Print failure snapshots (full shard ${{ matrix.shard }})
+        if: failure()
+        run: |
+          for f in playwright/artifacts/results/*/error-context.md; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            head -c 4000 "$f"
+            echo
+            echo "::endgroup::"
+          done
+
       - name: Upload shard JSON inventory
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
