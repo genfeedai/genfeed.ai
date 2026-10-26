@@ -1,4 +1,5 @@
 import type { TrendFlowChartProps } from '@props/analytics/trend-flow-chart.props';
+import { Skeleton } from '@ui/primitives/skeleton';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
@@ -35,7 +36,7 @@ export default function TrendFlowChart({
   const translate = useTranslations('pages.analytics.trendTurnover.flow');
 
   if (isLoading) {
-    return <div className="h-72 w-full bg-muted/40 animate-pulse" />;
+    return <Skeleton className="h-72 w-full" />;
   }
 
   if (data.length === 0) {

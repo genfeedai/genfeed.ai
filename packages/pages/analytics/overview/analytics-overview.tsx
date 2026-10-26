@@ -20,6 +20,7 @@ import type {
 import Card from '@ui/card/Card';
 import { EmptyStateCard } from '@ui/feedback';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -48,7 +49,7 @@ const PlatformTimeSeriesChart = dynamic(
       '@ui/analytics/charts/platform-time-series/platform-time-series-chart'
     ).then((mod) => mod.PlatformTimeSeriesChart),
   {
-    loading: () => <div className="h-chart w-full animate-pulse bg-muted/60" />,
+    loading: () => <Skeleton className="h-chart w-full" />,
     ssr: false,
   },
 );

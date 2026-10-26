@@ -17,6 +17,7 @@ import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFi
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { FlaskConical } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
@@ -46,20 +47,20 @@ const SKELETON_IDS = ['s1', 's2', 's3', 's4', 's5', 's6'];
 
 function PatternCardSkeleton() {
   return (
-    <div className="border border-border p-4 animate-pulse space-y-4">
+    <div className="space-y-4 border border-border p-4">
       <div className="flex items-center gap-2">
-        <div className="h-5 w-24 bg-background-tertiary" />
-        <div className="h-5 w-16 bg-background-tertiary" />
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-16" />
       </div>
       <div className="space-y-2">
-        <div className="h-4 w-3/4 bg-background-tertiary" />
-        <div className="h-3 w-full bg-background-tertiary" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3 w-full" />
       </div>
-      <div className="h-12 w-full bg-background-tertiary" />
-      <div className="h-2 w-full bg-background-tertiary" />
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-2 w-full" />
       <div className="space-y-1">
-        <div className="h-3 w-full bg-background-tertiary" />
-        <div className="h-3 w-4/5 bg-background-tertiary" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
       </div>
     </div>
   );

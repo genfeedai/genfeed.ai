@@ -1,5 +1,6 @@
 import type { PublishingOverviewAsyncSectionProps } from '@props/publishing/publishing-overview-async-section.props';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
 
 export default function PublishingOverviewAsyncSection<TData>({
@@ -36,8 +37,8 @@ export default function PublishingOverviewAsyncSection<TData>({
       role="status"
     >
       <span className="sr-only">{loadingLabel}</span>
-      <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-      <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+      <Skeleton aria-hidden="true" className="h-4 w-2/3" />
+      <Skeleton aria-hidden="true" className="h-4 w-1/2" />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import { ChartContainer } from '@ui/charts';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight, ChartNoAxesColumn, Eye, Heart } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -59,14 +60,14 @@ export function QuickAnalyticsPreview({
     return (
       <div className={cardClassName}>
         <div className="animate-pulse">
-          <div className="h-6 bg-muted w-1/3 mb-6" />
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="h-20 bg-muted" />
-            <div className="h-20 bg-muted" />
-            <div className="h-20 bg-muted" />
+          <Skeleton className="mb-6 h-6 w-1/3" />
+          <div className="mb-6 grid grid-cols-3 gap-4">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
           </div>
-          <div className="h-32 bg-muted mb-4" />
-          <div className="h-10 bg-muted" />
+          <Skeleton className="mb-4 h-32" />
+          <Skeleton className="h-10" />
         </div>
       </div>
     );

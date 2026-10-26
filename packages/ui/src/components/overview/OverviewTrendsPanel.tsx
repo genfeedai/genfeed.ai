@@ -2,6 +2,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -78,10 +79,10 @@ export function OverviewTrendsPanel({
           aria-busy="true"
         >
           {Array.from({ length: 5 }).map((_, index) => (
-            <div
+            <Skeleton
               // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
               key={index}
-              className="h-10 animate-pulse rounded-[0.75rem] bg-muted/40"
+              className="h-10 rounded-[0.75rem]"
             />
           ))}
         </div>

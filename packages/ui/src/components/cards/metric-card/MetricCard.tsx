@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/props/cards/metric-card.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo, type ReactElement, type ReactNode } from 'react';
 
@@ -67,12 +68,9 @@ function resolveValueContent(
 ): ReactNode {
   if (isLoading) {
     return (
-      <span
+      <Skeleton
         aria-hidden="true"
-        className={cn(
-          'inline-block animate-pulse rounded-sm bg-muted',
-          VALUE_SKELETON[size],
-        )}
+        className={cn('inline-block rounded-sm', VALUE_SKELETON[size])}
       />
     );
   }

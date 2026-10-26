@@ -8,6 +8,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { Lightbulb, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -33,14 +34,11 @@ const InsightListCard = memo(function InsightListCard({
       <Card data-testid="insight-list-card" className={className}>
         <div className="space-y-3">
           {[1, 2, 3].map((placeholderId) => (
-            <div
-              key={placeholderId}
-              className="animate-pulse flex items-start gap-3 p-3 bg-background"
-            >
-              <div className="size-8 rounded-full bg-muted" />
+            <div key={placeholderId} className="flex items-start gap-3 p-3">
+              <Skeleton className="size-8 rounded-full" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 w-3/4 bg-muted" />
-                <div className="h-3 w-full bg-muted" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-full" />
               </div>
             </div>
           ))}

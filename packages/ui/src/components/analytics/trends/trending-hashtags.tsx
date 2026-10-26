@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Skeleton } from '@ui/primitives/skeleton';
 import {
   PLATFORM_CONFIGS,
   PLATFORM_CONFIGS_ARRAY,
@@ -89,7 +90,7 @@ export function TrendingHashtags({
           maxColumns={3}
         >
           {[1, 2, 3, 4, 5, 6].map((id) => (
-            <div key={id} className="animate-pulse h-24 bg-muted" />
+            <Skeleton key={id} className="h-24" />
           ))}
         </CollectionGrid>
       ) : filteredHashtags.length === 0 ? (

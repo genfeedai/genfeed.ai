@@ -17,6 +17,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -89,10 +90,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
               'leaderboard-skeleton-4',
               'leaderboard-skeleton-5',
             ].map((skeletonId) => (
-              <div
-                key={skeletonId}
-                className="h-14 bg-foreground/5 animate-pulse"
-              />
+              <Skeleton key={skeletonId} className="h-14" />
             ))}
           </div>
         ) : data.length === 0 ? (

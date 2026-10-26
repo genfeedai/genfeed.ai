@@ -8,6 +8,7 @@ import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -57,7 +58,7 @@ export default function TrendingTopicsSection({
         {translate('topics.description')}
       </p>
       {isLoadingTrends ? (
-        <div className="animate-pulse space-y-3">
+        <div className="space-y-3">
           {[
             'trend-skeleton-1',
             'trend-skeleton-2',
@@ -65,7 +66,7 @@ export default function TrendingTopicsSection({
             'trend-skeleton-4',
             'trend-skeleton-5',
           ].map((skeletonId) => (
-            <div key={skeletonId} className="h-12 bg-background" />
+            <Skeleton key={skeletonId} className="h-12" />
           ))}
         </div>
       ) : trendingTopics.length === 0 ? (

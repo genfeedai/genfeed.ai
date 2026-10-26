@@ -20,6 +20,7 @@ import {
   TONE_KEYS,
 } from '@ui/posts/composer-prompt-bar/post-composer-prompt-bar.helpers';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
@@ -300,8 +301,8 @@ export default function PostComposerPromptBar({
 
         {pendingLabel ? (
           <div className="grid gap-2 p-3" aria-hidden="true">
-            <div className="h-3 w-11/12 animate-pulse rounded bg-hover" />
-            <div className="h-3 w-3/4 animate-pulse rounded bg-hover" />
+            <Skeleton className="h-3 w-11/12" />
+            <Skeleton className="h-3 w-3/4" />
           </div>
         ) : null}
 

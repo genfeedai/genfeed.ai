@@ -14,6 +14,7 @@ import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -132,12 +133,12 @@ export default function StreaksPage() {
         <div className="rounded-3xl bg-secondary p-5 shadow-border">
           {isLoading ? (
             <div
-              className="animate-pulse space-y-3"
+              className="space-y-3"
               data-testid="streaks-milestones-skeleton"
             >
-              <div className="h-16 rounded-2xl bg-secondary" />
-              <div className="h-16 rounded-2xl bg-secondary" />
-              <div className="h-16 rounded-2xl bg-secondary" />
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
             </div>
           ) : (
             <>

@@ -28,10 +28,10 @@ import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -44,7 +44,7 @@ const BrandPerformanceChart = dynamic(
       '@ui/analytics/charts/brand-performance/brand-performance-chart'
     ).then((mod) => mod.BrandPerformanceChart),
   {
-    loading: () => <div className="h-chart w-full bg-muted/60 animate-pulse" />,
+    loading: () => <Skeleton className="h-chart w-full" />,
     ssr: false,
   },
 );
@@ -55,7 +55,7 @@ const PlatformBreakdownChart = dynamic(
       '@ui/analytics/charts/platform-breakdown/platform-breakdown-chart'
     ).then((mod) => mod.PlatformBreakdownChart),
   {
-    loading: () => <div className="h-chart w-full bg-muted/60 animate-pulse" />,
+    loading: () => <Skeleton className="h-chart w-full" />,
     ssr: false,
   },
 );

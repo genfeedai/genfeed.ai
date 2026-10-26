@@ -17,6 +17,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Text } from '@ui/typography/text';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import {
@@ -33,7 +34,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
-  loading: () => <div className="h-72 w-full bg-muted/40 animate-pulse" />,
+  loading: () => <Skeleton className="h-72 w-full" />,
   ssr: false,
 });
 

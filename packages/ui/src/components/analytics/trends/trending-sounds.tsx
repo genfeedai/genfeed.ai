@@ -12,6 +12,7 @@ import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Music, Play, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -54,7 +55,7 @@ export function TrendingSounds({
       {isLoading ? (
         <CollectionGrid data-testid="trending-sounds-skeleton" maxColumns={3}>
           {[1, 2, 3, 4, 5, 6].map((id) => (
-            <div key={id} className="animate-pulse h-24 bg-muted" />
+            <Skeleton key={id} className="h-24" />
           ))}
         </CollectionGrid>
       ) : sounds.length === 0 ? (

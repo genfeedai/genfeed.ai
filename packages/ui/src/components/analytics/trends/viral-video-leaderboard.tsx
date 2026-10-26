@@ -10,6 +10,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -34,12 +35,12 @@ export function ViralVideoLeaderboard({
     return (
       <div className={`space-y-4 ${className}`}>
         <div className="flex items-center justify-between">
-          <div className="animate-pulse h-6 bg-background w-48" />
-          <div className="animate-pulse h-8 bg-background w-32" />
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-8 w-32" />
         </div>
-        <div className="animate-pulse space-y-3">
+        <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((placeholderId) => (
-            <div key={placeholderId} className="h-16 bg-background" />
+            <Skeleton key={placeholderId} className="h-16" />
           ))}
         </div>
       </div>

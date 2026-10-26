@@ -9,6 +9,7 @@ import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
 function getTrendIcon(direction: TrendDirection) {
@@ -58,10 +59,10 @@ export function GrowthTrendsCard({
     return (
       <div className={cardClassName}>
         <div className="animate-pulse">
-          <div className="h-6 bg-muted w-1/3 mb-4" />
+          <Skeleton className="mb-4 h-6 w-1/3" />
           <div className="space-y-4">
-            <div className="h-20 bg-muted" />
-            <div className="h-20 bg-muted" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
           </div>
         </div>
       </div>

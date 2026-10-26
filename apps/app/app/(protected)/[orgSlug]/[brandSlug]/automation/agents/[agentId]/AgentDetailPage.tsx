@@ -35,6 +35,7 @@ import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, CirclePlay, Cpu, Pencil, Workflow } from 'lucide-react';
 import Link from 'next/link';
@@ -314,7 +315,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   if (!isReady || isStrategyLoading) {
     return (
       <Container label={detail('title')} icon={Cpu}>
-        <div className="h-64 animate-pulse rounded bg-foreground/5" />
+        <Skeleton className="h-64" />
       </Container>
     );
   }

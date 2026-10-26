@@ -6,6 +6,7 @@ import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -16,7 +17,7 @@ const PlatformComparisonChart = dynamic(
       '@ui/analytics/charts/platform-comparison/platform-comparison-chart'
     ).then((mod) => mod.PlatformComparisonChart),
   {
-    loading: () => <div className="h-chart w-full bg-muted/60 animate-pulse" />,
+    loading: () => <Skeleton className="h-chart w-full" />,
     ssr: false,
   },
 );
@@ -27,7 +28,7 @@ const PlatformTimeSeriesChart = dynamic(
       '@ui/analytics/charts/platform-time-series/platform-time-series-chart'
     ).then((mod) => mod.PlatformTimeSeriesChart),
   {
-    loading: () => <div className="h-chart w-full bg-muted/60 animate-pulse" />,
+    loading: () => <Skeleton className="h-chart w-full" />,
     ssr: false,
   },
 );
