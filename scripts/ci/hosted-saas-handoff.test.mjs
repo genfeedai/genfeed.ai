@@ -642,18 +642,22 @@ test('notifies release watch when production deploy succeeds, before npm and pub
   );
   assert.match(notifyReleaseWorkflow, /cancel-in-progress: false/);
   assert.match(notifyReleaseWorkflow, /permissions:\n {2}contents: read\n/);
-  assert.match(notifyReleaseWorkflow, /continue-on-error: true/);
+  // Only Release's call may swallow a failure; a manual dispatch shows it.
+  assert.match(
+    notifyReleaseWorkflow,
+    /continue-on-error: \$\{\{ inputs\.trigger == 'production-deploy' \}\}/,
+  );
   assert.doesNotMatch(notifyReleaseWorkflow, /isDraft or \.isPrerelease/);
   assert.match(notifyReleaseWorkflow, /\.isPrerelease/);
   // Release notifies while its GitHub release is still a draft, which a
   // contents:read token cannot see (#8300).
   assert.match(
     notifyReleaseWorkflow,
-    /elif \[ "\$trigger" = "production-deploy" \]; then[\s\S]*?isDraft:true, isPrerelease:false/,
+    /elif \[ "\$trigger" = "production-deploy" \] && grep -qi 'release not found' "\$lookup_error"; then[\s\S]*?isDraft:true, isPrerelease:false/,
   );
   assert.match(
     notifyReleaseWorkflow,
-    /echo "::error::release \$tag not found; nothing sent"\n {12}exit 1/,
+    /echo "::error::release \$tag could not be read; nothing sent"\n {12}exit 1/,
   );
   assert.match(
     notifyReleaseWorkflow,
