@@ -209,6 +209,7 @@ export class StoryboardRunsController {
     @Body() body: QuoteStoryboardARollDto,
   ) {
     return this.aRoll.quote(
+      'aRoll',
       user.organizationId,
       brandId,
       runId,
@@ -229,6 +230,7 @@ export class StoryboardRunsController {
       request,
       StoryboardRunSerializer,
       await this.aRoll.render(
+        'aRoll',
         user.organizationId,
         brandId,
         runId,
@@ -252,6 +254,45 @@ export class StoryboardRunsController {
     );
   }
 
+  @Post(':runId/animatic/quote')
+  quoteAnimatic(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: QuoteStoryboardARollDto,
+  ) {
+    return this.aRoll.quote(
+      'animatic',
+      user.organizationId,
+      brandId,
+      runId,
+      user.userId,
+      body,
+    );
+  }
+
+  @Post(':runId/animatic')
+  async renderAnimatic(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: RenderStoryboardARollDto,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.aRoll.render(
+        'animatic',
+        user.organizationId,
+        brandId,
+        runId,
+        user.userId,
+        body,
+      ),
+    );
+  }
+
   /** Opens the rendered long-form video as an Editor project. */
   @Post(':runId/long-form/assemble')
   assembleLongForm(
@@ -259,7 +300,17 @@ export class StoryboardRunsController {
     @Param('runId') runId: string,
     @CurrentUser() user: User,
   ) {
-    return this.assembly.assemble(user, brandId, runId);
+    return this.assembly.assemble(user, brandId, runId, 'aRoll');
+  }
+
+  /** Opens the animatic: the spoken draft under the presenter's photo. */
+  @Post(':runId/animatic/assemble')
+  assembleAnimatic(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.assembly.assemble(user, brandId, runId, 'animatic');
   }
 
   @TenantReadPolicy('selected')

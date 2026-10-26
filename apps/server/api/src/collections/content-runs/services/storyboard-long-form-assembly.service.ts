@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { StoryboardPresenterTrack } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import {
   matchStoryboardARollChunks,
   planStoryboardARollChunks,
+  storyboardARollPresenter,
 } from '@api/collections/content-runs/services/storyboard-a-roll-plan';
 import {
   buildLongFormTimeline,
@@ -30,8 +32,15 @@ import { ConflictException, Injectable } from '@nestjs/common';
 
 export const LONG_FORM_EDIT_FPS = 30;
 
-/** A cutaway may be a still; the presenter is always a video. */
-const FOOTAGE_CATEGORIES = ['VIDEO', 'AVATAR', 'VIDEO_EDIT', 'IMAGE'] as const;
+/** A cutaway may be a still; the presenter is a video, or speech in a draft. */
+const FOOTAGE_CATEGORIES = [
+  'VIDEO',
+  'AVATAR',
+  'VIDEO_EDIT',
+  'IMAGE',
+  'VOICE',
+  'AUDIO',
+] as const;
 const READY_STATUSES = new Set(['GENERATED', 'VALIDATED', 'UPLOADED']);
 
 const SETTINGS: Record<
@@ -75,6 +84,7 @@ export class StoryboardLongFormAssemblyService {
     user: AuthenticatedUser,
     brandId: string,
     runId: string,
+    track: StoryboardPresenterTrack,
   ): Promise<{ editorProjectId: string; timeline: LongFormTimeline }> {
     const { organizationId } = user;
     const { config } = await this.store.read(organizationId, brandId, runId);
@@ -83,36 +93,56 @@ export class StoryboardLongFormAssemblyService {
       throw new ConflictException(
         'Only a long-form storyboard is assembled this way.',
       );
-    const chunks = this.readyChunks(plan, config.aRoll?.chunks);
+    const isDraft = track === 'animatic';
+    const chunks = this.readyChunks(plan, config[track]?.chunks, isDraft);
     const timeline = buildLongFormTimeline(plan, chunks);
-    if (timeline.uncoveredJoins.length)
+    // A draft has no picture joins to hide and may run ahead of its B-roll.
+    if (!isDraft && timeline.uncoveredJoins.length)
       throw new ConflictException(
         `Add a cutaway around ${timeline.uncoveredJoins.map(clock).join(', ')} to hide where the presenter renders meet.`,
       );
     const missing = timeline.cutaways.filter((item) => !item.assetId);
-    if (missing.length)
+    if (!isDraft && missing.length)
       throw new ConflictException(
         `${missing.length} cutaway${missing.length === 1 ? ' has' : 's have'} no footage yet.`,
       );
 
+    const presenter = storyboardARollPresenter(plan);
     const footage = await this.readFootage(organizationId, brandId, [
       ...timeline.aRoll.map((item) => item.assetId),
-      ...timeline.cutaways.flatMap((item) =>
-        item.assetId ? [item.assetId] : [],
-      ),
+      ...(isDraft ? [presenter.avatarAssetId] : []),
     ]);
+    const cutawayFootage = await this.readFootage(
+      organizationId,
+      brandId,
+      timeline.cutaways.flatMap((item) => (item.assetId ? [item.assetId] : [])),
+      isDraft,
+    );
+    for (const [id, asset] of cutawayFootage) footage.set(id, asset);
+    const presenterCategory = isDraft
+      ? ['VOICE', 'AUDIO']
+      : ['VIDEO', 'AVATAR', 'VIDEO_EDIT'];
     if (
       timeline.aRoll.some(
-        (item) => footage.get(item.assetId)?.category === 'IMAGE',
+        (item) =>
+          !presenterCategory.includes(
+            footage.get(item.assetId)?.category ?? '',
+          ),
       )
     )
-      throw new ConflictException('The presenter track must be video.');
-    const tracks = this.buildTracks(timeline, footage);
+      throw new ConflictException(
+        isDraft
+          ? 'The animatic narration must be speech.'
+          : 'The presenter track must be video.',
+      );
+    const tracks = isDraft
+      ? this.buildDraftTracks(timeline, footage, presenter.avatarAssetId)
+      : this.buildTracks(timeline, footage);
     const totalDurationFrames = frames(timeline.totalSeconds);
     const project = await this.editorProjects.create({
       brandId,
       config: {
-        name: plan.title || 'Long-form video',
+        name: `${plan.title || 'Long-form video'}${isDraft ? ' (animatic)' : ''}`,
         settings: {
           ...SETTINGS[plan.format],
           backgroundColor: '#000000',
@@ -133,6 +163,7 @@ export class StoryboardLongFormAssemblyService {
   private readyChunks(
     plan: StoryboardPlan,
     rendered: readonly StoryboardARollChunk[] = [],
+    isDraft = false,
   ): StoryboardARollChunk[] {
     const matches = matchStoryboardARollChunks(
       planStoryboardARollChunks(plan),
@@ -147,15 +178,22 @@ export class StoryboardLongFormAssemblyService {
     );
     if (chunks.length !== matches.length)
       throw new ConflictException(
-        'Render the presenter track for the current narration first.',
+        isDraft
+          ? 'Draft the animatic narration for the current script first.'
+          : 'Render the presenter track for the current narration first.',
       );
     return chunks;
   }
 
+  /**
+   * Finished footage by id. A missing or unfinished asset fails the edit,
+   * or with `skipUnusable` is left out (a draft shows the presenter there).
+   */
   private async readFootage(
     organizationId: string,
     brandId: string,
     assetIds: readonly string[],
+    skipUnusable = false,
   ): Promise<Map<string, FootageAsset>> {
     const ids = [...new Set(assetIds)];
     const rows = await this.prisma.ingredient.findMany({
@@ -183,7 +221,7 @@ export class StoryboardLongFormAssemblyService {
       });
     }
     const unusable = ids.filter((id) => !footage.has(id));
-    if (unusable.length)
+    if (unusable.length && !skipUnusable)
       throw new ConflictException(
         'Some footage is not a finished image or video of this brand. Replace it and try again.',
       );
@@ -271,6 +309,61 @@ export class StoryboardLongFormAssemblyService {
               ]
             : [],
         ),
+      },
+    ];
+  }
+
+  /**
+   * The animatic: the presenter's photo for the whole video, the drafted
+   * speech on an audio track, and whatever B-roll is ready above it.
+   */
+  private buildDraftTracks(
+    timeline: LongFormTimeline,
+    footage: ReadonlyMap<string, FootageAsset>,
+    avatarAssetId: string,
+  ): IEditorTrack[] {
+    const [, bRoll] = this.buildTracks(
+      {
+        ...timeline,
+        aRoll: [],
+        cutaways: timeline.cutaways.filter(
+          (item) => item.assetId && footage.has(item.assetId),
+        ),
+      },
+      footage,
+    );
+    const photo = footage.get(avatarAssetId);
+    if (photo?.category !== 'IMAGE')
+      throw new ConflictException('The presenter needs an avatar image.');
+    return [
+      {
+        id: randomUUID(),
+        type: EditorTrackType.VIDEO,
+        name: 'Presenter',
+        isMuted: false,
+        isLocked: false,
+        volume: 100,
+        clips: [this.clip(avatarAssetId, photo, 0, timeline.totalSeconds, 100)],
+      },
+      ...(bRoll ? [bRoll] : []),
+      {
+        id: randomUUID(),
+        type: EditorTrackType.AUDIO,
+        name: 'Narration',
+        isMuted: false,
+        isLocked: false,
+        volume: 100,
+        clips: timeline.aRoll.map((item) => {
+          const speech = footage.get(item.assetId);
+          if (!speech) throw new ConflictException('Narration is missing.');
+          return this.clip(
+            item.assetId,
+            speech,
+            item.startSeconds,
+            item.durationSeconds,
+            100,
+          );
+        }),
       },
     ];
   }

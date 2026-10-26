@@ -3,8 +3,10 @@ import {
   matchStoryboardARollChunks,
   planStoryboardARollChunks,
   type StoryboardARollMatch,
+  type StoryboardARollPresenter,
   storyboardARollPresenter,
 } from '@api/collections/content-runs/services/storyboard-a-roll-plan';
+import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/services/storyboard-animatic-voice.service';
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
 import {
   type StoryboardStoredRunConfig,
@@ -40,6 +42,17 @@ const MUTATION_ATTEMPTS = 5;
 /** A chunk that left no placeholder for this long never reached HeyGen. */
 export const A_ROLL_ABANDONED_MS = 5 * 60_000;
 
+/** The paid avatar render, or its cheap spoken draft. */
+export type StoryboardPresenterTrack = 'aRoll' | 'animatic';
+const TRACKS: readonly StoryboardPresenterTrack[] = ['aRoll', 'animatic'];
+
+interface ChunkPrice {
+  billingMode: StoryboardARollQuote['billingMode'];
+  credits: number;
+  estimatedSeconds: number | null;
+  modelKey: string;
+}
+
 type ChunkOutcome = Pick<
   StoryboardARollChunk,
   'state' | 'assetId' | 'durationSeconds' | 'errorCode'
@@ -66,6 +79,9 @@ export function isLiveARollChunk(chunk: StoryboardARollChunk): boolean {
  * back. Each chunk is its own avatar generation with its own credit hold, so
  * a failed chunk is rendered again alone and the others are never charged
  * twice. The B-roll overlay covers the joins.
+ *
+ * The animatic (#8232) runs the same chunks through speech only, before or
+ * after approval, so the creator hears the edit before paying for avatars.
  */
 @Injectable()
 export class StoryboardARollService {
@@ -73,10 +89,12 @@ export class StoryboardARollService {
     private readonly prisma: PrismaService,
     private readonly store: StoryboardRunStoreService,
     private readonly avatars: AvatarVideoGenerationService,
+    private readonly voice: StoryboardAnimaticVoiceService,
     private readonly logger: LoggerService,
   ) {}
 
   async quote(
+    track: StoryboardPresenterTrack,
     organizationId: string,
     brandId: string,
     runId: string,
@@ -90,11 +108,13 @@ export class StoryboardARollService {
       runId,
       input.expectedRevision,
     );
-    return (await this.buildQuote(organizationId, brandId, userId, config))
-      .quote;
+    return (
+      await this.buildQuote(track, organizationId, brandId, userId, config)
+    ).quote;
   }
 
   async render(
+    track: StoryboardPresenterTrack,
     organizationId: string,
     brandId: string,
     runId: string,
@@ -109,6 +129,7 @@ export class StoryboardARollService {
       input.expectedRevision,
     );
     const { quote, matches } = await this.buildQuote(
+      track,
       organizationId,
       brandId,
       userId,
@@ -149,13 +170,13 @@ export class StoryboardARollService {
         throw new ConflictException(
           'The storyboard changed. Review the new quote.',
         );
-      if (current.aRoll?.chunks.some(isLiveARollChunk))
+      if (current[track]?.chunks.some(isLiveARollChunk))
         throw new ConflictException(
           'The presenter track is already rendering.',
         );
       return storyboardStoredRunConfigSchema.parse({
         ...current,
-        aRoll: {
+        [track]: {
           presenterId: presenter.presenterId,
           modelKey: quote.modelKey,
           chunks,
@@ -165,7 +186,7 @@ export class StoryboardARollService {
     // One at a time: each dispatch records its placeholder in the same run
     // document, so parallel writers would only contend.
     for (const chunk of queued)
-      await this.dispatch(organizationId, brandId, runId, config, chunk);
+      await this.dispatch(track, organizationId, brandId, runId, config, chunk);
     return this.reconcile(organizationId, brandId, runId);
   }
 
@@ -184,7 +205,9 @@ export class StoryboardARollService {
       brandId,
       runId,
     );
-    const live = (config.aRoll?.chunks ?? []).filter(isLiveARollChunk);
+    const live = TRACKS.flatMap((track) =>
+      (config[track]?.chunks ?? []).filter(isLiveARollChunk),
+    );
     const outcomes = new Map<string, ChunkOutcome>();
     for (const chunk of live) {
       const outcome = await this.observe(organizationId, brandId, chunk);
@@ -197,6 +220,7 @@ export class StoryboardARollService {
   }
 
   private async buildQuote(
+    track: StoryboardPresenterTrack,
     organizationId: string,
     brandId: string,
     userId: string,
@@ -208,16 +232,31 @@ export class StoryboardARollService {
         'Only a long-form storyboard has a presenter track.',
       );
     if (
-      config.state !== 'approved' ||
-      config.approvedRevision !== config.revision
+      track === 'aRoll' &&
+      (config.state !== 'approved' ||
+        config.approvedRevision !== config.revision)
     )
       throw new ConflictException(
         'Approve the storyboard before rendering the presenter.',
       );
+    if (
+      track === 'animatic' &&
+      !['storyboard', 'approved'].includes(config.state)
+    )
+      throw new ConflictException(
+        'An animatic is drafted only for a draft or approved storyboard.',
+      );
     const presenter = storyboardARollPresenter(plan);
+    const price = await this.pricer(
+      track,
+      organizationId,
+      brandId,
+      userId,
+      config,
+    );
     const matches = matchStoryboardARollChunks(
       planStoryboardARollChunks(plan),
-      config.aRoll?.chunks,
+      config[track]?.chunks,
     );
     if (matches.some(({ previous }) => previous && isLiveARollChunk(previous)))
       throw new ConflictException('The presenter track is already rendering.');
@@ -226,21 +265,18 @@ export class StoryboardARollService {
     let modelKey: string | undefined;
     for (const [index, { input, previous }] of matches.entries()) {
       if (previous) continue;
-      const price = await this.avatars.quote(
-        this.chunkParams(input.text, presenter, plan.format),
-        { organizationId, userId, brandId },
-      );
-      if (billingMode && billingMode !== price.billingMode)
+      const chunkPrice = await price(input.text, presenter);
+      if (billingMode && billingMode !== chunkPrice.billingMode)
         throw new ConflictException(
           'The avatar billing changed while quoting. Try again.',
         );
-      billingMode = price.billingMode;
-      modelKey = price.modelKey;
+      billingMode = chunkPrice.billingMode;
+      modelKey = chunkPrice.modelKey;
       items.push({
         ordinal: index + 1,
         characters: input.text.length,
-        estimatedSeconds: price.estimatedSeconds ?? input.estimatedSeconds,
-        credits: price.credits,
+        estimatedSeconds: chunkPrice.estimatedSeconds ?? input.estimatedSeconds,
+        credits: chunkPrice.credits,
       });
     }
     if (!items.length || !billingMode || !modelKey)
@@ -269,9 +305,32 @@ export class StoryboardARollService {
     return { quote, matches };
   }
 
+  /** Prices one chunk of the track. */
+  private async pricer(
+    track: StoryboardPresenterTrack,
+    organizationId: string,
+    brandId: string,
+    userId: string,
+    config: StoryboardStoredRunConfig,
+  ): Promise<
+    (text: string, presenter: StoryboardARollPresenter) => Promise<ChunkPrice>
+  > {
+    if (track === 'aRoll')
+      return (text, presenter) =>
+        this.avatars.quote(
+          this.chunkParams(text, presenter, config.plan.format),
+          { organizationId, userId, brandId },
+        );
+    const voice = await this.voice.resolve(
+      organizationId,
+      storyboardARollPresenter(config.plan),
+    );
+    return (text) => this.voice.quote(organizationId, voice, text);
+  }
+
   private chunkParams(
     text: string,
-    presenter: ReturnType<typeof storyboardARollPresenter>,
+    presenter: StoryboardARollPresenter,
     format: StoryboardStoredRunConfig['plan']['format'],
   ): AvatarVideoGenerationParams {
     return {
@@ -284,6 +343,7 @@ export class StoryboardARollService {
   }
 
   private async dispatch(
+    track: StoryboardPresenterTrack,
     organizationId: string,
     brandId: string,
     runId: string,
@@ -292,6 +352,24 @@ export class StoryboardARollService {
   ): Promise<void> {
     let assetId: string | undefined;
     try {
+      if (track === 'animatic') {
+        assetId = await this.voice.speak({
+          organizationId,
+          brandId,
+          userId: chunk.actorUserId,
+          voice: await this.voice.resolve(
+            organizationId,
+            storyboardARollPresenter(config.plan),
+          ),
+          text: chunk.text,
+          sourceActionId: `storyboard-animatic-${runId}-${chunk.id}`,
+        });
+        await this.patch(organizationId, brandId, runId, chunk.id, {
+          assetId,
+          state: 'submitted',
+        });
+        return;
+      }
       await this.avatars.generateAvatarVideo(
         this.chunkParams(
           chunk.text,
@@ -374,21 +452,28 @@ export class StoryboardARollService {
     current: StoryboardStoredRunConfig,
     outcomes: ReadonlyMap<string, ChunkOutcome>,
   ): StoryboardStoredRunConfig {
-    const aRoll = current.aRoll;
-    if (!aRoll) return current;
     const updatedAt = new Date().toISOString();
-    return storyboardStoredRunConfigSchema.parse({
-      ...current,
-      aRoll: {
-        ...aRoll,
-        chunks: aRoll.chunks.map((chunk) => {
-          const outcome = outcomes.get(chunk.id);
-          return outcome && isLiveARollChunk(chunk)
-            ? { ...chunk, ...outcome, updatedAt }
-            : chunk;
-        }),
-      },
-    });
+    return storyboardStoredRunConfigSchema.parse(
+      this.mapChunks(current, (chunk) => {
+        const outcome = outcomes.get(chunk.id);
+        return outcome && isLiveARollChunk(chunk)
+          ? { ...chunk, ...outcome, updatedAt }
+          : chunk;
+      }),
+    );
+  }
+
+  /** Applies `change` to every chunk of both presenter tracks. */
+  private mapChunks(
+    current: StoryboardStoredRunConfig,
+    change: (chunk: StoryboardARollChunk) => StoryboardARollChunk,
+  ): StoryboardStoredRunConfig {
+    const next = { ...current };
+    for (const track of TRACKS) {
+      const value = current[track];
+      if (value) next[track] = { ...value, chunks: value.chunks.map(change) };
+    }
+    return next;
   }
 
   private async patch(
@@ -401,19 +486,11 @@ export class StoryboardARollService {
     >,
   ) {
     await this.mutate(organizationId, brandId, runId, (current) =>
-      current.aRoll
-        ? {
-            ...current,
-            aRoll: {
-              ...current.aRoll,
-              chunks: current.aRoll.chunks.map((chunk) =>
-                chunk.id === chunkId && isLiveARollChunk(chunk)
-                  ? { ...chunk, ...patch, updatedAt: new Date().toISOString() }
-                  : chunk,
-              ),
-            },
-          }
-        : current,
+      this.mapChunks(current, (chunk) =>
+        chunk.id === chunkId && isLiveARollChunk(chunk)
+          ? { ...chunk, ...patch, updatedAt: new Date().toISOString() }
+          : chunk,
+      ),
     );
   }
 

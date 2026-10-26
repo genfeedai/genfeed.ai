@@ -50,6 +50,11 @@ export const storyboardNativeRunConfigSchema = z
     scenePipeline: brandRemixScenePipelineSchema.optional(),
     /** The long-form presenter track, rendered in chunks (#8222). */
     aRoll: storyboardARollSchema.optional(),
+    /**
+     * The cheap draft of the same narration (#8232): speech only, played
+     * under the presenter's photo, so pacing is checked before the render.
+     */
+    animatic: storyboardARollSchema.optional(),
     characterReplacements: z
       .array(storyboardCharacterReplacementSchema)
       .max(12)

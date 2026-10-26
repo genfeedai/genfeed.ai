@@ -44,7 +44,12 @@ import { Module } from '@nestjs/common';
     VoicesCatalogController,
     VoicesOperationsController,
   ],
-  exports: [ExternalVoiceCatalogService, VoiceGenerationService, VoicesService],
+  exports: [
+    ExternalVoiceCatalogService,
+    VoiceCreditsService,
+    VoiceGenerationService,
+    VoicesService,
+  ],
   imports: [
     PlatformSettingsModule,
     ActivitiesModule,

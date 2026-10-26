@@ -98,9 +98,11 @@ function setup(initial: StoryboardNativeRunConfig) {
           id,
           category: id.startsWith('presenter')
             ? 'AVATAR'
-            : id.startsWith('still')
+            : id.startsWith('still') || id.startsWith('avatar')
               ? 'IMAGE'
-              : 'VIDEO',
+              : id.startsWith('speech')
+                ? 'VOICE'
+                : 'VIDEO',
           status: 'GENERATED',
           metadata: { duration: id === 'short-clip' ? 2 : 60 },
         })),
@@ -140,6 +142,7 @@ describe('StoryboardLongFormAssemblyService', () => {
       user as never,
       'brand-1',
       'run-1',
+      'aRoll',
     );
 
     expect(result.editorProjectId).toBe('project-1');
@@ -168,7 +171,7 @@ describe('StoryboardLongFormAssemblyService', () => {
     const ctx = setup(config([], [{ state: 'submitted' }]));
 
     await expect(
-      ctx.service.assemble(user as never, 'brand-1', 'run-1'),
+      ctx.service.assemble(user as never, 'brand-1', 'run-1', 'aRoll'),
     ).rejects.toThrow('Render the presenter track');
   });
 
@@ -186,7 +189,7 @@ describe('StoryboardLongFormAssemblyService', () => {
     );
 
     await expect(
-      ctx.service.assemble(user as never, 'brand-1', 'run-1'),
+      ctx.service.assemble(user as never, 'brand-1', 'run-1', 'aRoll'),
     ).rejects.toThrow(ConflictException);
     expect(ctx.editorProjects.create).not.toHaveBeenCalled();
   });
@@ -205,7 +208,7 @@ describe('StoryboardLongFormAssemblyService', () => {
       ]),
     );
 
-    await ctx.service.assemble(user as never, 'brand-1', 'run-1');
+    await ctx.service.assemble(user as never, 'brand-1', 'run-1', 'aRoll');
     const created = ctx.editorProjects.create.mock.calls[0]?.[0] as {
       tracks: { clips: { durationFrames: number }[] }[];
     };
@@ -226,11 +229,61 @@ describe('StoryboardLongFormAssemblyService', () => {
       ]),
     );
 
-    await ctx.service.assemble(user as never, 'brand-1', 'run-1');
+    await ctx.service.assemble(user as never, 'brand-1', 'run-1', 'aRoll');
     const created = ctx.editorProjects.create.mock.calls[0]?.[0] as {
       tracks: { clips: { durationFrames: number; mediaType?: string }[] }[];
     };
     expect(created.tracks[1]?.clips[0]?.mediaType).toBe('image');
     expect(created.tracks[1]?.clips[0]?.durationFrames).toBeGreaterThan(60);
+  });
+
+  it('opens the animatic as the photo, the speech and the ready B-roll', async () => {
+    const final = config([
+      {
+        id: 'cutaway-1',
+        kind: 'still',
+        brief: 'Chart',
+        startSeconds: 20,
+        durationSeconds: 5,
+      },
+    ]);
+    const ctx = setup({
+      ...final,
+      state: 'storyboard',
+      approvedRevision: undefined,
+      aRoll: undefined,
+      animatic: final.aRoll
+        ? {
+            ...final.aRoll,
+            chunks: final.aRoll.chunks.map((chunk, index) => ({
+              ...chunk,
+              assetId: `speech-${index + 1}`,
+            })),
+          }
+        : undefined,
+    });
+
+    await ctx.service.assemble(user as never, 'brand-1', 'run-1', 'animatic');
+    const created = ctx.editorProjects.create.mock.calls[0]?.[0] as {
+      config: { name: string };
+      tracks: {
+        name: string;
+        type: string;
+        clips: { ingredientId: string; mediaType?: string }[];
+      }[];
+    };
+    expect(created.config.name).toBe('Pricing (animatic)');
+    expect(
+      created.tracks.map((track) => [track.name, track.clips.length]),
+    ).toEqual([
+      ['Presenter', 1],
+      ['B-roll', 0],
+      ['Narration', 1],
+    ]);
+    expect(created.tracks[0]?.clips[0]).toMatchObject({
+      ingredientId: 'avatar-1',
+      mediaType: 'image',
+    });
+    expect(created.tracks[2]?.type).toBe('audio');
   });
 });

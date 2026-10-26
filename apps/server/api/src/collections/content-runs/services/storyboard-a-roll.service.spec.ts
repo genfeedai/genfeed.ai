@@ -132,22 +132,50 @@ function setup(initial: StoryboardNativeRunConfig = approvedConfig()) {
       },
     ),
   };
+  let spoken = 0;
+  const voice = {
+    resolve: vi.fn(async () => ({
+      externalVoiceId: 'eleven-1',
+      provider: 'elevenlabs',
+      modelKey: 'elevenlabs/eleven_flash_v2_5',
+    })),
+    quote: vi.fn(async (_org: string, _voice: unknown, text: string) => ({
+      billingMode: 'platform' as const,
+      credits: Math.ceil(text.length / 100),
+      estimatedSeconds: Math.ceil(text.length / 12),
+      modelKey: 'elevenlabs/eleven_flash_v2_5',
+    })),
+    speak: vi.fn(async () => {
+      spoken += 1;
+      const id = `speech-${spoken}`;
+      ingredients.set(id, { status: 'PROCESSING' });
+      return id;
+    }),
+  };
   const logger = { error: vi.fn() };
   const service = new StoryboardARollService(
     prisma as never,
     store as never,
     avatars as never,
+    voice as never,
     logger as never,
   );
   const config = () => storyboardStoredRunConfigSchema.parse(stored);
-  return { service, store, avatars, ingredients, config };
+  return { service, store, avatars, voice, ingredients, config };
 }
 
 async function renderAll(ctx: ReturnType<typeof setup>) {
-  const quote = await ctx.service.quote('org-1', 'brand-1', 'run-1', 'user-1', {
-    expectedRevision: 3,
-  });
-  await ctx.service.render('org-1', 'brand-1', 'run-1', 'user-1', {
+  const quote = await ctx.service.quote(
+    'aRoll',
+    'org-1',
+    'brand-1',
+    'run-1',
+    'user-1',
+    {
+      expectedRevision: 3,
+    },
+  );
+  await ctx.service.render('aRoll', 'org-1', 'brand-1', 'run-1', 'user-1', {
     expectedRevision: 3,
     inputHash: quote.inputHash,
   });
@@ -158,6 +186,7 @@ describe('StoryboardARollService', () => {
   it('quotes one avatar render per chunk of the narration', async () => {
     const ctx = setup();
     const quote = await ctx.service.quote(
+      'aRoll',
       'org-1',
       'brand-1',
       'run-1',
@@ -189,7 +218,7 @@ describe('StoryboardARollService', () => {
     });
 
     await expect(
-      ctx.service.quote('org-1', 'brand-1', 'run-1', 'user-1', {
+      ctx.service.quote('aRoll', 'org-1', 'brand-1', 'run-1', 'user-1', {
         expectedRevision: 3,
       }),
     ).rejects.toThrow(ConflictException);
@@ -243,7 +272,7 @@ describe('StoryboardARollService', () => {
   it('refuses a stale quote', async () => {
     const ctx = setup();
     await expect(
-      ctx.service.render('org-1', 'brand-1', 'run-1', 'user-1', {
+      ctx.service.render('aRoll', 'org-1', 'brand-1', 'run-1', 'user-1', {
         expectedRevision: 3,
         inputHash: 'b'.repeat(64),
       }),
@@ -272,9 +301,61 @@ describe('StoryboardARollService', () => {
     await ctx.service.reconcile('org-1', 'brand-1', 'run-1');
 
     await expect(
-      ctx.service.quote('org-1', 'brand-1', 'run-1', 'user-1', {
+      ctx.service.quote('aRoll', 'org-1', 'brand-1', 'run-1', 'user-1', {
         expectedRevision: 3,
       }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('drafts the animatic as speech before approval, without avatars', async () => {
+    const ctx = setup({
+      ...approvedConfig(),
+      state: 'storyboard',
+      approvedRevision: undefined,
+    });
+    const quote = await ctx.service.quote(
+      'animatic',
+      'org-1',
+      'brand-1',
+      'run-1',
+      'user-1',
+      { expectedRevision: 3 },
+    );
+    expect(quote.total).toBe(15 + 9);
+
+    await ctx.service.render(
+      'animatic',
+      'org-1',
+      'brand-1',
+      'run-1',
+      'user-1',
+      {
+        expectedRevision: 3,
+        inputHash: quote.inputHash,
+      },
+    );
+
+    expect(ctx.avatars.generateAvatarVideo).not.toHaveBeenCalled();
+    expect(ctx.voice.speak).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining('word'),
+        sourceActionId: expect.stringMatching(/^storyboard-animatic-run-1-/),
+      }),
+    );
+    expect(ctx.config().aRoll).toBeUndefined();
+    expect(ctx.config().animatic?.chunks.map((chunk) => chunk.state)).toEqual([
+      'submitted',
+      'submitted',
+    ]);
+
+    ctx.ingredients.set('speech-1', {
+      status: 'GENERATED',
+      metadata: { duration: 120 },
+    });
+    await ctx.service.reconcile('org-1', 'brand-1', 'run-1');
+    expect(ctx.config().animatic?.chunks[0]).toMatchObject({
+      state: 'ready',
+      durationSeconds: 120,
+    });
   });
 });

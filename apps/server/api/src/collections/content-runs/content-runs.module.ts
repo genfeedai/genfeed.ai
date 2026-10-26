@@ -34,6 +34,7 @@ import { ContentRunsService } from '@api/collections/content-runs/services/conte
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
+import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/services/storyboard-animatic-voice.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
@@ -52,6 +53,7 @@ import { PlatformSettingsModule } from '@api/collections/platform-settings/platf
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
+import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -110,6 +112,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
     VideoGenerationModule,
     VideosModule,
+    VoicesModule,
     EditorProjectsModule,
     WorkflowsCoreModule,
     XAdsModule,
@@ -123,6 +126,7 @@ import { Module } from '@nestjs/common';
     StoryboardSourceService,
     StoryboardStillsService,
     StoryboardARollService,
+    StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,
