@@ -1,6 +1,9 @@
 import {
+  FIRST_SUCCESSFUL_GENERATION_EVENT,
   FIRST_SUCCESSFUL_PUBLISH_EVENT,
+  GENERATION_COMPLETED_EVENT,
   ONBOARDING_COMPLETED_EVENT,
+  POST_PUBLISHED_EVENT,
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,17 +17,26 @@ const CAPTURE_TIMEOUT_MS = 800;
 /**
  * The complete, closed set of server-side funnel event names
  * (genfeedai/genfeed.ai#4969). Not `string`: every call site must pass one
- * of these two named constants, so `event` can never carry arbitrary or
+ * of these named constants, so `event` can never carry arbitrary or
  * user-derived text into a log or Sentry report.
  */
 type ServerFunnelEventName =
   | typeof ONBOARDING_COMPLETED_EVENT
-  | typeof FIRST_SUCCESSFUL_PUBLISH_EVENT;
+  | typeof FIRST_SUCCESSFUL_PUBLISH_EVENT
+  | typeof FIRST_SUCCESSFUL_GENERATION_EVENT
+  | typeof GENERATION_COMPLETED_EVENT
+  | typeof POST_PUBLISHED_EVENT;
 
 export interface IServerFunnelCaptureInput {
   event: ServerFunnelEventName;
   /** PostHog distinct id — the user or organization this funnel step belongs to. */
   distinctId: string;
+  /**
+   * Owning organization. When it is listed in `INTERNAL_ORGANIZATION_IDS` the
+   * capture also sets the person property `is_internal: true`, so the same
+   * person-level filter that drops `@genfeed.ai` accounts drops internal orgs.
+   */
+  organizationId?: string;
   properties?: Record<string, unknown>;
 }
 
@@ -97,7 +109,7 @@ export class ServerFunnelCaptureService {
             api_key: projectKey,
             distinct_id: input.distinctId,
             event: input.event,
-            properties: input.properties ?? {},
+            properties: this.withInternalFlag(input),
           }),
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
@@ -139,6 +151,42 @@ export class ServerFunnelCaptureService {
       throw new Error('non-HTTPS POSTHOG_HOST');
     }
     return parsed.origin;
+  }
+
+  /**
+   * Adds `$set: { is_internal: true }` for internal organizations. The browser
+   * identify only knows the email domain and sends `is_internal: false` via
+   * `$set_once`, so a server-set `true` is never overwritten.
+   */
+  private withInternalFlag(
+    input: IServerFunnelCaptureInput,
+  ): Record<string, unknown> {
+    const properties = input.properties ?? {};
+    if (
+      !(
+        input.organizationId &&
+        this.isInternalOrganization(input.organizationId)
+      )
+    ) {
+      return properties;
+    }
+
+    return {
+      ...properties,
+      $set: {
+        ...(typeof properties.$set === 'object' && properties.$set !== null
+          ? properties.$set
+          : {}),
+        is_internal: true,
+      },
+    };
+  }
+
+  private isInternalOrganization(organizationId: string): boolean {
+    return String(this.configService.get('INTERNAL_ORGANIZATION_IDS') || '')
+      .split(',')
+      .map((id) => id.trim())
+      .includes(organizationId);
   }
 
   private stripTrailingSlash(host: string): string {
@@ -211,6 +259,7 @@ export class ServerFunnelCaptureService {
 export function captureOnboardingCompletedBestEffort(
   funnelCaptureService: ServerFunnelCaptureService | undefined,
   userId: string,
+  organizationId?: string,
 ): void {
   if (!funnelCaptureService) {
     return;
@@ -219,5 +268,6 @@ export function captureOnboardingCompletedBestEffort(
   void funnelCaptureService.capture({
     distinctId: userId,
     event: ONBOARDING_COMPLETED_EVENT,
+    organizationId,
   });
 }

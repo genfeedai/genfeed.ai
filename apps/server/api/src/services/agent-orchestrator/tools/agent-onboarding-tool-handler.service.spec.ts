@@ -518,7 +518,7 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)',
     ).toHaveBeenCalledTimes(1);
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
-    ).toHaveBeenCalledWith('user-1');
+    ).toHaveBeenCalledWith('user-1', 'organization-1');
   });
 
   it('does not re-capture for a user who was already onboarded (atomic claim matches 0 rows)', async () => {
@@ -572,7 +572,7 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)',
     ).toHaveBeenCalledTimes(1);
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
-    ).toHaveBeenCalledWith('user-1');
+    ).toHaveBeenCalledWith('user-1', 'organization-1');
   });
 
   it('leaves the prior completion timestamp unchanged and never calls patch on a repeated call', async () => {

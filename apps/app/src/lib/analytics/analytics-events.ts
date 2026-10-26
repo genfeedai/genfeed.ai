@@ -45,6 +45,7 @@ export const ANALYTICS_EVENTS = {
   EXPERT_FIRST_SYSTEM_ITEM_REVIEWED: 'expert_first_system_item_reviewed',
   EXPERT_ONBOARDING_STEP: 'expert_onboarding_step',
   FIRST_CREDIT_PURCHASED: 'first_credit_purchase',
+  FIRST_SUCCESSFUL_GENERATION: 'first_successful_generation',
   FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
   GENERATION_COMPLETED: 'generation_completed',
   GENERATION_STARTED: 'generation_started',
@@ -274,6 +275,9 @@ export interface AnalyticsEventProperties {
   };
   [ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED]: {
     readonly source: 'public_preview';
+  };
+  [ANALYTICS_EVENTS.FIRST_SUCCESSFUL_GENERATION]: {
+    readonly generationType: GenerationType;
   };
   [ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH]: {
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */

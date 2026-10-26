@@ -70,8 +70,15 @@ export class OnboardingCreditGrantsService {
    * `ServerFunnelCaptureService.capture` already catches and reports its own
    * failures.
    */
-  captureOnboardingCompletedBestEffort(userId: string): void {
-    captureOnboardingCompletedEvent(this.funnelCaptureService, userId);
+  captureOnboardingCompletedBestEffort(
+    userId: string,
+    organizationId?: string,
+  ): void {
+    captureOnboardingCompletedEvent(
+      this.funnelCaptureService,
+      userId,
+      organizationId,
+    );
   }
 
   async grantSignupGift(

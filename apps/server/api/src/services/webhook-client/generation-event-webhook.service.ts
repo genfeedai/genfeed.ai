@@ -1,3 +1,7 @@
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
+import { IngredientStatus } from '@genfeedai/contracts';
 import {
   classifyGenerationWebhookError,
   createGenerationWebhookEventId,
@@ -9,9 +13,13 @@ import {
   generationWebhookPayloadSchema,
   redactGenerationWebhookText,
 } from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
+import {
+  FIRST_SUCCESSFUL_GENERATION_EVENT,
+  GENERATION_COMPLETED_EVENT,
+} from '@genfeedai/contracts/constants';
 import { readNonBlankStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   GENERATION_WEBHOOK_JOB_ID_PREFIX,
   WebhookDispatchService,
@@ -47,12 +55,85 @@ export class GenerationEventWebhookService {
   constructor(
     private readonly logger: LoggerService,
     private readonly webhookDispatchService: WebhookDispatchService,
+    @Optional()
+    private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly funnelCaptureService?: ServerFunnelCaptureService,
   ) {}
 
   async emitGenerationCompleted(
     input: GenerationWebhookOutcomeInput,
   ): Promise<void> {
     await this.emitGenerationOutcome(input, 'completed');
+    this.captureGenerationCompletedBestEffort(input);
+  }
+
+  /**
+   * Best-effort PostHog capture for `generation_completed` and, on an
+   * organization's first output, `first_successful_generation`. Added at this
+   * terminal point because every image and video generation path already
+   * calls it, so one hook covers all providers. `generationId` is the
+   * ingredient id; its owning user is the PostHog distinct id, matching the
+   * client `identify` and the other server funnel events. Skips the capture,
+   * never invents an identity, when the ingredient has no owning user. Never
+   * throws.
+   */
+  private captureGenerationCompletedBestEffort(
+    input: GenerationWebhookOutcomeInput,
+  ): void {
+    const { funnelCaptureService, prisma } = this;
+    const { generationId, kind, organizationId } = input;
+    if (!(funnelCaptureService && prisma && generationId && organizationId)) {
+      return;
+    }
+
+    void (async () => {
+      const ingredient = await prisma.ingredient.findFirst({
+        select: { userId: true },
+        where: scopedWhere(organizationId, { id: generationId }),
+      });
+      if (!ingredient?.userId) {
+        return;
+      }
+
+      const properties = {
+        $groups: { organization: organizationId },
+        generationType: kind,
+      };
+      await funnelCaptureService.capture({
+        distinctId: ingredient.userId,
+        event: GENERATION_COMPLETED_EVENT,
+        organizationId,
+        properties: { ...properties, outcome: 'success' },
+      });
+
+      const priorGenerationCount = await prisma.ingredient.count({
+        where: scopedWhere(organizationId, {
+          id: { not: generationId },
+          status: {
+            in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+          },
+        }),
+      });
+      if (priorGenerationCount > 0) {
+        return;
+      }
+      await funnelCaptureService.capture({
+        distinctId: ingredient.userId,
+        event: FIRST_SUCCESSFUL_GENERATION_EVENT,
+        organizationId,
+        properties,
+      });
+    })().catch((error: unknown) => {
+      this.logger.warn(
+        `${this.constructorName} generation funnel capture skipped`,
+        {
+          error: error instanceof Error ? error.message : error,
+          generationId,
+          organizationId,
+        },
+      );
+    });
   }
 
   async emitGenerationFailed(

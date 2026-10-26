@@ -84,6 +84,7 @@ export interface IEnvConfig {
   NEXT_PUBLIC_POSTHOG_HOST?: string;
   NEXT_PUBLIC_POSTHOG_KEY?: string;
   NEXT_PUBLIC_TURNSTILE_SITE_KEY?: string;
+  INTERNAL_ORGANIZATION_IDS?: string;
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
 

@@ -20,7 +20,10 @@ import {
   redactPublishWebhookText,
 } from '@genfeedai/contracts/api-types/contracts/publish-webhook-events.contract';
 import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { FIRST_SUCCESSFUL_PUBLISH_EVENT } from '@genfeedai/contracts/constants';
+import {
+  FIRST_SUCCESSFUL_PUBLISH_EVENT,
+  POST_PUBLISHED_EVENT,
+} from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import { readNonBlankStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -87,7 +90,42 @@ export class PublishEventWebhookService {
 
   async emitPostPublished(input: PublishOutcomeInput): Promise<void> {
     await this.emitPostOutcome(input, TargetExecutionState.PUBLISHED);
+    this.capturePostPublishedBestEffort(input);
     this.captureFirstSuccessfulPublishBestEffort(input);
+  }
+
+  /**
+   * Best-effort PostHog capture for `post_published`: one event per confirmed
+   * publish on every platform and delivery path (the client only ever emitted
+   * it from the newsletter editor). Same identity rules as
+   * `captureFirstSuccessfulPublishBestEffort`: keyed on the post's owning
+   * user, skipped when the post carries none. Never throws.
+   */
+  private capturePostPublishedBestEffort(input: PublishOutcomeInput): void {
+    const { funnelCaptureService } = this;
+    const organizationId = readReferenceId(input.post.organizationId);
+    const userId = readReferenceId(input.post.userId);
+    if (!funnelCaptureService || !organizationId || !userId) {
+      return;
+    }
+
+    void funnelCaptureService
+      .capture({
+        distinctId: userId,
+        event: POST_PUBLISHED_EVENT,
+        organizationId,
+        properties: {
+          $groups: { organization: organizationId },
+          platform: input.platform ?? 'unknown',
+          surface: 'social',
+        },
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `${this.constructorName} post_published funnel capture skipped`,
+          { error: error instanceof Error ? error.message : error },
+        );
+      });
   }
 
   /**
@@ -143,6 +181,7 @@ export class PublishEventWebhookService {
       await funnelCaptureService.capture({
         distinctId: userId,
         event: FIRST_SUCCESSFUL_PUBLISH_EVENT,
+        organizationId,
         properties: {
           $groups: { organization: organizationId },
           platform: input.platform ?? 'unknown',

@@ -538,9 +538,13 @@ function applyPendingIdentity(): void {
   }
 
   try {
-    client.identify(pendingIdentity.id, {
-      is_internal: pendingIdentity.isInternal,
-    });
+    // `true` is $set; `false` is $set_once so it never overwrites the
+    // `is_internal: true` the server sets for internal organizations.
+    client.identify(
+      pendingIdentity.id,
+      pendingIdentity.isInternal ? { is_internal: true } : undefined,
+      pendingIdentity.isInternal ? undefined : { is_internal: false },
+    );
   } catch {
     // Best-effort identify. Must not block later organization/pageview apply.
   }

@@ -11,6 +11,13 @@ This runbook covers the cloud signup funnel from account creation through checko
 - `first_credit_purchase`: checkout completion for an onboarding credit purchase.
 - `onboarding_completed`: user completed the onboarding success step.
 - `first_successful_publish`: user successfully published from a tracked activation surface.
+- `generation_completed`: server-side, an image or video generation reached its terminal success state (`generationType`, `outcome`).
+- `first_successful_generation`: server-side, the organization's first generated image or video; the generation activation step.
+- `post_published`: server-side, every confirmed social publish on any platform (`platform`, `surface`). The newsletter editor emits the same event with `surface` from the client.
+
+## Excluding internal accounts
+
+Filter on the person property `is_internal`. The browser sets it from the email domain (`@genfeed.ai` is `true` via `$set`; everyone else gets `false` via `$set_once`). Server-side funnel events from organizations listed in `INTERNAL_ORGANIZATION_IDS` (comma-separated, API and workers) also `$set` `is_internal: true`, so internal organizations drop out even when their members use other email domains. An internal organization is only flagged once it fires one of the server events above; a member who has only browsed is not flagged yet.
 
 All events are emitted only by the gated Genfeed Cloud PostHog client. Self-hosted and desktop builds keep analytics disabled.
 

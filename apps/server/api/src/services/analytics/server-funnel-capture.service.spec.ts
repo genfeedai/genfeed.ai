@@ -77,6 +77,76 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
     expect(String(url)).toBe('https://posthog.example.com/i/v0/e/');
   });
 
+  describe('internal organization flag', () => {
+    function postedProperties(): Record<string, unknown> {
+      const [, init] = vi.mocked(safeFetch).mock.calls[0];
+      return JSON.parse(String(init?.body)).properties;
+    }
+
+    it('sets is_internal on the person when the organization is listed in INTERNAL_ORGANIZATION_IDS', async () => {
+      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_a, org_b ,org_c' });
+
+      await service.capture({
+        distinctId: 'user_1',
+        event: 'generation_completed',
+        organizationId: 'org_b',
+        properties: { generationType: 'image' },
+      });
+
+      expect(postedProperties()).toEqual({
+        $set: { is_internal: true },
+        generationType: 'image',
+      });
+    });
+
+    it('leaves the properties untouched for an organization that is not listed', async () => {
+      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_a' });
+
+      await service.capture({
+        distinctId: 'user_1',
+        event: 'post_published',
+        organizationId: 'org_other',
+        properties: { platform: 'x' },
+      });
+
+      expect(postedProperties()).toEqual({ platform: 'x' });
+    });
+
+    it('does not match a partial id or flag anything when the list is unset', async () => {
+      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_abc' });
+      await service.capture({
+        distinctId: 'user_1',
+        event: 'post_published',
+        organizationId: 'org_ab',
+      });
+      expect(postedProperties()).toEqual({});
+
+      vi.mocked(safeFetch).mockClear();
+      mockConfig({ INTERNAL_ORGANIZATION_IDS: undefined });
+      await service.capture({
+        distinctId: 'user_1',
+        event: 'post_published',
+        organizationId: 'org_abc',
+      });
+      expect(postedProperties()).toEqual({});
+    });
+
+    it('keeps an existing $set when flagging an internal organization', async () => {
+      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_a' });
+
+      await service.capture({
+        distinctId: 'user_1',
+        event: 'onboarding_completed',
+        organizationId: 'org_a',
+        properties: { $set: { plan: 'scale' } },
+      });
+
+      expect(postedProperties()).toEqual({
+        $set: { is_internal: true, plan: 'scale' },
+      });
+    });
+  });
+
   it('no-ops without calling PostHog when no project key is configured', async () => {
     mockConfig({ POSTHOG_PROJECT_API_KEY: undefined });
 

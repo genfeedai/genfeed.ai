@@ -162,4 +162,161 @@ describe('GenerationEventWebhookService', () => {
       }),
     );
   });
+
+  describe('PostHog activation capture', () => {
+    function makeFunnelService(options?: {
+      ingredient?: { userId: string | null } | null;
+      priorGenerationCount?: number;
+    }) {
+      const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+      const prisma = {
+        ingredient: {
+          count: vi.fn().mockResolvedValue(options?.priorGenerationCount ?? 0),
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(
+              options?.ingredient === undefined
+                ? { userId: 'user_1' }
+                : options.ingredient,
+            ),
+        },
+      };
+      const funnelCaptureService = {
+        capture: vi.fn().mockResolvedValue(undefined),
+      };
+      const service = new GenerationEventWebhookService(
+        logger as unknown as LoggerService,
+        {
+          dispatch: vi.fn().mockResolvedValue(null),
+        } as unknown as WebhookDispatchService,
+        prisma as never,
+        funnelCaptureService as never,
+      );
+
+      return { funnelCaptureService, logger, prisma, service };
+    }
+
+    // The fire-and-forget capture chain resolves on a later microtask than
+    // `emitGenerationCompleted` itself.
+    async function flushMicrotasks(): Promise<void> {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    it("captures generation_completed keyed by the ingredient's user, plus first_successful_generation for the org's first output", async () => {
+      const { funnelCaptureService, prisma, service } = makeFunnelService();
+
+      await service.emitGenerationCompleted({
+        generationId: 'ingredient_1',
+        kind: 'image',
+        organizationId: 'org_1',
+      });
+      await flushMicrotasks();
+
+      expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'ingredient_1',
+            isDeleted: false,
+            organizationId: 'org_1',
+          }),
+        }),
+      );
+      expect(prisma.ingredient.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: { not: 'ingredient_1' },
+          isDeleted: false,
+          organizationId: 'org_1',
+        }),
+      });
+      expect(funnelCaptureService.capture.mock.calls.map(([c]) => c)).toEqual([
+        {
+          distinctId: 'user_1',
+          event: 'generation_completed',
+          organizationId: 'org_1',
+          properties: {
+            $groups: { organization: 'org_1' },
+            generationType: 'image',
+            outcome: 'success',
+          },
+        },
+        {
+          distinctId: 'user_1',
+          event: 'first_successful_generation',
+          organizationId: 'org_1',
+          properties: {
+            $groups: { organization: 'org_1' },
+            generationType: 'image',
+          },
+        },
+      ]);
+    });
+
+    it('skips first_successful_generation when the organization already has a generated output', async () => {
+      const { funnelCaptureService, service } = makeFunnelService({
+        priorGenerationCount: 4,
+      });
+
+      await service.emitGenerationCompleted({
+        generationId: 'ingredient_2',
+        kind: 'video',
+        organizationId: 'org_1',
+      });
+      await flushMicrotasks();
+
+      expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+      expect(funnelCaptureService.capture).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'generation_completed' }),
+      );
+    });
+
+    it('does not capture without an owning user, rather than inventing an identity', async () => {
+      const { funnelCaptureService, prisma, service } = makeFunnelService({
+        ingredient: { userId: null },
+      });
+
+      await service.emitGenerationCompleted({
+        generationId: 'ingredient_3',
+        kind: 'image',
+        organizationId: 'org_1',
+      });
+      await flushMicrotasks();
+
+      expect(prisma.ingredient.count).not.toHaveBeenCalled();
+      expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+    });
+
+    it('never fails the generation when the capture lookup throws', async () => {
+      const { funnelCaptureService, logger, prisma, service } =
+        makeFunnelService();
+      prisma.ingredient.findFirst.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.emitGenerationCompleted({
+          generationId: 'ingredient_4',
+          kind: 'image',
+          organizationId: 'org_1',
+        }),
+      ).resolves.toBeUndefined();
+      await flushMicrotasks();
+
+      expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('generation funnel capture skipped'),
+        expect.objectContaining({ generationId: 'ingredient_4' }),
+      );
+    });
+
+    it('does not capture a failed generation', async () => {
+      const { funnelCaptureService, service } = makeFunnelService();
+
+      await service.emitGenerationFailed({
+        generationId: 'ingredient_5',
+        kind: 'image',
+        organizationId: 'org_1',
+      });
+      await flushMicrotasks();
+
+      expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+    });
+  });
 });
