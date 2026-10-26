@@ -20,6 +20,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';
 import { UserOnboardingService } from '@genfeedai/services/onboarding/user-onboarding.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import Spinner from '@ui/primitives/spinner';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
@@ -204,7 +205,7 @@ export default function OnboardingProvider({
   if (isLoading || !initialized) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="size-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <Spinner />
       </div>
     );
   }
