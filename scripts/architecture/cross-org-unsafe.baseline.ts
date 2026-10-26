@@ -386,13 +386,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // owned organizations.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 96,
+      line: 103,
     },
     // The free-trial entitlement is user-scoped across the user's owned
     // organizations, exactly like the signup gift above.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 439,
+      line: 446,
     },
     // Free-credit abuse gate: the same mailbox, IP and grant velocity are
     // compared across all other users' organizations by design.
