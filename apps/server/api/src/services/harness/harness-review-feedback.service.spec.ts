@@ -476,7 +476,7 @@ describe('HarnessReviewFeedbackService', () => {
   });
 
   it('serializes decisions for one brand so a batch keeps every approval', async () => {
-    let stored = createProfile();
+    let stored: Record<string, unknown> = createProfile();
     harnessProfilesService.getActiveForBrand.mockImplementation(async () => {
       const snapshot = stored;
       // Yield so an unserialized second call would read the same snapshot.
@@ -485,7 +485,7 @@ describe('HarnessReviewFeedbackService', () => {
     });
     harnessProfilesService.update.mockImplementation(
       async (_id: string, dto: Record<string, unknown>) => {
-        stored = { ...stored, ...dto } as typeof stored;
+        stored = { ...stored, ...dto };
         return stored;
       },
     );
@@ -503,11 +503,12 @@ describe('HarnessReviewFeedbackService', () => {
       ),
     );
 
-    expect(
-      (stored as { goodFeedback: Array<{ content: string }> }).goodFeedback
-        .map((entry) => entry.content)
-        .sort(),
-    ).toEqual(['Approved a', 'Approved b', 'Approved c']);
+    const goodFeedback = stored.goodFeedback as Array<{ content: string }>;
+    expect(goodFeedback.map((entry) => entry.content).sort()).toEqual([
+      'Approved a',
+      'Approved b',
+      'Approved c',
+    ]);
   });
 
   it('never throws — logs and swallows errors so the review action always succeeds', async () => {
