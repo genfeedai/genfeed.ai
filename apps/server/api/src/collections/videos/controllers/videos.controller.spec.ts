@@ -1624,24 +1624,24 @@ describe('VideosController', () => {
     // and FAL_PIXVERSE_V6 — so additional outputs silently fell
     // through to Replicate. A single dispatch (isFalDestination-based) must now
     // route EVERY output of these models to FAL.
-    it.each([
-      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
-      MODEL_KEYS.FAL_PIXVERSE_V6,
-    ])('routes every multi-output %s request to FAL', async (model) => {
-      const dto: CreateVideoDto = {
-        ...baseCreateDto,
-        model,
-        outputs: 3,
-      };
+    it.each([MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO, MODEL_KEYS.FAL_PIXVERSE_V6])(
+      'routes every multi-output %s request to FAL',
+      async (model) => {
+        const dto: CreateVideoDto = {
+          ...baseCreateDto,
+          model,
+          outputs: 3,
+        };
 
-      await controller.create(mockRequest, dto, mockUser);
+        await controller.create(mockRequest, dto, mockUser);
 
-      // Primary output + 2 additional outputs all dispatch to FAL.
-      expect(testingModule.get(FalService).generateVideo).toHaveBeenCalledTimes(
-        3,
-      );
-      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
-    });
+        // Primary output + 2 additional outputs all dispatch to FAL.
+        expect(
+          testingModule.get(FalService).generateVideo,
+        ).toHaveBeenCalledTimes(3);
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+      },
+    );
 
     it('should link video to bookmark if provided', async () => {
       const bookmarkId = 'cmbookmark0000000000000001';
