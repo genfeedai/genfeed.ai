@@ -8,6 +8,7 @@ import { LearningExperimentService } from '@api/collections/content-learning/ser
 import { LearningExperimentEvidenceService } from '@api/collections/content-learning/services/learning-experiment-evidence.service';
 import { LearningOperationService } from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
+import { LearningPromptSlotOutcomeService } from '@api/collections/content-learning/services/learning-prompt-slot-outcome.service';
 import { LearningReleaseService } from '@api/collections/content-learning/services/learning-release.service';
 import { LearningRewardService } from '@api/collections/content-learning/services/learning-reward.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
@@ -26,6 +27,7 @@ import { Module } from '@nestjs/common';
     LearningBaselineMaterializationService,
     LearningRewardService,
     LearningPolicyService,
+    LearningPromptSlotOutcomeService,
     LearningDatasetService,
     LearningRunControlService,
     LearningRunService,
@@ -43,6 +45,7 @@ import { Module } from '@nestjs/common';
     LearningBaselineMaterializationService,
     LearningRewardService,
     LearningPolicyService,
+    LearningPromptSlotOutcomeService,
     LearningDatasetService,
     LearningRunService,
     LearningReleaseService,

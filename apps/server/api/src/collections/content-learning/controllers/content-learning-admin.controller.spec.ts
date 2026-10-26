@@ -8,7 +8,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-function makeController() {
+function makeController(slotOutcomes: unknown = {}) {
   const delegate = () => ({
     count: vi.fn().mockResolvedValue(45),
     findMany: vi.fn().mockResolvedValue([{ id: 'row-1' }]),
@@ -25,6 +25,7 @@ function makeController() {
     {} as never,
     {} as never,
     prisma as unknown as PrismaService,
+    slotOutcomes as never,
   );
   return { controller, prisma };
 }
@@ -75,5 +76,19 @@ describe('ContentLearningAdminController list endpoints', () => {
     expect(prisma.contentLearningAccount.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 20, take: 10 }),
     );
+  });
+});
+
+describe('ContentLearningAdminController prompt slot report', () => {
+  it('reports the slot outcomes of the organization named in the query', async () => {
+    const report = { organizationId: 'org-1', groups: [] };
+    const slotOutcomes = { report: vi.fn().mockResolvedValue(report) };
+    const { controller } = makeController(slotOutcomes);
+    const query = { brandId: 'brand-1', organizationId: 'org-1' };
+
+    await expect(controller.promptSlots(query)).resolves.toEqual({
+      data: report,
+    });
+    expect(slotOutcomes.report).toHaveBeenCalledWith(query);
   });
 });

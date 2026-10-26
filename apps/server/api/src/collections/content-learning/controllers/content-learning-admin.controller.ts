@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { LearningMutationDto } from '@api/collections/content-learning/dto/learning-control.dto';
 import { LearningDatasetDto } from '@api/collections/content-learning/dto/learning-dataset.dto';
+import { LearningPromptSlotOutcomeDto } from '@api/collections/content-learning/dto/learning-prompt-slot-outcome.dto';
 import { LearningQueryDto } from '@api/collections/content-learning/dto/learning-query.dto';
 import {
   LearningReleaseControlDto,
@@ -10,8 +11,10 @@ import {
   LearningRunControlDto,
   LearningRunDto,
 } from '@api/collections/content-learning/dto/learning-run.dto';
+import type { LearningPromptSlotOutcomeReport } from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
+import { LearningPromptSlotOutcomeService } from '@api/collections/content-learning/services/learning-prompt-slot-outcome.service';
 import { LearningReleaseService } from '@api/collections/content-learning/services/learning-release.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
@@ -62,6 +65,7 @@ export class ContentLearningAdminController {
     private readonly runs: LearningRunService,
     private readonly releases: LearningReleaseService,
     private readonly prisma: PrismaService,
+    private readonly slotOutcomes: LearningPromptSlotOutcomeService,
   ) {}
   /** One database page plus the total, for the JSON:API `pagination` links. */
   private async page<T>(
@@ -163,6 +167,18 @@ export class ContentLearningAdminController {
         () => this.prisma.contentLearningRelease.count({ where }),
       ),
     );
+  }
+  /**
+   * Which structured prompt slots go with better or worse measured outcomes on
+   * one organization's published media posts. Read-only and correlational.
+   */
+  @Get('prompt-slots') async promptSlots(
+    @Query() query: LearningPromptSlotOutcomeDto,
+  ): Promise<{ data: LearningPromptSlotOutcomeReport }> {
+    return {
+      // tenant-scope-ignore: superadmin reads the organization named in the query
+      data: await crossOrgUnsafe(() => this.slotOutcomes.report(query)),
+    };
   }
   @Post('datasets') async createDataset(
     @Req() request: Request,

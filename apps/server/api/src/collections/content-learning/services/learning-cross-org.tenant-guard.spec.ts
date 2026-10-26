@@ -155,6 +155,7 @@ describe('content-learning cross-organization paths (CLOUD tenant guard)', () =>
       {
         contentLearningAccount: { count, findMany },
       } as unknown as PrismaService,
+      {} as never,
     );
 
     await expect(
