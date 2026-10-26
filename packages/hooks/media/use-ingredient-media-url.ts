@@ -1,7 +1,7 @@
 'use client';
 
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import { useAuthorizedMediaPreview } from './use-authorized-media-preview';
 
 /**
  * The URL to play an ingredient's video or audio from. On Cloud that is the
