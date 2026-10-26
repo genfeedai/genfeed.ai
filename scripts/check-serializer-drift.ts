@@ -551,6 +551,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   // These creation controls are flattened from Preset.config by the service.
   'preset:Preset': [
     'adPreset',
+    'playbook',
     'aspectRatio',
     'cameraMovement',
     'duration',
