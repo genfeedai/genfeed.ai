@@ -319,6 +319,12 @@ test.describe('Calendar — Scheduling', () => {
       status: PostStatus.SCHEDULED,
     });
 
+    const articleReads: string[] = [];
+    authenticatedPage.on('response', (response) => {
+      if (/\/articles(\?|$)/.test(response.url())) {
+        articleReads.push(`${response.status()} ${response.url()}`);
+      }
+    });
     await mockCalendarPosts(
       authenticatedPage,
       [post],
@@ -347,7 +353,14 @@ test.describe('Calendar — Scheduling', () => {
       dates.wednesdayDateKey,
     ).locator('.gen-calendar-event', { hasText: 'Mixed Launch Article' });
     await expect(postEvent).toBeVisible();
-    await expect(articleEvent).toBeVisible();
+    // Name what the page did with the article read so a miss is diagnosable.
+    const eventTitles = await authenticatedPage
+      .locator('.gen-calendar-event')
+      .allInnerTexts();
+    await expect(
+      articleEvent,
+      `article reads ${JSON.stringify(articleReads)}; events on page ${JSON.stringify(eventTitles)}`,
+    ).toBeVisible();
 
     // Kind-specific navigation: an article opens its editor route directly.
     await articleEvent.click();
