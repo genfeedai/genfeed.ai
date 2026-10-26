@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   getFleetEvaluationPolicy: vi.fn(),
   saveFleetEvaluationPolicy: vi.fn(),
   setToolbarNode: vi.fn(),
+  setSearchNode: vi.fn(),
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
@@ -64,6 +65,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     triggerRefresh: vi.fn(),
   }),
   useAnalyticsToolbar: (node: unknown) => mocks.setToolbarNode(node),
+  useAnalyticsSearch: (node: unknown) => mocks.setSearchNode(node),
 }));
 
 const getService = async () => ({
@@ -268,7 +270,7 @@ describe('AnalyticsAccounts', () => {
       await screen.findByText('No connected accounts'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Accounts' })).toBeNull();
-    expect(screen.queryByLabelText('Search accounts')).toBeNull();
+    expect(screen.queryByPlaceholderText('Search accounts')).toBeNull();
   });
 
   it('registers account filters in the analytics subbar and scopes requests', async () => {
@@ -297,13 +299,17 @@ describe('AnalyticsAccounts', () => {
     expect(mocks.getFleetEvaluationPolicy).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-1' }),
     );
-    expect(screen.queryByLabelText('Search accounts')).toBeNull();
+    expect(screen.queryByPlaceholderText('Search accounts')).toBeNull();
 
     const toolbar = mocks.setToolbarNode.mock.calls
       .map(([node]) => node as ReactNode)
       .find((node) => node !== null);
     render(toolbar);
-    expect(screen.getByLabelText('Search accounts')).toBeInTheDocument();
+    const search = mocks.setSearchNode.mock.calls
+      .map(([node]) => node as ReactNode)
+      .find((node) => node !== null);
+    render(search);
+    expect(screen.getByPlaceholderText('Search accounts')).toBeInTheDocument();
     expect(
       screen.getByRole('group', { name: 'Rank by metric' }),
     ).toBeInTheDocument();

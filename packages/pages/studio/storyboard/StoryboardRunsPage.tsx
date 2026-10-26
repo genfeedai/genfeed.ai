@@ -13,8 +13,8 @@ import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
@@ -101,11 +101,14 @@ export default function StoryboardRunsPage(): ReactElement {
     <Container
       label={translate('title')}
       right={
-        <Button asChild>
-          <Link href={href(APP_ROUTES.STUDIO.STORYBOARD_NEW)}>
-            {translate('new')}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <CollectionViewToggle onViewChange={setView} view={view} />
+          <Button asChild>
+            <Link href={href(APP_ROUTES.STUDIO.STORYBOARD_NEW)}>
+              {translate('new')}
+            </Link>
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col gap-8">
@@ -127,7 +130,6 @@ export default function StoryboardRunsPage(): ReactElement {
           </CollectionSection>
         ) : null}
         <CollectionSection
-          actions={<CollectionToolbar onViewChange={setView} view={view} />}
           isLoading={isLoading}
           itemCount={runs.length}
           title={translate('all')}

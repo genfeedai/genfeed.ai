@@ -15,8 +15,13 @@ const useWinnerPostsMock = vi.fn();
 const openRemixMock = vi.fn();
 
 function ToolbarHost() {
-  const { toolbarNode } = useAnalyticsContext();
-  return <>{toolbarNode}</>;
+  const { searchNode, toolbarNode } = useAnalyticsContext();
+  return (
+    <>
+      {searchNode}
+      {toolbarNode}
+    </>
+  );
 }
 
 function renderPostsList(restoredFilters?: AnalyticsQueryFilters) {
@@ -137,7 +142,10 @@ describe('AnalyticsPostsList', () => {
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveAttribute('name', 'search');
-    expect(searchInput).toHaveClass('border-border');
+    expect(screen.getByTestId('collapsible-search')).toHaveAttribute(
+      'data-state',
+      'closed',
+    );
 
     expect(screen.queryAllByRole('combobox')).toHaveLength(0);
     expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
@@ -361,7 +369,7 @@ describe('AnalyticsPostsList', () => {
     expect(
       screen.queryByRole('button', { name: 'Open In Agent' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Search posts...')).toHaveClass('h-8');
+    expect(screen.getByTestId('collapsible-search')).toHaveClass('w-8');
     expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
   });
 

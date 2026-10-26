@@ -3,6 +3,7 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
 import { MediaType } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -362,10 +363,10 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       screen.getByPlaceholderText('Search templates...'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Source' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Category' }),
+      screen.getByRole('button', { name: /^Filters/ }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.getByTestId('templates-content')).toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: 'Featured' }),
@@ -456,7 +457,7 @@ describe('WorkflowTemplatesPage', () => {
     ]);
     await renderLoadedPage();
 
-    await user.click(within(allSection()).getByRole('radio', { name: 'Grid' }));
+    await user.click(screen.getByRole('radio', { name: 'Grid' }));
 
     const exampleCard = within(allSection())
       .getAllByTestId('workflow-template-card')
@@ -706,9 +707,9 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       within(all).queryByTestId('workflow-template-card'),
     ).not.toBeInTheDocument();
-    expect(within(all).getByRole('radio', { name: 'List' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'List' })).toBeChecked();
 
-    await user.click(within(all).getByRole('radio', { name: 'Grid' }));
+    await user.click(screen.getByRole('radio', { name: 'Grid' }));
 
     expect(within(all).getAllByTestId('workflow-template-card')).toHaveLength(
       2,
@@ -731,7 +732,7 @@ describe('WorkflowTemplatesPage', () => {
     ).toBeNull();
   });
 
-  it('filters All from a type tile, marks it pressed and shows a removable chip', async () => {
+  it('filters All from a type tile, marks it pressed and clears from the Filters menu', async () => {
     const user = userEvent.setup();
     await renderLoadedPage();
 
@@ -759,17 +760,12 @@ describe('WorkflowTemplatesPage', () => {
       within(browse).getByRole('button', { name: 'Content' }),
     ).toHaveAttribute('aria-pressed', 'false');
 
-    await user.click(
-      within(all).getByRole('button', { name: 'Remove filter Social Media' }),
-    );
+    await selectFilterOption(user, 'Category', 'All categories');
 
     expect(within(all).getByText('Daily digest')).toBeInTheDocument();
     expect(
       within(browse).getByRole('button', { name: 'Social Media' }),
     ).toHaveAttribute('aria-pressed', 'false');
-    expect(
-      within(all).queryByRole('button', { name: 'Remove filter Social Media' }),
-    ).not.toBeInTheDocument();
   });
 
   it('activates a type tile from the keyboard', async () => {
@@ -816,7 +812,7 @@ describe('WorkflowTemplatesPage', () => {
       expect(visibleActions(card)).toEqual(['Use template', 'More actions']);
     }
 
-    await user.click(within(allSection()).getByRole('radio', { name: 'Grid' }));
+    await user.click(screen.getByRole('radio', { name: 'Grid' }));
 
     const gridCards = within(allSection()).getAllByTestId(
       'workflow-template-card',
@@ -1055,7 +1051,7 @@ describe('WorkflowTemplatesPage', () => {
     expect(mocks.listFeatured).toHaveBeenCalledTimes(1);
   });
 
-  it('localizes category, chip and cadence labels and follows translation changes', async () => {
+  it('localizes category and cadence labels and follows translation changes', async () => {
     const user = userEvent.setup();
     mocks.listTemplates.mockResolvedValue([
       { ...POST_HARD_CUT_TEMPLATE, schedule: '0 9 * * 1-5' },
@@ -1098,10 +1094,8 @@ describe('WorkflowTemplatesPage', () => {
       within(browse).getByRole('button', { name: 'Réseaux sociaux' }),
     );
     expect(
-      within(allSection()).getByRole('button', {
-        name: 'Remove filter Réseaux sociaux',
-      }),
-    ).toBeInTheDocument();
+      within(browse).getByRole('button', { name: 'Réseaux sociaux' }),
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('resolves category and cadence labels through the catalog', () => {

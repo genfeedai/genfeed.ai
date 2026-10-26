@@ -8,7 +8,7 @@ import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Gauge } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import EconomicsPeriodSelect from '../economics-period-select';
+import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   EMPTY_ECONOMICS_TOTALS,
   formatCount,
@@ -150,8 +150,8 @@ export default function EconomicsOverviewReport() {
       icon={Gauge}
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
-      dropdowns={
-        <EconomicsPeriodSelect value={periodDays} onChange={setPeriodDays} />
+      filters={
+        <EconomicsPeriodFilter value={periodDays} onChange={setPeriodDays} />
       }
     >
       {error ? (

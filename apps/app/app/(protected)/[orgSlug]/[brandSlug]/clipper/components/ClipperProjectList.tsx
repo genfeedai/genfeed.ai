@@ -1,10 +1,9 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
   ClipperProjectListProps,
   ClipperProjectSummary,
@@ -13,7 +12,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
@@ -45,15 +43,12 @@ export default function ClipperProjectList({
   isLoading,
   isRecentVisible = true,
   projects,
+  view,
   onRename,
   onDelete,
 }: ClipperProjectListProps) {
   const { href } = useOrgUrl();
   const t = useTranslations('pages.studioClipper');
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: 'studio.clipper',
-  });
   const [renameTarget, setRenameTarget] =
     useState<ClipperProjectSummary | null>(null);
   const [name, setName] = useState('');
@@ -198,7 +193,6 @@ export default function ClipperProjectList({
         itemCount={projects.length}
         isLoading={isLoading}
         isCountVisible
-        actions={<CollectionToolbar view={view} onViewChange={setView} />}
       >
         <CollectionView
           data-testid={

@@ -365,7 +365,7 @@ describe('AgentHubPage', () => {
     expect(within(all).getByRole('alert')).toHaveTextContent(
       "Agents couldn't load.",
     );
-    expect(within(all).queryByRole('radio', { name: 'Grid' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'Grid' })).toBeNull();
     expect(screen.queryByText('No agents yet')).not.toBeInTheDocument();
 
     fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
@@ -516,14 +516,14 @@ describe('AgentHubPage', () => {
     render(<AgentHubPage />);
 
     const all = getSection('all');
-    expect(within(all).getByRole('radio', { name: 'List' })).toHaveAttribute(
+    expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
     expect(within(all).getAllByTestId(/^agent-row-all-/)).toHaveLength(2);
     expect(within(all).queryAllByTestId(/^agent-card-/)).toHaveLength(0);
 
-    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
 
     expect(within(all).queryAllByTestId(/^agent-row-all-/)).toHaveLength(0);
     const grid = within(all).getByTestId('agent-hub-collection')

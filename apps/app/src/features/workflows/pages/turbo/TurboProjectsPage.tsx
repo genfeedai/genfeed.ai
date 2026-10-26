@@ -14,8 +14,8 @@ import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import SubscriptionRequiredState from '@ui/guards/subscription/SubscriptionRequiredState';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -165,9 +165,12 @@ export default function TurboProjectsPage() {
     <Container
       label={t('title')}
       right={
-        <Button asChild>
-          <Link href={href(APP_ROUTES.STUDIO.TURBO_NEW)}>{t('new')}</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <CollectionViewToggle onViewChange={setView} view={view} />
+          <Button asChild>
+            <Link href={href(APP_ROUTES.STUDIO.TURBO_NEW)}>{t('new')}</Link>
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col gap-8">
@@ -185,7 +188,6 @@ export default function TurboProjectsPage() {
           title={t('all')}
           itemCount={projects.length}
           isLoading={loading}
-          actions={<CollectionToolbar view={view} onViewChange={setView} />}
         >
           <CollectionView
             items={projects}

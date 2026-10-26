@@ -15,7 +15,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Layers } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import EconomicsPeriodSelect from '../economics-period-select';
+import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
   formatUsd,
@@ -197,8 +197,8 @@ export default function EconomicsCostsReport() {
       icon={Layers}
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
-      dropdowns={
-        <EconomicsPeriodSelect value={periodDays} onChange={setPeriodDays} />
+      filters={
+        <EconomicsPeriodFilter value={periodDays} onChange={setPeriodDays} />
       }
     >
       {error ? (

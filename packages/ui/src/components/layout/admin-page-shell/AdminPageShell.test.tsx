@@ -19,7 +19,7 @@ vi.mock('next-intl', async () => {
 });
 
 describe('AdminPageShell', () => {
-  it('orders the subbar controls refresh, download, dropdown, view toggle, primary action', () => {
+  it('orders the subbar controls refresh, download, dropdown, Filters menu, view toggle, primary action', () => {
     render(
       <AdminPageShell
         title="Models"
@@ -27,6 +27,7 @@ describe('AdminPageShell', () => {
         onRefresh={vi.fn()}
         download={<button type="button">Download</button>}
         dropdowns={<button type="button">All organizations</button>}
+        filters={<button type="button">Filters</button>}
         views={<button type="button">Grid view</button>}
         primaryAction={<button type="button">Create</button>}
       >
@@ -43,6 +44,7 @@ describe('AdminPageShell', () => {
       'Refresh',
       'Download',
       'All organizations',
+      'Filters',
       'Grid view',
       'Create',
     ]);
@@ -63,6 +65,9 @@ describe('AdminPageShell', () => {
       'sr-only',
     );
     expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+      screen.getByLabelText('Search'),
+    );
+    expect(screen.getByTestId('section-topbar-actions')).toContainElement(
       screen.getByRole('button', { name: 'Filters' }),
     );
   });

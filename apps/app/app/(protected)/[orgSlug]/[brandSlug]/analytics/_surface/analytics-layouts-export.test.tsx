@@ -20,15 +20,20 @@ vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    iconActions,
     label,
     right,
   }: {
     children: ReactNode;
+    iconActions: ReactNode;
     label: string;
     right: ReactNode;
   }) => (
     <section aria-label={label}>
-      <div data-testid="toolbar">{right}</div>
+      <div data-testid="toolbar">
+        {iconActions}
+        {right}
+      </div>
       {children}
     </section>
   ),

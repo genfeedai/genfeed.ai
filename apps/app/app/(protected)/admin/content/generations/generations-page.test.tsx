@@ -9,6 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ImgHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -159,10 +160,20 @@ describe('admin Generations page', () => {
     await screen.findByText('empty');
 
     const subbar = within(screen.getByTestId('subbar'));
-    expect(subbar.getByLabelText('search')).toBeInTheDocument();
-    expect(subbar.getByLabelText('filterStatus')).toBeInTheDocument();
-    expect(subbar.getByLabelText('filterType')).toBeInTheDocument();
-    expect(subbar.getByLabelText('filterModel')).toBeInTheDocument();
+    expect(subbar.getByPlaceholderText('search')).toBeInTheDocument();
+    expect(subbar.getByRole('button', { name: 'search' })).toBeInTheDocument();
+    // Status, type and model are facets of the one nested Filters menu.
+    await userEvent.click(subbar.getByRole('button', { name: 'menu' }));
+    expect(
+      await screen.findByRole('menuitem', { name: /filterStatus/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /filterType/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /filterModel/ }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
     expect(subbar.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(subbar.getByRole('button', { name: 'download' })).toBeDisabled();
     expect(subbar.getByTestId('org-filter')).toBeInTheDocument();
@@ -278,17 +289,21 @@ describe('admin Generations page', () => {
     expect(within(row).getByText('a lone prompt')).toBeVisible();
     expect(within(row).getByLabelText('noMedia')).toBeInTheDocument();
     expect(mocks.findAdminGenerationReviews).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText('filterStatus')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^menu/ }));
+    expect(
+      screen.queryByRole('menuitem', { name: /filterStatus/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('menuitem', { name: /filterType/ }),
+    ).toBeInTheDocument();
   });
 
   it('writes a filter change to the URL and resets the page', () => {
     mocks.searchParams = new URLSearchParams('page=3');
     render(<GenerationsPage />);
-    // The dropdown is a Radix select; the search box is the simplest direct control.
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'sunset' },
-    });
-    fireEvent.keyDown(screen.getByLabelText('search'), { key: 'Enter' });
+    const search = screen.getByPlaceholderText('search');
+    fireEvent.change(search, { target: { value: 'sunset' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
 
     return waitFor(() =>
       expect(mocks.replace).toHaveBeenCalledWith(

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -165,17 +166,13 @@ describe('OrganizationPluginsPage (#7842)', () => {
     ]);
   });
 
-  it('shows one status tablist with All, a category dropdown and a view toggle', () => {
+  it('keeps status and category in one Filters menu beside a view toggle', () => {
     render(<OrganizationPluginsPage />);
-    expect(screen.getAllByRole('tablist')).toHaveLength(1);
-    expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
     expect(
-      screen.getByRole('combobox', { name: 'Category' }),
+      screen.getByRole('button', { name: /^Filters/ }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /All apps/i })).toBeNull();
     expect(screen.getByRole('radio', { name: 'Grid' })).toBeInTheDocument();
     expect(
       screen.getByTestId('plugins-thumbnail-playground'),
@@ -250,10 +247,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
 
-    await user.type(
-      screen.getByRole('textbox', { name: 'Search plugins' }),
-      'story',
-    );
+    await user.type(screen.getByPlaceholderText('Search plugins'), 'story');
 
     expect(
       screen
@@ -261,11 +255,8 @@ describe('OrganizationPluginsPage (#7842)', () => {
         .map((element) => element.dataset.testid),
     ).toEqual(['plugins-app-storyboard']);
 
-    await user.clear(screen.getByRole('textbox', { name: 'Search plugins' }));
-    await user.type(
-      screen.getByRole('textbox', { name: 'Search plugins' }),
-      'zzzz',
-    );
+    await user.clear(screen.getByPlaceholderText('Search plugins'));
+    await user.type(screen.getByPlaceholderText('Search plugins'), 'zzzz');
 
     expect(screen.queryAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(0);
     expect(screen.getByTestId('plugins-empty')).toHaveTextContent(
@@ -277,10 +268,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
 
-    await user.click(screen.getByRole('combobox', { name: 'Category' }));
-    await user.click(
-      await screen.findByRole('option', { name: 'Publish & grow' }),
-    );
+    await selectFilterOption(user, 'Category', 'Publish & grow');
 
     expect(
       screen
@@ -441,13 +429,13 @@ describe('OrganizationPluginsPage (#7842)', () => {
     render(<OrganizationPluginsPage />);
     await selectApp(user, 'storyboard');
     expect(detail()).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Installed' }));
+    await selectFilterOption(user, 'App status', 'Installed');
     expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(1);
     expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
-    await user.click(screen.getByRole('tab', { name: 'Available' }));
+    await selectFilterOption(user, 'App status', 'Available');
     expect(screen.queryByTestId('plugins-app-playground')).toBeNull();
     expect(card('storyboard')).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Restricted' }));
+    await selectFilterOption(user, 'App status', 'Restricted');
     expect(appState('turbo')).toBe('organization-disabled');
     expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
   });

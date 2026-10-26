@@ -23,6 +23,7 @@ import {
 import { Input } from '@ui/primitives/input';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { SlidersHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /** A search box earns its place once a list is longer than a glance. */
@@ -67,11 +68,11 @@ function FilterMenuFacetItem({
 
   let summary = allLabel;
   if (facet.selection === 'single') {
-    if (facet.value && facet.value !== facet.defaultValue) {
-      summary =
-        facet.options.find((option) => option.value === facet.value)?.label ??
-        allLabel;
-    }
+    // The option the value points at names itself, so a default that is a real
+    // choice ("Last 30 days") reads as that choice, not as "All".
+    summary =
+      facet.options.find((option) => option.value === facet.value)?.label ??
+      allLabel;
   } else if (facet.values.length > 0) {
     summary = String(facet.values.length);
   }
@@ -170,7 +171,7 @@ function FilterMenuFacetItem({
  */
 export default function FilterMenu({
   align = 'end',
-  allLabel = 'All',
+  allLabel,
   className,
   clearLabel,
   facets,
@@ -178,6 +179,12 @@ export default function FilterMenu({
   label,
   onClear,
 }: FilterMenuProps) {
+  const translate = useTranslations('ui.filtersButton');
+  const resolvedAllLabel = allLabel ?? translate('all');
+  const resolvedClearLabel = clearLabel ?? translate('clear');
+  const resolvedActiveCountLabel =
+    getActiveCountLabel ??
+    ((count: number) => translate('activeCount', { count }));
   const activeCount = facets.reduce(
     (count, facet) => count + getActiveCount(facet),
     0,
@@ -193,7 +200,7 @@ export default function FilterMenu({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
-          {label}
+          {label ?? translate('menu')}
           {activeCount > 0 ? (
             <>
               <span
@@ -203,7 +210,7 @@ export default function FilterMenu({
                 {activeCount}
               </span>
               <span className="sr-only">
-                {getActiveCountLabel(activeCount)}
+                {resolvedActiveCountLabel(activeCount)}
               </span>
             </>
           ) : null}
@@ -212,7 +219,7 @@ export default function FilterMenu({
       <DropdownMenuContent align={align} className="w-56">
         {facets.map((facet) => (
           <FilterMenuFacetItem
-            allLabel={allLabel}
+            allLabel={resolvedAllLabel}
             facet={facet}
             key={facet.key}
           />
@@ -220,7 +227,9 @@ export default function FilterMenu({
         {activeCount > 0 ? (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onClear}>{clearLabel}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onClear}>
+              {resolvedClearLabel}
+            </DropdownMenuItem>
           </>
         ) : null}
       </DropdownMenuContent>

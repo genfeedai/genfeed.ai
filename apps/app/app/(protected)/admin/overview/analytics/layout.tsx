@@ -12,8 +12,13 @@ import DateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
-  const { setDateRange, triggerRefresh, isRefreshing, toolbarNode } =
-    useAnalyticsContext();
+  const {
+    isRefreshing,
+    searchNode,
+    setDateRange,
+    toolbarNode,
+    triggerRefresh,
+  } = useAnalyticsContext();
 
   return (
     <AdminPageShell
@@ -36,14 +41,15 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       }}
       onRefresh={triggerRefresh}
       isRefreshing={isRefreshing}
-      dropdowns={
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+      search={searchNode}
+      filters={
+        <>
           {toolbarNode}
           <DateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}
           />
-        </div>
+        </>
       }
     >
       {children}

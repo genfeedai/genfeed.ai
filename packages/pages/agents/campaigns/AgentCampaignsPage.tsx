@@ -24,8 +24,8 @@ import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
@@ -376,11 +376,20 @@ export default function AgentCampaignsPage() {
       icon={LayoutDashboard}
       right={
         isEmpty ? undefined : (
-          <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-            <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}>
-              <Plus /> New Program
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasLoadError ? null : (
+              <CollectionViewToggle onViewChange={setView} view={view} />
+            )}
+            <Button
+              asChild
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+            >
+              <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}>
+                <Plus /> New Program
+              </Link>
+            </Button>
+          </div>
         )
       }
     >
@@ -425,11 +434,6 @@ export default function AgentCampaignsPage() {
           </CollectionSection>
 
           <CollectionSection
-            actions={
-              hasLoadError ? undefined : (
-                <CollectionToolbar onViewChange={setView} view={view} />
-              )
-            }
             data-testid="campaign-all"
             error={
               hasLoadError ? (

@@ -1,4 +1,4 @@
-export interface EconomicsPeriodSelectProps {
+export interface EconomicsPeriodFilterProps {
   onChange: (days: string) => void;
   value: string;
 }

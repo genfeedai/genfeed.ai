@@ -14,21 +14,28 @@ import AnalyticsWorkSurfaceAdapter, {
 } from '@/../app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter';
 
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
-  const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
-    useAnalyticsContext();
+  const {
+    dateRange,
+    isRefreshing,
+    searchNode,
+    setDateRange,
+    toolbarNode,
+    triggerRefresh,
+  } = useAnalyticsContext();
   const translate = useTranslations('pages.analytics.layout');
 
   return (
     <Container
       label={translate('organization.title')}
       icon={ChartColumn}
+      leading={searchNode}
       refresh={
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
       }
+      iconActions={<AnalyticsScopedExportButton />}
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {toolbarNode}
-          <AnalyticsScopedExportButton />
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

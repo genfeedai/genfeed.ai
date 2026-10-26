@@ -38,8 +38,8 @@ import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -530,6 +530,9 @@ export default function AgentHubPage() {
       right={
         isEmpty ? undefined : (
           <div className="flex items-center gap-2">
+            {hasLoadError ? null : (
+              <CollectionViewToggle onViewChange={setView} view={view} />
+            )}
             <Button
               icon={<Store className="size-4" />}
               isDisabled={!isBrandReady || !brandId}
@@ -614,11 +617,6 @@ export default function AgentHubPage() {
           </CollectionSection>
 
           <CollectionSection
-            actions={
-              hasLoadError ? undefined : (
-                <CollectionToolbar onViewChange={setView} view={view} />
-              )
-            }
             data-testid="agent-hub-section-all"
             error={
               hasLoadError ? (

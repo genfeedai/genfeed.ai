@@ -10,6 +10,7 @@ import type {
   VoicesCatalogSearchProps,
   VoicesSyncControlsProps,
 } from '@props/admin/voices.props';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -18,13 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { ChevronDown, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -37,9 +31,10 @@ export function VoicesCatalogSearch({
   return (
     <FormSearchbar
       ariaLabel={translate('searchPlaceholder')}
+      isCollapsible
       onSearch={onSearchChange}
       placeholder={translate('searchPlaceholder')}
-      size={ComponentSize.MD}
+      size={ComponentSize.SM}
       value={search}
     />
   );
@@ -57,24 +52,20 @@ export function VoicesCatalogFilters({
   ];
 
   return (
-    <Select
-      onValueChange={(value) => onProviderFilterChange(value as ProviderFilter)}
-      value={providerFilter}
-    >
-      <SelectTrigger
-        aria-label={translate('providerLabel')}
-        className="w-auto min-w-40"
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {providerFilters.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <FilterMenu
+      facets={[
+        {
+          defaultValue: 'all',
+          key: 'provider',
+          label: translate('providerLabel'),
+          onChange: (value) => onProviderFilterChange(value as ProviderFilter),
+          options: providerFilters,
+          selection: 'single',
+          value: providerFilter,
+        },
+      ]}
+      onClear={() => onProviderFilterChange('all')}
+    />
   );
 }
 

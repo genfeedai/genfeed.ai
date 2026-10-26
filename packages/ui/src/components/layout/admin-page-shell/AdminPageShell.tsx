@@ -10,7 +10,8 @@ import Container from '@ui/layout/container/Container';
  * - The breadcrumb is the page title, so the title is screen-reader only and
  *   no header is drawn inside the content.
  * - Filters live in the subbar, never in the content.
- * - Controls keep one order: refresh, download, dropdowns, views, primary CTA.
+ * - Controls keep one order: refresh, download, dropdowns, Filters menu,
+ *   views, primary CTA. Search rests as an icon on the left.
  */
 export default function AdminPageShell({
   title,
@@ -26,9 +27,11 @@ export default function AdminPageShell({
   primaryAction,
   children,
 }: AdminPageShellProps) {
-  const hasLeading = Boolean(search) || Boolean(filters);
   const hasRight =
-    Boolean(dropdowns) || Boolean(views) || Boolean(primaryAction);
+    Boolean(dropdowns) ||
+    Boolean(filters) ||
+    Boolean(views) ||
+    Boolean(primaryAction);
 
   return (
     <Container
@@ -38,14 +41,7 @@ export default function AdminPageShell({
       moduleChrome
       isTopbarPinned
       headerTabs={tabs}
-      leading={
-        hasLeading ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {search}
-            {filters}
-          </div>
-        ) : undefined
-      }
+      leading={search}
       refresh={
         onRefresh ? (
           <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
@@ -56,6 +52,7 @@ export default function AdminPageShell({
         hasRight ? (
           <>
             {dropdowns}
+            {filters}
             {views}
             {primaryAction}
           </>

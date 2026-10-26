@@ -2,6 +2,7 @@
 
 import {
   useAnalyticsContext,
+  useAnalyticsSearch,
   useAnalyticsToolbar,
 } from '@contexts/analytics/analytics-context';
 import {
@@ -243,6 +244,14 @@ export default function AnalyticsPostsList() {
 
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <AnalyticsFilterMenu
+          facets={facets}
+          onClear={() => {
+            setFilter('show', undefined);
+            setFilter('platform', undefined);
+            setFilter('source', undefined);
+          }}
+        />
         {focusedPostId ? (
           <Button
             label="Clear Focus"
@@ -260,23 +269,6 @@ export default function AnalyticsPostsList() {
           tooltip={!brandId ? translateTrack('selectBrand') : undefined}
           onClick={() => setIsTrackModalOpen(true)}
         />
-        <FormSearchbar
-          ariaLabel="Search posts"
-          placeholder="Search posts..."
-          value={search}
-          onSearch={(value) => setFilter('query', value)}
-          size={ComponentSize.SM}
-          className="w-48"
-        />
-
-        <AnalyticsFilterMenu
-          facets={facets}
-          onClear={() => {
-            setFilter('show', undefined);
-            setFilter('platform', undefined);
-            setFilter('source', undefined);
-          }}
-        />
       </div>
     );
   }, [
@@ -284,7 +276,6 @@ export default function AnalyticsPostsList() {
     translateTrack,
     focusedPostId,
     isWinnersView,
-    search,
     metric,
     platform,
     setFocusedPost,
@@ -294,7 +285,22 @@ export default function AnalyticsPostsList() {
     translateWinners,
   ]);
 
+  const searchNode = useMemo(
+    () => (
+      <FormSearchbar
+        ariaLabel="Search posts"
+        isCollapsible
+        onSearch={(value) => setFilter('query', value)}
+        placeholder="Search posts..."
+        size={ComponentSize.SM}
+        value={search}
+      />
+    ),
+    [search, setFilter],
+  );
+
   useAnalyticsToolbar(toolbar);
+  useAnalyticsSearch(searchNode);
 
   return (
     <>

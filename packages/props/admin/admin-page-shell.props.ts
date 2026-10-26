@@ -5,15 +5,16 @@ import type { ReactNode } from 'react';
 /**
  * Admin page chrome. Every admin page puts its title in the shell breadcrumb
  * and its controls in the subbar, in one fixed order: refresh, download, the
- * dropdowns (org filter first), the view toggle, then the primary CTA last. Slots instead of a
+ * dropdowns (org filter first), the one Filters menu, the view toggle, then the primary CTA last. Slots instead of a
  * free-form `right` node, so a page cannot reorder them.
  */
 export interface AdminPageShellProps {
   /** Screen-reader title; the breadcrumb is the only visible page title. */
   title: string;
   icon?: IconComponent;
-  /** Left of the subbar: search first, then filter popovers or toggles. */
+  /** Left of the subbar: a collapsed (icon) search. */
   search?: ReactNode;
+  /** The shared Filters menu: every filter dropdown is a facet of it. */
   filters?: ReactNode;
   /** Local sibling navigation (e.g. asset types). Sits after refresh. */
   tabs?: TabsProps;

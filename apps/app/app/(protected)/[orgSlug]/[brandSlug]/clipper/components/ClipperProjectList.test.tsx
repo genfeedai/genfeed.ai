@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import { ViewType } from '@genfeedai/contracts';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type { ClipperProjectSummary } from '@props/studio/clipper.props';
 import {
   fireEvent,
@@ -8,8 +10,27 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ClipperProjectList from './ClipperProjectList';
+import ClipperProjectListBase from './ClipperProjectList';
+
+/** The workspace owns the view and its toggle; mirror that here. */
+function ClipperProjectList(
+  props: Omit<ComponentProps<typeof ClipperProjectListBase>, 'view'>,
+) {
+  const { view, setView } = useCollectionViewPreference({
+    defaultView: ViewType.LIST,
+    surface: 'studio.clipper',
+  });
+
+  return (
+    <>
+      <CollectionViewToggle onViewChange={setView} view={view} />
+      <ClipperProjectListBase {...props} view={view} />
+    </>
+  );
+}
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');

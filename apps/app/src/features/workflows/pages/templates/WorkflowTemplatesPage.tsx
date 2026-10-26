@@ -7,18 +7,12 @@ import Card from '@ui/card/Card';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
@@ -164,35 +158,66 @@ function WorkflowTemplatesPageContent() {
     );
   }
 
-  const filterChips = [
-    ...(selectedCategory !== 'all'
-      ? [
-          {
-            id: 'category',
-            label: categoryLabel(selectedCategory, translate),
-            onRemove: () => dispatch({ type: 'SET_CATEGORY', category: 'all' }),
-          },
-        ]
-      : []),
-    ...(selectedSource !== 'all'
-      ? [
-          {
-            id: 'source',
-            label: sourceLabel(selectedSource),
-            onRemove: () => dispatch({ type: 'SET_SOURCE', source: 'all' }),
-          },
-        ]
-      : []),
-  ];
-
   const categoryOptions = [
     { id: 'all', label: categoryLabel('all', translate) },
     ...typeTiles.map((tile) => ({ id: tile.id, label: tile.label })),
   ];
 
+  const clearFilters = () => dispatch({ type: 'CLEAR_FILTERS' });
+
   const catalogChrome = {
     headerTabs: workflowCollectionHeaderTabs(href),
     label: translateWorkflows('library.title'),
+    leading: (
+      <FormSearchbar
+        isCollapsible
+        onSearch={(value) =>
+          dispatch({ type: 'SET_SEARCH', searchQuery: value })
+        }
+        placeholder={translate('searchPlaceholder')}
+        size={ComponentSize.SM}
+        value={searchQuery}
+      />
+    ),
+    right: (
+      <div className="flex items-center gap-2">
+        <FilterMenu
+          facets={[
+            {
+              defaultValue: 'all',
+              key: 'source',
+              label: translate('source'),
+              onChange: (value) => {
+                if (isCatalogSource(value)) {
+                  dispatch({ type: 'SET_SOURCE', source: value });
+                }
+              },
+              options: CATALOG_SOURCES.map((source) => ({
+                label: sourceLabel(source),
+                value: source,
+              })),
+              selection: 'single',
+              value: selectedSource,
+            },
+            {
+              defaultValue: 'all',
+              key: 'category',
+              label: translate('category'),
+              onChange: (value) =>
+                dispatch({ type: 'SET_CATEGORY', category: value }),
+              options: categoryOptions.map((option) => ({
+                label: option.label,
+                value: option.id,
+              })),
+              selection: 'single',
+              value: selectedCategory,
+            },
+          ]}
+          onClear={clearFilters}
+        />
+        <CollectionViewToggle onViewChange={setView} view={view} />
+      </div>
+    ),
     titleVisibility: 'sr-only' as const,
   };
 
@@ -288,69 +313,6 @@ function WorkflowTemplatesPageContent() {
           }
           data-testid="templates-all-section"
         >
-          <CollectionToolbar
-            search={
-              <FormSearchbar
-                className="w-64"
-                onSearch={(value) =>
-                  dispatch({ type: 'SET_SEARCH', searchQuery: value })
-                }
-                placeholder={translate('searchPlaceholder')}
-                size={ComponentSize.SM}
-                value={searchQuery}
-              />
-            }
-            filters={
-              <>
-                <Select
-                  value={selectedSource}
-                  onValueChange={(value) => {
-                    if (isCatalogSource(value)) {
-                      dispatch({ type: 'SET_SOURCE', source: value });
-                    }
-                  }}
-                >
-                  <SelectTrigger
-                    aria-label={translate('source')}
-                    className="h-8 w-36"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATALOG_SOURCES.map((source) => (
-                      <SelectItem key={source} value={source}>
-                        {sourceLabel(source)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={(value) =>
-                    dispatch({ type: 'SET_CATEGORY', category: value })
-                  }
-                >
-                  <SelectTrigger
-                    aria-label={translate('category')}
-                    className="h-8 w-40"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </>
-            }
-            view={view}
-            onViewChange={setView}
-            chips={filterChips}
-            onClearChips={() => dispatch({ type: 'CLEAR_FILTERS' })}
-          />
           {hasLoadFailure && !isAllLoading ? (
             <div role="alert">
               <Card bodyClassName="px-4 py-3 text-sm text-muted-foreground">
@@ -373,7 +335,7 @@ function WorkflowTemplatesPageContent() {
                 </p>
                 <Button
                   variant={ButtonVariant.SECONDARY}
-                  onClick={() => dispatch({ type: 'CLEAR_FILTERS' })}
+                  onClick={clearFilters}
                 >
                   {translate('clearFilters')}
                 </Button>

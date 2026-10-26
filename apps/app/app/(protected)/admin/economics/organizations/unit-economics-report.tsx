@@ -24,21 +24,14 @@ import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { ArrowLeft, Scale } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   buildEconomicsRange,
   DEFAULT_ECONOMICS_PERIOD_DAYS,
-  ECONOMICS_PERIOD_DAYS,
   formatMarginPercent,
   formatUsd,
 } from '../economics-report.util';
@@ -261,21 +254,13 @@ export default function UnitEconomicsReport() {
       icon={Scale}
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
-      dropdowns={
-        <Select value={periodDays} onValueChange={handlePeriodChange}>
-          <SelectTrigger className="w-40" aria-label={translate('periodLabel')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ECONOMICS_PERIOD_DAYS.map((days) => (
-              <SelectItem key={days} value={String(days)}>
-                {translate('period', { days })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      }
       filters={
+        <EconomicsPeriodFilter
+          onChange={handlePeriodChange}
+          value={periodDays}
+        />
+      }
+      primaryAction={
         drillDown ? (
           <Button
             variant={ButtonVariant.SECONDARY}

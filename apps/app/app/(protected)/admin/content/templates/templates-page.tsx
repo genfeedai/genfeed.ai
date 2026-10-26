@@ -16,8 +16,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -141,17 +141,16 @@ function TemplatesPageContent() {
       title={t('title')}
       icon={FileText}
       search={
-        <div className="w-48 sm:w-64">
-          <FormSearchbar
-            ariaLabel={t('search')}
-            onSearch={(value) => setSearch(value.trim())}
-            placeholder={t('search')}
-            size={ComponentSize.SM}
-            value={search}
-          />
-        </div>
+        <FormSearchbar
+          ariaLabel={t('search')}
+          isCollapsible
+          onSearch={(value) => setSearch(value.trim())}
+          placeholder={t('search')}
+          size={ComponentSize.SM}
+          value={search}
+        />
       }
-      filters={<CollectionToolbar view={view} onViewChange={setView} />}
+      views={<CollectionViewToggle view={view} onViewChange={setView} />}
       onRefresh={reload}
       isRefreshing={templates === null}
     >

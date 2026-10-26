@@ -6,6 +6,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   GenerationStatusOption,
@@ -20,6 +21,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -30,7 +32,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import GenerationDetailPanel from './generation-detail-panel';
-import GenerationFilterDropdown from './generation-filter-dropdown';
 import GenerationRow from './generation-row';
 import {
   buildGenerationsCsv,
@@ -111,6 +112,13 @@ function GenerationsPageContent() {
     },
     [pathname, replace, searchParamsString],
   );
+
+  const clearFilters = useCallback(() => {
+    const next = new URLSearchParams(searchParamsString);
+    for (const name of ['status', 'type', 'model', 'page']) next.delete(name);
+    const query = next.toString();
+    replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, replace, searchParamsString]);
 
   const loadGenerations = useCallback(
     async (signal: AbortSignal) => {
@@ -249,41 +257,57 @@ function GenerationsPageContent() {
       title={t('title')}
       icon={ImageIcon}
       search={
-        <div className="w-48 sm:w-64">
-          <FormSearchbar
-            ariaLabel={t('search')}
-            onSearch={(value) => setParam('q', value.trim())}
-            placeholder={t('search')}
-            size={ComponentSize.SM}
-            value={search}
-          />
-        </div>
+        <FormSearchbar
+          ariaLabel={t('search')}
+          isCollapsible
+          onSearch={(value) => setParam('q', value.trim())}
+          placeholder={t('search')}
+          size={ComponentSize.SM}
+          value={search}
+        />
       }
       filters={
-        <>
-          {isPromptOnly ? null : (
-            <GenerationFilterDropdown
-              label={t('filterStatus')}
-              onChange={(value) => setParam('status', value)}
-              options={statusOptions}
-              value={status}
-            />
-          )}
-          <GenerationFilterDropdown
-            label={t('filterType')}
-            onChange={(value) => setParam('type', value)}
-            options={typeOptions}
-            value={type}
-          />
-          {isPromptOnly ? null : (
-            <GenerationFilterDropdown
-              label={t('filterModel')}
-              onChange={(value) => setParam('model', value)}
-              options={allModelOptions}
-              value={model}
-            />
-          )}
-        </>
+        <FilterMenu
+          facets={[
+            ...(isPromptOnly
+              ? []
+              : ([
+                  {
+                    defaultValue: '',
+                    key: 'status',
+                    label: t('filterStatus'),
+                    onChange: (value) => setParam('status', value),
+                    options: statusOptions,
+                    selection: 'single',
+                    value: status,
+                  },
+                ] satisfies FilterMenuFacet[])),
+            {
+              defaultValue: '',
+              key: 'type',
+              label: t('filterType'),
+              onChange: (value) => setParam('type', value),
+              options: typeOptions,
+              selection: 'single',
+              value: type,
+            },
+            ...(isPromptOnly
+              ? []
+              : ([
+                  {
+                    defaultValue: '',
+                    key: 'model',
+                    label: t('filterModel'),
+                    onChange: (value) => setParam('model', value),
+                    options: allModelOptions,
+                    searchPlaceholder: t('search'),
+                    selection: 'single',
+                    value: model,
+                  },
+                ] satisfies FilterMenuFacet[])),
+          ]}
+          onClear={clearFilters}
+        />
       }
       onRefresh={reload}
       isRefreshing={isLoading}

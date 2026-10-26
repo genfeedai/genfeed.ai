@@ -20,6 +20,9 @@ import {
 } from 'react';
 
 interface AnalyticsRuntimeContext extends AnalyticsContextType {
+  /** A collapsed (icon) search, published into the subbar's leading slot. */
+  searchNode: ReactNode;
+  setSearchNode: (node: ReactNode) => void;
   toolbarNode: ReactNode;
   setToolbarNode: (node: ReactNode) => void;
 }
@@ -64,6 +67,7 @@ export function AnalyticsProvider({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toolbarNode, setToolbarNode] = useState<ReactNode>(null);
+  const [searchNode, setSearchNode] = useState<ReactNode>(null);
 
   const brandContext = useBrand();
   const contextBrandId = syncWithBrandContext
@@ -142,9 +146,11 @@ export function AnalyticsProvider({
       filters,
       isRefreshing,
       refreshTrigger,
+      searchNode,
       setBrandId,
       setDateRange,
       setFilter,
+      setSearchNode,
       setToolbarNode,
       toolbarNode,
       triggerRefresh,
@@ -159,6 +165,7 @@ export function AnalyticsProvider({
       setBrandId,
       setDateRange,
       setFilter,
+      searchNode,
       toolbarNode,
     ],
   );
@@ -201,4 +208,20 @@ export function useAnalyticsToolbar(node: ReactNode): void {
     setToolbarNode(node);
     return () => setToolbarNode(null);
   }, [node, setToolbarNode]);
+}
+
+/**
+ * Publishes a page's search into the analytics subbar, as a collapsed icon on
+ * the left. The node must be memoized by the caller.
+ */
+export function useAnalyticsSearch(node: ReactNode): void {
+  const setSearchNode = use(AnalyticsContext)?.setSearchNode;
+
+  useEffect(() => {
+    if (!setSearchNode) {
+      return;
+    }
+    setSearchNode(node);
+    return () => setSearchNode(null);
+  }, [node, setSearchNode]);
 }

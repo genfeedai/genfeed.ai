@@ -18,8 +18,6 @@
   "descriptionDrillDown": "Per-user revenue, credits consumed, provider cost, and gross margin inside this organization",
   "empty": "No revenue or usage in this period",
   "loadFailed": "Unit economics could not be loaded",
-  "period": "Last {days} days",
-  "periodLabel": "Report period",
   "tableLabel": "Unit economics",
   "title": "Unit Economics",
   "titleDrillDown": "Unit Economics · {label}",

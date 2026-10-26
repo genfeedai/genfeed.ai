@@ -2,6 +2,7 @@
 
 import {
   useAnalyticsContext,
+  useAnalyticsSearch,
   useAnalyticsToolbar,
 } from '@contexts/analytics/analytics-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
@@ -10,6 +11,7 @@ import {
   AccountEvaluationState,
   AnalyticsMetric,
   ButtonVariant,
+  ComponentSize,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -265,16 +267,6 @@ export default function AnalyticsAccounts() {
 
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <FormSearchbar
-          ariaLabel={translate('searchAccounts')}
-          className="w-full sm:w-44"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            resetPage();
-          }}
-          placeholder={translate('searchAccounts')}
-        />
         <AnalyticsFilterMenu
           facets={facets}
           onClear={() => {
@@ -322,7 +314,6 @@ export default function AnalyticsAccounts() {
     organizationId,
     policy,
     resetPage,
-    search,
     translate,
     windowWeeks,
   ]);
@@ -330,7 +321,25 @@ export default function AnalyticsAccounts() {
   const hasAccountToolbar =
     Boolean(list?.accounts.length) || search.trim().length > 0;
 
+  const accountSearch = useMemo(
+    () => (
+      <FormSearchbar
+        ariaLabel={translate('searchAccounts')}
+        isCollapsible
+        onChange={(event) => {
+          setSearch(event.target.value);
+          resetPage();
+        }}
+        placeholder={translate('searchAccounts')}
+        size={ComponentSize.SM}
+        value={search}
+      />
+    ),
+    [resetPage, search, translate],
+  );
+
   useAnalyticsToolbar(hasAccountToolbar ? accountToolbar : null);
+  useAnalyticsSearch(hasAccountToolbar ? accountSearch : null);
 
   const columns: TableColumn<IAccountAnalytics>[] = useMemo(
     () => [

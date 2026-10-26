@@ -1,3 +1,4 @@
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { AgentFailureReason } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,9 +27,11 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     leading,
-  }: PropsWithChildren<{ leading?: ReactNode }>) => (
+    right,
+  }: PropsWithChildren<{ leading?: ReactNode; right?: ReactNode }>) => (
     <>
       {leading}
+      {right}
       {children}
     </>
   ),
@@ -116,8 +119,7 @@ describe('AgentFailuresPage', () => {
     expect(
       screen.getAllByText('Provider request abc timed out after 60 seconds.'),
     ).toHaveLength(20);
-    // 20 status badges plus the selected status filter.
-    expect(screen.getAllByText('Open')).toHaveLength(21);
+    expect(screen.getAllByText('Open')).toHaveLength(20);
     expect(screen.queryByText('Retry the run.')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() =>
@@ -146,8 +148,7 @@ describe('AgentFailuresPage', () => {
     await screen.findByText('run-19');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText('No agent failures found');
-    await user.click(screen.getByRole('combobox', { name: 'Failure reason' }));
-    await user.click(screen.getByRole('option', { name: 'Timeout' }));
+    await selectFilterOption(user, 'Failure reason', 'Timeout');
     await waitFor(() =>
       expect(mocks.list).toHaveBeenLastCalledWith(
         'TIMEOUT',
@@ -263,8 +264,7 @@ describe('AgentFailuresPage', () => {
     const user = userEvent.setup();
     render(<AgentFailuresPage />);
     await screen.findByText('No agent failures found');
-    await user.click(screen.getByRole('combobox', { name: 'Status' }));
-    await user.click(screen.getByRole('option', { name: 'Resolved' }));
+    await selectFilterOption(user, 'Status', 'Resolved');
     await waitFor(() =>
       expect(mocks.list).toHaveBeenLastCalledWith(
         undefined,

@@ -22,8 +22,8 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -363,7 +363,14 @@ export default function EditorProjectsPage() {
     </Button>
   );
 
-  const viewToolbar = <CollectionToolbar onViewChange={setView} view={view} />;
+  const topbarActions = (
+    <div className="flex items-center gap-2">
+      {isLoading || hasProjects ? (
+        <CollectionViewToggle onViewChange={setView} view={view} />
+      ) : null}
+      {newProjectButton}
+    </div>
+  );
 
   return (
     <Container
@@ -374,7 +381,7 @@ export default function EditorProjectsPage() {
             ? translate('yourProjects')
             : translate('editor')
       }
-      right={hasError ? undefined : newProjectButton}
+      right={hasError ? undefined : topbarActions}
       titleVisibility="sr-only"
       // `right` disappears on error, which would otherwise flip Container
       // between module chrome and the classic layout as the page moves
@@ -383,11 +390,7 @@ export default function EditorProjectsPage() {
       moduleChrome
     >
       {isLoading ? (
-        <CollectionSection
-          actions={viewToolbar}
-          isLoading
-          title={translate('allProjects')}
-        >
+        <CollectionSection isLoading title={translate('allProjects')}>
           <CollectionView
             data-testid="editor-projects-loading"
             getItemKey={(project: IEditorProject) => project.id}
@@ -425,7 +428,6 @@ export default function EditorProjectsPage() {
           ) : null}
 
           <CollectionSection
-            actions={viewToolbar}
             data-testid="editor-projects-all"
             isCountVisible
             itemCount={totalProjects}

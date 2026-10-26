@@ -151,7 +151,7 @@
     "apps/app/app/(protected)/admin/organization/organization-config-page.tsx": 5,
     "apps/app/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx": 37,
     "apps/app/app/(protected)/admin/overview/analytics/layout.tsx": 5,
-    "apps/app/app/(protected)/admin/overview/analytics/organizations/analytics-organizations-list.tsx": 17,
+    "apps/app/app/(protected)/admin/overview/analytics/organizations/analytics-organizations-list.tsx": 16,
     "apps/app/app/(protected)/admin/overview/dashboard/activity-chart.tsx": 5,
     "apps/app/app/(protected)/admin/overview/dashboard/overview-page.tsx": 21,
     "apps/app/app/(protected)/admin/videos/[id]/page.tsx": 2,

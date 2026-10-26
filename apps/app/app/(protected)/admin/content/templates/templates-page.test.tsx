@@ -53,21 +53,24 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
     onRefresh,
     search,
     title,
+    views,
   }: {
     children: ReactNode;
     filters?: ReactNode;
     onRefresh?: () => void;
     search?: ReactNode;
     title: string;
+    views?: ReactNode;
   }) => (
     <main>
       <div data-testid="subbar">
         <h1 className="sr-only">{title}</h1>
         {search}
-        {filters}
         <button type="button" onClick={onRefresh}>
           refresh
         </button>
+        {filters}
+        {views}
       </div>
       <div data-testid="content">{children}</div>
     </main>
@@ -180,7 +183,7 @@ describe('admin templates collection', () => {
     mocks.searchParams = new URLSearchParams('page=3');
     render(<TemplatesPage />);
     await screen.findByRole('link', { name: 'open Template 0' });
-    const input = screen.getByLabelText('search');
+    const input = screen.getByPlaceholderText('search');
     fireEvent.change(input, { target: { value: 'sunset' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() =>

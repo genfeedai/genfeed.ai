@@ -2,9 +2,10 @@
 
 import {
   useAnalyticsContext,
+  useAnalyticsSearch,
   useAnalyticsToolbar,
 } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric } from '@genfeedai/contracts';
+import { AnalyticsMetric, ComponentSize } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
@@ -186,23 +187,29 @@ export default function AnalyticsBrandsList({
     ];
 
     return (
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <FormSearchbar
-          ariaLabel="Search brands"
-          placeholder="Search brands..."
-          value={searchTerm}
-          onChange={(e) => setFilter('query', e.target.value)}
-          className="w-full sm:w-48"
-        />
-        <AnalyticsFilterMenu
-          facets={facets}
-          onClear={() => setFilter('sort', undefined)}
-        />
-      </div>
+      <AnalyticsFilterMenu
+        facets={facets}
+        onClear={() => setFilter('sort', undefined)}
+      />
     );
-  }, [searchTerm, sortBy, setFilter]);
+  }, [sortBy, setFilter]);
+
+  const search = useMemo(
+    () => (
+      <FormSearchbar
+        ariaLabel="Search brands"
+        isCollapsible
+        onChange={(e) => setFilter('query', e.target.value)}
+        placeholder="Search brands..."
+        size={ComponentSize.SM}
+        value={searchTerm}
+      />
+    ),
+    [searchTerm, setFilter],
+  );
 
   useAnalyticsToolbar(toolbar);
+  useAnalyticsSearch(search);
 
   return (
     <>

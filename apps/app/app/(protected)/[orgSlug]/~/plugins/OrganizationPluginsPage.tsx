@@ -26,18 +26,12 @@ import type {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import {
   APP_RAIL_REGISTRY,
   getAppRailHref,
@@ -61,6 +55,32 @@ import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 
 const ALL_FILTER = 'all';
+const PLUGIN_STATUS_FILTERS: readonly PluginStatusFilter[] = [
+  'all',
+  'installed',
+  'available',
+  'restricted',
+];
+
+function isPluginStatusFilter(value: string): value is PluginStatusFilter {
+  return PLUGIN_STATUS_FILTERS.some((status) => status === value);
+}
+
+function matchesStatus(
+  app: PluginAppEntry,
+  status: PluginStatusFilter,
+): boolean {
+  switch (status) {
+    case 'all':
+      return true;
+    case 'installed':
+      return app.isInstalled && isPluginAppOpenable(app);
+    case 'available':
+      return app.state === 'not-installed';
+    default:
+      return !isPluginAppOpenable(app) && app.state !== 'not-installed';
+  }
+}
 
 /**
  * Plugins at `/:orgSlug/~/plugins` (#5502): the native apps a member installs
@@ -177,12 +197,7 @@ function OrganizationPluginsCatalog() {
       (app) =>
         (activeFilter === ALL_FILTER ||
           PLUGIN_APP_CATALOG[app.appId].category === activeFilter) &&
-        (statusFilter === 'all' ||
-          (statusFilter === 'installed'
-            ? app.isInstalled && isPluginAppOpenable(app)
-            : statusFilter === 'available'
-              ? app.state === 'not-installed'
-              : !isPluginAppOpenable(app) && app.state !== 'not-installed')) &&
+        matchesStatus(app, statusFilter) &&
         (term === '' ||
           app.label.toLowerCase().includes(term) ||
           app.description.toLowerCase().includes(term) ||
@@ -273,7 +288,7 @@ function OrganizationPluginsCatalog() {
       search={
         <FormSearchbar
           ariaLabel={translate('search')}
-          className="w-48 sm:w-64"
+          isCollapsible
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder={translate('search')}
           size={ComponentSize.SM}
@@ -281,51 +296,56 @@ function OrganizationPluginsCatalog() {
         />
       }
       filters={
-        <Select
-          value={activeFilter}
-          onValueChange={(value) =>
-            setFilter(filterIds.find((id) => id === value) ?? ALL_FILTER)
-          }
-        >
-          <SelectTrigger
-            aria-label={translate('filters.category')}
-            className="h-8 w-40"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_FILTER}>
-              {translate('allCategories')}
-            </SelectItem>
-            {filterIds.map((id) => (
-              <SelectItem key={id} value={id}>
-                {translate(`categories.${id}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <FilterMenu
+          facets={[
+            {
+              defaultValue: 'all',
+              key: 'status',
+              label: translate('status.label'),
+              onChange: (value) => {
+                if (isPluginStatusFilter(value)) {
+                  setStatusFilter(value);
+                }
+              },
+              options: PLUGIN_STATUS_FILTERS.map((status) => ({
+                count: apps.filter((app) => matchesStatus(app, status)).length,
+                label: translate(`status.${status}`),
+                value: status,
+              })),
+              selection: 'single',
+              value: statusFilter,
+            },
+            {
+              defaultValue: ALL_FILTER,
+              key: 'category',
+              label: translate('filters.category'),
+              onChange: (value) =>
+                setFilter(filterIds.find((id) => id === value) ?? ALL_FILTER),
+              options: [
+                {
+                  count: apps.length,
+                  label: translate('allCategories'),
+                  value: ALL_FILTER,
+                },
+                ...filterIds.map((id) => ({
+                  count: apps.filter(
+                    (app) => PLUGIN_APP_CATALOG[app.appId].category === id,
+                  ).length,
+                  label: translate(`categories.${id}`),
+                  value: id,
+                })),
+              ],
+              selection: 'single',
+              value: activeFilter,
+            },
+          ]}
+          onClear={() => {
+            setFilter(ALL_FILTER);
+            setStatusFilter('all');
+          }}
+        />
       }
-      tabs={{
-        activeTab: statusFilter,
-        ariaLabel: translate('status.label'),
-        fullWidth: false,
-        items: [
-          { id: 'all', label: translate('status.all') },
-          { id: 'installed', label: translate('status.installed') },
-          { id: 'available', label: translate('status.available') },
-          { id: 'restricted', label: translate('status.restricted') },
-        ],
-        onTabChange: (value) => {
-          if (
-            value === 'all' ||
-            value === 'installed' ||
-            value === 'available' ||
-            value === 'restricted'
-          )
-            setStatusFilter(value);
-        },
-      }}
-      views={<CollectionToolbar onViewChange={setView} view={view} />}
+      views={<CollectionViewToggle onViewChange={setView} view={view} />}
     >
       {installedApps.status === 'error' ? (
         <p className="text-sm text-destructive" role="alert">

@@ -15,20 +15,27 @@ import AnalyticsWorkSurfaceAdapter, {
 } from './_surface/analytics-work-surface-adapter';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
-  const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
-    useAnalyticsContext();
+  const {
+    dateRange,
+    isRefreshing,
+    searchNode,
+    setDateRange,
+    toolbarNode,
+    triggerRefresh,
+  } = useAnalyticsContext();
   const translate = useTranslations('pages.analytics.layout');
 
   return (
     <Container
       label={translate('brand.title')}
       icon={ChartColumn}
+      leading={searchNode}
       refresh={
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
       }
+      iconActions={<AnalyticsScopedExportButton />}
       right={
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          <AnalyticsScopedExportButton />
           {toolbarNode}
           <FormDateRangePicker
             onChange={setDateRange}

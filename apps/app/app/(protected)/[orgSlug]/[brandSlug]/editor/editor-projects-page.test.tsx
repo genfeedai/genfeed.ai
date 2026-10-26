@@ -266,7 +266,7 @@ describe('EditorProjectsPage', () => {
     ).not.toBeInTheDocument();
     expect(all.getByText('30m ago')).toBeVisible();
     expect(all.getByText('2d ago')).toBeVisible();
-    await userEvent.click(all.getByRole('radio', { name: 'Grid' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Grid' }));
     expect(all.getByTestId('editor-project-thumbnail-project-1')).toBeVisible();
     expect(
       within(screen.getByTestId('editor-projects-recent')).getByTestId(

@@ -5,6 +5,10 @@ import userEvent from '@testing-library/user-event';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 const OPTIONS = [
   { label: 'Image', value: 'image' },
   { label: 'Video', value: 'video' },

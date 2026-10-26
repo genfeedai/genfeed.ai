@@ -35,13 +35,6 @@ export interface GenerationStatusOption {
   value: string;
 }
 
-export interface GenerationFilterDropdownProps {
-  label: string;
-  onChange: (value: string) => void;
-  options: GenerationStatusOption[];
-  value: string;
-}
-
 export interface GenerationRowProps {
   generation: GenerationView;
   onOpen: (generation: GenerationView) => void;

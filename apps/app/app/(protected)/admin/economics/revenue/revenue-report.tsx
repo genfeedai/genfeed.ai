@@ -17,7 +17,7 @@ import { Badge } from '@ui/primitives/badge';
 import { TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import EconomicsPeriodSelect from '../economics-period-select';
+import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
   formatLedgerTimestamp,
@@ -168,8 +168,8 @@ export default function EconomicsRevenueReport() {
       icon={TrendingUp}
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
-      dropdowns={
-        <EconomicsPeriodSelect value={periodDays} onChange={setPeriodDays} />
+      filters={
+        <EconomicsPeriodFilter value={periodDays} onChange={setPeriodDays} />
       }
     >
       {error ? (

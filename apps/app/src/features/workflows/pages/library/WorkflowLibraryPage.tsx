@@ -12,8 +12,8 @@ import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-deskt
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -220,7 +220,7 @@ export default function WorkflowLibraryPage() {
     label: translate('library.title'),
     leading: (
       <FormSearchbar
-        className="w-64"
+        isCollapsible
         onSearch={setSearchInput}
         placeholder={translate('library.searchPlaceholder')}
         size={ComponentSize.SM}
@@ -229,6 +229,12 @@ export default function WorkflowLibraryPage() {
     ),
     right: (
       <div className="flex items-center gap-2">
+        {isLoading && workflows.length > 0 ? (
+          <Spinner className="size-4 shrink-0 text-foreground/60" />
+        ) : null}
+        {isEmpty ? null : (
+          <CollectionViewToggle onViewChange={setView} view={view} />
+        )}
         {isEmpty ? null : (
           <Button
             asChild
@@ -242,15 +248,10 @@ export default function WorkflowLibraryPage() {
             </Link>
           </Button>
         )}
-        {isLoading && workflows.length > 0 ? (
-          <Spinner className="size-4 shrink-0 text-foreground/60" />
-        ) : null}
       </div>
     ),
     titleVisibility: 'sr-only' as const,
   };
-
-  const viewToggle = <CollectionToolbar onViewChange={setView} view={view} />;
 
   const errorState = error ? (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -377,7 +378,6 @@ export default function WorkflowLibraryPage() {
         </CollectionSection>
 
         <CollectionSection
-          actions={viewToggle}
           data-testid="workflow-section-all"
           error={errorState}
           isLoading={isInitialLoading}

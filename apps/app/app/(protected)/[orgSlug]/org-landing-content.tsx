@@ -28,8 +28,8 @@ import type {
 } from '@props/pages/org-landing.props';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import Card from '@ui/card/Card';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
@@ -282,20 +282,21 @@ export default function OrgLandingContent() {
             </p>
           )}
         </div>
-        <Button
-          asChild
-          className="inline-flex items-center gap-2 rounded-md bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
-          variant={ButtonVariant.DEFAULT}
-          withWrapper={false}
-        >
-          <Link href={orgHref('/settings/brands')}>
-            <Plus className="size-4" />
-            {translate('newBrand')}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <CollectionViewToggle onViewChange={setView} view={view} />
+          <Button
+            asChild
+            className="inline-flex items-center gap-2 rounded-md bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
+            variant={ButtonVariant.DEFAULT}
+            withWrapper={false}
+          >
+            <Link href={orgHref('/settings/brands')}>
+              <Plus className="size-4" />
+              {translate('newBrand')}
+            </Link>
+          </Button>
+        </div>
       </div>
-
-      <CollectionToolbar onViewChange={setView} view={view} />
 
       <CollectionView
         data-testid="org-brands"

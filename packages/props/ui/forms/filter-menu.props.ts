@@ -49,13 +49,14 @@ export type FilterMenuFacet = FilterMenuMultipleFacet | FilterMenuSingleFacet;
 
 export interface FilterMenuProps {
   facets: readonly FilterMenuFacet[];
-  /** Trigger text, e.g. "Filters". */
-  label: string;
-  /** Screen-reader text for the badge, e.g. "3 filters active". */
-  getActiveCountLabel: (count: number) => string;
-  clearLabel: string;
+  /** Trigger text. Defaults to the shared "Filters". */
+  label?: string;
+  /** Screen-reader text for the badge. Defaults to the shared "N active filters". */
+  getActiveCountLabel?: (count: number) => string;
+  /** Defaults to the shared "Clear filters". */
+  clearLabel?: string;
   onClear: () => void;
-  /** Shown beside a facet that has nothing selected. */
+  /** Shown beside a facet that has nothing selected. Defaults to "All". */
   allLabel?: string;
   align?: 'start' | 'center' | 'end';
   className?: string;

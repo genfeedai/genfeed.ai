@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const pushMock = vi.fn();
 const setFilterMock = vi.fn();
 const setToolbarNodeMock = vi.fn();
+const setSearchNodeMock = vi.fn();
 const triggerRefreshMock = vi.fn();
 const getBrandsWithStatsMock = vi.fn();
 const replaceMock = vi.fn();
@@ -103,6 +104,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     triggerRefresh: triggerRefreshMock,
   }),
   useAnalyticsToolbar: (node: unknown) => setToolbarNodeMock(node),
+  useAnalyticsSearch: (node: unknown) => setSearchNodeMock(node),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -300,8 +302,8 @@ describe('AnalyticsBrandsList', () => {
   it('pushes the search term into the analytics filters', async () => {
     render(<AnalyticsBrandsList />);
 
-    render(setToolbarNodeMock.mock.calls.at(-1)?.[0]);
-    fireEvent.change(screen.getByLabelText('Search brands'), {
+    render(setSearchNodeMock.mock.calls.at(-1)?.[0]);
+    fireEvent.change(screen.getByPlaceholderText('Search brands...'), {
       target: { value: 'acme' },
     });
 

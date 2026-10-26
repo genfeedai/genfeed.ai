@@ -1,12 +1,19 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  ViewType,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
   ClipperWorkspaceProps,
   ProviderOption,
 } from '@props/studio/clipper.props';
+import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -63,6 +70,11 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
   const searchParams = useSearchParams();
   const isFirstPage = (Number(searchParams.get('page')) || 1) === 1;
 
+  const { view, setView } = useCollectionViewPreference({
+    defaultView: ViewType.LIST,
+    surface: 'studio.clipper',
+  });
+
   const hasProjects = projects.length > 0;
   const listHref = href(APP_ROUTES.STUDIO.CLIPPER);
   const newProjectHref = href(APP_ROUTES.STUDIO.CLIPPER_NEW);
@@ -76,17 +88,20 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
       <Link href={listHref}>{t('allProjects')}</Link>
     </Button>
   ) : hasProjects ? (
-    <Button
-      asChild
-      size={ButtonSize.SM}
-      variant={ButtonVariant.DEFAULT}
-      label={t('newProject')}
-    >
-      <Link href={newProjectHref}>
-        <Plus className="size-3.5" />
-        {t('newProject')}
-      </Link>
-    </Button>
+    <div className="flex items-center gap-2">
+      <CollectionViewToggle onViewChange={setView} view={view} />
+      <Button
+        asChild
+        size={ButtonSize.SM}
+        variant={ButtonVariant.DEFAULT}
+        label={t('newProject')}
+      >
+        <Link href={newProjectHref}>
+          <Plus className="size-3.5" />
+          {t('newProject')}
+        </Link>
+      </Button>
+    </div>
   ) : undefined;
 
   return (
@@ -112,6 +127,7 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
                   isLoading={isListLoading}
                   isRecentVisible={isFirstPage}
                   projects={projects}
+                  view={view}
                   onRename={renameProject}
                   onDelete={deleteProject}
                 />

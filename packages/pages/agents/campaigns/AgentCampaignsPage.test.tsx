@@ -237,12 +237,12 @@ describe('AgentCampaignsPage', () => {
       'Winter Spend',
     ]);
     expect(within(all).queryAllByTestId('campaign-card')).toHaveLength(0);
-    expect(within(all).getByRole('radio', { name: 'List' })).toHaveAttribute(
+    expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
 
-    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
 
     expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
     expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
@@ -285,7 +285,7 @@ describe('AgentCampaignsPage', () => {
     }
 
     const all = screen.getByTestId('campaign-all');
-    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
 
     for (const card of within(all).getAllByTestId('campaign-card')) {
       expect(within(card).getAllByRole('link')).toHaveLength(1);
@@ -300,7 +300,7 @@ describe('AgentCampaignsPage', () => {
     render(<AgentCampaignsPage />);
 
     const all = screen.getByTestId('campaign-all');
-    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
 
     const card = within(all).getAllByTestId('campaign-card')[0];
     expect(card).toHaveTextContent('Launch sequence');
@@ -375,7 +375,7 @@ describe('AgentCampaignsPage', () => {
     expect(within(all).getByRole('alert')).toHaveTextContent(
       "Programs couldn't load.",
     );
-    expect(within(all).queryByRole('radio', { name: 'Grid' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'Grid' })).toBeNull();
 
     fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
     // Retry refetches both the paged list and the full set behind the strip.
@@ -416,17 +416,13 @@ describe('AgentCampaignsPage', () => {
 
   it('restores the saved grid view after a remount', () => {
     const { unmount } = render(<AgentCampaignsPage />);
-    fireEvent.click(
-      within(screen.getByTestId('campaign-all')).getByRole('radio', {
-        name: 'Grid',
-      }),
-    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
     unmount();
 
     render(<AgentCampaignsPage />);
 
     const all = screen.getByTestId('campaign-all');
-    expect(within(all).getByRole('radio', { name: 'Grid' })).toHaveAttribute(
+    expect(screen.getByRole('radio', { name: 'Grid' })).toHaveAttribute(
       'aria-checked',
       'true',
     );

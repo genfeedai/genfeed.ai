@@ -17,16 +17,10 @@ import {
   type IPaginatedOrgsResponse,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
@@ -96,21 +90,26 @@ export default function AnalyticsOrganizationsList({
 
   const toolbar = useMemo(
     () => (
-      <Select value={sort} onValueChange={handleSortChange}>
-        <SelectTrigger
-          aria-label="Sort organization analytics"
-          className="w-full sm:w-44"
-        >
-          <SelectValue placeholder="Sort by" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={AnalyticsMetric.ENGAGEMENT}>
-            Sort by Engagement
-          </SelectItem>
-          <SelectItem value={AnalyticsMetric.VIEWS}>Sort by Views</SelectItem>
-          <SelectItem value={AnalyticsMetric.POSTS}>Sort by Posts</SelectItem>
-        </SelectContent>
-      </Select>
+      <FilterMenu
+        facets={[
+          {
+            defaultValue: AnalyticsMetric.ENGAGEMENT,
+            // Sort orders the list, it does not narrow it.
+            isCounted: false,
+            key: 'sort',
+            label: 'Sort by',
+            onChange: handleSortChange,
+            options: [
+              { label: 'Engagement', value: AnalyticsMetric.ENGAGEMENT },
+              { label: 'Views', value: AnalyticsMetric.VIEWS },
+              { label: 'Posts', value: AnalyticsMetric.POSTS },
+            ],
+            selection: 'single',
+            value: sort,
+          },
+        ]}
+        onClear={() => handleSortChange(AnalyticsMetric.ENGAGEMENT)}
+      />
     ),
     [sort, handleSortChange],
   );

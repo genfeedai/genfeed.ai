@@ -1,5 +1,6 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -162,16 +163,18 @@ describe('UnitEconomicsReport', () => {
     queryState.getReport.mockReset();
   });
 
-  it('renders organizations with credits, costs, margins, and a totals row', () => {
+  it('renders organizations with credits, costs, margins, and a totals row', async () => {
     render(<UnitEconomicsReport />);
 
     expect(screen.getByText('Unit Economics')).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: /Organization/ }),
     ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Filters/ }));
     expect(
-      screen.getByRole('combobox', { name: 'Report period' }),
+      await screen.findByRole('menuitem', { name: /^Report period/ }),
     ).toHaveTextContent('Last 30 days');
+    await userEvent.keyboard('{Escape}');
 
     const paidRow = screen.getByText('Paid Org').closest('tr');
     expect(paidRow).not.toBeNull();

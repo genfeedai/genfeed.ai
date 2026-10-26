@@ -12,19 +12,13 @@ import { WorkflowExecutionsService } from '@services/automation/workflow-executi
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Badge from '@ui/display/badge/Badge';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import {
   Table,
   TableBody,
@@ -157,33 +151,41 @@ export default function AgentFailuresPage() {
       onRefresh={refreshFailures}
       isRefreshing={state === 'loading'}
       filters={
-        <>
-          <Select value={resolution} onValueChange={changeResolution}>
-            <SelectTrigger aria-label={translate('resolutionFilter')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RESOLUTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {translate(`resolutions.${value}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={reason ?? 'all'} onValueChange={changeReason}>
-            <SelectTrigger aria-label={translate('reasonFilter')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{translate('allReasons')}</SelectItem>
-              {Object.values(AgentFailureReason).map((value) => (
-                <SelectItem key={value} value={value}>
-                  {translate(`reasons.${value}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
+        <FilterMenu
+          facets={[
+            {
+              defaultValue: 'open',
+              key: 'resolution',
+              label: translate('resolutionFilter'),
+              onChange: changeResolution,
+              options: RESOLUTIONS.map((value) => ({
+                label: translate(`resolutions.${value}`),
+                value,
+              })),
+              selection: 'single',
+              value: resolution,
+            },
+            {
+              defaultValue: 'all',
+              key: 'reason',
+              label: translate('reasonFilter'),
+              onChange: changeReason,
+              options: [
+                { label: translate('allReasons'), value: 'all' },
+                ...Object.values(AgentFailureReason).map((value) => ({
+                  label: translate(`reasons.${value}`),
+                  value,
+                })),
+              ],
+              selection: 'single',
+              value: reason ?? 'all',
+            },
+          ]}
+          onClear={() => {
+            changeResolution('open');
+            changeReason('all');
+          }}
+        />
       }
     >
       <WorkspaceSurface
