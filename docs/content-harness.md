@@ -82,7 +82,7 @@ visual kinds it appends a short brand look rather than the whole brief.
 
 ## Built-in packs
 
-The API registers these four at startup, in this order
+The API registers these five at startup, in this order
 (`ContentHarnessService.loadRegistry`):
 
 | Pack id | Source | Contributes |
@@ -91,6 +91,7 @@ The API registers these four at startup, in this order
 | `platform-x` | `platforms/x-algorithm.ts` | Craft rules, guardrails and criteria, only when `intent.platform` is X or Twitter. Returns nothing for any other platform. |
 | `brand-fidelity` | `brand-fidelity.ts` | Anti-genericity guardrails and a "would someone who knows this brand recognise it" criterion. Returns nothing for `music`. |
 | `viral-psychology` | `persuasion/viral-psychology.ts` | Demand, hook, retention and conversion craft, and the matching score keys. Registered with `surfaces: ['copy']`, so it never reaches media prompts. |
+| `b2b-media-craft` | `b2b-media-craft.ts` | For `video`, `ugc`, `image` and `ad-creative` briefs whose audience, offer or topic reads as business buyers: one action arc, a real product anchor, no model-rendered logos, interface or text. Registered with `surfaces: ['media']`, so it never reaches copy. Returns nothing for `music`. |
 
 The X pack encodes durable implications of X's published ranking material:
 conversation and reposts matter more than likes, and negative feedback is heavily

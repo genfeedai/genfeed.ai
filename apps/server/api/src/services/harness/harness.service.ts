@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import {
+  B2B_MEDIA_CRAFT_HARNESS_PACK,
   BRAND_FIDELITY_HARNESS_PACK,
   CORE_CONTENT_HARNESS_PACK,
   type ComposeContentHarnessBriefOptions,
@@ -204,6 +205,8 @@ export class ContentHarnessService implements OnModuleInit {
       ...VIRAL_PSYCHOLOGY_HARNESS_PACK,
       surfaces: ['copy'],
     });
+    // Media-only (`surfaces: ['media']`): business-software image/video craft.
+    registry.registerPack(B2B_MEDIA_CRAFT_HARNESS_PACK);
     const builtInPackIds = registry.list().map((pack) => pack.id);
 
     const external: ContentHarnessPackActivation[] = [];

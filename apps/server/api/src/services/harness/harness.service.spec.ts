@@ -79,6 +79,7 @@ describe('ContentHarnessService', () => {
       'platform-x',
       'brand-fidelity',
       'viral-psychology',
+      'b2b-media-craft',
     ]);
   });
 
@@ -97,6 +98,7 @@ describe('ContentHarnessService', () => {
       'platform-x',
       'brand-fidelity',
       'viral-psychology',
+      'b2b-media-craft',
       'acme-tone',
     ]);
     expect(runtimeRequire).toHaveBeenCalledTimes(1);
@@ -108,6 +110,7 @@ describe('ContentHarnessService', () => {
         'platform-x',
         'brand-fidelity',
         'viral-psychology',
+        'b2b-media-craft',
       ],
       external: [
         {
@@ -122,6 +125,7 @@ describe('ContentHarnessService', () => {
         'platform-x',
         'brand-fidelity',
         'viral-psychology',
+        'b2b-media-craft',
         'acme-tone',
       ],
     });

@@ -12,6 +12,7 @@ import {
   formatHarnessBrief,
 } from '@api/services/harness/harness-brief.util';
 import {
+  B2B_MEDIA_CRAFT_HARNESS_PACK,
   BRAND_FIDELITY_HARNESS_PACK,
   buildMediaPromptFromHarness,
   CORE_CONTENT_HARNESS_PACK,
@@ -189,6 +190,35 @@ describe('surface filtering', () => {
 
     expect(unfiltered.prompt).toContain(KELDER.brandVoiceSentinel);
     expect(unfiltered.prompt).toContain(KELDER.orgDirective);
+  });
+});
+
+describe('B2B media craft', () => {
+  async function briefFor(
+    contentType: ContentKind,
+    surface: 'copy' | 'media',
+  ): Promise<ContentHarnessBrief> {
+    const registry = buildRegistry();
+    registry.registerPack(B2B_MEDIA_CRAFT_HARNESS_PACK);
+    const input = inputFor(KELDER, contentType);
+    return composeContentHarnessBrief(
+      registry,
+      {
+        ...input,
+        intent: { ...input.intent, topic: 'How team leaders use the platform' },
+      },
+      { surface },
+    );
+  }
+
+  it('reaches a B2B video brief beside the brand context, and never the copy surface', async () => {
+    const video = await briefFor('video', 'media');
+    const post = await briefFor('post', 'copy');
+
+    expect(video.appliedPacks).toContain('b2b-media-craft');
+    expect(formatHarnessBrief(video)).toContain('Do not invent logos');
+    expect(formatHarnessBrief(video)).toContain(KELDER.brandVoiceSentinel);
+    expect(post.packs).not.toContain('b2b-media-craft');
   });
 });
 

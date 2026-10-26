@@ -7,7 +7,8 @@ This package is intentionally split into:
 - contracts and composition helpers (`ContentHarnessPack`,
   `ContentHarnessRegistry`, `composeContentHarnessBrief`)
 - built-in packs (`CORE_CONTENT_HARNESS_PACK`, `X_PLATFORM_HARNESS_PACK`,
-  `BRAND_FIDELITY_HARNESS_PACK`, `VIRAL_PSYCHOLOGY_HARNESS_PACK`)
+  `BRAND_FIDELITY_HARNESS_PACK`, `VIRAL_PSYCHOLOGY_HARNESS_PACK`,
+  `B2B_MEDIA_CRAFT_HARNESS_PACK`)
 - external private packs, which the API loads at startup (see below)
 
 For how a brief is composed end to end, profiles, review feedback and winner
