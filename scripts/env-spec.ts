@@ -752,6 +752,7 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'MCP_PORT',
       'MCP_SERVICE_NAME',
       'MCP_SENTRY_DSN',
+      'INTERNAL_ORGANIZATION_IDS',
       'POSTHOG_HOST',
       'POSTHOG_PROJECT_API_KEY',
       'VERSION',
