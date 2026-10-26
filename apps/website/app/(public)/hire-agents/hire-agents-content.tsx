@@ -195,6 +195,9 @@ export default function HireAgentsContent() {
                   <Text as="p" className="text-lg font-bold text-surface">
                     {step.label}
                   </Text>
+                  <Text as="p" color="muted" className="text-sm">
+                    {step.sublabel}
+                  </Text>
                 </div>
               );
             })}
