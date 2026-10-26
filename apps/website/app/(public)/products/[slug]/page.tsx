@@ -29,7 +29,7 @@ const generateBaseMetadata = createDynamicPageMetadata(
   'slug',
   (slug) => getAppProductBySlug(slug)?.seoTitle ?? 'Product',
   (slug) => `/products/${slug}`,
-  (slug) => getAppProductBySlug(slug)?.description,
+  (slug) => getAppProductBySlug(slug)?.description ?? 'Genfeed product page.',
 );
 
 export async function generateMetadata(
