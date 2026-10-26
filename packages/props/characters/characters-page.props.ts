@@ -6,6 +6,7 @@ import type {
   CharacterGrantItem,
   CharacterReferenceItem,
   GrantableOrganization,
+  IIngredient,
 } from '@genfeedai/contracts/interfaces';
 
 export interface CharacterBrandOption {
@@ -162,4 +163,12 @@ export interface BrandDeleteBlockedDialogProps {
   characters: BlockedCharacter[];
   onClose: () => void;
   orgSlug?: string;
+}
+
+export interface CharacterImageProps {
+  alt: string;
+  className?: string;
+  ingredient: IIngredient | undefined;
+  size: number;
+  title?: string;
 }

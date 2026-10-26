@@ -1,6 +1,5 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
@@ -8,16 +7,9 @@ import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
+import type { CharacterImageProps } from '@props/characters/characters-page.props';
 import { ImageOff } from 'lucide-react';
 import Image from 'next/image';
-
-interface CharacterImageProps {
-  alt: string;
-  className?: string;
-  ingredient: IIngredient | undefined;
-  size: number;
-  title?: string;
-}
 
 /** A character avatar or reference, shown through the media grant the API issues. */
 export default function CharacterImage({
