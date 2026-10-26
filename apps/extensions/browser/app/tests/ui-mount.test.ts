@@ -148,6 +148,22 @@ describe('mountGenfeedGroup', () => {
     expect(mountGenfeedGroup(submit, [])).toBeNull();
     expect(document.querySelectorAll('[data-genfeed-group]')).toHaveLength(1);
   });
+
+  it('is a round icon in the page text colour beside the submit button', () => {
+    document.body.style.backgroundColor = 'rgb(15, 15, 15)';
+    document.body.style.color = 'rgb(241, 241, 241)';
+    const submit = renderXToolbar();
+    submit.style.backgroundColor = 'rgb(62, 166, 255)';
+
+    const group = mountGenfeedGroup(submit, []) as HTMLElement;
+
+    expect(
+      group.shadowRoot?.querySelector('.trigger')?.classList.contains('icon'),
+    ).toBe(true);
+    expect(group.style.getPropertyValue('--gf-radius')).toBe('18px');
+    expect(group.style.getPropertyValue('--gf-fg')).toBe('rgb(241, 241, 241)');
+    document.body.removeAttribute('style');
+  });
 });
 
 describe('X compose modal', () => {

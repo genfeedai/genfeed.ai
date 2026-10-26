@@ -1,5 +1,6 @@
 import type { PlatformConfig } from '~platforms/config';
 import { createGenfeedGroup, GROUP_ATTRIBUTE } from '~platforms/ui/menu';
+import { readHostPalette } from '~theme/host-palette';
 import type { ButtonSkin, MenuGroupSpec } from '~types/genfeed-menu';
 
 const DEFAULT_HEIGHT_PX = 36;
@@ -199,7 +200,22 @@ function findMountSlot(
   return {
     anchor: findRowAnchor(submit, boundary),
     isAfter: false,
-    skin: measureSkin(submit),
+    skin: besideSubmitSkin(submit),
+  };
+}
+
+/**
+ * Next to a submit button the group is a round icon in the page's text colour,
+ * level with the button. Copying the button's own fill would make the group
+ * change whenever the site greys the button out until something is typed.
+ */
+function besideSubmitSkin(submit: Element): ButtonSkin {
+  const { height } = measureSkin(submit);
+  return {
+    color: readHostPalette()?.text ?? getComputedStyle(submit).color,
+    height,
+    isIcon: true,
+    radius: height / 2,
   };
 }
 
