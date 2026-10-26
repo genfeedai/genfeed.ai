@@ -623,7 +623,6 @@
     "packages/ui/src/components/workflow-builder/WorkflowToolbar.tsx": 12,
     "packages/ui/src/dashboard/SurfaceSummaryStrip.tsx": 2,
     "packages/ui/src/issues/PriorityIcon.tsx": 4,
-    "packages/ui/src/modals/compound/Modal.tsx": 1,
     "packages/ui/src/primitives/breadcrumb.tsx": 2,
     "packages/ui/src/primitives/color-picker.tsx": 1,
     "packages/ui/src/primitives/date-time-picker.tsx": 3,

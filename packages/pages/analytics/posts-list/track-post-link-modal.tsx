@@ -5,8 +5,16 @@ import type { TrackPostLinkModalProps } from '@genfeedai/props/analytics/track-p
 import { PostAnalyticsService } from '@genfeedai/services/analytics/publication-analytics.service';
 import { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -60,13 +68,13 @@ export default function TrackPostLinkModal({
   }
 
   return (
-    <Modal.Root
+    <Dialog
       open
       onOpenChange={(isOpen) => {
         if (!isOpen && !isSubmitting) onClose();
       }}
     >
-      <Modal.Content
+      <DialogContent
         size="md"
         onCloseAutoFocus={(event) => {
           const trigger = triggerRef?.current;
@@ -82,11 +90,11 @@ export default function TrackPostLinkModal({
           trigger.focus({ preventScroll: true });
         }}
       >
-        <Modal.Header>
-          <Modal.Title>{translate('title')}</Modal.Title>
-          <Modal.Description>{translate('description')}</Modal.Description>
-        </Modal.Header>
-        <Modal.Body>
+        <DialogHeader>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
+        </DialogHeader>
+        <DialogBody>
           <Form onSubmit={submit}>
             <Field label={translate('url')} isRequired>
               <Input
@@ -137,7 +145,7 @@ export default function TrackPostLinkModal({
                 {error}
               </p>
             ) : null}
-            <Modal.Footer>
+            <DialogFooter>
               <Button
                 type="button"
                 label={translate('cancel')}
@@ -153,10 +161,10 @@ export default function TrackPostLinkModal({
                 isLoading={isSubmitting}
                 isDisabled={isSubmitting || !url.trim()}
               />
-            </Modal.Footer>
+            </DialogFooter>
           </Form>
-        </Modal.Body>
-      </Modal.Content>
-    </Modal.Root>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

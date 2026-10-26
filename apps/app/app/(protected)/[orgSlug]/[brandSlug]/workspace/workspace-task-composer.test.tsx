@@ -213,37 +213,39 @@ vi.mock('@tiptap/react', () => ({
   },
 }));
 
-vi.mock('@ui/modals/compound/modal.compound', () => ({
-  Modal: {
-    Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    CloseButton: ({ children }: { children: ReactNode }) => <>{children}</>,
-    Content: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    Description: ({ children }: { children: ReactNode }) => <p>{children}</p>,
-    Footer: ({ children }: { children: ReactNode }) => (
-      <footer>{children}</footer>
-    ),
-    Header: ({ children }: { children: ReactNode }) => (
-      <header>{children}</header>
-    ),
-    Root: ({
-      children,
-      onOpenChange,
-      open,
-    }: {
-      children: ReactNode;
-      onOpenChange: (open: boolean) => void;
-      open: boolean;
-    }) =>
-      open ? (
-        <section role="dialog">
-          <button type="button" onClick={() => onOpenChange(false)}>
-            Mock Close
-          </button>
-          {children}
-        </section>
-      ) : null,
-    Title: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
-  },
+vi.mock('@ui/primitives/dialog', () => ({
+  Dialog: ({
+    children,
+    onOpenChange,
+    open,
+  }: {
+    children: ReactNode;
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
+  }) =>
+    open ? (
+      <section role="dialog">
+        <button type="button" onClick={() => onOpenChange(false)}>
+          Mock Close
+        </button>
+        {children}
+      </section>
+    ) : null,
+  DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogClose: ({ children }: { children: ReactNode }) => <>{children}</>,
+  DialogContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  DialogFooter: ({ children }: { children: ReactNode }) => (
+    <footer>{children}</footer>
+  ),
+  DialogHeader: ({ children }: { children: ReactNode }) => (
+    <header>{children}</header>
+  ),
+  DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({

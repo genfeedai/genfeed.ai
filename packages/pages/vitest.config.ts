@@ -4,7 +4,7 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-const require = createRequire(import.meta.url);
+const _require = createRequire(import.meta.url);
 const repoRoot = path.resolve(__dirname, '../..');
 const pagesRoot = path.resolve(__dirname);
 const appRoot = path.resolve(repoRoot, './apps/app');
@@ -390,14 +390,6 @@ export default defineConfig({
       {
         find: /^@services\/(.*)$/,
         replacement: path.resolve(packageRoot('services'), '$1'),
-      },
-      {
-        find: /^@ui\/modals\/compound$/,
-        replacement: path.resolve(packageSrc('ui'), './modals/compound'),
-      },
-      {
-        find: /^@ui\/modals\/compound\/(.*)$/,
-        replacement: path.resolve(packageSrc('ui'), './modals/compound/$1'),
       },
       {
         find: /^@ui\/primitives$/,

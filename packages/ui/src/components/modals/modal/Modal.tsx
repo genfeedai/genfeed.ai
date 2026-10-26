@@ -8,13 +8,19 @@ import {
   subscribeModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
-import { Modal as CompoundModal } from '@ui/modals/compound/modal.compound';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
 /**
- * Backward-compatible modal wrapper built on top of the compound modal system.
- * Uses store-backed modal state via modal.helper APIs.
+ * Dialog opened by id through the modal.helper store, so any surface can open
+ * it with `openModal(id)`. Renders the shared Dialog primitives.
  */
 export default function Modal({
   id,
@@ -63,8 +69,8 @@ export default function Modal({
   }, [isOpen]);
 
   return (
-    <CompoundModal.Root open={isOpen} onOpenChange={handleOpenChange}>
-      <CompoundModal.Content
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent
         aria-describedby={undefined}
         onOpenAutoFocus={() => {
           returnFocusRef.current =
@@ -90,24 +96,21 @@ export default function Modal({
         }}
         size={isFullScreen ? 'full' : size}
         className={cn(
-          // Error dialogs keep normal shell chrome — no red outer ring/border.
-          // Severity is carried by the message row, not the dialog frame.
-          isError && 'bg-card text-foreground',
+          // Error dialogs keep the normal chrome; severity is carried by the
+          // message row, not the dialog frame.
           modalBoxClassName,
         )}
         showCloseButton={showCloseButton}
       >
         {!title && !error && (
-          <CompoundModal.Header className="sr-only">
-            <CompoundModal.Title>
-              {accessibleTitle ?? 'Dialog'}
-            </CompoundModal.Title>
-          </CompoundModal.Header>
+          <DialogHeader className="sr-only">
+            <DialogTitle>{accessibleTitle ?? 'Dialog'}</DialogTitle>
+          </DialogHeader>
         )}
 
         {(title || error) && (
-          <CompoundModal.Header>
-            {title && <CompoundModal.Title>{title}</CompoundModal.Title>}
+          <DialogHeader>
+            {title && <DialogTitle>{title}</DialogTitle>}
 
             {error && (
               <div
@@ -123,16 +126,11 @@ export default function Modal({
                 <span>{error}</span>
               </div>
             )}
-          </CompoundModal.Header>
+          </DialogHeader>
         )}
 
-        <CompoundModal.Body
-          // Match the spacing of forms inside the shared scroll region.
-          className="flex flex-col gap-4 py-0"
-        >
-          {children}
-        </CompoundModal.Body>
-      </CompoundModal.Content>
-    </CompoundModal.Root>
+        <DialogBody className="flex flex-col gap-4">{children}</DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

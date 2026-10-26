@@ -3,8 +3,15 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { ModalTwitterThreadProps } from '@genfeedai/props/modals/modal-twitter-thread.props';
 import Badge from '@ui/display/badge/Badge';
-import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { X } from 'lucide-react';
 
 export default function ModalTwitterThread({
@@ -32,7 +39,7 @@ export default function ModalTwitterThread({
   }
 
   return (
-    <Modal.Root
+    <Dialog
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
@@ -40,17 +47,17 @@ export default function ModalTwitterThread({
         }
       }}
     >
-      <Modal.Content size="lg" className="w-full max-w-2xl">
-        <Modal.Header>
-          <Modal.Title className="font-bold text-lg">
+      <DialogContent size="lg" className="w-full max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="font-bold text-lg">
             Twitter Thread Preview{' '}
             <Badge variant="outline" size={ComponentSize.SM}>
               {thread.totalTweets} tweets
             </Badge>
-          </Modal.Title>
-        </Modal.Header>
+          </DialogTitle>
+        </DialogHeader>
 
-        <Modal.Body className="max-h-96">
+        <DialogBody className="max-h-96">
           <div className="space-y-3">
             {thread.tweets.map((tweet) => (
               <div key={tweet.order} className="p-4 bg-secondary shadow-border">
@@ -66,9 +73,9 @@ export default function ModalTwitterThread({
               </div>
             ))}
           </div>
-        </Modal.Body>
+        </DialogBody>
 
-        <Modal.Footer>
+        <DialogFooter>
           <Button
             label="Close"
             variant={ButtonVariant.GHOST}
@@ -81,8 +88,8 @@ export default function ModalTwitterThread({
             variant={ButtonVariant.DEFAULT}
             onClick={handleCopyAll}
           />
-        </Modal.Footer>
-      </Modal.Content>
-    </Modal.Root>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

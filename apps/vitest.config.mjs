@@ -514,20 +514,6 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/ui/src/semantic/$1'),
       },
       {
-        find: /^@ui\/modals\/compound$/,
-        replacement: path.resolve(
-          repoRoot,
-          './packages/ui/src/modals/compound',
-        ),
-      },
-      {
-        find: /^@ui\/modals\/compound\/(.*)$/,
-        replacement: path.resolve(
-          repoRoot,
-          './packages/ui/src/modals/compound/$1',
-        ),
-      },
-      {
         find: /^@ui\/charts$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/charts.ts'),
       },

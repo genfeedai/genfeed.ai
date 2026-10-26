@@ -5,9 +5,10 @@ import { globSync } from 'glob';
 const ROOT = process.cwd();
 
 const INCLUDE_GLOBS = [
-  'packages/ui/modals/**/*.{ts,tsx,js,jsx}',
-  'packages/hooks/ui/use-modal*/**/*.{ts,tsx,js,jsx}',
-  'packages/helpers/src/ui/modal/**/*.{ts,tsx,js,jsx}',
+  'apps/*/app/**/*.{ts,tsx}',
+  'apps/*/src/**/*.{ts,tsx}',
+  'apps/*/packages/**/*.{ts,tsx}',
+  'packages/*/**/*.{ts,tsx}',
 ];
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
@@ -15,20 +16,20 @@ const EXCLUDE_GLOBS = [
   '**/*.mdx',
   '**/*.md',
   '**/node_modules/**',
+  '**/*.d.ts',
   '**/dist/**',
   '**/.next/**',
   '**/.turbo/**',
 ];
 
 const ALLOWED_DIALOG_IMPORT_PATH_SEGMENTS = [
-  '/packages/ui/primitives/dialog.tsx',
-  '/packages/ui/primitives/sheet.tsx',
-  '/packages/ui/modals/compound/Modal.tsx',
+  '/packages/ui/src/primitives/dialog.tsx',
+  '/packages/ui/src/primitives/sheet.tsx',
+  '/packages/ui/src/primitives/command.tsx',
 ];
 
 const SHOW_MODAL_PATTERN = /\bshowModal\s*\(/g;
-const DIALOG_IMPORT_PATTERN =
-  /from\s+['"]@radix-ui\/react-dialog['"]|from\s+['"]@ui\/primitives\/dialog['"]/g;
+const DIALOG_IMPORT_PATTERN = /from\s+['"]@radix-ui\/react-dialog['"]/g;
 
 type Violation = {
   file: string;
@@ -71,7 +72,7 @@ function findViolations(filePath: string): Violation[] {
         file: path.relative(ROOT, filePath),
         line,
         reason:
-          'Direct dialog imports are restricted. Use `@ui/modals/compound/Modal` or approved primitives.',
+          'Direct Radix dialog imports are restricted. Use the shared `@ui/primitives/dialog` (Dialog, DialogContent, DialogBody, DialogFooter).',
       });
     }
   }

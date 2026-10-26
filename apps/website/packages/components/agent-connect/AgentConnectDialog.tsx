@@ -12,7 +12,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentConnectDialogProps } from '@props/agent-client.props';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
-import { Modal } from '@ui/modals/compound';
 import {
   Accordion,
   AccordionContent,
@@ -20,6 +19,14 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ExternalLink } from 'lucide-react';
@@ -84,8 +91,8 @@ export default function AgentConnectDialog({
   }
 
   return (
-    <Modal.Root open={open} onOpenChange={onOpenChange}>
-      <Modal.Content
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         className={
           client
             ? 'h-[min(42rem,90dvh)] w-[calc(100%-2rem)]'
@@ -97,15 +104,15 @@ export default function AgentConnectDialog({
         }}
         size={client ? 'xl' : 'lg'}
       >
-        <Modal.Header className="pr-6 text-left">
-          <Modal.Title>Connect your agent</Modal.Title>
-          <Modal.Description>
+        <DialogHeader className="pr-6 text-left">
+          <DialogTitle>Connect your agent</DialogTitle>
+          <DialogDescription>
             {client
               ? `Set up Genfeed in ${client.name}.`
               : 'Use Genfeed from the agent you already work with.'}
-          </Modal.Description>
-        </Modal.Header>
-        <Modal.Body
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody
           className={
             client
               ? 'flex min-w-0 flex-col gap-5 overflow-hidden py-0 sm:flex-row'
@@ -164,7 +171,7 @@ export default function AgentConnectDialog({
             ))}
           </nav>
           {client ? (
-            <Modal.Body
+            <DialogBody
               className="min-w-0 py-0 sm:border-l sm:border-edge/10 sm:pl-5"
               key={family?.name}
             >
@@ -324,10 +331,10 @@ export default function AgentConnectDialog({
                   </Accordion>
                 </TabsContent>
               </Tabs>
-            </Modal.Body>
+            </DialogBody>
           ) : null}
-        </Modal.Body>
-      </Modal.Content>
-    </Modal.Root>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

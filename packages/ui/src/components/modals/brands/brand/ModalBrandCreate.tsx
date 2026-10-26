@@ -3,8 +3,17 @@
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ModalBrandCreateProps } from '@genfeedai/props/modals/modal.props';
 import Alert from '@ui/feedback/alert/Alert';
-import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -41,7 +50,7 @@ export default function ModalBrandCreate({
   const isBusy = isSubmitting || isLoadingWebsite;
 
   return (
-    <Modal.Root
+    <Dialog
       open={isOpen}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -49,17 +58,17 @@ export default function ModalBrandCreate({
         }
       }}
     >
-      <Modal.Content
+      <DialogContent
         size="md"
         className="border-white/10 bg-secondary"
         aria-describedby="brand-create-description"
       >
-        <Modal.Header>
-          <Modal.Title>{translate('title')}</Modal.Title>
-          <Modal.Description id="brand-create-description">
+        <DialogHeader>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription id="brand-create-description">
             {translate('description')}
-          </Modal.Description>
-        </Modal.Header>
+          </DialogDescription>
+        </DialogHeader>
 
         <Form
           className="flex min-h-0 flex-1 flex-col"
@@ -72,7 +81,7 @@ export default function ModalBrandCreate({
             void onSubmit(event);
           }}
         >
-          <Modal.Body className="space-y-4">
+          <DialogBody className="space-y-4">
             {error ? (
               <Alert type={AlertCategory.ERROR}>
                 <div className="space-y-1">{error}</div>
@@ -159,14 +168,14 @@ export default function ModalBrandCreate({
                 isDisabled={isBusy}
               />
             </FormControl>
-          </Modal.Body>
+          </DialogBody>
 
-          <Modal.Footer>
-            <Modal.CloseButton asChild>
+          <DialogFooter>
+            <DialogClose asChild>
               <Button variant={ButtonVariant.SECONDARY} disabled={isBusy}>
                 {translate('cancel')}
               </Button>
-            </Modal.CloseButton>
+            </DialogClose>
             <Button
               type="submit"
               variant={ButtonVariant.DEFAULT}
@@ -174,9 +183,9 @@ export default function ModalBrandCreate({
             >
               {isSubmitting ? translate('submitting') : translate('submit')}
             </Button>
-          </Modal.Footer>
+          </DialogFooter>
         </Form>
-      </Modal.Content>
-    </Modal.Root>
+      </DialogContent>
+    </Dialog>
   );
 }

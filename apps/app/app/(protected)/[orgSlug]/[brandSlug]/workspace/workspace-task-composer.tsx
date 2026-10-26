@@ -1,8 +1,17 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskComposerProps } from '@props/workspace/workspace-task-composer.props';
-import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { useTranslations } from 'next-intl';
@@ -56,14 +65,14 @@ export function WorkspaceTaskComposer({
   const translate = useTranslations('common.taskComposer');
 
   return (
-    <Modal.Root open={open} onOpenChange={handleModalOpenChange}>
-      <Modal.Content size="lg" className="border-border bg-secondary">
-        <Modal.Header>
-          <Modal.Title>{translate('title')}</Modal.Title>
-          <Modal.Description>{translate('description')}</Modal.Description>
-        </Modal.Header>
+    <Dialog open={open} onOpenChange={handleModalOpenChange}>
+      <DialogContent size="lg" className="border-border bg-secondary">
+        <DialogHeader>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
+        </DialogHeader>
 
-        <Modal.Body className="space-y-4">
+        <DialogBody className="space-y-4">
           <WorkspaceTaskBrandField
             editor={taskTargetEditor}
             onClear={handleClearTargetBrand}
@@ -130,20 +139,20 @@ export function WorkspaceTaskComposer({
               voices={facecamVoices}
             />
           ) : null}
-        </Modal.Body>
+        </DialogBody>
 
-        <Modal.Footer>
+        <DialogFooter>
           <Checkbox
             isChecked={taskKeepOpen}
             label={translate('keepOpen')}
             className="mr-auto text-xs text-foreground/50"
             onCheckedChange={handleKeepOpenChange}
           />
-          <Modal.CloseButton asChild>
+          <DialogClose asChild>
             <Button variant={ButtonVariant.SECONDARY} disabled={taskBusy}>
               {translate('cancel')}
             </Button>
-          </Modal.CloseButton>
+          </DialogClose>
           <Button
             variant={ButtonVariant.DEFAULT}
             disabled={taskBusy}
@@ -156,8 +165,8 @@ export function WorkspaceTaskComposer({
               </span>
             )}
           </Button>
-        </Modal.Footer>
-      </Modal.Content>
-    </Modal.Root>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

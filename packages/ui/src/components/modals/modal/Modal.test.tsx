@@ -119,7 +119,7 @@ describe('Modal', () => {
     );
     triggerOpen('modal-scroll');
 
-    expect(screen.getByRole('dialog')).toHaveClass('overflow-hidden');
+    expect(screen.getByRole('dialog')).toHaveClass('max-h-[90dvh]');
     expect(
       screen
         .getByText('Long modal content')

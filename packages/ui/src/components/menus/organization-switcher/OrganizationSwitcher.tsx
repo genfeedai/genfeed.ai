@@ -23,8 +23,17 @@ import {
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
-import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -174,7 +183,7 @@ export default function OrganizationSwitcher({
       />
 
       {/* Create Organization Modal */}
-      <Modal.Root open={createModal.isOpen} onOpenChange={createModal.setOpen}>
+      <Dialog open={createModal.isOpen} onOpenChange={createModal.setOpen}>
         {/*
           Don't restore focus to the "New Organization" footer button on close —
           Radix's default focus return leaves a blue :focus-visible ring on that
@@ -182,18 +191,18 @@ export default function OrganizationSwitcher({
           globally and never returns focus to its button, so it has no such ring;
           this mirrors that behavior.
         */}
-        <Modal.Content
+        <DialogContent
           size="sm"
           onCloseAutoFocus={(event) => event.preventDefault()}
         >
-          <Modal.Header>
-            <Modal.Title>{translateCreate('title')}</Modal.Title>
-            <Modal.Description>
+          <DialogHeader>
+            <DialogTitle>{translateCreate('title')}</DialogTitle>
+            <DialogDescription>
               {translateCreate('description')}
-            </Modal.Description>
-          </Modal.Header>
+            </DialogDescription>
+          </DialogHeader>
 
-          <Modal.Body>
+          <DialogBody>
             <Form
               id={CREATE_ORGANIZATION_FORM_ID}
               noValidate
@@ -262,10 +271,10 @@ export default function OrganizationSwitcher({
                 </p>
               )}
             </Form>
-          </Modal.Body>
+          </DialogBody>
 
-          <Modal.Footer>
-            <Modal.CloseButton asChild>
+          <DialogFooter>
+            <DialogClose asChild>
               <Button
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
@@ -273,7 +282,7 @@ export default function OrganizationSwitcher({
               >
                 {translateCreate('cancel')}
               </Button>
-            </Modal.CloseButton>
+            </DialogClose>
             <Button
               type="submit"
               form={CREATE_ORGANIZATION_FORM_ID}
@@ -286,9 +295,9 @@ export default function OrganizationSwitcher({
                 ? translateCreate('creating')
                 : translateCreate('create')}
             </Button>
-          </Modal.Footer>
-        </Modal.Content>
-      </Modal.Root>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

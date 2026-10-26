@@ -119,8 +119,6 @@ export { IssueRow } from './issues/IssueRow';
 export { PriorityIcon } from './issues/PriorityIcon';
 export { StatusIcon } from './issues/StatusIcon';
 export { useMounted } from './lib/hooks';
-export type { ModalContentProps, ModalSize } from './modals/compound/Modal';
-export { Modal } from './modals/compound/modal.compound';
 // Primitives (Radix UI based)
 export * from './primitives';
 export type { ConversationSidebarFilter } from './sidebar/ConversationSidebar';
