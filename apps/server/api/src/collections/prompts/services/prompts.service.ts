@@ -5,6 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import type { PromptRenderTarget } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -47,6 +48,8 @@ const PROMPT_SCALAR_FIELDS = [
 type PromptCreateInput = CreatePromptDto & {
   articleId?: string | null;
   ingredientId?: string | null;
+  renderTarget?: PromptRenderTarget;
+  renderedPrompt?: string;
 };
 
 @Injectable()

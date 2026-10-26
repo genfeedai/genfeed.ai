@@ -21,10 +21,10 @@ export interface PromptSlotColumns {
 }
 
 /** A prompt row's record of the text that was sent for its slots. */
-export interface PromptRenderRecord {
+export type PromptRenderRecord = {
   renderTarget: PromptRenderTarget;
   renderedPrompt: string;
-}
+};
 
 /**
  * The request's structured slots as prompt columns. Empty slots are left out,
