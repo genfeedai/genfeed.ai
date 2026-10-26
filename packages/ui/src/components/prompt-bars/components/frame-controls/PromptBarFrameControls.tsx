@@ -5,25 +5,11 @@ import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
+import PromptBarReferenceThumbnail from '@ui/prompt-bars/components/reference-thumbnail/PromptBarReferenceThumbnail';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ImageIcon, Tv, Upload, X } from 'lucide-react';
-import Image from 'next/image';
 import { type MouseEvent, memo, useContext } from 'react';
-
-function getImageUrl(
-  asset: MediaReference,
-  referenceSource: 'brand' | 'ingredient' | '',
-): string {
-  if ('ingredientUrl' in asset && asset.ingredientUrl) {
-    return asset.ingredientUrl;
-  }
-
-  const endpoint = EnvironmentService.ingredientsEndpoint;
-  const path = referenceSource === 'brand' ? 'references' : 'images';
-  return `${endpoint}/${path}/${asset.id}`;
-}
 
 function getStartFrameLabel(
   isVideoModel: boolean,
@@ -306,14 +292,13 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
         icon={
           references.length > 0 ? (
             <div className="relative size-10 group">
-              <Image
-                src={getImageUrl(references[0], referenceSource)}
+              <PromptBarReferenceThumbnail
                 alt={isVideoModel ? 'Start Frame' : 'Reference'}
                 className="size-full object-cover outline-media"
-                width={40}
-                height={40}
-                sizes="40px"
-                priority
+                isPriority
+                reference={references[0]}
+                referenceSource={referenceSource}
+                size={40}
               />
               {references.length > 1 && (
                 <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-2xs font-bold size-4 rounded-tl flex items-center justify-center tabular-nums">
@@ -342,14 +327,13 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
           icon={
             endFrame ? (
               <div className="relative size-10 group">
-                <Image
-                  src={getImageUrl(endFrame, 'ingredient')}
+                <PromptBarReferenceThumbnail
                   alt="End Frame"
                   className="size-full object-cover outline-media"
-                  width={40}
-                  height={40}
-                  sizes="40px"
-                  priority
+                  isPriority
+                  reference={endFrame}
+                  referenceSource="ingredient"
+                  size={40}
                 />
                 <ClearButton onClick={clearEndFrame} title="Clear end frame" />
               </div>

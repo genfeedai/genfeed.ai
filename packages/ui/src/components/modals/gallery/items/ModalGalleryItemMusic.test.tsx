@@ -5,6 +5,14 @@ import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusi
 import type { MouseEvent, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+const grantMock = vi.hoisted(() => ({
+  grant: null as { url: string | null } | null,
+}));
+
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: () => grantMock.grant,
+}));
+
 vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   default: ({ audioUrl, label, stopOnUnmount }: AudioPreviewPlayerProps) => (
     <button
@@ -109,16 +117,25 @@ describe('ModalGalleryItemMusic', () => {
     expect(container.querySelector('button button')).toBeNull();
   });
 
-  it('uses fallback URL when ingredientUrl is not provided', () => {
+  it('plays from the issued media grant when there is one', () => {
+    grantMock.grant = { url: 'https://signed.example.com/music-1?sig=1' };
+    render(<ModalGalleryItemMusic {...defaultProps} />);
+    expect(screen.getByTestId('shared-audio-player')).toHaveAttribute(
+      'data-url',
+      'https://signed.example.com/music-1?sig=1',
+    );
+    grantMock.grant = null;
+  });
+
+  it('has no audio URL instead of a raw CDN path when none is available', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
         music={{ ...defaultProps.music, ingredientUrl: undefined }}
       />,
     );
-    expect(screen.getByTestId('shared-audio-player')).toHaveAttribute(
+    expect(screen.getByTestId('shared-audio-player')).not.toHaveAttribute(
       'data-url',
-      'http://api.example.com/ingredients/musics/music-1',
     );
   });
 
