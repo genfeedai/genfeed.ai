@@ -9,6 +9,7 @@ import { ThreadList } from '~components/history/ThreadList';
 import { type ActiveTab, SidebarNav } from '~components/navigation/SidebarNav';
 import { ImportedSourcesPage } from '~components/pages/ImportedSourcesPage';
 import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
+import LoginPage from '~components/pages/LoginPage';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { OrganizationSelector } from '~components/settings/OrganizationSelector';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
@@ -35,7 +36,7 @@ initializeErrorTracking('sidepanel');
 type AuthPanelState =
   | { status: 'syncing'; error: null }
   | { status: 'authenticated'; error: null }
-  | { status: 'blocked'; error: string };
+  | { status: 'blocked'; error: string; isSignedOut: boolean };
 
 interface PanelState {
   activeTab: ActiveTab;
@@ -195,7 +196,11 @@ function SidePanelContent() {
     workspace.status === 'ready'
       ? { status: 'authenticated', error: null }
       : workspace.status === 'blocked'
-        ? { status: 'blocked', error: workspace.error }
+        ? {
+            status: 'blocked',
+            error: workspace.error,
+            isSignedOut: workspace.isSignedOut === true,
+          }
         : { status: 'syncing', error: null };
   const retryAuth = () => {
     void loadWorkspace({ forceRefresh: true }).catch(() => undefined);
@@ -256,7 +261,11 @@ function SidePanelContent() {
   }
 
   const recovery =
-    authState.status === 'blocked' ? (
+    authState.status === 'blocked' && authState.isSignedOut ? (
+      <div className="h-screen overflow-y-auto bg-background">
+        <LoginPage />
+      </div>
+    ) : authState.status === 'blocked' ? (
       <div className="flex h-screen flex-col items-center justify-center gap-3 bg-background p-6">
         <p role="alert" className="text-sm text-muted-foreground">
           {authState.error}

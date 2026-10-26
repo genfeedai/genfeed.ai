@@ -229,6 +229,7 @@ describe('verified extension workspace', () => {
       '503',
     );
     expect(service.getWorkspaceState().status).toBe('blocked');
+    expect(service.getWorkspaceState()).toMatchObject({ isSignedOut: false });
     expect((await service.loadWorkspace({ forceRefresh: true })).revision).toBe(
       initial.revision,
     );
@@ -236,6 +237,10 @@ describe('verified extension workspace', () => {
     await expect(service.loadWorkspace({ forceRefresh: true })).rejects.toThrow(
       'expired',
     );
+    expect(service.getWorkspaceState()).toMatchObject({
+      status: 'blocked',
+      isSignedOut: true,
+    });
     expect(() => service.assertWorkspace(initial)).toThrow('workspace changed');
   });
 });

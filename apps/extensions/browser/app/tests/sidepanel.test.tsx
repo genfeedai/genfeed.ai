@@ -74,6 +74,9 @@ vi.mock('~hooks/use-account-theme-sync', () => ({
 vi.mock('~components/settings/BrandSelector', () => ({
   BrandSelector: () => null,
 }));
+vi.mock('~components/pages/LoginPage', () => ({
+  default: () => <div>Login Page</div>,
+}));
 vi.mock('~components/pages/ImportedSourcesPage', () => ({
   ImportedSourcesPage: () => null,
 }));
@@ -119,6 +122,17 @@ describe('SidePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Composer ready')).toBeInTheDocument();
     expect(auth.getAuthContext).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the sign-in screen instead of an error when signed out', async () => {
+    auth.getAuthContext.mockRejectedValue(
+      new Error(
+        'Your Genfeed session expired. Sign in in the web app, then retry.',
+      ),
+    );
+    render(<SidePanel />);
+    expect(await screen.findByText('Login Page')).toBeInTheDocument();
+    expect(screen.queryByText(/session expired/)).not.toBeInTheDocument();
   });
 
   it('opens the configured web app from the blocked panel', async () => {
@@ -291,6 +305,7 @@ vi.mock('~services/workspace.service', () => {
             error instanceof TypeError
               ? 'Could not connect to Genfeed. Retry.'
               : (error as Error).message,
+          isSignedOut: /Genfeed session expired/.test((error as Error).message),
         };
       }
       for (const listener of listeners) listener();

@@ -23,7 +23,7 @@ export type ExtensionWorkspaceState =
   | { status: 'loading' }
   | { status: 'refreshing'; snapshot: ExtensionWorkspaceSnapshot }
   | { status: 'ready'; snapshot: ExtensionWorkspaceSnapshot }
-  | { status: 'blocked'; error: string };
+  | { status: 'blocked'; error: string; isSignedOut?: boolean };
 export interface ExtensionWorkspaceLoadOptions {
   forceRefresh?: boolean;
   isStoredSelectionPreferred?: boolean;
