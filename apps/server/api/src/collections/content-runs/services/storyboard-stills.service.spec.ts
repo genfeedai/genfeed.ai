@@ -180,6 +180,9 @@ function setup(initial: StoryboardNativeRunConfig = draftConfig()) {
   const credits = {
     settleReservation: vi.fn(async () => ({})),
     releaseReservation: vi.fn(async () => ({})),
+    findReservationForWorkload: vi.fn(
+      async () => null as { id: string } | null,
+    ),
   };
   const source = { validatePlanAssets: vi.fn(async () => undefined) };
   const logger = { warn: vi.fn(), error: vi.fn() };
@@ -527,6 +530,53 @@ describe('StoryboardStillsService reconcile', () => {
     expect(config.stillOperations).toEqual([
       expect.objectContaining({ billing: 'settled', state: 'ready' }),
       expect.objectContaining({ billing: 'released', state: 'failed' }),
+    ]);
+  });
+
+  it('finds and releases the hold of a failed still whose journal never recorded it (#7500)', async () => {
+    const context = setup();
+    await quoteAndGenerate(context, ['shot-1']);
+    context.edit((config) => {
+      const [operation] = config.stillOperations ?? [];
+      delete operation.reservationId;
+      operation.billing = 'none';
+    });
+    context.credits.findReservationForWorkload.mockImplementation(
+      async ({ workloadId, workloadType }) =>
+        workloadId.endsWith(
+          context.current().stillOperations?.[0].operationId ?? '',
+        ) && workloadType === 'media-generation-group'
+          ? { id: 'res-unjournaled' }
+          : null,
+    );
+    context.ingredients.set('asset-1', { status: 'FAILED' });
+
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+
+    expect(context.credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'res-unjournaled',
+    });
+    expect(context.current().stillOperations).toEqual([
+      expect.objectContaining({ billing: 'released', state: 'failed' }),
+    ]);
+  });
+
+  it('reports no hold released for a failed still that never had one', async () => {
+    const context = setup();
+    await quoteAndGenerate(context, ['shot-1']);
+    context.edit((config) => {
+      const [operation] = config.stillOperations ?? [];
+      delete operation.reservationId;
+      operation.billing = 'none';
+    });
+    context.ingredients.set('asset-1', { status: 'FAILED' });
+
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+
+    expect(context.credits.releaseReservation).not.toHaveBeenCalled();
+    expect(context.current().stillOperations).toEqual([
+      expect.objectContaining({ billing: 'none', state: 'failed' }),
     ]);
   });
 
