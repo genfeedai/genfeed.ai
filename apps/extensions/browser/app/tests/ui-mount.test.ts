@@ -277,6 +277,18 @@ describe('mayContainSubmit', () => {
     ).toBe(false);
   });
 
+  it('notices the icon row appearing, which is what opens a collapsed composer', () => {
+    document.body.innerHTML =
+      '<div id="holder"><div data-testid="toolBar"></div></div>';
+
+    expect(
+      mayContainSubmit(
+        platforms.twitter,
+        document.getElementById('holder') as Element,
+      ),
+    ).toBe(true);
+  });
+
   it('watches for the reply box on platforms found by label', () => {
     document.body.innerHTML =
       '<div id="holder"><div contenteditable="true" role="textbox"></div></div>';
@@ -363,31 +375,34 @@ describe('mountGenfeedGroup in the X toolbar', () => {
     expect(group?.previousElementSibling?.id).toBe('location-wrap');
   });
 
-  it('keeps the round icon look in a collapsed composer with no icon row yet', () => {
+  it('mounts nothing in a collapsed composer with no icon row yet', () => {
     const { boundary, submit } = renderComposer();
     document.querySelector('[data-testid="toolBar"]')?.remove();
 
-    const group = mountGenfeedGroup(
-      submit,
-      [],
-      boundary,
-      platforms.twitter,
-    ) as HTMLElement;
-
-    expect(group.nextElementSibling?.id).toBe('wrapper');
-    expect(group.style.getPropertyValue('--gf-height')).toBe('36px');
     expect(
-      group.shadowRoot?.querySelector('.trigger')?.classList.contains('icon'),
-    ).toBe(true);
+      mountGenfeedGroup(submit, [], boundary, platforms.twitter),
+    ).toBeNull();
+    expect(document.querySelector('[data-genfeed-group]')).toBeNull();
   });
 
-  it('falls back to the Reply button when the toolbar has no icons', () => {
+  it('removes the group when the composer collapses again', () => {
+    const { boundary, submit } = renderComposer();
+    mountGenfeedGroup(submit, [], boundary, platforms.twitter);
+    expect(document.querySelector('[data-genfeed-group]')).not.toBeNull();
+    document.querySelector('[data-testid="toolBar"]')?.remove();
+
+    mountGenfeedGroup(submit, [], boundary, platforms.twitter);
+
+    expect(document.querySelector('[data-genfeed-group]')).toBeNull();
+  });
+
+  it('mounts nothing while the toolbar has no icons', () => {
     const { boundary, submit } = renderComposer();
     document.getElementById('gif')?.remove();
     document.getElementById('location')?.remove();
 
-    const group = mountGenfeedGroup(submit, [], boundary, platforms.twitter);
-
-    expect(group?.nextElementSibling?.id).toBe('wrapper');
+    expect(
+      mountGenfeedGroup(submit, [], boundary, platforms.twitter),
+    ).toBeNull();
   });
 });

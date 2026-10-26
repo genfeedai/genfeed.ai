@@ -2,6 +2,10 @@ import type { TextActionMode } from '@genfeedai/contracts/interfaces';
 import { captureComposerText } from '~platforms/composer-helpers';
 import { getCurrentPlatform, getPlatformName } from '~platforms/config';
 import {
+  isStaleExtensionError,
+  STALE_EXTENSION_MESSAGE,
+} from '~platforms/extension-context';
+import {
   showTextActionFailure,
   showTextActionPreview,
 } from '~platforms/text-action-preview';
@@ -55,7 +59,11 @@ export async function runPageTextAction(
       response = await chrome.runtime.sendMessage(
         isRetry ? { ...request, retry: true } : request,
       );
-    } catch {
+    } catch (error) {
+      if (isStaleExtensionError(error)) {
+        hooks.notify(STALE_EXTENSION_MESSAGE, true);
+        return;
+      }
       response = undefined;
     }
     if (!response || 'error' in response) {

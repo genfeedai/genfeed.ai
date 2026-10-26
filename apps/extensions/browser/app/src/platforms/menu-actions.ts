@@ -1,5 +1,9 @@
 import { markWrittenByGenfeed } from '~platforms/composer-helpers';
 import type { PlatformConfig } from '~platforms/config';
+import {
+  isStaleExtensionError,
+  STALE_EXTENSION_MESSAGE,
+} from '~platforms/extension-context';
 import { extractPostContext } from '~platforms/post-context';
 import { type ReplyMediaKind, runReplyWithMedia } from '~platforms/reply-media';
 import { createSourceMenuItem } from '~platforms/source-capture-control';
@@ -53,8 +57,13 @@ export function buildMenuGroups({
         if (!result?.success) {
           showToast(result?.error || 'Could not open the reply composer', true);
         }
-      } catch {
-        showToast('Could not open the reply composer', true);
+      } catch (error) {
+        showToast(
+          isStaleExtensionError(error)
+            ? STALE_EXTENSION_MESSAGE
+            : 'Could not open the reply composer',
+          true,
+        );
       }
     },
   };

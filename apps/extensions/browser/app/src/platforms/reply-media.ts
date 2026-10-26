@@ -4,6 +4,10 @@ import {
   markWrittenByGenfeed,
 } from '~platforms/composer-helpers';
 import type { PlatformConfig } from '~platforms/config';
+import {
+  isStaleExtensionError,
+  STALE_EXTENSION_MESSAGE,
+} from '~platforms/extension-context';
 import { attachMediaToComposer } from '~platforms/media-attach';
 import { extractPostContext } from '~platforms/post-context';
 import { showToast } from '~platforms/ui/toast';
@@ -85,14 +89,26 @@ export async function runReplyWithMedia(
   showToast(plan.startToast);
 
   const context = extractPostContext(platform);
-  const response = (await chrome.runtime.sendMessage({
-    ...plan.request(context.content),
-    platform: platformName,
-    postAuthor: context.author,
-    postContent: context.content,
-    postId: window.location.pathname,
-    url: window.location.href,
-  })) as ReplyMediaResponse | undefined;
+  let response: ReplyMediaResponse | undefined;
+  try {
+    response = (await chrome.runtime.sendMessage({
+      ...plan.request(context.content),
+      platform: platformName,
+      postAuthor: context.author,
+      postContent: context.content,
+      postId: window.location.pathname,
+      url: window.location.href,
+    })) as ReplyMediaResponse | undefined;
+  } catch (error) {
+    showToast(
+      isStaleExtensionError(error)
+        ? STALE_EXTENSION_MESSAGE
+        : 'Could not reach Genfeed. Reload the page and try again.',
+      true,
+    );
+    controls.setStatus('error', 'Failed');
+    return;
+  }
 
   if (!response?.success || !response.reply) {
     showToast(response?.error || 'Failed to generate', true);

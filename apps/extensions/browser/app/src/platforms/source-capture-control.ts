@@ -4,6 +4,10 @@ import type {
   SourceSaveResult,
 } from '~models/imported-source.model';
 import type { PlatformConfig } from '~platforms/config';
+import {
+  isStaleExtensionError,
+  STALE_EXTENSION_MESSAGE,
+} from '~platforms/extension-context';
 import { extractSourceCapture } from '~platforms/source-capture-extract';
 import { createIconButton } from '~platforms/ui/icon-button';
 import { icons } from '~platforms/ui/icons';
@@ -88,8 +92,9 @@ export async function savePageSource(): Promise<{
     logger.error('Source capture failed', error);
     return {
       isError: true,
-      message:
-        error instanceof Error && error.message
+      message: isStaleExtensionError(error)
+        ? STALE_EXTENSION_MESSAGE
+        : error instanceof Error && error.message
           ? error.message
           : 'Could not save this source.',
     };

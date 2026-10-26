@@ -162,6 +162,19 @@ describe('page text action flow', () => {
     );
   });
 
+  it('tells the user to reload when the extension was updated under the page', async () => {
+    vi.mocked(chrome.runtime.sendMessage).mockRejectedValue(
+      new Error('Extension context invalidated.'),
+    );
+
+    await runPageTextAction('proofread', hooks);
+
+    expect(hooks.notify).toHaveBeenLastCalledWith(
+      'Genfeed was updated. Reload this page to keep using it.',
+      true,
+    );
+  });
+
   it('asks for text before calling the background', async () => {
     composer().value = '   ';
 
