@@ -3,8 +3,9 @@ import {
   GENFEED_HOST_ATTRIBUTE,
 } from '~theme/content-theme';
 
+// TwitterChirp is X's own face; other sites fall through to the system stack.
 export const GENFEED_FONT_STACK =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 /** Theme tokens shared by every Genfeed surface injected into a page. */
 export const GENFEED_TOKENS_CSS = `

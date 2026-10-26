@@ -1,3 +1,5 @@
+import { GENFEED_FONT_STACK } from '~platforms/ui/tokens';
+
 const STYLE_ID = 'genfeed-extension-styles';
 
 // The hover actions on a post's image sit inside X's own image container, so
@@ -17,7 +19,8 @@ const IMAGE_OVERLAY_CSS = `
     display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px;
     border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(15, 20, 25, 0.88); color: #fff;
-    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: ${GENFEED_FONT_STACK}; font-size: 13px; line-height: 16px;
+    font-weight: 600; cursor: pointer;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); transition: all 0.2s ease;
   }
 

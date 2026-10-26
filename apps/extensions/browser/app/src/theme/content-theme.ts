@@ -23,15 +23,16 @@ const HOST_PALETTE_PROPERTIES = Object.keys(
 );
 
 /**
- * With no explicit choice in the extension's settings, a Genfeed surface takes
- * the colours of the page it sits on (X's Dim and Lights out are not the
- * operating system's setting). An explicit Light or Dark still wins.
+ * A Genfeed surface injected into a page takes that page's own colours, so on X
+ * it matches Default, Dim or Lights out. The extension's Light/Dark setting
+ * styles the extension's own popup and side panel, and only applies here when
+ * the page paints no background to read.
  */
 function resolvedContentTheme(): {
   palette: ReturnType<typeof readHostPalette>;
   theme: 'light' | 'dark';
 } {
-  const palette = currentPreference === 'system' ? readHostPalette() : null;
+  const palette = readHostPalette();
   if (palette) {
     return { palette, theme: palette.isDark ? 'dark' : 'light' };
   }

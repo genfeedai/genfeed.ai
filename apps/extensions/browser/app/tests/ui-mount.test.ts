@@ -349,6 +349,38 @@ describe('mountGenfeedGroup in the X toolbar', () => {
     ).toBeNull();
   });
 
+  it("skips X's hidden scroller Next button and stays beside the last icon", () => {
+    const { boundary, submit } = renderComposer();
+    const nav = document.createElement('div');
+    nav.setAttribute('data-testid', 'ScrollSnap-nextButtonWrapper');
+    nav.innerHTML = '<button id="next" aria-label="Next">next</button>';
+    document.querySelector('[data-testid="toolBar"]')?.appendChild(nav);
+    (document.getElementById('next') as HTMLElement).getBoundingClientRect =
+      () => ({ height: 34, width: 34 }) as DOMRect;
+
+    const group = mountGenfeedGroup(submit, [], boundary, platforms.twitter);
+
+    expect(group?.previousElementSibling?.id).toBe('location-wrap');
+  });
+
+  it('keeps the round icon look in a collapsed composer with no icon row yet', () => {
+    const { boundary, submit } = renderComposer();
+    document.querySelector('[data-testid="toolBar"]')?.remove();
+
+    const group = mountGenfeedGroup(
+      submit,
+      [],
+      boundary,
+      platforms.twitter,
+    ) as HTMLElement;
+
+    expect(group.nextElementSibling?.id).toBe('wrapper');
+    expect(group.style.getPropertyValue('--gf-height')).toBe('36px');
+    expect(
+      group.shadowRoot?.querySelector('.trigger')?.classList.contains('icon'),
+    ).toBe(true);
+  });
+
   it('falls back to the Reply button when the toolbar has no icons', () => {
     const { boundary, submit } = renderComposer();
     document.getElementById('gif')?.remove();

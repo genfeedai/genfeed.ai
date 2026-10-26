@@ -1,5 +1,6 @@
 import type { PlatformConfig } from '~platforms/config';
 import { createGenfeedGroup, GROUP_ATTRIBUTE } from '~platforms/ui/menu';
+import { readHostPalette } from '~theme/host-palette';
 import type { ButtonSkin, MenuGroupSpec } from '~types/genfeed-menu';
 
 const DEFAULT_HEIGHT_PX = 36;
@@ -132,6 +133,11 @@ export function findComposerScope(
 const ICON_BUTTON_SELECTOR = 'button[aria-label], [role="button"][aria-label]';
 const ICON_SIZE_MIN_PX = 24;
 const ICON_SIZE_MAX_PX = 48;
+// X's icon row is a horizontal scroller with hidden Previous/Next buttons at
+// both ends. They are not composer icons: anchoring after "Next" puts the
+// group past the scroller, at the far end of the row.
+const SCROLLER_NAV_SELECTOR =
+  '[data-testid^="ScrollSnap-"][data-testid$="ButtonWrapper"]';
 
 interface MountSlot {
   anchor: Element;
@@ -149,7 +155,9 @@ function findToolbarIcon(
   if (!toolbar) {
     return null;
   }
-  const icons = Array.from(toolbar.querySelectorAll(ICON_BUTTON_SELECTOR));
+  const icons = Array.from(
+    toolbar.querySelectorAll(ICON_BUTTON_SELECTOR),
+  ).filter((icon) => !icon.closest(SCROLLER_NAV_SELECTOR));
   for (let index = icons.length - 1; index >= 0; index -= 1) {
     const { height } = icons[index].getBoundingClientRect();
     if (height >= ICON_SIZE_MIN_PX && height <= ICON_SIZE_MAX_PX) {
@@ -186,7 +194,23 @@ function findMountSlot(
   return {
     anchor: findRowAnchor(submit, boundary),
     isAfter: false,
-    skin: measureSkin(submit),
+    skin: platform?.selectors.toolbar
+      ? collapsedComposerSkin(submit)
+      : measureSkin(submit),
+  };
+}
+
+/**
+ * A composer with an icon row that is collapsed (X's reply box before it is
+ * focused) has no icons to copy yet. The group still looks the way it will once
+ * the row appears, so the button does not change shape when the user focuses.
+ */
+function collapsedComposerSkin(submit: Element): ButtonSkin {
+  return {
+    color: readHostPalette()?.text ?? getComputedStyle(submit).color,
+    height: DEFAULT_HEIGHT_PX,
+    isIcon: true,
+    radius: DEFAULT_HEIGHT_PX / 2,
   };
 }
 
