@@ -1,9 +1,6 @@
 import type { ContentCampaignMcpInput } from '@genfeedai/contracts/api-types/contracts/content-campaign.contract';
-import { storyboardARollQuoteSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import { storyboardCharacterReplacementSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
-import { storyboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { storyboardRunCapabilitiesSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
-import { storyboardStillQuoteSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type {
   AgentToolResult,
   AgentUntrustedContentGateResult,
@@ -60,6 +57,10 @@ import {
   type SocialMessageListParams,
   SocialMessagesClient,
 } from '@mcp/services/client/social-messages.client';
+import {
+  parseStoryboardRun,
+  StoryboardClient,
+} from '@mcp/services/client/storyboard.client';
 import { WorkflowClient } from '@mcp/services/client/workflow.client';
 import { WorkspaceClient } from '@mcp/services/client/workspace.client';
 import type {
@@ -119,7 +120,6 @@ import {
 } from '@mcp/tools/storyboard.schemas';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import type { AxiosResponse } from 'axios';
 
 /**
  * Composition root for the MCP → Genfeed API client.
@@ -143,6 +143,7 @@ export class ClientService {
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
   private readonly remix: RemixClient;
+  private readonly storyboard: StoryboardClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
@@ -167,6 +168,7 @@ export class ClientService {
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.remix = new RemixClient(this.base);
+    this.storyboard = new StoryboardClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
@@ -398,131 +400,22 @@ export class ClientService {
             source: { kind: 'uploaded_video', assetId },
           },
         );
-        return this.parseStoryboardRun(response);
+        return parseStoryboardRun(this.base, response);
       },
       this.base.failWithDetail('Failed to create a storyboard remix'),
     );
   }
 
-  private parseStoryboardRun(response: AxiosResponse) {
-    const resource = this.base.unwrapObject<Record<string, unknown>>(response);
-    const attributes = storyboardRecord(resource.attributes);
-    return storyboardRunSchema.parse({
-      ...attributes,
-      ...(typeof resource.id === 'string' ? { id: resource.id } : {}),
-    });
-  }
-
   /** Reads, edits, quotes and assembles a long-form storyboard (#8225). */
   storyboardLongForm(input: StoryboardToolInput<'storyboard_long_form'>) {
-    const parsed = storyboardToolSchemas.storyboard_long_form.parse(input);
-    const runsPath = `/brands/${encodeURIComponent(parsed.brandId)}/storyboard-runs`;
-    const runPath =
-      parsed.action === 'create'
-        ? runsPath
-        : `${runsPath}/${encodeURIComponent(parsed.runId)}`;
-    return this.base.request(
-      'working on a long-form storyboard',
-      async (http) => {
-        switch (parsed.action) {
-          case 'create':
-            return this.parseStoryboardRun(
-              await http.post(runsPath, {
-                clientRequestId: parsed.clientRequestId,
-                source: {
-                  kind: 'brief',
-                  brief: parsed.brief,
-                  length: 'long_form',
-                },
-              }),
-            );
-          case 'get':
-            return this.parseStoryboardRun(await http.get(runPath));
-          case 'draft_plan':
-            return this.parseStoryboardRun(
-              await http.post(`${runPath}/plan/draft`, {
-                expectedRevision: parsed.expectedRevision,
-                ...(parsed.instruction === undefined
-                  ? {}
-                  : { instruction: parsed.instruction }),
-              }),
-            );
-          case 'update_plan':
-            return this.parseStoryboardRun(
-              await http.patch(`${runPath}/plan`, {
-                expectedRevision: parsed.expectedRevision,
-                plan: parsed.plan,
-                ...(parsed.capabilityVersion === undefined
-                  ? {}
-                  : { capabilityVersion: parsed.capabilityVersion }),
-              }),
-            );
-          case 'approve_plan':
-            return this.parseStoryboardRun(
-              await http.post(`${runPath}/plan/approve`, {
-                expectedRevision: parsed.expectedRevision,
-              }),
-            );
-          case 'quote': {
-            if (parsed.stage === 'cutaways') {
-              const response = await http.post(`${runPath}/stills/quote`, {
-                expectedRevision: parsed.expectedRevision,
-                ...(parsed.cutawayIds ? { cutawayIds: parsed.cutawayIds } : {}),
-              });
-              return storyboardStillQuoteSchema.parse(response.data);
-            }
-            const response = await http.post(
-              `${runPath}/${LONG_FORM_PRESENTER_PATHS[parsed.stage]}/quote`,
-              { expectedRevision: parsed.expectedRevision },
-            );
-            return storyboardARollQuoteSchema.parse(response.data);
-          }
-          case 'reconcile':
-            // Presenter and animatic renders, then the cutaway stills.
-            await http.post(`${runPath}/a-roll/reconcile`, {});
-            return this.parseStoryboardRun(
-              await http.post(`${runPath}/stills/reconcile`, {}),
-            );
-          case 'assemble': {
-            const response = await http.post(
-              `${runPath}/${parsed.track === 'final' ? 'long-form' : 'animatic'}/assemble`,
-              {},
-            );
-            return storyboardRecord(response.data);
-          }
-        }
-      },
-      this.base.failWithDetail('Failed to update the long-form storyboard'),
-    );
+    return this.storyboard.storyboardLongForm(input);
   }
 
   /** Starts a quoted paid step; the API refuses it if the inputs changed. */
   renderStoryboardLongForm(
     input: StoryboardToolInput<'start_storyboard_long_form'>,
   ) {
-    const { brandId, cutawayIds, expectedRevision, inputHash, runId, stage } =
-      storyboardToolSchemas.start_storyboard_long_form.parse(input);
-    const runPath = `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}`;
-    return this.base.request(
-      'rendering a long-form storyboard',
-      async (http) =>
-        this.parseStoryboardRun(
-          stage === 'cutaways'
-            ? await http.post(`${runPath}/stills`, {
-                cutawayIds,
-                expectedRevision,
-                inputHash,
-              })
-            : await http.post(
-                `${runPath}/${LONG_FORM_PRESENTER_PATHS[stage]}`,
-                {
-                  expectedRevision,
-                  inputHash,
-                },
-              ),
-        ),
-      this.base.failWithDetail('Failed to render the long-form storyboard'),
-    );
+    return this.storyboard.renderStoryboardLongForm(input);
   }
 
   replaceStoryboardCharacter(
@@ -1053,16 +946,4 @@ export class ClientService {
   ): Promise<Record<string, unknown>> {
     return this.linkedin.getLinkedInAnalytics(contentId, timeRange);
   }
-}
-
-const LONG_FORM_PRESENTER_PATHS = {
-  animatic: 'animatic',
-  presenter: 'a-roll',
-} as const;
-
-function storyboardRecord(value: unknown): Record<string, unknown> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return Object.fromEntries(Object.entries(value));
 }
