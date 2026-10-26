@@ -411,13 +411,27 @@ jobs:
                 job.name === 'Write full-tier inventory' &&
                 ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
             );
+            const failedCloudJobs = jobs.filter(
+              (job) =>
+                job.name === 'Playwright Cloud billing cohort' &&
+                ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            const failedLaneJobs = [
+              ...failedShards.map((job) => ({
+                ...job,
+                trackerJob: 'e2e-frontend-full',
+                fallbackExcerpt,
+              })),
+              ...failedCloudJobs.map((job) => ({
+                ...job,
+                trackerJob: 'e2e-cloud-billing',
+                fallbackExcerpt:
+                  'The Cloud billing cohort failed: see the job log for the failing scenario.',
+              })),
+            ];
             const jobsForTracking =
-              failedShards.length > 0
-                ? failedShards.map((job) => ({
-                    ...job,
-                    trackerJob: 'e2e-frontend-full',
-                    fallbackExcerpt,
-                  }))
+              failedLaneJobs.length > 0
+                ? failedLaneJobs
                 : summaryJobs.map((job) => ({
                     ...job,
                     trackerJob: 'summarize',
