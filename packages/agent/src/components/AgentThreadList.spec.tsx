@@ -37,6 +37,7 @@ vi.mock('next/link', () => ({
     href: string;
     onBlur?: () => void;
     onClick?: MouseEventHandler<HTMLAnchorElement>;
+    onDoubleClick?: MouseEventHandler<HTMLAnchorElement>;
     onFocus?: () => void;
     onPointerEnter?: () => void;
     onPointerLeave?: () => void;
@@ -50,6 +51,7 @@ vi.mock('next/link', () => ({
         href={props.href}
         onBlur={props.onBlur}
         onClick={props.onClick}
+        onDoubleClick={props.onDoubleClick}
         onFocus={props.onFocus}
         onPointerEnter={props.onPointerEnter}
         onPointerLeave={props.onPointerLeave}
