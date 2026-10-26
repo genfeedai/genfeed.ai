@@ -175,6 +175,9 @@ export class StoryboardRunsService {
               input.source.kind === 'brief'
                 ? input.source.seedImageAssetId
                 : undefined;
+            const isLongForm =
+              input.source.kind === 'brief' &&
+              input.source.length === 'long_form';
             const plan = storyboardPlanSchema.parse({
               ...settings,
               title: '',
