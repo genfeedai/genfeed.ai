@@ -30,15 +30,7 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
-import {
-  Ban,
-  CircleCheck,
-  Mail,
-  RefreshCw,
-  Rocket,
-  RotateCw,
-  Search,
-} from 'lucide-react';
+import { Ban, CircleCheck, Mail, Rocket, RotateCw, Search } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
@@ -619,14 +611,9 @@ export default function WarmupAccountsPage({
 
           <Button
             type="submit"
-            isDisabled={isSubmitting}
-            className="inline-flex items-center gap-2"
+            icon={<CircleCheck className="size-4" />}
+            isLoading={isSubmitting}
           >
-            {isSubmitting ? (
-              <RefreshCw className="size-4 animate-spin" />
-            ) : (
-              <CircleCheck className="size-4" />
-            )}
             {isSubmitting ? translate('provisioning') : translate('provision')}
           </Button>
         </Form>

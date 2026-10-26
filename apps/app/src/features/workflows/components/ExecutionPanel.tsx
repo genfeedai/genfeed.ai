@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -14,6 +15,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createWorkflowApiService,
@@ -174,7 +176,10 @@ export function ExecutionPanel({
       <div className="h-[calc(100%-56px)] overflow-y-auto p-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-pulse">Loading…</div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Spinner aria-hidden="true" size={ComponentSize.SM} />
+              Loading…
+            </div>
           </div>
         ) : error ? (
           <div className="space-y-3">

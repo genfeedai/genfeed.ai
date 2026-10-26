@@ -17,15 +17,7 @@ import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import { formatDistanceToNow } from 'date-fns';
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Play,
-  RefreshCw,
-  X,
-} from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Clock, Play, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ExecutionNodeResult {
@@ -75,7 +67,7 @@ const STATUS_ICONS: Record<WorkflowExecutionStatus, React.ReactNode> = {
     <Clock className="size-4 text-muted-foreground" />
   ),
   [WorkflowExecutionStatus.RUNNING]: (
-    <RefreshCw className="size-4 text-info animate-spin" />
+    <Spinner className="text-info" size={ComponentSize.SM} />
   ),
 };
 

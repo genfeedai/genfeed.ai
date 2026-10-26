@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
 import { CalendarClock, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -214,7 +215,8 @@ export function WorkflowScheduleDialog({
         </DialogHeader>
 
         {isLoading ? (
-          <p className="animate-pulse py-4 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+            <Spinner aria-hidden="true" size={ComponentSize.SM} />
             {translate('loading')}
           </p>
         ) : (

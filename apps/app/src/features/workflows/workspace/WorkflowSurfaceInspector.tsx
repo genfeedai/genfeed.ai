@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -15,6 +16,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import {
   Check,
   Clock,
@@ -356,8 +358,9 @@ export function WorkflowSurfaceInspector({
     return (
       <div
         aria-live="polite"
-        className="animate-pulse p-4 text-sm text-muted-foreground"
+        className="flex items-center gap-2 p-4 text-sm text-muted-foreground"
       >
+        <Spinner aria-hidden="true" size={ComponentSize.SM} />
         Loading workflow context…
       </div>
     );

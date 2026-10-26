@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  ComponentSize,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { Pre } from '@genfeedai/ui';
@@ -13,6 +17,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -173,7 +178,8 @@ export default function ExecutionDetailPage({
           className="flex min-h-[60vh] items-center justify-center"
           data-testid="execution-detail-loading"
         >
-          <div className="animate-pulse text-muted-foreground">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Spinner aria-hidden="true" size={ComponentSize.SM} />
             Loading execution logs…
           </div>
         </div>

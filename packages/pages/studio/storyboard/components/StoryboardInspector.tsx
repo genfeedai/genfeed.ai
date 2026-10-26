@@ -1,11 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { StoryboardInspectorProps } from '@genfeedai/props/studio/storyboard.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { ImagePlus, LoaderCircle, TriangleAlert } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
+import { ImagePlus, TriangleAlert } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -104,9 +105,10 @@ export default function StoryboardInspector({
                   {shot.name}
                 </span>
                 {shot.stillFreshness === 'generating' ? (
-                  <LoaderCircle
-                    className="size-3.5 shrink-0 animate-spin text-muted-foreground"
-                    aria-label={translate('stillGenerating')}
+                  <Spinner
+                    ariaLabel={translate('stillGenerating')}
+                    className="text-muted-foreground"
+                    size={ComponentSize.SM}
                   />
                 ) : shot.isStillFresh ? null : (
                   <TriangleAlert

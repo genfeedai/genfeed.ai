@@ -5,6 +5,7 @@ import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import {
   ArrowLeft,
   ArrowRight,
@@ -61,8 +62,9 @@ export function WorkflowPickerOverlay({
         ) : isLoading ? (
           <div
             aria-live="polite"
-            className="animate-pulse p-6 text-center text-sm text-muted-foreground"
+            className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground"
           >
+            <Spinner aria-hidden="true" size={ComponentSize.SM} />
             Loading authorized workflows…
           </div>
         ) : error ? (

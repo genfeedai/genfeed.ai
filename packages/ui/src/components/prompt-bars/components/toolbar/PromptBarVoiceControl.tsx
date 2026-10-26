@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Mic, RefreshCw } from 'lucide-react';
+import { Mic } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 export interface PromptBarVoiceControlProps {
@@ -37,10 +37,7 @@ export default function PromptBarVoiceControl({
       <Button
         ariaLabel="Transcribing"
         className={controlClass}
-        icon={
-          <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
-        }
-        isDisabled
+        isLoading
         size={ButtonSize.ICON}
         variant={ButtonVariant.GHOST}
         withWrapper={false}

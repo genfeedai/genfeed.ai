@@ -1,7 +1,8 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { ActivityChartProps } from '@props/admin/dashboard.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 
 const Area = dynamic(() => import('recharts').then((module) => module.Area), {
@@ -72,7 +73,8 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
       <div className="h-chart-sm">
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
-            <div className="animate-pulse text-muted-foreground">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Spinner aria-hidden="true" size={ComponentSize.SM} />
               Loading chart…
             </div>
           </div>

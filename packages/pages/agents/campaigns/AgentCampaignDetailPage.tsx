@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
@@ -20,6 +20,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, Check, LayoutDashboard, Pause, Play } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -248,7 +249,10 @@ export default function AgentCampaignDetailPage() {
     return (
       <Container label="Loading..." icon={LayoutDashboard}>
         <div className="flex items-center justify-center py-20">
-          <div className="animate-pulse text-foreground/50">Loading…</div>
+          <div className="flex items-center gap-2 text-foreground/50">
+            <Spinner aria-hidden="true" size={ComponentSize.SM} />
+            Loading…
+          </div>
         </div>
       </Container>
     );

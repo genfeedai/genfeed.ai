@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
-import { CircleCheck, RefreshCw, Settings } from 'lucide-react';
+import { CircleCheck, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import PlatformSettingsProvider, {
   usePlatformSettings,
@@ -26,12 +26,13 @@ function PlatformSettingsShell({ children }: LayoutProps) {
       primaryAction={
         <Button
           variant={ButtonVariant.DEFAULT}
-          isDisabled={isLoading || isSaving}
+          icon={<CircleCheck />}
+          isDisabled={isLoading}
+          isLoading={isSaving}
           onClick={() => {
             void save();
           }}
         >
-          {isSaving ? <RefreshCw className="animate-spin" /> : <CircleCheck />}
           {translate(isSaving ? 'savingButton' : 'saveButton')}
         </Button>
       }

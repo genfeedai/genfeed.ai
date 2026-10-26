@@ -1,13 +1,14 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
 import type { StudioIdentityVoiceRowProps } from '@genfeedai/props/studio/studio-playground.props';
 import { useAudioPreview } from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
-import { Check, Loader2, Pause, Play } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
+import { Check, Pause, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -53,7 +54,7 @@ export default function StudioIdentityVoiceRow({
         )}
         icon={
           isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
+            <Spinner size={ComponentSize.SM} />
           ) : isPlaying ? (
             <Pause className="size-4" />
           ) : (
