@@ -24,7 +24,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       NEXT_PUBLIC_PLAYWRIGHT_TEST: 'true',
-      NEXT_PUBLIC_GENFEED_CLOUD: 'false',
+      NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT: 'self-hosted',
       NEXT_PUBLIC_API_ENDPOINT: 'https://api.genfeed.ai/v1',
       BETTER_AUTH_SECRET: 'test-better-auth-secret',
     },

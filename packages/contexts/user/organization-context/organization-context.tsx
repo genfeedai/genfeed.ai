@@ -104,11 +104,21 @@ function classifyFailure(error: unknown): RoutedOrganizationFailure {
     : 'unknown';
 }
 
+/**
+ * The error's class name, so an `unknown` failure can be told apart in Sentry.
+ * Only a short identifier is kept; the message and any payload stay out.
+ */
+function errorNameOf(error: unknown): string | undefined {
+  const name = error instanceof Error ? error.name : undefined;
+  return name && /^[A-Za-z][A-Za-z0-9_]{0,39}$/.test(name) ? name : undefined;
+}
+
 function emitSanitizedMismatch(
   reason: RoutedOrganizationMismatchReason,
   error?: unknown,
 ): void {
   const failure = error === undefined ? undefined : classifyFailure(error);
+  const errorName = failure === 'unknown' ? errorNameOf(error) : undefined;
   // A request that never reached the server (offline, aborted by a
   // navigation, timed out) says nothing about which organization is active,
   // so it is logged with its cause but is not a context mismatch to alert on.
@@ -120,6 +130,7 @@ function emitSanitizedMismatch(
     tags: {
       eventType: 'organization-context-mismatch',
       ...(failure ? { failure } : {}),
+      ...(errorName ? { errorName } : {}),
       reason,
     },
   });

@@ -8547,62 +8547,6 @@
     {
       "code": 2322,
       "count": 3,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "4024cdbe34f81bd0b8de",
-      "message": "Type '{ isSelected: true; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; onSelect: Mock<Procedure>; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "7e994adae865d5b8b563",
-      "message": "Type '{ onSelect: Mock<Procedure>; isSelected: boolean; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "94964850a90dfc05b7ef",
-      "message": "Type '{ onSelect: Mock<Procedure>; isSelected: boolean; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "be6aab841802bffbea56",
-      "message": "Type '{ isSelected: boolean; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; onSelect: Mock<Procedure>; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "990b511782e348e3f3f8",
-      "message": "Type '{ metadata: {}; id: string; ingredientUrl: string; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "cdefaf55f64abb3a06e7",
-      "message": "Type '{ ingredientUrl: undefined; id: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
-      "fingerprint": "e9c23d6548cafe55e846",
-      "message": "Type '{ metadataDuration: undefined; id: string; ingredientUrl: string; metadata: { label: string; }; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 3,
       "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
       "fingerprint": "0ffc356ae6a22c373c6d",
       "message": "Type '{ isSelected: true; selectedItems: string[]; onSelect: Mock<Procedure>; onSelectionLimit: Mock<Procedure>; reference: { id: string; url: string; }; selectionLimit: number; }' is not assignable to type 'ModalGalleryItemReferenceProps'.   Types of property 'reference' are incompatible.     Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",

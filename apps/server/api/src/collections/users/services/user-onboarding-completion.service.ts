@@ -72,6 +72,7 @@ export class UserOnboardingCompletionService {
       captureOnboardingCompletedBestEffort(
         this.serverFunnelCaptureService,
         dbUserId,
+        user.organizationId ?? undefined,
       );
     }
 

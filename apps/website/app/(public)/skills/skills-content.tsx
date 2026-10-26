@@ -187,7 +187,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                 <h2 className="text-4xl font-semibold mb-4">One Command</h2>
                 <p className="text-surface/65 text-sm leading-relaxed mb-6">
                   Install all {FREE_SKILL_COUNT} free skills with a single
-                  command. Your agent learns each skill and activates it at
+                  command. Your agent loads each skill and activates it at
                   exactly the right moment.
                 </p>
                 <div className="space-y-3 text-sm text-surface/65">

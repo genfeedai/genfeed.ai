@@ -611,8 +611,22 @@ describe('authenticated feature flags', () => {
     client.initAnalytics();
     await flushInit();
 
-    expect(mocks.posthogIdentify).toHaveBeenCalledWith('user-123', {
-      is_internal: true,
+    expect(mocks.posthogIdentify).toHaveBeenCalledWith(
+      'user-123',
+      { is_internal: true },
+      undefined,
+    );
+  });
+
+  it('sends is_internal=false as $set_once so a server-set true is never overwritten', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogIdentify).toHaveBeenCalledWith('user-123', undefined, {
+      is_internal: false,
     });
   });
 });
@@ -880,6 +894,7 @@ describe('event taxonomy', () => {
         'expert_first_system_item_reviewed',
         'expert_onboarding_step',
         'first_credit_purchase',
+        'first_successful_generation',
         'first_successful_publish',
         'generation_completed',
         'generation_started',

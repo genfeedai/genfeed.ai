@@ -50,7 +50,6 @@ export const EDITORIAL_OG_ARTWORKS = {
   download: { headline: ['Genfeed', 'On your desk'], route: '/desktop' },
   experts: { headline: ['Learn from', 'the builders'], route: '/experts' },
   features: { headline: ['One OS', 'Every format'], route: '/features' },
-  gen: { headline: ['Fuel the', 'ecosystem'], route: '/gen' },
   'hire-agents': {
     headline: ['Delegate', 'Create', 'Grow'],
     route: '/hire-agents',

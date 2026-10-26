@@ -6,15 +6,33 @@ import {
   ComponentSize,
   IngredientFormat,
 } from '@genfeedai/contracts';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModalVideoProps } from '@genfeedai/props/modals/modal.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { useIngredientMediaUrl } from '@hooks/media/use-ingredient-media-url';
 import Masonry from '@ui/display/masonry/Masonry';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Video, X } from 'lucide-react';
+
+function ModalVideoPreview({ video }: { video: IVideo }) {
+  const src = useIngredientMediaUrl(video);
+
+  return (
+    <VideoPlayer
+      src={src}
+      config={{
+        controls: false,
+        loop: false,
+        muted: true,
+        playsInline: true,
+        preload: 'metadata',
+      }}
+    />
+  );
+}
 
 export default function ModalVideo({
   isOpen,
@@ -117,19 +135,7 @@ export default function ModalVideo({
                   <div
                     className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-border group-hover:shadow-border-strong transition-[box-shadow,transform] group-hover:scale-105`}
                   >
-                    <VideoPlayer
-                      src={
-                        video.ingredientUrl ||
-                        `${EnvironmentService.ingredientsEndpoint}/videos/${video.id}`
-                      }
-                      config={{
-                        controls: false,
-                        loop: false,
-                        muted: true,
-                        playsInline: true,
-                        preload: 'metadata',
-                      }}
-                    />
+                    <ModalVideoPreview video={video} />
                     <div
                       className={cn(
                         'absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-3 transition-opacity',

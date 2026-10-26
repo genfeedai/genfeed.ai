@@ -6,7 +6,15 @@ import {
   PRISMA_SERIALIZATION_FAILURE,
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { storyboardStoredRunConfigSchema } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import {
+  type StoryboardStoredRunConfig,
+  storyboardStoredRunConfigSchema,
+} from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import {
+  normalizeStoryboardLongForm,
+  STORYBOARD_LONG_FORM_DEFAULT_RUNTIME_SECONDS,
+  storyboardLongFormRuntime,
+} from '@api/collections/content-runs/services/storyboard-long-form-draft';
 import {
   normalizeStoryboardTiming,
   requiresStoryboardCapabilities,
@@ -30,6 +38,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
+  type StoryboardPlan,
   storyboardPlanSchema,
   updateStoryboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
@@ -162,24 +171,38 @@ export class StoryboardRunsService {
               input.source.kind === 'brief'
                 ? input.source.seedImageAssetId
                 : undefined;
+            const isLongForm =
+              input.source.kind === 'brief' &&
+              input.source.length === 'long_form';
             const plan = storyboardPlanSchema.parse({
               ...settings,
               title: '',
               logline: '',
-              shots: seedImageAssetId
-                ? [
-                    {
-                      id: randomUUID(),
-                      ordinal: 1,
-                      action: '',
-                      onScreenSpeaker: false,
-                      durationSeconds: null,
-                      stillAssetId: seedImageAssetId,
-                      stillFreshness: 'stale',
-                      transition: 'cut',
+              ...(isLongForm
+                ? {
+                    runtimeBudgetSeconds: null,
+                    longForm: {
+                      runtimeBudgetSeconds:
+                        STORYBOARD_LONG_FORM_DEFAULT_RUNTIME_SECONDS,
+                      segments: [],
                     },
-                  ]
-                : [],
+                  }
+                : {}),
+              shots:
+                seedImageAssetId && !isLongForm
+                  ? [
+                      {
+                        id: randomUUID(),
+                        ordinal: 1,
+                        action: '',
+                        onScreenSpeaker: false,
+                        durationSeconds: null,
+                        stillAssetId: seedImageAssetId,
+                        stillFreshness: 'stale',
+                        transition: 'cut',
+                      },
+                    ]
+                  : [],
             });
             await this.source.validatePlanAssets(organizationId, brandId, plan);
             const config: StoryboardRunConfig = {
@@ -304,6 +327,16 @@ export class StoryboardRunsService {
       input.expectedRevision,
     );
     assertStoryboardEditable(config);
+    if (input.plan.longForm) {
+      // Long-form plans narrate over one presenter track; no video-model
+      // durations apply, so timing comes from the narration itself.
+      const next = editStoryboardPlan(
+        config,
+        normalizeStoryboardLongForm(input.plan),
+      );
+      await this.source.validatePlanAssets(organizationId, brandId, next.plan);
+      return this.store.save(organizationId, brandId, runId, config, next);
+    }
     const previousPlan = config.plan;
     const previousCapabilities = await this.capabilities.resolve(
       organizationId,
@@ -399,12 +432,39 @@ export class StoryboardRunsService {
       throw new BadRequestException(
         'Plan drafting needs a written brief. This storyboard starts from a video, which is analysed instead.',
       );
-    const hasShots = config.plan.shots.some((shot) => shot.action.length > 0);
+    const hasShots = config.plan.longForm
+      ? config.plan.longForm.segments.length > 0
+      : config.plan.shots.some((shot) => shot.action.length > 0);
     const isRevision = Boolean(input.instruction) && hasShots;
     if (!selector.brief && !input.instruction)
       throw new BadRequestException(
         'Write a brief or give an instruction before drafting the plan.',
       );
+    if (config.plan.longForm) {
+      const context = await this.planning.resolveBrandContext(
+        organizationId,
+        brandId,
+      );
+      const plan = await this.drafter.draftLongForm({
+        brand: {
+          name: context.brand.label,
+          description: context.brand.description ?? undefined,
+        },
+        brief: selector.brief,
+        current: config.plan,
+        instruction: input.instruction,
+        mode: isRevision ? 'revise' : 'draft',
+        runtimeBudgetSeconds: storyboardLongFormRuntime(config.plan),
+      });
+      return this.saveDraftedPlan(
+        organizationId,
+        brandId,
+        runId,
+        config,
+        plan,
+        isRevision,
+      );
+    }
     const capabilities = await this.capabilities.resolve(
       organizationId,
       brandId,
@@ -434,6 +494,24 @@ export class StoryboardRunsService {
         config.plan.runtimeBudgetSeconds ??
         STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS,
     });
+    return this.saveDraftedPlan(
+      organizationId,
+      brandId,
+      runId,
+      config,
+      plan,
+      isRevision,
+    );
+  }
+
+  private async saveDraftedPlan(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    config: StoryboardStoredRunConfig,
+    plan: StoryboardPlan,
+    isRevision: boolean,
+  ): Promise<StoryboardRun> {
     const next = editStoryboardPlan(config, plan);
     await this.source.validatePlanAssets(organizationId, brandId, next.plan);
     return this.store.save(
@@ -470,6 +548,14 @@ export class StoryboardRunsService {
       config.sourceSnapshot,
     );
     await this.source.validatePlanAssets(organizationId, brandId, config.plan);
+    if (config.plan.longForm)
+      return this.store.save(
+        organizationId,
+        brandId,
+        runId,
+        config,
+        approveStoryboardPlan(config),
+      );
     const capabilities = await this.capabilities.resolve(
       organizationId,
       brandId,

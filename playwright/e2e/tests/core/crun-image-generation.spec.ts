@@ -374,12 +374,12 @@ async function selectMenuValue(
     .getByRole('menuitem', { name: new RegExp(`^${value}(\\s|$)`) })
     .click();
 }
-// Aspect ratio has a chip of its own: its list opens straight from the chip.
+// Aspect ratio has a chip of its own: its tile grid opens straight from the chip.
 async function selectChipValue(page: Page, chip: string, value: string) {
   await openConfiguration(page, chip);
   await page
     .getByRole('group', { name: chip, exact: true })
-    .getByRole('menuitem', { name: new RegExp(`^${value}(\\s|$)`) })
+    .getByRole('menuitemradio', { name: new RegExp(`^${value}(\\s|$)`) })
     .click();
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {
@@ -469,7 +469,7 @@ for (const key of [nanoKey, seedreamKey]) {
     await expect(
       page
         .getByRole('group', { name: 'Aspect ratio', exact: true })
-        .getByRole('menuitem', { name: 'Auto', exact: true }),
+        .getByRole('menuitemradio', { name: 'Auto', exact: true }),
     ).toBeVisible();
     await closeOpenPanel(page);
     await expectSubmitTooltip(page, '3 credits');

@@ -8,7 +8,7 @@ import type { SettingsOrganizationSubscriptionRouteProps } from '@props/settings
 import { redirect } from 'next/navigation';
 import SettingsReferralsPage from '../../(pages)/organization/referrals/content';
 
-export const generateMetadata = createPageMetadata('Referrals');
+export const generateMetadata = createPageMetadata('Affiliates');
 
 export default async function SettingsOrganizationReferralsRoute({
   params,

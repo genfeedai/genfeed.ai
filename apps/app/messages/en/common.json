@@ -448,7 +448,7 @@
       "lowCreditsWarning": "Low credits warning: your organization is below 1,000 credits.",
       "ofTotal": "of {total}",
       "progressLabel": "Credits left this cycle",
-      "referralDescription": "Share your referral link and earn on referred customers' credit purchases.",
+      "referralDescription": "Share your affiliate link and earn on referred customers' credit purchases.",
       "referralTitle": "Earn 10% in credits",
       "resets": "Resets",
       "retryBalance": "Retry balance",
@@ -464,7 +464,7 @@
         "startFailed": "We couldn't open card setup. Please try again.",
         "title": "Unlock 75 free credits"
       },
-      "viewReferrals": "View referrals"
+      "viewReferrals": "View affiliates"
     },
     "members": {
       "allBrands": "All brands",
@@ -2347,15 +2347,15 @@
   },
   "referrals": {
     "adminLoadErrorDescription": "Financial reward records could not be loaded. No empty audit result is shown until the request succeeds.",
-    "copied": "Referral link copied",
+    "copied": "Affiliate link copied",
     "copyLink": "Copy link",
     "creditsAmount": "{count} credits",
     "description": "Share your link. You earn 10% of each referred customer's pay-as-you-go credit purchases for 12 months. Rewards settle after seven days; granted credits expire 12 months after they are added.",
     "headline": "Earn 10% in credits",
-    "linkLabel": "Referral link",
-    "loadErrorDescription": "Your referral balance and reward history could not be loaded. No financial totals are shown until the request succeeds.",
-    "loadErrorTitle": "Referral rewards unavailable",
-    "loadingLink": "Loading referral link…",
+    "linkLabel": "Affiliate link",
+    "loadErrorDescription": "Your affiliate balance and reward history could not be loaded. No financial totals are shown until the request succeeds.",
+    "loadErrorTitle": "Affiliate rewards unavailable",
+    "loadingLink": "Loading affiliate link…",
     "recentRewards": "Recent rewards",
     "retry": "Retry",
     "status": {

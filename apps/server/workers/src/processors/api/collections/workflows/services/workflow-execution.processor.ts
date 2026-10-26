@@ -16,6 +16,10 @@ import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options'
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
+  type ModuleAccessDenial,
+  readModuleAccessDenial,
+} from '@workers/processors/api/collections/workflows/services/module-access-denial.util';
+import {
   isRetryableSystemRunError,
   toTerminalSystemRunError,
 } from '@workers/processors/api/collections/workflows/services/system-run-retry.util';
@@ -125,16 +129,23 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     }
     const expired = await this.dropIfExpiredBeforePickup(job, systemRun);
     if (expired) return expired;
+    let hasStarted = false;
     try {
       return await this.queueService.runWithQueuedOrganizationModule(
         job.data,
         () =>
           this.systemWorkflowRunner.runWithRegisteredWorkflowModule(
             systemRun.input,
-            () => this.executeSystemRun(job, systemRun),
+            () => {
+              hasStarted = true;
+              return this.executeSystemRun(job, systemRun);
+            },
           ),
       );
     } catch (failure: unknown) {
+      // The module gate refused before any node ran: not a workflow failure.
+      const denial = hasStarted ? null : readModuleAccessDenial(failure);
+      if (denial) return this.skipModuleDeniedRun(job, systemRun, denial);
       // Only a transient failure is worth another attempt; anything else fails
       // once instead of multiplying load on a shared queue (#5633).
       const error = isRetryableSystemRunError(failure)
@@ -190,6 +201,41 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       }
       throw error;
     }
+  }
+
+  /**
+   * An organization without the module (no subscription, or not released) is
+   * refused by the gate before the graph starts. Retrying cannot change that,
+   * and compensation would report a failure that did not happen, so the run is
+   * recorded as skipped with its classification and its pending row cancelled.
+   */
+  private async skipModuleDeniedRun(
+    job: Job<WorkflowExecutionJobData>,
+    systemRun: NonNullable<WorkflowExecutionJobData['systemRun']>,
+    denial: ModuleAccessDenial,
+  ): Promise<{ executionId?: string; status: WorkflowExecutionStatus }> {
+    const { priorExecution } = systemRun;
+    if (priorExecution?.status === WorkflowExecutionStatus.PENDING) {
+      await this.workflowExecutions.cancelExecution(
+        priorExecution.executionId,
+        systemRun.input.organizationId,
+      );
+    }
+    this.logger.warn(
+      `${this.logContext} skipped module-denied system workflow`,
+      {
+        canonicalId: systemRun.input.canonicalId,
+        denialCode: denial.code,
+        executionId: priorExecution?.executionId,
+        jobId: job.id,
+        moduleId: denial.moduleId,
+        organizationId: systemRun.input.organizationId,
+      },
+    );
+    return {
+      executionId: priorExecution?.executionId,
+      status: WorkflowExecutionStatus.CANCELLED,
+    };
   }
 
   /**

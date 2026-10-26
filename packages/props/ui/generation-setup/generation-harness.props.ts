@@ -22,7 +22,6 @@ export interface GenerationHarnessSettingsCardProps {
 }
 
 export interface GenerationHarnessSettingsPopoverProps {
-  label?: string;
   className?: string;
   isDisabled?: boolean;
 }

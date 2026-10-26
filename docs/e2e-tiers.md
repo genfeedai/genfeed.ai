@@ -62,8 +62,8 @@ command compares against `origin/master` by default.
 
 `PLAYWRIGHT_E2E_LANE_EXCLUSIONS` records specs assigned to real-auth, cross-app,
 release-install, and Cloud execution. The `cloud` lane (`playwright/e2e/tests/cloud/`)
-needs the Cloud build (`NEXT_PUBLIC_GENFEED_CLOUD=true`, the `genfeed-cloud` input of
-`setup-playwright-app`) because the Community-built full tier gates credit reads
+needs the Cloud build (test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud`, set by the
+`genfeed-cloud` input of `setup-playwright-app`; production Cloud is decided by a `*.genfeed.ai` host and ignores it) because the Community-built full tier gates credit reads
 behind `hasOrganizationBillingHint()`; the `e2e-cloud-billing` job of
 `playwright-full-nightly.yml` runs it and counts toward the nightly verdict. These are not broken-test quarantines, and their
 presence does not prove that the other lane ran. Visual specs remain quarantined

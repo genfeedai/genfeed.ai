@@ -219,7 +219,7 @@ function buildOrganizationMenuItems(
             group: 'Billing',
             href: APP_ROUTES.SETTINGS.REFERRALS,
             hrefScope: 'organization' as const,
-            label: 'Referrals',
+            label: 'Affiliates',
             outline: HandHeart,
             solid: HandHeart,
           },

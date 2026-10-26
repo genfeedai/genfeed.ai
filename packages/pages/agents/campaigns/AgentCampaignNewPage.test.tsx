@@ -72,18 +72,9 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({
-    children,
-    description,
-    label,
-  }: {
-    children: ReactNode;
-    description?: string;
-    label: string;
-  }) => (
+  default: ({ children, label }: { children: ReactNode; label: string }) => (
     <section>
       <h1>{label}</h1>
-      {description ? <p>{description}</p> : null}
       {children}
     </section>
   ),

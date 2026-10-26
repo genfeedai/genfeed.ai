@@ -4,7 +4,6 @@ import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { PromptBarEssentialsProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
@@ -12,6 +11,7 @@ import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/
 import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
 import PromptBarQualityControls from '@ui/prompt-bars/components/quality-controls/PromptBarQualityControls';
+import PromptBarReferenceThumbnail from '@ui/prompt-bars/components/reference-thumbnail/PromptBarReferenceThumbnail';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import {
@@ -25,7 +25,6 @@ import {
   Square,
   Undo2,
 } from 'lucide-react';
-import Image from 'next/image';
 import { type ChangeEvent, memo, useCallback } from 'react';
 
 function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
@@ -377,16 +376,12 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 ariaLabel="Open reference controls"
               >
                 <span className="relative size-5 overflow-hidden rounded">
-                  <Image
-                    src={
-                      referenceSource === 'brand'
-                        ? `${EnvironmentService.cdnUrl}/references/${firstReference.id}`
-                        : `${EnvironmentService.ingredientsEndpoint}/images/${firstReference.id}`
-                    }
+                  <PromptBarReferenceThumbnail
                     alt="Reference preview"
-                    fill
-                    sizes="20px"
-                    className="object-cover outline-media"
+                    className="size-full object-cover outline-media"
+                    reference={firstReference}
+                    referenceSource={referenceSource}
+                    size={20}
                   />
                 </span>
                 <span className="text-xs">

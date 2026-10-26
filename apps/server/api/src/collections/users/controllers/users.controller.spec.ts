@@ -1056,6 +1056,7 @@ describe('UsersController', () => {
       expect(serverFunnelCaptureService.capture).toHaveBeenCalledWith({
         distinctId: 'user_canonical_1',
         event: 'onboarding_completed',
+        organizationId: orgId,
       });
       // Finishing onboarding starts the free trial: the CreditsModule listener
       // grants the trial credits (idempotently) off this event.
@@ -1155,6 +1156,7 @@ describe('UsersController', () => {
       expect(serverFunnelCaptureService.capture).toHaveBeenCalledWith({
         distinctId: 'user_canonical_1',
         event: 'onboarding_completed',
+        organizationId: orgId,
       });
     });
   });

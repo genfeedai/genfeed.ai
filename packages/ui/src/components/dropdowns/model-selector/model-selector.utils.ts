@@ -19,6 +19,7 @@ import { Film, Images, Layers, Volume2, Wand2, Zap } from 'lucide-react';
 
 const KNOWN_VARIANT_SUFFIXES = new Set([
   'avatar',
+  'balanced',
   'base',
   'dev',
   'edit',
@@ -34,6 +35,7 @@ const KNOWN_VARIANT_SUFFIXES = new Set([
   'preview',
   'pro',
   'pulid',
+  'quality',
   'refiner',
   'slow',
   'standard',
@@ -388,6 +390,85 @@ export function sortModelOptions(
       numeric: true,
     });
   });
+}
+
+/** One picker row: a lone model, or a family of two or more siblings. */
+export type ModelSelectorRowEntry =
+  | { kind: 'model'; option: ModelSelectorOption }
+  | {
+      kind: 'family';
+      familyKey: string;
+      familyLabel: string;
+      options: ModelSelectorOption[];
+    };
+
+/**
+ * The words every sibling's label starts with ("GPT Image" for "GPT Image 2"
+ * and "GPT Image 2.5 Flare"), so a group reads as the brand writes it rather
+ * than as a title-cased slug. Falls back when the labels share no first word.
+ */
+function getSharedLabelPrefix(
+  labels: readonly string[],
+  fallback: string,
+): string {
+  const [first, ...rest] = labels.map((label) => label.split(/\s+/));
+  const shared: string[] = [];
+
+  for (const [index, word] of (first ?? []).entries()) {
+    if (rest.some((words) => words[index] !== word)) break;
+    shared.push(word);
+  }
+
+  // A trailing version number belongs to a variant, not to the family name.
+  while (shared.length > 0 && /^v?\d+(?:\.\d+)*$/i.test(shared.at(-1) ?? '')) {
+    shared.pop();
+  }
+
+  return shared.length > 0 ? shared.join(' ') : fallback;
+}
+
+/**
+ * Folds siblings of one family ("GPT Image 2", "2.5 Flare", "2.5 Sunburst")
+ * into a single entry at the position of the first one. A model with no
+ * sibling stays a plain row, so a group is never a one-item accordion.
+ */
+export function groupModelOptionsByFamily(
+  options: readonly ModelSelectorOption[],
+): ModelSelectorRowEntry[] {
+  const familyOptions = new Map<string, ModelSelectorOption[]>();
+
+  for (const option of options) {
+    const siblings = familyOptions.get(option.familyKey);
+    if (siblings) {
+      siblings.push(option);
+    } else {
+      familyOptions.set(option.familyKey, [option]);
+    }
+  }
+
+  const emittedFamilies = new Set<string>();
+  const entries: ModelSelectorRowEntry[] = [];
+
+  for (const option of options) {
+    const siblings = familyOptions.get(option.familyKey) ?? [option];
+
+    if (siblings.length < 2) {
+      entries.push({ kind: 'model', option });
+    } else if (!emittedFamilies.has(option.familyKey)) {
+      emittedFamilies.add(option.familyKey);
+      entries.push({
+        familyKey: option.familyKey,
+        familyLabel: getSharedLabelPrefix(
+          siblings.map((sibling) => sibling.model.label),
+          option.familyLabel,
+        ),
+        kind: 'family',
+        options: siblings,
+      });
+    }
+  }
+
+  return entries;
 }
 
 /** Recents keep their own recency order, so they are ordered by key, not name. */

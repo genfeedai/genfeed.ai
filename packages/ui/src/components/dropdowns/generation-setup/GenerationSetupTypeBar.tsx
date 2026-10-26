@@ -43,6 +43,7 @@ export default function GenerationSetupTypeBar({
   onTypeChange,
   setup,
   typeOptions,
+  videoDraft,
 }: GenerationSetupTypeBarProps) {
   const translate = useTranslations('agent.generationSetup');
   const currentType = setup.values.type;
@@ -56,9 +57,12 @@ export default function GenerationSetupTypeBar({
     typeOptions.find((option) => toIconType(option.value) === currentType);
   const ActiveIcon = getModelCategoryIcon(toIconType(currentType));
   const activeLabel = activeOption?.label ?? currentType;
+  const isDrafting = videoDraft?.isEnabled === true && isVideoActive;
   const triggerLabel = isEditing
     ? `${activeLabel} · ${translate('modeEdit')}`
-    : activeLabel;
+    : isDrafting
+      ? `${activeLabel} · ${translate('modeDraft')}`
+      : activeLabel;
   const isTypeLocked = typeOptions.length <= 1;
   const isAdvanced = advancedMode?.isEnabled === true;
   const ModeIcon = isAdvanced ? SlidersHorizontal : Sparkles;
@@ -128,24 +132,38 @@ export default function GenerationSetupTypeBar({
               );
             })}
           </DropdownMenuRadioGroup>
+          {(imageEditing && (isImageActive || isVideoActive)) ||
+          (videoDraft && isVideoActive) ? (
+            <DropdownMenuSeparator />
+          ) : null}
           {imageEditing && (isImageActive || isVideoActive) ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={isEditing}
-                disabled={isVideoActive}
-                onCheckedChange={(isChecked) =>
-                  imageEditing.onChange(isChecked)
-                }
-              >
-                <span className="text-xs">{translate('modeEdit')}</span>
-                {isVideoActive ? (
-                  <span className="ml-auto pl-2 text-xs text-muted-foreground">
-                    {translate('modeEditVideoSoon')}
-                  </span>
-                ) : null}
-              </DropdownMenuCheckboxItem>
-            </>
+            <DropdownMenuCheckboxItem
+              checked={isEditing}
+              disabled={isVideoActive}
+              onCheckedChange={(isChecked) => imageEditing.onChange(isChecked)}
+            >
+              <span className="text-xs">{translate('modeEdit')}</span>
+              {isVideoActive ? (
+                <span className="ml-auto pl-2 text-xs text-muted-foreground">
+                  {translate('modeEditVideoSoon')}
+                </span>
+              ) : null}
+            </DropdownMenuCheckboxItem>
+          ) : null}
+          {videoDraft && isVideoActive ? (
+            <DropdownMenuCheckboxItem
+              checked={isDrafting}
+              onCheckedChange={(isChecked) => videoDraft.onChange(isChecked)}
+            >
+              <span className="text-xs">{translate('modeDraft')}</span>
+              {typeof videoDraft.credits === 'number' ? (
+                <span className="ml-auto pl-2 text-xs normal-case text-muted-foreground">
+                  {translate('modeDraftCredits', {
+                    credits: videoDraft.credits,
+                  })}
+                </span>
+              ) : null}
+            </DropdownMenuCheckboxItem>
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>

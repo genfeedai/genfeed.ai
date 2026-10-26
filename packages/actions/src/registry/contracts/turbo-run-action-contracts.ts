@@ -15,6 +15,7 @@ const GENERATION_REQUEST = closedObjectSchema(
       {
         actorUserId: STRING_SCHEMA,
         apiKeyId: STRING_SCHEMA,
+        generationEntry: JSON_DOCUMENT_SCHEMA,
         origin: enumSchema([
           'agent',
           'api',

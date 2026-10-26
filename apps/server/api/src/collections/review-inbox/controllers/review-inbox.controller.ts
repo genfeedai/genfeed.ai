@@ -1,5 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ReviewInboxDecisionDto } from '@api/collections/review-inbox/dto/review-inbox-decision.dto';
+import {
+  ReviewInboxBatchDecisionDto,
+  ReviewInboxDecisionDto,
+} from '@api/collections/review-inbox/dto/review-inbox-decision.dto';
 import { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import { ReviewInboxDecisionService } from '@api/collections/review-inbox/services/review-inbox-decision.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -12,6 +15,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type {
+  IReviewInboxBatchDecisionResult,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
@@ -90,5 +94,23 @@ export class ReviewInboxController {
     );
     const result = await this.decisions.decide(user, access, dto);
     return serializeSingle(req, ReviewInboxDecisionSerializer, result);
+  }
+
+  @Post('decisions/batch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Approve or reject several review inbox items in one request; per-item failures are reported without aborting the rest',
+  })
+  async decideMany(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Body() dto: ReviewInboxBatchDecisionDto,
+  ): Promise<IReviewInboxBatchDecisionResult> {
+    const access = await this.reviewInbox.resolveViewerAccess(
+      Object.assign(req, { user }),
+      resolveTenantReadScope(user),
+    );
+    return this.decisions.decideMany(user, access, dto);
   }
 }

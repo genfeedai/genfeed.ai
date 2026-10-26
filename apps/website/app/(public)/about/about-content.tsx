@@ -296,7 +296,7 @@ export default function AboutContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="What Genfeed does"
-            description="One agent that makes the content, gets it out, and learns what works."
+            description="One agent that makes the content, gets it out, and shows you what worked."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 

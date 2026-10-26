@@ -204,9 +204,9 @@ describe('SettingsCreditsPage', () => {
     renderCreditsPage();
 
     expect(
-      screen.getByRole('link', { name: 'View referrals' }),
+      screen.getByRole('link', { name: 'View affiliates' }),
     ).toHaveAttribute('href', '/acme/~/settings/referrals');
-    expect(screen.queryByLabelText('Referral link')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Affiliate link')).not.toBeInTheDocument();
   });
 
   it('shows the remaining balance as a progress bar against the cycle total', () => {
@@ -440,7 +440,7 @@ describe('desktop Credits route boundary', () => {
       screen.queryByRole('button', { name: 'Retry balance' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: 'View referrals' }),
+      screen.queryByRole('link', { name: 'View affiliates' }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText('Your credit balance could not be loaded.'),
@@ -470,7 +470,7 @@ describe('desktop Credits route boundary', () => {
           screen.getByRole('button', { name: 'Retry balance' }),
         ).toBeInTheDocument();
         expect(
-          Boolean(screen.queryByRole('link', { name: 'View referrals' })),
+          Boolean(screen.queryByRole('link', { name: 'View affiliates' })),
         ).toBe(billing);
       } else expectDenied();
       unmount();

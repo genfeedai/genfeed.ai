@@ -143,6 +143,18 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     });
   });
 
+  it('tells the planner to plan motion graphics as a coded visual project, not a provider video', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+
+    await service.tryHandlePlanModeTurn(baseParams as never, host);
+
+    const [request] = llmDispatcher.chatCompletion.mock.calls[0];
+    const instruction = request.messages[0].content as string;
+    expect(instruction).toContain('quote_visual_code_generation');
+    expect(instruction).toContain('generate_visual_code');
+    expect(instruction).toContain('never as a provider video model');
+  });
+
   it('stamps the drafted plan reply with the run that produced it', async () => {
     agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
 

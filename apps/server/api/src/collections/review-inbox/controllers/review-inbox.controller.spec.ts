@@ -58,7 +58,7 @@ describe('ReviewInboxController', () => {
     listPending: vi.fn(),
     resolveViewerAccess: vi.fn(),
   };
-  const decisions = { decide: vi.fn() };
+  const decisions = { decide: vi.fn(), decideMany: vi.fn() };
   let controller: ReviewInboxController;
 
   beforeEach(() => {
@@ -115,5 +115,21 @@ describe('ReviewInboxController', () => {
       id: item.id,
       type: 'review-inbox-decision',
     });
+  });
+
+  it('resolves a batch decision with the viewer access', async () => {
+    const result = { decided: [], failed: [{ itemId: 'x', message: 'no' }] };
+    decisions.decideMany.mockResolvedValue(result);
+
+    const response = await controller.decideMany(buildRequest(), user, {
+      decision: 'reject',
+      itemIds: [item.id, 'x'],
+    });
+
+    expect(decisions.decideMany).toHaveBeenCalledWith(user, access, {
+      decision: 'reject',
+      itemIds: [item.id, 'x'],
+    });
+    expect(response).toBe(result);
   });
 });

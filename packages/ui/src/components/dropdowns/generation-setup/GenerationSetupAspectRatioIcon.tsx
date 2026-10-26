@@ -4,7 +4,10 @@ import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 const BOX = 16;
 const LONG_EDGE = 12;
 
-function parseRatio(ratio: string): { height: number; width: number } | null {
+/** `{ width, height }` of a `W:H` ratio, or null for `auto` and anything unparsable. */
+export function parseAspectRatio(
+  ratio: string,
+): { height: number; width: number } | null {
   const [rawWidth, rawHeight] = ratio.split(':');
   const width = Number(rawWidth);
   const height = Number(rawHeight);
@@ -21,7 +24,7 @@ export default function GenerationSetupAspectRatioIcon({
   className?: string;
   ratio: string;
 }) {
-  const parsed = parseRatio(ratio);
+  const parsed = parseAspectRatio(ratio);
   const scale = parsed ? LONG_EDGE / Math.max(parsed.width, parsed.height) : 0;
   const width = parsed ? parsed.width * scale : LONG_EDGE;
   const height = parsed ? parsed.height * scale : LONG_EDGE;

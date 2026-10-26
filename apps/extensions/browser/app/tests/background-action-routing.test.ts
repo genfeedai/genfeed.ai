@@ -121,6 +121,26 @@ async function dispatch(request: Record<string, unknown>) {
 }
 
 describe('background user action routing', () => {
+  it('opens the side panel from the clicking tab before any await', async () => {
+    mocks.openPanel.mockClear();
+    vi.mocked(chrome.tabs.query).mockClear();
+    const respond = vi.fn();
+    expect(
+      backgroundListener(
+        {
+          event: 'SHORTCUT_REPLY',
+          payload: { content: 'Post', platform: 'X', url: 'https://x.com/a' },
+        },
+        { tab: { id: 7, url: 'https://x.com/a' } },
+        respond,
+      ),
+    ).toBe(true);
+    expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 7 });
+    expect(chrome.tabs.query).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+    expect(respond).toHaveBeenCalledWith({ success: true });
+  });
+
   it('routes autoModel to text generation once', async () => {
     const response = await dispatch({
       event: 'autoModel',

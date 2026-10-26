@@ -240,6 +240,26 @@ describe('SettingsSubscriptionPage', () => {
       },
     );
 
+    it.each(['FREE', ' free ', 'monthly'])(
+      'shows an unmapped tier %j as the Free plan, Active without Stripe id',
+      (subscriptionTier) => {
+        useBrandMock.mockReturnValue({
+          isReady: true,
+          organizationId: 'org-123',
+          settings: { subscriptionTier },
+        });
+        setSubscription(
+          new Subscription({ status: SubscriptionStatus.INCOMPLETE }),
+        );
+
+        render(<SettingsSubscriptionPage />);
+
+        expect(screen.getByText('Free')).toBeVisible();
+        expect(screen.getByText('Active')).toHaveClass('text-success');
+        expect(screen.queryByText('Incomplete')).not.toBeInTheDocument();
+      },
+    );
+
     it.each([SubscriptionTier.FREE, SubscriptionTier.SCALE])(
       'preserves a genuine incomplete Stripe subscription on tier %s',
       (subscriptionTier) => {

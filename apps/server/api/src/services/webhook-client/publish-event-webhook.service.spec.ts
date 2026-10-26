@@ -482,13 +482,41 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     await flushMicrotasks();
 
     expect(prisma.post.count).toHaveBeenCalledTimes(1);
-    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
-    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
+    const firstPublishCalls = funnelCaptureService.capture.mock.calls.filter(
+      ([input]) => input.event === 'first_successful_publish',
+    );
+    expect(firstPublishCalls).toHaveLength(1);
+    expect(firstPublishCalls[0][0]).toEqual({
       distinctId: 'user_1',
       event: 'first_successful_publish',
+      organizationId: 'org_1',
       properties: {
         $groups: { organization: 'org_1' },
         platform: 'twitter',
+        surface: 'social',
+      },
+    });
+  });
+
+  it('captures post_published for every confirmed publish, including after the first', async () => {
+    const { funnelCaptureService, service } = buildService({
+      priorPublishCount: 3,
+    });
+
+    await service.emitPostPublished({
+      platform: 'linkedin',
+      post: { id: 'post_9', organizationId: 'org_1', userId: 'user_1' },
+    });
+    await flushMicrotasks();
+
+    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
+      distinctId: 'user_1',
+      event: 'post_published',
+      organizationId: 'org_1',
+      properties: {
+        $groups: { organization: 'org_1' },
+        platform: 'linkedin',
         surface: 'social',
       },
     });
@@ -505,7 +533,9 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     });
     await flushMicrotasks();
 
-    expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+    expect(funnelCaptureService.capture).not.toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'first_successful_publish' }),
+    );
   });
 
   it('is skipped without a post id or organization id', async () => {

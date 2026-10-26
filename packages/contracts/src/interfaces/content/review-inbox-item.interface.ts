@@ -71,6 +71,25 @@ export interface IReviewInboxDecisionResult {
   resolvedAt: string;
 }
 
+/** Most items one batch decision request may carry. */
+export const REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS = 100;
+
+export interface IReviewInboxBatchDecisionRequest {
+  itemIds: string[];
+  decision: ReviewInboxDecision;
+  reason?: string;
+}
+
+export interface IReviewInboxBatchDecisionFailure {
+  itemId: string;
+  message: string;
+}
+
+export interface IReviewInboxBatchDecisionResult {
+  decided: IReviewInboxDecisionResult[];
+  failed: IReviewInboxBatchDecisionFailure[];
+}
+
 export type ParsedReviewInboxItemId =
   | { kind: 'workflow_review_gate'; executionId: string; nodeId: string }
   | { kind: 'mcp_approval'; approvalId: string };

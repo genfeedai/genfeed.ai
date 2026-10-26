@@ -92,18 +92,15 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    description,
     label,
     right,
   }: {
     children: ReactNode;
-    description?: string;
     label: string;
     right?: ReactNode;
   }) => (
     <section>
       <h1>{label}</h1>
-      {description ? <p>{description}</p> : null}
       {right}
       {children}
     </section>

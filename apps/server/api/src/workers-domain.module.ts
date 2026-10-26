@@ -121,6 +121,7 @@ import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-ev
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
@@ -365,6 +366,7 @@ const WORKER_DOMAIN_SERVICES = [
   PostsService,
   PublicClipperToolStoreService,
   RssSourcesService,
+  ServerFunnelCaptureService,
   PublishEventWebhookService,
   PublisherFactoryService,
   QueueService,

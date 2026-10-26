@@ -573,7 +573,7 @@ export class ReferralsService {
         destination.id,
         reward.rewardCredits,
         ActivitySource.REFERRAL,
-        'Referral purchase reward',
+        'Affiliate purchase reward',
         addMonths(new Date(), REWARD_WINDOW_MONTHS),
         {
           idempotencyKey,
@@ -734,7 +734,7 @@ export class ReferralsService {
             destinationOrganizationId,
             reward.referral.code.ownerUserId,
             creditsToReverse,
-            'Referral reward reversal',
+            'Affiliate reward reversal',
             ActivitySource.REFERRAL,
             {
               idempotencyKey,

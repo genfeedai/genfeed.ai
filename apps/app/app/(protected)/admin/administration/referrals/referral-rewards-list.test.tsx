@@ -29,7 +29,7 @@ vi.mock('next-intl', () => ({
     ({
       adminLoadErrorDescription:
         'Financial reward records could not be loaded.',
-      loadErrorTitle: 'Referral rewards unavailable',
+      loadErrorTitle: 'Affiliate rewards unavailable',
       retry: 'Retry',
     })[key] ?? key,
 }));
@@ -107,7 +107,7 @@ describe('ReferralRewardsList', () => {
     );
 
     expect(
-      await screen.findByText('Referral rewards unavailable'),
+      await screen.findByText('Affiliate rewards unavailable'),
     ).toBeVisible();
     expect(screen.queryByText('No referral rewards found')).toBeNull();
     expect(

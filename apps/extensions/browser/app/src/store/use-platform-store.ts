@@ -1,6 +1,9 @@
 import { create } from 'zustand';
+import type { PagePost } from '~types/extension';
 
 interface PageContext {
+  /** The post open in the active tab, when the page is a post. */
+  post?: PagePost;
   url?: string;
   postContent?: string;
   postAuthor?: string;

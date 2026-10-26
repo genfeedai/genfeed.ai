@@ -69,6 +69,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
+import { usePromptTextEnhancement } from '@hooks/prompt-bar/use-prompt-text-enhancement/use-prompt-text-enhancement';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
@@ -93,7 +94,6 @@ import { useStudioPlaygroundModels } from '@pages/studio/playground/hooks/useStu
 import { useStudioPlaygroundPreviewRecovery } from '@pages/studio/playground/hooks/useStudioPlaygroundPreviewRecovery';
 import { useStudioPlaygroundSettings } from '@pages/studio/playground/hooks/useStudioPlaygroundSettings';
 import { useStudioPlaygroundTransformActions } from '@pages/studio/playground/hooks/useStudioPlaygroundTransformActions';
-import { useStudioPromptEnhancement } from '@pages/studio/playground/hooks/useStudioPromptEnhancement';
 import { useStudioReferenceMentions } from '@pages/studio/playground/hooks/useStudioReferenceMentions';
 import {
   buildRepromptData,
@@ -383,7 +383,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     enhancedPromptId,
     previousPrompt: previousEnhancedPrompt,
     undoEnhance,
-  } = useStudioPromptEnhancement({
+  } = usePromptTextEnhancement({
     brandId,
     contentType: type === 'image' || type === 'video' ? type : undefined,
     modelKey: settings.modelKey,

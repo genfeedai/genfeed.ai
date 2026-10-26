@@ -47,6 +47,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../auth-client/src/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(__dirname, '../pricing/src/$1'),
+      },
+      {
         find: /^@genfeedai\/hooks$/,
         replacement: path.resolve(__dirname, '../hooks'),
       },

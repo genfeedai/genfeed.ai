@@ -242,11 +242,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://genfeed.ai/faq',
     },
     {
-      changeFrequency: 'monthly',
-      priority: 0.6,
-      url: 'https://genfeed.ai/gen',
-    },
-    {
       changeFrequency: 'weekly',
       priority: 0.7,
       url: 'https://genfeed.ai/skills',

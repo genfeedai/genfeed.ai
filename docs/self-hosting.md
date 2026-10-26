@@ -367,8 +367,8 @@ These ComfyUI LoRA models are not offered by the Replicate workflow image node.
 
 Organization billing code ships in the same image as everything else — there
 is no separate commercial build. Whether it is live is decided at runtime by
-`hasOrganizationBilling()`: Cloud detects itself via `GENFEED_CLOUD` or a
-`*.genfeed.ai` public URL, and a licensed self-host opts in by setting
+`hasOrganizationBilling()`: Cloud detects itself via a
+`*.genfeed.ai` public URL (`GENFEED_CLOUD` counts outside production only), and a licensed self-host opts in by setting
 `GENFEED_LICENSE_KEY`. A stock Community install without that key gets no-op
 billing stubs and no billing routes. See
 [Billing: one build, a runtime gate](./deployment-modes.md#billing-one-build-a-runtime-gate).

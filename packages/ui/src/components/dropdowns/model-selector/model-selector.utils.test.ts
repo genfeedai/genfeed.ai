@@ -11,6 +11,7 @@ import {
   getModelRowCapabilities,
   getModelSpecCapabilities,
   getQualityTierLevel,
+  groupModelOptionsByFamily,
   MODEL_FILTER_ALL,
   MODEL_FILTER_AUDIO,
   MODEL_FILTER_CHEAP,
@@ -475,5 +476,52 @@ describe('getQualityTierLevel', () => {
     expect(getQualityTierLevel(QualityTier.HIGH)).toBe(3);
     expect(getQualityTierLevel(QualityTier.ULTRA)).toBe(4);
     expect(getQualityTierLevel(undefined)).toBe(0);
+  });
+});
+
+describe('groupModelOptionsByFamily', () => {
+  it('folds siblings into one family at the first sibling and leaves lone models flat', () => {
+    const options = transformModelsToOptions(
+      [
+        createModel({ key: 'openai/gpt-image-2', label: 'GPT Image 2' }),
+        createModel({ key: 'google/imagen-4', label: 'Imagen 4' }),
+        createModel({
+          key: 'openai/gpt-image-2-flare',
+          label: 'GPT Image 2.5 Flare',
+        }),
+        createModel({
+          key: 'openai/gpt-image-2-sunburst',
+          label: 'GPT Image 2.5 Sunburst',
+        }),
+      ],
+      [],
+    );
+
+    const entries = groupModelOptionsByFamily(options);
+
+    expect(entries.map((entry) => entry.kind)).toEqual(['family', 'model']);
+    expect(entries[0]).toMatchObject({
+      familyLabel: 'GPT Image',
+      kind: 'family',
+    });
+    expect(
+      entries[0].kind === 'family' &&
+        entries[0].options.map((option) => option.model.key),
+    ).toEqual([
+      'openai/gpt-image-2',
+      'openai/gpt-image-2-flare',
+      'openai/gpt-image-2-sunburst',
+    ]);
+  });
+
+  it('keeps a model whose family has no sibling as a plain row', () => {
+    const options = transformModelsToOptions(
+      [createModel({ key: 'google/imagen-4', label: 'Imagen 4' })],
+      [],
+    );
+
+    expect(groupModelOptionsByFamily(options)).toEqual([
+      { kind: 'model', option: options[0] },
+    ]);
   });
 });

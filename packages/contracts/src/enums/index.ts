@@ -59,7 +59,6 @@ export * from './entity.enum';
 export * from './enum-label.util';
 export * from './error.enum';
 export * from './evaluation.enum';
-export * from './fanvue.enum';
 export * from './fanvue-chatbot.enum';
 export * from './file.enum';
 export * from './file-input-type.enum';

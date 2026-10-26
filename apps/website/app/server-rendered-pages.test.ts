@@ -28,7 +28,6 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/experts/experts-content.tsx',
   'app/(public)/faq/faq-content.tsx',
   'app/(public)/features/features-page.tsx',
-  'app/(public)/gen/gen-content.tsx',
   'app/(public)/hire-agents/hire-agents-content.tsx',
   'app/(public)/integrations/integrations-content.tsx',
   'app/(public)/models/models-content.tsx',

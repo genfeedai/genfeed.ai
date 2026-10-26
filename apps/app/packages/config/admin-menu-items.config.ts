@@ -322,7 +322,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Administration',
     hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.REFERRALS,
-    label: 'Referral Rewards',
+    label: 'Affiliate Rewards',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.REFERRALS],
     outline: HandHeart,
     solid: HandHeart,

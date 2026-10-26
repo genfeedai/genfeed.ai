@@ -92,7 +92,7 @@ describe('SettingsReferralsPage', () => {
       </QueryClientProvider>,
     );
 
-    const input = await screen.findByLabelText('Referral link');
+    const input = await screen.findByLabelText('Affiliate link');
     const expectedShareUrl = `${window.location.origin}/sign-up?ref=frend2345xyz`;
     await waitFor(() => {
       expect(input).toHaveValue(expectedShareUrl);
@@ -116,7 +116,7 @@ describe('SettingsReferralsPage', () => {
     await waitFor(() => {
       expect(copyMock).toHaveBeenCalledWith(expectedShareUrl);
     });
-    expect(successMock).toHaveBeenCalledWith('Referral link copied');
+    expect(successMock).toHaveBeenCalledWith('Affiliate link copied');
   });
 
   it('shows a recoverable error instead of zero financial data', async () => {
@@ -131,7 +131,7 @@ describe('SettingsReferralsPage', () => {
     );
 
     expect(
-      await screen.findByText('Referral rewards unavailable'),
+      await screen.findByText('Affiliate rewards unavailable'),
     ).toBeVisible();
     expect(screen.queryByText('Earned')).not.toBeInTheDocument();
 

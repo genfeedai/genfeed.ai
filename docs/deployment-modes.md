@@ -19,7 +19,7 @@ summary; the canonical, decision-of-record version is the ADR at
 
 ## Choosing a mode (env)
 
-- **SaaS** — `GENFEED_CLOUD=1` (+ Better Auth, AWS, Stripe).
+- **SaaS** — a production build whose URL env keys (`GENFEEDAI_APP_URL`, `GENFEEDAI_API_PUBLIC_URL`, …) or browser hostname are on `*.genfeed.ai` (+ Better Auth, AWS, Stripe). With `NODE_ENV=production` the domain is the only signal; `GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD` are ignored, so a self-hoster cannot flip into Cloud. They still select Cloud outside production (Portless, local Cloud). Playwright production builds on localhost use the test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud|self-hosted`, which is ignored on any `*.genfeed.ai` host.
 - **Community** — leave `GENFEED_CLOUD` unset. The release bundle's default
   `.env.example` enables local Better Auth sign-up
   (`BETTER_AUTH_ENABLED=true`, `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true`) so the
@@ -47,8 +47,8 @@ and no build flavor.
 
 Which implementation is live is decided **at boot**, in
 `apps/server/api/src/common/subscriptions/billing.providers.ts`, by
-`hasOrganizationBilling()` (SaaS via `GENFEED_CLOUD` / a public `*.genfeed.ai`
-URL, or a licensed self-host via `GENFEED_LICENSE_KEY`):
+`hasOrganizationBilling()` (SaaS via a public `*.genfeed.ai`
+URL — `GENFEED_CLOUD` outside production only — or a licensed self-host via `GENFEED_LICENSE_KEY`):
 
 - **Organization billing live** — the shared billing tokens
   (`SUBSCRIPTIONS_SERVICE`, `USER_SUBSCRIPTIONS_SERVICE`,

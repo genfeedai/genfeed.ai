@@ -132,11 +132,11 @@ function MessageBubble({
         className={cn(
           'max-w-[78%] rounded border px-3 py-2',
           isOutbound
-            ? 'border-primary/20 bg-primary/10 text-primary-foreground'
+            ? 'border-primary/20 bg-primary/10 text-foreground'
             : 'border-border bg-background-tertiary text-foreground',
         )}
       >
-        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-gray-800">
+        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-muted-foreground">
           <span>{isOutbound ? 'Manager' : message.senderName || 'Sender'}</span>
           <span>{formatMessageTime(message.createdAt)}</span>
           <span>{message.status}</span>

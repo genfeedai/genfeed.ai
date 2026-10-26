@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { GENFEED_MARK_PATH } from '~platforms/ui/icons';
 
 interface IconProps {
   className?: string;
@@ -158,6 +159,24 @@ export function CreateIcon({ className = 'size-4' }: IconProps): ReactElement {
         strokeWidth={2}
         d="M15 10l4.5-4.5a1.5 1.5 0 112.12 2.12L17.12 12l4.5 4.5a1.5 1.5 0 11-2.12 2.12L15 14m-6 0l-4.5 4.5a1.5 1.5 0 01-2.12-2.12L6.88 12 2.38 7.5a1.5 1.5 0 112.12-2.12L9 10"
       />
+    </svg>
+  );
+}
+
+/** The Genfeed G, in the colour of the text around it. */
+export function GenfeedLogoIcon({
+  className = 'size-5',
+}: IconProps): ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+      viewBox="0 0 500 500"
+    >
+      <g transform="translate(0,500) scale(0.1,-0.1)">
+        <path d={GENFEED_MARK_PATH} />
+      </g>
     </svg>
   );
 }

@@ -1056,7 +1056,6 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   // Append-only by trigger and keyed by composite FK to the execution; a brand
   // with execution read-scope history cannot move (assertNoWorkflowExecutionReadHistory).
   'WorkflowExecutionReadBrandDependency',
-  'WorkflowExecutionReadLineage',
   'WorkflowExecutionReadScope',
   // Org-keyed rows that point at a moved parent but belong to another tenant's
   // ledger and stay put: revenue attribution is the subscriber's, and a
@@ -1116,7 +1115,6 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'skill_resolutions',
   'skills',
   'workflow_execution_read_brand_dependencies',
-  'workflow_execution_read_lineage',
   'workflow_execution_read_scopes',
   'notification_events',
   'notification_inbox_items',

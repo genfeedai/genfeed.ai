@@ -8,9 +8,10 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupModelSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/model-selector.props';
-import GenerationSetupLegacyModelsMenu, {
+import GenerationSetupModelFlyout, {
   LEGACY_MODELS_ROW_VALUE,
-} from '@ui/dropdowns/generation-setup/GenerationSetupLegacyModelsMenu';
+  MODEL_FAMILY_ROW_VALUE_PREFIX,
+} from '@ui/dropdowns/generation-setup/GenerationSetupModelFlyout';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import {
   AUTO_PRIORITY_LABELS,
@@ -18,9 +19,11 @@ import {
   isAutoGenerationModelKey,
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
+  groupModelOptionsByFamily,
   sortModelOptions,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import {
   Command,
   CommandEmpty,
@@ -38,8 +41,12 @@ import { type KeyboardEvent, useState } from 'react';
  * catalog as single-select rows, reusing `ModelSelectorModelItem` from the
  * model-selector dropdown so the two pickers never visually diverge.
  *
+ * Siblings of one family (GPT Image 2, 2.5 Flare, 2.5 Sunburst) fold into one
+ * row that opens its variants in a flyout to the right, the same cascade as
+ * Legacy. A search lists matching models flat, so a typed name is one row away.
+ *
  * Retired rows are never listed. Legacy rows stay out of the catalog behind a
- * single "N legacy models" row that opens them in a flyout to the right; a
+ * single "Legacy" row that opens them in a flyout to the right; a
  * search narrows the flyout to the legacy models it matches.
  */
 export default function GenerationSetupModelSection({
@@ -54,7 +61,8 @@ export default function GenerationSetupModelSection({
 }: GenerationSetupModelSectionProps) {
   const translate = useTranslations('agent.generationSetup');
   const [search, setSearch] = useState('');
-  const [isLegacyOpen, setIsLegacyOpen] = useState(false);
+  // The one open flyout: the Legacy row's value or a family row's value.
+  const [openFlyoutValue, setOpenFlyoutValue] = useState<string | null>(null);
   const [highlightedValue, setHighlightedValue] = useState('');
   const query = search.trim().toLowerCase();
 
@@ -87,12 +95,17 @@ export default function GenerationSetupModelSection({
     );
   }
 
+  function setFlyoutOpen(value: string, isOpen: boolean): void {
+    setOpenFlyoutValue((current) =>
+      isOpen ? value : current === value ? null : current,
+    );
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (
-      event.key !== 'ArrowRight' ||
-      highlightedValue !== LEGACY_MODELS_ROW_VALUE
-    )
-      return;
+    const isFlyoutRow =
+      highlightedValue === LEGACY_MODELS_ROW_VALUE ||
+      highlightedValue.startsWith(MODEL_FAMILY_ROW_VALUE_PREFIX);
+    if (event.key !== 'ArrowRight' || !isFlyoutRow) return;
     // In the search box the arrow still moves the caret until it is at the end.
     const { target } = event;
     if (
@@ -101,12 +114,17 @@ export default function GenerationSetupModelSection({
     )
       return;
     event.preventDefault();
-    setIsLegacyOpen(true);
+    setOpenFlyoutValue(highlightedValue);
   }
 
-  function renderModelRow(option: ModelSelectorOption) {
+  function renderModelRow(
+    option: ModelSelectorOption,
+    isLegacyBadgeVisible = true,
+  ) {
     return (
       <ModelSelectorModelItem
+        isCategoryVisible={false}
+        isLegacyBadgeVisible={isLegacyBadgeVisible}
         isLocked={isDisabled || isCreditLocked(option.model.cost)}
         isSelected={
           !isAutoSelected && setup.values.modelKey === option.model.key
@@ -120,7 +138,7 @@ export default function GenerationSetupModelSection({
         onFavoriteToggle={onFavoriteToggle}
         onToggle={(modelKey) => {
           onSetField('modelKey', modelKey);
-          setIsLegacyOpen(false);
+          setOpenFlyoutValue(null);
         }}
         option={option}
         selectionMode="single"
@@ -146,12 +164,12 @@ export default function GenerationSetupModelSection({
           value={search}
           onValueChange={(value) => {
             setSearch(value);
-            setIsLegacyOpen(false);
+            setOpenFlyoutValue(null);
           }}
         />
         <CommandList
           className={cn(
-            'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-0.5 py-0.5',
+            'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain p-1 [&_[cmdk-item]]:rounded-lg',
             'max-h-[min(280px,calc(var(--radix-popover-content-available-height,70vh)-8rem))]',
           )}
         >
@@ -164,7 +182,7 @@ export default function GenerationSetupModelSection({
                 return (
                   <CommandItem
                     className={cn(
-                      'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+                      'flex min-h-7 cursor-pointer items-center gap-2 px-1.5 py-0.5 text-xs text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
                       isRowSelected && 'bg-background-tertiary',
                     )}
                     disabled={isDisabled}
@@ -200,21 +218,71 @@ export default function GenerationSetupModelSection({
 
           {options.length > 0 ? (
             <CommandGroup heading="Catalog">
-              {options.map(renderModelRow)}
+              {(query
+                ? options.map((option) => ({
+                    kind: 'model' as const,
+                    option,
+                  }))
+                : groupModelOptionsByFamily(options)
+              ).map((entry) => {
+                if (entry.kind === 'model') return renderModelRow(entry.option);
+
+                const familyValue = `${MODEL_FAMILY_ROW_VALUE_PREFIX}${entry.familyKey}`;
+                const isFamilySelected = entry.options.some(
+                  (option) =>
+                    !isAutoSelected &&
+                    option.model.key === setup.values.modelKey,
+                );
+
+                return (
+                  <GenerationSetupModelFlyout
+                    align="start"
+                    hint={
+                      <span className="flex shrink-0 items-center gap-1.5 text-2xs text-muted-foreground">
+                        {isFamilySelected ? (
+                          <Check
+                            aria-hidden
+                            className="size-3.5 text-foreground"
+                          />
+                        ) : null}
+                        {entry.options.length}
+                      </span>
+                    }
+                    isOpen={openFlyoutValue === familyValue}
+                    key={entry.familyKey}
+                    label={entry.familyLabel}
+                    leading={
+                      <ModelAvatar
+                        isCategoryVisible={false}
+                        isProviderVisible={false}
+                        model={entry.options[0].model}
+                      />
+                    }
+                    onOpenChange={(isOpen) =>
+                      setFlyoutOpen(familyValue, isOpen)
+                    }
+                    value={familyValue}
+                  >
+                    {entry.options.map((option) => renderModelRow(option))}
+                  </GenerationSetupModelFlyout>
+                );
+              })}
             </CommandGroup>
           ) : null}
 
           {legacyOptions.length > 0 ? (
             <CommandGroup>
-              <GenerationSetupLegacyModelsMenu
-                isOpen={isLegacyOpen}
-                label={translate('legacyModels', {
-                  count: legacyOptions.length,
-                })}
-                onOpenChange={setIsLegacyOpen}
+              <GenerationSetupModelFlyout
+                isOpen={openFlyoutValue === LEGACY_MODELS_ROW_VALUE}
+                label={translate('legacy')}
+                onOpenChange={(isOpen) =>
+                  setFlyoutOpen(LEGACY_MODELS_ROW_VALUE, isOpen)
+                }
+                tone="muted"
+                value={LEGACY_MODELS_ROW_VALUE}
               >
-                {legacyOptions.map(renderModelRow)}
-              </GenerationSetupLegacyModelsMenu>
+                {legacyOptions.map((option) => renderModelRow(option, false))}
+              </GenerationSetupModelFlyout>
             </CommandGroup>
           ) : null}
 

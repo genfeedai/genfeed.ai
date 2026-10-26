@@ -34,7 +34,7 @@ test.describe('Agent surface', () => {
     await assertRouteRenders(authenticatedPage, `${AGENT_BASE}/new`);
 
     await tryClick(authenticatedPage, 'button:has-text("Plan")');
-    await tryClick(authenticatedPage, 'button:has-text("Attach")');
+    await tryClick(authenticatedPage, 'button:has-text("Reference")');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

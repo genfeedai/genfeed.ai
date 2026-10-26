@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  E2E_DEPLOYMENT_OVERRIDE_ENV_KEY,
   envFlag,
   getClientSurface,
   getDeployment,
@@ -99,7 +100,8 @@ describe('isHostedGenfeedCloud', () => {
     expect(isSaaS()).toBe(true);
   });
 
-  it('honours an explicit NEXT_PUBLIC_GENFEED_CLOUD flag without a hosted URL', () => {
+  it('honours an explicit NEXT_PUBLIC_GENFEED_CLOUD flag outside production', () => {
+    vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('GENFEED_CLOUD', '');
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '1');
 
@@ -151,7 +153,8 @@ describe('isHostedGenfeedCloud', () => {
 });
 
 describe('deployment axes', () => {
-  it('lets an explicit false cloud flag override a hosted URL', () => {
+  it('lets an explicit false cloud flag override a hosted URL outside production', () => {
+    vi.stubEnv('NODE_ENV', 'test');
     vi.stubEnv('GENFEED_CLOUD', 'false');
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
@@ -254,6 +257,132 @@ describe('getDeploymentFromReader', () => {
 
   it('returns self-hosted when the reader has no cloud signal', () => {
     expect(getDeploymentFromReader(() => undefined)).toBe('self-hosted');
+  });
+});
+
+describe('production deployment', () => {
+  const production = (
+    env: Record<string, string | undefined>,
+  ): Record<string, string | undefined> => ({
+    NODE_ENV: 'production',
+    ...env,
+  });
+  const resolve = (env: Record<string, string | undefined>) =>
+    getDeploymentFromReader((key) => env[key]);
+
+  it('ignores GENFEED_CLOUD flags on a hosted URL', () => {
+    expect(
+      resolve(
+        production({
+          GENFEED_CLOUD: 'false',
+          GENFEEDAI_API_PUBLIC_URL: 'https://api.genfeed.ai',
+          NEXT_PUBLIC_GENFEED_CLOUD: '0',
+        }),
+      ),
+    ).toBe('cloud');
+  });
+
+  it('ignores GENFEED_CLOUD flags without a hosted URL', () => {
+    expect(
+      resolve(
+        production({
+          GENFEED_CLOUD: 'true',
+          GENFEEDAI_API_PUBLIC_URL: 'https://api.example.com',
+          NEXT_PUBLIC_GENFEED_CLOUD: '1',
+        }),
+      ),
+    ).toBe('self-hosted');
+  });
+
+  it('is self-hosted with no signal at all', () => {
+    expect(resolve(production({}))).toBe('self-hosted');
+  });
+
+  it('ignores the test override when the app origin is *.genfeed.ai', () => {
+    expect(
+      resolve(
+        production({
+          [E2E_DEPLOYMENT_OVERRIDE_ENV_KEY]: 'self-hosted',
+          NEXT_PUBLIC_APPS_APP_ENDPOINT: 'https://app.genfeed.ai',
+        }),
+      ),
+    ).toBe('cloud');
+    expect(
+      resolve(
+        production({
+          [E2E_DEPLOYMENT_OVERRIDE_ENV_KEY]: 'self-hosted',
+          GENFEEDAI_API_PUBLIC_URL: 'https://api.genfeed.ai',
+        }),
+      ),
+    ).toBe('cloud');
+  });
+
+  it.each([
+    ['cloud', 'cloud'],
+    ['self-hosted', 'self-hosted'],
+    [' self-hosted ', 'self-hosted'],
+    // Unrecognised values fall back to the URL rule, which sees the hosted API.
+    ['bogus', 'cloud'],
+  ] as const)(
+    'resolves test override %j on localhost against the hosted API as %s',
+    (override, expected) => {
+      expect(
+        resolve(
+          production({
+            [E2E_DEPLOYMENT_OVERRIDE_ENV_KEY]: override,
+            NEXT_PUBLIC_API_ENDPOINT: 'https://api.genfeed.ai/v1',
+            NEXT_PUBLIC_APPS_APP_ENDPOINT: 'http://localhost:3000',
+          }),
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  it('does not let the test override change non-production resolution', () => {
+    expect(
+      resolve({
+        [E2E_DEPLOYMENT_OVERRIDE_ENV_KEY]: 'cloud',
+        NODE_ENV: 'test',
+      }),
+    ).toBe('self-hosted');
+  });
+
+  it('trusts the proxy hop from the production domain rule', () => {
+    const env = production({
+      GENFEED_CLOUD: 'false',
+      GENFEEDAI_API_PUBLIC_URL: 'https://api.genfeed.ai',
+    });
+    expect(resolveTrustProxyFromReader((key) => env[key])).toBe(1);
+  });
+
+  it('resolves getDeployment() from the production domain and test override', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '1');
+    for (const key of [
+      'GENFEEDAI_API_PUBLIC_URL',
+      'GENFEEDAI_APP_URL',
+      'NEXT_PUBLIC_API_ENDPOINT',
+      'NEXT_PUBLIC_APPS_APP_ENDPOINT',
+    ] as const) {
+      vi.stubEnv(key, '');
+    }
+    expect(getDeployment()).toBe('self-hosted');
+
+    vi.stubEnv(E2E_DEPLOYMENT_OVERRIDE_ENV_KEY, 'cloud');
+    expect(getDeployment()).toBe('cloud');
+  });
+
+  it('keeps the browser on *.genfeed.ai Cloud despite a self-hosted override', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv(E2E_DEPLOYMENT_OVERRIDE_ENV_KEY, 'self-hosted');
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: { hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    expect(getDeployment()).toBe('cloud');
   });
 });
 

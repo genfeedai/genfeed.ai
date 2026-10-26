@@ -22,11 +22,31 @@ const HOSTED_GENFEED_URL_ENV_KEYS = [
 ] as const;
 
 /**
+ * Hosted-URL keys that name the service's *own* origin. The API and MCP
+ * endpoints are excluded because a browser test build legitimately points them
+ * at the hosted API while the app itself runs on localhost.
+ */
+const OWN_ORIGIN_URL_ENV_KEYS = HOSTED_GENFEED_URL_ENV_KEYS.filter(
+  (key) =>
+    key !== 'NEXT_PUBLIC_API_ENDPOINT' && key !== 'NEXT_PUBLIC_MCP_ENDPOINT',
+);
+
+/**
+ * TEST-ONLY. Forces the deployment axis (`cloud` | `self-hosted`) for a
+ * production build that runs on a non-`*.genfeed.ai` origin, e.g. the
+ * Playwright Community and Cloud tiers (`next build` on localhost against the
+ * hosted API). It is ignored whenever the origin is `*.genfeed.ai`, so it can
+ * never change what the hosted product resolves to. Never set it in a deploy.
+ */
+export const E2E_DEPLOYMENT_OVERRIDE_ENV_KEY =
+  'NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT';
+
+/**
  * Read one deployment env var from `process.env`. Next inlines `NEXT_PUBLIC_*`
  * values into the browser bundle only for literal `process.env.NAME` reads, and
- * `process.env[key]` is undefined there. The two explicit cloud flags are read
- * literally so an explicit `NEXT_PUBLIC_GENFEED_CLOUD` is honoured in the
- * browser as it is on the server. The hosted-URL keys keep their dynamic read
+ * `process.env[key]` is undefined there. `NODE_ENV`, the two non-production
+ * cloud flags and the test-only override are read literally so the browser
+ * resolves them exactly as the server does. The hosted-URL keys keep their dynamic read
  * on purpose: in the browser the hostname rule decides, and inlining the URLs
  * would make any build whose API endpoint is on `*.genfeed.ai` Cloud there.
  */
@@ -36,6 +56,10 @@ function readDeploymentEnv(key: string): string | undefined {
       return process.env.GENFEED_CLOUD;
     case 'NEXT_PUBLIC_GENFEED_CLOUD':
       return process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    case 'NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT':
+      return process.env.NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT;
+    case 'NODE_ENV':
+      return process.env.NODE_ENV;
     default:
       return process.env[key];
   }
@@ -55,7 +79,8 @@ export function envFlag(value: string | undefined): boolean {
  * (app / api / admin / mcp / cdn / staging / …).
  *
  * Local Portless (`*.genfeed.localhost`) is **not** SaaS by hostname alone —
- * set `GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD` for local cloud mode.
+ * outside production, set `GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD` for
+ * local cloud mode.
  */
 export function isHostedGenfeedHostname(hostname: string): boolean {
   const host = hostname.trim().toLowerCase().replace(/\.$/, '');
@@ -88,8 +113,11 @@ export function hostnameFromUrl(value: string | undefined): string | undefined {
  */
 export type EnvValueReader = (key: string) => string | undefined;
 
-export function isHostedGenfeedFromReader(readEnv: EnvValueReader): boolean {
-  for (const key of HOSTED_GENFEED_URL_ENV_KEYS) {
+export function isHostedGenfeedFromReader(
+  readEnv: EnvValueReader,
+  keys: readonly string[] = HOSTED_GENFEED_URL_ENV_KEYS,
+): boolean {
+  for (const key of keys) {
     const hostname = hostnameFromUrl(readEnv(key));
     if (hostname && isHostedGenfeedHostname(hostname)) {
       return true;
@@ -130,8 +158,37 @@ export function isHostedGenfeedCloud(): boolean {
   return isHostedGenfeedFromBrowser() || isHostedGenfeedFromEnv();
 }
 
-/** Resolve the backend deployment axis. Explicit flags win; domain is the safety net. */
+/**
+ * Production resolves from the `*.genfeed.ai` domain alone, so nobody can
+ * flip a hosted deployment by setting a flag. The only exception is the
+ * test-only override on a non-`*.genfeed.ai` origin.
+ */
+function getProductionDeploymentFromReader(
+  readEnv: EnvValueReader,
+): Deployment {
+  if (isHostedGenfeedFromReader(readEnv, OWN_ORIGIN_URL_ENV_KEYS)) {
+    return 'cloud';
+  }
+
+  const override = readEnv(E2E_DEPLOYMENT_OVERRIDE_ENV_KEY)?.trim();
+  if (override === 'cloud' || override === 'self-hosted') {
+    return override;
+  }
+
+  return isHostedGenfeedFromReader(readEnv) ? 'cloud' : 'self-hosted';
+}
+
+/**
+ * Resolve the backend deployment axis. In production only the `*.genfeed.ai`
+ * domain decides; the `GENFEED_CLOUD` flags are ignored. Outside production
+ * (local, Portless, tests) an explicit flag wins and the domain is the
+ * fallback.
+ */
 export function getDeploymentFromReader(readEnv: EnvValueReader): Deployment {
+  if (readEnv('NODE_ENV')?.trim() === 'production') {
+    return getProductionDeploymentFromReader(readEnv);
+  }
+
   const serverFlag = readEnv('GENFEED_CLOUD')?.trim();
   const publicFlag = readEnv('NEXT_PUBLIC_GENFEED_CLOUD')?.trim();
   const explicitFlag = serverFlag || publicFlag;
@@ -140,15 +197,10 @@ export function getDeploymentFromReader(readEnv: EnvValueReader): Deployment {
     return envFlag(explicitFlag) ? 'cloud' : 'self-hosted';
   }
 
-  // Domain is the product source of truth for hosted SaaS. A missing
-  // GENFEED_CLOUD on api.genfeed.ai / app.genfeed.ai must never drop billing
-  // (or UI) into community/OSS mode. Browser hostname is not used here so
-  // Nest/libs can pass ConfigService instead of reading process.env.
-  if (isHostedGenfeedFromReader(readEnv)) {
-    return 'cloud';
-  }
-
-  return 'self-hosted';
+  // A missing GENFEED_CLOUD on api.genfeed.ai / app.genfeed.ai must never drop
+  // billing (or UI) into community/OSS mode. Browser hostname is not used here
+  // so Nest/libs can pass ConfigService instead of reading process.env.
+  return isHostedGenfeedFromReader(readEnv) ? 'cloud' : 'self-hosted';
 }
 
 /** An Express `trust proxy` value: on/off, a hop count, or proxy addresses/subnets. */
@@ -197,12 +249,13 @@ export function resolveTrustProxyFromReader(
 }
 
 export function getDeployment(): Deployment {
-  const fromEnv = getDeploymentFromReader(readDeploymentEnv);
-  if (fromEnv === 'cloud') {
+  // The browser hostname always wins: `*.genfeed.ai` is Cloud on the client
+  // exactly as the URL keys make it Cloud on the server.
+  if (isHostedGenfeedFromBrowser()) {
     return 'cloud';
   }
 
-  return isHostedGenfeedFromBrowser() ? 'cloud' : 'self-hosted';
+  return getDeploymentFromReader(readDeploymentEnv);
 }
 
 /**

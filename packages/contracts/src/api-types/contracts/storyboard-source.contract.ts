@@ -5,6 +5,8 @@ import {
   brandRemixSourceSnapshotSchema,
 } from './brand-remix-run.contract';
 
+export const STORYBOARD_SHORT_BRIEF_MAX_CHARACTERS = 2_000;
+export const STORYBOARD_LONG_BRIEF_MAX_CHARACTERS = 20_000;
 export const storyboardIdSchema = z
   .string()
   .trim()
@@ -14,7 +16,9 @@ export const storyboardIdSchema = z
 export const storyboardBriefSourceSchema = z
   .object({
     kind: z.literal('brief'),
-    brief: z.string().trim().max(2_000),
+    /** Long-form briefs (a voice-note transcript) may run to 20,000 characters. */
+    brief: z.string().trim().max(STORYBOARD_LONG_BRIEF_MAX_CHARACTERS),
+    length: z.enum(['short', 'long_form']).optional(),
     seedImageAssetId: storyboardIdSchema.optional(),
     /** Set when the brief started as an agent draft (#7341); absent means the member wrote it. */
     author: z.enum(GENERATION_PROMPT_AUTHORS).optional(),
@@ -23,6 +27,15 @@ export const storyboardBriefSourceSchema = z
   .refine(
     (source) => source.brief.length > 0 || Boolean(source.seedImageAssetId),
     'An empty brief requires a seed image.',
+  )
+  .refine(
+    (source) =>
+      source.length === 'long_form' ||
+      source.brief.length <= STORYBOARD_SHORT_BRIEF_MAX_CHARACTERS,
+    {
+      message: `A short storyboard brief is at most ${STORYBOARD_SHORT_BRIEF_MAX_CHARACTERS} characters.`,
+      path: ['brief'],
+    },
   );
 export const storyboardUploadedVideoSourceSchema = z
   .object({

@@ -30,6 +30,8 @@ export interface PlatformConfig {
     replyActivator?: string;
     // Selector for the post/submit button
     submitButton?: string;
+    // Row of icon buttons (media, GIF, emoji...) in a composer; the group joins it when present
+    toolbar?: string;
     // Selector to identify individual posts
     postIdentifier: string;
     // Selectors tried in order for the text and author of a post
@@ -435,6 +437,7 @@ export const platforms: Record<string, PlatformConfig> = {
       postContainer: 'article[data-testid="tweet"]',
       postIdentifier: 'article',
       replyTextarea: '[data-testid="tweetTextarea_0"]',
+      toolbar: '[data-testid="toolBar"]',
       // Inline reply and home composer, and the compose modal's Post button.
       submitButton:
         '[data-testid="tweetButtonInline"], [data-testid="tweetButton"]',

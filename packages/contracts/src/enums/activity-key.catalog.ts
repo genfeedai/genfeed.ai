@@ -587,7 +587,7 @@ const CREDIT_ACTIVITY_SOURCE_LABELS: Record<string, string> = {
   [ActivitySource.POST]: 'Content publish',
   [ActivitySource.SUBSCRIPTION]: 'Subscription credits',
   [ActivitySource.PAY_AS_YOU_GO]: 'Credit purchase',
-  [ActivitySource.REFERRAL]: 'Referral reward',
+  [ActivitySource.REFERRAL]: 'Affiliate reward',
   [ActivitySource.TRIAL_EXPIRED]: 'Free trial ended',
   [ActivitySource.BRAND_INTERVIEW]: 'Brand context interview',
   [ActivitySource.EXPERT_FIRST_SYSTEM]: 'First content system generation',

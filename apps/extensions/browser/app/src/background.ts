@@ -408,7 +408,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'saveBookmark':
-      saveBookmark(request.data, sendResponse).catch((error) =>
+      saveBookmark(request.data, sendResponse, sender).catch((error) =>
         sendError(sendResponse, 'Could not open this capture', error),
       );
       return true;
@@ -502,19 +502,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // === Remix / Reply / Idea keyboard shortcut handlers ===
 
     case 'SHORTCUT_REMIX':
-      handleShortcutMode('REMIX', request.payload, sendResponse);
+      handleShortcutMode('REMIX', request.payload, sendResponse, sender);
       return true;
 
     case 'SHORTCUT_REPLY':
-      handleShortcutMode('REPLY', request.payload, sendResponse);
+      handleShortcutMode('REPLY', request.payload, sendResponse, sender);
       return true;
 
     case 'SHORTCUT_IDEA':
-      handleShortcutMode('IDEA', request.payload, sendResponse);
+      handleShortcutMode('IDEA', request.payload, sendResponse, sender);
       return true;
 
     case 'openProviderSettings':
-      handleShortcutMode('SETTINGS', undefined, sendResponse);
+      handleShortcutMode('SETTINGS', undefined, sendResponse, sender);
       return true;
   }
 });
@@ -533,12 +533,19 @@ async function handleShortcutMode(
       }
     | undefined,
   sendResponse: SendResponse,
+  sender: chrome.runtime.MessageSender,
 ): Promise<void> {
   try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+    // sidePanel.open() only works inside the user's click. The page that sent
+    // this message is the tab they clicked in, and opening before any await
+    // keeps the click alive; querying the active tab first loses it.
+    const senderTabId = sender.tab?.id;
+    if (senderTabId !== undefined) {
+      await chrome.sidePanel.open({ tabId: senderTabId });
+    }
+    const tab =
+      sender.tab ??
+      (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
 
     if (!tab?.id) {
       sendResponse({ error: 'No active tab', success: false });
@@ -554,7 +561,9 @@ async function handleShortcutMode(
       url: payload?.url ?? tab.url ?? '',
     };
 
-    await chrome.sidePanel.open({ tabId: tab.id });
+    if (senderTabId === undefined) {
+      await chrome.sidePanel.open({ tabId: tab.id });
+    }
 
     setTimeout(() => {
       chrome.runtime
@@ -848,6 +857,7 @@ async function processWithAutoModel(
 async function saveBookmark(
   data: BookmarkData,
   sendResponse: SendResponse,
+  sender: chrome.runtime.MessageSender,
 ): Promise<void> {
   await handleShortcutMode(
     'IDEA',
@@ -858,6 +868,7 @@ async function saveBookmark(
       captureMode: data.content ? 'selection' : 'link',
     },
     sendResponse,
+    sender,
   );
 }
 

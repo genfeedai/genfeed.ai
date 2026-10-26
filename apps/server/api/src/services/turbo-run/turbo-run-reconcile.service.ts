@@ -1,5 +1,6 @@
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { scopedWhere } from '@api/index';
 import {
   TURBO_RUN_LEASE_STALE_MS,
@@ -57,6 +58,7 @@ export class TurboRunReconcileService {
     private readonly creditsService: TurboRunCreditsService,
     private readonly reservationService: CreditReservationService,
     private readonly generationBilling: GenerationBillingService,
+    private readonly workflowGenerationBilling: WorkflowGenerationBillingService,
     private readonly reviewService: TurboRunReviewService,
   ) {}
 
@@ -287,6 +289,13 @@ export class TurboRunReconcileService {
       await this.generationBilling.reconcileAbortedCrunDispatches();
     } catch (error: unknown) {
       this.logger.error('Crun dispatch abort reconciliation failed', error);
+    }
+    // The generic expiry skips workflow holds; close the ones whose execution
+    // already ended but whose finalization failed (#7970).
+    try {
+      await this.workflowGenerationBilling.reconcileTerminalExecutions();
+    } catch (error: unknown) {
+      this.logger.error('Workflow hold reconciliation failed', error);
     }
     await this.reservationService.expireDue();
   }

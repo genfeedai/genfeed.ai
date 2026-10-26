@@ -270,14 +270,12 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    description,
     headerTabs,
     label,
     refresh,
     right,
   }: {
     children: ReactNode;
-    description?: string;
     headerTabs?: {
       activeTab?: string;
       items?: Array<{ id: string; label: string }>;
@@ -290,7 +288,6 @@ vi.mock('@ui/layout/container/Container', () => ({
     <section>
       <header>
         <h1>{label}</h1>
-        {description ? <p>{description}</p> : null}
         <div data-testid="container-refresh">{refresh}</div>
         {headerTabs?.items ? (
           <nav>

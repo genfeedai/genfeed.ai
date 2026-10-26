@@ -38,7 +38,7 @@ const SAME_MEANING: Record<string, string> = {
   generations: 'playground',
   'connected accounts': 'accounts',
   members: 'users',
-  'referral rewards': 'referrals',
+  'affiliate rewards': 'affiliates',
   subscriptions: 'subscription',
 };
 

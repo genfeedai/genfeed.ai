@@ -2,6 +2,7 @@ import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
   IOrganizationAppsReport,
+  IOrganizationsReport,
   ModelPricingAttentionLevel,
   ModelPricingFixResult,
 } from '@genfeedai/contracts/interfaces';
@@ -88,6 +89,34 @@ export async function readOrganizationAppsReport(): Promise<IOrganizationAppsRep
 
   for (let page = 2; page <= first.pagination.pages; page += 1) {
     organizations.push(...(await readOrganizationAppsPage(page)).organizations);
+  }
+
+  return { ...first, organizations };
+}
+
+const ORGANIZATIONS_PAGE_SIZE = 100;
+
+async function readOrganizationsPage(
+  page: number,
+  isIncludingDeleted: boolean
+): Promise<IOrganizationsReport> {
+  const deleted = isIncludingDeleted ? '&includeDeleted=true' : '';
+  return flattenSingle<IOrganizationsReport>(
+    await adminGet<JsonApiDocument>(
+      `/admin/organizations?page=${page}&limit=${ORGANIZATIONS_PAGE_SIZE}${deleted}`
+    )
+  );
+}
+
+/** Every organization: the API pages the list, so walk the pages. */
+export async function readOrganizationsReport(
+  isIncludingDeleted = false
+): Promise<IOrganizationsReport> {
+  const first = await readOrganizationsPage(1, isIncludingDeleted);
+  const organizations = [...first.organizations];
+
+  for (let page = 2; page <= first.pagination.pages; page += 1) {
+    organizations.push(...(await readOrganizationsPage(page, isIncludingDeleted)).organizations);
   }
 
   return { ...first, organizations };

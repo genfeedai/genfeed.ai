@@ -15,6 +15,7 @@ export default function ModelAvatar({
   model,
   className,
   testId,
+  isCategoryVisible = true,
   isProviderVisible = true,
 }: ModelAvatarProps) {
   const brand = getBrandConfig(extractBrandFromKey(model.key ?? 'model'));
@@ -39,7 +40,8 @@ export default function ModelAvatar({
   return (
     <span
       className={cn(
-        'relative inline-flex h-8 w-10 shrink-0 text-foreground',
+        'relative inline-flex shrink-0 text-foreground',
+        isCategoryVisible ? 'h-8 w-10' : 'size-7',
         className,
       )}
       title={`${providerLabel} · ${categoryLabel}`}
@@ -58,13 +60,15 @@ export default function ModelAvatar({
           </span>
         )}
       </span>
-      <span
-        className="absolute bottom-0 right-0 flex size-4.5 items-center justify-center rounded-full border border-border bg-background-secondary"
-        role="img"
-        aria-label={categoryLabel}
-      >
-        <CategoryIcon className="size-3.5" aria-hidden />
-      </span>
+      {isCategoryVisible ? (
+        <span
+          className="absolute bottom-0 right-0 flex size-4.5 items-center justify-center rounded-full border border-border bg-background-secondary"
+          role="img"
+          aria-label={categoryLabel}
+        >
+          <CategoryIcon className="size-3.5" aria-hidden />
+        </span>
+      ) : null}
     </span>
   );
 }

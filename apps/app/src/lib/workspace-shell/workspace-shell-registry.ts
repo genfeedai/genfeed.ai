@@ -255,7 +255,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/settings/general': 'General',
   '/:orgSlug/~/settings/credits': 'Credits',
   '/:orgSlug/~/settings/subscription': 'Subscription',
-  '/:orgSlug/~/settings/referrals': 'Referrals',
+  '/:orgSlug/~/settings/referrals': 'Affiliates',
   '/:orgSlug/~/settings/usage': 'Usage',
   '/:orgSlug/~/settings/api-keys': 'API Keys',
   '/:orgSlug/~/settings/integrations': 'Integrations',

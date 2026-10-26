@@ -36,6 +36,7 @@ last_verified: 2026-10-24
 | --- | --- | --- |
 | Model catalog | Labels, categories, capability metadata, catalog lifecycle, curated cost/unit pricing | Activation, visibility, defaults, operator demotion (`isLegacy` / operator `RETIRED`) |
 | Reviewed provider rates | Sheet hash, sheet rates, `rate-sheet` reviewer | Operator-approved contracts at or after the sheet verification date |
+| OpenRouter text tariffs | Bounded ceilings in `OPENROUTER_TEXT_CONTRACT_SEED` (`openrouter-text-contracts-seed.ts`), `openrouter-text-seed` reviewer; the contract hash covers the model row id, so it is computed at sync time, not in SQL | Operator-approved contracts at or after the entry's `reviewedAt` |
 | First-party skills | Built-in identity, instructions, version, catalog origin | Organization-owned forks |
 | Studio presets | Insert-if-missing platform templates | Activation, deletion, tenant forks |
 | Studio elements | Insert-if-missing platform rows (deterministic id) | Renames, edits, activation, deletion |

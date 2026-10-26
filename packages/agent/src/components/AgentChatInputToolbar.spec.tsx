@@ -66,17 +66,35 @@ describe('AgentChatInputToolbar', () => {
         portalTarget={null}
         shellState="canvas"
       >
-        <AgentChatInputToolbar {...buildDefaultProps({ onInsertReference })} />
+        <AgentChatInputToolbar
+          {...buildDefaultProps({
+            enhancement: {
+              canUndo: false,
+              isEnhancing: false,
+              onCancel: vi.fn(),
+              onEnhance: vi.fn(),
+              onUndo: vi.fn(),
+            },
+            isEmptyComposer: false,
+            onInsertReference,
+            promptText: 'Plan next week',
+          })}
+        />
       </ConversationComposerShellProvider>,
     );
     expect(
       screen.getByRole('button', { name: 'Agent mode: Manual' }),
     ).toBeInTheDocument();
+    // Same labelled Enhance chip as the Studio bar; the saved enhancement
+    // defaults stay one click away in an icon-only settings button beside it.
+    expect(
+      screen.getByRole('button', { name: 'Enhance prompt' }),
+    ).toHaveTextContent('Enhance');
     expect(
       screen.getByRole('button', { name: 'Prompt enhancement settings' }),
-    ).toHaveTextContent('Settings');
-    const attach = screen.getByRole('button', { name: 'Attach' });
-    expect(attach).toHaveTextContent('Attach');
+    ).toBeInTheDocument();
+    const attach = screen.getByRole('button', { name: 'Add context' });
+    expect(attach).toHaveTextContent('Reference');
     fireEvent.pointerDown(attach);
     fireEvent.click(
       await screen.findByRole('menuitem', {
@@ -84,6 +102,35 @@ describe('AgentChatInputToolbar', () => {
       }),
     );
     expect(onInsertReference).toHaveBeenCalledOnce();
+  });
+
+  it('keeps Enhance disabled while the prompt has no text, even with a ready attachment', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Library"
+        draftScopeKey={null}
+        placement="dock"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInputToolbar
+          {...buildDefaultProps({
+            enhancement: {
+              canUndo: false,
+              isEnhancing: false,
+              onCancel: vi.fn(),
+              onEnhance: vi.fn(),
+              onUndo: vi.fn(),
+            },
+            isEmptyComposer: false,
+            promptText: '',
+          })}
+        />
+      </ConversationComposerShellProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Enhance prompt' }),
+    ).toBeDisabled();
   });
 
   it('hides the agent-only controls but keeps Send for other hosts', () => {

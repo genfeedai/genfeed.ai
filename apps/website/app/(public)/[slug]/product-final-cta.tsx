@@ -24,12 +24,11 @@ export default function ProductFinalCTA({
   name,
   status,
 }: Props) {
-  const bodyText =
-    status && githubUrl
-      ? `Join the ${status} program and help shape the future of ${name}.`
-      : githubUrl
-        ? 'Join thousands of creators building the future of AI content.'
-        : 'Join thousands of creators using Genfeed to generate and publish AI content at scale.';
+  const bodyText = status
+    ? `Join the ${status} program and help shape the future of ${name}.`
+    : githubUrl
+      ? `Browse the ${name} source on GitHub.`
+      : `Get started with ${name} on Genfeed.`;
 
   return (
     <section className="max-w-4xl mx-auto pb-20">

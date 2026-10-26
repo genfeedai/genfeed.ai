@@ -119,18 +119,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarContextRow from '@ui/prompt-bars/components/context-row/PromptBarContextRow';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarEnhanceControls from '@ui/prompt-bars/components/toolbar/PromptBarEnhanceControls';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { Bookmark, ImageIcon, Video, WandSparkles } from 'lucide-react';
+import { Bookmark, ImageIcon, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -204,11 +204,16 @@ export default function StudioPlaygroundComposer({
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
   const { isQuoting, quoteSpend } = useStudioSpendQuote();
+  const [isDraftMode, setIsDraftMode] = useState(false);
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
   // The price is quoted by the server first; a price it cannot confirm submits nothing.
   const guardedSubmit = () => {
     if (isSubmitBlocked || !canSubmitStudioGeneration()) return;
+    if (isDraftActive) {
+      guardedDraftSubmit();
+      return;
+    }
     quoteSpend(
       { modelKey: settings.modelKey, models, source: spendSource },
       (options) => onSubmitRef.current(options),
@@ -372,6 +377,15 @@ export default function StudioPlaygroundComposer({
     attachedAssets.some(
       (asset) => asset.role === 'startFrame' || asset.role === 'endFrame',
     );
+  // MiniMax H3 rejects first/last frames next to any reference media (E006),
+  // so audio must travel with reference images, not a start or end frame.
+  const isAudioFrameConflict =
+    type === 'video' &&
+    settings.modelKey === MODEL_KEYS.REPLICATE_MINIMAX_H3 &&
+    audioReferences.length > 0 &&
+    attachedAssets.some(
+      (asset) => asset.role === 'startFrame' || asset.role === 'endFrame',
+    );
   const isKling4KReferenceInvalid =
     type === 'video' &&
     settings.modelKey === MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
@@ -488,6 +502,12 @@ export default function StudioPlaygroundComposer({
   const draftEstimate = useStudioGenerationEstimate(
     draftSettings ? buildQuoteRequest(undefined, draftSettings) : null,
   );
+  // Draft is a mode of Video: while it is on, Generate submits the preview.
+  const hasDraftSettings = draftSettings !== null;
+  const isDraftActive = isDraftMode && hasDraftSettings;
+  useEffect(() => {
+    if (!hasDraftSettings) setIsDraftMode(false);
+  }, [hasDraftSettings]);
   const guardedDraftSubmit = () => {
     if (!draftSettings || isSubmitBlocked || !canSubmitStudioGeneration())
       return;
@@ -564,6 +584,7 @@ export default function StudioPlaygroundComposer({
     isFirstFrameMissing ||
     isAudioReferenceInvalid ||
     isReferenceCombinationInvalid ||
+    isAudioFrameConflict ||
     isKling4KReferenceInvalid ||
     isAwaitingModels ||
     isQuoting ||
@@ -857,8 +878,10 @@ export default function StudioPlaygroundComposer({
   );
   const pinnedLook = presets.find((look) => look.id === pinnedPresetId);
   const pinnedLabel = pinnedSystemPreset?.label ?? pinnedLook?.label;
-  const isContextSuggestionVisible =
-    isPromptEmpty && attachedAssets.length === 0;
+  // Presets set the output (shape, length) and only fill an empty prompt, and
+  // "More like" attaches a reference, so both stay useful once text is typed.
+  // Attached references already answer "more like", so they hide the row.
+  const isContextSuggestionVisible = attachedAssets.length === 0;
   const presetGroupItems: PromptBarContextItem[] = [
     ...(pinnedLabel
       ? [
@@ -1091,53 +1114,27 @@ export default function StudioPlaygroundComposer({
   // The enhance action sits with the other tools, after the setup chips.
   const enhanceControl =
     onEnhancePrompt && type !== 'image-edit' ? (
-      <Button
-        ariaLabel={
-          isEnhancingPrompt
-            ? translate('cancelEnhancingPrompt')
-            : translate('enhancePrompt')
-        }
-        className="size-8 shrink-0 min-h-0 min-w-0 p-0"
-        icon={
-          isEnhancingPrompt ? (
-            <Spinner className="size-4" />
-          ) : (
-            <WandSparkles className={SHELL_ICON_CLASS} />
-          )
-        }
-        // The composer stays usable during enhancement: while pending,
-        // the button switches to Cancel instead of disabling (#4676).
-        isDisabled={!isEnhancingPrompt && isPromptEmpty}
-        onClick={isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt}
-        tooltip={
-          isEnhancingPrompt
-            ? translate('cancelEnhancingPrompt')
-            : translate('enhancePrompt')
-        }
-        textTransform="none"
-        tooltipPosition="top"
-        size={ButtonSize.ICON}
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
+      <PromptBarEnhanceControls
+        isDisabled={isPromptEmpty}
+        isEnhancing={isEnhancingPrompt}
+        labels={{
+          cancelAria: translate('cancelEnhancingPrompt'),
+          enhanceAria: translate('enhancePrompt'),
+          enhanceLabel: translate('enhanceLabel'),
+          undoAria: translate('undoPromptEnhancement'),
+          undoLabel: translate('undo'),
+        }}
+        onCancel={() => onCancelEnhancePrompt?.()}
+        onEnhance={onEnhancePrompt}
+        onUndo={previousPrompt !== null ? onUndoEnhancePrompt : undefined}
       />
     ) : null;
 
-  // The last things in the button row: undo for a prompt enhancement, then `+`.
+  // The last thing in the button row: `+`, which adds references.
   const referenceControl = (
     <>
-      {!isEnhancingPrompt && previousPrompt !== null ? (
-        <Button
-          ariaLabel={translate('undoPromptEnhancement')}
-          className="h-8 shrink-0 px-2 text-xs"
-          label={translate('undo')}
-          onClick={onUndoEnhancePrompt}
-          size={ButtonSize.XS}
-          textTransform="none"
-          variant={ButtonVariant.GHOST}
-        />
-      ) : null}
       {referenceSources.length > 0 ? (
-        <PromptBarReferenceControls sources={referenceSources} />
+        <PromptBarReferenceControls isChip sources={referenceSources} />
       ) : null}
     </>
   );
@@ -1353,6 +1350,7 @@ export default function StudioPlaygroundComposer({
       {isAudioReferenceInvalid ||
       isFirstFrameMissing ||
       isReferenceCombinationInvalid ||
+      isAudioFrameConflict ||
       isKling4KReferenceInvalid ? (
         <p
           aria-live="polite"
@@ -1364,7 +1362,9 @@ export default function StudioPlaygroundComposer({
               ? translate('startFrameRequired')
               : isReferenceCombinationInvalid
                 ? translate('seedanceReferenceConflict')
-                : translate('kling4KReferenceConflict')}
+                : isAudioFrameConflict
+                  ? translate('audioFrameConflict')
+                  : translate('kling4KReferenceConflict')}
         </p>
       ) : null}
       <PromptBarToolbar
@@ -1393,6 +1393,18 @@ export default function StudioPlaygroundComposer({
             }}
             setup={setupForComposer}
             typeOptions={typeOptions}
+            videoDraft={
+              draftSettings
+                ? {
+                    credits:
+                      draftEstimate.status === 'estimated'
+                        ? draftEstimate.credits
+                        : null,
+                    isEnabled: isDraftActive,
+                    onChange: setIsDraftMode,
+                  }
+                : undefined
+            }
           />
         }
         leading={
@@ -1433,59 +1445,43 @@ export default function StudioPlaygroundComposer({
         enhance={enhanceControl}
         reference={referenceControl}
         trailing={
-          <>
-            {draftSettings && draftEstimate.status === 'estimated' ? (
-              <Button
-                ariaLabel={translate('videoDraft.ariaLabel')}
-                isDisabled={Boolean(isSubmitBlocked)}
-                onClick={guardedDraftSubmit}
-                size={ButtonSize.SM}
-                textTransform="none"
-                tooltip={translate('videoDraft.tooltip')}
-                tooltipPosition="top"
-                variant={ButtonVariant.SECONDARY}
+          <PromptBarSubmitSlot
+            isEmpty={isPromptEmpty}
+            isListening={isListening}
+            isTranscribing={isTranscribing}
+            isVoiceAvailable={isVoiceInputAvailable}
+            onStartListening={onStartListening}
+            onStopListening={onStopListening}
+            send={
+              <StudioGenerationSummary
+                crunQuote={crunQuote}
+                estimate={isDraftActive ? draftEstimate : estimate}
+                // Music Auto is one catalog default with a tariff, and an
+                // avatar quote resolves its Auto engine on the server, so
+                // both stay visible. Image and video Auto hide it.
+                isEstimateHidden={
+                  !isDraftActive &&
+                  isAutoView &&
+                  type !== 'music' &&
+                  type !== 'avatar'
+                }
+                model={selectedModel}
+                type={type}
+                label={translate('generate')}
               >
-                {translate('videoDraft.label', {
-                  credits: draftEstimate.credits ?? 0,
-                })}
-              </Button>
-            ) : null}
-
-            <PromptBarSubmitSlot
-              isEmpty={isPromptEmpty}
-              isListening={isListening}
-              isTranscribing={isTranscribing}
-              isVoiceAvailable={isVoiceInputAvailable}
-              onStartListening={onStartListening}
-              onStopListening={onStopListening}
-              send={
-                <StudioGenerationSummary
-                  crunQuote={crunQuote}
-                  estimate={estimate}
-                  // Music Auto is one catalog default with a tariff, and an
-                  // avatar quote resolves its Auto engine on the server, so
-                  // both stay visible. Image and video Auto hide it.
-                  isEstimateHidden={
-                    isAutoView && type !== 'music' && type !== 'avatar'
+                <PromptBarSendButton
+                  ariaLabel={translate('generate')}
+                  className={
+                    isSubmitBlocked
+                      ? 'cursor-not-allowed opacity-50'
+                      : undefined
                   }
-                  model={selectedModel}
-                  type={type}
-                  label={translate('generate')}
-                >
-                  <PromptBarSendButton
-                    ariaLabel={translate('generate')}
-                    className={
-                      isSubmitBlocked
-                        ? 'cursor-not-allowed opacity-50'
-                        : undefined
-                    }
-                    isAriaDisabled={Boolean(isSubmitBlocked)}
-                    onClick={guardedSubmit}
-                  />
-                </StudioGenerationSummary>
-              }
-            />
-          </>
+                  isAriaDisabled={Boolean(isSubmitBlocked)}
+                  onClick={guardedSubmit}
+                />
+              </StudioGenerationSummary>
+            }
+          />
         }
       />
     </PromptBarComposer>

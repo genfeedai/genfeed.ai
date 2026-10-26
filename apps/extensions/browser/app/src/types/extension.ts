@@ -95,3 +95,12 @@ export interface AppliedComposerText {
   draftAfter: string;
   draftBefore: string;
 }
+
+/** The post open on the page, as the side panel shows it. */
+export interface PagePost {
+  authorHandle?: string;
+  authorName?: string;
+  avatarUrl?: string;
+  text: string;
+  url: string;
+}

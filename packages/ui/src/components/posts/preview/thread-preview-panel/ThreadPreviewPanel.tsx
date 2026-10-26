@@ -6,7 +6,7 @@ import type {
   PostPreviewItemProps,
   ThreadPreviewPanelProps,
 } from '@genfeedai/props/components/thread-preview-panel.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { useIngredientMediaUrl } from '@hooks/media/use-ingredient-media-url';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -36,15 +36,13 @@ function isVideoIngredient(ingredient: IIngredient): boolean {
 }
 
 function PostPreviewMedia({ ingredient }: { ingredient: IIngredient }) {
+  const videoUrl = useIngredientMediaUrl(ingredient);
+
   if (isVideoIngredient(ingredient)) {
     return (
       <div className="mt-3 mx-auto max-h-[60vh] w-fit max-w-full overflow-hidden rounded-md">
         <VideoPlayer
-          src={
-            ingredient.cdnUrl ||
-            ingredient.ingredientUrl ||
-            `${EnvironmentService.ingredientsEndpoint}/videos/${ingredient.id}`
-          }
+          src={videoUrl}
           thumbnail={ingredient.thumbnailUrl}
           config={{
             controls: true,

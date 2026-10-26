@@ -63,9 +63,22 @@ describe('buildMenuGroups', () => {
       groups.map((group) => [group.label, group.items.map((i) => i.label)]),
     ).toEqual([
       ['Write', ['Generate reply', 'Proofread', 'Rewrite in my voice']],
-      ['Reply with media', ['Image', 'Video', 'GIF']],
-      [undefined, ['Generate image']],
+      ['Generate', ['Image', 'Video', 'GIF']],
     ]);
+  });
+
+  it('puts Image, Video and GIF under one collapsible Generate group', () => {
+    const groups = buildMenuGroups({
+      platform: platforms.twitter,
+      platformName: 'twitter',
+    });
+
+    expect(groups.find((group) => group.id === 'generate')?.isCollapsible).toBe(
+      true,
+    );
+    expect(
+      groups.flatMap((group) => group.items).map((entry) => entry.id),
+    ).not.toContain('generate-image');
   });
 
   it('offers only the draft actions in a new-post composer with no post open', () => {
@@ -160,43 +173,4 @@ describe('buildMenuGroups', () => {
       });
     },
   );
-
-  it('generates an image from the page and opens the result', async () => {
-    vi.spyOn(window, 'open').mockReturnValue(null);
-    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
-      imageUrl: 'https://app.genfeed.ai/i/1',
-      success: true,
-    } as never);
-    const row = controls();
-
-    await find('generate-image').run(row);
-
-    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event: 'generateImage',
-        platform: 'twitter',
-        prompt: expect.stringContaining(
-          'Source URL: https://x.com/author/status/123',
-        ),
-      }),
-    );
-    expect(window.open).toHaveBeenCalledWith(
-      'https://app.genfeed.ai/i/1',
-      '_blank',
-    );
-    expect(row.setStatus).toHaveBeenLastCalledWith('done', 'Open image');
-  });
-
-  it('offers a retry when image generation fails', async () => {
-    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
-      error: 'Model busy',
-      success: false,
-    } as never);
-    const row = controls();
-
-    await find('generate-image').run(row);
-
-    expect(row.setStatus).toHaveBeenLastCalledWith('error', 'Retry');
-    expect(currentToastText()).toBe('Model busy');
-  });
 });

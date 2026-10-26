@@ -48,6 +48,7 @@
       "@serializers/*": ["../serializers/src/*"],
       "@services/*": ["../services/*"],
       "@ui-constants/*": ["../ui/src/components/constants/*"],
+      "@utils/*": ["../utils/*"],
       "@ui/*": ["../ui/src/*", "../ui/src/components/*"]
     }
   },

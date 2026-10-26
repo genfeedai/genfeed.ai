@@ -27,7 +27,7 @@ export interface ReviewInboxApprovalsState {
     item: IReviewInboxItem,
     decision: ReviewInboxDecision,
   ) => Promise<void>;
-  /** Decides each item in turn; one summary notification, one refetch. */
+  /** Decides the items in one batch request; one summary notification, one refetch. */
   onDecideMany: (
     items: readonly IReviewInboxItem[],
     decision: ReviewInboxDecision,
