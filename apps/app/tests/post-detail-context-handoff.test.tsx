@@ -114,6 +114,7 @@ function createHookData(
     handleAddToThread: vi.fn(),
     handleDraftThread: vi.fn(),
     handleSetGrokQuestion: vi.fn(),
+    handleChangeMedia: vi.fn(),
     handleContentSave: vi.fn(),
     handleDeleteChild: vi.fn(),
     handleDeletePost: vi.fn(),
