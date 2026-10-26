@@ -107,7 +107,7 @@ export default function ModelsList({
                 defaultValue: 'all',
                 key: 'category',
                 label: translate('categoryFilterLabel'),
-                onChange: (value) =>
+                onChange: (value: string) =>
                   handleCategorySelect(
                     value === 'all' ? 'all' : (value as ModelCategoryGroupKey),
                   ),

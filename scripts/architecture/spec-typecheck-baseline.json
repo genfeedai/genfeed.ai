@@ -4457,14 +4457,6 @@
       "workspace": "app"
     },
     {
-      "code": 2769,
-      "count": 1,
-      "file": "apps/app/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "a03a5709c34ae3ebcd99",
-      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
-      "workspace": "app"
-    },
-    {
       "code": 2322,
       "count": 6,
       "file": "apps/app/packages/components/research/ads/AdsResearchWatchlistPanel.test.tsx",
