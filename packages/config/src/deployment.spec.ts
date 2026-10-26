@@ -15,6 +15,7 @@ import {
   isHostedGenfeedFromBrowser,
   isHostedGenfeedFromEnv,
   isHostedGenfeedHostname,
+  isProductionCloudFromReader,
   isSaaS,
   isSelfHostedDeployment,
   parseTrustProxy,
@@ -398,6 +399,45 @@ describe('production deployment', () => {
     });
 
     expect(getDeployment()).toBe('cloud');
+  });
+});
+
+describe('isProductionCloudFromReader', () => {
+  const read = (env: Record<string, unknown>) => (key: string) => env[key];
+
+  it('is true for production on a hosted URL', () => {
+    expect(
+      isProductionCloudFromReader(
+        read({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          NODE_ENV: 'production',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('is false outside production, for non-hosted URLs and for non-string values', () => {
+    expect(
+      isProductionCloudFromReader(
+        read({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          NODE_ENV: 'test',
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isProductionCloudFromReader(
+        read({
+          GENFEEDAI_APP_URL: 'https://app.example.com',
+          NODE_ENV: 'production',
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isProductionCloudFromReader(
+        read({ GENFEEDAI_APP_URL: 42, NODE_ENV: 'production' }),
+      ),
+    ).toBe(false);
   });
 });
 

@@ -16,7 +16,7 @@ import {
   type UpcomingInvoicePreview,
 } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 import {
-  getDeploymentFromReader,
+  isProductionCloudFromReader,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
 import {
@@ -194,15 +194,7 @@ export class StripeService {
   }
 
   private isProductionCloud(): boolean {
-    const readEnv = (key: string): string | undefined => {
-      const value = this.configService.get(key);
-      return typeof value === 'string' ? value : undefined;
-    };
-
-    return (
-      readEnv('NODE_ENV') === 'production' &&
-      getDeploymentFromReader(readEnv) === 'cloud'
-    );
+    return isProductionCloudFromReader((key) => this.configService.get(key));
   }
 
   private resolveConfiguredSubscriptionTier(

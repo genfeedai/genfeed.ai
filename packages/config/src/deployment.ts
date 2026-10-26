@@ -203,6 +203,25 @@ export function getDeploymentFromReader(readEnv: EnvValueReader): Deployment {
   return isHostedGenfeedFromReader(readEnv) ? 'cloud' : 'self-hosted';
 }
 
+/**
+ * True for a production process that resolves to Cloud. Takes a reader that
+ * returns unknown values (e.g. a Nest `ConfigService`); non-strings are
+ * treated as unset.
+ */
+export function isProductionCloudFromReader(
+  read: (key: string) => unknown,
+): boolean {
+  const readEnv: EnvValueReader = (key) => {
+    const value = read(key);
+    return typeof value === 'string' ? value : undefined;
+  };
+
+  return (
+    readEnv('NODE_ENV')?.trim() === 'production' &&
+    getDeploymentFromReader(readEnv) === 'cloud'
+  );
+}
+
 /** An Express `trust proxy` value: on/off, a hop count, or proxy addresses/subnets. */
 export type TrustProxySetting = boolean | number | string[];
 
