@@ -5,12 +5,15 @@ import {
   DraftStoryboardPlanDto,
   GenerateStoryboardStillsDto,
   ListStoryboardRunsDto,
+  QuoteStoryboardARollDto,
   QuoteStoryboardStillsDto,
+  RenderStoryboardARollDto,
   ReplaceStoryboardCharacterDto,
   ResetStoryboardPlanDto,
   UpdateStoryboardPlanDto,
   UpdateStoryboardSourceDto,
 } from '@api/collections/content-runs/dto/storyboard-run.dto';
+import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
@@ -47,6 +50,7 @@ export class StoryboardRunsController {
     private readonly capabilities: StoryboardRunCapabilitiesService,
     private readonly characters: StoryboardCharacterReplaceService,
     private readonly stills: StoryboardStillsService,
+    private readonly aRoll: StoryboardARollService,
   ) {}
 
   @Post()
@@ -192,6 +196,57 @@ export class StoryboardRunsController {
       request,
       StoryboardRunSerializer,
       await this.stills.reconcile(user.organizationId, brandId, runId),
+    );
+  }
+
+  @Post(':runId/a-roll/quote')
+  quoteARoll(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: QuoteStoryboardARollDto,
+  ) {
+    return this.aRoll.quote(
+      user.organizationId,
+      brandId,
+      runId,
+      user.userId,
+      body,
+    );
+  }
+
+  @Post(':runId/a-roll')
+  async renderARoll(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: RenderStoryboardARollDto,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.aRoll.render(
+        user.organizationId,
+        brandId,
+        runId,
+        user.userId,
+        body,
+      ),
+    );
+  }
+
+  @Post(':runId/a-roll/reconcile')
+  async reconcileARoll(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.aRoll.reconcile(user.organizationId, brandId, runId),
     );
   }
 

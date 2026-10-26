@@ -26,6 +26,7 @@ describe('character replacement controller', () => {
       {} as never,
       { getStatus, replace, list } as never,
       {} as never,
+      {} as never,
     );
     expect(
       await controller.characterReplacementStatus(

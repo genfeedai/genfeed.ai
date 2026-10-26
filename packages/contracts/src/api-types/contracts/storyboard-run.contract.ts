@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { brandRemixScenePipelineSchema } from './brand-remix-scene.contract';
+import { storyboardARollSchema } from './storyboard-a-roll.contract';
 import { storyboardCharacterReplacementSchema } from './storyboard-character-replace.contract';
 import {
   storyboardPlanSchema,
@@ -47,6 +48,8 @@ export const storyboardNativeRunConfigSchema = z
     generatedPlan: storyboardPlanSchema.optional(),
     quote: storyboardRunQuoteSchema.optional(),
     scenePipeline: brandRemixScenePipelineSchema.optional(),
+    /** The long-form presenter track, rendered in chunks (#8222). */
+    aRoll: storyboardARollSchema.optional(),
     characterReplacements: z
       .array(storyboardCharacterReplacementSchema)
       .max(12)

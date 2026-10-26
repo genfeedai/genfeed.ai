@@ -150,3 +150,10 @@ export class GenerateStoryboardStillsDto extends ControlStoryboardRunDto {
   @IsString()
   inputHash!: string;
 }
+
+export class QuoteStoryboardARollDto extends ControlStoryboardRunDto {}
+export class RenderStoryboardARollDto extends ControlStoryboardRunDto {
+  @ApiProperty()
+  @IsString()
+  inputHash!: string;
+}

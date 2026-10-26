@@ -79,7 +79,11 @@ export function assertStoryboardEditable(
 ): void {
   if (
     ['analysing', 'generating', 'assembling'].includes(config.state) ||
-    storyboardPipelineHasAcceptedWork(config.scenePipeline)
+    storyboardPipelineHasAcceptedWork(config.scenePipeline) ||
+    // A presenter render in flight was paid for this narration.
+    config.aRoll?.chunks.some(
+      (chunk) => chunk.state === 'pending' || chunk.state === 'submitted',
+    )
   ) {
     throw new ConflictException(
       'Cancel and reconcile accepted storyboard work before editing.',
