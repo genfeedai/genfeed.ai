@@ -8,7 +8,7 @@
  *     --judge=anthropic/claude-sonnet-5 --max-credits=5 --out=reports/ladder.json
  *
  * Flags:
- *   --suite=judge|ladder|harness-ab   required (media-ladder is reserved, #4926)
+ *   --suite=judge|ladder|harness-ab|product-ab|media-ladder   required
  *   --fixture=<path[,path]>           required, JSONL; judge combines in flag order
  *   --max-credits=<n>                 required spend cap (1 credit = $0.01)
  *   --judge=<key[,key]>               required judge registry key(s)

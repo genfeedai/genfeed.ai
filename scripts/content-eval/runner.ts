@@ -20,13 +20,12 @@ import type {
 } from './contracts';
 import { suiteConfigSchema } from './contracts';
 import { assertCrossFamily } from './families';
-import { loadFixture } from './fixtures';
 import { readSourceRevision } from './provenance';
 import { buildReport } from './report';
-import { compileOutputSchema } from './scorers/deterministic';
-import { createEvalJudge, resolvePointwiseRubric } from './scorers/judge';
+import { createEvalJudge } from './scorers/judge';
 import { SpendCapExceededError, SpendLedger } from './spend';
 import { resolveSuiteRunner } from './suites';
+import { loadTextFixture } from './suites/text-fixture';
 
 const EMPTY_OUTCOME: SuiteOutcome = {
   contestants: [],
@@ -89,20 +88,7 @@ export function buildContestants(
 export function prepareTextSuite(
   options: ContentEvalRunOptions,
 ): SuitePreparation {
-  const fixture = loadFixture(options.fixturePath);
-  // Everything a row needs is checked here, before a dispatcher exists, so a
-  // bad row never surfaces after earlier rows have already spent money.
-  for (const row of fixture.rows) {
-    resolvePointwiseRubric(row.rubricVersion);
-    if (row.input.brief.outputJsonSchema) {
-      compileOutputSchema(row.input.brief.outputJsonSchema);
-    }
-    if (options.suite === 'judge' && !row.input.output) {
-      throw new Error(
-        `${fixture.path}: judge row ${row.id} needs input.output (the text to score)`,
-      );
-    }
-  }
+  const fixture = loadTextFixture(options.fixturePath, options.suite);
 
   return {
     contestants: buildContestants(options.suite, options.models),

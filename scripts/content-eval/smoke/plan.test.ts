@@ -128,4 +128,69 @@ describe('buildSmokePlan', () => {
     );
     expect(video?.args).toContain('--include-drafts=true');
   });
+
+  describe('product text mode (#7333)', () => {
+    const PRODUCT = {
+      ...BASE,
+      genfeedApiUrl: 'https://api.example.test',
+      kelderBrandId: 'brand-kelder',
+      maxCredits: 300,
+      textMode: 'product',
+    } as const;
+
+    it('runs the text cell as product-ab against the eval brand and API', () => {
+      const text = buildSmokePlan(PRODUCT).cells.find(
+        (cell) => cell.id === 'text',
+      );
+      expect(text?.args).toEqual(
+        expect.arrayContaining([
+          '--suite=product-ab',
+          '--brands=kelder:brand-kelder',
+          '--genfeed-api-url=https://api.example.test',
+          `--models=${SMOKE_TEXT_MODEL}`,
+        ]),
+      );
+      expect(text?.args).not.toContain('--suite=harness-ab');
+    });
+
+    it('is skipped unless a live run has the key, the API url and the brand', () => {
+      const live = buildSmokePlan(PRODUCT).cells.find(
+        (cell) => cell.id === 'text',
+      );
+      expect(live?.requiresEnv).toEqual([
+        'CONTENT_EVAL_GENFEED_API_KEY',
+        'CONTENT_EVAL_GENFEED_API_URL',
+        'CONTENT_EVAL_KELDER_BRAND_ID',
+      ]);
+      const stub = buildSmokePlan({
+        ...PRODUCT,
+        dispatcher: 'stub',
+      }).cells.find((cell) => cell.id === 'text');
+      expect(stub?.requiresEnv).toEqual([]);
+    });
+
+    it('keeps the cap split and the other cells as they are', () => {
+      const harness = buildSmokePlan({ ...PRODUCT, textMode: 'harness' });
+      const product = buildSmokePlan(PRODUCT);
+      expect(product.cells.map((cell) => [cell.id, cell.maxCredits])).toEqual(
+        harness.cells.map((cell) => [cell.id, cell.maxCredits]),
+      );
+      expect(harness.cells.find((cell) => cell.id === 'text')?.args).toContain(
+        '--suite=harness-ab',
+      );
+    });
+
+    it('builds an invocation the real CLI accepts', () => {
+      const text = buildSmokePlan(PRODUCT).cells.find(
+        (cell) => cell.id === 'text',
+      );
+      expect(() =>
+        parseCliArgs([
+          ...(text?.args ?? []),
+          '--dispatcher=live',
+          `--max-credits=${text?.maxCredits}`,
+        ]),
+      ).not.toThrow();
+    });
+  });
 });

@@ -40,6 +40,13 @@ on:
         description: "Hard cap in credits (1 credit = $0.01). Empty uses the CONTENT_EVAL_MAX_CREDITS repository variable"
         type: string
         required: false
+      text_mode:
+        description: "harness builds the guided prompt itself; product generates the text kinds the product serves through its own endpoint"
+        type: choice
+        default: harness
+        options:
+          - harness
+          - product
   schedule:
     - cron: "37 4 * * *" # 04:37 UTC — after e2e (02:17), Playwright full (02:47) and learning (03:23)
 
@@ -95,12 +102,23 @@ jobs:
           --dispatcher=stub
           --out-dir=reports/content-eval-smoke-stub
 
+      - name: Stub run of the product-mode text cell
+        run: >-
+          bun scripts/content-eval/smoke/run-smoke.ts
+          --max-credits=300
+          --mediums=text
+          --text-mode=product
+          --dispatcher=stub
+          --out-dir=reports/content-eval-smoke-stub-product
+
       - name: Upload stub reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: content-eval-smoke-stub-${{ github.sha }}
-          path: reports/content-eval-smoke-stub/
+          path: |
+            reports/content-eval-smoke-stub/
+            reports/content-eval-smoke-stub-product/
           retention-days: 7
           if-no-files-found: ignore
 
@@ -208,10 +226,12 @@ jobs:
         env:
           SMOKE_CAP: ${{ steps.plan.outputs.cap }}
           SMOKE_MEDIUMS: ${{ steps.plan.outputs.mediums }}
+          SMOKE_TEXT_MODE: ${{ inputs.text_mode || 'harness' }}
         run: >-
           bun scripts/content-eval/smoke/run-smoke.ts
           --max-credits="${SMOKE_CAP}"
           --mediums="${SMOKE_MEDIUMS}"
+          --text-mode="${SMOKE_TEXT_MODE}"
           --dispatcher=live
           --out-dir=reports/content-eval-smoke-live
 

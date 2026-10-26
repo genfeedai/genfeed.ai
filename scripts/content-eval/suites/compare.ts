@@ -5,6 +5,8 @@
  * against it on identical rows, pointwise and in both Battle orderings.
  */
 
+import { randomUUID } from 'node:crypto';
+import { AGENT_CREDIT_USD } from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 import type {
   Contestant,
@@ -25,8 +27,13 @@ import type {
   ThresholdCheck,
 } from '../contracts';
 import { CONTENT_EVAL_THRESHOLDS } from '../contracts';
-import { requireModelFamily } from '../families';
-import { MeteredCallError, meteredCall } from '../provenance';
+import { requireModelFamily, resolveModelFamily } from '../families';
+import {
+  canonicalJson,
+  MeteredCallError,
+  meteredCall,
+  sha256Digest,
+} from '../provenance';
 import { hasPassedAll, runDeterministicChecks } from '../scorers/deterministic';
 import {
   orderedChoice,
@@ -35,6 +42,11 @@ import {
   reconcileVerdict,
 } from '../scorers/pairwise';
 import { SpendCapExceededError } from '../spend';
+import {
+  PRODUCT_TEXT_RESERVED_CREDITS,
+  PRODUCT_TEXT_ROUTES,
+  type ProductTextBinding,
+} from '../text/product-generation';
 import {
   atMost,
   humanLabelOf,
@@ -83,11 +95,108 @@ function isFatal(error: unknown): boolean {
   return error instanceof SpendCapExceededError;
 }
 
+const PRODUCT_PROVIDER = 'genfeed-product-api';
+
+interface ProductGeneration {
+  callId: string;
+  model: string | null;
+  text: string;
+}
+
+/**
+ * One generation through the product API. The call is reserved against the
+ * cap before it is made and charged after it, failed or not, because the
+ * product bills a call whose draft is later unusable. A model that shares a
+ * family with a judge is voided, like the run-wide cross-family rule for the
+ * models named on the command line: the product picks its own model.
+ */
+async function generateViaProduct(
+  context: SuiteContext,
+  row: FixtureRow,
+  contestant: Contestant,
+  binding: ProductTextBinding,
+): Promise<ProductGeneration> {
+  const route = PRODUCT_TEXT_ROUTES[row.contentKind];
+  if (!route) {
+    throw new Error(
+      `${row.contentKind} has no product text route; the product arm only runs ${Object.keys(PRODUCT_TEXT_ROUTES).join(', ')}`,
+    );
+  }
+  context.ledger.reserve(PRODUCT_TEXT_RESERVED_CREDITS);
+  const result = await binding.port.generate(
+    {
+      brandId: binding.brandId,
+      platform: route.platform,
+      prompt: row.input.prompt,
+      requestKey: randomUUID(),
+    },
+    new AbortController().signal,
+  );
+
+  const model = result.model ?? contestant.registryKey;
+  const family = resolveModelFamily(model);
+  const callId = `call-${context.ledger.calls.length + 1}-generation`;
+  const provenance = {
+    callId,
+    capabilityProfileVersion: null,
+    compilerVersion: null,
+    completionTokens: 0,
+    costEvidence:
+      result.costEvidence === 'reported'
+        ? ('retail-credits' as const)
+        : ('reservation' as const),
+    costUsd: result.creditsCharged * AGENT_CREDIT_USD,
+    credits: result.creditsCharged,
+    family: family ?? requireModelFamily(contestant.registryKey),
+    isFailed: result.status !== 'generated',
+    kind: 'generation' as const,
+    latencyMs: result.latencyMs,
+    model,
+    modelVersion: model,
+    promptDigest: sha256Digest(
+      canonicalJson({ platform: route.platform, prompt: row.input.prompt }),
+    ),
+    promptTokens: 0,
+    provider: PRODUCT_PROVIDER,
+    rowId: row.id,
+    rubricDigest: null,
+    rubricVersion: null,
+    seed: context.config.seed,
+    settings: {
+      endpoint: 'posts/draft-generations',
+      platform: route.platform,
+    },
+  };
+  context.ledger.charge({
+    credits: result.creditsCharged,
+    kind: 'generation',
+    provenance,
+  });
+
+  if (result.status !== 'generated' || !result.text) {
+    throw new MeteredCallError(provenance, {
+      cause: new Error(result.error ?? 'the product returned no text'),
+    });
+  }
+  const clashing = context.config.judgeRegistryKeys.find(
+    (judgeKey) => resolveModelFamily(judgeKey) === family,
+  );
+  if (clashing) {
+    throw new MeteredCallError(provenance, {
+      cause: new Error(
+        `the product used ${model}, which shares a family with judge ${clashing}; set another --judge`,
+      ),
+    });
+  }
+  return { callId, model, text: result.text };
+}
+
 async function answerRow(
   context: SuiteContext,
   suite: SuiteName,
   row: FixtureRow,
   contestant: Contestant,
+  product: ProductTextBinding | null,
 ): Promise<ContestantAnswer> {
   const provenance: ContestantProvenance = {
     family: requireModelFamily(contestant.registryKey),
@@ -114,29 +223,45 @@ async function answerRow(
   let text: string;
   let generationCallId: string;
   try {
-    const generated = await meteredCall(
-      {
-        dispatcher: context.dispatcher,
-        ledger: context.ledger,
-        rowId: row.id,
-        rubricDigest: null,
-        rubricVersion: null,
-      },
-      {
-        maxTokens: GENERATION_MAX_TOKENS,
-        messages: buildGenerationMessages(row, contestant),
-        model: contestant.registryKey,
-        role: 'generation',
-        schema: generationSchema,
-        schemaName: GENERATION_SCHEMA_NAME,
-        seed: context.config.seed,
-        temperature: GENERATION_TEMPERATURE,
-      },
-    );
-    text = generated.response.value.text;
-    generationCallId = generated.provenance.callId;
-    provenance.modelVersion = generated.provenance.modelVersion;
-    provenance.provider = generated.provenance.provider;
+    if (contestant.guidanceArm === 'product') {
+      if (!product) {
+        throw new Error('the product arm needs a product text binding');
+      }
+      const generated = await generateViaProduct(
+        context,
+        row,
+        contestant,
+        product,
+      );
+      text = generated.text;
+      generationCallId = generated.callId;
+      provenance.modelVersion = generated.model;
+      provenance.provider = PRODUCT_PROVIDER;
+    } else {
+      const generated = await meteredCall(
+        {
+          dispatcher: context.dispatcher,
+          ledger: context.ledger,
+          rowId: row.id,
+          rubricDigest: null,
+          rubricVersion: null,
+        },
+        {
+          maxTokens: GENERATION_MAX_TOKENS,
+          messages: buildGenerationMessages(row, contestant),
+          model: contestant.registryKey,
+          role: 'generation',
+          schema: generationSchema,
+          schemaName: GENERATION_SCHEMA_NAME,
+          seed: context.config.seed,
+          temperature: GENERATION_TEMPERATURE,
+        },
+      );
+      text = generated.response.value.text;
+      generationCallId = generated.provenance.callId;
+      provenance.modelVersion = generated.provenance.modelVersion;
+      provenance.provider = generated.provenance.provider;
+    }
   } catch (error: unknown) {
     if (isFatal(error)) {
       throw error;
@@ -372,7 +497,11 @@ function summarizeContestant(
   };
 }
 
-export function createComparisonSuite(suite: SuiteName): SuiteRunner {
+export function createComparisonSuite(
+  suite: SuiteName,
+  /** Resolved at run time: the product binding is built in `prepare`. */
+  productBinding: () => ProductTextBinding | null = () => null,
+): SuiteRunner {
   return {
     async run(context, onProgress) {
       const { contestants } = context.config;
@@ -422,12 +551,24 @@ export function createComparisonSuite(suite: SuiteName): SuiteRunner {
       };
 
       for (const row of context.rows) {
-        const baselineAnswer = await answerRow(context, suite, row, baseline);
+        const baselineAnswer = await answerRow(
+          context,
+          suite,
+          row,
+          baseline,
+          productBinding(),
+        );
         rows.push(baselineAnswer.scoredRow);
         onProgress(outcomeOf(false));
 
         for (const challenger of challengers) {
-          const answer = await answerRow(context, suite, row, challenger);
+          const answer = await answerRow(
+            context,
+            suite,
+            row,
+            challenger,
+            productBinding(),
+          );
           rows.push(answer.scoredRow);
           onProgress(outcomeOf(false));
 

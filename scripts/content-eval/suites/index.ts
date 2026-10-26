@@ -8,12 +8,14 @@ import type { SuiteName, SuiteRunner } from '../contracts';
 import { mediaLadderSuite } from '../media/suite';
 import { harnessAbSuite, ladderSuite } from './compare';
 import { judgeSuite } from './judge';
+import { productAbSuite } from './product-ab';
 
 export const SUITE_RUNNERS: Partial<Record<SuiteName, SuiteRunner>> = {
   'harness-ab': harnessAbSuite,
   judge: judgeSuite,
   ladder: ladderSuite,
   'media-ladder': mediaLadderSuite,
+  'product-ab': productAbSuite,
 };
 
 export function resolveSuiteRunner(suite: SuiteName): SuiteRunner {

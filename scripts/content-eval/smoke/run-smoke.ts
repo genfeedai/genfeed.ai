@@ -12,10 +12,13 @@
  *   --out-dir=<dir>          default reports/content-eval-smoke
  *   --mediums=<list>         default text,image,video; the nightly lane runs text
  *   --require-all=<bool>     default false; a skipped cell fails the run
+ *   --text-mode=harness|product  default harness; product runs the text kinds
+ *                            the product serves through its own endpoint
  *
  * Environment (live): CONTENT_EVAL_GENFEED_API_URL, CONTENT_EVAL_GENFEED_API_KEY,
- * CONTENT_EVAL_KELDER_BRAND_ID for the image and video cells. A media cell with
- * no credentials is reported as skipped, never silently passed.
+ * CONTENT_EVAL_KELDER_BRAND_ID for the image and video cells, and for the text
+ * cell in product mode. A cell with no credentials is reported as skipped,
+ * never silently passed.
  *
  * Exit codes: 0 pass · 1 a cell failed or was aborted by its cap, or a cell was
  * skipped under --require-all · 2 usage (including a missing cap).
@@ -37,7 +40,12 @@ import {
 } from '../context-coverage/generation-types';
 import { contentEvalReportSchema } from '../contracts';
 import { readRepoRoot, resolveRepoPath } from '../provenance';
-import { buildSmokePlan, type SmokeCell } from './plan';
+import {
+  buildSmokePlan,
+  SMOKE_TEXT_MODES,
+  type SmokeCell,
+  type SmokeTextMode,
+} from './plan';
 import { type SmokeCellResult, summariseSmoke } from './summary';
 
 function readBool(argv: string[], name: string, fallback: boolean): boolean {
@@ -66,6 +74,17 @@ function readMediums(argv: string[]): SmokeMedium[] {
     return medium;
   });
   return mediums;
+}
+
+function readTextMode(argv: string[]): SmokeTextMode {
+  const raw = readFlag(argv, 'text-mode') ?? 'harness';
+  const mode = SMOKE_TEXT_MODES.find((candidate) => candidate === raw);
+  if (!mode) {
+    throw new UsageError(
+      `--text-mode must be ${SMOKE_TEXT_MODES.join(' or ')}, got "${raw}"`,
+    );
+  }
+  return mode;
 }
 
 function readCap(argv: string[]): number {
@@ -164,6 +183,7 @@ async function main(): Promise<number> {
     kelderBrandId: process.env.CONTENT_EVAL_KELDER_BRAND_ID,
     mediums: readMediums(argv),
     maxCredits,
+    textMode: readTextMode(argv),
   });
 
   const results: SmokeCellResult[] = [];

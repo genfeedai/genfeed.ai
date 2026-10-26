@@ -33,18 +33,23 @@ interface KindTally {
   scored: number;
 }
 
-type ArmTallies = Record<string, { brief: KindTally; raw: KindTally }>;
+type GuidanceArm = 'brief' | 'product' | 'raw';
+type ArmTallies = Record<string, Record<GuidanceArm, KindTally>>;
 
 function emptyTally(): KindTally {
   return { accepted: 0, rows: 0, scoreSum: 0, scored: 0 };
 }
 
-/** Raw-vs-brand-context tallies per text kind, from a harness-ab report. */
+/** Per text kind tallies of each arm, from a harness-ab or product-ab report. */
 export function tallyTextKinds(report: ContentEvalReport): ArmTallies {
   const tallies: ArmTallies = {};
   for (const row of report.outcome.rows) {
     if (!row.contestant) continue;
-    tallies[row.contentKind] ??= { brief: emptyTally(), raw: emptyTally() };
+    tallies[row.contentKind] ??= {
+      brief: emptyTally(),
+      product: emptyTally(),
+      raw: emptyTally(),
+    };
     const kind = tallies[row.contentKind];
     const tally = kind[row.contestant.guidanceArm];
     tally.rows += 1;
@@ -96,19 +101,35 @@ export function summariseSmoke(
     (result) => result.cell.medium === 'text',
   )?.report;
   if (textReport) {
+    const isProduct = textReport.suite === 'product-ab';
+    const challenger = isProduct ? 'product' : 'brief';
     lines.push(
       '',
-      '### Text kinds: raw prompt vs org + brand context',
+      isProduct
+        ? '### Text kinds: raw prompt vs product pipeline'
+        : '### Text kinds: raw prompt vs org + brand context',
       '',
-      '| kind | raw accepted | brand accepted | raw judge | brand judge |',
+      `| kind | raw accepted | ${challenger} accepted | raw judge | ${challenger} judge |`,
       '| --- | --- | --- | --- | --- |',
     );
     const tallies = tallyTextKinds(textReport);
     for (const kind of Object.keys(tallies).sort()) {
-      const { brief, raw } = tallies[kind];
+      const raw = tallies[kind].raw;
+      const other = tallies[kind][challenger];
       lines.push(
-        `| ${kind} | ${raw.accepted}/${raw.rows} | ${brief.accepted}/${brief.rows} | ${mean(raw)} | ${mean(brief)} |`,
+        `| ${kind} | ${raw.accepted}/${raw.rows} | ${other.accepted}/${other.rows} | ${mean(raw)} | ${mean(other)} |`,
       );
+    }
+    if (isProduct) {
+      const unrouted = GENERATION_TYPES.filter(
+        (entry) => entry.smoke === 'text' && !(entry.id in tallies),
+      ).map((entry) => entry.id);
+      if (unrouted.length > 0) {
+        lines.push(
+          '',
+          `No product text route yet, so not measured through the product: ${unrouted.join(', ')}.`,
+        );
+      }
     }
     if (textReport.evidenceKind === 'stub-dispatcher') {
       lines.push(

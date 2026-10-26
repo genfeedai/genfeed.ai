@@ -71,8 +71,12 @@ export type ContentEvalThresholds = typeof CONTENT_EVAL_THRESHOLDS;
 export const contestantSchema = z.object({
   /** Stable id within a run, e.g. `openai/gpt-5.6-luna` or `…#brief`. */
   id: z.string().min(1),
-  /** Guidance arm for harness A/B; `raw` sends the prompt alone. */
-  guidanceArm: z.enum(['raw', 'brief']),
+  /**
+   * Guidance arm for the text A/Bs: `raw` sends the prompt alone, `brief`
+   * adds the fixture's guidance, `product` generates through the product API
+   * with the eval organization's own brand context.
+   */
+  guidanceArm: z.enum(['raw', 'brief', 'product']),
   isCompiled: z.boolean().default(false),
   registryKey: z.string().min(1),
 });

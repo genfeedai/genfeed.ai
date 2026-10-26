@@ -93,4 +93,45 @@ describe('summariseSmoke', () => {
     expect(markdown).toMatch(/\| newsletter \| harness \|/);
     expect(markdown).toMatch(/\| music \| harness \|/);
   });
+
+  it('reports raw vs product pipeline per kind and names the kinds with no product route', () => {
+    const row = (
+      contentKind: string,
+      guidanceArm: 'raw' | 'product',
+      isAccepted: boolean,
+      score: number,
+    ) => ({
+      contentKind,
+      contestant: { guidanceArm },
+      isAccepted,
+      votes: [{ score }],
+    });
+    const report = {
+      evidenceKind: 'live-dispatcher',
+      outcome: {
+        rows: [
+          row('social-post', 'raw', false, 0.25),
+          row('social-post', 'product', true, 0.75),
+          row('linkedin-post', 'raw', true, 0.5),
+          row('linkedin-post', 'product', true, 1),
+        ],
+      },
+      spend: { spentCredits: 4 },
+      suite: 'product-ab',
+    } as unknown as ContentEvalReport;
+
+    const { markdown } = summariseSmoke(
+      [{ cell: textCell, detail: null, report, status: 'passed' }],
+      100,
+    );
+
+    expect(markdown).toContain(
+      '### Text kinds: raw prompt vs product pipeline',
+    );
+    expect(markdown).toContain('| kind | raw accepted | product accepted |');
+    expect(markdown).toContain('| social-post | 0/1 | 1/1 | 0.25 | 0.75 |');
+    expect(markdown).toContain(
+      'No product text route yet, so not measured through the product: thread, article, linkedin-article, reply, ad-copy, script, newsletter.',
+    );
+  });
 });

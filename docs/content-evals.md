@@ -26,6 +26,21 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
   the run can never spend more than the cap. Below 20 credits the run is
   refused.
 - `--mediums=text,image,video` selects cells. The nightly lane runs `text`.
+- `--text-mode=product` runs the text cell through the product instead of the
+  harness's own prompt (`--suite=product-ab`). The baseline is still the raw
+  prompt on the cheap model; the challenger sends the same prompt to
+  `POST /posts/draft-generations` with the eval org's key and the Kelder brand,
+  so the brand kit, harness brief, receipt and credit ledger run as for a
+  customer. Both arms face the same deterministic checks and cross-family
+  judge, and the summary lists raw vs product-pipeline per kind. Each product
+  call is reserved (5 credits) against the cell's cap before it is made and
+  charged from the org's balance change afterwards (the reservation if the
+  balance cannot be read); a row whose product model shares a family with a
+  judge is voided. Only `social-post` and `linkedin-post` have a product text
+  route today; the other seven kinds are named in the summary as not measured
+  through the product until their endpoints are added to `PRODUCT_TEXT_ROUTES`
+  (`text/product-generation.ts`). A live product text cell needs the three
+  variables below and is `skipped` without them.
 - Live image and video cells need `CONTENT_EVAL_GENFEED_API_URL`,
   `CONTENT_EVAL_GENFEED_API_KEY` and `CONTENT_EVAL_KELDER_BRAND_ID` (an
   eval-org API key and the synthetic Kelder brand). Without them a cell is
@@ -40,13 +55,15 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
 
 - **Deterministic** (free, every trigger): harness tests, `genfeedai/benchmark`
   validation and ladder recompute, proof that the pinned media task pack
-  matches the benchmark checkout, and a stub run of every cell.
+  matches the benchmark checkout, and a stub run of every cell, including the
+  product-mode text cell.
 - **Live** (paid): a manual check. Run it with `workflow_dispatch` and
   `dispatcher=live`; it never runs after a Release. It also runs nightly only
   when the repository variable `CONTENT_EVAL_NIGHTLY=true` (text only, a third
   of the cap). It never spends without `CONTENT_EVAL_MAX_CREDITS` and the
   `CONTENT_EVAL_OPENROUTER_API_KEY` secret: a dispatch fails when either is
-  missing, and the opt-in nightly skips with a notice (no provider call).
+  missing, and the opt-in nightly skips with a notice (no provider call). The
+  dispatch takes a `text_mode` input (`harness` or `product`).
 
 Repository settings the live lane reads: variable `CONTENT_EVAL_MAX_CREDITS`,
 secret `CONTENT_EVAL_OPENROUTER_API_KEY`, and for media cells variables

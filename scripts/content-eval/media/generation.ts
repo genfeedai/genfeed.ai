@@ -400,7 +400,7 @@ export class ProductApiMediaGeneration
   }
 }
 
-function readErrorMessage(payload: unknown): string {
+export function readErrorMessage(payload: unknown): string {
   if (payload && typeof payload === 'object') {
     const record = payload as Record<string, unknown>;
     for (const key of ['detail', 'message', 'title', 'error']) {

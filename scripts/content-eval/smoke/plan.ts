@@ -63,8 +63,18 @@ export interface SmokePlan {
   skippedMediums: readonly SmokeMedium[];
 }
 
+/**
+ * `harness`: the harness builds the guided prompt itself (raw vs brief).
+ * `product`: the text kinds the product serves go through its own endpoint
+ * with the eval organization's brand (raw vs product pipeline, #7333).
+ */
+export const SMOKE_TEXT_MODES = ['harness', 'product'] as const;
+export type SmokeTextMode = (typeof SMOKE_TEXT_MODES)[number];
+
 export interface SmokePlanOptions {
   dispatcher: 'stub' | 'live';
+  /** Default `harness`. */
+  textMode?: SmokeTextMode;
   /** Mediums to run; text is the nightly lane, all three the release smoke. */
   mediums: readonly SmokeMedium[];
   maxCredits: number;
@@ -115,6 +125,17 @@ export function buildSmokePlan(options: SmokePlanOptions): SmokePlan {
   ];
   const mediaEnv =
     options.dispatcher === 'live' ? ['CONTENT_EVAL_GENFEED_API_KEY'] : [];
+  const isProductText = options.textMode === 'product';
+  // The product text cell needs the same product API access as a media cell,
+  // plus the brand to write as; without all three it is skipped, never faked.
+  const productTextEnv =
+    options.dispatcher === 'live'
+      ? [
+          ...mediaEnv,
+          'CONTENT_EVAL_GENFEED_API_URL',
+          'CONTENT_EVAL_KELDER_BRAND_ID',
+        ]
+      : [];
 
   const cells: SmokeCell[] = mediums.map((medium) => {
     const maxCredits = share(options.maxCredits, SHARES[medium] / total);
@@ -122,6 +143,25 @@ export function buildSmokePlan(options: SmokePlanOptions): SmokePlan {
       maxCredits,
       medium,
     };
+    if (medium === 'text' && isProductText) {
+      return {
+        ...common,
+        args: [
+          '--suite=product-ab',
+          `--fixture=${SMOKE_TEXT_FIXTURE}`,
+          `--models=${SMOKE_TEXT_MODEL}`,
+          `--judge=${SMOKE_TEXT_JUDGE}`,
+          ...(options.kelderBrandId
+            ? [`--brands=kelder:${options.kelderBrandId}`]
+            : []),
+          ...(options.genfeedApiUrl
+            ? [`--genfeed-api-url=${options.genfeedApiUrl}`]
+            : []),
+        ],
+        id: 'text',
+        requiresEnv: productTextEnv,
+      };
+    }
     if (medium === 'text') {
       return {
         ...common,
