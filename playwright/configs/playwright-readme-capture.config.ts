@@ -24,6 +24,7 @@ function withDebugAppCommand(
   return servers.map((server) => ({
     ...server,
     command: captureWebServerCommand,
+    cwd: repoRoot,
   }));
 }
 
