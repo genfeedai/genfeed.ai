@@ -74,3 +74,20 @@ export function ceilDecimalPricingRatio(
     quotient + (numerator % denominator > BigInt(0) ? BigInt(1) : BigInt(0)),
   );
 }
+
+/**
+ * Credits for `product(factors) / divisor`, rounded up, with no binary float
+ * error: a price that is exactly N credits is N, never N + 1. A non-finite
+ * input keeps the plain float result (NaN stays NaN, Infinity stays Infinity)
+ * so a bad input can never turn into a smaller charge.
+ */
+export function ceilPricingProduct(
+  factors: readonly number[],
+  divisor = 1,
+): number {
+  const exact = ceilDecimalPricingRatio(factors, divisor);
+  if (!Number.isNaN(exact)) return exact;
+  return Math.ceil(
+    factors.reduce((product, factor) => product * factor, 1) / divisor,
+  );
+}

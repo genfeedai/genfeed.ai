@@ -1,3 +1,5 @@
+import { ceilPricingProduct } from './decimal-pricing';
+
 // Model pricing - Source: replicate.com/pricing (Jan 2026)
 // Image models: per output image (flat rate)
 // Video models: per second of output video
@@ -259,7 +261,7 @@ export function quoteVideoGenerationCredits({
 }: VideoGenerationCreditQuoteInput): number {
   const durationCost =
     pricingType === 'per-second' && duration && costPerUnit
-      ? Math.ceil(duration * costPerUnit)
+      ? ceilPricingProduct([duration, costPerUnit])
       : cost;
   const baseCost = Math.max(durationCost, minCost ?? 0);
   const resolutionCost = Math.ceil(

@@ -6,6 +6,7 @@ import {
   applyMinCost,
   calculateImageGenerationCredits,
   calculateMegapixelCost,
+  calculatePerSecondCost,
   calculateVideoGenerationCredits,
 } from './generation-credit-calculator';
 import {
@@ -20,6 +21,7 @@ import {
   MAX_MARGIN_MULTIPLIER,
   normalizeMarginMultiplier,
 } from './plans-pricing';
+import { quoteVideoGenerationCredits } from './provider-pricing';
 
 const MODEL_KEY = 'test/flat-model';
 
@@ -136,7 +138,7 @@ describe('margin multiplier properties', () => {
 });
 
 describe('megapixel and minimum cost properties', () => {
-  it('never undercharges a megapixel rate and overcharges by at most one credit', () => {
+  it('charges a megapixel rate as its exact price rounded up', () => {
     fc.assert(
       fc.property(
         fc.integer({ max: 8192, min: 1 }),
@@ -147,19 +149,40 @@ describe('megapixel and minimum cost properties', () => {
           const remainder = scaledPixels % 1_000_000;
           const exactCredits =
             (scaledPixels - remainder) / 1_000_000 + (remainder > 0 ? 1 : 0);
-          const charged = calculateMegapixelCost(
-            width,
-            height,
-            costPerMegapixel,
-          );
 
-          expect(charged).toBeGreaterThanOrEqual(exactCredits);
-          expect(charged).toBeLessThanOrEqual(exactCredits + 1);
-          // A fractional exact price is at least a millionth from a whole
-          // credit, far outside float error, so it must round exactly.
-          if (remainder > 0) {
-            expect(charged).toBe(exactCredits);
-          }
+          expect(calculateMegapixelCost(width, height, costPerMegapixel)).toBe(
+            exactCredits,
+          );
+        },
+      ),
+    );
+  });
+
+  it('charges a per-second rate as its exact price rounded up, in every quote path', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ max: 6000, min: 1 }),
+        fc.integer({ max: 50_000, min: 1 }),
+        (tenthsOfSeconds, centsPerSecond) => {
+          const scaled = tenthsOfSeconds * centsPerSecond;
+          const remainder = scaled % 1000;
+          const exactCredits =
+            (scaled - remainder) / 1000 + (remainder > 0 ? 1 : 0);
+          const duration = tenthsOfSeconds / 10;
+          const costPerSecond = centsPerSecond / 100;
+
+          expect(calculatePerSecondCost(duration, costPerSecond)).toBe(
+            exactCredits,
+          );
+          expect(
+            quoteVideoGenerationCredits({
+              cost: 1,
+              costPerUnit: costPerSecond,
+              duration,
+              modelKey: MODEL_KEY,
+              pricingType: 'per-second',
+            }),
+          ).toBe(exactCredits);
         },
       ),
     );

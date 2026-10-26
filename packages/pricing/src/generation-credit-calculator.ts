@@ -7,6 +7,7 @@ import type {
   VideoGenerationCreditCalculationInput,
 } from '@genfeedai/contracts/interfaces';
 
+import { ceilPricingProduct } from './decimal-pricing';
 import {
   getVideoGenerationResolutionCreditMultiplier,
   quoteImageGenerationQualityCredits,
@@ -103,14 +104,14 @@ export function calculateMegapixelCost(
   height: number,
   costPerUnit: number,
 ): number {
-  return Math.ceil(((width * height) / 1_000_000) * costPerUnit);
+  return ceilPricingProduct([width, height, costPerUnit], 1_000_000);
 }
 
 export function calculatePerSecondCost(
   duration: number,
   costPerUnit: number,
 ): number {
-  return Math.ceil(duration * costPerUnit);
+  return ceilPricingProduct([duration, costPerUnit]);
 }
 
 export function applyMinCost(baseCost: number, minCost: number): number {

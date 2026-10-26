@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ceilDecimalPricingRatio,
+  ceilPricingProduct,
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
@@ -107,5 +108,31 @@ describe('decimal pricing properties', () => {
         },
       ),
     );
+  });
+
+  it('rounds a decimal product up exactly, so a whole-credit price is never bumped', () => {
+    fc.assert(
+      fc.property(
+        smallCentsArbitrary.filter((cents) => cents > 0),
+        smallCentsArbitrary.filter((cents) => cents > 0),
+        (left, right) => {
+          const scaled = left * right;
+          const remainder = scaled % 10_000;
+          const exactCredits =
+            (scaled - remainder) / 10_000 + (remainder > 0 ? 1 : 0);
+
+          expect(ceilPricingProduct([left / 100, right / 100])).toBe(
+            exactCredits,
+          );
+        },
+      ),
+    );
+  });
+
+  it('keeps a non-finite input non-finite instead of turning it into a charge', () => {
+    expect(ceilPricingProduct([Number.POSITIVE_INFINITY, 2])).toBe(
+      Number.POSITIVE_INFINITY,
+    );
+    expect(ceilPricingProduct([Number.NaN, 2])).toBeNaN();
   });
 });
