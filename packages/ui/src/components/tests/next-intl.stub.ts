@@ -107,6 +107,14 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 
 const UI_TEST_MESSAGES = {
   common: {
+    settings: {
+      profile: {
+        rail: {
+          label: 'Rail',
+          reset: 'Reset rail to default',
+        },
+      },
+    },
     appRail: {
       apps: 'Apps',
       launcher: 'Apps',
@@ -119,7 +127,6 @@ const UI_TEST_MESSAGES = {
       noMoreApps: 'Every app is on your rail.',
       moveUp: 'Move {app} up',
       moveDown: 'Move {app} down',
-      reset: 'Reset rail to default',
       unpinned: '{app} removed from your rail.',
       homeTitle: 'Home app',
       homeDescription: 'The app you land on after signing in.',

@@ -185,7 +185,6 @@ export function AppRail({
   hiddenAppIds = [],
   onRailAppOrderChange,
   onReorderEvent,
-  onResetRail,
   onTogglePin,
   pinnedAppIds = [],
   preservedSearch,
@@ -502,8 +501,7 @@ export function AppRail({
       </div>
     );
   }
-  const showMore =
-    !isAdminChrome && (moreItems.length > 0 || onResetRail !== undefined);
+  const showMore = !isAdminChrome && moreItems.length > 0;
   const admin = items.find((item) => item.app.group === 'admin');
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
@@ -539,7 +537,6 @@ export function AppRail({
               <AppRailMore
                 items={moreItems}
                 onOpen={(item) => handleNavigate(item, 'click')}
-                onReset={onResetRail}
                 onTogglePin={onTogglePin}
               />
             ) : null}

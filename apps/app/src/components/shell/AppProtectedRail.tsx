@@ -90,7 +90,6 @@ function AppProtectedRailContent({
     hiddenAppIds,
     pinnedAppIds,
     railAppOrder,
-    resetRail,
     setRailAppOrder,
     togglePin,
   } = useRailPreferencesContext();
@@ -155,7 +154,6 @@ function AppProtectedRailContent({
       onNavigate={onNavigate}
       onOpenAdminExternally={isAdminInBrowser ? openAdminInBrowser : undefined}
       onRailAppOrderChange={setRailAppOrder}
-      onResetRail={resetRail}
       onTogglePin={togglePin}
       orgSlug={effectiveOrgSlug}
       pinnedAppIds={pinnedAppIds}

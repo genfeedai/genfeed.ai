@@ -94,8 +94,6 @@ export interface AppRailProps {
    * it the rail offers no unpin.
    */
   onTogglePin?: (appId: string) => void;
-  /** Clears the member's order and hidden apps. Without it the More menu has no reset. */
-  onResetRail?: () => void;
   /**
    * Opens the Admin app somewhere else, e.g. the system browser, instead of
    * navigating inside this shell. Receives the Admin path.
@@ -107,7 +105,6 @@ export interface AppRailMoreProps {
   /** Apps the member can open that are not on the rail. */
   items: readonly AppRailNavigationItem[];
   onOpen: (item: AppRailNavigationItem) => void;
-  onReset?: () => void;
   onTogglePin?: (appId: string) => void;
 }
 

@@ -2036,13 +2036,11 @@ describe('AppRail', () => {
       expect(onTogglePin).toHaveBeenCalledWith('agent');
     });
 
-    it('resets the rail from More', () => {
-      const onResetRail = vi.fn();
-      render(<AppRail onResetRail={onResetRail} orgSlug="acme" />);
+    it('leaves the reset to personal settings', () => {
+      render(<AppRail hiddenAppIds={['agent']} orgSlug="acme" />);
 
       fireEvent.click(screen.getByTestId('app-rail-more'));
-      fireEvent.click(screen.getByTestId('app-rail-reset'));
-      expect(onResetRail).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('app-rail-reset')).toBeNull();
     });
 
     it('reports where a moved app came from and landed', () => {

@@ -279,7 +279,6 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
       hiddenAppIds: ['library'],
       onRailAppOrderChange: preferences.setRailAppOrder,
-      onResetRail: preferences.resetRail,
       onTogglePin: preferences.togglePin,
       railAppOrder: ['library', 'agent'],
     });

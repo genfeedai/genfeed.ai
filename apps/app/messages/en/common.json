@@ -857,7 +857,8 @@
         "label": "Home app"
       },
       "rail": {
-        "label": "Rail"
+        "label": "Rail",
+        "reset": "Reset rail to default"
       },
       "mcpApproval": {
         "cardTitle": "MCP approvals",
@@ -2583,7 +2584,6 @@
     "noMoreApps": "Every app is on your rail.",
     "moveUp": "Move {app} up",
     "moveDown": "Move {app} down",
-    "reset": "Reset rail to default",
     "unpinned": "{app} removed from your rail.",
     "homeTitle": "Home app",
     "homeDescription": "The app you land on after signing in.",
