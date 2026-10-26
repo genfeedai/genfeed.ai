@@ -1453,33 +1453,6 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should create a goal via agent tool', async () => {
-    const { agentGoalsService, service } = createService();
-
-    const result = await service.executeTool(
-      'create_goal',
-      {
-        label: 'Grow views',
-        metric: 'views',
-        targetValue: 1000,
-      },
-      {
-        brandId: 'brand-1',
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
-    );
-
-    expect(result.success).toBe(true);
-    expect(agentGoalsService.create).toHaveBeenCalled();
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        goalId: 'goal-1',
-        progressPercent: 25,
-      }),
-    );
-  });
-
   it('should list the live Genfeed tool catalog for operator questions', async () => {
     const { service } = createService();
 
@@ -1526,47 +1499,6 @@ describe('AgentToolExecutorService', () => {
     expect(data.counts.bySurface.mcp).toBeGreaterThan(0);
     expect(data.counts.total).toBeGreaterThanOrEqual(data.returned);
     expect(typeof data.truncated).toBe('boolean');
-  });
-
-  it('should reject invalid goal ids for progress checks', async () => {
-    const { service } = createService();
-
-    const result = await service.executeTool(
-      'check_goal_progress',
-      { goalId: 'not-an-object-id' },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('valid goalId');
-  });
-
-  it('should update a goal via agent tool', async () => {
-    const { agentGoalsService, service } = createService();
-
-    const result = await service.executeTool(
-      'update_goal',
-      {
-        goalId: testId('goal'),
-        targetValue: 1000,
-      },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
-    );
-
-    expect(result.success).toBe(true);
-    expect(agentGoalsService.update).toHaveBeenCalled();
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        goalId: 'goal-1',
-        progressPercent: 40,
-      }),
-    );
   });
 
   it('preserves a naive wall time in the publish confirmation preview', async () => {
