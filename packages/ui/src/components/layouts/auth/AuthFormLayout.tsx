@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AuthFormLayoutProps } from '@genfeedai/props/layout/auth-form-layout.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -74,20 +75,26 @@ export default function AuthFormLayout({
       )
     );
 
-    // With an aside the form drops its card and sits on the page beside the
-    // showcase. The aside is decorative and only shown from `lg` up, so phones
-    // and tablets keep the single-column form.
+    // With an aside the form sits on the page beside the showcase from `lg` up
+    // and drops its card there. The aside is decorative and only shown from
+    // `lg`; below it the form keeps the single compact card.
     if (aside) {
       return (
         <main
-          className="grid min-h-screen bg-background text-foreground lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]"
+          className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-foreground lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:px-0"
           data-desktop-drag="true"
         >
-          <div className="flex flex-col items-center justify-center px-6 py-10 sm:px-10">
-            <div className="w-full max-w-md">
+          <div className="flex w-full flex-col items-center justify-center lg:px-10 lg:py-10">
+            <Card
+              className={cn(
+                isWide ? 'w-full max-w-3xl' : 'w-full max-w-md',
+                'lg:bg-transparent lg:shadow-none',
+              )}
+              bodyClassName="gap-0 p-6 sm:p-10 lg:p-0"
+            >
               {heading}
               {children}
-            </div>
+            </Card>
           </div>
           <aside className="hidden p-3 lg:block">{aside}</aside>
         </main>

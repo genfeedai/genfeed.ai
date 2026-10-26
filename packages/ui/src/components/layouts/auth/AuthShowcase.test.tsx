@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AuthShowcase from '@ui/layouts/auth/AuthShowcase';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,6 +42,31 @@ describe('AuthShowcase', () => {
 
     expect(container.querySelector('video')?.muted).toBe(true);
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
+
+  it('follows the video element instead of assuming a toggle worked', async () => {
+    mockMedia({ isDesktop: true, isReducedMotion: false });
+    const { container } = render(
+      <AuthShowcase pauseLabel="Pause" playLabel="Play" />,
+    );
+    const video = container.querySelector('video') as HTMLVideoElement;
+
+    fireEvent.pause(video);
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+
+    fireEvent.play(video);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+
+    // A browser that blocks playback rejects play(): the control must not
+    // claim the clip is running.
+    Object.defineProperty(video, 'paused', { configurable: true, value: true });
+    video.play = vi.fn().mockRejectedValue(new Error('NotAllowedError'));
+    fireEvent.pause(video);
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument(),
+    );
   });
 
   it('shows only the poster under reduced motion', () => {

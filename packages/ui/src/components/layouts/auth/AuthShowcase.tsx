@@ -70,12 +70,12 @@ export default function AuthShowcase({
       return;
     }
 
+    // The label follows the element's own play and pause events, so a rejected
+    // play() leaves the control saying Play.
     if (element.paused) {
-      void element.play();
-      setIsPlaying(true);
+      element.play().catch(() => setIsPlaying(false));
     } else {
       element.pause();
-      setIsPlaying(false);
     }
   }
 
@@ -96,7 +96,12 @@ export default function AuthShowcase({
             <VideoPlayer
               config={BACKGROUND_VIDEO_CONFIG}
               mediaClassName="object-cover"
-              mediaProps={{ 'aria-hidden': true, poster: HERO_LOOP.poster }}
+              mediaProps={{
+                'aria-hidden': true,
+                onPause: () => setIsPlaying(false),
+                onPlay: () => setIsPlaying(true),
+                poster: HERO_LOOP.poster,
+              }}
               src={HERO_LOOP.mp4}
               videoRef={videoRef}
             />
