@@ -1645,6 +1645,33 @@ describe('VideoGenerationService', () => {
       );
     });
 
+    it('hands the subject and action to the prompt builder', async () => {
+      const created = createService();
+      created.modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        endpoint: FAL_ENDPOINT,
+        provider: ModelProvider.FAL,
+      });
+
+      await created.service.generateVideo(
+        buildUser(),
+        baseDto({
+          action: 'walking toward the camera',
+          model: FAL_SELECTION_KEY,
+          subject: 'a courier',
+        }),
+        buildRequest(),
+      );
+
+      expect(created.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          action: 'walking toward the camera',
+          subject: 'a courier',
+        }),
+        ORG,
+      );
+    });
+
     it('does not dispatch a foreign-organization reference id to the provider', async () => {
       const { falService, ingredientsService, promptBuilderService } =
         await generateFalVideo(

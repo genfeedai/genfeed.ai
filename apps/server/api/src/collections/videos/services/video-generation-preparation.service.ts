@@ -579,6 +579,7 @@ export class VideoGenerationPreparationService {
         audioReferences: resolved.audioReferenceUrls
           ? [...resolved.audioReferenceUrls.values()]
           : undefined,
+        action: createVideoDto.action,
         audioUrl: createVideoDto.audioUrl,
         blacklist: createVideoDto.blacklist,
         brand: {
@@ -615,6 +616,7 @@ export class VideoGenerationPreparationService {
         sounds: createVideoDto.sounds,
         speech: createVideoDto.speech,
         style: createVideoDto.style,
+        subject: createVideoDto.subject,
         tags: createVideoDto.tags?.map((tag) => tag.toString()),
         useTemplate: createVideoDto.useTemplate,
         width,

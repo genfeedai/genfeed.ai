@@ -87,6 +87,33 @@ describe('recipeFromPromptData', () => {
     });
   });
 
+  it('records the subject and action so Vary and Remix start from them', () => {
+    const settings = {
+      ...getDefaultStudioPlaygroundSettings('image'),
+      action: 'walking toward the camera',
+      subject: 'a courier',
+    };
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'A rainy street',
+      references: [],
+      settings,
+      type: 'image',
+    });
+
+    const recipe = recipeFromPromptData(promptData, 'image', settings);
+
+    expect(recipe).toMatchObject({
+      action: 'walking toward the camera',
+      subject: 'a courier',
+    });
+    expect(settingsPatchFromRecipe(recipe)).toMatchObject({
+      action: 'walking toward the camera',
+      subject: 'a courier',
+    });
+    expect(formatStudioRecipePrompt(recipe)).toContain('a courier');
+  });
+
   it('never records brand enrichment on for music, avatar, or voice (#4676)', () => {
     const settings = getDefaultStudioPlaygroundSettings('music');
     const promptData = buildStudioPromptData({

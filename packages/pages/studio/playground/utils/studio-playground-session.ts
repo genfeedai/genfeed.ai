@@ -108,6 +108,7 @@ function sanitizeRecipe(
       value.brandingMode === 'off' || value.brandingMode === 'brand'
         ? value.brandingMode
         : undefined,
+    action: pickOptionalString(value.action),
     camera: pickOptionalString(value.camera),
     cameraMovement: pickOptionalString(value.cameraMovement),
     duration: pickNumber(value.duration),
@@ -132,6 +133,7 @@ function sanitizeRecipe(
     scene: pickOptionalString(value.scene),
     speech: pickOptionalString(value.speech),
     style: pickOptionalString(value.style) ?? '',
+    subject: pickOptionalString(value.subject),
     tags: pickStringList(value.tags),
     text: value.text,
     type: isStudioPlaygroundType(value.type) ? value.type : type,

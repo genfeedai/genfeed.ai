@@ -1223,6 +1223,26 @@ describe('ImageGenerationService', () => {
       );
     });
 
+    it('hands the subject and action to the prompt builder', async () => {
+      const { service, promptBuilderService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          action: 'walking',
+          model: NON_GENERATIVE_EXEMPT_MODEL,
+          subject: 'a courier',
+        }),
+        buildRequest(),
+      );
+
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ action: 'walking', subject: 'a courier' }),
+        expect.anything(),
+      );
+    });
+
     it('compiles Imagen 4 from the versioned brief and persists redacted evidence', async () => {
       const { service, promptBuilderService, replicateService, sharedService } =
         createService();

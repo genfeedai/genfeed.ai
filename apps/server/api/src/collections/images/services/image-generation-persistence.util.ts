@@ -144,6 +144,7 @@ function buildLegacyImagePromptInput(
       { ...createImageDto, height, width },
       modelInputSchema,
     ),
+    action: createImageDto.action,
     blacklist: createImageDto.blacklist,
     brand: promptBuilderBrand,
     branding: brandPromptBranding,
@@ -161,6 +162,7 @@ function buildLegacyImagePromptInput(
     scene: createImageDto.scene,
     seed: createImageDto.seed,
     style: style || createImageDto.style,
+    subject: createImageDto.subject,
     tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
     useTemplate: createImageDto.useTemplate,
   };

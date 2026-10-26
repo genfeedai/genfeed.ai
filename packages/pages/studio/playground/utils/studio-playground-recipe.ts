@@ -125,6 +125,8 @@ export function readStudioCrunRecipeControls(
 const RECIPE_FIELD_LABELS = [
   ['brandingMode', 'Brand enrichment'],
   ['promptTemplate', 'Template'],
+  ['subject', 'Subject'],
+  ['action', 'Action'],
   ['style', 'Style'],
   ['mood', 'Mood'],
   ['scene', 'Scene'],
@@ -276,6 +278,7 @@ export function recipeFromPromptData(
     aspectRatio: settings.aspectRatio,
     blacklist: promptData.blacklist ?? [],
     brandingMode: resolveRecipeBrandingMode(type, promptData.isBrandingEnabled),
+    action: optionalText(promptData.action),
     camera: optionalText(promptData.camera),
     cameraMovement: optionalText(promptData.cameraMovement),
     duration: promptData.duration,
@@ -292,6 +295,7 @@ export function recipeFromPromptData(
     scene: optionalText(promptData.scene),
     speech: optionalText(promptData.speech),
     style: optionalText(promptData.style) ?? '',
+    subject: optionalText(promptData.subject),
     tags: promptData.tags ?? [],
     text: promptData.text?.trim() || '',
     type,
@@ -311,6 +315,7 @@ export function recipeFromRepromptData(
     ),
     blacklist: promptData.blacklist ?? [],
     brandingMode: resolveRecipeBrandingMode(type, promptData.isBrandingEnabled),
+    action: optionalText(promptData.action),
     camera: optionalText(promptData.camera),
     cameraMovement: optionalText(promptData.cameraMovement),
     duration: promptData.duration,
@@ -327,6 +332,7 @@ export function recipeFromRepromptData(
     scene: optionalText(promptData.scene),
     speech: optionalText(promptData.speech),
     style: optionalText(promptData.style) ?? '',
+    subject: optionalText(promptData.subject),
     tags: promptData.tags ?? [],
     text: promptData.text?.trim() || '',
     type,
@@ -596,6 +602,7 @@ export function settingsPatchFromRecipe(
     ...(recipe.brandingMode !== undefined
       ? { brandingMode: recipe.brandingMode }
       : {}),
+    action: recipe.action,
     camera: recipe.camera,
     cameraMovement: recipe.cameraMovement,
     duration: recipe.duration,
@@ -611,6 +618,7 @@ export function settingsPatchFromRecipe(
     scene: recipe.scene,
     speech: recipe.speech,
     style: recipe.style,
+    subject: recipe.subject,
     tags: recipe.tags,
   };
 }
