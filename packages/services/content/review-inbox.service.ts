@@ -1,9 +1,12 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type {
-  IReviewInboxDecisionRequest,
-  IReviewInboxDecisionResult,
-  IReviewInboxItem,
-  IReviewInboxListQuery,
+import {
+  type IReviewInboxBatchDecisionRequest,
+  type IReviewInboxBatchDecisionResult,
+  type IReviewInboxDecisionRequest,
+  type IReviewInboxDecisionResult,
+  type IReviewInboxItem,
+  type IReviewInboxListQuery,
+  REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -63,5 +66,44 @@ export class ReviewInboxService extends HTTPBaseService {
       logger.error('POST /review-inbox/decisions failed', error);
       throw error;
     }
+  }
+
+  /**
+   * Decides many items with one request per {@link REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS}
+   * ids. A request that fails outright reports its ids as failed, so earlier
+   * chunks still count.
+   */
+  async decideMany(
+    request: IReviewInboxBatchDecisionRequest,
+  ): Promise<IReviewInboxBatchDecisionResult> {
+    const result: IReviewInboxBatchDecisionResult = {
+      decided: [],
+      failed: [],
+    };
+    for (
+      let start = 0;
+      start < request.itemIds.length;
+      start += REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS
+    ) {
+      const itemIds = request.itemIds.slice(
+        start,
+        start + REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS,
+      );
+      try {
+        const response =
+          await this.instance.post<IReviewInboxBatchDecisionResult>(
+            '/decisions/batch',
+            { ...request, itemIds },
+          );
+        result.decided.push(...response.data.decided);
+        result.failed.push(...response.data.failed);
+      } catch (error) {
+        logger.error('POST /review-inbox/decisions/batch failed', error);
+        const message =
+          error instanceof Error ? error.message : 'Decision failed';
+        result.failed.push(...itemIds.map((itemId) => ({ itemId, message })));
+      }
+    }
+    return result;
   }
 }

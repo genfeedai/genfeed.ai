@@ -23,7 +23,7 @@ cd apps/extensions/browser/app
 node scripts/verify-compiled-startup.mjs --build-dir <absolute-built-folder> --output <absolute-result.json>
 ```
 
-The probe executes the actual popup and sidepanel bundles with empty storage and synthetic signed-out auth responses, requires real Retry/Open Genfeed controls and working cached Zod constructors, and rejects unexpected network or runtime errors. Preserve the JSON and artifact hashes. This checks compiled startup; installed Brave, CSP, session and live backend acceptance remain separate.
+The probe executes the actual popup and sidepanel bundles with empty storage and synthetic signed-out auth responses, requires real Retry/Open Genfeed controls in the popup, the sign-in screen in the side panel, and working cached Zod constructors, and rejects unexpected network or runtime errors. Preserve the JSON and artifact hashes. This checks compiled startup; installed Brave, CSP, session and live backend acceptance remain separate.
 
 2. **Load in Brave manually**
    - Use the local Genfeed Brave profile already signed into Genfeed.

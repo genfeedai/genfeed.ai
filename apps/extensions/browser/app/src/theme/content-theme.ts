@@ -3,6 +3,7 @@ import {
   resolveThemePreference,
   type ThemePreference,
 } from '@genfeedai/contracts/constants';
+import { hostPaletteProperties, readHostPalette } from '~theme/host-palette';
 import {
   EXTENSION_SETTINGS_STORAGE_KEY,
   readStoredTheme,
@@ -17,17 +18,48 @@ const CONTENT_THEME_SELECTOR = `[${GENFEED_HOST_ATTRIBUTE}]`;
 let currentPreference: ThemePreference = DEFAULT_THEME;
 let systemPrefersDark = false;
 
-function resolvedContentTheme(): 'light' | 'dark' {
-  return resolveThemePreference(
-    currentPreference,
-    systemPrefersDark ? 'dark' : 'light',
-  );
+const HOST_PALETTE_PROPERTIES = Object.keys(
+  hostPaletteProperties({ background: '', isDark: false, text: '' }),
+);
+
+/**
+ * A Genfeed surface injected into a page takes that page's own colours, so on X
+ * it matches Default, Dim or Lights out. The extension's Light/Dark setting
+ * styles the extension's own popup and side panel, and only applies here when
+ * the page paints no background to read.
+ */
+function resolvedContentTheme(): {
+  palette: ReturnType<typeof readHostPalette>;
+  theme: 'light' | 'dark';
+} {
+  const palette = readHostPalette();
+  if (palette) {
+    return { palette, theme: palette.isDark ? 'dark' : 'light' };
+  }
+  return {
+    palette: null,
+    theme: resolveThemePreference(
+      currentPreference,
+      systemPrefersDark ? 'dark' : 'light',
+    ),
+  };
 }
 
 export function applyContentThemeToElement(element: HTMLElement): void {
-  const theme = resolvedContentTheme();
+  const { palette, theme } = resolvedContentTheme();
   element.dataset.genfeedTheme = theme;
   element.style.colorScheme = theme;
+  if (palette) {
+    for (const [name, value] of Object.entries(
+      hostPaletteProperties(palette),
+    )) {
+      element.style.setProperty(name, value);
+    }
+  } else {
+    for (const name of HOST_PALETTE_PROPERTIES) {
+      element.style.removeProperty(name);
+    }
+  }
 }
 
 function applyContentTheme(
@@ -75,6 +107,18 @@ export function watchContentTheme(): () => void {
   mediaQuery.addEventListener('change', handleSystemThemeChange);
   chrome.storage.onChanged.addListener(handleStorageChange);
 
+  // The page switches its own theme by changing a style or class on <html> or
+  // <body>, with no event, so watch those two elements.
+  const hostObserver = new MutationObserver(handleSystemThemeChange);
+  const hostOptions: MutationObserverInit = {
+    attributeFilter: ['class', 'data-theme', 'style'],
+    attributes: true,
+  };
+  hostObserver.observe(document.documentElement, hostOptions);
+  if (document.body) {
+    hostObserver.observe(document.body, hostOptions);
+  }
+
   const hydrationRevision = storageRevision;
   void chrome.storage.local
     .get(EXTENSION_SETTINGS_STORAGE_KEY)
@@ -92,6 +136,7 @@ export function watchContentTheme(): () => void {
 
   return () => {
     disposed = true;
+    hostObserver.disconnect();
     mediaQuery.removeEventListener('change', handleSystemThemeChange);
     chrome.storage.onChanged.removeListener(handleStorageChange);
   };

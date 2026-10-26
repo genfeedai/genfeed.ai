@@ -126,19 +126,16 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
     ) => {
       if (decidingItemId || isBulkDeciding || selected.length === 0) return;
       setIsBulkDeciding(true);
-      let decidedCount = 0;
       try {
         const service = await getReviewInboxService();
-        // One at a time: the owning service fences each decision on its own.
-        for (const item of selected) {
-          try {
-            await service.decide({ decision, itemId: item.id });
-            decidedCount += 1;
-          } catch (decisionError: unknown) {
-            logger.error('Review inbox bulk decision failed', decisionError);
-          }
-        }
-        const failedCount = selected.length - decidedCount;
+        // The owning service still fences each decision; failures come back
+        // per item instead of aborting the batch.
+        const { decided, failed } = await service.decideMany({
+          decision,
+          itemIds: selected.map((item) => item.id),
+        });
+        const decidedCount = decided.length;
+        const failedCount = failed.length;
         if (failedCount === 0) {
           notifications.success(
             translate(decision === 'reject' ? 'bulkRejected' : 'bulkApproved', {

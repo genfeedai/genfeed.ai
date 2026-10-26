@@ -167,7 +167,7 @@ export async function assertNoInFlightBreakoutWork(
 }
 
 /**
- * Execution read scopes, their brand dependencies and lineage are append-only
+ * Execution read scopes and their brand dependencies are append-only
  * authorization records bound to the organization by composite foreign keys.
  * Moving their execution, thread, strategy, workflow version or brand would
  * cascade an update into rows a trigger forbids changing, so a brand that has

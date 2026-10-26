@@ -91,7 +91,7 @@ afterEach(() => {
 const navigate = async (path: string, replace = false) => {
   if (replace) history.replaceState(null, '', path);
   else history.pushState(null, '', path);
-  await vi.advanceTimersByTimeAsync(100);
+  await vi.advanceTimersByTimeAsync(400);
 };
 describe('real content module publication observer ownership', () => {
   it('replaces the real self-disposed observer on rapid popstate departure and return', async () => {
@@ -151,7 +151,7 @@ describe('real content module publication observer ownership', () => {
       )[1]?.[1];
       expect(replacementClick).toBeDefined();
       expect(replacementClick).not.toBe(oldClick);
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(400);
       expect(mocks.attach).toHaveBeenCalledTimes(2);
       expect(mocks.cleanups[0]).toHaveBeenCalledTimes(1);
       expect(mocks.cleanups[1]).not.toHaveBeenCalled();
@@ -202,7 +202,7 @@ describe('real content module publication observer ownership', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
       originalPush.call(history, null, '', '/home');
       window.dispatchEvent(new PopStateEvent('popstate'));
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(400);
       expect(mocks.attach).toHaveBeenCalledTimes(1);
       expect(mocks.cleanups[0]).not.toHaveBeenCalled();
       expect(removed).not.toHaveBeenCalledWith('click', click, true);
@@ -225,10 +225,12 @@ describe('real content module publication observer ownership', () => {
     await navigate('/home?tab=following');
     await navigate('/home/#compose', true);
     window.dispatchEvent(new PopStateEvent('popstate'));
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(400);
     expect(mocks.attach).toHaveBeenCalledTimes(1);
     expect(mocks.cleanups[0]).not.toHaveBeenCalled();
-    expect(mocks.detected).toHaveBeenCalledTimes(4);
+    // Load and the two URL changes report the page; a popstate that leaves the
+    // URL as it was does not.
+    expect(mocks.detected).toHaveBeenCalledTimes(3);
   });
   it('retains the dormant observer across all same-X history routes', async () => {
     await import('../src/content');
@@ -236,7 +238,7 @@ describe('real content module publication observer ownership', () => {
     expect(mocks.cleanups[0]).not.toHaveBeenCalled();
     await navigate('/notifications', true);
     window.dispatchEvent(new PopStateEvent('popstate'));
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(400);
     expect(mocks.attach).toHaveBeenCalledTimes(1);
     expect(mocks.cleanups[0]).not.toHaveBeenCalled();
     await navigate('/home');

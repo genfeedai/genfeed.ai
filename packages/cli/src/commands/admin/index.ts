@@ -14,6 +14,7 @@ import {
   fixModelPricing,
   type PriceSyncProvider,
   readOrganizationAppsReport,
+  readOrganizationsReport,
   readPricingReport,
   readSystemBrand,
   seedArticles,
@@ -325,6 +326,33 @@ async function runOrganizationApps(isJson: boolean): Promise<void> {
   }
 }
 
+async function runOrganizationsList(options: {
+  includeDeleted?: boolean;
+  isJson: boolean;
+}): Promise<void> {
+  const report = await readOrganizationsReport(options.includeDeleted === true);
+  if (options.isJson) {
+    printJson(report);
+    return;
+  }
+
+  print(formatHeader(`${report.organizations.length} organizations\n`));
+  for (const organization of report.organizations) {
+    const deleted = organization.isDeleted ? chalk.red(' (deleted)') : '';
+    const tier = organization.subscriptionTier ?? 'no tier';
+    print(
+      `${chalk.bold(organization.label)}${deleted} ${chalk.dim(
+        `${organization.slug} · ${organization.category} · ${tier}`
+      )}`
+    );
+    print(
+      `  ${organization.id} · ${organization.ownerEmail ?? 'no owner email'} · ${
+        organization.memberCount
+      } members · created ${organization.createdAt.slice(0, 10)}`
+    );
+  }
+}
+
 async function readJsonFile(filePath: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(filePath, 'utf8')) as unknown;
@@ -545,6 +573,24 @@ export const adminCommand = new Command('admin')
           handleError(error);
         }
       })
+  )
+  .addCommand(
+    new Command('orgs').description('Read organizations on the platform').addCommand(
+      new Command('list')
+        .description('List every organization with owner, tier, category and member count')
+        .option('--include-deleted', 'Also list soft-deleted organizations')
+        .option('--json', 'Output as JSON')
+        .action(async (options: { includeDeleted?: boolean }, command: Command) => {
+          try {
+            await runOrganizationsList({
+              includeDeleted: options.includeDeleted,
+              isJson: wantsJson(command),
+            });
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
   )
   .addCommand(createPricingCommand())
   .addCommand(createSeedCommand())

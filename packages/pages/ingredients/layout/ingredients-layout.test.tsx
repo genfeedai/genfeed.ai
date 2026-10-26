@@ -73,18 +73,15 @@ vi.mock('@ui/content/filters-button/FiltersButton', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    description,
     label,
     right,
   }: {
     children?: ReactNode;
-    description?: ReactNode;
     label?: ReactNode;
     right?: ReactNode;
   }) => (
     <div>
       <div>{label}</div>
-      <div>{description}</div>
       <div>{right}</div>
       <div>{children}</div>
     </div>

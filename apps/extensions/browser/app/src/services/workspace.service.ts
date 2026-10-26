@@ -21,6 +21,7 @@ let queue: Promise<unknown> = Promise.resolve();
 let lastVerified: ExtensionWorkspaceSnapshot | null = null;
 let validation = 0;
 let pending: Promise<ExtensionWorkspaceSnapshot> | null = null;
+const SIGNED_OUT_PATTERN = /Genfeed session expired|Sign in to Genfeed/;
 const selectionKey = (user: string, organization: string) =>
   `extension_workspace:${user}:${organization}`;
 
@@ -219,6 +220,8 @@ async function reconcile(
           error.name !== 'TimeoutError'
             ? error.message
             : 'Could not connect to Genfeed. Retry.',
+        isSignedOut:
+          error instanceof Error && SIGNED_OUT_PATTERN.test(error.message),
       });
     }
     throw error;

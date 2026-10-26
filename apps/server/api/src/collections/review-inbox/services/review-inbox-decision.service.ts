@@ -8,6 +8,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  type IReviewInboxBatchDecisionRequest,
+  type IReviewInboxBatchDecisionResult,
   type IReviewInboxDecisionRequest,
   type IReviewInboxDecisionResult,
   parseReviewInboxItemId,
@@ -15,7 +17,9 @@ import {
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 
 /**
@@ -26,6 +30,8 @@ import {
  */
 @Injectable()
 export class ReviewInboxDecisionService {
+  private readonly logger = new Logger(ReviewInboxDecisionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly brandAccess: BrandAccessService,
@@ -33,6 +39,49 @@ export class ReviewInboxDecisionService {
     private readonly mcpApprovals: McpApprovalsService,
     private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
+
+  /**
+   * Decides every item through `decide`, so tenant scoping, brand access and
+   * role checks apply per item. One item failing never aborts the rest; the
+   * failure is reported beside the items that did resolve. Only HTTP
+   * exceptions carry client-safe text; anything else (Prisma, runtime errors)
+   * is logged and reported as a generic message, as the exception filters do
+   * for the single-item route.
+   */
+  async decideMany(
+    user: AuthenticatedUser,
+    access: ReviewInboxViewerAccess,
+    request: IReviewInboxBatchDecisionRequest,
+  ): Promise<IReviewInboxBatchDecisionResult> {
+    const result: IReviewInboxBatchDecisionResult = {
+      decided: [],
+      failed: [],
+    };
+    for (const itemId of request.itemIds) {
+      try {
+        result.decided.push(
+          await this.decide(user, access, {
+            decision: request.decision,
+            itemId,
+            reason: request.reason,
+          }),
+        );
+      } catch (error) {
+        if (!(error instanceof HttpException)) {
+          this.logger.error(
+            `Batch decision failed for ${itemId}`,
+            error instanceof Error ? error.stack : String(error),
+          );
+        }
+        result.failed.push({
+          itemId,
+          message:
+            error instanceof HttpException ? error.message : 'Decision failed',
+        });
+      }
+    }
+    return result;
+  }
 
   async decide(
     user: AuthenticatedUser,

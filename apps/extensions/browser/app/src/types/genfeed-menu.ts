@@ -24,6 +24,8 @@ export interface MenuItemSpec {
 
 export interface MenuGroupSpec {
   id: string;
+  /** Shows the group as one row that expands to its items, collapsed until it is opened. Needs a label. */
+  isCollapsible?: boolean;
   items: MenuItemSpec[];
   label?: string;
 }
@@ -34,6 +36,8 @@ export interface MenuGroupSpec {
  * has no solid fill, and the trigger falls back to the Genfeed theme.
  */
 export interface ButtonSkin {
+  /** The trigger sits among the host's icon buttons: round, no fill, in their colour. */
+  isIcon?: boolean;
   height: number;
   radius: number;
   background?: string;

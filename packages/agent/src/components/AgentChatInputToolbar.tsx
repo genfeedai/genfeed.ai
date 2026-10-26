@@ -1,5 +1,4 @@
 import { AgentModeDropdown } from '@genfeedai/agent/components/AgentModeDropdown';
-import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import type { ConversationComposerGenerationMode } from '@genfeedai/agent/models/conversation-composer.model';
 import {
   AgentGenerationMode,
@@ -7,6 +6,7 @@ import {
   inferAgentMediaGenerationModeFromPrompt,
 } from '@genfeedai/contracts';
 import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
+import PromptBarEnhanceControls from '@ui/prompt-bars/components/toolbar/PromptBarEnhanceControls';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
@@ -14,7 +14,17 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import { useTranslations } from 'next-intl';
 import { memo, type ReactElement, useEffect } from 'react';
 
+/** The Enhance prompt action, shared with Studio (see `usePromptTextEnhancement`). */
+export interface AgentChatInputEnhancement {
+  canUndo: boolean;
+  isEnhancing: boolean;
+  onCancel: () => void;
+  onEnhance: () => void;
+  onUndo: () => void;
+}
+
 export interface AgentChatInputToolbarProps {
+  enhancement?: AgentChatInputEnhancement;
   agentMode: AgentThreadMode;
   canSendMessage: boolean;
   /** Voice Control is on and the browser can record, regardless of field state. */
@@ -49,6 +59,7 @@ function AgentChatInputToolbarInner({
   canSendMessage,
   canUseVoiceInput,
   disabled,
+  enhancement,
   hasEditor,
   isAgentControlsHidden = false,
   isEmptyComposer,
@@ -69,7 +80,6 @@ function AgentChatInputToolbarInner({
   willQueueFollowUp = false,
 }: AgentChatInputToolbarProps): ReactElement {
   const translate = useTranslations('agent.composerToolbar');
-  const isDock = useConversationComposerShell()?.placement === 'dock';
   // The Agent infers output type from the prompt itself (#4672) — there is no
   // user control for it any more, only the mode dropdown (Auto/Manual/Plan).
   useEffect(() => {
@@ -113,17 +123,33 @@ function AgentChatInputToolbarInner({
       }
       enhance={
         isAgentControlsHidden ? null : (
-          <GenerationHarnessSettingsPopover
-            className={isDock ? undefined : 'size-8'}
-            label={isDock ? translate('settingsLabel') : undefined}
-            isDisabled={disabled || showStop}
-          />
+          <>
+            {enhancement ? (
+              <PromptBarEnhanceControls
+                isDisabled={disabled || showStop || !promptText.trim()}
+                isEnhancing={enhancement.isEnhancing}
+                labels={{
+                  cancelAria: translate('cancelEnhancingPrompt'),
+                  enhanceAria: translate('enhancePrompt'),
+                  enhanceLabel: translate('enhanceLabel'),
+                  undoAria: translate('undoPromptEnhancement'),
+                  undoLabel: translate('undo'),
+                }}
+                onCancel={enhancement.onCancel}
+                onEnhance={enhancement.onEnhance}
+                onUndo={enhancement.canUndo ? enhancement.onUndo : undefined}
+              />
+            ) : null}
+            <GenerationHarnessSettingsPopover
+              isDisabled={disabled || showStop}
+            />
+          </>
         )
       }
       reference={
         isAgentControlsHidden ? null : (
           <PromptBarReferenceControls
-            label={isDock ? translate('attachLabel') : undefined}
+            isChip
             isAttachmentDisabled={disabled}
             isLibraryDisabled={disabled || !hasEditor}
             onAddFiles={onAddFiles}

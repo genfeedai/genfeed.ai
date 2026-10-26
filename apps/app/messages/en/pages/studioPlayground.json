@@ -103,6 +103,7 @@
   },
   "searchPlaceholder": "Search generations",
   "cancelEnhancingPrompt": "Cancel enhancing prompt",
+  "enhanceLabel": "Enhance",
   "enhancePrompt": "Enhance prompt",
   "estimatedCredits": "Estimated {credits} credits",
   "estimatedCreditsForSeconds": "Estimated {credits} credits for a ~{seconds} s clip",
@@ -138,11 +139,6 @@
     "unavailable": "The price could not be confirmed, so nothing was generated. {reason}"
   },
   "generate": "Generate",
-  "videoDraft": {
-    "ariaLabel": "Generate a cheap video draft",
-    "label": "Draft · {credits, plural, one {# credit} other {# credits}}",
-    "tooltip": "A short, silent, lower-resolution preview of this video. Generate the full version once you like it."
-  },
   "generationFailed": "Generation failed",
   "failure": {
     "reasons": {
@@ -341,6 +337,7 @@
     "moreLikeAria": "More like {name}",
     "savedLooks": "Saved looks"
   },
+  "audioFrameConflict": "MiniMax H3 can't combine a start or end frame with an audio reference. Attach the image as a reference instead.",
   "audioReference": "Audio reference",
   "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video.",
   "referenceMentionNotice": "Attached but not mentioned: {tokens}. They will still be included."

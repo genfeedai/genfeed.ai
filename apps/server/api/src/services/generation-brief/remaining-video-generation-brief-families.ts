@@ -144,11 +144,6 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             negativePromptSupported: true,
           },
         ),
-        profile('fal-veo-3-1-capability', MODEL_KEYS.FAL_VEO_3_1, {
-          audioSupported: true,
-          nativeFields: ['image'],
-          negativePromptSupported: true,
-        }),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',

@@ -101,18 +101,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({
-    children,
-    description,
-    label,
-  }: {
-    children?: ReactNode;
-    description?: string;
-    label?: string;
-  }) => (
+  default: ({ children, label }: { children?: ReactNode; label?: string }) => (
     <main>
       <h1>{label}</h1>
-      <p>{description}</p>
       {children}
     </main>
   ),

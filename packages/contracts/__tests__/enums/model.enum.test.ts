@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 145 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(145);
+    it('should have 144 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(144);
     });
 
     it('should have correct values', () => {
@@ -260,7 +260,6 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO).toBe(
         'fal-ai/kling-video/v3/pro',
       );
-      expect(MODEL_KEYS.FAL_VEO_3_1).toBe('fal-ai/veo3.1');
       expect(MODEL_KEYS.FAL_PIXVERSE_V6).toBe('fal-ai/pixverse/v6');
       expect(MODEL_KEYS.FAL_SEEDANCE_2_0).toBe('fal-ai/seedance-2.0');
       expect(MODEL_KEYS.FAL_STABLE_VIDEO).toBe('fal-ai/stable-video-diffusion');

@@ -15,6 +15,7 @@ import {
   type PlatformConfig,
 } from '~platforms/config';
 import { buildMenuGroups } from '~platforms/menu-actions';
+import { readPagePost } from '~platforms/page-post';
 import { extractPostContext } from '~platforms/post-context';
 import {
   attachSourceButton,
@@ -33,12 +34,19 @@ import {
 } from '~platforms/ui/mount';
 import { injectImageOverlayStyles } from '~platforms/ui/page-styles';
 import { showToast } from '~platforms/ui/toast';
+import {
+  findPhotoOverlayHost,
+  X_PHOTO_IMAGE_SELECTOR,
+} from '~platforms/x-photo-overlay';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { publicationCapturePlatform } from '~services/publication-capture-validation';
 import { watchContentTheme } from '~theme/content-theme';
+import type { PagePost } from '~types/extension';
 
 const DEBOUNCE_DELAY_MS = 300;
-const NAVIGATION_DELAY_MS = 100;
+const URL_POLL_MS = 400;
+const POST_RENDER_RETRY_MS = 300;
+const POST_RENDER_ATTEMPTS = 10;
 
 const PUBLICATION_OBSERVERS: Record<
   PublicationCapturePlatform,
@@ -108,6 +116,7 @@ function initializePlatformIntegration(): void {
           postUrl,
         }),
         boundary ?? undefined,
+        currentPlatform,
       );
     }
   }
@@ -196,26 +205,44 @@ function checkAndReinitialize(): void {
   }
   // Notify side panel of platform/URL change
   notifyPlatformDetected();
+  notifyWhenPostRenders();
 }
 
+let postRenderTimer: number | undefined;
+
+/**
+ * A single-page site renders the post after the URL changes, so a post page is
+ * read again until its post appears and the side panel is told once more.
+ */
+function notifyWhenPostRenders(attempt = 0): void {
+  window.clearTimeout(postRenderTimer);
+  const platform = getCurrentPlatform();
+  if (!platform?.extractPostId() || attempt >= POST_RENDER_ATTEMPTS) {
+    return;
+  }
+  postRenderTimer = window.setTimeout(() => {
+    if (readPagePost(platform)) {
+      notifyPlatformDetected();
+      return;
+    }
+    notifyWhenPostRenders(attempt + 1);
+  }, POST_RENDER_RETRY_MS);
+}
+
+/**
+ * Single-page sites change the URL with the page's own history calls, which a
+ * content script cannot hook (it runs in its own copy of `history`), so the
+ * URL is compared on a short interval instead.
+ */
 function setupNavigationListeners(): void {
-  window.addEventListener('popstate', () => {
-    synchronizePublicationObserver();
-    setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
-  });
-
-  const originalPushState = history.pushState;
-  const originalReplaceState = history.replaceState;
-
-  history.pushState = (...args) => {
-    originalPushState.apply(history, args);
-    setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
-  };
-
-  history.replaceState = (...args) => {
-    originalReplaceState.apply(history, args);
-    setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
-  };
+  // Back and forward do reach this script, so the observer follows at once.
+  window.addEventListener('popstate', synchronizePublicationObserver);
+  let lastUrl = window.location.href;
+  window.setInterval(() => {
+    if (window.location.href === lastUrl) return;
+    lastUrl = window.location.href;
+    checkAndReinitialize();
+  }, URL_POLL_MS);
 }
 
 function notifyPlatformDetected(): void {
@@ -236,16 +263,27 @@ function notifyPlatformDetected(): void {
 
 function extractCurrentPageContext(): {
   url: string;
+  post?: PagePost;
   postContent?: string;
   postAuthor?: string;
 } {
-  const context: { url: string; postContent?: string; postAuthor?: string } = {
+  const context: {
+    url: string;
+    post?: PagePost;
+    postContent?: string;
+    postAuthor?: string;
+  } = {
     url: window.location.href,
   };
 
   const platform = getCurrentPlatform();
   if (!platform) {
     return context;
+  }
+
+  const post = readPagePost(platform);
+  if (post) {
+    context.post = post;
   }
 
   // Try to extract visible post content
@@ -445,6 +483,7 @@ setupNavigationListeners();
 initializePlatformIntegration();
 
 notifyPlatformDetected();
+notifyWhenPostRenders();
 
 // Initialize Twitter image hover if on Twitter
 const platform = getCurrentPlatform();
@@ -469,14 +508,9 @@ function initializeTwitterImageHover(): void {
       return;
     }
 
-    const container = image.parentElement;
+    const container = findPhotoOverlayHost(image);
     if (!container) {
       return;
-    }
-
-    const computedPosition = getComputedStyle(container).position;
-    if (computedPosition === 'static') {
-      container.style.position = 'relative';
     }
 
     container.classList.add('genfeed-image-hoverable');
@@ -537,7 +571,7 @@ function initializeTwitterImageHover(): void {
 
   function scanImages(): void {
     const tweetImages = document.querySelectorAll<HTMLImageElement>(
-      'article[data-testid="tweet"] img[src*="twimg.com"]',
+      X_PHOTO_IMAGE_SELECTOR,
     );
 
     tweetImages.forEach((image) => {

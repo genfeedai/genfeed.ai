@@ -105,6 +105,16 @@ export interface ModelSelectorModelItemProps {
   /** Credit lock — row is visible but not selectable. */
   isLocked?: boolean;
   lockReason?: string;
+  /**
+   * Draw the media-type badge (image, video...) on the row's avatar. A picker
+   * that already names its type once in its header turns this off.
+   */
+  isCategoryVisible?: boolean;
+  /**
+   * Draw the Legacy badge on a deprecated model's row. The Legacy flyout turns
+   * it off: being inside it already says so.
+   */
+  isLegacyBadgeVisible?: boolean;
 }
 
 export interface ModelSelectorModelSpecProps {

@@ -5,8 +5,8 @@ import type { ReactElement } from 'react';
 /**
  * The one prompt-bar toolbar row shared by Agent, Studio and every other
  * composer: tools on the left, submission on the right. Surfaces only fill the
- * slots, and the left group always reads in the same order: mode, setup chips,
- * enhance, then the `+` that adds references.
+ * slots. The left group reads mode, then setup chips; Enhance and the
+ * reference `+` form one cluster pushed to the group's right edge.
  *
  * Nothing in the row scrolls. Submission keeps its size on the right and the
  * tools wrap onto further lines when they run out of room. The tools group is
@@ -41,8 +41,14 @@ export default function PromptBarToolbar({
       >
         {mode}
         {leading}
-        {enhance}
-        {reference}
+        {enhance || reference ? (
+          // Enhance and Reference sit at the right edge of the tools group,
+          // next to submission, and wrap there when the row runs out of room.
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            {enhance}
+            {reference}
+          </div>
+        ) : null}
       </div>
       <div
         aria-label={trailingLabel}

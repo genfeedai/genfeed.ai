@@ -1,4 +1,10 @@
 import {
+  assembleStoryboardLongFormDraft,
+  buildStoryboardLongFormDraftMessages,
+  type StoryboardLongFormDraftRequest,
+  storyboardLongFormDraftOutputSchema,
+} from '@api/collections/content-runs/services/storyboard-long-form-draft';
+import {
   assembleStoryboardDraft,
   buildStoryboardDraftMessages,
   STORYBOARD_MIN_SHOTS,
@@ -65,17 +71,53 @@ export class StoryboardPlanDraftService {
       );
       return assembleStoryboardDraft(request, output);
     } catch (error: unknown) {
-      if (error instanceof ConflictException) throw error;
-      this.logger.error(
-        'Storyboard plan draft failed',
-        error,
-        error instanceof StoryboardDraftOutputError ||
-          error instanceof SyntaxError ||
-          error instanceof z.ZodError
-          ? { reason: 'invalid_output' }
-          : { reason: 'provider_error' },
-      );
-      throw new ServiceUnavailableException(RETRYABLE_MESSAGE);
+      return this.fail(error);
     }
+  }
+
+  /**
+   * Ask the model for a long-form script: narration segments with B-roll
+   * cutaways over one presenter (#8218). Same retry contract as `draft`.
+   */
+  async draftLongForm(
+    request: StoryboardLongFormDraftRequest,
+  ): Promise<StoryboardPlan> {
+    try {
+      const response = await this.openrouter.chatCompletion({
+        model: LLM_DEFAULTS.productTextFallback,
+        // A ten minute script is about 7,000 characters of narration plus
+        // cutaway briefs; leave headroom for reasoning.
+        max_tokens: 32_768,
+        messages: buildStoryboardLongFormDraftMessages(request),
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'storyboard_long_form_draft',
+            strict: true,
+            schema: z.toJSONSchema(storyboardLongFormDraftOutputSchema),
+          },
+        },
+      });
+      const output = storyboardLongFormDraftOutputSchema.parse(
+        JSON.parse(response.choices[0]?.message.content ?? ''),
+      );
+      return assembleStoryboardLongFormDraft(request, output);
+    } catch (error: unknown) {
+      return this.fail(error);
+    }
+  }
+
+  private fail(error: unknown): never {
+    if (error instanceof ConflictException) throw error;
+    this.logger.error(
+      'Storyboard plan draft failed',
+      error,
+      error instanceof StoryboardDraftOutputError ||
+        error instanceof SyntaxError ||
+        error instanceof z.ZodError
+        ? { reason: 'invalid_output' }
+        : { reason: 'provider_error' },
+    );
+    throw new ServiceUnavailableException(RETRYABLE_MESSAGE);
   }
 }

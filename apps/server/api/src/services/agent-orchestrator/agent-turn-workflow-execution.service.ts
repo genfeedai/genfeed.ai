@@ -26,6 +26,7 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { persistComposerGenerationSource } from '@api/services/agent-orchestrator/persist-composer-generation-source';
+import { toActionJsonOutput } from '@api/services/agent-orchestrator/utils/agent-action-output.util';
 import {
   type AgentInitiatingPrincipal,
   projectAgentInitiatingPrincipal,
@@ -156,16 +157,18 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           request.initiatingPrincipal,
           context,
         );
-        return runWithGenerationEntry(generationEntry, () =>
-          this.executeUiAction(
-            request as unknown as AgentThreadUiActionRequest,
-            {
-              executionId: provenance.executionId,
-              generationEntry,
-              ...(initiatingPrincipal ? { initiatingPrincipal } : {}),
-              organizationId: context.organizationId,
-              userId: context.userId,
-            },
+        return runWithGenerationEntry(generationEntry, async () =>
+          toActionJsonOutput(
+            await this.executeUiAction(
+              request as unknown as AgentThreadUiActionRequest,
+              {
+                executionId: provenance.executionId,
+                generationEntry,
+                ...(initiatingPrincipal ? { initiatingPrincipal } : {}),
+                organizationId: context.organizationId,
+                userId: context.userId,
+              },
+            ),
           ),
         );
       },

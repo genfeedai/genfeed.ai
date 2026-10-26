@@ -9,9 +9,11 @@ import { ThreadList } from '~components/history/ThreadList';
 import { type ActiveTab, SidebarNav } from '~components/navigation/SidebarNav';
 import { ImportedSourcesPage } from '~components/pages/ImportedSourcesPage';
 import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
+import LoginPage from '~components/pages/LoginPage';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { OrganizationSelector } from '~components/settings/OrganizationSelector';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
+import { GenfeedLogoIcon } from '~components/ui';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { useWorkspace } from '~hooks/use-workspace';
@@ -35,7 +37,7 @@ initializeErrorTracking('sidepanel');
 type AuthPanelState =
   | { status: 'syncing'; error: null }
   | { status: 'authenticated'; error: null }
-  | { status: 'blocked'; error: string };
+  | { status: 'blocked'; error: string; isSignedOut: boolean };
 
 interface PanelState {
   activeTab: ActiveTab;
@@ -195,7 +197,11 @@ function SidePanelContent() {
     workspace.status === 'ready'
       ? { status: 'authenticated', error: null }
       : workspace.status === 'blocked'
-        ? { status: 'blocked', error: workspace.error }
+        ? {
+            status: 'blocked',
+            error: workspace.error,
+            isSignedOut: workspace.isSignedOut === true,
+          }
         : { status: 'syncing', error: null };
   const retryAuth = () => {
     void loadWorkspace({ forceRefresh: true }).catch(() => undefined);
@@ -256,7 +262,11 @@ function SidePanelContent() {
   }
 
   const recovery =
-    authState.status === 'blocked' ? (
+    authState.status === 'blocked' && authState.isSignedOut ? (
+      <div className="h-screen overflow-y-auto bg-background">
+        <LoginPage />
+      </div>
+    ) : authState.status === 'blocked' ? (
       <div className="flex h-screen flex-col items-center justify-center gap-3 bg-background p-6">
         <p role="alert" className="text-sm text-muted-foreground">
           {authState.error}
@@ -295,8 +305,9 @@ function SidePanelContent() {
         className="gf-app flex h-screen min-w-0 flex-col bg-background text-foreground"
       >
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3">
-          <span className="shrink-0 text-sm font-semibold tracking-tight">
-            Genfeed
+          <span className="flex shrink-0 items-center" title="Genfeed">
+            <GenfeedLogoIcon className="size-6" />
+            <span className="sr-only">Genfeed</span>
           </span>
           <div className="grid min-w-0 flex-1 grid-cols-2 gap-1">
             <OrganizationSelector />

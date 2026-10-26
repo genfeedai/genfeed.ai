@@ -59,6 +59,7 @@ export async function completeAgentOnboarding(
       if (modifiedCount === 1) {
         onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
           dbUserId,
+          ctx.organizationId,
         );
       }
     }

@@ -60,6 +60,14 @@ export interface GenerationSetupImageEditingMode {
   onChange: (next: boolean) => void;
 }
 
+/** Video Draft switch in the Type menu; `isEnabled` means Generate submits the cheap preview. */
+export interface GenerationSetupVideoDraftMode {
+  /** The preview's price, shown beside the switch once it is known. */
+  credits?: number | null;
+  isEnabled: boolean;
+  onChange: (next: boolean) => void;
+}
+
 /** A platform-owned preset offered to every organization; it can be applied, never deleted. */
 export interface GenerationSetupSystemPreset {
   description?: string;
@@ -156,6 +164,37 @@ export interface GenerationSetupMenuOption {
 }
 
 /** The body of one nested submenu: an optional search box and a preview pane. */
+/** One stop on a step slider. */
+export interface GenerationSetupStepOption {
+  label: string;
+  value: number;
+}
+
+export interface GenerationSetupStepSliderProps {
+  fieldKey: GenerationSetupFieldKey;
+  label: string;
+  onReset?: (key: GenerationSetupFieldKey) => void;
+  onValueChange: (value: number) => void;
+  source: GenerationSetupSource;
+  steps: readonly GenerationSetupStepOption[];
+  value: number;
+}
+
+export interface GenerationSetupRatioGridOption {
+  label: string;
+  /** `auto`, or a `W:H` ratio the tile draws to scale. */
+  ratio: string;
+  value: string;
+}
+
+export interface GenerationSetupRatioGridProps {
+  label: string;
+  note?: string;
+  onValueChange: (value: string) => void;
+  options: readonly GenerationSetupRatioGridOption[];
+  value: string;
+}
+
 export interface GenerationSetupSubmenuListProps {
   /**
    * Keeps the menu open after a pick, for a list nested under another menu so
@@ -288,6 +327,8 @@ export interface GenerationSetupTypeBarProps {
   isDisabled?: boolean;
   onTypeChange?: (type: GenerationSetupType) => void;
   setup: GenerationSetup;
+  /** Studio's video Draft mode; other surfaces omit it. */
+  videoDraft?: GenerationSetupVideoDraftMode;
   /** Omitted (or a single entry) on surfaces that lock the type. */
   typeOptions: readonly GenerationSetupTypeOption[];
 }

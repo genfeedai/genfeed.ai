@@ -12,7 +12,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
-import { Wand2 } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -30,7 +30,6 @@ function SettingsContent() {
 export default function GenerationHarnessSettingsPopover({
   className,
   isDisabled,
-  label,
 }: GenerationHarnessSettingsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const translate = useTranslations('ui.generationHarness');
@@ -41,14 +40,17 @@ export default function GenerationHarnessSettingsPopover({
           className={className}
           ariaLabel={translate('settings')}
           tooltip={translate('settings')}
-          icon={<Wand2 aria-hidden="true" className="size-4 stroke-[1.75]" />}
+          icon={
+            <SlidersHorizontal
+              aria-hidden="true"
+              className="size-4 stroke-[1.75]"
+            />
+          }
           isDisabled={isDisabled}
-          size={label ? ButtonSize.SM : ButtonSize.ICON}
+          size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
-        >
-          {label}
-        </Button>
+        />
       </PopoverTrigger>
       <PopoverContent
         align="start"

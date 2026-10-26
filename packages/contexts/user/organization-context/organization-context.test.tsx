@@ -819,6 +819,30 @@ describe('RoutedOrganizationProvider', () => {
     );
   });
 
+  it('tags an unclassified switch failure with its error name only', async () => {
+    getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+    const failure = new TypeError('secret detail 123');
+    switchOrganizationMock.mockRejectedValueOnce(failure);
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: true,
+        tags: {
+          errorName: 'TypeError',
+          eventType: 'organization-context-mismatch',
+          failure: 'unknown',
+          reason: 'switch-failed',
+        },
+      },
+    );
+  });
+
   it('fails closed without reporting when the post-switch read stays cancelled', async () => {
     getMyOrganizationsMock
       .mockResolvedValueOnce(BRAVO_ACTIVE)

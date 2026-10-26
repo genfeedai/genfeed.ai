@@ -3,10 +3,9 @@
 import { hasSourceDerivedAspect } from '@genfeedai/contracts/constants';
 import type { GenerationSetupOutputMenuProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
-import GenerationSetupAspectRatioIcon from '@ui/dropdowns/generation-setup/GenerationSetupAspectRatioIcon';
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
-import GenerationSetupMenuField from '@ui/dropdowns/generation-setup/GenerationSetupMenuField';
-import GenerationSetupSubmenuList from '@ui/dropdowns/generation-setup/GenerationSetupSubmenuList';
+import GenerationSetupRatioGrid from '@ui/dropdowns/generation-setup/GenerationSetupRatioGrid';
+import GenerationSetupStepSlider from '@ui/dropdowns/generation-setup/GenerationSetupStepSlider';
 import { GENERATION_SETUP_OUTPUTS_OPTIONS } from '@ui/dropdowns/generation-setup/generation-setup.constants';
 import {
   GENERATION_SETUP_AUTO_ASPECT_RATIO,
@@ -15,7 +14,6 @@ import {
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
-import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 
@@ -36,10 +34,9 @@ function keepTypingInField(event: KeyboardEvent<HTMLDivElement>): void {
 
 /**
  * One part of the Output setup, as the body of its chip's menu. Aspect ratio
- * and Duration each get their own chip and open as a plain list. What is left
- * (outputs, plus music style, instrumental, lyrics and model controls that are
- * not a pick from a list) shares the Output chip's menu: outputs opens as a
- * nested list, the other fields sit below it.
+ * opens as a grid of ratio tiles and Duration as a step slider. What is left
+ * (outputs as a step slider, plus music style, instrumental, lyrics and model
+ * controls) shares the Output chip's menu, with no nested list.
  */
 export default function GenerationSetupOutputMenu({
   capabilities,
@@ -66,14 +63,18 @@ export default function GenerationSetupOutputMenu({
     const currentRatio = setup.values.aspectRatio;
     const isRatioOwnedByAgent =
       (setup.sources.aspectRatio ?? 'agent') === 'agent';
+    // The checked row is the value the chip shows. Auto is checked only when
+    // the ratio really is auto, or when the agent's value is not one this
+    // model offers (Auto then stands for "whatever the agent picks").
+    const isRatioListed = fields.ratios.includes(currentRatio);
     const selectedRatioValue =
       currentRatio === GENERATION_SETUP_AUTO_ASPECT_RATIO ||
-      (isRatioOwnedByAgent && !fields.hasAutoRatio)
+      (isRatioOwnedByAgent && !fields.hasAutoRatio && !isRatioListed)
         ? GENERATION_SETUP_AUTO_ASPECT_RATIO
         : currentRatio;
 
     return (
-      <GenerationSetupSubmenuList
+      <GenerationSetupRatioGrid
         label={translate('aspectRatio')}
         note={
           hasSourceDerivedAspect(setup.values.modelKey)
@@ -90,17 +91,13 @@ export default function GenerationSetupOutputMenu({
         }}
         options={[
           {
-            icon: (
-              <GenerationSetupAspectRatioIcon
-                ratio={GENERATION_SETUP_AUTO_ASPECT_RATIO}
-              />
-            ),
             label: translate('auto'),
+            ratio: GENERATION_SETUP_AUTO_ASPECT_RATIO,
             value: GENERATION_SETUP_AUTO_ASPECT_RATIO,
           },
           ...fields.ratios.map((ratio) => ({
-            icon: <GenerationSetupAspectRatioIcon ratio={ratio} />,
             label: ratio,
+            ratio,
             value: ratio,
           })),
         ]}
@@ -111,19 +108,17 @@ export default function GenerationSetupOutputMenu({
 
   if (section === 'duration') {
     return (
-      <GenerationSetupSubmenuList
+      <GenerationSetupStepSlider
+        fieldKey="duration"
         label={translate('duration')}
-        onReset={
-          (setup.sources.duration ?? 'agent') === 'agent'
-            ? undefined
-            : () => onResetField('duration')
-        }
-        onValueChange={(value) => onSetField('duration', Number(value))}
-        options={fields.durationOptions.map((seconds) => ({
+        onReset={onResetField}
+        onValueChange={(seconds) => onSetField('duration', seconds)}
+        source={setup.sources.duration ?? 'agent'}
+        steps={fields.durationOptions.map((seconds) => ({
           label: translate('durationSeconds', { seconds }),
-          value: String(seconds),
+          value: seconds,
         }))}
-        value={String(setup.values.duration ?? '')}
+        value={setup.values.duration ?? fields.durationOptions[0] ?? 0}
       />
     );
   }
@@ -133,26 +128,17 @@ export default function GenerationSetupOutputMenu({
   return (
     <>
       {capabilities.hasOutputs ? (
-        <GenerationSetupMenuField
-          icon={<Copy aria-hidden="true" className="size-3.5 shrink-0" />}
+        <GenerationSetupStepSlider
+          fieldKey="outputs"
           label={translate('outputs')}
-          value={`x${setup.values.outputs}`}
-        >
-          <GenerationSetupSubmenuList
-            isMenuKeptOpen
-            label={translate('outputs')}
-            onReset={
-              (setup.sources.outputs ?? 'agent') === 'agent'
-                ? undefined
-                : () => onResetField('outputs')
-            }
-            onValueChange={(value) => onSetField('outputs', Number(value))}
-            options={GENERATION_SETUP_OUTPUTS_OPTIONS.filter(
-              (count) => !inputControls || count <= inputControls.maxOutputs,
-            ).map((count) => ({ label: String(count), value: String(count) }))}
-            value={String(setup.values.outputs)}
-          />
-        </GenerationSetupMenuField>
+          onReset={onResetField}
+          onValueChange={(count) => onSetField('outputs', count)}
+          source={setup.sources.outputs ?? 'agent'}
+          steps={GENERATION_SETUP_OUTPUTS_OPTIONS.filter(
+            (count) => !inputControls || count <= inputControls.maxOutputs,
+          ).map((count) => ({ label: `x${count}`, value: count }))}
+          value={setup.values.outputs}
+        />
       ) : null}
 
       {hasExtraFields ? (

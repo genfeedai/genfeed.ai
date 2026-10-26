@@ -52,7 +52,6 @@ import { ElementsSoundsModule } from '@api/collections/elements/sounds/sounds.mo
 import { ElementsStylesModule } from '@api/collections/elements/styles/styles.module';
 import { EngagementRulesModule } from '@api/collections/engagement-rules/engagement-rules.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
-import { FanvueDataModule } from '@api/collections/fanvue-data/fanvue-data.module';
 import { FoldersModule } from '@api/collections/folders/folders.module';
 import { FontFamiliesModule } from '@api/collections/font-families/font-families.module';
 import { GifsModule } from '@api/collections/gifs/gifs.module';
@@ -187,7 +186,6 @@ import { Module } from '@nestjs/common';
     ElementsStylesModule,
     EvaluationsModule,
     EngagementRulesModule,
-    FanvueDataModule,
     FoldersModule,
     FontFamiliesModule,
     GifsModule,

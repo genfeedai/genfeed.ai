@@ -159,4 +159,51 @@ describe('GenerationSetupTypeBar', () => {
       screen.getByRole('button', { name: 'Generation type: Image' }),
     ).toBeDisabled();
   });
+
+  it('offers Draft as a mode of Video, shown in the trigger and priced in the menu', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <GenerationSetupTypeBar
+        {...buildProps(
+          { videoDraft: { credits: 84, isEnabled: false, onChange } },
+          'video',
+        )}
+      />,
+    );
+
+    openTypeMenu();
+    const draft = screen.getByRole('menuitemcheckbox', { name: /Draft/ });
+    expect(draft).not.toBeChecked();
+    expect(draft).toHaveTextContent('84');
+    fireEvent.click(draft);
+    expect(onChange).toHaveBeenCalledWith(true);
+
+    rerender(
+      <GenerationSetupTypeBar
+        {...buildProps(
+          { videoDraft: { credits: 84, isEnabled: true, onChange } },
+          'video',
+        )}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Generation type: Video · Draft' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not offer Draft on other types', () => {
+    render(
+      <GenerationSetupTypeBar
+        {...buildProps(
+          { videoDraft: { credits: 84, isEnabled: false, onChange: vi.fn() } },
+          'image',
+        )}
+      />,
+    );
+
+    openTypeMenu();
+    expect(
+      screen.queryByRole('menuitemcheckbox', { name: /Draft/ }),
+    ).toBeNull();
+  });
 });

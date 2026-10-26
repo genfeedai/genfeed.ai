@@ -1,4 +1,7 @@
+'use client';
+
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { usePromptBarMorph } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-morph/use-prompt-bar-morph';
 import type { ReactNode } from 'react';
 import PromptBarBody from './PromptBarBody';
 import PromptBarShell, {
@@ -50,6 +53,7 @@ export default function PromptBarComposer({
   ...props
 }: PromptBarComposerProps) {
   const isRestingVisible = isResting && !banner;
+  const shellRef = usePromptBarMorph(isRestingVisible);
   // Handlers attach only while resting, so server-rendered previews stay valid RSC output.
   const shouldExpandOnPress = isRestingVisible && onExpand !== undefined;
 
@@ -69,6 +73,7 @@ export default function PromptBarComposer({
             }
           : props.onFocusCapture
       }
+      ref={shellRef}
       onPointerDownCapture={
         shouldExpandOnPress
           ? (event) => {

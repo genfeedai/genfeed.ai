@@ -1,9 +1,18 @@
+import type { IMusic } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
 import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusic';
 import type { MouseEvent, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+
+const grantMock = vi.hoisted(() => ({
+  grant: null as { url: string | null } | null,
+}));
+
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: () => grantMock.grant,
+}));
 
 vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   default: ({ audioUrl, label, stopOnUnmount }: AudioPreviewPlayerProps) => (
@@ -63,7 +72,7 @@ describe('ModalGalleryItemMusic', () => {
       ingredientUrl: 'http://example.com/music.mp3',
       metadata: { label: 'Test Music' },
       metadataDuration: 120,
-    },
+    } as unknown as IMusic,
     onSelect: vi.fn(),
   };
 
@@ -109,16 +118,30 @@ describe('ModalGalleryItemMusic', () => {
     expect(container.querySelector('button button')).toBeNull();
   });
 
-  it('uses fallback URL when ingredientUrl is not provided', () => {
+  it('plays from the issued media grant when there is one', () => {
+    grantMock.grant = { url: 'https://signed.example.com/music-1?sig=1' };
+    render(<ModalGalleryItemMusic {...defaultProps} />);
+    expect(screen.getByTestId('shared-audio-player')).toHaveAttribute(
+      'data-url',
+      'https://signed.example.com/music-1?sig=1',
+    );
+    grantMock.grant = null;
+  });
+
+  it('has no audio URL instead of a raw CDN path when none is available', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
-        music={{ ...defaultProps.music, ingredientUrl: undefined }}
+        music={
+          {
+            ...defaultProps.music,
+            ingredientUrl: undefined,
+          } as unknown as IMusic
+        }
       />,
     );
-    expect(screen.getByTestId('shared-audio-player')).toHaveAttribute(
+    expect(screen.getByTestId('shared-audio-player')).not.toHaveAttribute(
       'data-url',
-      'http://api.example.com/ingredients/musics/music-1',
     );
   });
 
@@ -126,7 +149,7 @@ describe('ModalGalleryItemMusic', () => {
     const musicWithoutLabel = {
       ...defaultProps.music,
       metadata: {},
-    };
+    } as unknown as IMusic;
     render(
       <ModalGalleryItemMusic {...defaultProps} music={musicWithoutLabel} />,
     );
@@ -141,11 +164,7 @@ describe('ModalGalleryItemMusic', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
-        music={
-          musicWithNullMetadata as unknown as import('react').ComponentProps<
-            typeof ModalGalleryItemMusic
-          >['music']
-        }
+        music={musicWithNullMetadata as unknown as IMusic}
       />,
     );
     expect(screen.getByText('Untitled')).toBeInTheDocument();
@@ -172,7 +191,7 @@ describe('ModalGalleryItemMusic', () => {
     const musicWithoutDuration = {
       ...defaultProps.music,
       metadataDuration: undefined,
-    };
+    } as unknown as IMusic;
     render(
       <ModalGalleryItemMusic {...defaultProps} music={musicWithoutDuration} />,
     );

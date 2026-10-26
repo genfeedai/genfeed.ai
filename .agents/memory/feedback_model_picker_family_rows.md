@@ -35,3 +35,14 @@ the flat command list won.
   picker. It is not a user setting and no host plumbs it.
 - Map unsashed catalog keys (`runwayml`, `klingai-v2`, `sdxl`, `leonardoai`)
   to a real brand. Do not bucket leftovers as **Unknown**.
+
+## Exception: the generation-setup picker groups true siblings
+
+The prompt-bar model panel (`GenerationSetupModelSection`) is a separate, smaller
+list. Vincent asked (2026-10-26) to group same-family variants there (GPT Image
+2 / 2.5 Flare / 2.5 Sunburst; Ideogram V3 Turbo / Balanced / Quality). He chose
+a nested flyout per family, the same cascade as Legacy, over inline expansion.
+Only families with two or more siblings group; a search lists matches flat.
+`ModelSelectorPopover` stays flat. The panel names the media type once in its
+header, so avatars there carry no type badge, Legacy opens a flyout upward, and
+models inside the Legacy flyout carry no Legacy badge.

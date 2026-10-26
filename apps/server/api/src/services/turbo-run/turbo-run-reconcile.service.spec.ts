@@ -1,5 +1,6 @@
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { TURBO_RUN_MAX_RESUME_ATTEMPTS } from '@api/services/turbo-run/turbo-run.constants';
 import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
 import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
@@ -41,6 +42,9 @@ describe('TurboRunReconcileService', () => {
     reconcile: ReturnType<typeof vi.fn>;
     reconcileLateCompletions: ReturnType<typeof vi.fn>;
     reconcileAbortedCrunDispatches: ReturnType<typeof vi.fn>;
+  };
+  let workflowGenerationBilling: {
+    reconcileTerminalExecutions: ReturnType<typeof vi.fn>;
   };
   let logger: {
     error: ReturnType<typeof vi.fn>;
@@ -88,6 +92,9 @@ describe('TurboRunReconcileService', () => {
       reconcileLateCompletions: vi.fn().mockResolvedValue(0),
       reconcileAbortedCrunDispatches: vi.fn().mockResolvedValue(0),
     };
+    workflowGenerationBilling = {
+      reconcileTerminalExecutions: vi.fn().mockResolvedValue(0),
+    };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -122,6 +129,10 @@ describe('TurboRunReconcileService', () => {
         {
           provide: GenerationBillingService,
           useValue: generationBilling,
+        },
+        {
+          provide: WorkflowGenerationBillingService,
+          useValue: workflowGenerationBilling,
         },
       ],
     }).compile();
@@ -383,6 +394,39 @@ describe('TurboRunReconcileService', () => {
     expect(reservationService.expireDue).toHaveBeenCalledOnce();
     expect(logger.error).toHaveBeenCalledWith(
       'Generation hold reconciliation failed',
+      failure,
+    );
+  });
+
+  it('closes terminal workflow holds before the generic expiry sweep', async () => {
+    const order: string[] = [];
+    workflowGenerationBilling.reconcileTerminalExecutions.mockImplementation(
+      async () => {
+        order.push('workflow');
+        return 1;
+      },
+    );
+    reservationService.expireDue.mockImplementation(async () => {
+      order.push('expiry');
+      return 0;
+    });
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(order).toEqual(['workflow', 'expiry']);
+  });
+
+  it('keeps expiring reservations when the workflow hold sweep fails', async () => {
+    const failure = new Error('workflow hold query failed');
+    workflowGenerationBilling.reconcileTerminalExecutions.mockRejectedValue(
+      failure,
+    );
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(reservationService.expireDue).toHaveBeenCalledOnce();
+    expect(logger.error).toHaveBeenCalledWith(
+      'Workflow hold reconciliation failed',
       failure,
     );
   });

@@ -120,6 +120,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(__dirname, '../pricing/src/$1'),
+      },
+      {
         find: /^@genfeedai\/hooks$/,
         replacement: path.resolve(__dirname, '../hooks'),
       },

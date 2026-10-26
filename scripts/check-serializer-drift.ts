@@ -182,33 +182,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isLocked',
     'name',
   ],
-  'fanvue-content:FanvueContent': [
-    'caption',
-    'externalId',
-    'isPinned',
-    'mediaUrls',
-    'price',
-    'title',
-    'type',
-  ],
-  'fanvue-earnings:FanvueEarnings': [
-    'amount',
-    'currency',
-    'externalTransactionId',
-  ],
-  'fanvue-schedule:FanvueSchedule': [
-    'caption',
-    'errorMessage',
-    'mediaUrls',
-    'price',
-  ],
-  'fanvue-subscriber:FanvueSubscriber': [
-    'displayName',
-    'expiresAt',
-    'subscribedAt',
-    'tier',
-    'username',
-  ],
   'harness-profile:Profile': [
     'audience',
     'brandId',

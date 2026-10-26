@@ -8,13 +8,12 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarCollapsedViewProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
+import PromptBarReferenceThumbnail from '@ui/prompt-bars/components/reference-thumbnail/PromptBarReferenceThumbnail';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
-import Image from 'next/image';
 import { memo, useCallback, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 
@@ -105,17 +104,12 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               className="size-10 p-0 flex items-center justify-center"
               icon={
                 <div className="relative size-8 overflow-hidden rounded">
-                  <Image
-                    src={
-                      referenceSource === 'brand'
-                        ? `${EnvironmentService.cdnUrl}/references/${firstReference.id}`
-                        : `${EnvironmentService.ingredientsEndpoint}/images/${firstReference.id}`
-                    }
+                  <PromptBarReferenceThumbnail
                     alt="Reference"
                     className="size-full object-cover outline-media"
-                    width={32}
-                    height={32}
-                    sizes="32px"
+                    reference={firstReference}
+                    referenceSource={referenceSource}
+                    size={32}
                   />
 
                   {references.length > 1 && (

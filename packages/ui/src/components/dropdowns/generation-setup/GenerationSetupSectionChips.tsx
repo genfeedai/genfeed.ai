@@ -303,6 +303,17 @@ export default function GenerationSetupSectionChips(
           )}
           collisionPadding={16}
           onCloseAutoFocus={keepFocusOnSwitch}
+          // Land on the search box when the panel has one, otherwise on the
+          // panel itself: focusing its first button drew a focus outline on
+          // a control nobody had pressed.
+          onOpenAutoFocus={(event) => {
+            const panel = event.currentTarget;
+            if (!(panel instanceof HTMLElement)) return;
+            event.preventDefault();
+            (panel.querySelector('input') ?? panel).focus({
+              preventScroll: true,
+            });
+          }}
           side="top"
           sideOffset={8}
         >

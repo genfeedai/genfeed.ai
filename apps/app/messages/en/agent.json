@@ -91,22 +91,29 @@
     "actionsDescription": "Open a focused workspace with this draft",
     "addContext": "Add context",
     "attachFiles": "Attach files",
+    "referenceLabel": "Reference",
+    "cancelEnhancingPrompt": "Cancel enhancing prompt",
+    "enhanceLabel": "Enhance",
+    "enhancePrompt": "Enhance prompt",
+    "undo": "Undo",
+    "undoPromptEnhancement": "Undo prompt enhancement",
     "generationMode": "Composer mode",
     "noModelsEnabled": "No models enabled",
     "noModelsEnabledTitle": "No models enabled for this workspace",
     "referenceLibrary": "Reference library content",
-    "selected": "Selected",
-    "attachLabel": "Attach",
-    "settingsLabel": "Settings"
+    "selected": "Selected"
   },
   "modeDropdown": {
     "auto": {
+      "description": "Works on its own. Still asks before anything is posted or sent.",
       "label": "Auto"
     },
     "manual": {
+      "description": "Also asks before spending credits or changing brand context.",
       "label": "Manual"
     },
     "plan": {
+      "description": "Drafts a plan first, then runs it once you approve.",
       "label": "Plan"
     },
     "title": "Agent mode",
@@ -198,7 +205,6 @@
     "duration": "Duration",
     "durationSeconds": "{seconds}s",
     "editField": "Edit {field}",
-    "enhancement": "Prompt enhancement",
     "generationControls": "Generation controls",
     "advancedMode": "Advanced",
     "advancedModeTooltip": "Advanced: choose the model and settings",
@@ -243,11 +249,13 @@
     "generationType": "Generation type",
     "generationTypeTrigger": "Generation type: {type}",
     "instrumental": "Instrumental",
-    "legacyModels": "{count, plural, one {# legacy model} other {# legacy models}}",
+    "legacy": "Legacy",
     "loadingPresets": "Loading presets…",
     "look": "Look",
     "lyrics": "Lyrics",
     "lyricsPlaceholder": "Optional — verses, chorus, structure",
+    "modeDraft": "Draft",
+    "modeDraftCredits": "{credits, plural, one {# credit} other {# credits}}",
     "modeEdit": "Edit",
     "modeEditVideoSoon": "Video editing is coming soon",
     "model": "Model",
@@ -266,9 +274,7 @@
     "promptTools": "Prompt tools",
     "resetToDefaults": "Reset to defaults",
     "resetModel": "Reset model to agent",
-    "resetPriority": "Reset priority to agent",
     "resetToAgent": "Reset {field}",
-    "resetPriorityTooltip": "Reset Auto priority to the agent. The model stays as set.",
     "savedPresets": "Saved",
     "searchField": "Search {field}",
     "subjectPlaceholder": "e.g. a courier on a rain-soaked street",

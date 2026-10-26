@@ -1824,11 +1824,6 @@ model OrganizationSetting {
   // Release items a platform admin opened for this one organization, on top of
   // what Admin → Flags released for everyone. Empty until an admin grants one.
   releasedItemIds                String[]          @default([])
-  // Unused: the rail order and home app are per-member (Setting.railAppOrder /
-  // Setting.homeAppId). Expand/contract: the columns drop in a migration after
-  // the release that no longer selects them.
-  defaultRailOrder               String[]          @default([])
-  defaultHomeAppId               String?
   // #6526 / #6727. Owner/admin opt-ins, off until an organization chooses them.
   // Breakout responses spend credits on a detected own-account breakout; auto-publish
   // lets a response that passed every check schedule itself; vision checks pay a
@@ -5403,8 +5398,6 @@ model WorkflowExecution {
   @@map("workflow_executions")
   @@unique([id, organizationId])
   readScope WorkflowExecutionReadScope?
-  readParentEdges WorkflowExecutionReadLineage[] @relation("read_lineage_child_execution")
-  readChildEdges WorkflowExecutionReadLineage[] @relation("read_lineage_parent_execution")
 }
 
 /// Per-node execution results, unique on (executionId, nodeId). One upsert
@@ -7366,16 +7359,6 @@ model GenerationPromptSnapshot {
 
 }
 
-/// Duplicate-slug and capture findings recorded when a uniqueness index cannot be enforced yet.
-model SkillMigrationFinding {
-  id        String   @id
-  kind      String
-  detail    Json
-  createdAt DateTime @default(now())
-
-  @@map("skill_migration_findings")
-}
-
 model SkillReceipt {
   id               String        @id @default(cuid())
   organizationId   String?
@@ -7715,78 +7698,6 @@ model TurboProjectItem {
   @@index([organizationId, projectId, isDeleted, position], map: "turbo_project_items_org_project_position_idx")
   @@index([organizationId, reviewItemId, isDeleted])
   @@map("turbo_project_items")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// FANVUE (integration-specific collections)
-// ═══════════════════════════════════════════════════════════════
-
-model FanvueContent {
-  id             String    @id @default(cuid())
-  organizationId String
-  userId         String
-  status         String?
-  data           Json      @default("{}")
-  publishedAt    DateTime?
-  isDeleted      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  schedules FanvueSchedule[]
-
-  @@index([organizationId, isDeleted, status])
-  @@index([organizationId, publishedAt(sort: Desc)])
-  @@map("fanvue_content")
-}
-
-model FanvueEarnings {
-  id             String    @id @default(cuid())
-  organizationId String
-  userId         String
-  type           String?
-  data           Json      @default("{}")
-  earnedAt       DateTime?
-  isDeleted      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  @@index([organizationId, isDeleted, type])
-  @@index([organizationId, earnedAt(sort: Desc)])
-  @@map("fanvue_earnings")
-}
-
-model FanvueSchedule {
-  id             String         @id @default(cuid())
-  organizationId String
-  userId         String
-  contentId      String?
-  content        FanvueContent? @relation(fields: [contentId], references: [id])
-  status         String?
-  scheduledAt    DateTime?
-  data           Json           @default("{}")
-  isDeleted      Boolean        @default(false)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-
-  @@index([organizationId, isDeleted, status])
-  @@index([scheduledAt, status])
-  @@map("fanvue_schedules")
-}
-
-model FanvueSubscriber {
-  id             String   @id @default(cuid())
-  organizationId String
-  userId         String
-  externalId     String?
-  status         String?
-  data           Json     @default("{}")
-  isDeleted      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@unique([organizationId, externalId])
-  @@index([organizationId, isDeleted, status])
-  @@map("fanvue_subscribers")
 }
 
 model LivestreamBotSession {
@@ -9669,8 +9580,6 @@ model WorkflowExecutionReadScope {
   isDeleted Boolean @default(false)
   createdAt DateTime @default(now())
   dependencies WorkflowExecutionReadBrandDependency[]
-  parentEdges WorkflowExecutionReadLineage[] @relation("read_lineage_child_scope")
-  childEdges WorkflowExecutionReadLineage[] @relation("read_lineage_parent_scope")
   @@unique([executionId, organizationId], map: "workflow_execution_read_scopes_execution_org_key")
   @@map("workflow_execution_read_scopes")
 }
@@ -9685,23 +9594,6 @@ model WorkflowExecutionReadBrandDependency {
   createdAt DateTime @default(now())
   @@id([executionId, organizationId, brandId])
   @@map("workflow_execution_read_brand_dependencies")
-}
-
-/// Actual persisted parent-node/item lineage; JSON parent pointers are not sufficient proof.
-model WorkflowExecutionReadLineage {
-  parentExecutionId String
-  childExecutionId String
-  organizationId String
-  parentNodeId String
-  itemIndex Int @default(-1)
-  parentExecution WorkflowExecution @relation("read_lineage_parent_execution", fields: [parentExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_parent_execution_fkey")
-  childExecution WorkflowExecution @relation("read_lineage_child_execution", fields: [childExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_child_execution_fkey")
-  parentScope WorkflowExecutionReadScope @relation("read_lineage_parent_scope", fields: [parentExecutionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_parent_scope_fkey")
-  childScope WorkflowExecutionReadScope @relation("read_lineage_child_scope", fields: [childExecutionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_child_scope_fkey")
-  createdAt DateTime @default(now())
-  @@id([parentExecutionId, childExecutionId, parentNodeId, itemIndex, organizationId])
-  @@index([childExecutionId, organizationId], map: "workflow_execution_read_lineage_child_idx")
-  @@map("workflow_execution_read_lineage")
 }
 
 /// Durable command receipt. Source ownership never follows the moved brand.

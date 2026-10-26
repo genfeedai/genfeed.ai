@@ -132,7 +132,6 @@ export const MODEL_KEYS = {
   FAL_RECRAFT_V4_PRO: 'fal-ai/recraft/v4/pro',
   FAL_GPT_IMAGE_2: 'fal-ai/gpt-image-2',
   FAL_KLING_VIDEO_V3_PRO: 'fal-ai/kling-video/v3/pro',
-  FAL_VEO_3_1: 'fal-ai/veo3.1',
   FAL_PIXVERSE_V6: 'fal-ai/pixverse/v6',
   FAL_SEEDANCE_2_0: 'fal-ai/seedance-2.0',
   FAL_GOOGLE_GEMINI_OMNI_FLASH: 'fal/google/gemini-omni-flash',

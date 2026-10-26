@@ -14,6 +14,10 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@api/seeds/openrouter-text-contracts-seed', () => ({
+  seedOpenRouterTextContracts: vi.fn().mockResolvedValue(0),
+}));
+
 vi.mock('@api/seeds/reviewed-provider-rates-seed', () => ({
   seedReviewedProviderRates: vi.fn().mockResolvedValue(0),
 }));

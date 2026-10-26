@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -39,7 +40,7 @@ function generateRequest(): Record<string, unknown> {
 
 describe('ReplyPage', () => {
   beforeEach(() => {
-    usePlatformStore.setState({ currentPlatform: null });
+    usePlatformStore.setState({ currentPlatform: null, pageContext: {} });
     send.mockReset();
     reply({ result: RESULT, success: true });
   });
@@ -73,6 +74,68 @@ describe('ReplyPage', () => {
       requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
       tone: 'challenge',
     });
+  });
+
+  it('shows the post open in the tab and follows the tab to the next post', async () => {
+    usePlatformStore.setState({
+      pageContext: {
+        post: {
+          authorHandle: '@marcel',
+          authorName: 'Marcel',
+          text: 'UI so clean it looks native',
+          url: 'https://x.com/marcel/status/2',
+        },
+        url: 'https://x.com/marcel/status/2',
+      },
+    });
+    render(<ReplyPage initialPlatform="twitter" />);
+
+    const card = screen.getByRole('region', { name: 'Replying to' });
+    expect(card.textContent).toContain('Marcel');
+    expect(card.textContent).toContain('@marcel');
+    expect(card.textContent).toContain('UI so clean it looks native');
+
+    act(() =>
+      usePlatformStore.setState({
+        pageContext: {
+          post: {
+            authorHandle: '@ada',
+            authorName: 'Ada',
+            text: 'Shipping the API today',
+            url: 'https://x.com/ada/status/3',
+          },
+          url: 'https://x.com/ada/status/3',
+        },
+      }),
+    );
+    expect(
+      screen.getByRole('region', { name: 'Replying to' }).textContent,
+    ).toContain('Shipping the API today');
+
+    fireEvent.click(screen.getByRole('button', { name: /Generate replies/ }));
+    await screen.findByText('Great launch, congrats!');
+    expect(generateRequest()).toMatchObject({
+      postAuthor: '@ada',
+      postContent: 'Shipping the API today',
+    });
+  });
+
+  it('asks for a post to be opened or pasted once the tab leaves posts', () => {
+    usePlatformStore.setState({
+      pageContext: {
+        post: { text: 'A post', url: 'https://x.com/a/status/1' },
+        url: 'https://x.com/a/status/1',
+      },
+    });
+    render(<ReplyPage initialPlatform="twitter" />);
+    act(() =>
+      usePlatformStore.setState({ pageContext: { url: 'https://x.com/home' } }),
+    );
+
+    expect(screen.queryByRole('region', { name: 'Replying to' })).toBeNull();
+    expect(
+      screen.getByLabelText('Open a post to reply to it, or paste one here'),
+    ).toBeTruthy();
   });
 
   it('marks the chosen tone and defaults to adding value', async () => {
@@ -299,8 +362,8 @@ describe('ReplyPage', () => {
     await screen.findByText('The Genfeed local bridge is not reachable.');
     const firstKey = generateRequest().requestKey;
     expect(
-      (screen.getByLabelText('Post to reply to') as HTMLTextAreaElement).value,
-    ).toBe('We just launched our public API.');
+      screen.getByRole('region', { name: 'Replying to' }).textContent,
+    ).toContain('We just launched our public API.');
 
     send.mockClear();
     reply({ result: RESULT, success: true });

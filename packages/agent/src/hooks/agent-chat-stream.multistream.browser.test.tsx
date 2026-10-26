@@ -17,10 +17,6 @@ import { render } from 'vitest-browser-react';
 import agentMessages from '../../../../apps/app/messages/en/agent.json';
 import uiMessages from '../../../../apps/app/messages/en/ui.json';
 
-vi.mock('@hooks/data/generation/use-generation-harness-settings', () => ({
-  useGenerationHarnessSettings: vi.fn(),
-}));
-
 vi.mock('@genfeedai/helpers', async () => {
   const { cn } = await import('@genfeedai/helpers/formatting/cn/cn.util');
   return { cn };

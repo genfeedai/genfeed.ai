@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   ReplyVariantsResult,
   ReplyVariantTone,
@@ -13,9 +13,10 @@ import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer } from 'react';
 import { RecoveryActions, RoutingNotice } from '~components/chat/ActionRouting';
+import PostCard from '~components/pages/PostCard';
 import { getPlatformForUrl } from '~platforms/config';
 import { usePlatformStore } from '~store/use-platform-store';
-import type { ReplyVariantsResponse } from '~types/extension';
+import type { PagePost, ReplyVariantsResponse } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
 interface ReplyPageProps {
@@ -70,6 +71,8 @@ interface ReplyState {
   postContent: string;
   recovery: ActionRecovery | null;
   result: ReplyVariantsResult | null;
+  /** The post being replied to, when one was read from the page. */
+  source: PagePost | null;
   /** Present when a local provider wrote the result. */
   routing: ActionRouting | null;
   step: ReplyStep;
@@ -84,6 +87,8 @@ type ReplyAction =
   | {
       type: 'RESULT';
       payload: ReplyVariantsResult;
+      /** The post text the replies were written for. */
+      postContent: string;
       routing: ActionRouting | null;
     }
   | {
@@ -94,7 +99,7 @@ type ReplyAction =
     }
   | { type: 'FEEDBACK'; payload: ReplyState['feedback'] }
   | { type: 'RESET_TO_INPUT' }
-  | { type: 'SYNC_PROPS'; payload: { content: string; author: string } };
+  | { type: 'SET_SOURCE'; payload: PagePost | null };
 
 function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
   switch (action.type) {
@@ -114,6 +119,10 @@ function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
         step: 'loading',
       };
     case 'RESULT':
+      // Replies for a post the user has since navigated away from are dropped.
+      if (action.postContent !== state.postContent) {
+        return state.step === 'loading' ? { ...state, step: 'input' } : state;
+      }
       return {
         ...state,
         result: action.payload,
@@ -132,11 +141,19 @@ function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
       return { ...state, feedback: action.payload };
     case 'RESET_TO_INPUT':
       return { ...state, feedback: null, result: null, step: 'input' };
-    case 'SYNC_PROPS':
+    case 'SET_SOURCE':
       return {
         ...state,
-        author: action.payload.author || state.author,
-        postContent: action.payload.content || state.postContent,
+        author:
+          action.payload?.authorHandle || action.payload?.authorName || '',
+        error: null,
+        failedRequest: null,
+        feedback: null,
+        postContent: action.payload?.text ?? '',
+        recovery: null,
+        result: null,
+        source: action.payload,
+        step: 'input',
       };
     default:
       return state;
@@ -155,8 +172,17 @@ export function ReplyPage({
   initialUrl = '',
 }: ReplyPageProps): ReactElement {
   const detectedPlatform = usePlatformStore((s) => s.currentPlatform);
+  const pagePost = usePlatformStore((s) => s.pageContext.post);
+  const pageUrl = usePlatformStore((s) => s.pageContext.url);
   const platform =
     initialPlatform || getPlatformForUrl(initialUrl) || detectedPlatform;
+  const initialSource = initialContent
+    ? {
+        authorName: initialAuthor || undefined,
+        text: initialContent,
+        url: initialUrl,
+      }
+    : null;
   const [state, dispatch] = useReducer(replyReducer, {
     author: initialAuthor,
     error: null,
@@ -166,6 +192,7 @@ export function ReplyPage({
     recovery: null,
     result: null,
     routing: null,
+    source: initialSource ?? pagePost ?? null,
     step: 'input',
     tone: 'add-value',
   });
@@ -178,17 +205,37 @@ export function ReplyPage({
     recovery,
     result,
     routing,
+    source,
     step,
     tone,
   } = state;
 
-  // A new source (shortcut or menu on another post) replaces the pasted one.
+  // The menu on a post hands that post over; the page's own copy of it, when
+  // it is the same post, also carries the avatar and handle.
   useEffect(() => {
+    if (!initialContent) return;
+    const current = usePlatformStore.getState().pageContext.post;
     dispatch({
-      payload: { author: initialAuthor, content: initialContent },
-      type: 'SYNC_PROPS',
+      payload:
+        current?.text === initialContent
+          ? current
+          : {
+              authorName: initialAuthor || undefined,
+              text: initialContent,
+              url: initialUrl,
+            },
+      type: 'SET_SOURCE',
     });
-  }, [initialContent, initialAuthor]);
+  }, [initialContent, initialAuthor, initialUrl]);
+
+  // Following the active tab: each post the user opens becomes the one to
+  // reply to, and leaving posts for a feed clears it.
+  const pagePostKey = pagePost ? `${pagePost.url}\n${pagePost.text}` : '';
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the post and page, not the object identity
+  useEffect(() => {
+    if (!pagePost && !pageUrl) return;
+    dispatch({ payload: pagePost ?? null, type: 'SET_SOURCE' });
+  }, [pagePostKey, pageUrl]);
 
   async function handleGenerate(): Promise<void> {
     if (!postContent.trim()) {
@@ -242,6 +289,7 @@ export function ReplyPage({
       }
       dispatch({
         payload: response.result,
+        postContent: request.postContent,
         routing: response.routing ?? null,
         type: 'RESULT',
       });
@@ -332,9 +380,7 @@ export function ReplyPage({
           </Button>
         </div>
 
-        <div className="line-clamp-3 rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-          {postContent}
-        </div>
+        <PostCard isCompact post={source ?? { text: postContent, url: '' }} />
 
         <RoutingNotice routing={routing} />
 
@@ -406,15 +452,11 @@ export function ReplyPage({
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3">
-      <h2 className="text-sm font-semibold text-foreground">
-        Generate a reply
-      </h2>
-
+    <div className="flex h-full flex-col gap-4">
       {error && (
         <div
           role="alert"
-          className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
         >
           {error}
         </div>
@@ -427,50 +469,53 @@ export function ReplyPage({
         }}
       />
 
-      <div className="flex flex-col gap-1">
-        <label
-          className="text-xs font-medium text-muted-foreground"
-          htmlFor="reply-post-content"
-        >
-          Post to reply to
-        </label>
-        <Textarea
-          id="reply-post-content"
-          value={postContent}
-          onChange={(e) =>
-            dispatch({ payload: e.target.value, type: 'SET_POST_CONTENT' })
-          }
-          placeholder="Paste the post content here…"
-          rows={5}
-          className="resize-none"
-        />
-      </div>
+      {source ? (
+        <section aria-label="Replying to" className="flex flex-col gap-2">
+          <h2 className="text-xs font-medium text-muted-foreground">
+            Replying to
+          </h2>
+          <PostCard post={source} />
+        </section>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <label
+            className="text-xs font-medium text-muted-foreground"
+            htmlFor="reply-post-content"
+          >
+            Open a post to reply to it, or paste one here
+          </label>
+          <Textarea
+            id="reply-post-content"
+            value={postContent}
+            onChange={(e) =>
+              dispatch({ payload: e.target.value, type: 'SET_POST_CONTENT' })
+            }
+            placeholder="Paste the post…"
+            rows={5}
+            className="resize-none"
+          />
+          <Input
+            aria-label="Author (optional)"
+            type="text"
+            value={author}
+            onChange={(e) =>
+              dispatch({ payload: e.target.value, type: 'SET_AUTHOR' })
+            }
+            placeholder="@author (optional)"
+          />
+        </div>
+      )}
 
-      <div className="flex flex-col gap-1">
-        <label
-          className="text-xs font-medium text-muted-foreground"
-          htmlFor="reply-author"
-        >
-          Author (optional)
-        </label>
-        <Input
-          id="reply-author"
-          type="text"
-          value={author}
-          onChange={(e) =>
-            dispatch({ payload: e.target.value, type: 'SET_AUTHOR' })
-          }
-          placeholder="@username"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="text-xs font-medium text-muted-foreground">Tone</div>
-        <div className="grid grid-cols-2 gap-1.5">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-xs font-medium text-muted-foreground">
+          Tone
+        </legend>
+        <div className="flex flex-wrap gap-1.5">
           {TONES.map((t) => (
             <Button
               key={t.value}
               type="button"
+              size={ButtonSize.SM}
               aria-pressed={tone === t.value}
               variant={
                 tone === t.value
@@ -479,13 +524,13 @@ export function ReplyPage({
               }
               onClick={() => dispatch({ payload: t.value, type: 'SET_TONE' })}
               title={t.description}
-              className="text-xs"
+              className="rounded-full text-xs"
             >
               {t.label}
             </Button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       <Button
         type="button"
@@ -494,9 +539,9 @@ export function ReplyPage({
           void handleGenerate();
         }}
         disabled={!postContent.trim()}
-        className="mt-auto"
+        className="w-full"
       >
-        Generate replies →
+        Generate replies
       </Button>
     </div>
   );

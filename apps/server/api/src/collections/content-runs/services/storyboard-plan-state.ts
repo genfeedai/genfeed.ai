@@ -2,6 +2,7 @@ import {
   type StoryboardStoredRunConfig,
   storyboardStoredRunConfigSchema,
 } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import { storyboardLongFormProblems } from '@api/collections/content-runs/services/storyboard-long-form-draft';
 import { storyboardStillInput } from '@api/collections/content-runs/services/storyboard-still-state';
 import {
   type StoryboardPlan,
@@ -169,6 +170,16 @@ export function approveStoryboardPlan(
   config: StoryboardStoredRunConfig,
 ): StoryboardStoredRunConfig {
   assertStoryboardEditable(config);
+  if (config.plan.longForm) {
+    const problems = storyboardLongFormProblems(config.plan);
+    if (problems.length) throw new ConflictException(problems.join(' '));
+    return {
+      ...config,
+      state: 'approved',
+      approvedRevision: config.revision,
+      quote: undefined,
+    };
+  }
   assertStoryboardComplete(config.plan);
   const invalid = config.plan.shots.filter(
     (shot) =>

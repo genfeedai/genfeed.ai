@@ -4,6 +4,7 @@ import { AdminEconomicsModule } from '@api/endpoints/admin/economics/economics.m
 import { AdminFeaturedWorkflowsModule } from '@api/endpoints/admin/featured-workflows/featured-workflows.module';
 import { AdminModelPricingModule } from '@api/endpoints/admin/model-pricing/model-pricing.module';
 import { AdminOrganizationAppsReportModule } from '@api/endpoints/admin/organization-apps-report/organization-apps-report.module';
+import { AdminOrganizationsReportModule } from '@api/endpoints/admin/organizations-report/organizations-report.module';
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
 import { AdminSeedsModule } from '@api/endpoints/admin/seeds/seeds.module';
 import { AdminSystemBrandModule } from '@api/endpoints/admin/system-brand/system-brand.module';
@@ -27,6 +28,7 @@ import { Module } from '@nestjs/common';
     AdminSeedsModule,
     AdminSystemBrandModule,
     AdminOrganizationAppsReportModule,
+    AdminOrganizationsReportModule,
     AdminUnitEconomicsModule,
   ],
 })
