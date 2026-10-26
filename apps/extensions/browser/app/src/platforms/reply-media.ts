@@ -5,7 +5,7 @@ import {
 } from '~platforms/composer-helpers';
 import type { PlatformConfig } from '~platforms/config';
 import { attachMediaToComposer } from '~platforms/media-attach';
-import { extractPostContext } from '~platforms/post-context';
+import { extractReplyContext } from '~platforms/post-context';
 import { showToast } from '~platforms/ui/toast';
 import type { MenuItemControls } from '~types/genfeed-menu';
 import { logger } from '~utils/logger.util';
@@ -77,14 +77,15 @@ export async function runReplyWithMedia(
     controls: MenuItemControls;
     platform: PlatformConfig | null;
     platformName: string;
+    postRoot?: Element;
   },
 ): Promise<void> {
-  const { controls, platform, platformName } = options;
+  const { controls, platform, platformName, postRoot } = options;
   const plan = PLANS[kind];
   controls.setStatus('busy', plan.statusLabel);
   showToast(plan.startToast);
 
-  const context = extractPostContext(platform);
+  const context = extractReplyContext(platform, postRoot);
   const response = (await chrome.runtime.sendMessage({
     ...plan.request(context.content),
     platform: platformName,

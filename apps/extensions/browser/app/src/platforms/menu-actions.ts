@@ -1,7 +1,7 @@
 import { markWrittenByGenfeed } from '~platforms/composer-helpers';
 import type { PlatformConfig } from '~platforms/config';
 import { openLibraryPicker } from '~platforms/library-picker';
-import { extractPostContext } from '~platforms/post-context';
+import { extractReplyContext } from '~platforms/post-context';
 import { type ReplyMediaKind, runReplyWithMedia } from '~platforms/reply-media';
 import { createSourceMenuItem } from '~platforms/source-capture-control';
 import { runPageTextAction } from '~platforms/text-action-flow';
@@ -14,6 +14,8 @@ interface MenuGroupsOptions {
   hasPost?: boolean;
   platform: PlatformConfig | null;
   platformName: string;
+  /** The post the composer sits in, on pages that show many (a feed); its text is what replies answer. */
+  postRoot?: Element;
   postUrl?: string;
 }
 
@@ -33,6 +35,7 @@ export function buildMenuGroups({
   hasPost = true,
   platform,
   platformName,
+  postRoot,
   postUrl,
 }: MenuGroupsOptions): MenuGroupSpec[] {
   const generateReply: MenuItemSpec = {
@@ -40,7 +43,7 @@ export function buildMenuGroups({
     id: 'generate-reply',
     label: 'Generate reply',
     run: async () => {
-      const context = extractPostContext(platform);
+      const context = extractReplyContext(platform, postRoot);
       try {
         const result = await chrome.runtime.sendMessage({
           event: 'SHORTCUT_REPLY',
@@ -93,7 +96,7 @@ export function buildMenuGroups({
       id: `reply-with-${kind}`,
       label,
       run: (controls) =>
-        runReplyWithMedia(kind, { controls, platform, platformName }),
+        runReplyWithMedia(kind, { controls, platform, platformName, postRoot }),
     }),
   );
 

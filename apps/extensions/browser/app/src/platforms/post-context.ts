@@ -37,7 +37,9 @@ export function extractPostContext(
 ): PostContext {
   const root = within ?? document;
   let content = firstText(root, platform?.selectors.postText);
-  let author = firstText(root, platform?.selectors.postAuthor);
+  let author =
+    firstText(root, platform?.selectors.postAuthor) ||
+    (platform?.readPostAuthor?.(root) ?? '');
 
   // X changes its markup often; its selector chains with fallbacks cover a
   // page-wide read when the primary selectors miss.
@@ -55,4 +57,16 @@ export function extractPostContext(
     author = metaContent('meta[name="author"]');
   }
   return { author, content };
+}
+
+/**
+ * What a reply answers: the post its composer sits in when that post's text can
+ * be read, or else the post the page is showing.
+ */
+export function extractReplyContext(
+  platform: PlatformConfig | null,
+  postRoot?: Element,
+): PostContext {
+  const inPost = postRoot ? extractPostContext(platform, postRoot) : null;
+  return inPost?.content ? inPost : extractPostContext(platform);
 }

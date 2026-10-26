@@ -38,6 +38,8 @@ export interface PlatformConfig {
     postText?: string[];
     postAuthor?: string[];
   };
+  // Author of the post inside `root`, for sites whose author name has no stable selector
+  readPostAuthor?: (root: ParentNode) => string;
   // Visible text of the submit button, for sites that give it no stable selector
   submitButtonLabels?: string[];
   /**
@@ -53,6 +55,9 @@ export interface PlatformConfig {
   // Function to construct post URL from post ID
   constructPostUrl: (postId: string) => string;
 }
+
+const LINKEDIN_PHOTO_BUTTON = 'button[aria-label="Share photo"]';
+const LINKEDIN_POST_MENU_LABEL = 'Open control menu for post by ';
 
 function parseTwitterPostUrl(value: string) {
   try {
@@ -237,19 +242,32 @@ export const platforms: Record<string, PlatformConfig> = {
     hostnames: ['linkedin.com', 'www.linkedin.com'],
     name: 'LinkedIn',
     platform: Platform.LINKEDIN,
+    // LinkedIn's feed has no stable class names or post ids in its markup.
+    // Its comment box always shows an icon row (emoji, GIF, photo) while its
+    // Comment button only appears once something is typed, so the group joins
+    // the icon row, found by the photo button.
+    readPostAuthor: (root) =>
+      root
+        .querySelector(`button[aria-label^="${LINKEDIN_POST_MENU_LABEL}"]`)
+        ?.getAttribute('aria-label')
+        ?.slice(LINKEDIN_POST_MENU_LABEL.length)
+        .trim() ?? '',
+    scopeToComposer: true,
     selectors: {
       actionsContainer:
         'div.social-actions-button, div[class*="feed-shared-social-action-bar"]',
-      postContainer: 'div[data-urn*="activity"], article[data-urn*="activity"]',
+      postContainer:
+        'div[data-urn*="activity"], article[data-urn*="activity"], [role="listitem"][componentkey^="update-card"]',
       postIdentifier: 'div[data-urn*="activity"]',
-      replyTextarea: 'div[contenteditable="true"], div[role="textbox"]',
-      submitButton:
-        'button[type="submit"], button[class*="comments-comment-box__submit-button"]',
+      replyTextarea: 'div[contenteditable="true"][role="textbox"]',
+      submitButton: LINKEDIN_PHOTO_BUTTON,
+      toolbar: `div:has(> ${LINKEDIN_PHOTO_BUTTON})`,
       postAuthor: [
         '.feed-shared-actor__name',
         '.update-components-actor__name',
       ],
       postText: [
+        '[data-testid="expandable-text-box"]',
         '.feed-shared-update-v2__description',
         '.feed-shared-text',
         '.update-components-text',

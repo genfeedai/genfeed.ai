@@ -414,3 +414,39 @@ describe('mountGenfeedGroup in the X toolbar', () => {
     expect(group?.nextElementSibling?.id).toBe('wrapper');
   });
 });
+
+describe('mountGenfeedGroup in a LinkedIn comment box', () => {
+  it('joins the icon row after the photo button, one group per comment box', () => {
+    const commentBox = (id: string) => `
+      <div role="listitem" componentkey="update-card-focus${id}">
+        <div id="box-${id}" style="${COLUMN}">
+          <div contenteditable="true" role="textbox"></div>
+          <div id="icons-${id}" style="${ROW}">
+            <button aria-label="Show Emoji Picker">e</button>
+            <button aria-label="Open GIF picker">g</button>
+            <button id="photo-${id}" aria-label="Share photo">p</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.innerHTML = commentBox('a') + commentBox('b');
+    for (const button of document.querySelectorAll('button')) {
+      button.getBoundingClientRect = () =>
+        ({ height: 40, width: 24 }) as DOMRect;
+    }
+
+    const anchors = findSubmitButtons(platforms.linkedin);
+    for (const anchor of anchors) {
+      const boundary = findComposerScope(anchor, platforms.linkedin);
+      expect(boundary).not.toBeNull();
+      mountGenfeedGroup(anchor, [], boundary as Element, platforms.linkedin);
+    }
+
+    expect(anchors).toHaveLength(2);
+    for (const id of ['a', 'b']) {
+      const group = document.getElementById(`photo-${id}`)
+        ?.nextElementSibling as HTMLElement;
+      expect(group.hasAttribute('data-genfeed-group')).toBe(true);
+      expect(group.style.getPropertyValue('--gf-height')).toBe('40px');
+    }
+  });
+});

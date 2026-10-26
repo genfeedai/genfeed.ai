@@ -100,6 +100,7 @@ function initializePlatformIntegration(): void {
       ? currentPlatform.constructPostUrl(postId)
       : undefined;
 
+    const { postContainer } = currentPlatform.selectors;
     for (const submit of findSubmitButtons(currentPlatform)) {
       const boundary = currentPlatform.scopeToComposer
         ? findComposerScope(submit, currentPlatform)
@@ -107,13 +108,23 @@ function initializePlatformIntegration(): void {
       if (currentPlatform.scopeToComposer && !boundary) {
         continue;
       }
+      // In a feed each post has its own reply box, inside the post it answers.
+      const postRoot = postContainer
+        ? (submit.closest(postContainer) ?? undefined)
+        : undefined;
+      const rootPostId = postRoot
+        ? currentPlatform.extractPostId(postRoot)
+        : null;
       mountGenfeedGroup(
         submit,
         buildMenuGroups({
-          hasPost: Boolean(postId),
+          hasPost: Boolean(postId || postRoot),
           platform: currentPlatform,
           platformName,
-          postUrl,
+          postRoot,
+          postUrl: rootPostId
+            ? currentPlatform.constructPostUrl(rootPostId)
+            : postUrl,
         }),
         boundary ?? undefined,
         currentPlatform,

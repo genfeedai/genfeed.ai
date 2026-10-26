@@ -5,7 +5,10 @@ vi.mock('~platforms/twitter-selectors', () => ({
 }));
 
 import { platforms } from '~platforms/config';
-import { extractPostContext } from '~platforms/post-context';
+import {
+  extractPostContext,
+  extractReplyContext,
+} from '~platforms/post-context';
 import { findElement } from '~platforms/twitter-selectors';
 
 describe('extractPostContext', () => {
@@ -96,5 +99,43 @@ describe('extractPostContext', () => {
 
   it('returns empty text rather than failing on an unknown page', () => {
     expect(extractPostContext(null)).toEqual({ author: '', content: '' });
+  });
+});
+
+const LINKEDIN_FEED = `
+  <div role="list">
+    <div role="listitem" componentkey="update-card-focusA" id="first">
+      <button aria-label="Open control menu for post by Grace Hopper"></button>
+      <p data-testid="expandable-text-box">Compilers are for people.</p>
+    </div>
+    <div role="listitem" componentkey="update-card-focusB" id="second">
+      <button aria-label="Open control menu for post by Ada Lovelace"></button>
+      <p data-testid="expandable-text-box">Notes on the engine.</p>
+      <div contenteditable="true" role="textbox"></div>
+    </div>
+  </div>`;
+
+describe('extractReplyContext', () => {
+  beforeEach(() => {
+    document.head.innerHTML = '';
+    document.body.innerHTML = LINKEDIN_FEED;
+  });
+
+  it('reads the LinkedIn feed post the reply box sits in, not the first one', () => {
+    const post = document.getElementById('second') as Element;
+
+    expect(extractReplyContext(platforms.linkedin, post)).toEqual({
+      author: 'Ada Lovelace',
+      content: 'Notes on the engine.',
+    });
+  });
+
+  it("uses the page's post when the composer's own post has no readable text", () => {
+    const empty = document.createElement('div');
+
+    expect(extractReplyContext(platforms.linkedin, empty)).toEqual({
+      author: 'Grace Hopper',
+      content: 'Compilers are for people.',
+    });
   });
 });
