@@ -15,6 +15,7 @@ import {
 } from '@api/collections/content-runs/dto/storyboard-run.dto';
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
+import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
@@ -51,6 +52,7 @@ export class StoryboardRunsController {
     private readonly characters: StoryboardCharacterReplaceService,
     private readonly stills: StoryboardStillsService,
     private readonly aRoll: StoryboardARollService,
+    private readonly assembly: StoryboardLongFormAssemblyService,
   ) {}
 
   @Post()
@@ -248,6 +250,16 @@ export class StoryboardRunsController {
       StoryboardRunSerializer,
       await this.aRoll.reconcile(user.organizationId, brandId, runId),
     );
+  }
+
+  /** Opens the rendered long-form video as an Editor project. */
+  @Post(':runId/long-form/assemble')
+  assembleLongForm(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.assembly.assemble(user, brandId, runId);
   }
 
   @TenantReadPolicy('selected')

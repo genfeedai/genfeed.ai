@@ -50,6 +50,11 @@ function sentenceUnits(segmentId: string, narration: string): SpeechUnit[] {
   return units;
 }
 
+/** Character offsets where each sentence of a narration starts. */
+export function storyboardSentenceStarts(narration: string): number[] {
+  return sentenceUnits('', narration).map((unit) => unit.start);
+}
+
 /** Splits a sentence longer than one render at word boundaries. */
 function fitUnit(unit: SpeechUnit, max: number): SpeechUnit[] {
   if (unit.text.length <= max) return [unit];

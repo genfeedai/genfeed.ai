@@ -35,6 +35,7 @@ import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/se
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
+import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
@@ -42,6 +43,7 @@ import { StoryboardRunsService } from '@api/collections/content-runs/services/st
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -108,6 +110,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
     VideoGenerationModule,
     VideosModule,
+    EditorProjectsModule,
     WorkflowsCoreModule,
     XAdsModule,
   ],
@@ -120,6 +123,7 @@ import { Module } from '@nestjs/common';
     StoryboardSourceService,
     StoryboardStillsService,
     StoryboardARollService,
+    StoryboardLongFormAssemblyService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,
     BrandRemixSceneQuoteService,
