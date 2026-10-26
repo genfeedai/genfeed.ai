@@ -29,7 +29,7 @@ const configMock = vi.hoisted(() => ({ organizationBilling: true }));
 
 vi.mock('@genfeedai/config', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/config')>()),
-  hasOrganizationBilling: () => configMock.organizationBilling,
+  usesMeteredCredits: () => configMock.organizationBilling,
 }));
 
 const NOW = new Date('2026-09-29T12:00:00Z');
