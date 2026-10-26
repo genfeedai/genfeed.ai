@@ -6,7 +6,7 @@ the one spelling code, issues, docs, and PRs use. Deployment-mode terms are cano
 
 ## Distribution
 
-**SaaS**: The hosted multi-tenant product at app.genfeed.ai, run by Genfeed. `GENFEED_CLOUD=1`.
+**SaaS**: The hosted multi-tenant product at app.genfeed.ai, run by Genfeed. Detected by its `*.genfeed.ai` host.
 _Avoid_: Cloud edition, hosted version, managed Genfeed (as a mode name).
 
 **Community**: The self-hosted, single-org distribution: a checksummed Docker Compose bundle

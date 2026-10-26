@@ -11,7 +11,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 function organizationBillingUnavailable(): never {
   throw new ForbiddenException(
     'Organization subscription billing is not enabled on this deployment. ' +
-      'Hosted *.genfeed.ai APIs run with GENFEED_CLOUD=true; a licensed self-host sets GENFEED_LICENSE_KEY. ' +
+      'Hosted APIs on *.genfeed.ai enable billing; a licensed self-host sets GENFEED_LICENSE_KEY. ' +
       'Self-hosted community deployments use managed credits checkout instead of org Stripe subscriptions. ' +
       'See docs/deployment-modes.md.',
   );

@@ -37,8 +37,8 @@ The three product modes are named combinations:
 
 | Mode | deployment × client | Detection |
 |---|---|---|
-| **SaaS** | cloud × web | `GENFEED_CLOUD=1` |
-| **Community** | self-hosted × web | no `GENFEED_CLOUD` |
+| **SaaS** | cloud × web | `*.genfeed.ai` host (production); `GENFEED_CLOUD=true` only outside production |
+| **Community** | self-hosted × web | no `*.genfeed.ai` host |
 | **Desktop** | (cloud **or** self-hosted) × desktop | `NEXT_PUBLIC_DESKTOP_SHELL=1` |
 
 Desktop is a **client surface** that connects to either backend — never its own backend. The current `CLOUD`/`HYBRID`/`LOCAL` + `DESKTOP_SHELL` tangle collapses onto these two axes (#742).

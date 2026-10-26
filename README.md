@@ -185,7 +185,7 @@ feature for a specific distribution.
 | **Desktop**   | Solo creators on their own Mac | Signed macOS artifacts from `desktop-v*` tags         |
 
 Organization billing ships in every image and is gated at runtime
-(`GENFEED_CLOUD` / self-host licence) — see the
+(a `*.genfeed.ai` host / self-host licence) — see the
 [billing section](docs/deployment-modes.md#billing-one-build-a-runtime-gate).
 Managed inference infrastructure and Fleet/LoRA operations live outside this
 public repository.
