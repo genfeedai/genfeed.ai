@@ -11,6 +11,7 @@ import {
 
 const fixture = vi.hoisted(() => ({
   decide: vi.fn(),
+  decideMany: vi.fn(),
   getPendingItems: vi.fn(),
   notificationError: vi.fn(),
   notificationSuccess: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock(
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     decide: fixture.decide,
+    decideMany: fixture.decideMany,
     getPendingItems: fixture.getPendingItems,
   }),
 }));
@@ -131,6 +133,12 @@ describe('useReviewInboxApprovals', () => {
     };
     fixture.getPendingItems.mockResolvedValue([gate, approval]);
     fixture.decide.mockResolvedValue({ status: 'approved' });
+    fixture.decideMany.mockImplementation(
+      async ({ itemIds }: { itemIds: string[] }) => ({
+        decided: itemIds.map((itemId) => ({ itemId, status: 'approved' })),
+        failed: [],
+      }),
+    );
   });
 
   it('loads pending rows with an abort signal and filters by source', async () => {
@@ -183,7 +191,7 @@ describe('useReviewInboxApprovals', () => {
     expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
   });
 
-  it('decides a selection in turn and reports one summary', async () => {
+  it('decides a selection in one batch request and reports one summary', async () => {
     const { result } = renderHook(() => useReviewInboxApprovals(), {
       wrapper,
     });
@@ -191,7 +199,12 @@ describe('useReviewInboxApprovals', () => {
 
     await act(() => result.current.onDecideMany([approval, gate], 'reject'));
 
-    expect(fixture.decide).toHaveBeenCalledTimes(2);
+    expect(fixture.decideMany).toHaveBeenCalledTimes(1);
+    expect(fixture.decideMany).toHaveBeenCalledWith({
+      decision: 'reject',
+      itemIds: [approval.id, gate.id],
+    });
+    expect(fixture.decide).not.toHaveBeenCalled();
     expect(fixture.notificationSuccess).toHaveBeenCalledTimes(1);
     expect(fixture.notificationSuccess).toHaveBeenCalledWith(
       'Rejected 2 requests',
@@ -201,9 +214,10 @@ describe('useReviewInboxApprovals', () => {
   });
 
   it('keeps going past a failed row and says how many were saved', async () => {
-    fixture.decide
-      .mockRejectedValueOnce(new Error('already resolved'))
-      .mockResolvedValueOnce({ status: 'approved' });
+    fixture.decideMany.mockResolvedValue({
+      decided: [{ itemId: gate.id, status: 'approved' }],
+      failed: [{ itemId: approval.id, message: 'already resolved' }],
+    });
     const { result } = renderHook(() => useReviewInboxApprovals(), {
       wrapper,
     });
@@ -211,7 +225,7 @@ describe('useReviewInboxApprovals', () => {
 
     await act(() => result.current.onDecideMany([approval, gate], 'approve'));
 
-    expect(fixture.decide).toHaveBeenCalledTimes(2);
+    expect(fixture.decideMany).toHaveBeenCalledTimes(1);
     expect(fixture.notificationError).toHaveBeenCalledWith(
       'Decided 1, 1 could not be saved',
     );
