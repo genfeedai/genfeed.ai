@@ -246,7 +246,10 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
     await handler.generateContent(params, context);
     await handler.generate({ ...params, type: 'image' }, context);
     await handler.transformMedia(params, context);
-    await handler.generateAsIdentity(params, context);
+    await handler.generateAsIdentity(
+      { ...params, text: 'Identity line' },
+      context,
+    );
     await handler.generateTurboContent(params, context);
 
     expect(textGeneration.aiAction).toHaveBeenCalledWith(params, context);
@@ -260,7 +263,7 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       context,
     );
     expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
-      params,
+      { ...params, text: 'Identity line' },
       context,
     );
     expect(turboRun.generateTurboContent).toHaveBeenCalledWith(params, context);
@@ -274,6 +277,116 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
         expect(method).toHaveBeenCalledOnce();
       }
     }
+  });
+});
+
+describe('AgentMediaGenerationToolHandler generateAsIdentity script', () => {
+  function createIdentityHandler(
+    script: Record<string, unknown> = {
+      creditsUsed: 1,
+      data: { content: '  A script in the brand voice.  ', type: 'script' },
+      success: true,
+    },
+  ) {
+    const textGeneration = {
+      generateContent: vi.fn().mockResolvedValue(script),
+    };
+    const assetGeneration = {
+      generateAsIdentity: vi
+        .fn()
+        .mockResolvedValue({ creditsUsed: 0, success: true }),
+    };
+    const handler = new AgentMediaGenerationToolHandler(
+      textGeneration as never,
+      assetGeneration as never,
+      {} as never,
+      {} as never,
+    );
+    return { assetGeneration, handler, textGeneration };
+  }
+
+  it('speaks user-written text verbatim without writing a script', async () => {
+    const { assetGeneration, handler, textGeneration } =
+      createIdentityHandler();
+
+    await handler.generateAsIdentity(
+      { text: 'My own words', topic: 'ignored' },
+      context,
+    );
+
+    expect(textGeneration.generateContent).not.toHaveBeenCalled();
+    expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
+      { text: 'My own words', topic: 'ignored' },
+      context,
+    );
+  });
+
+  it('writes the script from a topic through the script path, then speaks it', async () => {
+    const { assetGeneration, handler, textGeneration } =
+      createIdentityHandler();
+
+    const result = await handler.generateAsIdentity(
+      { platform: 'tiktok', topic: ' Launch week ' },
+      context,
+    );
+
+    expect(textGeneration.generateContent).toHaveBeenCalledWith(
+      { platform: 'tiktok', topic: 'Launch week', type: 'script' },
+      context,
+    );
+    expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
+      {
+        platform: 'tiktok',
+        text: 'A script in the brand voice.',
+        topic: ' Launch week ',
+      },
+      context,
+    );
+    expect(result).toMatchObject({ creditsUsed: 1, success: true });
+  });
+
+  it('stops before the render when the script cannot be written', async () => {
+    const failure = {
+      creditsUsed: 0,
+      error: 'Brand context is unavailable for this script. Please retry.',
+      success: false,
+    };
+    const { assetGeneration, handler } = createIdentityHandler(failure);
+
+    await expect(
+      handler.generateAsIdentity({ topic: 'Launch week' }, context),
+    ).resolves.toBe(failure);
+    expect(assetGeneration.generateAsIdentity).not.toHaveBeenCalled();
+  });
+
+  it('does not render an empty script', async () => {
+    const { assetGeneration, handler } = createIdentityHandler({
+      creditsUsed: 1,
+      data: { content: '   ', type: 'script' },
+      success: true,
+    });
+
+    const result = await handler.generateAsIdentity(
+      { topic: 'Launch week' },
+      context,
+    );
+
+    expect(result).toMatchObject({ success: false });
+    expect(assetGeneration.generateAsIdentity).not.toHaveBeenCalled();
+  });
+
+  it('asks for text or a topic when neither is given', async () => {
+    const { assetGeneration, handler, textGeneration } =
+      createIdentityHandler();
+
+    await expect(
+      handler.generateAsIdentity({}, context),
+    ).resolves.toMatchObject({
+      error: 'text or topic is required',
+      success: false,
+    });
+    expect(textGeneration.generateContent).not.toHaveBeenCalled();
+    expect(assetGeneration.generateAsIdentity).not.toHaveBeenCalled();
   });
 });
 

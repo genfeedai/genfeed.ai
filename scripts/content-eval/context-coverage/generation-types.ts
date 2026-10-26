@@ -165,11 +165,11 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   {
     enumRefs: { IngredientCategory: ['AVATAR'] },
     id: 'avatar-video',
-    marker: 'inputText: params.text',
-    note: 'GAP: the render sends the caller text to the provider verbatim, and brand context only picks the avatar and voice identity. The spoken script comes from agent chat, the aiAvatarVideo workflow node, turbo ideas or the facecam task, none of which compose the harness brief. Tracked in #7868. Promote to `harness` once the script is authored from a composed brief.',
-    path: 'none',
+    marker: 'resolveBrief',
+    note: 'The render speaks the text it is given, so brand context enters when the script is written. Agent chat generate_as_identity takes a topic and writes the script through ScriptGenerationService (composed harness brief, retryable 503 with no template fallback). Words a user supplies are spoken verbatim by design. The aiAvatarVideo workflow node and facecam task speak user-written text, and turbo-idea speech is written during idea generation; none of those compose the brief. Tracked in #7868.',
+    path: 'harness',
     smoke: null,
-    source: `${API}/collections/videos/services/avatar-video-generation.service.ts`,
+    source: `${API}/services/script-generation/script-generation.service.ts`,
   },
   {
     enumRefs: { GenerationType: ['CLIP'] },

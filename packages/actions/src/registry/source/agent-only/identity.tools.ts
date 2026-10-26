@@ -6,7 +6,7 @@ export const AGENT_IDENTITY_TOOLS: SourceTool[] = [
     // generation endpoint per avatar video duration (issue #482).
     creditCost: 100,
     description:
-      "Generate an avatar video using the user's identity (default avatar photo + cloned voice from org settings). Provide text for the voice to speak. Uses HeyGen photo avatar API. Credits are billed by the avatar video generation endpoint.",
+      "Generate an avatar video using the user's identity (default avatar photo + cloned voice from org settings). Provide topic to have Genfeed write the script in the brand voice, or text only for words the user wrote themselves; text is spoken verbatim. Uses HeyGen photo avatar API. Credits are billed by the avatar video generation endpoint.",
     name: 'generate_as_identity',
     parameters: {
       properties: {
@@ -22,11 +22,17 @@ export const AGENT_IDENTITY_TOOLS: SourceTool[] = [
           type: 'string',
         },
         text: {
-          description: 'The text for the avatar to speak',
+          description:
+            'Words the user wrote for the avatar to speak. Spoken verbatim; do not draft a script yourself, pass topic instead.',
+          type: 'string',
+        },
+        topic: {
+          description:
+            'What the video is about. Genfeed writes the spoken script from the brand brief. Use this when the user did not supply the words.',
           type: 'string',
         },
       },
-      required: ['text'],
+      required: [],
       type: 'object',
     },
     requiredRole: 'user',

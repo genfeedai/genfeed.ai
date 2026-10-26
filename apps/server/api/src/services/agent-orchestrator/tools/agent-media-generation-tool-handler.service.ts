@@ -148,10 +148,53 @@ export class AgentMediaGenerationToolHandler {
     return this.turboRun.generateTurboContent(params, ctx);
   }
 
+  /**
+   * Words the user supplied are spoken verbatim. With only a topic, the script
+   * is written against the composed brand brief (the same path as
+   * `generate_content` with type script), then spoken. Its text credits are
+   * charged there, ahead of the avatar render.
+   */
   async generateAsIdentity(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.assetGeneration.generateAsIdentity(params, ctx);
+    const topic = typeof params.topic === 'string' ? params.topic.trim() : '';
+    if (typeof params.text === 'string' && params.text.trim()) {
+      return this.assetGeneration.generateAsIdentity(params, ctx);
+    }
+    if (!topic) {
+      return {
+        creditsUsed: 0,
+        error: 'text or topic is required',
+        success: false,
+      };
+    }
+
+    const script = await this.textGeneration.generateContent(
+      { ...params, topic, type: 'script' },
+      ctx,
+    );
+    const text =
+      script.success && typeof script.data?.content === 'string'
+        ? script.data.content.trim()
+        : '';
+    if (!text) {
+      return script.success
+        ? {
+            creditsUsed: script.creditsUsed,
+            error: 'The script came back empty. Please retry.',
+            success: false,
+          }
+        : script;
+    }
+
+    const avatar = await this.assetGeneration.generateAsIdentity(
+      { ...params, text },
+      ctx,
+    );
+    return {
+      ...avatar,
+      creditsUsed: (avatar.creditsUsed ?? 0) + (script.creditsUsed ?? 0),
+    };
   }
 }
