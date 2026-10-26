@@ -33,6 +33,10 @@ import {
 } from '~platforms/ui/mount';
 import { injectImageOverlayStyles } from '~platforms/ui/page-styles';
 import { showToast } from '~platforms/ui/toast';
+import {
+  findPhotoOverlayHost,
+  X_PHOTO_IMAGE_SELECTOR,
+} from '~platforms/x-photo-overlay';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { publicationCapturePlatform } from '~services/publication-capture-validation';
 import { watchContentTheme } from '~theme/content-theme';
@@ -469,14 +473,9 @@ function initializeTwitterImageHover(): void {
       return;
     }
 
-    const container = image.parentElement;
+    const container = findPhotoOverlayHost(image);
     if (!container) {
       return;
-    }
-
-    const computedPosition = getComputedStyle(container).position;
-    if (computedPosition === 'static') {
-      container.style.position = 'relative';
     }
 
     container.classList.add('genfeed-image-hoverable');
@@ -537,7 +536,7 @@ function initializeTwitterImageHover(): void {
 
   function scanImages(): void {
     const tweetImages = document.querySelectorAll<HTMLImageElement>(
-      'article[data-testid="tweet"] img[src*="twimg.com"]',
+      X_PHOTO_IMAGE_SELECTOR,
     );
 
     tweetImages.forEach((image) => {

@@ -438,3 +438,64 @@ describe('content-script theme', () => {
     stopWatching();
   });
 });
+
+describe('collapsible menu group', () => {
+  function collapsible(): MenuGroupSpec[] {
+    return [
+      {
+        id: 'generate',
+        isCollapsible: true,
+        items: [
+          item({ id: 'image', label: 'Image' }),
+          item({ id: 'video', label: 'Video' }),
+        ],
+        label: 'Generate',
+      },
+    ];
+  }
+
+  function toggle(): HTMLButtonElement {
+    return menuHost()?.shadowRoot?.querySelector(
+      'button.toggle',
+    ) as HTMLButtonElement;
+  }
+
+  function visibleRows(): string[] {
+    return rows()
+      .filter((row) => !row.hidden)
+      .map((row) => row.textContent?.trim() ?? '');
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('shows one Generate row that is closed until it is opened', () => {
+    const host = mount(collapsible());
+
+    trigger(host).click();
+
+    expect(toggle().getAttribute('aria-expanded')).toBe('false');
+    expect(visibleRows()).toEqual(['Generate']);
+  });
+
+  it('expands to its items and folds away again', () => {
+    const host = mount(collapsible());
+    trigger(host).click();
+
+    toggle().click();
+    expect(toggle().getAttribute('aria-expanded')).toBe('true');
+    expect(visibleRows()).toEqual(['Generate', 'Image', 'Video']);
+
+    toggle().click();
+    expect(visibleRows()).toEqual(['Generate']);
+  });
+
+  it('still opens when every item is folded away', () => {
+    const host = mount(collapsible());
+
+    trigger(host).click();
+
+    expect(menuHost()).toBeDefined();
+  });
+});

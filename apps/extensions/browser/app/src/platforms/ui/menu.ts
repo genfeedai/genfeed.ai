@@ -71,11 +71,16 @@ const MENU_CSS = `
   .item:disabled { cursor: default; opacity: 0.75; }
   .item svg { flex: none; width: 18px; height: 18px; color: var(--muted); }
   .item[data-status="error"] svg { color: var(--error); }
+  .item.nested { padding-left: 46px; }
+  .toggle .chevron { display: inline-grid; margin-left: auto; transition: transform 0.15s; }
+  .toggle .chevron svg { width: 16px; height: 16px; color: var(--muted); }
+  .toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
   .item[data-status="busy"] svg { animation: spin 1s linear infinite; }
   .hint { margin-left: auto; color: var(--muted); font-size: 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
     .item[data-status="busy"] svg { animation: none; }
+    .toggle .chevron { transition: none; }
   }
 `;
 
@@ -151,52 +156,110 @@ function buildItem(spec: MenuItemSpec, onActivate: () => void): MenuItemView {
 }
 
 interface BuiltMenu {
+  /** Whether no row is left to show, so the menu has nothing to open. */
+  isEmpty: () => boolean;
   /** Hides the rows and groups that are not available right now. */
   refresh: () => void;
   items: MenuItemView[];
   menu: HTMLElement;
 }
 
-function buildMenu(groups: MenuGroupSpec[], onActivate: () => void): BuiltMenu {
+interface MenuSection {
+  element: HTMLElement;
+  toggle?: HTMLButtonElement;
+  views: MenuItemView[];
+}
+
+function buildToggle(label: string): HTMLButtonElement {
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'item toggle';
+  toggle.setAttribute('role', 'menuitem');
+  toggle.setAttribute('aria-haspopup', 'true');
+  toggle.setAttribute('aria-expanded', 'false');
+  const text = document.createElement('span');
+  text.className = 'text';
+  text.textContent = label;
+  const chevron = document.createElement('span');
+  chevron.className = 'chevron';
+  chevron.innerHTML = icons.chevron;
+  toggle.append(text, chevron);
+  return toggle;
+}
+
+function buildMenu(
+  groups: MenuGroupSpec[],
+  onActivate: () => void,
+  onLayout: () => void,
+): BuiltMenu {
   const menu = document.createElement('div');
   menu.className = 'menu';
   menu.setAttribute('role', 'menu');
   menu.setAttribute('aria-label', 'Genfeed actions');
   const items: MenuItemView[] = [];
-  const sections: { element: HTMLElement; views: MenuItemView[] }[] = [];
+  const sections: MenuSection[] = [];
 
   for (const group of groups) {
     const section = document.createElement('div');
     section.className = 'group';
     section.setAttribute('role', 'group');
+    const entry: MenuSection = { element: section, views: [] };
     if (group.label) {
-      const heading = document.createElement('div');
-      heading.className = 'label';
-      heading.textContent = group.label;
       section.setAttribute('aria-label', group.label);
-      section.appendChild(heading);
+      if (group.isCollapsible) {
+        entry.toggle = buildToggle(group.label);
+        section.appendChild(entry.toggle);
+      } else {
+        const heading = document.createElement('div');
+        heading.className = 'label';
+        heading.textContent = group.label;
+        section.appendChild(heading);
+      }
     }
-    const views = group.items.map((spec) => buildItem(spec, onActivate));
-    for (const view of views) {
+    entry.views = group.items.map((spec) => buildItem(spec, onActivate));
+    for (const view of entry.views) {
+      if (entry.toggle) {
+        view.button.classList.add('nested');
+      }
       section.appendChild(view.button);
     }
-    items.push(...views);
-    sections.push({ element: section, views });
+    items.push(...entry.views);
+    sections.push(entry);
     menu.appendChild(section);
   }
 
   const refresh = (): void => {
     for (const section of sections) {
-      let hasVisible = false;
+      const isExpanded = section.toggle
+        ? section.toggle.getAttribute('aria-expanded') === 'true'
+        : true;
+      let hasAvailable = false;
       for (const view of section.views) {
-        const isShown = view.spec.isAvailable?.() ?? true;
-        view.button.hidden = !isShown;
-        hasVisible ||= isShown;
+        const isAvailable = view.spec.isAvailable?.() ?? true;
+        view.button.hidden = !isAvailable || !isExpanded;
+        hasAvailable ||= isAvailable;
       }
-      section.element.hidden = !hasVisible;
+      if (section.toggle) {
+        section.toggle.hidden = !hasAvailable;
+      }
+      section.element.hidden = !hasAvailable;
     }
   };
-  return { items, menu, refresh };
+
+  for (const section of sections) {
+    section.toggle?.addEventListener('click', () => {
+      const isExpanded =
+        section.toggle?.getAttribute('aria-expanded') === 'true';
+      section.toggle?.setAttribute('aria-expanded', String(!isExpanded));
+      refresh();
+      onLayout();
+    });
+  }
+
+  const isEmpty = (): boolean =>
+    sections.every((section) => section.element.hidden);
+
+  return { isEmpty, items, menu, refresh };
 }
 
 /**
@@ -299,11 +362,11 @@ export function createGenfeedGroup({
       return;
     }
     if (!built) {
-      built = buildMenu(groups, () => close());
+      built = buildMenu(groups, () => close(), place);
       menuRoot.appendChild(built.menu);
     }
     built.refresh();
-    if (built.items.every((view) => view.button.hidden)) {
+    if (built.isEmpty()) {
       return;
     }
     applyContentThemeToElement(menuHost);
@@ -317,7 +380,7 @@ export function createGenfeedGroup({
     window.addEventListener('scroll', onViewportChange, true);
     window.addEventListener('resize', onViewportChange);
     if (focusFirst) {
-      built.items.find((view) => !view.button.hidden)?.button.focus();
+      menuRoot.querySelector<HTMLButtonElement>('.item:not([hidden])')?.focus();
     }
   }
 
@@ -342,9 +405,9 @@ export function createGenfeedGroup({
 
   menuRoot.addEventListener('keydown', (event) => {
     const keyEvent = event as KeyboardEvent;
-    const enabled = (built?.items ?? [])
-      .map((view) => view.button)
-      .filter((item) => !item.disabled && !item.hidden);
+    const enabled = Array.from(
+      menuRoot.querySelectorAll<HTMLButtonElement>('button.item'),
+    ).filter((item) => !item.disabled && !item.hidden);
     const index = enabled.indexOf(menuRoot.activeElement as HTMLButtonElement);
     const focusAt = (next: number): void => {
       keyEvent.preventDefault();

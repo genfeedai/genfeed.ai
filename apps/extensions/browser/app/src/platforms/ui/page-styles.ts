@@ -3,8 +3,6 @@ const STYLE_ID = 'genfeed-extension-styles';
 // The hover actions on a post's image sit inside X's own image container, so
 // they are styled from the page rather than from a shadow root.
 const IMAGE_OVERLAY_CSS = `
-  .genfeed-image-hoverable { position: relative; }
-
   .genfeed-image-overlay {
     position: absolute; right: 8px; bottom: 8px; z-index: 1001;
     display: flex; flex-direction: column; align-items: flex-end; gap: 6px;

@@ -24,6 +24,8 @@ export interface MenuItemSpec {
 
 export interface MenuGroupSpec {
   id: string;
+  /** Shows the group as one row that expands to its items, collapsed until it is opened. Needs a label. */
+  isCollapsible?: boolean;
   items: MenuItemSpec[];
   label?: string;
 }

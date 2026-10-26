@@ -1,6 +1,5 @@
 import { markWrittenByGenfeed } from '~platforms/composer-helpers';
 import type { PlatformConfig } from '~platforms/config';
-import { buildImagePrompt } from '~platforms/image-prompt';
 import { extractPostContext } from '~platforms/post-context';
 import { type ReplyMediaKind, runReplyWithMedia } from '~platforms/reply-media';
 import { createSourceMenuItem } from '~platforms/source-capture-control';
@@ -97,27 +96,6 @@ export function buildMenuGroups({
     }),
   );
 
-  const generateImage: MenuItemSpec = {
-    icon: icons.image,
-    id: 'generate-image',
-    label: 'Generate image',
-    run: async (controls) => {
-      controls.setStatus('busy', 'Generating...');
-      const response = await chrome.runtime.sendMessage({
-        event: 'generateImage',
-        platform: platformName,
-        prompt: buildImagePrompt({ platformName, postUrl }),
-      });
-      if (response?.success && response.imageUrl) {
-        window.open(response.imageUrl, '_blank');
-        controls.setStatus('done', 'Open image');
-      } else {
-        showToast(response?.error || 'Failed to generate image', true);
-        controls.setStatus('error', 'Retry');
-      }
-    },
-  };
-
   if (!hasPost) {
     return [{ id: 'write', items: textActions, label: 'Write' }];
   }
@@ -126,10 +104,12 @@ export function buildMenuGroups({
 
   return [
     { id: 'write', items: [generateReply, ...textActions], label: 'Write' },
-    { id: 'media', items: mediaItems, label: 'Reply with media' },
     {
-      id: 'create',
-      items: saveSource ? [generateImage, saveSource] : [generateImage],
+      id: 'generate',
+      isCollapsible: true,
+      items: mediaItems,
+      label: 'Generate',
     },
+    ...(saveSource ? [{ id: 'source', items: [saveSource] }] : []),
   ];
 }
