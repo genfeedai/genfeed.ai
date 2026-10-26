@@ -34,6 +34,7 @@ import {
   AgentGenerationQuoteUnavailableReason,
   type ModelBillableQuoteSnapshot,
 } from '@genfeedai/contracts/interfaces';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { isAutoStudioModelKey } from '@genfeedai/pricing';
 import type { Model } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -169,10 +170,41 @@ export class AgentGenerationEstimateService {
           modelKey.startsWith('crun/') ? modelKey : null,
         );
       }
-      return await this.quoteModel(input, modelKey, model);
+      return await this.quoteModelWithAutoVideoDefaults(input, modelKey, model);
     } catch (error: unknown) {
       return this.unavailableFromError(error, input);
     }
+  }
+
+  /**
+   * An Auto video quote carries no resolution or audio, yet the model Auto
+   * picks may need both to be priced. When it cannot be priced as asked, retry
+   * with what Studio submits for a named model (default resolution, no audio).
+   * A named model is never changed, and a model that prices as asked is not.
+   */
+  private async quoteModelWithAutoVideoDefaults(
+    input: AgentGenerationQuoteInput,
+    modelKey: string,
+    model: VideoEstimateModel,
+  ): Promise<PreparedAgentGenerationQuote> {
+    const isAutoVideo = input.category === 'video' && !input.modelKey;
+    if (!isAutoVideo) return this.quoteModel(input, modelKey, model);
+    const asked = await this.quoteModel(input, modelKey, model).catch(
+      (error: unknown) => {
+        if (!isPricingUnresolved(error)) throw error;
+        return undefined;
+      },
+    );
+    if (asked?.isAvailable) return asked;
+    return this.quoteModel(
+      {
+        ...input,
+        isAudioEnabled: input.isAudioEnabled ?? false,
+        resolution: input.resolution ?? getDefaultVideoResolution(modelKey),
+      },
+      modelKey,
+      model,
+    );
   }
 
   private resolveCategory(input: AgentGenerationQuoteInput): ModelCategory {
