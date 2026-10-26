@@ -543,6 +543,16 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'start_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
   { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'inspiration' },
   {
+    name: 'start_storyboard_long_form',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
+  {
+    name: 'storyboard_long_form',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
+  {
     name: 'storyboard_run_capabilities',
     surfaces: ['mcp'],
     toolset: 'inspiration',

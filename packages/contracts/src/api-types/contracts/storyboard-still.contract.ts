@@ -49,7 +49,7 @@ const shotIdsSchema = z
 /** A long-form storyboard has up to 600 cutaways; a call covers a batch. */
 export const STORYBOARD_CUTAWAY_STILLS_PER_CALL = 60;
 
-const cutawayIdsSchema = z
+export const storyboardCutawayIdsSchema = z
   .array(storyboardIdSchema)
   .min(1)
   .max(STORYBOARD_CUTAWAY_STILLS_PER_CALL)
@@ -67,7 +67,7 @@ export const quoteStoryboardStillsSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
     shotIds: shotIdsSchema.optional(),
-    cutawayIds: cutawayIdsSchema.optional(),
+    cutawayIds: storyboardCutawayIdsSchema.optional(),
   })
   .strict()
   .refine(
@@ -110,7 +110,7 @@ export const generateStoryboardStillsSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
     shotIds: shotIdsSchema.optional(),
-    cutawayIds: cutawayIdsSchema.optional(),
+    cutawayIds: storyboardCutawayIdsSchema.optional(),
     inputHash: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict()

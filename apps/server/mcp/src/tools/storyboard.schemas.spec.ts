@@ -156,4 +156,44 @@ describe('Canonical Storyboard MCP boundary', () => {
       }).success,
     ).toBe(true);
   });
+  it('renders a long-form stage only with its quote hash, cutaways only with their ids', () => {
+    const render = storyboardToolSchemas.start_storyboard_long_form;
+    const input = {
+      brandId: 'brand-1',
+      runId: 'run-1',
+      expectedRevision: 2,
+      inputHash: 'b'.repeat(64),
+    };
+    expect(render.safeParse({ ...input, stage: 'presenter' }).success).toBe(
+      true,
+    );
+    expect(
+      render.safeParse({ ...input, stage: 'cutaways', cutawayIds: ['cut-1'] })
+        .success,
+    ).toBe(true);
+    expect(render.safeParse({ ...input, stage: 'cutaways' }).success).toBe(
+      false,
+    );
+    expect(
+      render.safeParse({ ...input, stage: 'animatic', cutawayIds: ['cut-1'] })
+        .success,
+    ).toBe(false);
+    expect(
+      render.safeParse({ ...input, stage: 'presenter', inputHash: undefined })
+        .success,
+    ).toBe(false);
+    const longForm = storyboardToolSchemas.storyboard_long_form;
+    expect(
+      longForm.safeParse({ brandId: 'brand-1', runId: 'run-1', action: 'get' })
+        .success,
+    ).toBe(true);
+    expect(
+      longForm.safeParse({
+        brandId: 'brand-1',
+        runId: 'run-1',
+        action: 'quote',
+        stage: 'presenter',
+      }).success,
+    ).toBe(false);
+  });
 });

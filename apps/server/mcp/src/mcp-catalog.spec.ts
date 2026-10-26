@@ -23,8 +23,8 @@ describe('curated MCP action catalog', () => {
     );
     const actual = getToolsForSurface('mcp').map((tool) => tool.name);
 
-    expect(eligible).toHaveLength(148);
-    expect(actual).toHaveLength(144);
+    expect(eligible).toHaveLength(150);
+    expect(actual).toHaveLength(146);
     expect(
       eligible.filter((name) => RETIRED_MCP_TOOL_NAMES.has(name)).sort(),
     ).toEqual([...RETIRED_MCP_TOOL_NAMES].sort());

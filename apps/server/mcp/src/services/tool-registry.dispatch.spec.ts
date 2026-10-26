@@ -130,6 +130,8 @@ describe('ToolRegistryService.classify', () => {
     ['storyboard_run_capabilities', 'storyboard-capabilities'],
     ['create_storyboard_remix', 'storyboard-capabilities'],
     ['replace_storyboard_character', 'storyboard-capabilities'],
+    ['storyboard_long_form', 'storyboard-capabilities'],
+    ['start_storyboard_long_form', 'storyboard-capabilities'],
     ['update_remix_concept', 'remix'],
     ['attach_remix_analysis_source', 'remix'],
     ['quote_remix_generation', 'remix'],

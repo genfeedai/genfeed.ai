@@ -122,6 +122,10 @@ describe('MCP catalog presentation through the public registry', () => {
         ].includes(tool.name)
       )
         args.brandId = 'input-private';
+      if (tool.name === 'start_storyboard_long_form') {
+        args.stage = 'presenter';
+        args.inputHash = 'a'.repeat(64);
+      }
       if (tool.name === 'resolve_approval') args.decision = 'decline';
       // The listing fixture is the only organization the user can switch to.
       if (tool.name === 'switch_org') args.organization = fixture.id;

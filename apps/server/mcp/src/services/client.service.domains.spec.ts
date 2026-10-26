@@ -93,6 +93,66 @@ describe('ClientService (MCP) domain clients', () => {
     expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
   });
 
+  it('quotes, renders and assembles a long-form storyboard on its routes', async () => {
+    const hash = 'a'.repeat(64);
+    const quote = {
+      revision: 3,
+      modelKey: 'heygen/avatar-iv',
+      billingMode: 'platform',
+      inputHash: hash,
+      items: [
+        { ordinal: 1, characters: 900, estimatedSeconds: 60, credits: 12 },
+      ],
+      readyChunkIds: [],
+      total: 12,
+    };
+    mockAxiosInstance.post.mockResolvedValueOnce({ data: quote });
+    expect(
+      await service.storyboardLongForm({
+        action: 'quote',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 3,
+        stage: 'presenter',
+      }),
+    ).toEqual(quote);
+    expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/a-roll/quote',
+      { expectedRevision: 3 },
+    );
+
+    const assembled = { editorProjectId: 'project-1', timeline: {} };
+    mockAxiosInstance.post.mockResolvedValueOnce({ data: assembled });
+    expect(
+      await service.storyboardLongForm({
+        action: 'assemble',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        track: 'final',
+      }),
+    ).toEqual(assembled);
+    expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/long-form/assemble',
+      {},
+    );
+
+    mockAxiosInstance.post.mockRejectedValueOnce(new Error('stop'));
+    await expect(
+      service.renderStoryboardLongForm({
+        brandId: 'brand-1',
+        runId: 'run-1',
+        stage: 'cutaways',
+        expectedRevision: 3,
+        inputHash: hash,
+        cutawayIds: ['cut-1'],
+      }),
+    ).rejects.toThrow();
+    expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/stills',
+      { cutawayIds: ['cut-1'], expectedRevision: 3, inputHash: hash },
+    );
+  });
+
   it('posts only content to the authenticated result adapter and preserves its contract', async () => {
     const content = JSON.stringify({
       content: [{ type: 'text', text: 'payload' }],
