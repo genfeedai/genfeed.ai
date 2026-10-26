@@ -318,6 +318,7 @@ export function useIngredientsActions({
                 onChange: (selection) => {
                   videoUpscaleSelectionRef.current = selection;
                 },
+                videoId: upscaleConfirmData.ingredient?.id ?? '',
               })
             : undefined,
         onClose: () => {

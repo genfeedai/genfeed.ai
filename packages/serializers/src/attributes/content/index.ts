@@ -70,6 +70,7 @@ export * from '@serializers/attributes/content/template.attributes';
 export * from '@serializers/attributes/content/template-metadata.attributes';
 export * from '@serializers/attributes/content/turbo-project.attributes';
 export * from '@serializers/attributes/content/turbo-run.attributes';
+export * from '@serializers/attributes/content/video-upscale-quote.attributes';
 export * from './branded-generation-receipt.attributes';
 export * from './remotion-composition.attributes';
 export * from './remotion-render.attributes';

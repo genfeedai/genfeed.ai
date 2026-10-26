@@ -14,7 +14,7 @@ vi.mock('@ui/modals/ingredients/VideoUpscaleConfirmControls', () => ({
   getDefaultVideoUpscaleSelection: (options: VideoUpscaleModelOption[]) =>
     options[0]
       ? {
-          cost: options[0].cost,
+          cost: options[0].key === 'pending' ? null : options[0].cost,
           model: options[0].key,
           targetFps: 30,
           targetResolution: '1080p',
@@ -87,6 +87,31 @@ describe('MasonryConfirmBridge', () => {
       }),
     );
     expect(clearUpscaleConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the upscale action back until the price is quoted', () => {
+    const executeUpscale = vi.fn();
+    render(
+      <MasonryConfirmBridge
+        clearUpscaleConfirm={vi.fn()}
+        executeUpscale={executeUpscale}
+        upscaleConfirmData={{
+          cost: 0,
+          ingredient: sourceVideo,
+          modelKey: 'pending',
+          videoModelOptions: [{ ...modelOptions[0], key: 'pending' }],
+        }}
+      />,
+    );
+
+    const action = screen.getByRole('button', {
+      name: 'confirmActionUnpriced',
+    });
+    expect(action).toBeDisabled();
+
+    fireEvent.click(action);
+
+    expect(executeUpscale).not.toHaveBeenCalled();
   });
 
   it('opens the extend pickers when only an extension is pending', async () => {

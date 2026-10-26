@@ -75,6 +75,7 @@ export * from '@serializers/server/content/studio-look.serializer';
 export * from '@serializers/server/content/template.serializer';
 export * from '@serializers/server/content/turbo-project.serializer';
 export * from '@serializers/server/content/turbo-run.serializer';
+export * from '@serializers/server/content/video-upscale-quote.serializer';
 export * from '@serializers/server/content/workspace-task-realtime.builder';
 export * from './branded-generation-receipt.serializer';
 export * from './remotion-composition.serializer';

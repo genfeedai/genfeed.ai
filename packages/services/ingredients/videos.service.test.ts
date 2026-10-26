@@ -63,6 +63,30 @@ describe('VideosService', () => {
     expect(result[0]).toMatchObject({ id: 'post_1' });
   });
 
+  it('findUpscaleQuote GETs the quote for the chosen options', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(resourceDocument({ credits: 3600 }, { id: 'video_1' })),
+    );
+    const controller = new AbortController();
+    const params = {
+      model: 'topazlabs/video-upscale',
+      targetFps: 60,
+      targetResolution: '4k',
+    };
+
+    const quote = await service.findUpscaleQuote(
+      'video_1',
+      params,
+      controller.signal,
+    );
+
+    expect(http.get).toHaveBeenCalledWith('/video_1/upscale-quote', {
+      params,
+      signal: controller.signal,
+    });
+    expect(quote.credits).toBe(3600);
+  });
+
   describe('generation endpoints', () => {
     it('postLipSync POSTs the serialized payload', async () => {
       mockVideoResponse();

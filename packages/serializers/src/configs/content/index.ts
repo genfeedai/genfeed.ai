@@ -71,6 +71,7 @@ export * from '@serializers/configs/content/template.config';
 export * from '@serializers/configs/content/turbo-project.config';
 export * from '@serializers/configs/content/turbo-run.config';
 export * from '@serializers/configs/content/video.config';
+export * from '@serializers/configs/content/video-upscale-quote.config';
 export * from './branded-generation-receipt.config';
 export * from './remotion-composition.config';
 export * from './remotion-render.config';

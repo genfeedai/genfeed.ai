@@ -4,6 +4,7 @@ import type {
   IPost,
   IVideo,
   IVideoMergeSettings,
+  IVideoUpscaleQuote,
 } from '@genfeedai/contracts/interfaces';
 import type {
   CrunGenerationQuoteResponse,
@@ -104,6 +105,20 @@ export class VideosService extends IngredientsService<Video> {
     return await this.instance
       .post<JsonApiResponseDocument>(buildResourcePath('merge'), data)
       .then((res) => this.mapOne(res.data));
+  }
+
+  /** What an upscale of this video costs at the chosen options, priced as it will be charged. */
+  public async findUpscaleQuote(
+    id: string,
+    params: { model: string; targetFps: number; targetResolution: string },
+    signal?: AbortSignal,
+  ): Promise<IVideoUpscaleQuote> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(buildResourcePath(id, 'upscale-quote'), {
+        params,
+        signal,
+      })
+      .then((res) => this.extractResource<IVideoUpscaleQuote>(res.data));
   }
 
   public async postUpscale(id: string, data: IVideoEditParams) {

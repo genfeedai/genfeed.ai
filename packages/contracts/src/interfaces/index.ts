@@ -233,6 +233,7 @@ export * from './ingredients/library-assets-refresh.interface';
 export * from './ingredients/library-summary.interface';
 export * from './ingredients/media-moderation.interface';
 export * from './ingredients/media-perception.interface';
+export * from './ingredients/video-upscale-quote.interface';
 export * from './integrations/ads-discovery.interface';
 export * from './integrations/ads-gateway.interface';
 export * from './integrations/ads-research.interface';

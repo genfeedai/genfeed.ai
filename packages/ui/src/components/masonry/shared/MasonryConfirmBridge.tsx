@@ -1,5 +1,4 @@
 'use client';
-import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   UpscaleConfirmData,
   VideoUpscaleSelection,
@@ -56,15 +55,20 @@ function UpscalePopover({ data, execute, clear }: UpscalePopoverProps) {
   const [selection, setSelection] = useState(() =>
     getDefaultVideoUpscaleSelection(modelOptions),
   );
-  const cost = selection?.cost ?? data.cost;
+  // A selection with a null cost is still waiting on (or failed) its quote.
+  const cost = selection ? selection.cost : data.cost;
+  const isQuoted = cost !== null && cost !== undefined;
 
   return (
     <VideoTransformPopover
       anchorIngredientId={data.ingredient?.id}
-      confirmLabel={translate('confirmAction', {
-        cost: formatNumberWithCommas(cost),
-      })}
+      confirmLabel={
+        isQuoted
+          ? translate('confirmAction', { cost })
+          : translate('confirmActionUnpriced')
+      }
       dialogLabel={translate('dialogLabel')}
+      isConfirmDisabled={!isQuoted}
       onClose={clear}
       onConfirm={async () => {
         await execute(selection);
@@ -75,6 +79,7 @@ function UpscalePopover({ data, execute, clear }: UpscalePopoverProps) {
         <VideoUpscaleConfirmControls
           modelOptions={modelOptions}
           onChange={setSelection}
+          videoId={data.ingredient?.id ?? ''}
         />
       ) : null}
     </VideoTransformPopover>
@@ -96,9 +101,7 @@ function ExtendPopover({ data, execute, clear }: ExtendPopoverProps) {
   return (
     <VideoTransformPopover
       anchorIngredientId={data.ingredient?.id}
-      confirmLabel={translate('confirmAction', {
-        cost: formatNumberWithCommas(selection?.cost ?? 0),
-      })}
+      confirmLabel={translate('confirmAction', { cost: selection?.cost ?? 0 })}
       dialogLabel={translate('dialogLabel')}
       isConfirmDisabled={!selection}
       onClose={clear}

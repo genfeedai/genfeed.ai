@@ -4,11 +4,6 @@ import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
 import type { IVideoEditParams } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
-import {
-  isTopazVideoUpscaleFps,
-  isTopazVideoUpscaleResolution,
-  quoteTopazVideoUpscaleCredits,
-} from '@genfeedai/pricing';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import type { VideosService } from '@genfeedai/services/ingredients/videos.service';
@@ -42,7 +37,8 @@ type TopazVideoEnhancePayload = IVideoEditParams & {
 };
 
 export interface VideoUpscaleSelection {
-  cost: number;
+  /** Credits quoted for these options; null while a server quote is pending or failed. */
+  cost: number | null;
   model: string;
   targetFps: number;
   targetResolution: string;
@@ -198,17 +194,13 @@ export function useEnhanceUpscale({
       const targetFps = selection?.targetFps ?? 30;
       const targetResolution = selection?.targetResolution ?? '1080p';
       const selectedCost = selection?.cost;
-      const expectedCost =
-        modelKey === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE &&
-        isKnownTransformCost(quotedCost) &&
-        isTopazVideoUpscaleResolution(targetResolution) &&
-        isTopazVideoUpscaleFps(targetFps)
-          ? quoteTopazVideoUpscaleCredits(
-              quotedCost,
-              targetResolution,
-              targetFps,
-            )
-          : quotedCost;
+      // Topaz is priced by the API from the source video's length, so its
+      // quote travels with the selection; other models charge the catalog price.
+      const isServerPriced =
+        modelKey === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE;
+      const isSelectedCostValid =
+        isKnownTransformCost(selectedCost) &&
+        (isServerPriced || selectedCost === quotedCost);
       const isStillConfirmed = () =>
         isQuoteCurrent(isVideo, modelKey, quotedCost, confirmedEpoch);
       if (
@@ -216,9 +208,7 @@ export function useEnhanceUpscale({
         (isVideo &&
           (!option?.fps.includes(targetFps) ||
             !option?.resolutions.includes(targetResolution) ||
-            (selection &&
-              (!isKnownTransformCost(selectedCost) ||
-                selectedCost !== expectedCost))))
+            (selection && !isSelectedCostValid)))
       ) {
         return notificationsService.error(
           'Upscale model or price changed. Review a new quote before continuing.',

@@ -8,6 +8,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { assertSupportedVideoUpscaleOptions } from '@api/collections/videos/utils/video-upscale-options.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -149,7 +150,7 @@ export class VideosUpscaleController {
       )) as string);
     const targetFps = videoEditDto.targetFps ?? 30;
     const targetResolution = videoEditDto.targetResolution ?? '1080p';
-    this.assertSupportedUpscaleOptions(model, targetResolution, targetFps);
+    assertSupportedVideoUpscaleOptions(model, targetResolution, targetFps);
     return this.executeUpscale({
       model,
       request,
@@ -404,37 +405,5 @@ export class VideosUpscaleController {
       getUserRoomName(user.id),
     );
     return true;
-  }
-
-  private assertSupportedUpscaleOptions(
-    model: string,
-    targetResolution: string,
-    targetFps: number,
-  ): void {
-    const isTopaz = model === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE;
-    const isBytedance = model === MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER;
-    if (!isTopaz && !isBytedance) {
-      throw new BadRequestException(
-        `Unsupported video upscale model: ${model}`,
-      );
-    }
-
-    const resolutions = isTopaz
-      ? new Set(['720p', '1080p', '4k'])
-      : new Set(['720p', '1080p', '2k', '4k']);
-    if (!resolutions.has(targetResolution)) {
-      throw new BadRequestException(
-        `${model} does not support target resolution "${targetResolution}".`,
-      );
-    }
-
-    const isSupportedFps = isTopaz
-      ? Number.isInteger(targetFps) && targetFps >= 15 && targetFps <= 60
-      : new Set([24, 30, 60, 120]).has(targetFps);
-    if (!isSupportedFps) {
-      throw new BadRequestException(
-        `${model} does not support target FPS ${targetFps}.`,
-      );
-    }
   }
 }

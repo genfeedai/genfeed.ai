@@ -5,11 +5,7 @@ import type {
   VideoUpscaleModelOption,
   VideoUpscaleSelection,
 } from '@genfeedai/hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
-import {
-  isTopazVideoUpscaleFps,
-  isTopazVideoUpscaleResolution,
-  quoteTopazVideoUpscaleCredits,
-} from '@genfeedai/pricing';
+import { useVideoUpscaleQuote } from '@ui/modals/ingredients/use-video-upscale-quote';
 import FormControl from '@ui/primitives/field';
 import {
   Select,
@@ -19,11 +15,13 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface VideoUpscaleConfirmControlsProps {
   modelOptions: VideoUpscaleModelOption[];
   onChange: (selection: VideoUpscaleSelection) => void;
+  /** The video being upscaled; Topaz is priced from its stored length. */
+  videoId: string;
 }
 
 function getDefaultModel(options: VideoUpscaleModelOption[]) {
@@ -34,19 +32,17 @@ function getDefaultModel(options: VideoUpscaleModelOption[]) {
   );
 }
 
-function getQuote(
-  option: VideoUpscaleModelOption,
-  resolution: string,
-  fps: number,
-): number {
-  if (
-    option.key === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE &&
-    isTopazVideoUpscaleResolution(resolution) &&
-    isTopazVideoUpscaleFps(fps)
-  ) {
-    return quoteTopazVideoUpscaleCredits(option.cost, resolution, fps);
-  }
-  return option.cost;
+/**
+ * Topaz bills per second of the source video, which only the API knows, so its
+ * price comes from the quote endpoint (null until that answers). Other models
+ * charge their flat catalog price.
+ */
+function isServerPriced(option: VideoUpscaleModelOption): boolean {
+  return option.key === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE;
+}
+
+function getFlatQuote(option: VideoUpscaleModelOption): number | null {
+  return isServerPriced(option) ? null : option.cost;
 }
 
 export function getDefaultVideoUpscaleSelection(
@@ -61,7 +57,7 @@ export function getDefaultVideoUpscaleSelection(
     : (option.resolutions[0] ?? '');
   const targetFps = option.fps.includes(30) ? 30 : (option.fps[0] ?? 30);
   return {
-    cost: getQuote(option, targetResolution, targetFps),
+    cost: getFlatQuote(option),
     model: option.key,
     targetFps,
     targetResolution,
@@ -71,6 +67,7 @@ export function getDefaultVideoUpscaleSelection(
 export default function VideoUpscaleConfirmControls({
   modelOptions,
   onChange,
+  videoId,
 }: VideoUpscaleConfirmControlsProps) {
   const translate = useTranslations('common.videoCreativeActions.upscale');
   const defaultModel = getDefaultModel(modelOptions);
@@ -86,11 +83,20 @@ export default function VideoUpscaleConfirmControls({
     selectedModel?.fps.includes(30) ? 30 : (selectedModel?.fps[0] ?? 30),
   );
 
-  const cost = useMemo(
-    () =>
-      selectedModel ? getQuote(selectedModel, targetResolution, targetFps) : 0,
-    [selectedModel, targetFps, targetResolution],
-  );
+  const quote = useVideoUpscaleQuote({
+    isEnabled: Boolean(
+      selectedModel && isServerPriced(selectedModel) && videoId,
+    ),
+    model: selectedModel?.key ?? '',
+    targetFps,
+    targetResolution,
+    videoId,
+  });
+  const cost = selectedModel
+    ? isServerPriced(selectedModel)
+      ? quote.credits
+      : selectedModel.cost
+    : null;
 
   useEffect(() => {
     if (!selectedModel) {
@@ -175,6 +181,12 @@ export default function VideoUpscaleConfirmControls({
           </Select>
         </FormControl>
       </div>
+
+      {quote.isFailed ? (
+        <p role="alert" className="text-xs text-destructive">
+          {translate('quoteUnavailable')}
+        </p>
+      ) : null}
     </div>
   );
 }

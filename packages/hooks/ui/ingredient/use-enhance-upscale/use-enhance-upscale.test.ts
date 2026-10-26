@@ -1,7 +1,6 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { quoteTopazVideoUpscaleCredits } from '@genfeedai/pricing';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -612,7 +611,7 @@ describe('useEnhanceUpscale', () => {
         model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         targetFps: 60,
         targetResolution: '4k',
-        cost: 20,
+        cost: null,
       },
     ])(
       'rejects unsupported settings or an altered selected quote (%j)',
@@ -629,7 +628,7 @@ describe('useEnhanceUpscale', () => {
       },
     );
 
-    it('accepts the shared Topaz quote for a supported 4K/60 selection', async () => {
+    it('accepts the API-quoted Topaz price for a supported 4K/60 selection', async () => {
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
       await act(async () => {
         await result.current.handleUpscale(video);
@@ -639,7 +638,7 @@ describe('useEnhanceUpscale', () => {
           model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
           targetFps: 60,
           targetResolution: '4k',
-          cost: quoteTopazVideoUpscaleCredits(20, '4k', 60),
+          cost: 3600,
         });
       });
       expect(mockPostUpscale).toHaveBeenCalledWith(video.id, {

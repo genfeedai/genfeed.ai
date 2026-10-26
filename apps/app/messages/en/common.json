@@ -2444,7 +2444,7 @@
       }
     },
     "extend": {
-      "confirmAction": "Extend · {cost} credits",
+      "confirmAction": "{cost, plural, one {Extend · # credit} other {Extend · # credits}}",
       "continuationPromptLabel": "Continuation prompt",
       "continuationPromptPlaceholder": "Describe what happens next…",
       "dialogLabel": "Extend video",
@@ -2453,9 +2453,11 @@
       "newClipDurationLabel": "New clip duration"
     },
     "upscale": {
-      "confirmAction": "Upscale · {cost} credits",
+      "confirmAction": "{cost, plural, one {Upscale · # credit} other {Upscale · # credits}}",
+      "confirmActionUnpriced": "Upscale · pricing…",
       "dialogLabel": "Upscale video",
       "framesPerSecond": "{fps} fps",
+      "quoteUnavailable": "Couldn't price this upscale. Try changing the options or reopen the dialog.",
       "targetFrameRateLabel": "Target frame rate",
       "targetResolutionLabel": "Target resolution",
       "upscaleModelLabel": "Upscale model"
