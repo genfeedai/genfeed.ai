@@ -40,10 +40,19 @@ import type {
   WorkflowGenerationManifest,
   WorkflowGenerationProviderEvidence,
 } from '@genfeedai/contracts/interfaces/billing';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import {
+  Prisma,
+  WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
+
+/** Gives the original finalization time to finish before the sweep retries it. */
+const TERMINAL_CLOSE_GRACE_MS = 10 * 60 * 1000;
+const TERMINAL_CLOSE_PAGE_SIZE = 100;
+const TERMINAL_CLOSE_MAX_PAGES = 10;
 
 @Injectable()
 export class WorkflowGenerationBillingService {
@@ -521,6 +530,82 @@ export class WorkflowGenerationBillingService {
       this.closeInTransaction(tx, executionId, organizationId),
     );
     await this.settleExecution(executionId, organizationId);
+  }
+
+  /**
+   * The credit expiry sweep skips workflow holds, so a terminal execution whose
+   * finalization could not start its transaction (Sentry 8Q) would keep its
+   * hold forever. Re-run the idempotent close for holds still RESERVED after
+   * their execution reached a terminal status; a live run is never touched.
+   */
+  async reconcileTerminalExecutions(
+    now = new Date(),
+    limit = 50,
+  ): Promise<number> {
+    const cutoff = new Date(now.getTime() - TERMINAL_CLOSE_GRACE_MS);
+    let closed = 0;
+    let cursor: string | undefined;
+    // Holds of still-running executions sit at the front of an oldest-first
+    // scan, so page past them instead of re-reading the same rows each sweep.
+    for (
+      let page = 0;
+      page < TERMINAL_CLOSE_MAX_PAGES && closed < limit;
+      page++
+    ) {
+      // tenant-scope-ignore: platform maintenance sweep; every row carries its own organizationId and the close below is organization-scoped.
+      const holds = await this.prisma.creditReservation.findMany({
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        orderBy: { id: 'asc' },
+        select: { id: true, organizationId: true, workloadId: true },
+        take: TERMINAL_CLOSE_PAGE_SIZE,
+        where: {
+          createdAt: { lte: cutoff },
+          isDeleted: false,
+          status: CreditReservationStatus.RESERVED,
+          workloadId: { not: null },
+          workloadType: WORKFLOW_GENERATION_WORKLOAD_TYPE,
+        },
+      });
+      for (const { organizationId, workloadId } of holds) {
+        if (!workloadId || closed >= limit) continue;
+        closed += await this.closeIfTerminal(workloadId, organizationId);
+      }
+      if (holds.length < TERMINAL_CLOSE_PAGE_SIZE) break;
+      cursor = holds[holds.length - 1].id;
+    }
+    return closed;
+  }
+
+  private async closeIfTerminal(
+    executionId: string,
+    organizationId: string,
+  ): Promise<number> {
+    try {
+      const execution = await this.prisma.workflowExecution.findFirst({
+        select: { id: true },
+        where: {
+          id: executionId,
+          isDeleted: false,
+          organizationId,
+          status: {
+            in: [
+              PrismaWorkflowExecutionStatus.COMPLETED,
+              PrismaWorkflowExecutionStatus.FAILED,
+              PrismaWorkflowExecutionStatus.CANCELLED,
+            ],
+          },
+        },
+      });
+      if (!execution) return 0;
+      await this.closeExecution(executionId, organizationId);
+      return 1;
+    } catch (error: unknown) {
+      this.logger.error('Workflow hold terminal close failed', error, {
+        executionId,
+        organizationId,
+      });
+      return 0;
+    }
   }
 
   /** Reattaches preparing/orphan holds and closes tombstones without inventing provider failure. */
