@@ -85,7 +85,7 @@ export default function PostMediaStrip({
             sizes="64px"
           />
 
-          <span className="absolute bottom-0.5 left-0.5 rounded-sm bg-black/60 px-1 text-[10px] leading-4 text-white">
+          <span className="absolute bottom-0.5 left-0.5 rounded-sm bg-black/60 px-1 text-2xs leading-4 text-white">
             {index + 1}
           </span>
 
