@@ -1,4 +1,6 @@
+import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-sync-loop.service';
+import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { RouterPriority } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -49,6 +51,10 @@ function setup() {
   const runner = {
     recordAgentResponseModel: vi.fn().mockResolvedValue('model'),
     executeToolRound: vi.fn().mockResolvedValue({ isCancelled: false }),
+    finalizeKnowledgeCitations: vi.fn(async (content: string) => ({
+      content,
+      metadata: {},
+    })),
   };
   const routing = { resolve: vi.fn() };
   const messages = { addMessage: vi.fn() };
@@ -195,5 +201,97 @@ describe('final assistant persistence failure', () => {
       }),
     );
     expect(recorder.recordRunCompleted).not.toHaveBeenCalled();
+  });
+});
+
+describe('verified Knowledge citations in the final answer', () => {
+  const shown = {
+    excerpt: 'Plans start at $29 per month.',
+    kind: 'TEXT',
+    purpose: 'BRAND_TRUTH',
+    relevance: 0.9,
+    sourceId: 'source-1',
+    title: 'Pricing',
+    version: 1,
+    versionId: 'version-1',
+  };
+
+  /** Routes the mocked runner's citation step through the real service. */
+  function useRealCitations(
+    runner: { finalizeKnowledgeCitations: ReturnType<typeof vi.fn> },
+    verifier: object,
+  ) {
+    const real = new AgentTurnRoundRunnerService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      new AgentKnowledgeCitationService(verifier as never),
+    );
+    runner.finalizeKnowledgeCitations.mockImplementation(
+      (...args: Parameters<typeof real.finalizeKnowledgeCitations>) =>
+        real.finalizeKnowledgeCitations(...args),
+    );
+  }
+
+  function finalAnswer(content: string) {
+    return {
+      id: 'reply',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      choices: [{ message: { content, role: 'assistant', tool_calls: [] } }],
+    };
+  }
+
+  it('numbers a source the user may still read and persists it with the answer', async () => {
+    const verifier = {
+      revalidate: vi.fn(async (_actor: unknown, r: object) => r),
+    };
+    const { run, provider, runner } = setup();
+    useRealCitations(runner, verifier);
+    runner.executeToolRound.mockImplementation(async ({ state }) => {
+      state.knowledgePassages = new Map([['p1', { receipt: shown }]]);
+      return { isCancelled: false };
+    });
+    provider.chatCompletion
+      .mockResolvedValueOnce({
+        id: 'search',
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        choices: [
+          {
+            message: {
+              content: '',
+              role: 'assistant',
+              tool_calls: [
+                {
+                  id: 'tool',
+                  type: 'function',
+                  function: { name: 'search_knowledge', arguments: '{}' },
+                },
+              ],
+            },
+          },
+        ],
+      })
+      .mockResolvedValueOnce(finalAnswer('Starter is $29 [[cite:p1]].'));
+
+    const result = await run(50);
+
+    expect(result.message.content).toBe('Starter is $29 [1].');
+    expect(result.message.metadata.knowledgeCitations).toEqual({
+      citations: [{ marker: 1, receipt: shown }],
+      unsupportedCount: 0,
+    });
+  });
+
+  it('leaves an answer with no markers and no citation metadata alone', async () => {
+    const { run, provider, runner } = setup();
+    useRealCitations(runner, { revalidate: vi.fn() });
+    provider.chatCompletion.mockResolvedValue(finalAnswer('Nothing cited.'));
+
+    const result = await run(50);
+
+    expect(result.message.content).toBe('Nothing cited.');
+    expect(result.message.metadata).not.toHaveProperty('knowledgeCitations');
   });
 });

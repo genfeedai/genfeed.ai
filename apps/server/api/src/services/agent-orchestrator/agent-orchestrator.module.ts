@@ -69,6 +69,7 @@ import { AgentCadenceMediaGenerationService } from '@api/services/agent-orchestr
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
+import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -336,6 +337,7 @@ import { Module } from '@nestjs/common';
       useFactory: (loggerService: LoggerService, cacheService: CacheService) =>
         new AgentToolConfirmationService(loggerService, cacheService),
     },
+    AgentKnowledgeCitationService,
     AgentTurnRoundRunnerService,
     AgentTurnWorkflowExecutionService,
     AgentCadenceExecutionService,

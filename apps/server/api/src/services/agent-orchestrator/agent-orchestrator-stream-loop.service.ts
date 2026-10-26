@@ -29,6 +29,7 @@ import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/u
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
+import { toPersistedToolCalls } from '@api/services/agent-orchestrator/utils/agent-persisted-tool-calls.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   AGENT_WRAP_UP_INSTRUCTION,
@@ -466,7 +467,13 @@ export class AgentOrchestratorStreamLoopService {
             toolRoundState.toolCalls,
             toolRoundState.uiActions,
           );
-          const content = normalizedContent.content;
+          const citations =
+            await this.turnRoundRunner.finalizeKnowledgeCitations(
+              normalizedContent.content,
+              toolRoundState,
+              context,
+            );
+          const content = citations.content;
 
           toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
 
@@ -525,6 +532,7 @@ export class AgentOrchestratorStreamLoopService {
                   prompt: latestUserMessage,
                 }),
                 isFallbackContent: normalizedContent.isFallback,
+                ...citations.metadata,
                 memoryEntries: memoryEntriesForResponse,
                 memoryInfluence,
                 ...buildResolvedModelMetadata(model, Array.from(actualModels)),
@@ -544,21 +552,14 @@ export class AgentOrchestratorStreamLoopService {
             organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
-            toolCalls: toolRoundState.toolCalls.map((tc) => ({
-              creditsUsed: tc.creditsUsed,
-              durationMs: tc.durationMs,
-              error: tc.error,
-              parameters: tc.parameters ?? {},
-              result: tc.resultSummary ? { summary: tc.resultSummary } : {},
-              status: tc.status,
-              toolName: tc.toolName,
-            })),
+            toolCalls: toPersistedToolCalls(toolRoundState.toolCalls),
             userId: context.userId,
           });
 
           await this.streamEffects.publishStreamCompletion({
             completionMetadata: {
               isFallbackContent: normalizedContent.isFallback,
+              ...citations.metadata,
               memoryEntries: memoryEntriesForResponse,
               memoryInfluence,
               ...buildResolvedModelMetadata(model, Array.from(actualModels)),

@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { agentToolCreditFloor } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
@@ -16,6 +17,7 @@ import {
   type AgentArtifactCompletionMetadata,
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { recordDashboardBlocks } from '@api/services/agent-orchestrator/utils/agent-dashboard-blocks.util';
 import {
   type GenerationRedirect,
   getGenerationPreparationRedirect,
@@ -23,6 +25,11 @@ import {
   isIdentityGenerationToolName,
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
+import {
+  annotateKnowledgeSearchData,
+  readBrandId,
+  type TurnKnowledgePassages,
+} from '@api/services/agent-orchestrator/utils/agent-knowledge-citation.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   APPROVAL_PENDING_RESULT_SUMMARY,
@@ -32,7 +39,6 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
 import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
 import { buildToolResultSummary } from '@api/services/agent-orchestrator/utils/agent-tool-result-summary.util';
-import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
@@ -50,7 +56,7 @@ import {
   type AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 // Every agent tool is itself a nested workflow run. Without a ceiling, one
 // stalled nested run holds the whole turn (and its Stop button) forever, because
@@ -74,6 +80,8 @@ export type AgentToolRoundUiBlocks = {
 export type AgentToolRoundState = {
   artifactMetadata: AgentArtifactCompletionMetadata[];
   highestRiskLevel: AgentToolRoundRiskLevel;
+  /** Passages `search_knowledge` showed the model this turn; the only citable ones. */
+  knowledgePassages?: TurnKnowledgePassages;
   latestUiBlocks: AgentToolRoundUiBlocks;
   reviewRequired: boolean;
   toolCalls: ToolCallSummary[];
@@ -213,6 +221,8 @@ export class AgentTurnRoundRunnerService {
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly toolConfirmationService: AgentToolConfirmationService,
     private readonly untrustedContentGateService: AgentUntrustedContentGateService,
+    @Optional()
+    private readonly citationService?: AgentKnowledgeCitationService,
   ) {}
 
   /**
@@ -643,24 +653,7 @@ export class AgentTurnRoundRunnerService {
       }
 
       if (toolName === 'render_dashboard' && result.data?.uiBlocks) {
-        const normalizedBlocks = normalizeUiBlocks(
-          result.data.uiBlocks as unknown[],
-        );
-        state.latestUiBlocks = {
-          blockIds: result.data.blockIds as string[] | undefined,
-          blocks: normalizedBlocks,
-          operation: result.data.operation as AgentDashboardOperation,
-        };
-
-        if (strategy.onUiBlocks) {
-          await strategy.onUiBlocks({
-            blockIds: result.data.blockIds as string[] | undefined,
-            blocks: normalizedBlocks,
-            deferPublish: Boolean(result.data.deferUiBlocksPublish),
-            operation: result.data.operation as AgentDashboardOperation,
-            resultData: result.data,
-          });
-        }
+        await recordDashboardBlocks(state, strategy, result.data);
       }
 
       if (strategy.onRecordRunToolCall) {
@@ -685,9 +678,11 @@ export class AgentTurnRoundRunnerService {
           context,
           modelVisibleResult,
           policy,
+          state,
           threadId,
           toolCall,
           toolName,
+          toolParams,
         }),
         role: 'tool' as const,
         tool_call_id: toolCall.id,
@@ -717,21 +712,63 @@ export class AgentTurnRoundRunnerService {
     context: AgentChatContext;
     modelVisibleResult: AgentToolResult;
     policy: ResolvedAgentExecutionPolicy;
+    state: AgentToolRoundState;
     threadId: string;
     toolCall: OpenRouterToolCallResponse;
     toolName: CuratedActionName;
+    toolParams: Record<string, unknown>;
   }): Promise<string> {
+    const annotated =
+      params.toolName === 'search_knowledge' && params.modelVisibleResult.data
+        ? annotateKnowledgeSearchData(
+            params.state,
+            params.modelVisibleResult.data,
+            readBrandId(params.toolParams) ?? params.context.scope?.brandId,
+          )
+        : null;
+    const visibleResult = annotated
+      ? { ...params.modelVisibleResult, data: annotated.data }
+      : params.modelVisibleResult;
+    const content = JSON.stringify(visibleResult);
     const gated = await this.untrustedContentGateService.evaluateToolResult({
       origin: 'agent',
       brandId: params.policy.brandId,
-      content: JSON.stringify(params.modelVisibleResult),
+      content,
       context: params.context,
       threadId: params.threadId,
       toolCallId: params.toolCall.id,
       toolName: params.toolName,
     });
 
+    // A withheld or rewritten result is not what was numbered, so none of its
+    // passages are citable.
+    if (annotated && gated.content !== content) {
+      for (const id of annotated.ids)
+        params.state.knowledgePassages?.delete(id);
+    }
     return gated.content;
+  }
+
+  /**
+   * Turns citation markers in the final answer into verified, numbered sources.
+   * Shared by sync and stream loops; `metadata` is spread into the response.
+   */
+  async finalizeKnowledgeCitations(
+    content: string,
+    state: AgentToolRoundState,
+    context: AgentChatContext,
+  ): Promise<{ content: string; metadata: Record<string, unknown> }> {
+    const finalized = await this.citationService?.finalize(
+      content,
+      state.knowledgePassages,
+      context,
+    );
+    return {
+      content: finalized?.content ?? content,
+      metadata: finalized?.knowledgeCitations
+        ? { knowledgeCitations: finalized.knowledgeCitations }
+        : {},
+    };
   }
 
   private readCurrentOperatorMessage(

@@ -33,6 +33,7 @@ import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/u
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
+import { toPersistedToolCalls } from '@api/services/agent-orchestrator/utils/agent-persisted-tool-calls.util';
 import {
   AGENT_WRAP_UP_INSTRUCTION,
   isAgentWrapUpRound,
@@ -458,7 +459,12 @@ export class AgentOrchestratorSyncLoopService {
       toolRoundState.toolCalls,
       toolRoundState.uiActions,
     );
-    const content = normalizedContent.content;
+    const citations = await this.turnRoundRunner.finalizeKnowledgeCitations(
+      normalizedContent.content,
+      toolRoundState,
+      context,
+    );
+    const content = citations.content;
 
     toolRoundState.totalCreditsUsed +=
       await this.settleAccruedTurnCredits(loopState);
@@ -494,6 +500,7 @@ export class AgentOrchestratorSyncLoopService {
       defaultModelKey,
       enhancedUiActions,
       isFallbackContent: normalizedContent.isFallback,
+      citationMetadata: citations.metadata,
       memoryEntries: memoryEntriesForResponse,
       memoryInfluence,
       model,
@@ -514,15 +521,7 @@ export class AgentOrchestratorSyncLoopService {
       organizationId: context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: threadId,
-      toolCalls: toolRoundState.toolCalls.map((tc) => ({
-        creditsUsed: tc.creditsUsed,
-        durationMs: tc.durationMs,
-        error: tc.error,
-        parameters: tc.parameters ?? {},
-        result: tc.resultSummary ? { summary: tc.resultSummary } : {},
-        status: tc.status,
-        toolName: tc.toolName,
-      })),
+      toolCalls: toPersistedToolCalls(toolRoundState.toolCalls),
       userId: context.userId,
     });
     await this.threadEventRecorder.recordAssistantFinalized({

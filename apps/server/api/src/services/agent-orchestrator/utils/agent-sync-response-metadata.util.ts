@@ -21,6 +21,8 @@ export interface AgentSyncResponseMetadataParams {
     AgentCompletionCardBuilderService['buildAssistantUiActions']
   >;
   isFallbackContent: boolean;
+  /** Verified sources behind the answer; empty when it cited none. */
+  citationMetadata?: Record<string, unknown>;
   memoryEntries: ReturnType<
     AgentOrchestratorContextService['buildMemoryEntriesForResponse']
   >;
@@ -50,6 +52,7 @@ export function buildAgentSyncResponseMetadata(
     }),
     ...buildResolvedModelMetadata(params.model, params.actualModels),
     isFallbackContent: params.isFallbackContent,
+    ...params.citationMetadata,
     memoryEntries: params.memoryEntries,
     memoryInfluence: params.memoryInfluence,
     reasoning: params.reasoning,

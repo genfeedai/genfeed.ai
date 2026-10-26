@@ -76,6 +76,10 @@ function setup(rounds: unknown[]) {
   };
   const runner = {
     executeToolRound: vi.fn().mockResolvedValue({ isCancelled: false }),
+    finalizeKnowledgeCitations: vi.fn(async (content: string) => ({
+      content,
+      metadata: {},
+    })),
     recordAgentResponseModel: vi.fn().mockResolvedValue('model'),
   };
   const recorder = {

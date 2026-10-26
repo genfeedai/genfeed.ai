@@ -13,6 +13,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeContextCoverageService } from '@api/collections/contexts/services/knowledge-context-coverage.service';
+import { KnowledgeReceiptVerifierService } from '@api/collections/contexts/services/knowledge-receipt-verifier.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
@@ -48,6 +49,7 @@ import { Module } from '@nestjs/common';
     KnowledgeRefreshService,
     KnowledgeSelectionService,
     KnowledgeContextCoverageService,
+    KnowledgeReceiptVerifierService,
     KnowledgeTranscriptIngestService,
   ],
   imports: [
@@ -72,6 +74,7 @@ import { Module } from '@nestjs/common';
     KnowledgeRefreshService,
     KnowledgeSelectionService,
     KnowledgeContextCoverageService,
+    KnowledgeReceiptVerifierService,
     KnowledgeTranscriptIngestService,
   ],
 })

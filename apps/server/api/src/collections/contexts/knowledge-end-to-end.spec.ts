@@ -8,6 +8,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
+import { KnowledgeReceiptVerifierService } from '@api/collections/contexts/services/knowledge-receipt-verifier.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
@@ -709,6 +710,50 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     expect(await retrieve(actorA, query)).toHaveLength(1);
     await records.deleteSource(actorA, again.source.id);
     expect(await retrieve(actorA, query)).toEqual([]);
+  });
+
+  it('keeps a chat citation only while its exact passage stays readable to the asking user', async () => {
+    const captured = await capture.capture(actorA, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Plans start at $29 per month.',
+      title: 'Pricing',
+    });
+    const version = await records.getCurrentVersion(actorA, captured.source.id);
+    const verifier = new KnowledgeReceiptVerifierService(
+      prisma as unknown as PrismaService,
+      records,
+    );
+    const receipt = {
+      excerpt: 'Plans start at $29 per month.',
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
+      relevance: 0.9,
+      sourceId: captured.source.id,
+      title: 'stale title',
+      version: version.version,
+      versionId: version.id,
+    };
+
+    expect(await verifier.revalidate(actorA, receipt)).toMatchObject({
+      excerpt: receipt.excerpt,
+      sourceId: captured.source.id,
+      title: 'Pricing',
+      versionId: version.id,
+    });
+    // Another organization's user never gets this source back, even by id.
+    expect(await verifier.revalidate(actorB, receipt)).toBeNull();
+
+    await records.updateSource(actorA, captured.source.id, {
+      isVisible: false,
+    });
+    expect(await verifier.revalidate(actorA, receipt)).toBeNull();
+    await records.updateSource(actorA, captured.source.id, { isVisible: true });
+    expect(await verifier.revalidate(actorA, receipt)).not.toBeNull();
+
+    await records.purgeVersion(actorA, captured.source.id, version.id);
+    expect(await verifier.revalidate(actorA, receipt)).toBeNull();
   });
 
   it('records a safe failure, retries without duplicates and replaces chunks on refresh', async () => {

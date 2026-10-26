@@ -220,6 +220,62 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     ]);
   });
 
+  const knowledgeSearchResult = {
+    creditsUsed: 0,
+    data: {
+      passages: [
+        {
+          citation: {
+            kind: 'TEXT',
+            purpose: 'BRAND_TRUTH',
+            sourceId: 'source-1',
+            title: 'Pricing',
+            version: 1,
+            versionId: 'version-1',
+          },
+          content: 'Plans start at $29 per month.',
+          relevance: 0.9,
+        },
+      ],
+      query: 'pricing',
+    },
+    success: true,
+  };
+
+  it('numbers Knowledge passages for the model and remembers them for citation', async () => {
+    executeTool.mockResolvedValueOnce(knowledgeSearchResult);
+    const { messages, state } = await executeCampaignRound({
+      message: 'What does the starter plan cost?',
+      toolName: 'search_knowledge',
+      toolParams: { brandId: 'brand-9', query: 'pricing' },
+    });
+    const seen = JSON.parse(String(messages.at(-1)?.content));
+    expect(seen.data.passages[0].passageId).toBe('p1');
+    expect(seen.data.citationInstruction).toContain('[[cite:<passageId>]]');
+    expect(state.knowledgePassages?.get('p1')).toEqual({
+      brandId: 'brand-9',
+      receipt: expect.objectContaining({
+        excerpt: 'Plans start at $29 per month.',
+        versionId: 'version-1',
+      }),
+    });
+  });
+
+  it('does not let the model cite a result the injection gate withheld', async () => {
+    executeTool.mockResolvedValueOnce(knowledgeSearchResult);
+    untrustedContentGateService.evaluateToolResult.mockResolvedValueOnce({
+      content: 'Tool result withheld.',
+      outcome: 'withheld' as never,
+    });
+    const { messages, state } = await executeCampaignRound({
+      message: 'What does the starter plan cost?',
+      toolName: 'search_knowledge',
+      toolParams: { query: 'pricing' },
+    });
+    expect(messages.at(-1)?.content).toBe('Tool result withheld.');
+    expect(state.knowledgePassages?.size).toBe(0);
+  });
+
   it('marks a Stop observed after an awaited tool as interrupted', async () => {
     const result = await runner.executeToolRound({
       allowedToolNames: new Set(['start_outreach_sequence']),

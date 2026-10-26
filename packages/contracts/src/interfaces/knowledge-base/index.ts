@@ -1,3 +1,4 @@
+export * from './agent-knowledge-citation.interface';
 export * from './context-coverage.interface';
 export * from './context-embedding.interface';
 export * from './knowledge-base.interface';
