@@ -440,7 +440,7 @@ export default function AgentWorkflowRunDialog({
               label="Cancel"
               type="button"
               size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
+              variant={ButtonVariant.GHOST}
               onClick={() => onOpenChange(false)}
             />
             <Button

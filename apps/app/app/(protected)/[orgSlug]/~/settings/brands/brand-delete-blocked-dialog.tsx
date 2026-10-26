@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -55,7 +56,7 @@ export default function BrandDeleteBlockedDialog({
             </li>
           ))}
         </ul>
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogFooter>
           <Button
             data-testid="blocked-close"
             label={translate('close')}
@@ -74,7 +75,7 @@ export default function BrandDeleteBlockedDialog({
               {translate('manage')}
             </Link>
           ) : null}
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

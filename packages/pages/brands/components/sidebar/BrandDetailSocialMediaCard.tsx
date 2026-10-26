@@ -44,6 +44,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -682,7 +683,7 @@ export default function BrandDetailSocialMediaCard({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button
             size={ButtonSize.SM}
             variant={ButtonVariant.GHOST}
@@ -698,7 +699,7 @@ export default function BrandDetailSocialMediaCard({
           >
             {translate('disconnect')}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -724,7 +725,7 @@ export default function BrandDetailSocialMediaCard({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button
             size={ButtonSize.SM}
             variant={ButtonVariant.GHOST}
@@ -739,7 +740,7 @@ export default function BrandDetailSocialMediaCard({
           >
             {translate('importOnConnectConfirm')}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -786,7 +787,7 @@ export default function BrandDetailSocialMediaCard({
                 ))}
               </ul>
             ) : null}
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
@@ -802,7 +803,7 @@ export default function BrandDetailSocialMediaCard({
               >
                 {translate('confirmOverride')}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         ) : null}
       </DialogContent>

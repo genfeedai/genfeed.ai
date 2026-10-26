@@ -481,7 +481,7 @@ export default function EditorProjectsPage() {
               <Button
                 isDisabled={isRenaming}
                 onClick={closeRename}
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.GHOST}
                 withWrapper={false}
               >
                 {translate('cancel')}

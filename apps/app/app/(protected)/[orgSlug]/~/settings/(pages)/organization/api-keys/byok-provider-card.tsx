@@ -234,9 +234,9 @@ export default function ByokProviderCard({
             </PrimitiveButton>
           </div>
 
-          <DialogFooter className="gap-2 sm:justify-end">
+          <DialogFooter>
             <Button
-              variant={ButtonVariant.SECONDARY}
+              variant={ButtonVariant.GHOST}
               onClick={onToggleExpand}
               isDisabled={isValidating || isSaving}
             >

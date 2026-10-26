@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -65,7 +66,7 @@ export default function CharacterAvailabilityDialog({
           />
         ) : null}
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogFooter>
           <Button
             data-testid="cancel-availability"
             isDisabled={controls.isSaving}
@@ -83,7 +84,7 @@ export default function CharacterAvailabilityDialog({
             }}
             variant={ButtonVariant.DEFAULT}
           />
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

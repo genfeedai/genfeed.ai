@@ -49,10 +49,10 @@ export default function CalendarRepublishDialog({
             {translate('republishOutcomesBody')}
           </AlertDescription>
         </Alert>
-        <DialogFooter className="gap-2 sm:justify-end">
+        <DialogFooter>
           <Button
             isDisabled={isPending}
-            variant={ButtonVariant.SECONDARY}
+            variant={ButtonVariant.GHOST}
             withWrapper={false}
             onClick={onCancel}
           >

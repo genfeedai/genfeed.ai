@@ -299,11 +299,11 @@ export default function GeneratePlanDialog({
             </Collapsible>
           ) : null}
 
-          <DialogFooter className="gap-2 sm:space-x-0">
+          <DialogFooter>
             <Button
               label={translate('dialogCancel')}
               type="button"
-              variant={ButtonVariant.SECONDARY}
+              variant={ButtonVariant.GHOST}
               onClick={() => onOpenChange(false)}
             />
             <Button

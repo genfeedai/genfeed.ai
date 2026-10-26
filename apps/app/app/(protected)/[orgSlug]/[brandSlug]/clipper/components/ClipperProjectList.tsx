@@ -238,7 +238,7 @@ export default function ClipperProjectList({
             </Field>
             <DialogFooter>
               <Button
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.GHOST}
                 isDisabled={isSaving}
                 onClick={() => setRenameTarget(null)}
                 withWrapper={false}

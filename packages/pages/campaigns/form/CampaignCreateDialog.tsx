@@ -17,6 +17,7 @@ import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -192,7 +193,7 @@ export default function CampaignCreateDialog({
             </p>
           ) : null}
           <p className="text-sm text-muted-foreground">{t('setup.next')}</p>
-          <div className="flex flex-wrap justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant={ButtonVariant.GHOST}
@@ -212,7 +213,7 @@ export default function CampaignCreateDialog({
               <Sparkles className="size-4" />
               {t(isGenerating ? 'setup.generating' : 'setup.generate')}
             </Button>
-          </div>
+          </DialogFooter>
         </Form>
       </DialogContent>
     </Dialog>

@@ -19,6 +19,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -154,7 +155,7 @@ export default function CampaignGenerateDialog({
             {resultMessage}
           </p>
         ) : null}
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogFooter>
           <Button
             variant={ButtonVariant.GHOST}
             isDisabled={isGenerating}
@@ -186,7 +187,7 @@ export default function CampaignGenerateDialog({
             <Sparkles className="size-4" />
             {t(isGenerating ? 'accounts.generating' : 'generate')}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
