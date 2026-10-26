@@ -2,8 +2,10 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { TurboContentRequest } from '@api/services/turbo-content/interfaces/turbo-content.interfaces';
 import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
+import { TURBO_CONTENT_ACTION_IDS } from '@api/services/turbo-content/turbo-content-workflow-definition';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -31,11 +33,16 @@ describe('TurboContentService', () => {
       ) => work(),
     ),
   };
+  const harness = {
+    formatBrief: vi.fn(),
+    resolveBrief: vi.fn(),
+  };
   const service = new TurboContentService(
     brands as unknown as BrandsService,
     workflowRunner as unknown as SystemWorkflowRunnerService,
     workflowQueue as unknown as WorkflowExecutionQueueService,
-    { log: vi.fn() } as unknown as LoggerService,
+    { log: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
+    harness as unknown as HarnessGenerationService,
   );
 
   beforeEach(() => {
@@ -89,5 +96,49 @@ describe('TurboContentService', () => {
       expect.any(Function),
     );
     expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+
+  describe('prepare-item action', () => {
+    const itemInput = { ...request, itemIndex: 0 };
+
+    async function prepareItem() {
+      service.onModuleInit();
+      const call = workflowRunner.registerAction.mock.calls.find(
+        ([id]) => id === TURBO_CONTENT_ACTION_IDS.PREPARE_ITEM,
+      );
+      const action = call?.[1] as (input: unknown) => Promise<{
+        context: { brandVoice: string; platforms: string[] };
+      }>;
+      return action({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: { item: itemInput },
+      });
+    }
+
+    it('passes the brand harness brief, with past feedback, as the brand voice', async () => {
+      harness.resolveBrief.mockResolvedValue({ appliedPacks: [] });
+      harness.formatBrief.mockReturnValue('  Avoid: salesy hooks  ');
+
+      const prepared = await prepareItem();
+
+      expect(harness.resolveBrief).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        contentType: 'post',
+        organizationId: 'org-1',
+        platform: undefined,
+        topic: 'launch',
+        userId: 'user-1',
+      });
+      expect(prepared.context.brandVoice).toBe('Avoid: salesy hooks');
+      expect(prepared.context.platforms).toEqual([]);
+    });
+
+    it('falls back to an empty brand voice when the brief cannot be resolved', async () => {
+      harness.resolveBrief.mockRejectedValue(new Error('Brand access denied'));
+
+      const prepared = await prepareItem();
+
+      expect(prepared.context.brandVoice).toBe('');
+    });
   });
 });

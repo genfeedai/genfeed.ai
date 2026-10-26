@@ -4,6 +4,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { isExecutableSkillSlug } from '@api/services/skill-executor/skill-workflow-definition';
 import type {
@@ -23,6 +24,7 @@ import {
   ForbiddenException,
   Injectable,
   type OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 
 type TurboContentItem = TurboContentRequest & { itemIndex: number };
@@ -41,6 +43,8 @@ export class TurboContentService implements OnModuleInit {
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {}
 
   onModuleInit(): void {
@@ -50,7 +54,7 @@ export class TurboContentService implements OnModuleInit {
     );
     this.workflowRunner.registerAction(
       TURBO_CONTENT_ACTION_IDS.PREPARE_ITEM,
-      (request) => this.prepareItemAction(request),
+      async (request) => this.prepareItemAction(request),
     );
     this.workflowRunner.registerAction(
       TURBO_CONTENT_ACTION_IDS.RANK,
@@ -134,7 +138,9 @@ export class TurboContentService implements OnModuleInit {
     };
   }
 
-  private prepareItemAction(request: SystemWorkflowActionRequest): {
+  private async prepareItemAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{
     context: {
       brandId: string;
       brandVoice: string;
@@ -142,17 +148,61 @@ export class TurboContentService implements OnModuleInit {
       platforms: string[];
     };
     params: Record<string, unknown>;
-  } {
+  }> {
     const item = this.readTurboRunItem(request.input.item);
+    const params = item.params ?? {};
+    const platform =
+      typeof params.platform === 'string' ? params.platform : undefined;
     return {
       context: {
         brandId: item.brandId,
-        brandVoice: '',
+        brandVoice: await this.resolveBrandVoice(
+          item,
+          request.context.userId,
+          platform,
+        ),
         organizationId: item.organizationId,
         platforms: [],
       },
-      params: item.params ?? {},
+      params,
     };
+  }
+
+  /**
+   * The brand harness brief (voice, anti-examples from past rejections,
+   * positive examples from approvals) so MCP-queued batches learn the same way
+   * Turbo Project batches do. Empty when the brand has none or the brief
+   * can't be resolved; generation must not fail on it.
+   */
+  private async resolveBrandVoice(
+    item: TurboContentItem,
+    userId: string | undefined,
+    platform: string | undefined,
+  ): Promise<string> {
+    if (!this.harnessGenerationService) {
+      return '';
+    }
+    try {
+      const topic =
+        typeof item.params?.topic === 'string'
+          ? item.params.topic.slice(0, 200)
+          : undefined;
+      const brief = await this.harnessGenerationService.resolveBrief({
+        brandId: item.brandId,
+        contentType: 'post',
+        organizationId: item.organizationId,
+        platform,
+        topic,
+        userId,
+      });
+      return this.harnessGenerationService.formatBrief(brief).trim();
+    } catch (error: unknown) {
+      this.logger.warn(`${this.context} harness brief unavailable`, {
+        brandId: item.brandId,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      return '';
+    }
   }
 
   private rankDraftsAction(
