@@ -71,6 +71,14 @@ const NEXT_PUBLIC_GENFEED_CLOUD = envFlag(
 )
   ? '1'
   : '';
+// TEST-ONLY: Playwright production builds run on localhost against the hosted API, so the
+// *.genfeed.ai rule cannot see Cloud. Inlined so the browser agrees with SSR; the resolver
+// ignores it on any *.genfeed.ai host.
+const NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT = ['cloud', 'self-hosted'].includes(
+  process.env.NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT?.trim() ?? '',
+)
+  ? (process.env.NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT?.trim() ?? '')
+  : '';
 const IS_CLOUD_APP_SHELL = getDeployment() === 'cloud';
 const IS_LOCAL_APP_SHELL = !IS_CLOUD_APP_SHELL;
 const IS_DESKTOP_BUNDLE = process.env.GENFEED_DESKTOP_BUNDLE === '1';
@@ -290,6 +298,7 @@ config.env = {
   NEXT_PUBLIC_RELEASE_TAG: process.env.RELEASE_TAG?.trim() ?? '',
   NEXT_PUBLIC_BUILD_ID: buildId,
   NEXT_PUBLIC_GENFEED_CLOUD,
+  NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT,
 };
 
 config.generateBuildId = async () => {

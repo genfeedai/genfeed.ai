@@ -1100,7 +1100,7 @@ test('pins mocked core E2E builds to Community mode', () => {
   // The action builds Community unless a caller opts into Cloud explicitly.
   assert.match(
     setup,
-    /NEXT_PUBLIC_GENFEED_CLOUD: \$\{\{ inputs\.genfeed-cloud \}\}/,
+    /NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT: \$\{\{ inputs\.genfeed-cloud == 'true' && 'cloud' \|\| 'self-hosted' \}\}/,
   );
   assert.match(setup, /genfeed-cloud:[\s\S]*?default: 'false'/);
   assert.doesNotMatch(

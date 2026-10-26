@@ -1463,7 +1463,7 @@ export async function proxy(req: NextRequest) {
   ) {
     hasWarnedAboutHostedModeMisconfiguration = true;
     console.warn(
-      'app.genfeed.ai is running without GENFEED_CLOUD; deployment mode remains self-hosted.',
+      'app.genfeed.ai is running without a *.genfeed.ai URL env key (GENFEEDAI_APP_URL); deployment mode remains self-hosted.',
     );
   }
 

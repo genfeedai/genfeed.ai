@@ -129,7 +129,7 @@ test('Playwright tiers share build setup without enabling auth bypass for real s
   // Community unless a caller opts into the Cloud cohort explicitly.
   assert.match(
     action,
-    /NEXT_PUBLIC_GENFEED_CLOUD: \$\{\{ inputs.genfeed-cloud \}\}/,
+    /NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT: \$\{\{ inputs.genfeed-cloud == 'true' && 'cloud' \|\| 'self-hosted' \}\}/,
   );
   assert.match(action, /genfeed-cloud:[\s\S]*?default: 'false'/);
   assert.match(action, /E2E_COVERAGE: '1'/);

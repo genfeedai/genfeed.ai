@@ -148,10 +148,17 @@ jobs:
               exit 1
             fi
 
-            awk '!/^(API_URL|NEXT_PUBLIC_GENFEED_CLOUD|NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY)=/' "${env_file}.tmp" > "${env_file}.app"
+            # Cloud is decided by the *.genfeed.ai host (packages/config deployment.ts), not a
+            # flag. The pulled production env is the runtime env, so fail closed here if it
+            # carries no hosted app URL, instead of shipping an app that resolves self-hosted.
+            if ! grep -Eq '^(GENFEEDAI_APP_URL|NEXT_PUBLIC_APPS_APP_ENDPOINT)=["'"'"']?https?://([A-Za-z0-9-]+\.)*genfeed\.ai([:/"'"'"']|$)' "${env_file}.tmp"; then
+              echo "::error::Vercel production env needs GENFEEDAI_APP_URL or NEXT_PUBLIC_APPS_APP_ENDPOINT on a genfeed.ai host; Cloud mode keys off it."
+              exit 1
+            fi
+
+            awk '!/^(API_URL|NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY)=/' "${env_file}.tmp" > "${env_file}.app"
             {
               printf 'API_URL=https://api.%s\n' "$DOMAIN"
-              printf 'NEXT_PUBLIC_GENFEED_CLOUD=1\n'
               printf 'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY=%s\n' "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY"
             } >> "${env_file}.app"
             mv "${env_file}.app" "$env_file"

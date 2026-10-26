@@ -82,13 +82,13 @@ export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
     lane: 'cloud',
     file: 'playwright/e2e/tests/cloud/billing-credits.spec.ts',
     reason:
-      'Needs the Cloud build (`NEXT_PUBLIC_GENFEED_CLOUD=true`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
+      'Needs the Cloud build (test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
   },
   {
     lane: 'cloud',
     file: 'playwright/e2e/tests/cloud/credits-recovery.spec.ts',
     reason:
-      'Needs the Cloud build (`NEXT_PUBLIC_GENFEED_CLOUD=true`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
+      'Needs the Cloud build (test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
   },
   {
     lane: 'release-install',
