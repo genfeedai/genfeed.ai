@@ -16,17 +16,10 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import Table from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 
 const _currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -56,39 +49,32 @@ function LeaderTable({
       {leaders.length === 0 ? (
         <CardEmptyContent label="No data available" />
       ) : (
-        <Table className="w-full text-sm">
-          <TableHeader>
-            <TableRow className="border-b border-border">
-              <TableHead className="pb-2 text-left font-medium text-muted-foreground">
-                #
-              </TableHead>
-              <TableHead className="pb-2 text-left font-medium text-muted-foreground">
-                Organization
-              </TableHead>
-              <TableHead className="pb-2 text-right font-medium text-muted-foreground">
-                {valueLabel}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaders.map((leader, index) => (
-              <TableRow
-                key={leader.organizationId}
-                className="border-b border-border/50 last:border-0"
-              >
-                <TableCell className="py-2 text-muted-foreground">
-                  {index + 1}
-                </TableCell>
-                <TableCell className="py-2 font-medium text-foreground">
-                  {leader.organizationName}
-                </TableCell>
-                <TableCell className="py-2 text-right tabular-nums text-foreground">
-                  {valueFormatter(leader)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Table<LeaderTableProps['leaders'][number]>
+          ariaLabel={title}
+          columns={[
+            {
+              className: 'text-muted-foreground',
+              header: '#',
+              key: 'rank',
+              render: (leader) => leaders.indexOf(leader) + 1,
+            },
+            {
+              className: 'font-medium',
+              header: 'Organization',
+              key: 'organizationName',
+            },
+            {
+              className: 'text-right tabular-nums',
+              header: valueLabel,
+              key: 'value',
+              render: valueFormatter,
+            },
+          ]}
+          density="compact"
+          framed={false}
+          getRowKey={(leader) => leader.organizationId}
+          items={leaders}
+        />
       )}
     </Card>
   );

@@ -5,23 +5,17 @@ import type {
   OrganizationSettingsTableProps,
   SelectedSetting,
   SettingGroup,
+  SettingTableRow,
 } from '@props/admin/organization-settings.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EditSettingModal } from '@protected/organization/components/edit-setting-modal';
-import { SettingRow } from '@protected/organization/components/setting-row';
 import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import { SkeletonTable } from '@ui/display/skeleton/skeleton';
+import Table from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
+import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const SETTING_GROUPS: SettingGroup[] = [
   {
@@ -134,6 +128,39 @@ export function OrganizationSettingsTable({
 }: OrganizationSettingsTableProps) {
   const translate = useTranslations('pages.adminOrganizationReleases');
   const { updateSettings } = useOrganizationSettings(organizationId);
+  const formatValue = useCallback(
+    (value: unknown, type: SettingTableRow['type']): string => {
+      if (value === null || value === undefined) {
+        return translate('settingsTable.notSet');
+      }
+
+      switch (type) {
+        case 'boolean':
+          return translate(value ? 'settingsTable.yes' : 'settingsTable.no');
+        case 'array': {
+          const count = (value as unknown[]).length;
+          return count === 0
+            ? translate('settingsTable.none')
+            : translate('settingsTable.items', { count });
+        }
+        default:
+          return String(value);
+      }
+    },
+    [translate],
+  );
+  const columns = useMemo<TableColumn<SettingTableRow>[]>(
+    () => [
+      { header: translate('settingsTable.column.setting'), key: 'label' },
+      {
+        className: 'font-mono text-sm',
+        header: translate('settingsTable.column.value'),
+        key: 'value',
+        render: (row) => formatValue(row.value, row.type),
+      },
+    ],
+    [formatValue, translate],
+  );
   // Releases sit right after Features, so the order matches the admin's flow.
   const settingGroups = useMemo<SettingGroup[]>(
     () => [
@@ -198,11 +225,43 @@ export function OrganizationSettingsTable({
     return undefined;
   }, [selectedSetting]);
 
-  if (isLoading) {
-    return <SkeletonTable rows={10} columns={3} />;
-  }
+  const rows = useMemo<SettingTableRow[]>(
+    () =>
+      settings
+        ? settingGroups.flatMap((group) =>
+            group.settings.map((setting) => ({
+              group: group.label,
+              key: setting.key,
+              label: setting.label,
+              type: setting.type,
+              value: settings[setting.key],
+            })),
+          )
+        : [],
+    [settingGroups, settings],
+  );
 
-  if (!settings) {
+  const actions = useMemo<TableAction<SettingTableRow>[]>(
+    () => [
+      {
+        ariaLabel: (row) =>
+          translate('settingsTable.editSetting', { label: row.label }),
+        icon: <Pencil className="size-3.5" />,
+        onClick: (row) =>
+          handleEdit({
+            key: row.key,
+            label: row.label,
+            type: row.type,
+            value: row.value,
+          }),
+        tooltip: translate('settingsTable.edit'),
+        tooltipPosition: 'left',
+      },
+    ],
+    [handleEdit, translate],
+  );
+
+  if (!isLoading && !settings) {
     return <CardEmpty label="No settings found" />;
   }
 
@@ -215,56 +274,16 @@ export function OrganizationSettingsTable({
         flush
         data-testid="organization-settings-surface"
       >
-        <div className="overflow-x-auto">
-          <Table className="table table-zebra w-full">
-            <TableHeader>
-              <TableRow className="border-b border-border">
-                <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Setting
-                </TableHead>
-                <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Value
-                </TableHead>
-                <TableHead className="px-4 py-3 text-right text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {settingGroups.map((group) => (
-                <Fragment key={group.label}>
-                  <TableRow key={group.label} className="bg-background/50">
-                    <TableCell
-                      colSpan={3}
-                      className="px-4 py-2 font-semibold text-sm uppercase"
-                    >
-                      {group.label}
-                    </TableCell>
-                  </TableRow>
-                  {group.settings.map((setting) => {
-                    const value = settings[setting.key];
-                    return (
-                      <SettingRow
-                        key={String(setting.key)}
-                        label={setting.label}
-                        value={value}
-                        type={setting.type}
-                        onEdit={() =>
-                          handleEdit({
-                            key: setting.key,
-                            label: setting.label,
-                            type: setting.type,
-                            value,
-                          })
-                        }
-                      />
-                    );
-                  })}
-                </Fragment>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <Table<SettingTableRow>
+          actions={actions}
+          ariaLabel="Organization settings"
+          columns={columns}
+          framed={false}
+          getGroupHeading={(row) => ({ content: row.group, key: row.group })}
+          getRowKey={(row) => String(row.key)}
+          isLoading={isLoading}
+          items={rows}
+        />
       </WorkspaceSurface>
       {selectedSetting && (
         <EditSettingModal

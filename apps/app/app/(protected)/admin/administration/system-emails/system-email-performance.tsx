@@ -5,25 +5,26 @@ import { LIFECYCLE_SYSTEM_EMAILS } from '@genfeedai/contracts/constants';
 import type {
   IEmailPerformanceQuery,
   IEmailPerformanceReport,
+  IEmailPerformanceRow,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { logger } from '@services/core/logger.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import Table from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 const TEMPLATE_NAMES = new Map(
   LIFECYCLE_SYSTEM_EMAILS.map((email) => [email.id as string, email.name]),
@@ -100,6 +101,62 @@ export default function SystemEmailPerformance({
     return () => controllerRef.current?.abort();
   }, [loadReport]);
 
+  const rateHeader = (label: string) => (
+    <>
+      {label}
+      <RateCaption label={translate('rateCaption')} />
+    </>
+  );
+  const countColumn = (
+    key: keyof IEmailPerformanceRow,
+    header: ReactNode,
+    rateOf?: 'delivered' | 'clicked' | 'converted',
+  ): TableColumn<IEmailPerformanceRow> => ({
+    className: NUMERIC_CELL,
+    header,
+    key,
+    render: (row) => (
+      <>
+        {formatCount(row[key] as number)}
+        {rateOf ? (
+          <Rate numerator={row[rateOf]} denominator={row.accepted} />
+        ) : null}
+      </>
+    ),
+  });
+  const columns: TableColumn<IEmailPerformanceRow>[] = [
+    {
+      header: translate('columnTemplate'),
+      key: 'templateKey',
+      render: (row) => (
+        <>
+          <p className="font-medium">
+            {TEMPLATE_NAMES.get(row.templateKey) ?? row.templateKey}
+          </p>
+          {TEMPLATE_NAMES.has(row.templateKey) && (
+            <p className="text-xs text-muted-foreground">{row.templateKey}</p>
+          )}
+        </>
+      ),
+    },
+    countColumn('queued', translate('columnQueued')),
+    countColumn('accepted', translate('columnAccepted')),
+    countColumn(
+      'delivered',
+      rateHeader(translate('columnDelivered')),
+      'delivered',
+    ),
+    countColumn('bounced', translate('columnBounced')),
+    countColumn('complained', translate('columnComplaints')),
+    countColumn('opened', translate('columnOpens')),
+    countColumn('clicked', rateHeader(translate('columnClicked')), 'clicked'),
+    countColumn(
+      'converted',
+      rateHeader(translate('columnConverted')),
+      'converted',
+    ),
+  ];
+
   return (
     <WorkspaceSurface title={translate('title')} tone="muted">
       <div className="space-y-4">
@@ -130,95 +187,12 @@ export default function SystemEmailPerformance({
                   .slice(0, 10),
               })}
             </p>
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{translate('columnTemplate')}</TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnQueued')}
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnAccepted')}
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnDelivered')}
-                      <RateCaption label={translate('rateCaption')} />
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnBounced')}
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnComplaints')}
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnOpens')}
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnClicked')}
-                      <RateCaption label={translate('rateCaption')} />
-                    </TableHead>
-                    <TableHead className={NUMERIC_CELL}>
-                      {translate('columnConverted')}
-                      <RateCaption label={translate('rateCaption')} />
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.rows.map((row) => (
-                    <TableRow key={row.templateKey}>
-                      <TableCell>
-                        <p className="font-medium">
-                          {TEMPLATE_NAMES.get(row.templateKey) ??
-                            row.templateKey}
-                        </p>
-                        {TEMPLATE_NAMES.has(row.templateKey) && (
-                          <p className="text-xs text-muted-foreground">
-                            {row.templateKey}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.queued)}
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.accepted)}
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.delivered)}
-                        <Rate
-                          numerator={row.delivered}
-                          denominator={row.accepted}
-                        />
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.bounced)}
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.complained)}
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.opened)}
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.clicked)}
-                        <Rate
-                          numerator={row.clicked}
-                          denominator={row.accepted}
-                        />
-                      </TableCell>
-                      <TableCell className={NUMERIC_CELL}>
-                        {formatCount(row.converted)}
-                        <Rate
-                          numerator={row.converted}
-                          denominator={row.accepted}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <Table<IEmailPerformanceRow>
+              ariaLabel={translate('title')}
+              columns={columns}
+              getRowKey={(row) => row.templateKey}
+              items={report.rows}
+            />
           </div>
         )}
         <div className="space-y-2 border-t border-border pt-4 text-xs text-muted-foreground">

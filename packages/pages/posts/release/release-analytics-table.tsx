@@ -1,20 +1,15 @@
 'use client';
 
 import type {
+  IReleaseTargetAnalyticsComparison,
   IReleaseTargetAnalyticsMetrics,
   SchedulerAnalyticsComparisonMetric,
 } from '@genfeedai/contracts/interfaces';
 import type { ReleaseAnalyticsTableProps } from '@props/publisher/release-calendar.props';
+import type { TableColumn } from '@props/ui/display/table.props';
+import CardEmpty from '@ui/card/empty/CardEmpty';
+import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -67,87 +62,62 @@ export default function ReleaseAnalyticsTable({
 
   if (!comparison || comparison.targets.length === 0) {
     return (
-      <div className="bg-muted/35 p-6 shadow-sm">
-        <h3 className="font-medium text-foreground">
-          {translate('analytics.emptyTitle')}
-        </h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {translate('analytics.emptyDescription')}
-        </p>
-      </div>
+      <CardEmpty
+        description={translate('analytics.emptyDescription')}
+        label={translate('analytics.emptyTitle')}
+      />
     );
   }
+
+  const columns: TableColumn<IReleaseTargetAnalyticsComparison>[] = [
+    {
+      className: 'capitalize',
+      header: translate('analytics.target'),
+      key: 'platform',
+      render: (target) => target.platform,
+    },
+    ...comparison.metricDefinitions.map(
+      (metric): TableColumn<IReleaseTargetAnalyticsComparison> => ({
+        className: 'text-right tabular-nums',
+        header: METRIC_LABELS[metric],
+        key: metric,
+        render: (target) => formatMetric(metric, target.metrics),
+      }),
+    ),
+    {
+      header: translate('analytics.evidence'),
+      key: 'evidence',
+      render: (target) => (
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <span className="capitalize">{target.collection.freshness}</span>
+          {target.snapshotIdentity ? (
+            <time dateTime={target.snapshotIdentity.updatedAt}>
+              {translate('analytics.snapshot', {
+                date: target.snapshotIdentity.snapshotDate,
+              })}
+            </time>
+          ) : null}
+          {target.collection.error ? (
+            <span className="text-destructive">
+              {target.collection.error.message}
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-3">
       <Badge variant={STATE_VARIANTS[comparison.state]}>
         {comparison.state}
       </Badge>
-      <div className="overflow-x-auto bg-card shadow-sm ring-1 ring-border/60">
-        <Table className="w-full border-collapse text-sm">
-          <TableCaption className="sr-only">
-            {translate('analytics.caption')}
-          </TableCaption>
-          <TableHeader className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <TableRow>
-              <TableHead scope="col" className="px-4 py-3 font-medium">
-                {translate('analytics.target')}
-              </TableHead>
-              {comparison.metricDefinitions.map((metric) => (
-                <TableHead
-                  key={metric}
-                  scope="col"
-                  className="px-4 py-3 text-right font-medium"
-                >
-                  {METRIC_LABELS[metric]}
-                </TableHead>
-              ))}
-              <TableHead scope="col" className="px-4 py-3 font-medium">
-                {translate('analytics.evidence')}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="divide-y divide-border">
-            {comparison.targets.map((target) => (
-              <TableRow key={target.targetId}>
-                <TableHead
-                  scope="row"
-                  className="px-4 py-4 text-left font-medium capitalize text-foreground"
-                >
-                  {target.platform}
-                </TableHead>
-                {comparison.metricDefinitions.map((metric) => (
-                  <TableCell
-                    key={metric}
-                    className="px-4 py-4 text-right tabular-nums text-foreground"
-                  >
-                    {formatMetric(metric, target.metrics)}
-                  </TableCell>
-                ))}
-                <TableCell className="px-4 py-4">
-                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    <span className="capitalize">
-                      {target.collection.freshness}
-                    </span>
-                    {target.snapshotIdentity ? (
-                      <time dateTime={target.snapshotIdentity.updatedAt}>
-                        {translate('analytics.snapshot', {
-                          date: target.snapshotIdentity.snapshotDate,
-                        })}
-                      </time>
-                    ) : null}
-                    {target.collection.error ? (
-                      <span className="text-destructive">
-                        {target.collection.error.message}
-                      </span>
-                    ) : null}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <Table<IReleaseTargetAnalyticsComparison>
+        ariaLabel={translate('analytics.caption')}
+        columns={columns}
+        getRowKey={(target) => target.targetId}
+        items={comparison.targets}
+      />
     </div>
   );
 }

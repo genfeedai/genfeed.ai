@@ -7,8 +7,10 @@ import type {
   UpdateModelProviderRouting,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelDetailService } from '@services/admin/model-detail.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
@@ -21,14 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -44,6 +38,15 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+
+type ModelOffer = AdminModelDetail['offers'][number];
+type ModelRate = ModelOffer['rates'][number];
+type PricingRow = { key: string; offer: ModelOffer; rate: ModelRate | null };
+type ProviderUsage = {
+  provider: string;
+  generations: number;
+  vendorCostUsd: number;
+};
 
 const usd = (value: number) =>
   new Intl.NumberFormat('en-US', {
@@ -112,10 +115,7 @@ export default function ModelDetailContent() {
     return [...points.values()];
   }, [model, days]);
   const providers = useMemo(() => {
-    const points = new Map<
-      string,
-      { provider: string; generations: number; vendorCostUsd: number }
-    >();
+    const points = new Map<string, ProviderUsage>();
     for (const point of model?.usage ?? []) {
       const current = points.get(point.provider) ?? {
         provider: point.provider,
@@ -143,6 +143,178 @@ export default function ModelDetailContent() {
       </div>
     );
   const draft = modelDraft?.id === model.id ? modelDraft : model;
+  const offerColumns: TableColumn<ModelOffer>[] = [
+    {
+      className: 'font-medium',
+      header: t('provider'),
+      key: 'provider',
+      render: (offer) => (
+        <>
+          {offer.provider}
+          {offer.executionModelId !== model.id && (
+            <Link
+              className="block text-xs text-muted-foreground underline"
+              href={`/admin/automation/models/${params.type}/${encodeURIComponent(offer.executionModelId)}`}
+            >
+              {t('registrationSettings')}
+            </Link>
+          )}
+        </>
+      ),
+    },
+    {
+      header: t('endpoint'),
+      key: 'endpoint',
+      render: (offer) => <code className="text-xs">{offer.endpoint}</code>,
+    },
+    {
+      header: t('pricing'),
+      key: 'hasReviewedPricing',
+      render: (offer) => (
+        <Badge variant={offer.hasReviewedPricing ? 'secondary' : 'warning'}>
+          {offer.hasReviewedPricing ? t('reviewed') : t('unpriced')}
+        </Badge>
+      ),
+    },
+    {
+      header: t('offer'),
+      key: 'isActive',
+      render: (offer) => (
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          disabled={busy}
+          onClick={() =>
+            update.mutate({
+              executionModelId: offer.executionModelId,
+              isActive: !offer.isActive,
+            })
+          }
+        >
+          {offer.isActive ? t('disableOffer') : t('enableOffer')}
+        </Button>
+      ),
+    },
+    {
+      header: t('providerAvailability'),
+      key: 'isProviderActive',
+      render: (offer) => (
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          disabled={busy}
+          onClick={() =>
+            providerUpdate.mutate({
+              provider: offer.provider,
+              isActive: !offer.isProviderActive,
+            })
+          }
+        >
+          {offer.isProviderActive
+            ? t('disableProviderGlobally')
+            : t('enableProviderGlobally')}
+        </Button>
+      ),
+    },
+  ];
+  const pricingRows: PricingRow[] = model.offers.flatMap<PricingRow>((offer) =>
+    offer.rates.length
+      ? offer.rates.map((rate) => ({
+          key: `${offer.id}-${rate.component}-${rate.unit}-${JSON.stringify(rate.when)}`,
+          offer,
+          rate,
+        }))
+      : [{ key: offer.id, offer, rate: null }],
+  );
+  const pricingColumns: TableColumn<PricingRow>[] = [
+    {
+      header: t('provider'),
+      key: 'provider',
+      render: ({ offer }) => offer.provider,
+    },
+    {
+      header: t('variant'),
+      key: 'variant',
+      render: ({ rate }) =>
+        rate
+          ? Object.entries(rate.when)
+              .map(([name, value]) => `${name}: ${value}`)
+              .join(' · ') || t('allSupportedSettings')
+          : t('priceUnavailable'),
+    },
+    {
+      header: t('component'),
+      key: 'component',
+      render: ({ rate }) => rate?.component,
+    },
+    {
+      header: t('providerPricePerUnit'),
+      key: 'providerPrice',
+      render: ({ rate }) =>
+        rate
+          ? [
+              t(rate.isPerOutput ? 'unitPricePerOutput' : 'unitPrice', {
+                price: usd(rate.unitPriceUsd),
+                unit: rate.unit,
+              }),
+              rate.includedUnits
+                ? t('includes', { count: rate.includedUnits })
+                : null,
+              rate.minimumUnits
+                ? t('minimum', { count: rate.minimumUnits })
+                : null,
+              rate.roundUnitsTo
+                ? t('roundsTo', { count: rate.roundUnitsTo })
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : null,
+    },
+    {
+      header: t('withMargin'),
+      key: 'withMargin',
+      render: ({ rate }) =>
+        rate
+          ? t('unitPrice', {
+              price: usd(rate.unitPriceUsd * model.marginMultiplier),
+              unit: rate.unit,
+            })
+          : null,
+    },
+    {
+      header: t('verified'),
+      key: 'verified',
+      render: ({ offer, rate }) =>
+        rate ? (offer.verifiedAt?.slice(0, 10) ?? t('unverified')) : null,
+    },
+    {
+      header: t('source'),
+      key: 'source',
+      render: ({ offer, rate }) =>
+        rate && offer.sourceUrl ? (
+          <a
+            href={offer.sourceUrl}
+            rel="noreferrer"
+            target="_blank"
+            className="underline"
+          >
+            {t('providerPricingLink')}
+          </a>
+        ) : null,
+    },
+  ];
+  const usageColumns: TableColumn<ProviderUsage>[] = [
+    { header: t('provider'), key: 'provider' },
+    {
+      header: t('recordedGenerations'),
+      key: 'generations',
+      render: (provider) => provider.generations.toLocaleString('en-US'),
+    },
+    {
+      header: t('vendorCost'),
+      key: 'vendorCostUsd',
+      render: (provider) => usd(provider.vendorCostUsd),
+    },
+  ];
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8 p-6">
       <header className="space-y-3">
@@ -262,74 +434,12 @@ export default function ModelDetailContent() {
             </SelectContent>
           </Select>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('provider')}</TableHead>
-              <TableHead>{t('endpoint')}</TableHead>
-              <TableHead>{t('pricing')}</TableHead>
-              <TableHead>{t('offer')}</TableHead>
-              <TableHead>{t('providerAvailability')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {model.offers.map((offer) => (
-              <TableRow key={offer.id}>
-                <TableCell className="font-medium">
-                  {offer.provider}
-                  {offer.executionModelId !== model.id && (
-                    <Link
-                      className="block text-xs text-muted-foreground underline"
-                      href={`/admin/automation/models/${params.type}/${encodeURIComponent(offer.executionModelId)}`}
-                    >
-                      {t('registrationSettings')}
-                    </Link>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <code className="text-xs">{offer.endpoint}</code>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={offer.hasReviewedPricing ? 'secondary' : 'warning'}
-                  >
-                    {offer.hasReviewedPricing ? t('reviewed') : t('unpriced')}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    disabled={busy}
-                    onClick={() =>
-                      update.mutate({
-                        executionModelId: offer.executionModelId,
-                        isActive: !offer.isActive,
-                      })
-                    }
-                  >
-                    {offer.isActive ? t('disableOffer') : t('enableOffer')}
-                  </Button>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    disabled={busy}
-                    onClick={() =>
-                      providerUpdate.mutate({
-                        provider: offer.provider,
-                        isActive: !offer.isProviderActive,
-                      })
-                    }
-                  >
-                    {offer.isProviderActive
-                      ? t('disableProviderGlobally')
-                      : t('enableProviderGlobally')}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Table<ModelOffer>
+          ariaLabel={t('routingProvider')}
+          columns={offerColumns}
+          getRowKey={(offer) => offer.id}
+          items={model.offers}
+        />
         <div className="flex flex-wrap gap-3">
           <Select value={candidate} onValueChange={setCandidate}>
             <SelectTrigger className="w-96" aria-label={t('connectAria')}>
@@ -367,90 +477,12 @@ export default function ModelDetailContent() {
           {t('pricingTable')}
         </h2>
         <p className="text-sm text-muted-foreground">{t('pricingTableHint')}</p>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('provider')}</TableHead>
-              <TableHead>{t('variant')}</TableHead>
-              <TableHead>{t('component')}</TableHead>
-              <TableHead>{t('providerPricePerUnit')}</TableHead>
-              <TableHead>{t('withMargin')}</TableHead>
-              <TableHead>{t('verified')}</TableHead>
-              <TableHead>{t('source')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {model.offers.flatMap((offer) =>
-              offer.rates.length
-                ? offer.rates.map((rate) => (
-                    <TableRow
-                      key={`${offer.id}-${rate.component}-${rate.unit}-${JSON.stringify(rate.when)}`}
-                    >
-                      <TableCell>{offer.provider}</TableCell>
-                      <TableCell>
-                        {Object.entries(rate.when)
-                          .map(([name, value]) => `${name}: ${value}`)
-                          .join(' · ') || t('allSupportedSettings')}
-                      </TableCell>
-                      <TableCell>{rate.component}</TableCell>
-                      <TableCell>
-                        {[
-                          t(
-                            rate.isPerOutput
-                              ? 'unitPricePerOutput'
-                              : 'unitPrice',
-                            {
-                              price: usd(rate.unitPriceUsd),
-                              unit: rate.unit,
-                            },
-                          ),
-                          rate.includedUnits
-                            ? t('includes', { count: rate.includedUnits })
-                            : null,
-                          rate.minimumUnits
-                            ? t('minimum', { count: rate.minimumUnits })
-                            : null,
-                          rate.roundUnitsTo
-                            ? t('roundsTo', { count: rate.roundUnitsTo })
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </TableCell>
-                      <TableCell>
-                        {t('unitPrice', {
-                          price: usd(
-                            rate.unitPriceUsd * model.marginMultiplier,
-                          ),
-                          unit: rate.unit,
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        {offer.verifiedAt?.slice(0, 10) ?? t('unverified')}
-                      </TableCell>
-                      <TableCell>
-                        {offer.sourceUrl && (
-                          <a
-                            href={offer.sourceUrl}
-                            rel="noreferrer"
-                            target="_blank"
-                            className="underline"
-                          >
-                            {t('providerPricingLink')}
-                          </a>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : [
-                    <TableRow key={offer.id}>
-                      <TableCell>{offer.provider}</TableCell>
-                      <TableCell colSpan={6}>{t('priceUnavailable')}</TableCell>
-                    </TableRow>,
-                  ],
-            )}
-          </TableBody>
-        </Table>
+        <Table<PricingRow>
+          ariaLabel={t('pricingTable')}
+          columns={pricingColumns}
+          getRowKey={(row) => row.key}
+          items={pricingRows}
+        />
       </section>
       <section className="space-y-4" aria-labelledby="model-usage">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -526,26 +558,12 @@ export default function ModelDetailContent() {
         {!model.usage.length && (
           <p className="text-sm text-muted-foreground">{t('noUsage')}</p>
         )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('provider')}</TableHead>
-              <TableHead>{t('recordedGenerations')}</TableHead>
-              <TableHead>{t('vendorCost')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {providers.map((provider) => (
-              <TableRow key={provider.provider}>
-                <TableCell>{provider.provider}</TableCell>
-                <TableCell>
-                  {provider.generations.toLocaleString('en-US')}
-                </TableCell>
-                <TableCell>{usd(provider.vendorCostUsd)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Table<ProviderUsage>
+          ariaLabel={t('usageTitle')}
+          columns={usageColumns}
+          getRowKey={(provider) => provider.provider}
+          items={providers}
+        />
       </section>
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">{t('pricingReview')}</h2>

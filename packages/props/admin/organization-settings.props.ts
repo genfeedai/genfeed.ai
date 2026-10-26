@@ -18,11 +18,12 @@ export interface SettingInputProps {
   onScalarChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }
 
-export interface SettingRowProps {
+export interface SettingTableRow {
+  group: string;
+  key: keyof IOrganizationSetting;
   label: string;
-  value: unknown;
   type: 'boolean' | 'number' | 'string' | 'array';
-  onEdit: () => void;
+  value: unknown;
 }
 
 export interface OrganizationSettingsTableProps {

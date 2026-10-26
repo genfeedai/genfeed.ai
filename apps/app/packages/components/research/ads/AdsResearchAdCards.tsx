@@ -7,17 +7,12 @@ import {
   type AdsResearchMetric,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type { TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
+import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import { Bookmark, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -163,100 +158,6 @@ export function AdGridCard({
   );
 }
 
-type AdTableRowProps = {
-  isSelected: boolean;
-  item: AdsResearchItem;
-  metric: AdsResearchMetric;
-  onSelect: (item: AdsResearchItem) => void;
-  onToggleSaved: (items: AdsResearchItem[]) => void;
-  savedMutating: boolean;
-};
-
-export function AdTableRow({
-  isSelected,
-  item,
-  metric,
-  onSelect,
-  onToggleSaved,
-  savedMutating,
-}: AdTableRowProps) {
-  const translate = useTranslations('pages.adsResearch');
-  const metricValue = getMetricValue(item, metric);
-  const savedActionLabel = translate(
-    item.savedAdId ? 'swipeFile.unsaveAria' : 'swipeFile.saveAria',
-    { title: item.title },
-  );
-
-  return (
-    <TableRow
-      aria-label={`${isSelected ? 'Selected' : 'Select'} ${item.title} for research context`}
-      aria-selected={isSelected}
-      className={cn(
-        'cursor-pointer border-b border-border transition-colors hover:bg-hover',
-        isSelected && 'bg-primary/5',
-      )}
-      onClick={() => onSelect(item)}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect(item);
-        }
-      }}
-      tabIndex={0}
-    >
-      <TableCell className="px-4 py-3">
-        <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
-      </TableCell>
-      <TableCell className="max-w-[300px] px-4 py-3">
-        <span className="line-clamp-1 text-sm font-medium text-foreground">
-          {item.title}
-        </span>
-      </TableCell>
-      <TableCell className="px-4 py-3">
-        <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
-          {item.source === 'public' ? 'Public' : 'Connected'}
-        </Badge>
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {formatMetric(metricValue)}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {formatMetric(item.metrics.ctr)}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {formatLongevity(item.longevity) || '—'}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {item.channel !== AdsChannel.ALL ? item.channel : '—'}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-        {item.accountName || '—'}
-      </TableCell>
-      <TableCell className="px-4 py-3">
-        <Button
-          type="button"
-          variant={
-            item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-          }
-          ariaLabel={savedActionLabel}
-          disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleSaved([item]);
-          }}
-          icon={
-            <Bookmark
-              className={cn('size-4', item.savedAdId && 'fill-current')}
-            />
-          }
-          label={<span className="sr-only">{savedActionLabel}</span>}
-        />
-      </TableCell>
-    </TableRow>
-  );
-}
-
 type AdsResearchAdListProps = {
   ads: AdsResearchItem[];
   isSavedView: boolean;
@@ -295,7 +196,7 @@ export function AdsResearchAdGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <CollectionGrid maxColumns={3}>
       {ads.map((item) => {
         const key =
           item.source === 'my_accounts'
@@ -318,7 +219,7 @@ export function AdsResearchAdGrid({
           />
         );
       })}
-    </div>
+    </CollectionGrid>
   );
 }
 
@@ -333,6 +234,11 @@ type AdsResearchAdTableProps = {
   savedMutating: boolean;
 };
 
+const getAdSelectionKey = (item: AdsResearchItem): string =>
+  item.source === 'my_accounts'
+    ? `my_accounts:${item.platform}:${item.sourceId}`
+    : `public:${item.platform}:${item.id}`;
+
 export function AdsResearchAdTable({
   ads,
   isSavedView,
@@ -344,83 +250,120 @@ export function AdsResearchAdTable({
   savedMutating,
 }: AdsResearchAdTableProps) {
   const translate = useTranslations('pages.adsResearch.adList');
+  const translateAds = useTranslations('pages.adsResearch');
   const translateSwipeFile = useTranslations('pages.adsResearch.swipeFile');
 
-  return (
-    <div className="overflow-x-auto rounded-xl border border-border">
-      <Table className="w-full text-left">
-        <TableHeader>
-          <TableRow className="border-b border-border bg-card">
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('platform')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('title')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('source')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {getMetricLabel(metric)}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('ctr')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('running')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('channel')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('account')}
-            </TableHead>
-            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {translate('saved')}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {ads.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="p-0">
-                <CardEmptyContent
-                  label={
-                    search.trim()
-                      ? translateSwipeFile('emptySearch')
-                      : translateSwipeFile(
-                          isSavedView ? 'emptyFilters' : 'emptyLiveFilters',
-                        )
-                  }
-                />
-              </TableCell>
-            </TableRow>
-          ) : (
-            ads.map((item) => {
-              const key =
-                item.source === 'my_accounts'
-                  ? `connected-${item.sourceId}`
-                  : `public-${item.id}`;
-              const itemKey =
-                item.source === 'my_accounts'
-                  ? `my_accounts:${item.platform}:${item.sourceId}`
-                  : `public:${item.platform}:${item.id}`;
+  const columns: TableColumn<AdsResearchItem>[] = [
+    {
+      header: translate('platform'),
+      key: 'platform',
+      render: (item) => (
+        <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
+      ),
+    },
+    {
+      className: 'max-w-[300px]',
+      header: translate('title'),
+      key: 'title',
+      render: (item) => (
+        <span className="line-clamp-1 text-sm font-medium text-foreground">
+          {item.title}
+        </span>
+      ),
+    },
+    {
+      header: translate('source'),
+      key: 'source',
+      render: (item) => (
+        <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
+          {item.source === 'public' ? 'Public' : 'Connected'}
+        </Badge>
+      ),
+    },
+    {
+      className: 'text-sm text-foreground/60',
+      header: getMetricLabel(metric),
+      key: 'metric',
+      render: (item) => formatMetric(getMetricValue(item, metric)),
+    },
+    {
+      className: 'text-sm text-foreground/60',
+      header: translate('ctr'),
+      key: 'ctr',
+      render: (item) => formatMetric(item.metrics.ctr),
+    },
+    {
+      className: 'text-sm text-foreground/60',
+      header: translate('running'),
+      key: 'longevity',
+      render: (item) => formatLongevity(item.longevity) || '—',
+    },
+    {
+      className: 'text-sm text-foreground/60',
+      header: translate('channel'),
+      key: 'channel',
+      render: (item) => (item.channel !== AdsChannel.ALL ? item.channel : '—'),
+    },
+    {
+      className: 'text-sm text-muted-foreground',
+      header: translate('account'),
+      key: 'accountName',
+      render: (item) => item.accountName || '—',
+    },
+    {
+      header: translate('saved'),
+      key: 'savedAdId',
+      render: (item) => {
+        const savedActionLabel = translateAds(
+          item.savedAdId ? 'swipeFile.unsaveAria' : 'swipeFile.saveAria',
+          { title: item.title },
+        );
 
-              return (
-                <AdTableRow
-                  key={key}
-                  item={item}
-                  metric={metric}
-                  isSelected={selectedKey === itemKey}
-                  onSelect={onSelect}
-                  onToggleSaved={onToggleSaved}
-                  savedMutating={savedMutating}
-                />
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </div>
+        return (
+          <Button
+            type="button"
+            variant={
+              item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+            }
+            ariaLabel={savedActionLabel}
+            disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleSaved([item]);
+            }}
+            icon={
+              <Bookmark
+                className={cn('size-4', item.savedAdId && 'fill-current')}
+              />
+            }
+            label={<span className="sr-only">{savedActionLabel}</span>}
+          />
+        );
+      },
+    },
+  ];
+
+  return (
+    <Table<AdsResearchItem>
+      ariaLabel={translate('tableLabel')}
+      columns={columns}
+      emptyLabel={
+        search.trim()
+          ? translateSwipeFile('emptySearch')
+          : translateSwipeFile(
+              isSavedView ? 'emptyFilters' : 'emptyLiveFilters',
+            )
+      }
+      getRowClassName={(item) =>
+        getAdSelectionKey(item) === selectedKey ? 'bg-primary/5' : ''
+      }
+      getRowKey={(item) =>
+        item.source === 'my_accounts'
+          ? `connected-${item.sourceId}`
+          : `public-${item.id}`
+      }
+      items={ads}
+      onRowClick={onSelect}
+    />
   );
 }
