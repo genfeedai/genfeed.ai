@@ -46,6 +46,28 @@ export function imageGenerationPromptSettings(
 }
 
 /**
+ * The quality a request is dispatched at: the one asked for when the model
+ * offers it, otherwise the catalog default. A quote must price this tier, not
+ * the provider schema's own default (GPT Image 2.5 answers `auto` where the
+ * dispatch runs `max`, which is twice the price).
+ */
+export function resolveImageDispatchQuality(
+  model: string,
+  requested: string | undefined,
+): string | undefined {
+  const capability = MODEL_OUTPUT_CAPABILITIES[model];
+  const options =
+    capability && 'qualityOptions' in capability
+      ? capability.qualityOptions
+      : undefined;
+  if (!options) return requested;
+  if (requested && options.includes(requested)) return requested;
+  const fallback =
+    'defaultQuality' in capability ? capability.defaultQuality : undefined;
+  return fallback ?? requested;
+}
+
+/**
  * Models whose builder refuses to run without a reference image. The tariff
  * does not depend on which image it is, so a quote builds with this stand-in;
  * it is never fetched or sent to a provider.
@@ -82,7 +104,14 @@ export async function buildImageQuoteProviderInput(
           );
     }
     const built = await builder.buildPrompt(model, {
-      ...imageGenerationPromptSettings(model, settings, inputSchema),
+      ...imageGenerationPromptSettings(
+        model,
+        {
+          ...settings,
+          quality: resolveImageDispatchQuality(model, settings.quality),
+        },
+        inputSchema,
+      ),
       brandingMode: 'off',
       modelCategory: ModelCategory.IMAGE,
       prompt: '',
