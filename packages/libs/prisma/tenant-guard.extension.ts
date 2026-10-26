@@ -1,3 +1,4 @@
+import { getDeploymentFromReader } from '@genfeedai/config/deployment';
 import { assertTenantScopedQuery, TenantIsolationError } from './tenant-guard';
 
 function reportTenantIsolationFailure(error: TenantIsolationError): void {
@@ -6,7 +7,7 @@ function reportTenantIsolationFailure(error: TenantIsolationError): void {
     Reflect.get(env, 'CLOUD_SWEEP_DIAGNOSTICS') !== '1' ||
     env.CI !== 'true' ||
     env.GITHUB_ACTIONS !== 'true' ||
-    env.GENFEED_CLOUD !== 'true' ||
+    getDeploymentFromReader((key) => env[key]) !== 'cloud' ||
     env.NODE_ENV !== 'test' ||
     Reflect.get(env, 'CLOUD_SWEEP_LOCAL') !== undefined
   )

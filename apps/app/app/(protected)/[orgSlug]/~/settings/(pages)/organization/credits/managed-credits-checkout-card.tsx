@@ -48,7 +48,7 @@ export default function ManagedCreditsCheckoutCard() {
           : 'Failed to start managed credits checkout.';
       NotificationsService.getInstance().error(
         detail.includes('Genfeed Cloud') || detail.includes('self-hosted')
-          ? `${detail} For local Stripe PAYG, set GENFEED_CLOUD=true and NEXT_PUBLIC_GENFEED_CLOUD=true, then use org checkout (not managed).`
+          ? `${detail} For local Stripe PAYG, set GENFEED_CLOUD=true and NEXT_PUBLIC_GENFEED_CLOUD=true outside production, then use org checkout (not managed).`
           : detail,
       );
       setIsStartingCheckout(false);

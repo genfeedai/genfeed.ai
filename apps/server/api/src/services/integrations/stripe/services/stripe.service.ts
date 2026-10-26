@@ -15,7 +15,10 @@ import {
   collectUpcomingInvoiceLines,
   type UpcomingInvoicePreview,
 } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
-import { isSelfHostedDeployment } from '@genfeedai/config';
+import {
+  getDeploymentFromReader,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import {
   creditPackTotalCredits,
   INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
@@ -113,7 +116,7 @@ export class StripeService {
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    if (!this.isProductionCloud() || isSelfHostedDeployment()) {
+    if (!this.isProductionCloud()) {
       return;
     }
 
@@ -191,11 +194,14 @@ export class StripeService {
   }
 
   private isProductionCloud(): boolean {
+    const readEnv = (key: string): string | undefined => {
+      const value = this.configService.get(key);
+      return typeof value === 'string' ? value : undefined;
+    };
+
     return (
-      this.configService.get('NODE_ENV') === 'production' &&
-      ['1', 'true'].includes(
-        String(this.configService.get('GENFEED_CLOUD')).toLowerCase(),
-      )
+      readEnv('NODE_ENV') === 'production' &&
+      getDeploymentFromReader(readEnv) === 'cloud'
     );
   }
 

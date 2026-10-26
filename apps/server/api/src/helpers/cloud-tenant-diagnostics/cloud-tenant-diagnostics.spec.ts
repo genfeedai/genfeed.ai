@@ -61,6 +61,16 @@ describe('CI-only tenant observation seam', () => {
       expect(getCloudTenantObserver()).toBeUndefined();
     }
   });
+  it('derives Cloud from a *.genfeed.ai URL when the flag is unset', () => {
+    vi.stubEnv('GENFEED_CLOUD', undefined);
+    expect(getCloudTenantObserver()).toBeUndefined();
+    vi.stubEnv('GENFEEDAI_APP_URL', 'https://app.genfeed.ai');
+    expect(getCloudTenantObserver()).toBe(observer);
+  });
+  it('stays off for an explicit self-hosted flag', () => {
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    expect(getCloudTenantObserver()).toBeUndefined();
+  });
   it('disabled calls never invoke observer and thrown callbacks cannot escape', () => {
     expect(
       observeCloudTenant(undefined, () => {

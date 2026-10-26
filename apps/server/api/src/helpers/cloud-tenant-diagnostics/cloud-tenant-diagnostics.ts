@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { getDeploymentFromReader } from '@genfeedai/config/deployment';
 
 export interface CloudTenantObserver {
   protocol: 1;
@@ -30,7 +31,7 @@ export function getCloudTenantObserver(): CloudTenantObserver | undefined {
     Reflect.get(env, 'CLOUD_SWEEP_DIAGNOSTICS') !== '1' ||
     env.CI !== 'true' ||
     env.GITHUB_ACTIONS !== 'true' ||
-    env.GENFEED_CLOUD !== 'true' ||
+    getDeploymentFromReader((key) => env[key]) !== 'cloud' ||
     env.NODE_ENV !== 'test' ||
     Reflect.get(env, 'CLOUD_SWEEP_LOCAL') !== undefined
   )

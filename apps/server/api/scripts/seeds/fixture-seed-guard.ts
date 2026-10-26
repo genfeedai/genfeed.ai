@@ -1,3 +1,5 @@
+import { getDeploymentFromReader } from '@genfeedai/config/deployment';
+
 const LOCAL_DATABASE_HOSTS = new Set([
   '0.0.0.0',
   '127.0.0.1',
@@ -10,7 +12,7 @@ export function assertFixtureSeedAllowed(
   environment: NodeJS.ProcessEnv,
   databaseUrl: URL,
 ): void {
-  if (environment.GENFEED_CLOUD === 'true') {
+  if (getDeploymentFromReader((key) => environment[key]) === 'cloud') {
     throw new Error(
       'Refusing to run the fixture seed against a hosted cloud environment',
     );
