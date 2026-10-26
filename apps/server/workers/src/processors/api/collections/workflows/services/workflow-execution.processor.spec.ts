@@ -6,6 +6,7 @@ import {
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 import { UnrecoverableError } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -461,6 +462,107 @@ describe('WorkflowExecutionProcessor', () => {
           }) as never,
         );
 
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('module access denial', () => {
+      const input = {
+        actionType: 'social.inbox.outbound.send-dm',
+        canonicalId: 'social.inbox.outbound.send-dm',
+        organizationId: 'org-1',
+        source: 'platform-workflow-schedule',
+      };
+      const priorExecution = {
+        executionId: 'exec-pending',
+        status: WorkflowExecutionStatus.PENDING,
+        userId: 'user-1',
+        workflowId: 'wf-1',
+        workflowLabel: 'Send DM',
+      };
+      const denied = () =>
+        new HttpException(
+          {
+            code: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
+            moduleId: 'messages',
+          },
+          HttpStatus.FORBIDDEN,
+        );
+      const systemJob = (hasFailureWorkflow = true) =>
+        createMockJob({
+          systemRun: {
+            ...(hasFailureWorkflow
+              ? { failureWorkflow: { canonicalId: 'failed-message' } }
+              : {}),
+            input,
+            priorExecution,
+          },
+          type: 'system-run',
+        });
+
+      it('skips a run the module gate refuses, with its classification and no compensation', async () => {
+        mockSystemWorkflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+          denied(),
+        );
+
+        const result = await processor.process(systemJob() as never);
+
+        expect(result).toEqual({
+          executionId: 'exec-pending',
+          status: WorkflowExecutionStatus.CANCELLED,
+        });
+        expect(mockWorkflowExecutions.cancelExecution).toHaveBeenCalledWith(
+          'exec-pending',
+          'org-1',
+        );
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('skipped module-denied'),
+          expect.objectContaining({
+            denialCode: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
+            moduleId: 'messages',
+            organizationId: 'org-1',
+          }),
+        );
+        expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+        expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      });
+
+      it('still retries a 503 when module access cannot be verified', async () => {
+        mockSystemWorkflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+          new HttpException(
+            { code: 'ORGANIZATION_MODULE_UNAVAILABLE', moduleId: 'messages' },
+            HttpStatus.SERVICE_UNAVAILABLE,
+          ),
+        );
+
+        await expect(
+          processor.process(systemJob(false) as never),
+        ).rejects.not.toBeInstanceOf(UnrecoverableError);
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      });
+
+      it('fails a 403 raised inside a run that already started instead of skipping it', async () => {
+        mockExecutor.continueExistingExecution.mockRejectedValueOnce(denied());
+        mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(denied());
+
+        await expect(
+          processor.process(systemJob(false) as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
+        expect(mockLogger.warn).not.toHaveBeenCalledWith(
+          expect.stringContaining('skipped module-denied'),
+          expect.anything(),
+        );
+      });
+
+      it('does not mistake another 403 for a module denial', async () => {
+        mockSystemWorkflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+          new HttpException('Forbidden', HttpStatus.FORBIDDEN),
+        );
+
+        await expect(
+          processor.process(systemJob(false) as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
         expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
       });
     });
