@@ -202,8 +202,7 @@ export class GenerationBillingService {
       !config.isByokBypass &&
       organizationId
     ) {
-      // Self-hosted reservations are unpersisted stubs (OssCreditsUtilsService),
-      // so there is no quote-group hold to bind and nothing to enforce.
+      // Self-hosted holds are unpersisted stubs: no quote group to bind.
       if (!hasOrganizationBilling()) {
         return;
       }
