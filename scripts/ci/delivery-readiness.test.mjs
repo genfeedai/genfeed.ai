@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  prepareBrowserStoreManifest,
   prepareMobileConfig,
   validateBrowserRelease,
 } from './delivery-readiness.mjs';
@@ -145,4 +146,25 @@ test('mobile tags must agree with both app and package versions', () => {
       }),
     /version/,
   );
+});
+
+test('browser store manifest drops the development key and localhost hosts only', () => {
+  const manifest = {
+    key: 'dev-key',
+    permissions: ['storage'],
+    host_permissions: [
+      'https://*.genfeed.localhost/*',
+      'http://genfeed.localhost/*',
+      'https://app.genfeed.ai/*',
+      'https://*.x.com/*',
+    ],
+  };
+  const result = prepareBrowserStoreManifest(manifest);
+  assert.equal('key' in result, false);
+  assert.deepEqual(result.host_permissions, [
+    'https://app.genfeed.ai/*',
+    'https://*.x.com/*',
+  ]);
+  assert.deepEqual(result.permissions, ['storage']);
+  assert.equal(manifest.key, 'dev-key');
 });

@@ -21,7 +21,7 @@ The Chrome Web Store assigns the ID when the item is first uploaded, and the pub
 
 The API only allows `chrome-extension://<CHROME_EXTENSION_ID>` as a CORS origin in production (`packages/libs/config/cors.config.ts`); with the variable unset the extension gets no access. The `extId` in `EXTENSION_SUBMIT_KEYS` must be the same 32-letter ID.
 
-The dashboard rejects an uploaded package whose manifest has a `key` field ("key field is not allowed in manifest"). The key is for development builds only, so the packaging workflow removes it from `chrome-mv3-prod.zip` and fails if it is still there. Keep it in `package.json` for local builds, and never add it to a package you upload by hand.
+The dashboard rejects an uploaded package whose manifest has a `key` field ("key field is not allowed in manifest"). The key is for development builds only, so the packaging workflow removes it, along with the `*.genfeed.localhost` development hosts, from `chrome-mv3-prod.zip` and fails if either is still there. Keep it in `package.json` for local builds, and never add it to a package you upload by hand.
 
 ## Listing
 
@@ -151,7 +151,6 @@ Source: the [Plasmo token guide](https://github.com/PlasmoHQ/chrome-webstore-api
 
 ## Known risks for review
 
-- **Development hosts in the production manifest.** `host_permissions` still lists `*.genfeed.localhost`. They do nothing for users but a reviewer can flag unused hosts. Removing them needs a production-only manifest.
 - **Broad host access.** Eight social platforms plus the Genfeed hosts. Each is justified above, and the extension only reads a post when the user opens the menu.
 - **Selectors on live pages.** Threads, Instagram, TikTok, YouTube and Facebook have not been checked on live pages. Run the platform checks in [`TESTING-GUIDE.md`](./TESTING-GUIDE.md) before submitting.
 - **Version.** The package version is `1.0.0`, so the first tag is `extension-browser-v1.0.0`. It is independent of the product release tags.

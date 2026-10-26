@@ -60,18 +60,19 @@ jobs:
         run: bun run package
         working-directory: apps/extensions/browser/app
 
-      # The Chrome Web Store rejects uploads whose manifest has a `key` field.
-      # It stays in package.json so local builds keep a stable extension ID.
-      - name: Remove the development key from the store package
+      # The Chrome Web Store rejects uploads whose manifest has a `key` field,
+      # and reviewers flag unused hosts. Both stay in package.json so local
+      # builds keep a stable extension ID and the development hosts.
+      - name: Remove development-only manifest entries from the store package
         working-directory: apps/extensions/browser/app/build
         run: |
           mkdir unpacked
           unzip -q chrome-mv3-prod.zip -d unpacked
-          node -e "const f='unpacked/manifest.json',m=JSON.parse(require('fs').readFileSync(f,'utf8'));delete m.key;require('fs').writeFileSync(f,JSON.stringify(m))"
+          node ../../../../../scripts/ci/delivery-readiness.mjs browser-store-manifest unpacked/manifest.json
           rm chrome-mv3-prod.zip
           (cd unpacked && zip -q -r ../chrome-mv3-prod.zip .)
           rm -rf unpacked
-          unzip -p chrome-mv3-prod.zip manifest.json | node -e "const m=JSON.parse(require('fs').readFileSync(0,'utf8'));if('key' in m){console.error('manifest still has a key');process.exit(1)}"
+          unzip -p chrome-mv3-prod.zip manifest.json | node -e "const m=JSON.parse(require('fs').readFileSync(0,'utf8'));if('key' in m||(m.host_permissions||[]).some(h=>/localhost/.test(h))){console.error('manifest still has a development key or localhost host');process.exit(1)}"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
