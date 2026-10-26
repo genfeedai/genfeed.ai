@@ -65,6 +65,12 @@ export type RecordReviewDecisionParams = {
 @Injectable()
 export class HarnessReviewFeedbackService {
   private readonly constructorName = String(this.constructor.name);
+  /**
+   * Tail of the write queue per brand. Every decision reads the profile,
+   * merges its entry and writes the whole profile back, so decisions for one
+   * brand (a batch approval fires one per item) must not interleave.
+   */
+  private readonly brandWriteTails = new Map<string, Promise<void>>();
 
   constructor(
     private readonly logger: LoggerService,
@@ -78,7 +84,9 @@ export class HarnessReviewFeedbackService {
     params: RecordReviewDecisionParams,
   ): Promise<void> {
     try {
-      await this.applyDecision(params);
+      await this.runSerializedPerBrand(params, () =>
+        this.applyDecision(params),
+      );
     } catch (error) {
       this.logger.error(
         `${this.constructorName} failed to record review feedback`,
@@ -90,6 +98,28 @@ export class HarnessReviewFeedbackService {
           sourceType: params.sourceType,
         },
       );
+    }
+  }
+
+  private async runSerializedPerBrand(
+    params: RecordReviewDecisionParams,
+    work: () => Promise<void>,
+  ): Promise<void> {
+    if (!params.brandId) {
+      return work();
+    }
+
+    const key = `${params.organizationId}:${params.brandId}`;
+    const previous = this.brandWriteTails.get(key) ?? Promise.resolve();
+    const run = previous.then(work);
+    const tail = run.catch(() => undefined);
+    this.brandWriteTails.set(key, tail);
+    try {
+      await run;
+    } finally {
+      if (this.brandWriteTails.get(key) === tail) {
+        this.brandWriteTails.delete(key);
+      }
     }
   }
 

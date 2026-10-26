@@ -475,6 +475,41 @@ describe('HarnessReviewFeedbackService', () => {
     ).toBe(true);
   });
 
+  it('serializes decisions for one brand so a batch keeps every approval', async () => {
+    let stored = createProfile();
+    harnessProfilesService.getActiveForBrand.mockImplementation(async () => {
+      const snapshot = stored;
+      // Yield so an unserialized second call would read the same snapshot.
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return snapshot;
+    });
+    harnessProfilesService.update.mockImplementation(
+      async (_id: string, dto: Record<string, unknown>) => {
+        stored = { ...stored, ...dto } as typeof stored;
+        return stored;
+      },
+    );
+
+    await Promise.all(
+      ['a', 'b', 'c'].map((id) =>
+        service.recordReviewDecision({
+          brandId: 'brand-1',
+          content: `Approved ${id}`,
+          decision: ReviewDecision.APPROVED,
+          organizationId: 'org-1',
+          sourceId: id,
+          sourceType: 'turbo_run_item',
+        }),
+      ),
+    );
+
+    expect(
+      (stored as { goodFeedback: Array<{ content: string }> }).goodFeedback
+        .map((entry) => entry.content)
+        .sort(),
+    ).toEqual(['Approved a', 'Approved b', 'Approved c']);
+  });
+
   it('never throws — logs and swallows errors so the review action always succeeds', async () => {
     harnessProfilesService.getActiveForBrand.mockRejectedValue(
       new Error('db down'),
