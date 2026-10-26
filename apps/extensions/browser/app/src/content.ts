@@ -44,7 +44,7 @@ import { watchContentTheme } from '~theme/content-theme';
 import type { PagePost } from '~types/extension';
 
 const DEBOUNCE_DELAY_MS = 300;
-const NAVIGATION_DELAY_MS = 100;
+const URL_POLL_MS = 400;
 const POST_RENDER_RETRY_MS = 300;
 const POST_RENDER_ATTEMPTS = 10;
 
@@ -229,24 +229,20 @@ function notifyWhenPostRenders(attempt = 0): void {
   }, POST_RENDER_RETRY_MS);
 }
 
+/**
+ * Single-page sites change the URL with the page's own history calls, which a
+ * content script cannot hook (it runs in its own copy of `history`), so the
+ * URL is compared on a short interval instead.
+ */
 function setupNavigationListeners(): void {
-  window.addEventListener('popstate', () => {
-    synchronizePublicationObserver();
-    setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
-  });
-
-  const originalPushState = history.pushState;
-  const originalReplaceState = history.replaceState;
-
-  history.pushState = (...args) => {
-    originalPushState.apply(history, args);
-    setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
-  };
-
-  history.replaceState = (...args) => {
-    originalReplaceState.apply(history, args);
-    setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
-  };
+  // Back and forward do reach this script, so the observer follows at once.
+  window.addEventListener('popstate', synchronizePublicationObserver);
+  let lastUrl = window.location.href;
+  window.setInterval(() => {
+    if (window.location.href === lastUrl) return;
+    lastUrl = window.location.href;
+    checkAndReinitialize();
+  }, URL_POLL_MS);
 }
 
 function notifyPlatformDetected(): void {

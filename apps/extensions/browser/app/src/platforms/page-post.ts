@@ -8,15 +8,15 @@ function cleanText(element: Element | null | undefined): string {
   return element?.textContent?.trim() ?? '';
 }
 
-/** The post a status page is about: the article that links to its own id. */
+/**
+ * The post a status page is about: the article that links to its own id. Right
+ * after navigating, X still shows the previous post, which links elsewhere.
+ */
 function findXPost(postId: string): Element | null {
-  const articles = Array.from(document.querySelectorAll(X_POST_SELECTOR));
   return (
-    articles.find((article) =>
+    Array.from(document.querySelectorAll(X_POST_SELECTOR)).find((article) =>
       article.querySelector(`a[href*="/status/${postId}"] time`),
-    ) ??
-    articles[0] ??
-    null
+    ) ?? null
   );
 }
 

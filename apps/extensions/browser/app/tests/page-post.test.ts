@@ -38,6 +38,13 @@ describe('readPagePost', () => {
     });
   });
 
+  it('waits for the new post instead of reading the one still on screen', () => {
+    vi.stubGlobal('location', new URL('https://x.com/ada/status/999'));
+    document.body.innerHTML = article('222', 'marcel', 'The previous post');
+
+    expect(readPagePost(platforms.twitter)).toBeNull();
+  });
+
   it('has no post on a feed', () => {
     vi.stubGlobal('location', new URL('https://x.com/home'));
     document.body.innerHTML = article('222', 'marcel', 'A post in the feed');
