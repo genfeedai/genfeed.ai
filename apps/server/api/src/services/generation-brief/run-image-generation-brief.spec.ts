@@ -27,6 +27,24 @@ describe('runImageGenerationBrief', () => {
     });
   });
 
+  it('carries the subject into the brief and the compiled prompt', () => {
+    const result = runImageGenerationBrief({
+      height: 1080,
+      model: FLUX_SCHNELL_MODEL_KEY,
+      objective: 'Neon street at night',
+      subjects: ['a courier walking through rain'],
+      surface: 'studio',
+      visualDirection: 'cinematic, melancholy mood',
+      width: 1920,
+    });
+
+    expect(result.brief?.intent.subjects).toEqual([
+      'a courier walking through rain',
+    ]);
+    expect(result.dispatch?.prompt).toContain('a courier walking through rain');
+    expect(result.dispatch?.prompt).toContain('melancholy mood');
+  });
+
   it('produces equivalent briefs across surfaces and only differs in provenance', () => {
     const input = {
       height: 1080,

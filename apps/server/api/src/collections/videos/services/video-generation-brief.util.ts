@@ -27,6 +27,7 @@ import {
   resolveIsGenerationBriefBrandVoiceOn,
   runVideoGenerationBrief,
 } from '@api/services/generation-brief';
+import { omitMentionedText } from '@api/services/generation-brief/omit-mentioned-text.util';
 import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import type {
   GenerationBriefReference,
@@ -109,7 +110,16 @@ export function compileVideoGenerationBrief(params: {
   evidence: VideoGenerationBriefPersistedEvidence;
   generationSource: string;
 } {
-  const direction = buildVideoDirection(params.createVideoDto).brief;
+  const objective = params.generationHarness.enhancedPrompt;
+  const { createVideoDto } = params;
+  // The enhanced prompt often already says the subject and action in its own words.
+  const [subject] = omitMentionedText(objective, [createVideoDto.subject]);
+  const [action] = omitMentionedText(objective, [createVideoDto.action]);
+  const direction = buildVideoDirection({
+    ...createVideoDto,
+    action,
+    subject,
+  }).brief;
   const avoid = [
     ...(params.createVideoDto.blacklist ?? []),
     ...(params.createVideoDto.negativePrompt
@@ -133,12 +143,13 @@ export function compileVideoGenerationBrief(params: {
       lighting: direction.lighting,
       model: params.model,
       motion: direction.motion,
-      objective: params.generationHarness.enhancedPrompt,
+      objective,
       referenceIds: params.referenceIds,
       references: resolveAdPresetBriefReferences(params),
       resolution: params.createVideoDto.resolution,
       scene: direction.scene,
       seed: params.createVideoDto.seed,
+      subjects: direction.subjects,
       surface: 'studio',
       visualDirection: direction.visualDirection,
       videoReferenceIds: params.createVideoDto.videoReferences,

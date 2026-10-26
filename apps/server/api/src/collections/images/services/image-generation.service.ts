@@ -14,6 +14,7 @@ import {
   resolveImageGenerationCompletion,
   throwImageGatewayTimeoutIfPending,
 } from '@api/collections/images/services/image-generation-completion.util';
+import { buildImageBriefDirection } from '@api/collections/images/services/image-generation-direction.util';
 import {
   type ImageGenerationPersistenceParams,
   type ImageGenerationPersistenceResult,
@@ -761,12 +762,6 @@ export class ImageGenerationService {
     evidence: GenerationBriefPersistedEvidence;
     generationSource: string;
   }> {
-    const composition = [
-      params.createImageDto.camera,
-      params.createImageDto.lens,
-    ]
-      .filter((value): value is string => Boolean(value?.trim()))
-      .join(', ');
     const avoid = [
       ...(params.createImageDto.blacklist ?? []),
       ...(params.createImageDto.negativePrompt
@@ -778,12 +773,20 @@ export class ImageGenerationService {
         : []),
     ];
 
+    const direction = buildImageBriefDirection(
+      {
+        ...params.createImageDto,
+        style: params.style || params.createImageDto.style,
+      },
+      params.generationHarness.enhancedPrompt,
+    );
+
     try {
       const compiled = runImageGenerationBrief({
         avoid,
         brandContext: params.briefBrandContext,
         brandingMode: params.createImageDto.brandingMode,
-        composition,
+        composition: direction.composition,
         fidelityMode: params.createImageDto.fidelityMode,
         height: params.height,
         isBrandingEnabled: params.createImageDto.isBrandingEnabled,
@@ -795,8 +798,9 @@ export class ImageGenerationService {
         references: params.runReferences,
         scene: params.createImageDto.scene,
         seed: params.createImageDto.seed,
+        subjects: direction.subjects,
         surface: 'studio',
-        visualDirection: params.style || params.createImageDto.style,
+        visualDirection: direction.visualDirection,
         width: params.width,
       });
       if (params.generationHarness.status === 'skipped') {

@@ -43,6 +43,7 @@ export interface RunImageGenerationBriefInput {
   references?: readonly ImageGenerationBriefReference[];
   scene?: string;
   seed?: number;
+  subjects?: string[];
   surface: GenerationBriefSurface;
   visualDirection?: string;
   width: number;
@@ -124,6 +125,7 @@ export function runImageGenerationBrief(
     referenceIds: input.referenceIds,
     references: input.references,
     scene: input.scene,
+    subjects: input.subjects,
     visualDirection: input.visualDirection,
     visualDirectionSource: 'user',
     width: input.width,

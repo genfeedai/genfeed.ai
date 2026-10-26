@@ -2,6 +2,7 @@ import type { MediaCreativeDirection } from '@api/services/prompt-enhancement/me
 
 /** The Studio picks that steer a clip, as the request carries them. */
 export interface VideoDirectionInput {
+  action?: string;
   camera?: string;
   cameraMovement?: string;
   duration?: number;
@@ -10,6 +11,7 @@ export interface VideoDirectionInput {
   mood?: string;
   scene?: string;
   style?: string;
+  subject?: string;
 }
 
 /** Brief fields a compiler appends after the objective, already labeled. */
@@ -18,6 +20,7 @@ export interface VideoBriefDirection {
   lighting?: string;
   motion?: string;
   scene?: string;
+  subjects?: string[];
   visualDirection?: string;
 }
 
@@ -53,9 +56,15 @@ export function buildVideoDirection(input: VideoDirectionInput): {
   brief: VideoBriefDirection;
   enhancer: MediaCreativeDirection;
 } {
+  const subject = clean(input.subject);
+  const subjectLine = labeled('Subject', input.subject);
+  const actionLine = labeled('Action', input.action);
   const scene = labeled('Setting', input.scene);
   const composition = labeled('Camera', input.camera, input.lens);
-  const motion = labeled('Camera movement', input.cameraMovement);
+  const cameraMovement = labeled('Camera movement', input.cameraMovement);
+  // The subject's action and the camera's movement are both motion to a compiler.
+  const motion =
+    [actionLine, cameraMovement].filter(Boolean).join('. ') || undefined;
   const lighting = labeled('Lighting', input.lighting);
   const style = labeled('Style', input.style);
   const mood = labeled('Mood', input.mood);
@@ -67,12 +76,20 @@ export function buildVideoDirection(input: VideoDirectionInput): {
       ...(lighting ? { lighting } : {}),
       ...(motion ? { motion } : {}),
       ...(scene ? { scene } : {}),
+      ...(subject ? { subjects: [subject] } : {}),
       ...(visualDirection ? { visualDirection } : {}),
     },
     enhancer: {
-      lines: [scene, composition, motion, lighting, style, mood].filter(
-        (line): line is string => !!line,
-      ),
+      lines: [
+        subjectLine,
+        actionLine,
+        scene,
+        composition,
+        cameraMovement,
+        lighting,
+        style,
+        mood,
+      ].filter((line): line is string => !!line),
       ...(input.duration ? { durationSeconds: input.duration } : {}),
     },
   };

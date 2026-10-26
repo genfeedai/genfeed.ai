@@ -50,6 +50,7 @@ export interface RunVideoGenerationBriefInput {
   resolution?: string;
   scene?: string;
   seed?: number;
+  subjects?: string[];
   surface: GenerationBriefSurface;
   visualDirection?: string;
   videoReferenceIds?: string[];
@@ -152,6 +153,7 @@ export function runVideoGenerationBrief(
     references: input.references,
     resolution: input.resolution,
     scene: input.scene,
+    subjects: input.subjects,
     visualDirection: input.visualDirection,
     visualDirectionSource: 'user',
     videoReferenceIds: input.videoReferenceIds,

@@ -44,6 +44,23 @@ describe('buildVideoDirection', () => {
     });
   });
 
+  it('reads the subject and its action as brief subjects and motion', () => {
+    const direction = buildVideoDirection({
+      action: 'walking through rain',
+      cameraMovement: 'slow push-in',
+      subject: 'a courier',
+    });
+    expect(direction.brief).toEqual({
+      motion: 'Action: walking through rain. Camera movement: slow push-in',
+      subjects: ['a courier'],
+    });
+    expect(direction.enhancer.lines).toEqual([
+      'Subject: a courier',
+      'Action: walking through rain',
+      'Camera movement: slow push-in',
+    ]);
+  });
+
   it('keeps both style and mood and omits unset picks', () => {
     expect(
       buildVideoDirection({ mood: 'calm', style: 'cinematic' }).brief,

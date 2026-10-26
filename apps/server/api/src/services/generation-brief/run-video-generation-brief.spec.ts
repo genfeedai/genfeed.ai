@@ -38,6 +38,24 @@ describe('runVideoGenerationBrief', () => {
       ).toThrow('does not support audio references');
     },
   );
+  it('carries the subject and its motion into the brief and the compiled prompt', () => {
+    const result = runVideoGenerationBrief({
+      durationSeconds: 5,
+      height: 1080,
+      model: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+      motion: 'Action: walking through rain',
+      objective: 'Neon street at night',
+      subjects: ['a courier'],
+      surface: 'studio',
+      width: 1920,
+    });
+
+    expect(result.brief?.intent.subjects).toEqual(['a courier']);
+    expect(result.brief?.intent.motion).toBe('Action: walking through rain');
+    expect(String(result.dispatch?.prompt)).toContain('a courier');
+    expect(String(result.dispatch?.prompt)).toContain('walking through rain');
+  });
+
   it('stamps the originating surface on compiled evidence (#3469)', () => {
     const result = runVideoGenerationBrief({
       durationSeconds: 5,
