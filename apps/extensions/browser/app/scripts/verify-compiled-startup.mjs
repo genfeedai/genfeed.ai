@@ -297,6 +297,13 @@ async function probe(entry, contentScript = false) {
       if (contentScript) return result.contentReady === true;
       const root = w.document.getElementById('__plasmo');
       const buttons = [...(root?.querySelectorAll('button') ?? [])];
+      if (entry === 'sidepanel.html')
+        return buttons.some(
+          (button) =>
+            button.textContent.trim() === 'Sign in with Genfeed' &&
+            !button.disabled &&
+            button.getAttribute('aria-disabled') !== 'true',
+        );
       return (
         !!root?.textContent.trim() &&
         !!root.querySelector('[role="alert"]')?.textContent.trim() &&
