@@ -86,7 +86,7 @@ describe('buildSettingsMenuItems', () => {
         'Memory',
         'Credits',
         'Subscription',
-        'Referrals',
+        'Affiliates',
         'Usage',
         'API Keys',
         'Integrations',
@@ -139,7 +139,7 @@ describe('buildSettingsMenuItems', () => {
         APP_ROUTES.SETTINGS.USAGE,
       );
       expect(items.find((i) => i.label === 'Subscription')).toBeUndefined();
-      expect(items.find((i) => i.label === 'Referrals')).toBeUndefined();
+      expect(items.find((i) => i.label === 'Affiliates')).toBeUndefined();
       expect(items.find((i) => i.label === 'API Keys')?.href).toBe(
         '/settings/api-keys',
       );

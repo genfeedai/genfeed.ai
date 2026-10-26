@@ -835,7 +835,7 @@
       "referredAccount": "Referred account",
       "referrerAccount": "Referrer account",
       "reward": "Reward",
-      "title": "Referral reward {id}"
+      "title": "Affiliate reward {id}"
     },
     "subscription": {
       "customerId": "Customer ID",

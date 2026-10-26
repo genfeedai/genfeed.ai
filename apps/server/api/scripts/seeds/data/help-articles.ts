@@ -393,7 +393,7 @@ General.</p>
   <li><strong>Credits</strong>, <strong>Subscription</strong> and
   <strong>Usage:</strong> balance, plan and cost reporting. See
   <a href="${articleUrl(SLUGS.credits)}">How credits and billing work</a>.</li>
-  <li><strong>Referrals:</strong> a referral link that earns credits when people
+  <li><strong>Affiliates:</strong> an affiliate link that earns credits when people
   you refer buy credits.</li>
   <li><strong>API Keys:</strong> keys for the REST API and MCP. API access is
   available on paid plans.</li>

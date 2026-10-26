@@ -445,7 +445,7 @@ describe('ReferralsService', () => {
       'org_referrer',
       'user_referrer',
       300,
-      'Referral reward reversal',
+      'Affiliate reward reversal',
       expect.any(String),
       expect.objectContaining({
         idempotencyKey: 'referral-reward-reversal:reward_1:5000',
@@ -508,7 +508,7 @@ describe('ReferralsService', () => {
       'org_referrer',
       'user_referrer',
       1_000,
-      'Referral reward reversal',
+      'Affiliate reward reversal',
       expect.any(String),
       expect.objectContaining({ maxOverdraftCredits: 1_100 }),
     );
@@ -543,7 +543,7 @@ describe('ReferralsService', () => {
       'org_referrer',
       1_000,
       ActivitySource.REFERRAL,
-      'Referral purchase reward',
+      'Affiliate purchase reward',
       expect.any(Date),
       expect.objectContaining({
         idempotencyKey: 'referral-reward-grant:reward_1',

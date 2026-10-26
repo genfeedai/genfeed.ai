@@ -1,12 +1,15 @@
-# Native Referral Credits
+# Affiliates (Native Credits)
 
-Genfeed's referral system is part of the open-source billing stack. It does not
-depend on a hosted affiliate vendor and keeps attribution, reward settlement,
-and the credit ledger portable across supported deployments.
+Genfeed's affiliate program is part of the open-source billing stack. In the
+product it is called **Affiliates**; code, routes, database models and the
+`?ref=` parameter still use the `referral` name.
+
+The program does not depend on a hosted affiliate vendor and keeps attribution,
+reward settlement, and the credit ledger portable across supported deployments.
 
 ## Customer contract
 
-- A billing-account member can create one opaque referral code for each billing
+- A billing-account member can create one opaque affiliate code for each billing
   account they belong to.
 - A new billing account can claim one code before it has paid activity. The
   first valid claim is immutable.
@@ -20,11 +23,12 @@ and the credit ledger portable across supported deployments.
   compensating credit-ledger debits; a used reward may therefore create a
   bounded negative balance.
 
-The customer Referral Hub is on the organization Credits settings page. It
+The customer Affiliate Hub is on the organization **Settings → Affiliates**
+page, linked from the Credits page. It
 shows aggregate counts, credit totals, and the referrer's own reward values;
 it never returns referred-customer identity, purchase amounts, or purchased
 credit quantities. Platform administrators can audit full reward records under
-**Administration → Referral Rewards**.
+**Administration → Affiliate Rewards**.
 
 ## Attribution and abuse controls
 
@@ -56,12 +60,12 @@ while the hot table is indexed. Soft-deleted ledger history does not reserve
 active idempotency keys.
 
 Operators should investigate `FAILED` rewards in the admin audit view. The
-failure reason is bounded and contains no referral link or customer email.
+failure reason is bounded and contains no affiliate link or customer email.
 
 ## Deployment boundary
 
-Referral code and attribution code ships in every image. Community deployments
-without organization billing register no referral HTTP routes, skip the
+Affiliate code and attribution code ship in every image. Community deployments
+without organization billing register no affiliate (referral) HTTP routes, skip the
 settlement scheduler, and ignore organization-PAYG reward events. Licensed
 self-hosted deployments with organization billing use the same native path.
 Share links use the configured `GENFEEDAI_APP_URL`; when it is absent the API

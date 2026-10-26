@@ -172,7 +172,7 @@ export default function ReferralRewardsList() {
 
   return (
     <AdminPageShell
-      title="Referral Rewards"
+      title="Affiliate Rewards"
       icon={Gift}
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
