@@ -22,6 +22,40 @@ const HOSTED_GENFEED_URL_ENV_KEYS = [
 ] as const;
 
 /**
+ * Read one deployment env var from `process.env` with a literal property
+ * access. Next inlines `NEXT_PUBLIC_*` values into the browser bundle only for
+ * literal `process.env.NAME` reads; `process.env[key]` is undefined there, so
+ * an explicit `NEXT_PUBLIC_GENFEED_CLOUD` would be honoured on the server and
+ * silently ignored in the browser.
+ */
+function readDeploymentEnv(key: string): string | undefined {
+  switch (key) {
+    case 'GENFEED_CLOUD':
+      return process.env.GENFEED_CLOUD;
+    case 'NEXT_PUBLIC_GENFEED_CLOUD':
+      return process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    case 'GENFEEDAI_API_PUBLIC_URL':
+      return process.env.GENFEEDAI_API_PUBLIC_URL;
+    case 'GENFEEDAI_APP_URL':
+      return process.env.GENFEEDAI_APP_URL;
+    case 'GENFEEDAI_MCP_PUBLIC_URL':
+      return process.env.GENFEEDAI_MCP_PUBLIC_URL;
+    case 'NEXT_PUBLIC_API_ENDPOINT':
+      return process.env.NEXT_PUBLIC_API_ENDPOINT;
+    case 'NEXT_PUBLIC_APPS_APP_ENDPOINT':
+      return process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT;
+    case 'NEXT_PUBLIC_APPS_ADMIN_ENDPOINT':
+      return process.env.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT;
+    case 'NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT':
+      return process.env.NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT;
+    case 'NEXT_PUBLIC_MCP_ENDPOINT':
+      return process.env.NEXT_PUBLIC_MCP_ENDPOINT;
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Resolve a boolean environment flag consistently across server and browser
  * bundles. Whitespace and casing are ignored; only `1` and `true` enable it.
  */
@@ -80,7 +114,7 @@ export function isHostedGenfeedFromReader(readEnv: EnvValueReader): boolean {
 }
 
 export function isHostedGenfeedFromEnv(): boolean {
-  return isHostedGenfeedFromReader((key) => process.env[key]);
+  return isHostedGenfeedFromReader(readDeploymentEnv);
 }
 
 /**
@@ -177,7 +211,7 @@ export function resolveTrustProxyFromReader(
 }
 
 export function getDeployment(): Deployment {
-  const fromEnv = getDeploymentFromReader((key) => process.env[key]);
+  const fromEnv = getDeploymentFromReader(readDeploymentEnv);
   if (fromEnv === 'cloud') {
     return 'cloud';
   }
