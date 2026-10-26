@@ -22,7 +22,7 @@ const COPY = {
 };
 
 describe('AuthShowcase', () => {
-  it.each(['wall', 'hero', 'stack'] as const)(
+  it.each(['wall', 'rotator', 'bento'] as const)(
     'renders the value line and steps for the %s variant',
     (variant) => {
       render(<AuthShowcase variant={variant} {...COPY} />);

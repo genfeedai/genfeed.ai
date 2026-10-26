@@ -1,4 +1,4 @@
-export type AuthShowcaseVariant = 'wall' | 'hero' | 'stack';
+export type AuthShowcaseVariant = 'wall' | 'rotator' | 'bento';
 
 export interface AuthShowcaseProps {
   /** Short value line shown over the media. */

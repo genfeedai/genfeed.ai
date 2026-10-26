@@ -6,58 +6,46 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 /**
- * Real Genfeed art that already ships with the app: cinematic storyboard
- * stills and the plugin previews. Decorative only, so every image has an empty
- * alt and the showcase is hidden from assistive technology by its parent.
+ * Real Genfeed art that ships with the app: frames cropped from the cinematic
+ * storyboard stills and the studio tool previews. Decorative only, so every
+ * image has an empty alt and the showcase is hidden from assistive technology
+ * by its parent.
  */
+const STILL_PATH = '/auth-showcase';
+
 const STILLS = [
-  '/storyboard-presets/productLaunch.webp',
-  '/storyboard-presets/founderStory.webp',
-  '/storyboard-presets/beforeAfter.webp',
-  '/storyboard-presets/behindTheScenes.webp',
-  '/storyboard-presets/customerStory.webp',
-  '/storyboard-presets/seasonRecap.webp',
-  '/storyboard-presets/howTo.webp',
-  '/storyboard-presets/threeStepExplainer.webp',
+  `${STILL_PATH}/cinema-camera.webp`,
+  `${STILL_PATH}/shelf-transition.webp`,
+  `${STILL_PATH}/event-stage.webp`,
+  `${STILL_PATH}/studio-desk.webp`,
+  `${STILL_PATH}/product-knot.webp`,
+  `${STILL_PATH}/cinema-light.webp`,
+  `${STILL_PATH}/event-crowd.webp`,
+  `${STILL_PATH}/studio-sketch.webp`,
+  `${STILL_PATH}/shelf-after.webp`,
+  `${STILL_PATH}/cinema-clapper.webp`,
+  `${STILL_PATH}/event-confetti.webp`,
+  `${STILL_PATH}/shelf-before.webp`,
 ] as const;
 
-const PLUGIN_ART = [
-  '/plugins/playground.webp',
-  '/plugins/storyboard.webp',
-  '/plugins/editor.webp',
+const APP_WINDOWS = [
+  `${STILL_PATH}/app-playground.webp`,
+  `${STILL_PATH}/app-storyboard.webp`,
+  `${STILL_PATH}/app-motion.webp`,
+  `${STILL_PATH}/app-discovery.webp`,
+  `${STILL_PATH}/app-automation.webp`,
 ] as const;
 
-const HERO_SLIDES = [
-  '/plugins/playground.webp',
-  '/storyboard-presets/productLaunch.webp',
-  '/plugins/storyboard.webp',
-  '/storyboard-presets/founderStory.webp',
-  '/plugins/editor.webp',
-  '/storyboard-presets/beforeAfter.webp',
-] as const;
-
-const HERO_INTERVAL_MS = 4500;
+const ROTATE_INTERVAL_MS = 4500;
 
 const WALL_COLUMNS: ReadonlyArray<{
   id: string;
   isReversed: boolean;
   items: readonly string[];
 }> = [
-  {
-    id: 'a',
-    isReversed: false,
-    items: [STILLS[0], STILLS[3], STILLS[6], STILLS[1]],
-  },
-  {
-    id: 'b',
-    isReversed: true,
-    items: [STILLS[2], STILLS[5], STILLS[7], STILLS[4]],
-  },
-  {
-    id: 'c',
-    isReversed: false,
-    items: [STILLS[4], STILLS[1], STILLS[3], STILLS[6]],
-  },
+  { id: 'a', isReversed: false, items: STILLS.slice(0, 4) },
+  { id: 'b', isReversed: true, items: STILLS.slice(4, 8) },
+  { id: 'c', isReversed: false, items: STILLS.slice(8, 12) },
 ];
 
 function ShowcaseCopy({
@@ -128,7 +116,7 @@ function MediaWall(props: Omit<AuthShowcaseProps, 'variant'>) {
                     key={`${copy}-${src}`}
                     className={cn(
                       'relative w-full shrink-0 overflow-hidden rounded-xl border border-border',
-                      itemIndex % 2 === 0 ? 'aspect-[4/5]' : 'aspect-square',
+                      itemIndex % 2 === 0 ? 'aspect-[3/4]' : 'aspect-[4/3]',
                     )}
                   >
                     <Image
@@ -145,7 +133,7 @@ function MediaWall(props: Omit<AuthShowcaseProps, 'variant'>) {
           </div>
         ))}
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/60 via-35% to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background from-25% via-background/80 via-45% to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-10">
         <ShowcaseCopy {...props} />
       </div>
@@ -153,38 +141,40 @@ function MediaWall(props: Omit<AuthShowcaseProps, 'variant'>) {
   );
 }
 
-function HeroRotator(props: Omit<AuthShowcaseProps, 'variant'>) {
+function ToolRotator(props: Omit<AuthShowcaseProps, 'variant'>) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % HERO_SLIDES.length);
-    }, HERO_INTERVAL_MS);
+      setActiveIndex((current) => (current + 1) % APP_WINDOWS.length);
+    }, ROTATE_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
   }, []);
 
   return (
-    <ShowcaseFrame>
-      {HERO_SLIDES.map((src, index) => (
-        <Image
-          key={src}
-          src={src}
-          alt=""
-          fill
-          priority={index === 0}
-          sizes="(min-width: 1024px) 55vw, 0px"
-          className={cn(
-            'object-cover transition-opacity duration-1000 motion-reduce:transition-none',
-            index === activeIndex ? 'opacity-100' : 'opacity-0',
-          )}
-        />
-      ))}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/70 via-30% to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 space-y-6 p-10">
-        <ShowcaseCopy {...props} />
-        <div className="flex gap-1.5">
-          {HERO_SLIDES.map((src, index) => (
+    <ShowcaseFrame className="flex flex-col justify-between p-10">
+      <div className="pointer-events-none absolute -bottom-32 left-1/2 size-[32rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+      <ShowcaseCopy {...props} />
+      <div className="relative space-y-6">
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+          {APP_WINDOWS.map((src, index) => (
+            <Image
+              key={src}
+              src={src}
+              alt=""
+              fill
+              priority={index === 0}
+              sizes="(min-width: 1024px) 50vw, 0px"
+              className={cn(
+                'object-cover transition-opacity duration-1000 motion-reduce:transition-none',
+                index === activeIndex ? 'opacity-100' : 'opacity-0',
+              )}
+            />
+          ))}
+        </div>
+        <div className="flex justify-center gap-1.5">
+          {APP_WINDOWS.map((src, index) => (
             <span
               key={src}
               className={cn(
@@ -201,29 +191,33 @@ function HeroRotator(props: Omit<AuthShowcaseProps, 'variant'>) {
   );
 }
 
-function ProductStack(props: Omit<AuthShowcaseProps, 'variant'>) {
+function ContentBento(props: Omit<AuthShowcaseProps, 'variant'>) {
+  const bentoCells = [
+    { className: 'col-span-2 row-span-2', src: STILLS[1] },
+    { className: '', src: STILLS[0] },
+    { className: '', src: STILLS[3] },
+    { className: 'col-span-2', src: APP_WINDOWS[0] },
+    { className: '', src: STILLS[4] },
+    { className: '', src: STILLS[2] },
+  ];
+
   return (
-    <ShowcaseFrame className="flex flex-col justify-between p-10">
-      <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-primary/15 blur-3xl" />
+    <ShowcaseFrame className="flex flex-col justify-between gap-8 p-10">
       <ShowcaseCopy {...props} />
-      <div className="relative mx-auto my-10 aspect-[16/10] w-full max-w-xl">
-        {PLUGIN_ART.map((src, index) => (
+      <div className="grid min-h-0 flex-1 grid-cols-4 grid-rows-4 gap-3">
+        {bentoCells.map((cell) => (
           <div
-            key={src}
-            className="absolute overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
-            style={{
-              height: '78%',
-              left: `${index * 9}%`,
-              top: `${(PLUGIN_ART.length - 1 - index) * 9}%`,
-              width: '78%',
-              zIndex: index,
-            }}
+            key={cell.src}
+            className={cn(
+              'relative overflow-hidden rounded-xl border border-border',
+              cell.className,
+            )}
           >
             <Image
-              src={src}
+              src={cell.src}
               alt=""
               fill
-              sizes="(min-width: 1024px) 40vw, 0px"
+              sizes="(min-width: 1024px) 30vw, 0px"
               className="object-cover"
             />
           </div>
@@ -237,9 +231,9 @@ export default function AuthShowcase({ variant, ...copy }: AuthShowcaseProps) {
   switch (variant) {
     case 'wall':
       return <MediaWall {...copy} />;
-    case 'hero':
-      return <HeroRotator {...copy} />;
-    case 'stack':
-      return <ProductStack {...copy} />;
+    case 'rotator':
+      return <ToolRotator {...copy} />;
+    case 'bento':
+      return <ContentBento {...copy} />;
   }
 }
