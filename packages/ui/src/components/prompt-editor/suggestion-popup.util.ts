@@ -34,6 +34,9 @@ export function getSuggestionClientRect(
  * calls `editor.commands.setContent`). React refuses to flush there and warns.
  * Mounting one microtask later moves the render out of that pass; every other
  * callback tolerates a popup that has not mounted yet.
+ *
+ * TipTap builds this renderer once per editor and reuses it for every
+ * suggestion, so each `onStart` opens a fresh session after the last exit.
  */
 export function createSuggestionPopupRenderer<TComponentProps extends object>(
   component: ComponentType<TComponentProps>,
@@ -86,6 +89,7 @@ export function createSuggestionPopupRenderer<TComponentProps extends object>(
       return handler?.onKeyDown?.(props) ?? false;
     },
     onStart: (props: SuggestionPopupProps) => {
+      isExited = false;
       latestProps = props;
       queueMicrotask(mount);
     },
