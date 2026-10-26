@@ -31,6 +31,10 @@ export interface PostDetailPostListProps {
   setDragOverDividerIndex: (index: number | null) => void;
   handleContentSave: () => Promise<void>;
   handleDeleteChild: (childId: string) => void;
+  handleChangeMedia: (
+    targetPostId: string,
+    ingredients: IIngredient[],
+  ) => Promise<void>;
   handleSelectMedia: (
     targetPostId: string,
     currentIngredients: IIngredient[],
@@ -78,6 +82,7 @@ export default function PostDetailPostList({
   setDragOverDividerIndex,
   handleContentSave,
   handleDeleteChild,
+  handleChangeMedia,
   handleSelectMedia,
   handleGenerateIllustration,
   handleDragStart,
@@ -208,6 +213,7 @@ export default function PostDetailPostList({
                       )
                   : undefined
               }
+              onChangeMedia={handleChangeMedia}
               onSelectMedia={() =>
                 handleSelectMedia(
                   currentPost.id,

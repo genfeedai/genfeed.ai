@@ -227,6 +227,54 @@ describe('usePostDetailMedia', () => {
     ]);
   });
 
+  it('saves a reorder from the editor strip without opening the gallery', async () => {
+    const { result } = renderHook(() => usePostDetailMedia(baseProps));
+
+    await act(async () => {
+      await result.current.handleChangeMedia('post-1', [
+        ingredient('ing-2'),
+        ingredient('ing-1'),
+      ]);
+    });
+
+    expect(mockOpenGallery).not.toHaveBeenCalled();
+    expect(mockServicePatch).toHaveBeenCalledWith('post-1', {
+      ingredients: ['ing-2', 'ing-1'],
+    });
+    expect(mockSetSelectedIngredients).toHaveBeenCalledWith([
+      ingredient('ing-2'),
+      ingredient('ing-1'),
+    ]);
+    expect(mockFetchPost).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps a child post reorder on the child', async () => {
+    const { result } = renderHook(() => usePostDetailMedia(baseProps));
+
+    await act(async () => {
+      await result.current.handleChangeMedia('child-1', [ingredient('ing-1')]);
+    });
+
+    expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {
+      ingredients: [ingredient('ing-1')],
+    });
+    expect(mockSetSelectedIngredients).not.toHaveBeenCalled();
+  });
+
+  it('tells the user when saving the new order fails', async () => {
+    mockServicePatch.mockRejectedValueOnce(new Error('boom'));
+    const { result } = renderHook(() => usePostDetailMedia(baseProps));
+
+    await act(async () => {
+      await result.current.handleChangeMedia('post-1', [ingredient('ing-1')]);
+    });
+
+    expect(mockNotificationsService.error).toHaveBeenCalledWith(
+      'Failed to update post media',
+    );
+    expect(mockSetIsSavingIngredients).toHaveBeenLastCalledWith(false);
+  });
+
   it('routes child selections through handleUpdateChild', async () => {
     const { result } = renderHook(() => usePostDetailMedia(baseProps));
 

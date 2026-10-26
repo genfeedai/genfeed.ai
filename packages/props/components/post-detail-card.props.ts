@@ -41,6 +41,7 @@ export interface PostDetailCardProps {
   lastSavedLabelsRef: MutableRefObject<Map<string, string>>;
   autoSaveTimeoutsRef: MutableRefObject<Map<string, NodeJS.Timeout>>;
   onGenerateIllustration?: (postId: string, prompt: string) => void;
+  onChangeMedia?: (postId: string, ingredients: IIngredient[]) => void;
   onSelectMedia?: (postId: string, currentIngredients: IIngredient[]) => void;
   isSavingMedia?: boolean;
   onSave?: () => void;

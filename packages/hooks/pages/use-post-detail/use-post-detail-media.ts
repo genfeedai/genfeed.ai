@@ -36,6 +36,11 @@ export interface UsePostDetailMediaReturn {
     targetPostId: string,
     currentIngredients: IIngredient[],
   ) => void;
+  /** Attaches the media as given, in order: a reorder or a removal. */
+  handleChangeMedia: (
+    targetPostId: string,
+    ingredients: IIngredient[],
+  ) => Promise<void>;
   handleGenerateIllustration: (
     postId: string,
     prompt: string,
@@ -56,6 +61,74 @@ export function usePostDetailMedia({
 }: UsePostDetailMediaOptions): UsePostDetailMediaReturn {
   const { openGallery } = useGalleryModal();
   const { openGenerateIllustration } = useGenerateIllustrationModal();
+
+  // Attaches `selected` (in publishing order) to a post and syncs local state.
+  const persistMedia = useCallback(
+    async (targetPostId: string, selected: IIngredient[]) => {
+      const isParentPost = targetPostId === post?.id;
+      const targetPost = isParentPost
+        ? post
+        : sortedChildren.find((c) => c.id === targetPostId);
+      if (!targetPost) {
+        return;
+      }
+
+      const platform = targetPost.platform ?? targetPost.credential?.platform;
+      const isVideoPlatform =
+        platform === CredentialPlatform.TIKTOK ||
+        platform === CredentialPlatform.YOUTUBE;
+      const uniqueIngredients = selected.filter(
+        (ing, index, self) => index === self.findIndex((i) => i.id === ing.id),
+      );
+
+      setIsSavingIngredients(true);
+      try {
+        const service = await getPostsService();
+        await service.patch(targetPostId, {
+          ingredients: uniqueIngredients.map((ing) => ing.id),
+          ...(isVideoPlatform
+            ? {
+                category: uniqueIngredients.length
+                  ? PostCategory.VIDEO
+                  : PostCategory.TEXT,
+              }
+            : {}),
+        });
+
+        if (isParentPost) {
+          setSelectedIngredients(uniqueIngredients);
+          setPost((prevPost) => ({
+            ...(prevPost || (post as IPost)),
+            ingredients: uniqueIngredients,
+            ...(isVideoPlatform
+              ? {
+                  category: uniqueIngredients.length
+                    ? PostCategory.VIDEO
+                    : PostCategory.TEXT,
+                }
+              : {}),
+          }));
+        } else {
+          handleUpdateChild(targetPostId, {
+            ingredients: uniqueIngredients,
+          });
+        }
+        await fetchPost(true);
+      } finally {
+        setIsSavingIngredients(false);
+      }
+    },
+    [
+      post,
+      sortedChildren,
+      getPostsService,
+      fetchPost,
+      handleUpdateChild,
+      setPost,
+      setSelectedIngredients,
+      setIsSavingIngredients,
+    ],
+  );
 
   // Media selection handler
   const handleSelectMedia = useCallback(
@@ -91,64 +164,14 @@ export function usePostDetailMedia({
         // An emptied selection arrives as `[]` and falls through the same path:
         // it patches, sets, and propagates empty ingredients like any other size.
         onSelect: async (selected: GallerySelectItem[]) => {
-          const uniqueIngredients = selected.filter(
-            (ing, index, self) =>
-              index === self.findIndex((i) => i.id === ing.id),
-          );
-
-          setIsSavingIngredients(true);
-          try {
-            const service = await getPostsService();
-            await service.patch(targetPostId, {
-              ingredients: uniqueIngredients.map((ing) => ing.id),
-              ...(isVideoPlatform
-                ? {
-                    category: uniqueIngredients.length
-                      ? PostCategory.VIDEO
-                      : PostCategory.TEXT,
-                  }
-                : {}),
-            });
-
-            if (isParentPost) {
-              setSelectedIngredients(uniqueIngredients);
-              setPost((prevPost) => ({
-                ...(prevPost || (post as IPost)),
-                ingredients: uniqueIngredients,
-                ...(isVideoPlatform
-                  ? {
-                      category: uniqueIngredients.length
-                        ? PostCategory.VIDEO
-                        : PostCategory.TEXT,
-                    }
-                  : {}),
-              }));
-            } else {
-              handleUpdateChild(targetPostId, {
-                ingredients: uniqueIngredients,
-              });
-            }
-            await fetchPost(true);
-          } finally {
-            setIsSavingIngredients(false);
-          }
+          await persistMedia(targetPostId, selected);
         },
         selectedId: selectedIds.length === 1 ? selectedIds[0] : undefined,
         selectedReferences: selectedIds.length > 1 ? selectedIds : undefined,
         title: 'Select Media for Post',
       });
     },
-    [
-      openGallery,
-      post,
-      sortedChildren,
-      getPostsService,
-      fetchPost,
-      handleUpdateChild,
-      setPost,
-      setSelectedIngredients,
-      setIsSavingIngredients,
-    ],
+    [openGallery, persistMedia, post, sortedChildren],
   );
 
   // Generate illustration handler
@@ -189,7 +212,20 @@ export function usePostDetailMedia({
     ],
   );
 
+  const handleChangeMedia = useCallback(
+    async (targetPostId: string, ingredients: IIngredient[]) => {
+      try {
+        await persistMedia(targetPostId, ingredients);
+      } catch (err) {
+        logger.error('Failed to update post media', err);
+        notificationsService.error('Failed to update post media');
+      }
+    },
+    [persistMedia, notificationsService],
+  );
+
   return {
+    handleChangeMedia,
     handleGenerateIllustration,
     handleSelectMedia,
   };

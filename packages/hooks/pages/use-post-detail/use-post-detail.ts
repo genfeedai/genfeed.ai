@@ -87,6 +87,10 @@ export interface UsePostDetailReturn {
   ) => Promise<string[] | null>;
   handleDeletePost: () => void;
   handleDeleteChild: (childId: string) => void;
+  handleChangeMedia: (
+    targetPostId: string,
+    ingredients: IIngredient[],
+  ) => Promise<void>;
   handleSelectMedia: (
     targetPostId: string,
     currentIngredients: IIngredient[],
@@ -258,6 +262,7 @@ export function usePostDetail({
     handlePublishViaTikTokApp: actions.handlePublishViaTikTokApp,
     handleQuickAction: actions.handleQuickAction,
     handleScheduleSave: actions.handleScheduleSave,
+    handleChangeMedia: media.handleChangeMedia,
     handleSelectMedia: media.handleSelectMedia,
     handleToggleFirstComment: thread.handleToggleFirstComment,
     handleSetGrokQuestion: thread.handleSetGrokQuestion,

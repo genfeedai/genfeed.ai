@@ -121,6 +121,7 @@ export default function PostDetail({
     handleSetGrokQuestion,
     handleDeletePost,
     handleDeleteChild,
+    handleChangeMedia,
     handleSelectMedia,
     handleGenerateIllustration,
     handleQuickAction,
@@ -646,6 +647,7 @@ export default function PostDetail({
                     handleAddToThread={handleAddToThread}
                     handleAddThreadPosts={handleAddThreadPosts}
                     handleDeleteChild={handleDeleteChild}
+                    handleChangeMedia={handleChangeMedia}
                     handleSelectMedia={handleSelectMedia}
                     handleGenerateIllustration={handleGenerateIllustration}
                     handleQuickAction={handleQuickAction}

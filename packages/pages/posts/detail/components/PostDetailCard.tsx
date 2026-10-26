@@ -34,6 +34,7 @@ export default function PostDetailCard({
   lastSavedDescriptionsRef,
   autoSaveTimeoutsRef,
   onGenerateIllustration,
+  onChangeMedia,
   onSelectMedia,
   isSavingMedia,
   onSave,
@@ -72,6 +73,9 @@ export default function PostDetailCard({
     <PostCardFooter
       key={post.id}
       selectedMedia={isParent ? selectedMedia : localIngredients}
+      onChangeMedia={
+        onChangeMedia ? (media) => onChangeMedia(post.id, media) : undefined
+      }
       onSelectMedia={
         onSelectMedia
           ? () =>

@@ -63,6 +63,10 @@ export interface PostDetailContentProps {
   handleAddToThread: () => Promise<void>;
   handleAddThreadPosts: (descriptions: string[]) => Promise<void>;
   handleDeleteChild: (childId: string) => void;
+  handleChangeMedia: (
+    targetPostId: string,
+    ingredients: IIngredient[],
+  ) => Promise<void>;
   handleSelectMedia: (
     targetPostId: string,
     currentIngredients: IIngredient[],
@@ -156,6 +160,7 @@ export default function PostDetailContent({
   handleAddToThread,
   handleAddThreadPosts,
   handleDeleteChild,
+  handleChangeMedia,
   handleSelectMedia,
   handleGenerateIllustration,
   handleQuickAction,
@@ -277,6 +282,7 @@ export default function PostDetailContent({
         setDragOverDividerIndex={setDragOverDividerIndex}
         handleContentSave={handleContentSave}
         handleDeleteChild={handleDeleteChild}
+        handleChangeMedia={handleChangeMedia}
         handleSelectMedia={handleSelectMedia}
         handleGenerateIllustration={handleGenerateIllustration}
         handleDragStart={handleDragStart}

@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PostCardFooter from '@ui/posts/card-footer/PostCardFooter';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,6 +18,25 @@ describe('PostCardFooter', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add media' }));
 
     expect(onSelectMedia).toHaveBeenCalledOnce();
+  });
+
+  it('lists the attached media with reorder controls when it can change them', () => {
+    const onChangeMedia = vi.fn();
+    const media = [{ id: 'a' }, { id: 'b' }] as IIngredient[];
+    const { rerender } = render(
+      <PostCardFooter
+        onChangeMedia={onChangeMedia}
+        onSelectMedia={vi.fn()}
+        selectedMedia={media}
+      />,
+    );
+
+    expect(screen.getByRole('list', { name: 'Attached media' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Move media 1 later' }));
+    expect(onChangeMedia).toHaveBeenCalledOnce();
+
+    rerender(<PostCardFooter onSelectMedia={vi.fn()} selectedMedia={media} />);
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('reports save state as text and offers Save only when dirty', () => {
