@@ -229,13 +229,11 @@ export default function AgentDock({
   return (
     <>
       {body}
-      {/* The Agent tab's panel; the named region stays inside it. */}
+      {/* The Chat view; the named region stays inside it. */}
       <div
-        aria-label={translate('label')}
         className="flex min-h-0 flex-1 flex-col"
         hidden={!isPresented}
         id="workspace-agent-panel"
-        role="tabpanel"
       >
         <section
           aria-label={translate('label')}

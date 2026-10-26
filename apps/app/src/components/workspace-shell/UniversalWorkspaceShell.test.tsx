@@ -2,6 +2,7 @@ import {
   ContextSidebarPanel,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
+import type { WorkspacePanelTab } from '@props/ui/workspace-panel.props';
 import {
   act,
   fireEvent,
@@ -644,6 +645,14 @@ type DockProbeProps = {
 function DockProbe({ onDock }: DockProbeProps) {
   onDock(useAgentDock());
   return null;
+}
+
+/** The topbar's Chat and Context toggles reach the panel through the dock. */
+function showPanelView(
+  dock: ReturnType<typeof useAgentDock>,
+  view: WorkspacePanelTab,
+) {
+  act(() => dock?.panel?.selectView(view));
 }
 
 describe('UniversalWorkspaceShell', () => {
@@ -1522,10 +1531,10 @@ describe('UniversalWorkspaceShell', () => {
       expect(
         container.querySelector('#workspace-context-inspector'),
       ).not.toHaveAttribute('inert');
-      expect(screen.getByTestId('workspace-panel-tab-chat')).toHaveAttribute(
-        'aria-selected',
-        'true',
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'Chat',
       );
+      expect(dock?.panel?.activeView).toBe('agent');
       expect(
         screen.getByTestId('agent-dock-composer-slot').closest('section'),
       ).toBe(region);
@@ -1536,6 +1545,7 @@ describe('UniversalWorkspaceShell', () => {
       // Closing keeps the conversation mounted so drafts and runs survive.
       act(() => dock?.close());
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+      expect(dock?.panel?.activeView).toBeNull();
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
@@ -1546,7 +1556,10 @@ describe('UniversalWorkspaceShell', () => {
       act(() => dock?.open());
       await screen.findByTestId('dock-conversation');
       expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
-      fireEvent.mouseDown(screen.getByRole('tab', { name: 'Context' }));
+      showPanelView(dock, 'details');
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'Context',
+      );
       expect(screen.getByTestId('workspace-agent-context')).toBeVisible();
       expect(screen.getByText('Current page')).toBeVisible();
       expect(screen.getByText('Conversation scope')).toBeVisible();
@@ -1556,13 +1569,17 @@ describe('UniversalWorkspaceShell', () => {
         ),
       ).toBeVisible();
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
-      fireEvent.mouseDown(screen.getByRole('tab', { name: 'History' }));
+      showPanelView(dock, 'agent');
+      fireEvent.click(screen.getByRole('button', { name: 'History' }));
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'History',
+      );
       expect(screen.getByTestId('agent-dock-history')).toBeVisible();
       expect(screen.getByRole('button', { name: 'Untitled' })).toHaveAttribute(
         'aria-current',
         'true',
       );
-      fireEvent.mouseDown(screen.getByRole('tab', { name: 'Chat' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Back to chat' }));
       expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
     });
 
@@ -1602,13 +1619,13 @@ describe('UniversalWorkspaceShell', () => {
       act(() => dock?.open());
       await screen.findByTestId('workspace-panel-header');
       expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
-      fireEvent.mouseDown(screen.getByRole('tab', { name: 'Context' }));
+      showPanelView(dock, 'details');
       expect(await screen.findByText('Automatic asset detail')).toBeVisible();
       expect(
         document.getElementById('workspace-context-inspector-drawer'),
       ).toBeNull();
       expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
-      fireEvent.mouseDown(screen.getByRole('tab', { name: 'Chat' }));
+      showPanelView(dock, 'agent');
       expect(screen.getByTestId('dock-conversation')).toBeVisible();
       fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
       await waitFor(() =>
@@ -1616,7 +1633,7 @@ describe('UniversalWorkspaceShell', () => {
       );
     });
 
-    it('shares the panel between the agent and the selection details as tabs', async () => {
+    it('shares the panel between the agent and the selection details as views', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
 
       render(
@@ -1631,11 +1648,11 @@ describe('UniversalWorkspaceShell', () => {
       );
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
 
-      // A selection brings the Details tab forward while the agent is closed.
-      expect(screen.getByTestId('workspace-panel-tab-context')).toHaveAttribute(
-        'aria-selected',
-        'true',
+      // A selection brings Context forward while the agent is closed.
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'Context',
       );
+      expect(dock?.panel?.activeView).toBe('details');
       expect(screen.getByText('Asset detail')).toBeVisible();
 
       // Opening the agent brings the conversation forward; Details stays.
@@ -1644,22 +1661,21 @@ describe('UniversalWorkspaceShell', () => {
       expect(
         await within(region).findByTestId('dock-conversation'),
       ).toBeVisible();
-      expect(screen.getByTestId('workspace-panel-tab-chat')).toHaveAttribute(
-        'aria-selected',
-        'true',
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'Chat',
       );
 
-      fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-context'));
+      showPanelView(dock, 'details');
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
       expect(screen.getByText('Asset detail')).toBeVisible();
       // The conversation stays mounted behind the Details tab.
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
 
-      fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-chat'));
+      showPanelView(dock, 'agent');
       expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
     });
 
-    it('reopens a collapsed selection when its Details tab is chosen', async () => {
+    it('reopens a collapsed selection when Context is chosen', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
 
       render(
@@ -1686,22 +1702,20 @@ describe('UniversalWorkspaceShell', () => {
       act(() => dock?.open());
 
       // Close the panel while preserving the page selection, then reopen Chat.
-      fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-context'));
+      showPanelView(dock, 'details');
       fireEvent.click(screen.getByTestId('workspace-panel-close'));
       expect(
         screen.getByRole('complementary', { hidden: true }),
       ).toHaveAttribute('aria-hidden', 'true');
       act(() => dock?.open());
-      expect(screen.getByTestId('workspace-panel-tab-chat')).toHaveAttribute(
-        'aria-selected',
-        'true',
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'Chat',
       );
 
-      fireEvent.mouseDown(screen.getByTestId('workspace-panel-tab-context'));
+      showPanelView(dock, 'details');
 
-      expect(screen.getByTestId('workspace-panel-tab-context')).toHaveAttribute(
-        'aria-selected',
-        'true',
+      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
+        'Context',
       );
       expect(screen.getByText('Asset detail')).toBeVisible();
     });
@@ -1748,12 +1762,7 @@ describe('UniversalWorkspaceShell', () => {
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
       act(() => dock?.open());
 
-      fireEvent.keyDown(screen.getByRole('button', { name: 'More' }), {
-        key: 'Enter',
-      });
-      fireEvent.click(
-        await screen.findByRole('menuitem', { name: 'Open full page' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
 
       expect(router.push).toHaveBeenCalledWith(
         expect.stringMatching(/^\/acme\/moonrise\/agent\//),

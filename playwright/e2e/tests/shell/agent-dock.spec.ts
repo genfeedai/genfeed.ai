@@ -55,7 +55,9 @@ test.describe('Agent dock', () => {
       await expect(dock).toBeVisible();
       await expect(toggle).toHaveAccessibleName('Close agent');
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-      await expect(page.getByRole('tab', { selected: true })).toHaveCount(1);
+      await expect(page.getByTestId('workspace-panel-title')).toHaveText(
+        'Chat',
+      );
       // The conversation and its composer render in the panel. (The mocked
       // agent stream is offline in E2E, so the composer is disabled and cannot
       // take focus; the unit tests cover focusing it.)
@@ -127,7 +129,6 @@ test.describe('Agent dock', () => {
     await page.getByTestId('topbar-agent-dock-toggle').click();
 
     const dock = page.getByRole('region', { name: 'Agent' });
-    await page.getByTestId('workspace-panel-more').click();
     await page.getByTestId('workspace-panel-full-page').click();
 
     await expect(page).toHaveURL(/\/agent(\/|$)/);

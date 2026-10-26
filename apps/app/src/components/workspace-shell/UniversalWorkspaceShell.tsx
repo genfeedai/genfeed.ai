@@ -29,11 +29,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { WorkspacePanelTab } from '@props/ui/workspace-panel.props';
-import {
-  InspectorToggleFallback,
-  InspectorToggleHost,
-} from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
+import type {
+  WorkspacePanelControls,
+  WorkspacePanelTab,
+} from '@props/ui/workspace-panel.props';
 import {
   SIDEBAR_TRANSITION_DURATION_MS,
   SIDEBAR_TRANSITION_EASING,
@@ -110,7 +109,7 @@ import { useConversationScopeControls } from './use-conversation-scope-controls'
 import WorkspaceAgentContext from './WorkspaceAgentContext';
 import { WorkspaceContextSidebarDrawerBody } from './WorkspaceContextSidebar';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
-import WorkspacePanelTabs from './WorkspacePanelTabs';
+import WorkspacePanelHeader from './WorkspacePanelHeader';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
   useActiveWorkspaceSurfaceAdapter,
@@ -728,6 +727,40 @@ function UniversalWorkspaceShellContent({
     isMobileContextOpen,
   ]);
 
+  // The topbar's Chat and Context toggles drive this panel through the dock.
+  const registerAgentDockPanel = agentDock?.registerPanel;
+  const isPanelVisible =
+    (isAgentDockHost && isAgentDockOpen) ||
+    isInspectorOpen ||
+    isMobileContextOpen;
+  const hasContextView = isAgentDockHost || Boolean(activeContextSidebar);
+  const panelControls = useMemo<WorkspacePanelControls>(
+    () => ({
+      activeView: isPanelVisible ? activePanelTab : null,
+      canShowContext: hasContextView,
+      close: handleClosePanel,
+      selectView: handleSelectPanelTab,
+    }),
+    [
+      activePanelTab,
+      handleClosePanel,
+      handleSelectPanelTab,
+      hasContextView,
+      isPanelVisible,
+    ],
+  );
+
+  useEffect(() => {
+    registerAgentDockPanel?.(panelControls);
+  }, [panelControls, registerAgentDockPanel]);
+
+  useEffect(
+    () => () => {
+      registerAgentDockPanel?.(null);
+    },
+    [registerAgentDockPanel],
+  );
+
   useEffect(() => {
     if (!setIsAgentDockAvailable) {
       return;
@@ -1082,8 +1115,8 @@ function UniversalWorkspaceShellContent({
   );
 
   const panelHeader = (
-    <WorkspacePanelTabs
-      activeTab={activePanelTab}
+    <WorkspacePanelHeader
+      activeView={activePanelTab}
       hasAgent={isAgentDockHost}
       onClose={handleClosePanel}
       onNewThread={() => {
@@ -1091,7 +1124,7 @@ function UniversalWorkspaceShellContent({
         handleSelectPanelTab('agent');
       }}
       onOpenFullPage={handleOpenFullConversation}
-      onSelectTab={handleSelectPanelTab}
+      onSelectView={handleSelectPanelTab}
     />
   );
   const alternatePanelContent = (
@@ -1101,7 +1134,7 @@ function UniversalWorkspaceShellContent({
         className="flex min-h-0 flex-1 flex-col"
         hidden={activePanelTab !== 'details'}
         id="workspace-details-panel"
-        role="tabpanel"
+        role="region"
       >
         <WorkspaceAgentContext
           contextSidebar={contextSidebar}
@@ -1122,7 +1155,7 @@ function UniversalWorkspaceShellContent({
           className="flex min-h-0 flex-1 flex-col"
           hidden={activePanelTab !== 'history'}
           id="workspace-history-panel"
-          role="tabpanel"
+          role="region"
         >
           <AgentDockHistory
             activeThreadId={dockThreads.activeThreadId}
@@ -1215,8 +1248,7 @@ function UniversalWorkspaceShellContent({
                 const target = event.target;
                 if (
                   target instanceof HTMLElement &&
-                  primaryRegionRef.current?.contains(target) &&
-                  !target.dataset.testid?.startsWith('topbar-inspector-')
+                  primaryRegionRef.current?.contains(target)
                 ) {
                   contextReturnFocusRef.current = target;
                 }
@@ -1229,10 +1261,7 @@ function UniversalWorkspaceShellContent({
                 <WorkspaceShellActionsProvider
                   openOverlay={launchWorkspaceOverlay}
                 >
-                  <InspectorToggleHost>
-                    <InspectorToggleFallback />
-                    {children}
-                  </InspectorToggleHost>
+                  {children}
                 </WorkspaceShellActionsProvider>
               </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>

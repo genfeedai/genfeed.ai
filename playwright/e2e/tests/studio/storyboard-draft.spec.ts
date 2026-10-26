@@ -55,16 +55,13 @@ async function openStoryboardTab(
   name: 'Shots' | 'Details' | 'References' | 'Cast',
 ) {
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
-  const open = page.getByRole('button', { name: 'Open details', exact: true });
-  const expand = page.getByRole('button', {
-    name: 'Expand details',
-    exact: true,
-  });
-  // Wait for the sidebar or a toggle to mount. A collapsed desktop rail keeps
-  // its tabs rendered behind the content, so prefer the toggles when present.
-  await expect(tabs.or(open).or(expand).first()).toBeVisible();
-  if (await expand.isVisible()) await expand.click();
-  else if (await open.isVisible()) await open.click();
+  const toggle = page.getByTestId('topbar-context-toggle');
+  // Wait for the sidebar or the topbar toggle to mount. A collapsed desktop
+  // rail keeps its tabs rendered behind the content, so prefer the toggle
+  // whenever it reports the panel closed.
+  await expect(tabs.or(toggle).first()).toBeVisible();
+  if ((await toggle.getAttribute('aria-expanded')) === 'false')
+    await toggle.click();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
 async function closeStoryboardDrawer(page: Page) {

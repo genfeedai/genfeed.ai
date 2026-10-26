@@ -66,7 +66,7 @@ test.describe('Workflows', () => {
     );
     await expect(editorActions).toBeVisible();
     // The workflow's context sidebar starts closed; the topbar opens it.
-    const toggle = authenticatedPage.getByTestId('topbar-inspector-toggle');
+    const toggle = authenticatedPage.getByTestId('topbar-context-toggle');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await toggle.click();
     const contextSidebar = authenticatedPage.getByRole('complementary', {

@@ -24,6 +24,12 @@ const agentDockState = vi.hoisted(() => ({
   value: null as {
     isAvailable: boolean;
     isOpen: boolean;
+    panel?: {
+      activeView: 'agent' | 'details' | 'history' | null;
+      canShowContext: boolean;
+      close: () => void;
+      selectView: (view: 'agent' | 'details' | 'history') => void;
+    } | null;
     toggle: () => void;
   } | null,
 }));
@@ -31,6 +37,7 @@ const contextSidebarState = vi.hoisted(() => ({
   value: null as {
     isMobileOpen: boolean;
     isOpen: boolean;
+    reveal: () => void;
     selection: { id: string; kind: 'asset'; title: string } | null;
     setIsMobileOpen: (isMobileOpen: boolean) => void;
     toggle: () => void;
@@ -213,12 +220,9 @@ vi.mock('next-intl', () => ({
         'common.sidebar': {
           collapse: 'Collapse sidebar',
         },
-        'common.contextSidebar': {
-          close: 'Close details',
-          collapse: 'Collapse details',
-          empty: 'Select an item to see details',
-          expand: 'Expand details',
-          open: 'Open details',
+        'common.sidePanel': {
+          closeContext: 'Close context',
+          openContext: 'Open context',
         },
       }) as Record<string, Record<string, string>>
     )[namespace]?.[key] ?? key,
@@ -515,6 +519,7 @@ describe('AppProtectedTopbar', () => {
         kind: 'asset' as const,
         title: 'Launch still',
       },
+      reveal: vi.fn(),
       setIsMobileOpen: vi.fn(),
       toggle: vi.fn(),
       ...overrides,
@@ -523,13 +528,111 @@ describe('AppProtectedTopbar', () => {
     return state;
   }
 
-  it('keeps the details toggle out of the window topbar', () => {
-    selectAsset();
+  it('opens the selection from the Context toggle when no shell panel exists', () => {
+    const state = selectAsset({ isOpen: false });
+
+    render(<AppProtectedTopbar chrome="admin" />);
+
+    const button = screen.getByTestId('topbar-context-toggle');
+    expect(button).toHaveAccessibleName('Open context');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(state.reveal).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
+  });
+
+  it('closes the selection from the Context toggle on desktop and in the drawer', () => {
+    const state = selectAsset();
+    const { rerender } = render(<AppProtectedTopbar chrome="admin" />);
+
+    const button = screen.getByTestId('topbar-context-toggle');
+    expect(button).toHaveAccessibleName('Close context');
+    fireEvent.click(button);
+    expect(state.toggle).toHaveBeenCalledTimes(1);
+
+    const drawerState = selectAsset({ isMobileOpen: true, isOpen: false });
+    rerender(<AppProtectedTopbar chrome="admin" />);
+    fireEvent.click(screen.getByTestId('topbar-context-toggle'));
+    expect(drawerState.setIsMobileOpen).toHaveBeenCalledWith(false);
+  });
+
+  it('shows no panel toggles in admin without a selection', () => {
+    render(<AppProtectedTopbar chrome="admin" />);
+
+    expect(screen.queryByTestId('topbar-panel-toggles')).toBeNull();
+  });
+
+  it('drives the shell panel from Chat and Context, with History under Chat', () => {
+    const panel = {
+      activeView: 'agent' as 'agent' | 'details' | 'history' | null,
+      canShowContext: true,
+      close: vi.fn(),
+      selectView: vi.fn(),
+    };
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: true,
+      panel,
+      toggle: vi.fn(),
+    };
+
+    const { rerender } = render(<AppProtectedTopbar />);
+
+    const chat = screen.getByTestId('topbar-agent-dock-toggle');
+    const context = screen.getByTestId('topbar-context-toggle');
+    expect(chat).toHaveAttribute('aria-expanded', 'true');
+    expect(context).toHaveAttribute('aria-expanded', 'false');
+    expect(context).toHaveAccessibleName('Open context');
+
+    fireEvent.click(context);
+    expect(panel.selectView).toHaveBeenCalledWith('details');
+    fireEvent.click(chat);
+    expect(panel.close).toHaveBeenCalledTimes(1);
+
+    agentDockState.value = {
+      ...agentDockState.value,
+      panel: { ...panel, activeView: 'details' },
+    };
+    rerender(<AppProtectedTopbar />);
+    expect(screen.getByTestId('topbar-context-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByTestId('topbar-agent-dock-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    fireEvent.click(screen.getByTestId('topbar-agent-dock-toggle'));
+    expect(panel.selectView).toHaveBeenCalledWith('agent');
+
+    agentDockState.value = {
+      ...agentDockState.value,
+      panel: { ...panel, activeView: 'history' },
+    };
+    rerender(<AppProtectedTopbar />);
+    expect(screen.getByTestId('topbar-agent-dock-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('hides Context where the shell has nothing to show', () => {
+    agentDockState.value = {
+      isAvailable: false,
+      isOpen: false,
+      panel: {
+        activeView: null,
+        canShowContext: false,
+        close: vi.fn(),
+        selectView: vi.fn(),
+      },
+      toggle: vi.fn(),
+    };
 
     render(<AppProtectedTopbar />);
 
-    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
-    expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
+    expect(screen.queryByTestId('topbar-context-toggle')).toBeNull();
+    expect(screen.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
   });
 
   it('toggles the agent panel from the topbar', () => {

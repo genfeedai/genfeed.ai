@@ -1,7 +1,6 @@
 'use client';
 
 import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
-import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
@@ -9,19 +8,19 @@ import { cn } from '@genfeedai/helpers';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { Button } from '@ui/primitives/button';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import CreditsLiveSync from '@ui/topbars/credits-bar/CreditsLiveSync';
-import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, Suspense, useId } from 'react';
+import { Suspense } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
+import TopbarPanelToggles from '@/components/shell/TopbarPanelToggles';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -50,57 +49,6 @@ type AppProtectedTopbarProps = TopbarProps & {
   chrome?: AppProtectedTopbarChrome;
 };
 
-type UnavailableToggleFrameProps = {
-  children: ReactNode;
-  className?: string;
-  isUnavailable: boolean;
-  reason: string;
-};
-
-// A disabled button is not in the tab order and does not receive pointer
-// events, so the reason has to live on a focusable wrapper. The button stays
-// natively disabled; Enter/Space on the wrapper do not activate it.
-function UnavailableToggleFrame({
-  children,
-  className,
-  isUnavailable,
-  reason,
-}: UnavailableToggleFrameProps) {
-  const reasonId = useId();
-
-  if (!isUnavailable) {
-    return <span className={className}>{children}</span>;
-  }
-
-  return (
-    <SimpleTooltip label={reason} position="bottom">
-      <span
-        aria-describedby={reasonId}
-        aria-label={reason}
-        className={cn(
-          'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          className,
-        )}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-          }
-        }}
-        role="group"
-        // The disabled button cannot take focus. This group is the tab stop
-        // that exposes the reason; removing tabIndex hides it from the keyboard.
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: disabled control's reason needs a focusable wrapper
-        tabIndex={0}
-      >
-        {children}
-        <span className="sr-only" id={reasonId}>
-          {reason}
-        </span>
-      </span>
-    </SimpleTooltip>
-  );
-}
-
 function AppProtectedTopbarContent({
   brandSlug,
   chrome = 'app',
@@ -117,8 +65,6 @@ function AppProtectedTopbarContent({
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
   const { settings } = useBrand();
-  const agentDock = useAgentDock();
-  const translateAgentDock = useTranslations('common.agentDock');
   const translatePlugins = useTranslations('common.plugins');
 
   const ToggleIcon = isMenuOpen ? X : Menu;
@@ -207,46 +153,8 @@ function AppProtectedTopbarContent({
             </span>
           ) : null}
 
-          {/* Account chrome only. The agent toggle opens the right-hand side
-              panel (⌘J); it uses the unavailable frame on `/agent`, where the
-              conversation is the page. */}
-          {agentDock ? (
-            <UnavailableToggleFrame
-              className="inline-flex"
-              isUnavailable={!agentDock.isAvailable}
-              reason={translateAgentDock('unavailable')}
-            >
-              <Button
-                aria-controls="workspace-agent-dock"
-                aria-expanded={agentDock.isAvailable && agentDock.isOpen}
-                aria-keyshortcuts="Meta+J Control+J"
-                type="button"
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                className="size-8"
-                data-active={
-                  agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
-                }
-                data-testid="topbar-agent-dock-toggle"
-                isDisabled={!agentDock.isAvailable}
-                withWrapper={false}
-                ariaLabel={
-                  !agentDock.isAvailable
-                    ? translateAgentDock('unavailable')
-                    : agentDock.isOpen
-                      ? translateAgentDock('close')
-                      : translateAgentDock('open')
-                }
-                onClick={agentDock.toggle}
-              >
-                {agentDock.isAvailable && agentDock.isOpen ? (
-                  <PanelRightClose className="size-4" />
-                ) : (
-                  <PanelRightOpen className="size-4" />
-                )}
-              </Button>
-            </UnavailableToggleFrame>
-          ) : null}
+          {/* The side panel's Chat and Context toggles (⌘J opens Chat). */}
+          <TopbarPanelToggles isAdminChrome={isAdminChrome} />
         </div>
       </div>
     </header>

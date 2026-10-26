@@ -88,7 +88,7 @@ test.describe('Context sidebar — selection driven', () => {
     await mockStudioGallery(authenticatedPage);
   });
 
-  test('shows no right column and no details toggle while nothing is selected', async ({
+  test('shows no right column while nothing is selected, with Context in the topbar', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
@@ -100,8 +100,8 @@ test.describe('Context sidebar — selection driven', () => {
       }),
     ).toHaveCount(0);
     await expect(
-      authenticatedPage.getByTestId('topbar-inspector-toggle'),
-    ).toHaveCount(0);
+      authenticatedPage.getByTestId('topbar-context-toggle'),
+    ).toHaveAttribute('aria-expanded', 'false');
     // The legacy agent inspector and its tabs are gone.
     await expect(
       authenticatedPage.getByRole('complementary', {
@@ -109,7 +109,7 @@ test.describe('Context sidebar — selection driven', () => {
       }),
     ).toHaveCount(0);
     await expect(
-      authenticatedPage.getByRole('tab', { exact: true, name: 'Chat' }),
+      authenticatedPage.getByTestId('workspace-panel-title'),
     ).toHaveCount(0);
   });
 
@@ -194,21 +194,64 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(
       contextSidebar.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('topbar-inspector-toggle'),
-    ).toHaveCount(0);
+    const contextToggle = authenticatedPage.getByTestId(
+      'topbar-context-toggle',
+    );
+    await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
     await contextSidebar.getByTestId('workspace-panel-close').click();
     await expect(card).toHaveAttribute('data-selected', 'false');
     await expect(
       authenticatedPage.locator('#workspace-context-inspector'),
     ).toHaveAttribute('inert', '');
-    await expect(
-      authenticatedPage.getByTestId('topbar-inspector-toggle'),
-    ).toHaveCount(0);
+    await expect(contextToggle).toHaveAttribute('aria-expanded', 'false');
     await card.getByText(ASSET_PROMPT).click();
     await expect(
       contextSidebar.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
+  });
+
+  test('switches Chat, Context and History from the topbar toggles', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await openStudioList(authenticatedPage);
+    await authenticatedPage
+      .getByTestId(`studio-asset-${ASSET_ID}`)
+      .getByText(ASSET_PROMPT)
+      .click();
+
+    const contextSidebar = authenticatedPage.getByRole('complementary', {
+      name: 'Side panel',
+    });
+    const title = contextSidebar.getByTestId('workspace-panel-title');
+    const chatToggle = authenticatedPage.getByTestId(
+      'topbar-agent-dock-toggle',
+    );
+    const contextToggle = authenticatedPage.getByTestId(
+      'topbar-context-toggle',
+    );
+    await expect(title).toHaveText('Context');
+    await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(chatToggle).toHaveAttribute('aria-expanded', 'false');
+
+    await chatToggle.click();
+    await expect(title).toHaveText('Chat');
+    await expect(chatToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(contextToggle).toHaveAttribute('aria-expanded', 'false');
+
+    // History is part of Chat: it opens from the Chat header and keeps the
+    // Chat toggle pressed.
+    await contextSidebar.getByTestId('workspace-panel-history').click();
+    await expect(title).toHaveText('History');
+    await expect(chatToggle).toHaveAttribute('aria-expanded', 'true');
+    await contextSidebar.getByTestId('workspace-panel-back').click();
+    await expect(title).toHaveText('Chat');
+
+    await contextToggle.click();
+    await expect(title).toHaveText('Context');
+    await contextToggle.click();
+    await expect(contextSidebar).toHaveCount(0);
+    await expectNoErrorOverlay(authenticatedPage);
   });
 
   test('opens the shared mobile Context panel on a tap and deselects when dismissed', async ({
@@ -223,9 +266,9 @@ test.describe('Context sidebar — selection driven', () => {
     const drawer = authenticatedPage.getByRole('dialog', { name: 'Agent' });
     await expect(drawer).toBeVisible();
     await expect(drawer.getByTestId('workspace-panel-header')).toHaveCount(1);
-    await expect(
-      drawer.getByRole('tab', { exact: true, name: 'Context' }),
-    ).toHaveAttribute('aria-selected', 'true');
+    await expect(drawer.getByTestId('workspace-panel-title')).toHaveText(
+      'Context',
+    );
     await expect(
       drawer.getByTestId('studio-playground-inspector'),
     ).toBeVisible();

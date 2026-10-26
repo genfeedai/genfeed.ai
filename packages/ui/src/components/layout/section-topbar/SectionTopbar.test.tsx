@@ -1,8 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import {
-  InspectorToggleFallback,
-  InspectorToggleHost,
-} from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
+import { render, screen } from '@testing-library/react';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -11,30 +7,9 @@ const navigationState = vi.hoisted(() => ({
   hasCanonicalBreadcrumb: false,
 }));
 
-const sidebarState = vi.hoisted(() => ({
-  current: null as null | {
-    isMobileOpen: boolean;
-    isOpen: boolean;
-    selection: { id: string } | null;
-    setIsMobileOpen: (isOpen: boolean) => void;
-    toggle: () => void;
-  },
-}));
-
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => navigationState,
 }));
-
-vi.mock('@genfeedai/contexts/ui/context-sidebar-context', () => ({
-  useContextSidebar: () => sidebarState.current,
-}));
-
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../../apps/app/tests/next-intl.stub'
-  );
-  return { useTranslations: translateFromCatalog };
-});
 
 describe('SectionTopbar', () => {
   it.each(['visible', 'sr-only'] as const)(
@@ -117,7 +92,6 @@ describe('SectionTopbar', () => {
 
   beforeEach(() => {
     navigationState.hasCanonicalBreadcrumb = false;
-    sidebarState.current = null;
   });
 
   it('renders a full-bleed bar whose bottom border meets the shell edges', () => {
@@ -422,73 +396,21 @@ describe('SectionTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('puts the sidebar opener at the end of the ghost cluster', () => {
-    const toggle = vi.fn();
-    sidebarState.current = {
-      isMobileOpen: false,
-      isOpen: false,
-      selection: { id: 'asset-1' },
-      setIsMobileOpen: vi.fn(),
-      toggle,
-    };
-
-    render(
-      <InspectorToggleHost>
-        <InspectorToggleFallback />
-        <SectionTopbar
-          actions={<span>Upload</span>}
-          title="Library"
-          titleVisibility="sr-only"
-        />
-      </InspectorToggleHost>,
-    );
-
-    const actions = screen.getByTestId('section-topbar-actions');
-    const details = screen.getByTestId('topbar-inspector-toggle');
-    expect(actions).toContainElement(details);
-    expect(actions).toHaveTextContent('Upload');
-    expect(screen.queryByTestId('content-inspector-fallback')).toBeNull();
-
-    fireEvent.click(details);
-    expect(toggle).toHaveBeenCalledTimes(1);
-  });
-
-  it('leaves closing controls inside the open sidebar and drawer', () => {
-    sidebarState.current = {
-      isMobileOpen: true,
-      isOpen: true,
-      selection: { id: 'asset-1' },
-      setIsMobileOpen: vi.fn(),
-      toggle: vi.fn(),
-    };
+  it('leaves the details toggle to the app topbar', () => {
     render(
       <SectionTopbar
+        actions={<span>Upload</span>}
+        iconActions={<button type="button">Ghost</button>}
         title="Library"
         titleVisibility="sr-only"
-        actions={<span>Filters</span>}
       />,
     );
+
+    expect(
+      screen.getByTestId('section-topbar-ghost-actions'),
+    ).toHaveTextContent('Ghost');
     expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
     expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
-  });
-
-  it('hides the details toggle when nothing is selected', () => {
-    sidebarState.current = {
-      isMobileOpen: false,
-      isOpen: false,
-      selection: null,
-      setIsMobileOpen: vi.fn(),
-      toggle: vi.fn(),
-    };
-
-    render(
-      <InspectorToggleHost>
-        <InspectorToggleFallback />
-        <SectionTopbar title="Overview" titleVisibility="sr-only" />
-      </InspectorToggleHost>,
-    );
-
-    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
     expect(screen.queryByTestId('content-inspector-fallback')).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentDock from './AgentDock';
-import WorkspacePanelTabs from './WorkspacePanelTabs';
+import WorkspacePanelHeader from './WorkspacePanelHeader';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -21,7 +21,9 @@ function buildDock(
     isAvailable: true,
     isOpen: true,
     open: vi.fn(),
+    panel: null,
     registerAttachHandler: vi.fn(() => () => undefined),
+    registerPanel: vi.fn(),
     setIsAvailable: vi.fn(),
     toggle: vi.fn(),
     ...overrides,
@@ -40,13 +42,13 @@ function renderDock(
       dock={dock}
       isCompact={options.isCompact ?? false}
       header={
-        <WorkspacePanelTabs
-          activeTab="agent"
+        <WorkspacePanelHeader
+          activeView="agent"
           hasAgent
           onClose={dock.close}
           onNewThread={vi.fn()}
           onOpenFullPage={onOpenFullPage}
-          onSelectTab={vi.fn()}
+          onSelectView={vi.fn()}
         />
       }
     >
@@ -97,14 +99,23 @@ function CompactViews({ dock }: { dock: AgentDockContextValue }) {
       isCompact
       isTabActive={tab === 'agent'}
       header={
-        <WorkspacePanelTabs
-          activeTab={tab}
-          hasAgent
-          onClose={dock.close}
-          onNewThread={vi.fn()}
-          onOpenFullPage={vi.fn()}
-          onSelectTab={setTab}
-        />
+        <>
+          <WorkspacePanelHeader
+            activeView={tab}
+            hasAgent
+            onClose={dock.close}
+            onNewThread={vi.fn()}
+            onOpenFullPage={vi.fn()}
+            onSelectView={setTab}
+          />
+          {/* Stand in for the topbar's Chat and Context toggles. */}
+          <button onClick={() => setTab('agent')} type="button">
+            Show chat
+          </button>
+          <button onClick={() => setTab('details')} type="button">
+            Show context
+          </button>
+        </>
       }
       alternateContent={
         <p>{tab === 'history' ? 'Real history view' : 'Actual context view'}</p>
@@ -222,12 +233,7 @@ describe('AgentDock', () => {
     expect(sheet).toHaveTextContent('Conversation transcript');
     expect(screen.queryByRole('separator')).toBeNull();
 
-    fireEvent.keyDown(screen.getByRole('button', { name: 'More' }), {
-      key: 'Enter',
-    });
-    fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'Open full page' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
     expect(onOpenFullPage).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
@@ -307,12 +313,13 @@ describe('AgentDock', () => {
     render(<CompactViews dock={dock} />);
     expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Draft: empty' }));
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Context' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show context' }));
     expect(screen.getByText('Actual context view')).toBeVisible();
     expect(screen.getByText('Draft: half-written')).not.toBeVisible();
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'History' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show chat' }));
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
     expect(screen.getByText('Real history view')).toBeVisible();
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Chat' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to chat' }));
     expect(
       screen.getByRole('button', { name: 'Draft: half-written' }),
     ).toBeVisible();

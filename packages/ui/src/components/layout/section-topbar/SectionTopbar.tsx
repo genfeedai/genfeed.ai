@@ -3,10 +3,6 @@
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
-import ContextInspectorToggle, {
-  InspectorTogglePlacement,
-  useSectionInspectorToggle,
-} from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
@@ -16,7 +12,7 @@ import ContextInspectorToggle, {
  * - full-bleed `border-b` that meets the shell edges
  * - the right cluster has ONE fixed order, enforced here by slot so a page
  *   cannot get it wrong: Refresh (`refresh`), tabs (`tabs`), ghost
- *   actions (`iconActions`, then the details toggle), controls, primary action
+ *   actions (`iconActions`), controls, primary action
  *   last (`actions`). With `iconActionsPlacement="after-controls"` the ghost
  *   group moves to the end instead.
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
@@ -53,8 +49,6 @@ export default function SectionTopbar({
     Boolean(actions) || Boolean(iconActions) || Boolean(refresh);
   const isBarVisible =
     forceVisible || hasVisibleTitle || hasLeading || hasTabs || hasActions;
-  const { markPlaced, renderToggle } = useSectionInspectorToggle(isBarVisible);
-  const inspectorToggle = renderToggle ? <ContextInspectorToggle /> : null;
 
   // Refresh: always the first control of the right cluster.
   const leadActionsNode = (
@@ -66,14 +60,13 @@ export default function SectionTopbar({
     </div>
   );
 
-  // Remaining ghost actions; the details toggle ends this group.
+  // Remaining ghost actions.
   const ghostActionsNode = (
     <div
       className="flex shrink-0 items-center gap-1 empty:hidden"
       data-testid="section-topbar-ghost-actions"
     >
       {iconActions}
-      {inspectorToggle}
     </div>
   );
 
@@ -91,110 +84,55 @@ export default function SectionTopbar({
 
   if (!hasVisibleTitle) {
     return (
-      <InspectorTogglePlacement hostsToggle={markPlaced}>
-        <div
-          data-testid="section-topbar"
-          className={cn('w-full border-b border-border', className)}
-        >
-          <h1 className="sr-only">{title}</h1>
-          <div
-            className={cn(
-              // 48px like the app topbar and inspector header, so dividers line
-              // up across columns; also keeps forced-visible empty bars (loading
-              // / error states) the height of a populated row. `flex-wrap`: a
-              // busy header (leading search + a full actions cluster) can
-              // exceed the row's width once the workspace inspector reserves
-              // its own column — without it, `tabs`' `min-w-0` absorbs all the
-              // overflow and can collapse to 0px (#5400), hiding the tabs
-              // entirely instead of dropping them to their own line.
-              'flex min-h-12 w-full flex-wrap items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
-              !hasLeading && !hasTabs && hasActions && 'justify-end',
-            )}
-          >
-            {hasLeading ? (
-              <div
-                data-testid="section-topbar-leading"
-                className="mr-auto flex shrink-0 items-center"
-              >
-                {leading}
-              </div>
-            ) : null}
-            {hasActions || hasTabs || inspectorToggle ? (
-              <div
-                data-testid="section-topbar-actions"
-                className={cn(
-                  'flex items-center gap-2',
-                  actions || hasTabs
-                    ? cn(
-                        'min-w-0 flex-wrap justify-end',
-                        hasLeading ? 'flex-auto' : 'flex-1',
-                      )
-                    : 'shrink-0',
-                )}
-              >
-                {leadActionsNode}
-                {hasTabs ? (
-                  <div
-                    data-testid="section-topbar-tabs"
-                    className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
-                  >
-                    {tabs}
-                  </div>
-                ) : null}
-                {iconActionsPlacement === 'before-controls'
-                  ? ghostActionsNode
-                  : null}
-                {actions}
-                {iconActionsPlacement === 'after-controls'
-                  ? ghostActionsNode
-                  : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </InspectorTogglePlacement>
-    );
-  }
-
-  return (
-    <InspectorTogglePlacement hostsToggle={markPlaced}>
       <div
         data-testid="section-topbar"
         className={cn('w-full border-b border-border', className)}
       >
+        <h1 className="sr-only">{title}</h1>
         <div
           className={cn(
-            'flex w-full items-center gap-3 px-6 py-2',
-            hasActions ? 'justify-between' : 'justify-start',
+            // 48px like the app topbar and inspector header, so dividers line
+            // up across columns; also keeps forced-visible empty bars (loading
+            // / error states) the height of a populated row. `flex-wrap`: a
+            // busy header (leading search + a full actions cluster) can
+            // exceed the row's width once the workspace inspector reserves
+            // its own column — without it, `tabs`' `min-w-0` absorbs all the
+            // overflow and can collapse to 0px (#5400), hiding the tabs
+            // entirely instead of dropping them to their own line.
+            'flex min-h-12 w-full flex-wrap items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
+            !hasLeading && !hasTabs && hasActions && 'justify-end',
           )}
         >
-          <div className="flex min-w-0 items-center gap-3">
-            {hasLeading ? (
-              <div
-                data-testid="section-topbar-leading"
-                className="flex shrink-0 items-center"
-              >
-                {leading}
-              </div>
-            ) : null}
-            <div className="flex min-w-0 items-baseline gap-2.5">
-              <div className="flex items-center gap-2">
-                {Icon ? (
-                  <Icon className="size-4 flex-shrink-0 text-foreground/60" />
-                ) : null}
-                <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
-                  {title}
-                </h1>
-              </div>
+          {hasLeading ? (
+            <div
+              data-testid="section-topbar-leading"
+              className="mr-auto flex shrink-0 items-center"
+            >
+              {leading}
             </div>
-          </div>
-
-          {hasActions || inspectorToggle ? (
+          ) : null}
+          {hasActions || hasTabs ? (
             <div
               data-testid="section-topbar-actions"
-              className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
+              className={cn(
+                'flex items-center gap-2',
+                actions || hasTabs
+                  ? cn(
+                      'min-w-0 flex-wrap justify-end',
+                      hasLeading ? 'flex-auto' : 'flex-1',
+                    )
+                  : 'shrink-0',
+              )}
             >
               {leadActionsNode}
+              {hasTabs ? (
+                <div
+                  data-testid="section-topbar-tabs"
+                  className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
+                >
+                  {tabs}
+                </div>
+              ) : null}
               {iconActionsPlacement === 'before-controls'
                 ? ghostActionsNode
                 : null}
@@ -205,16 +143,67 @@ export default function SectionTopbar({
             </div>
           ) : null}
         </div>
+      </div>
+    );
+  }
 
-        {hasTabs ? (
+  return (
+    <div
+      data-testid="section-topbar"
+      className={cn('w-full border-b border-border', className)}
+    >
+      <div
+        className={cn(
+          'flex w-full items-center gap-3 px-6 py-2',
+          hasActions ? 'justify-between' : 'justify-start',
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          {hasLeading ? (
+            <div
+              data-testid="section-topbar-leading"
+              className="flex shrink-0 items-center"
+            >
+              {leading}
+            </div>
+          ) : null}
+          <div className="flex min-w-0 items-baseline gap-2.5">
+            <div className="flex items-center gap-2">
+              {Icon ? (
+                <Icon className="size-4 flex-shrink-0 text-foreground/60" />
+              ) : null}
+              <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
+                {title}
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        {hasActions ? (
           <div
-            data-testid="section-topbar-tabs"
-            className="flex justify-end overflow-x-auto px-6 pb-1.5 scrollbar-thin"
+            data-testid="section-topbar-actions"
+            className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
-            {tabs}
+            {leadActionsNode}
+            {iconActionsPlacement === 'before-controls'
+              ? ghostActionsNode
+              : null}
+            {actions}
+            {iconActionsPlacement === 'after-controls'
+              ? ghostActionsNode
+              : null}
           </div>
         ) : null}
       </div>
-    </InspectorTogglePlacement>
+
+      {hasTabs ? (
+        <div
+          data-testid="section-topbar-tabs"
+          className="flex justify-end overflow-x-auto px-6 pb-1.5 scrollbar-thin"
+        >
+          {tabs}
+        </div>
+      ) : null}
+    </div>
   );
 }

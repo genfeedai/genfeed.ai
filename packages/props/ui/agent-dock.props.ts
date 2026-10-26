@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { WorkspacePanelControls } from './workspace-panel.props';
 
 /** What a page can hand the agent dock's composer: one canonical record. */
 export interface AgentDockContentReference {
@@ -31,9 +32,12 @@ export interface AgentDockContextValue {
   readonly isAvailable: boolean;
   readonly isOpen: boolean;
   readonly open: () => void;
+  /** Published by the workspace shell while it hosts the side panel. */
+  readonly panel: WorkspacePanelControls | null;
   readonly registerAttachHandler: (
     handler: AgentDockAttachHandler,
   ) => () => void;
+  readonly registerPanel: (controls: WorkspacePanelControls | null) => void;
   readonly setIsAvailable: (isAvailable: boolean) => void;
   readonly toggle: () => void;
 }

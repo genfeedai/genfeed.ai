@@ -7,6 +7,7 @@ import type {
   AgentDockPersistedState,
   AgentDockProviderProps,
 } from '@props/ui/agent-dock.props';
+import type { WorkspacePanelControls } from '@props/ui/workspace-panel.props';
 import {
   createContext,
   use,
@@ -74,6 +75,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
   const [hasRestored, setHasRestored] = useState(false);
+  const [panel, setPanel] = useState<WorkspacePanelControls | null>(null);
   const attachHandlerRef = useRef<AgentDockAttachHandler | null>(null);
 
   // Restore after mount so the server render and first paint agree.
@@ -94,6 +96,11 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
   const toggle = useCallback(() => setIsOpen((current) => !current), []);
+
+  const registerPanel = useCallback(
+    (controls: WorkspacePanelControls | null) => setPanel(controls),
+    [],
+  );
 
   const registerAttachHandler = useCallback(
     (handler: AgentDockAttachHandler) => {
@@ -147,7 +154,9 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
       isAvailable,
       isOpen,
       open,
+      panel,
       registerAttachHandler,
+      registerPanel,
       setIsAvailable,
       toggle,
     }),
@@ -157,7 +166,9 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
       isAvailable,
       isOpen,
       open,
+      panel,
       registerAttachHandler,
+      registerPanel,
       toggle,
     ],
   );
