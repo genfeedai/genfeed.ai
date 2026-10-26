@@ -1,5 +1,10 @@
 import { replaceStoryboardCharacterSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
-import { updateStoryboardPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import {
+  STORYBOARD_LONG_FORM_LIMITS,
+  storyboardCutawaySchema,
+  storyboardSegmentSchema,
+  updateStoryboardPlanSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
   controlStoryboardRunSchema,
   createStoryboardRunSchema,
@@ -45,8 +50,31 @@ const storyboardLongFormSchema = z.discriminatedUnion('action', [
   draftStoryboardPlanSchema
     .extend({ ...run, action: z.literal('draft_plan') })
     .strict(),
-  updateStoryboardPlanSchema
-    .extend({ ...run, action: z.literal('update_plan') })
+  z
+    .object({
+      ...run,
+      action: z.literal('edit_script'),
+      expectedRevision,
+      segments: z
+        .array(
+          storyboardSegmentSchema
+            .pick({ id: true, sectionLabel: true, narration: true })
+            .partial({ sectionLabel: true, narration: true }),
+        )
+        .max(STORYBOARD_LONG_FORM_LIMITS.maxSegments)
+        .optional(),
+      cutaways: z
+        .array(
+          storyboardCutawaySchema
+            .pick({ id: true, brief: true })
+            .partial({ brief: true }),
+        )
+        .max(
+          STORYBOARD_LONG_FORM_LIMITS.maxSegments *
+            STORYBOARD_LONG_FORM_LIMITS.maxCutawaysPerSegment,
+        )
+        .optional(),
+    })
     .strict(),
   controlStoryboardRunSchema
     .extend({ ...run, action: z.literal('approve_plan') })

@@ -20,7 +20,7 @@ const cutawayIds = {
   maxItems: 60,
   uniqueItems: true,
 };
-const inputHash = { type: 'string', pattern: '^[a-f0-9]{64}$' };
+const inputHash = { type: 'string', minLength: 64, maxLength: 64 };
 
 export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
   {
@@ -39,7 +39,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
   {
     name: 'storyboard_long_form',
     description:
-      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); update_plan saves an edited plan; approve_plan locks it; quote prices one paid stage and returns its inputHash; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
+      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); edit_script rewrites segment narration and cutaway briefs by id; approve_plan locks it; quote prices one paid stage and returns its inputHash; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -50,7 +50,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
             'create',
             'get',
             'draft_plan',
-            'update_plan',
+            'edit_script',
             'approve_plan',
             'quote',
             'reconcile',
@@ -74,7 +74,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
         expectedRevision: {
           ...revision,
           description:
-            'Run revision from get; required for draft_plan, update_plan, approve_plan and quote.',
+            'Run revision from get; required for draft_plan, edit_script, approve_plan and quote.',
         },
         instruction: {
           type: 'string',
@@ -82,9 +82,36 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
           maxLength: 2000,
           description: 'draft_plan only: how to revise the current plan.',
         },
-        plan: {
-          type: 'object',
-          description: 'update_plan only: the whole plan from get, edited.',
+        segments: {
+          type: 'array',
+          maxItems: 150,
+          description:
+            'edit_script only: segments to change, by id from get. Omitted fields stay.',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              id,
+              sectionLabel: { type: 'string', maxLength: 40 },
+              narration: { type: 'string', minLength: 1, maxLength: 2000 },
+            },
+            required: ['id'],
+          },
+        },
+        cutaways: {
+          type: 'array',
+          maxItems: 600,
+          description:
+            'edit_script only: cutaway briefs to change, by id from get. A new brief drops its old still.',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              id,
+              brief: { type: 'string', minLength: 1, maxLength: 1000 },
+            },
+            required: ['id'],
+          },
         },
         stage: { ...stage, description: `quote only. ${stage.description}` },
         cutawayIds: {
