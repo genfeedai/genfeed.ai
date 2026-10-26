@@ -2073,6 +2073,44 @@ describe('StudioPlaygroundComposer', () => {
     );
   });
 
+  it('blocks MiniMax H3 when a start frame is combined with an audio reference', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        attachedAssets={[
+          {
+            id: 'frame-1',
+            kind: 'image',
+            role: 'startFrame',
+            source: 'library',
+          },
+          {
+            id: 'audio-1',
+            kind: 'audio',
+            role: 'audioReference',
+            source: 'library',
+          },
+        ]}
+        prompt="Narrate the product reveal"
+        settings={{
+          ...settings,
+          modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3,
+        }}
+        type="video"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "MiniMax H3 can't combine a start or end frame with an audio reference. Attach the image as a reference instead.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
   it('updates the pre-send credit quote for the selected resolution', () => {
     const model = {
       category: ModelCategory.VIDEO,

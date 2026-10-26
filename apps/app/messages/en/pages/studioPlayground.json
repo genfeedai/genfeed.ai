@@ -341,6 +341,7 @@
     "moreLikeAria": "More like {name}",
     "savedLooks": "Saved looks"
   },
+  "audioFrameConflict": "MiniMax H3 can't combine a start or end frame with an audio reference. Attach the image as a reference instead.",
   "audioReference": "Audio reference",
   "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video.",
   "referenceMentionNotice": "Attached but not mentioned: {tokens}. They will still be included."
