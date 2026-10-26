@@ -214,7 +214,7 @@ export default function CalendarContent() {
           <Text className="text-sm text-surface/65 text-center mt-8">
             Once it is approved here, publish it everywhere from the{' '}
             <Link
-              href="/publishing"
+              href="/products/publishing"
               className="text-[var(--gen-accent-text)] underline underline-offset-4"
             >
               Publishing

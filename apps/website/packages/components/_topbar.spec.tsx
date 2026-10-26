@@ -121,7 +121,7 @@ describe('WebsiteTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('exposes studio, models, publishing, analytics, control plane, and MCP server', () => {
+  it('exposes every app product, models, control plane, and MCP server', () => {
     render(<WebsiteTopbar />);
 
     fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
@@ -130,21 +130,32 @@ describe('WebsiteTopbar', () => {
       'aria-expanded',
       'true',
     );
-    for (const group of ['Create', 'Operate', 'Build']) {
+    for (const group of ['Create', 'Publish & grow', 'Operate']) {
       expect(screen.getByText(group)).toBeInTheDocument();
     }
 
-    for (const destination of [
-      'Studio',
-      'Models',
-      'Publishing',
-      'Analytics',
-      'Control Plane',
-      'MCP Server',
+    for (const [destination, href] of [
+      ['Playground', '/products/playground'],
+      ['Storyboard', '/products/storyboard'],
+      ['Clipper', '/products/clipper'],
+      ['Motion', '/products/motion'],
+      ['Turbo', '/products/turbo'],
+      ['Editor', '/products/editor'],
+      ['Publishing', '/products/publishing'],
+      ['Analytics', '/products/analytics'],
+      ['Discovery', '/products/discovery'],
+      ['Messages', '/products/messages'],
+      ['Agent', '/products/agent'],
+      ['Automation', '/products/automation'],
+      ['Library', '/products/library'],
+      ['Models', '/models'],
+      ['Control Plane', '/features'],
+      ['MCP Server', '/mcp'],
+      ['Browse all products', '/products'],
     ]) {
       expect(
-        screen.getByRole('link', { name: new RegExp(destination, 'i') }),
-      ).toBeInTheDocument();
+        screen.getByRole('link', { name: new RegExp(`^${destination}`, 'i') }),
+      ).toHaveAttribute('href', href);
     }
   });
 
@@ -154,9 +165,9 @@ describe('WebsiteTopbar', () => {
     fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
 
     const header = document.querySelector('header');
-    const studio = screen.getByRole('link', { name: /studio/i });
+    const playground = screen.getByRole('link', { name: /playground/i });
 
-    expect(header).toContainElement(studio);
+    expect(header).toContainElement(playground);
   });
 
   it('does not expose a marketing-site appearance control', () => {

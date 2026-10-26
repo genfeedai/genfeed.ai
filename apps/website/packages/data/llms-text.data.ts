@@ -7,6 +7,10 @@
  *   catalog (the same registry read as `/models`), never a hand-kept key list.
  */
 import { renderAgentConnectMarkdown } from '@data/agent-clients.data';
+import {
+  APP_PRODUCT_ACCESS_LABELS,
+  appProducts,
+} from '@data/app-products.data';
 import { BEST_LISTS } from '@data/best-lists.data';
 import { competitors } from '@data/competitors.data';
 import { FAQ_CATEGORIES } from '@data/faq.data';
@@ -214,6 +218,16 @@ export function buildLlmsIndex(): string {
     }),
   );
 
+  lines.push('## App products');
+  lines.push('');
+  lines.push(
+    `- [All Genfeed products](${BASE_URL}/products): Index of every app in the workspace`,
+  );
+  for (const p of appProducts) {
+    lines.push(`- [${p.name}](${BASE_URL}/products/${p.slug}): ${p.tagline}`);
+  }
+  lines.push('');
+
   lines.push('## Products');
   lines.push('');
   for (const p of products) {
@@ -373,6 +387,31 @@ export function buildLlmsFull(
       pricingSummary: PRICING_SUMMARY,
     }),
   );
+  s.push('---');
+  s.push('');
+  s.push('## App products');
+  s.push('');
+  s.push(`Index: ${BASE_URL}/products`);
+  s.push('');
+
+  for (const p of appProducts) {
+    s.push(`### ${p.name}`);
+    s.push('');
+    s.push(p.definition);
+    s.push('');
+    s.push('Highlights:');
+    for (const highlight of p.highlights) {
+      s.push(`- ${highlight}`);
+    }
+    s.push('');
+    s.push(`Outputs: ${p.outputs.map((output) => output.title).join(', ')}`);
+    s.push('');
+    s.push(`Access: ${APP_PRODUCT_ACCESS_LABELS[p.access]}`);
+    s.push('');
+    s.push(`URL: ${BASE_URL}/products/${p.slug}`);
+    s.push('');
+  }
+
   s.push('---');
   s.push('');
   s.push('## Products');

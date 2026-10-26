@@ -26,12 +26,8 @@ type DirectorySection = {
 export const SITE_DIRECTORY: readonly DirectorySection[] = [
   {
     links: [
-      { href: '/studio', label: 'Studio' },
+      { href: '/products', label: 'All products' },
       { href: '/models', label: 'Models' },
-      { href: '/publishing', label: 'Publishing' },
-      { href: '/workflows', label: 'Workflows' },
-      { href: '/analytics', label: 'Analytics' },
-      { href: '/library', label: 'Library' },
       { href: '/calendar', label: 'Calendar' },
       { href: '/research', label: 'Research' },
       { href: '/hire-agents', label: 'Hire Agents' },

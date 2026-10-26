@@ -12,11 +12,11 @@ import { SiteFooter } from '@ui/footers';
 export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
-      { href: '/studio', label: 'Studio' },
+      { href: '/products', label: 'Products' },
+      { href: '/products/playground', label: 'Playground' },
+      { href: '/products/storyboard', label: 'Storyboard' },
+      { href: '/products/publishing', label: 'Publishing' },
       { href: '/models', label: 'Models' },
-      { href: '/publishing', label: 'Publishing' },
-      { href: '/workflows', label: 'Workflows' },
-      { href: '/analytics', label: 'Analytics' },
       { href: '/integrations', label: 'Integrations' },
     ],
     title: 'Product',

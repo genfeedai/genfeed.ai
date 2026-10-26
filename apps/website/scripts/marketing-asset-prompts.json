@@ -49,25 +49,9 @@
         "reuse": true
       },
       {
-        "route": "/workflows",
-        "file": "../shared/workflow.webp",
-        "reuse": true
-      },
-      {
-        "route": "/publishing",
-        "file": "../shared/publishing.webp",
-        "reuse": true
-      },
-      {
         "route": "/research",
         "file": "../shared/research.webp",
         "reuse": true
-      },
-      {
-        "route": "/analytics",
-        "file": "analytics.webp",
-        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /analytics. Subject: A precise smoked-glass magnifying lens suspended over a contact sheet of diverse campaign photographs, amber highlights isolate three winning frames; measurable creative signal. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
-        "alt": "A precise smoked-glass magnifying lens suspended over a contact sheet of diverse campaign photographs, amber highlights isolate three winning frames; measurable creative signal"
       },
       {
         "route": "/benchmark",
@@ -136,12 +120,6 @@
         "alt": "A central polished-silver hub connects through slender physical rails to an elegant orbit of diverse photographic, video and editorial media frames; channel ecosystem"
       },
       {
-        "route": "/library",
-        "file": "library.webp",
-        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /library. Subject: Photoreal carefully organized archive of unmarked black archival sleeves, colorful photo contact sheets and film reels on dark shelves, warm directional lighting. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
-        "alt": "Photoreal carefully organized archive of unmarked black archival sleeves, colorful photo contact sheets and film reels on dark shelves, warm directional lighting"
-      },
-      {
         "route": "/models",
         "file": "models.webp",
         "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /models. Subject: A curated museum cabinet of distinct optical glass lenses and sculptural metallic creative tools, each chamber has its own restrained lighting and material; choosing creative models. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
@@ -160,9 +138,9 @@
         "alt": "A neatly stacked modular set of graphite instruction tiles unlocks a silver camera lens, a microphone and a tiny photographic tray; practical creative playbooks"
       },
       {
-        "route": "/studio",
+        "route": "/turbo",
         "file": "studio.webp",
-        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /studio. Subject: Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /turbo. Subject: Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
         "alt": "Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light"
       },
       {

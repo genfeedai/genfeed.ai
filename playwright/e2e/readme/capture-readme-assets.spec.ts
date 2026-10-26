@@ -36,13 +36,28 @@ function orgPath(routePath: string): string {
 }
 
 /**
- * Writes README PNGs to docs/assets/readme/ from the mocked app-core shell.
+ * Writes PNGs from the mocked app-core shell.
  *
- * Run: `bun run readme:capture`
+ * Two capture sets, picked with `CAPTURE_SET`:
+ * - `readme` (default): README frames into docs/assets/readme/.
+ *   Run: `bun run readme:capture`
+ * - `website`: one frame per app surface into apps/website/public/products/,
+ *   shown on the /products/<slug> marketing pages. Convert the PNGs to WebP
+ *   with `bun run website:capture-products`.
+ *
  * Not collected by CI e2e (lives outside playwright/e2e/tests/).
  */
 
-const README_ASSETS_DIR = path.resolve(process.cwd(), 'docs/assets/readme');
+const CAPTURE_SET =
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: not a turbo task
+  process.env.CAPTURE_SET === 'website' ? 'website' : 'readme';
+
+const README_ASSETS_DIR = path.resolve(
+  process.cwd(),
+  CAPTURE_SET === 'website'
+    ? 'apps/website/public/products'
+    : 'docs/assets/readme',
+);
 
 const VIEWPORT = { height: 900, width: 1440 };
 
@@ -159,6 +174,32 @@ const CAPTURE_TARGETS: CaptureTarget[] = [
     fileName: 'automation-workflows.png',
     path: `${brandPath('/automation/workflows')}/workflow-001`,
   },
+];
+
+/**
+ * One frame per app surface, named after its /products/<slug> page. The slugs
+ * come from `apps/website/packages/data/app-products.data.ts`, so a surface
+ * added there needs a target here.
+ */
+const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [
+  { fileName: 'playground.png', path: brandPath('/playground') },
+  { fileName: 'storyboard.png', path: brandPath('/storyboard') },
+  { fileName: 'clipper.png', path: brandPath('/clipper') },
+  { fileName: 'motion.png', path: brandPath('/motion') },
+  { fileName: 'turbo.png', path: brandPath('/turbo') },
+  { fileName: 'editor.png', path: brandPath('/editor') },
+  { fileName: 'publishing.png', path: brandPath('/publishing/overview') },
+  { fileName: 'analytics.png', path: brandPath('/analytics/overview') },
+  { fileName: 'discovery.png', path: brandPath('/discovery/trends') },
+  { fileName: 'messages.png', path: brandPath('/messages') },
+  {
+    fileName: 'agent.png',
+    path: CAPTURE_TARGETS[0]?.path ?? orgPath('/agent/new'),
+    prepare: CAPTURE_TARGETS[0]?.prepare,
+    readySelector: CAPTURE_TARGETS[0]?.readySelector,
+  },
+  { fileName: 'automation.png', path: brandPath('/automation/workflows') },
+  { fileName: 'library.png', path: brandPath('/library/images') },
 ];
 
 async function buildPlaceholderPng(
@@ -738,14 +779,14 @@ test('capture mocked README assets', async ({ page, context }) => {
 
   const captured: Array<{ fileName: string; height: number; width: number }> =
     [];
+  const targets =
+    CAPTURE_SET === 'website' ? WEBSITE_PRODUCT_TARGETS : CAPTURE_TARGETS;
 
-  for (const target of CAPTURE_TARGETS) {
+  for (const target of targets) {
     captured.push(await captureFrame(page, target));
   }
 
-  expect(captured.length, 'no README frames were captured').toBe(
-    CAPTURE_TARGETS.length,
-  );
+  expect(captured.length, 'no frames were captured').toBe(targets.length);
 
   console.log(
     JSON.stringify(

@@ -52,108 +52,6 @@ export const products: Product[] = [
   {
     benefits: [
       {
-        problem: 'Managing 10+ social accounts across different platforms',
-        solution:
-          'One dashboard to publish everywhere - X, LinkedIn, Instagram, TikTok, YouTube, Facebook, Pinterest, Reddit, Discord, Twitch',
-      },
-      {
-        problem: 'Manually formatting content for each platform',
-        solution:
-          'Auto-optimization with platform-specific captions, hashtags, and formats',
-      },
-      {
-        problem: 'Forgetting to post consistently',
-        solution:
-          'Schedule weeks of content in advance. AI picks best posting times.',
-      },
-      {
-        problem: 'Spending hours on content distribution',
-        solution: 'Batch upload and schedule 30 days of content in 20 minutes',
-      },
-    ],
-    category: 'Content Distribution',
-    cta: 'Start Publishing Everywhere',
-    description:
-      'Schedule and publish content across 10+ major social platforms from one dashboard. Built for AI-powered content creators.',
-    features: [
-      {
-        description:
-          'Post to X/Twitter, LinkedIn, Instagram, TikTok, YouTube, Facebook, Pinterest, Reddit, Discord, and Twitch from a single composer.',
-        icon: '',
-        title: '10+ Platform Publishing',
-      },
-      {
-        description:
-          'Schedule weeks of content in advance. AI recommends best posting times.',
-        icon: '',
-        title: 'Smart Scheduling',
-      },
-      {
-        description:
-          'Auto-format content for each platform with platform-specific captions and hashtags.',
-        icon: '',
-        title: 'Platform Optimization',
-      },
-      {
-        description:
-          'Upload and schedule multiple pieces of content at once to save time.',
-        icon: '',
-        title: 'Batch Publishing',
-      },
-    ],
-    headline: 'Publish to 10+ Social Platforms',
-    icon: '',
-    integrations: [
-      'X/Twitter',
-      'LinkedIn',
-      'Instagram',
-      'TikTok',
-      'YouTube',
-      'Facebook',
-      'Pinterest',
-      'Reddit',
-      'Discord',
-      'Twitch',
-    ],
-    name: 'Publishing',
-    pricing: {
-      recommended: 'scale',
-      why: 'Includes unlimited scheduling, multi-platform publishing, and team collaboration for agencies and brands.',
-    },
-    relatedProducts: ['studio', 'workflows', 'hire-agents'],
-    slug: 'publishing',
-    tagline: 'Publish your content, everywhere, instantly',
-    targetAudience: [
-      'Content creators posting daily',
-      'Marketing teams running campaigns',
-      'Social media managers',
-      'Agencies managing multiple clients',
-      'Brands with multi-platform presence',
-    ],
-    useCases: [
-      {
-        description: 'Post daily across all platforms without the manual work',
-        example:
-          'Generate 30 videos in Studio → Schedule all to publish across platforms',
-        title: 'Content Creators',
-      },
-      {
-        description: 'Manage multiple client accounts from one dashboard',
-        example:
-          'Handle 10 client brands with different posting schedules and platform strategies',
-        title: 'Agencies',
-      },
-      {
-        description: 'Run multi-channel campaigns with coordinated publishing',
-        example:
-          'Launch product announcement simultaneously on all platforms with platform-specific messaging',
-        title: 'Marketers',
-      },
-    ],
-  },
-  {
-    benefits: [
-      {
         problem:
           'Operating every Genfeed capability through separate surfaces slows work down',
         solution:
@@ -300,7 +198,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'Includes the full agent library, autonomous scheduled execution, and the workflow capacity needed to run deterministic agentic systems in production.',
     },
-    relatedProducts: ['workflows', 'publishing', 'studio'],
+    relatedProducts: ['mcp', 'chatgpt', 'cursor'],
     slug: 'hire-agents',
     tagline: 'One interface, many agents, deterministic execution',
     targetAudience: [
@@ -394,7 +292,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'Includes ChatGPT integration, unlimited commands, and advanced workflow automation.',
     },
-    relatedProducts: ['mcp', 'studio', 'publishing'],
+    relatedProducts: ['mcp', 'hire-agents', 'cursor'],
     seoTitle: 'ChatGPT Integration for Genfeed',
     slug: 'chatgpt',
     tagline: 'Access Genfeed data from ChatGPT',
@@ -508,7 +406,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'MCP access comes with every plan. Tool calls have no usage cap, only a standard per-minute rate limit; agents spend credits on what they generate.',
     },
-    relatedProducts: ['chatgpt', 'hire-agents', 'studio'],
+    relatedProducts: ['chatgpt', 'hire-agents', 'cursor'],
     seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',
     slug: 'mcp',
     tagline: 'Your content workspace, connected to your agent',
@@ -538,208 +436,6 @@ export const products: Product[] = [
         example:
           'Weekly routine drafts LinkedIn posts from your blog → You approve → Genfeed publishes',
         title: 'Personal Agents',
-      },
-    ],
-  },
-  {
-    benefits: [
-      {
-        problem: 'Spending 10+ hours editing videos weekly',
-        solution: 'Generate production-ready videos in 2 minutes with AI',
-      },
-      {
-        problem: 'Expensive subscriptions to multiple AI tools',
-        solution:
-          'Available generation models in one platform instead of separate subscriptions',
-      },
-      {
-        problem: 'Learning curve for each AI tool',
-        solution:
-          'One interface for all content types - videos, images, voices, articles',
-      },
-      {
-        problem: 'Cannot create visual content without design skills',
-        solution: 'AI does the heavy lifting - just describe what you want',
-      },
-    ],
-    category: 'Content Creation',
-    cta: 'Start Creating',
-    description:
-      'Generate video, images, voice, music, and written content from one workspace. Model availability updates directly from the product registry.',
-    features: [
-      {
-        description:
-          'Create short-form clips, campaign footage, and finished video from a brief or reference.',
-        icon: '',
-        title: 'AI Video Generation',
-      },
-      {
-        description:
-          'Generate campaign stills, product imagery, and design variations in every required ratio.',
-        icon: '',
-        title: 'AI Image Generation',
-      },
-      {
-        description:
-          'Create spoken tracks, voiceovers, music, and audio packages in the same production flow.',
-        icon: '',
-        title: 'Voice & Music',
-      },
-      {
-        description:
-          'Choose from the same current model registry used inside the app.',
-        icon: '',
-        title: 'Live Model Catalog',
-      },
-    ],
-    headline: 'Create AI Content in Minutes, Not Hours',
-    icon: '',
-    integrations: [
-      'Video models',
-      'Image models',
-      'Voice models',
-      'Music models',
-      'Language models',
-    ],
-    name: 'Studio',
-    pricing: {
-      recommended: 'payg',
-      why: `Start free with pay-per-output credits and pay only for what you generate.`,
-    },
-    relatedProducts: ['publishing', 'workflows', 'hire-agents'],
-    slug: 'studio',
-    tagline: 'AI content creation workspace',
-    targetAudience: [
-      'Content creators posting daily',
-      'YouTubers needing B-roll',
-      'Social media managers',
-      'Marketers creating ads',
-      'Agencies producing client content',
-    ],
-    useCases: [
-      {
-        description: 'Generate social media videos at scale',
-        example:
-          'Write prompt → AI generates video in 2 minutes → Edit if needed → Publish',
-        title: 'Video Content Creation',
-      },
-      {
-        description: 'Create thumbnails, graphics, and images',
-        example:
-          'Need thumbnail for YouTube → Generate 10 options → Pick best one → Done',
-        title: 'Visual Content',
-      },
-      {
-        description: 'Clone your voice or generate narration',
-        example:
-          'Upload 30 seconds of voice → AI clones it → Generate unlimited narration',
-        title: 'Voice & Audio',
-      },
-    ],
-  },
-  {
-    benefits: [
-      {
-        problem:
-          'Autonomous systems are hard to trust when execution is hidden',
-        solution:
-          'Every workflow step, trigger, handoff, and output is explicit, inspectable, and deterministic',
-      },
-      {
-        problem:
-          'Natural-language control alone is not enough for advanced operations',
-        solution:
-          'Users can define triggers and author exact workflow steps while agents still trigger execution when appropriate',
-      },
-      {
-        problem: 'Agents need a reliable execution layer for production work',
-        solution:
-          'Workflows provide deterministic execution for scheduled runs, content generation, ratings, approvals, and publishing',
-      },
-      {
-        problem:
-          'Scaling operations fails when retries, conditions, and quality gates are ad hoc',
-        solution:
-          'Model every trigger, branch, and quality gate directly in the workflow so execution stays controlled at scale',
-      },
-    ],
-    category: 'Automation',
-    cta: 'Start Automating',
-    description:
-      'Build deterministic workflows for content, publishing, and autonomous agent execution. Define triggers, author exact steps, inspect outputs, and let agents call the workflow when needed.',
-    features: [
-      {
-        description:
-          'Author every step explicitly, from generation to review to publishing, with deterministic execution across the full pipeline.',
-        icon: '',
-        title: 'Step-by-Step Control',
-      },
-      {
-        description:
-          'Inspect nodes, outputs, and handoffs on a visual canvas so execution stays auditable and predictable.',
-        icon: '',
-        title: 'Inspectable Canvas',
-      },
-      {
-        description:
-          'Agents can trigger workflows automatically, but users still control the triggers, conditions, steps, and quality gates.',
-        icon: '',
-        title: 'Agent-Triggered, User-Controlled',
-      },
-      {
-        description:
-          'Use manual starts, schedules, or event triggers to run deterministic automations when and how you choose.',
-        icon: '',
-        title: 'Deterministic Triggers',
-      },
-    ],
-    headline: 'Deterministic Workflow Control for Agentic Execution',
-    icon: '',
-    integrations: [
-      'Brand Management',
-      'Persona Engine',
-      'Asset Library',
-      'Content Planner',
-      'Photo Sessions',
-      'Video Pipeline',
-      'Multi-Platform Publish',
-    ],
-    name: 'Workflows',
-    pricing: {
-      recommended: 'scale',
-      why: 'Includes the workflow capacity, trigger volume, and execution controls needed to run deterministic agent-driven systems in production.',
-    },
-    relatedProducts: ['hire-agents', 'studio', 'publishing'],
-    slug: 'workflows',
-    tagline: 'Deterministic workflows for controllable AI execution',
-    targetAudience: [
-      'Content teams automating pipelines',
-      'Agencies scaling production',
-      'Brands enforcing content guidelines',
-      'Marketers building repeatable campaigns',
-      'Creators automating multi-platform publishing',
-    ],
-    useCases: [
-      {
-        description:
-          'Define the exact sequence from idea to published content with inspectable execution at every handoff',
-        example:
-          'Text prompt → generation steps → rating step → approval gate → multi-platform publish',
-        title: 'Deterministic Content Pipelines',
-      },
-      {
-        description:
-          'Let agents trigger execution while keeping the actual logic explicit and user-controlled',
-        example:
-          'Agent receives request → triggers workflow → workflow formats outputs, schedules delivery, and reports status',
-        title: 'Agent-Orchestrated Execution',
-      },
-      {
-        description:
-          'Use schedules and event triggers to run autonomous systems without giving up deterministic control',
-        example:
-          'Nightly cron → content workflow runs → outputs are rated → approved assets move to publishing automatically',
-        title: 'Scheduled Autonomous Runs',
       },
     ],
   },
@@ -807,7 +503,7 @@ export const products: Product[] = [
       recommended: 'payg',
       why: 'Open-source extension available for free. Requires Genfeed account for AI generation.',
     },
-    relatedProducts: ['studio', 'extension', 'docs'],
+    relatedProducts: ['mcp', 'extension', 'docs'],
     seoTitle: 'Cursor Extension: Generate in Your IDE',
     slug: 'cursor',
     status: 'alpha',
@@ -903,7 +599,7 @@ export const products: Product[] = [
       recommended: 'payg',
       why: 'Open-source mobile app. Free to use with any Genfeed account.',
     },
-    relatedProducts: ['publishing', 'studio', 'extension'],
+    relatedProducts: ['extension', 'docs', 'mcp'],
     seoTitle: 'Mobile App: Approve & Publish On the Go',
     slug: 'mobile',
     status: 'alpha',
@@ -1090,7 +786,7 @@ export const products: Product[] = [
       recommended: 'payg',
       why: 'Open-source Chrome extension. Free to install and use with any Genfeed account.',
     },
-    relatedProducts: ['studio', 'publishing', 'mobile'],
+    relatedProducts: ['mobile', 'cursor', 'docs'],
     slug: 'extension',
     status: 'alpha',
     tagline: 'Genfeed in your browser',

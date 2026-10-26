@@ -9,7 +9,9 @@
  * Usage: bun run readme:capture
  */
 import { spawn } from 'node:child_process';
+import { readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 
 const repoRoot = path.resolve(import.meta.dir, '..');
 
@@ -39,10 +41,31 @@ const child = spawn(
   },
 );
 
-child.on('exit', (code, signal) => {
+/**
+ * The website set ships as WebP: Playwright only writes PNG, so convert each
+ * capture beside itself and drop the PNG.
+ */
+async function convertWebsiteCapturesToWebp(): Promise<void> {
+  const directory = path.join(repoRoot, 'apps/website/public/products');
+  const files = await readdir(directory);
+
+  for (const file of files.filter((name) => name.endsWith('.png'))) {
+    const source = path.join(directory, file);
+    await sharp(source)
+      .webp({ quality: 86 })
+      .toFile(source.replace(/\.png$/, '.webp'));
+    await unlink(source);
+  }
+}
+
+child.on('exit', async (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal);
     return;
+  }
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: not a turbo task
+  if (code === 0 && process.env.CAPTURE_SET === 'website') {
+    await convertWebsiteCapturesToWebp();
   }
   process.exit(code ?? 1);
 });

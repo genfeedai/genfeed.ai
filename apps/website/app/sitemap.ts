@@ -1,5 +1,6 @@
 import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { getAllAgentClientSlugs } from '@data/agent-clients.data';
+import { getAllAppProductSlugs } from '@data/app-products.data';
 import { getAllBestListSlugs } from '@data/best-lists.data';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { helpArticleSlugs } from '@data/help-articles.data';
@@ -15,6 +16,7 @@ export const dynamic = 'force-dynamic';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const agentClientSlugs = getAllAgentClientSlugs();
   const productSlugs = getAllProductSlugs();
+  const appProductSlugs = getAllAppProductSlugs();
   const competitorSlugs = getAllCompetitorSlugs();
   const integrationSlugs = getAllIntegrationSlugs();
   const useCaseSlugs = getAllUseCaseSlugs();
@@ -140,12 +142,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       priority: 0.9,
-      url: 'https://genfeed.ai/publishing',
-    },
-    {
-      changeFrequency: 'weekly',
-      priority: 0.9,
-      url: 'https://genfeed.ai/studio',
+      url: 'https://genfeed.ai/products',
     },
     {
       changeFrequency: 'daily',
@@ -160,27 +157,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       priority: 0.9,
-      url: 'https://genfeed.ai/workflows',
-    },
-    {
-      changeFrequency: 'weekly',
-      priority: 0.9,
       url: 'https://genfeed.ai/agent',
     },
     {
       changeFrequency: 'weekly',
       priority: 0.8,
       url: 'https://genfeed.ai/developers',
-    },
-    {
-      changeFrequency: 'weekly',
-      priority: 0.9,
-      url: 'https://genfeed.ai/library',
-    },
-    {
-      changeFrequency: 'weekly',
-      priority: 0.9,
-      url: 'https://genfeed.ai/analytics',
     },
     {
       changeFrequency: 'weekly',
@@ -331,6 +313,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `https://genfeed.ai/${slug}`,
   }));
 
+  const appProductRoutes: MetadataRoute.Sitemap = appProductSlugs.map(
+    (slug) => ({
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      url: `https://genfeed.ai/products/${slug}`,
+    }),
+  );
+
   const competitorRoutes: MetadataRoute.Sitemap = competitorSlugs.map(
     (slug) => ({
       changeFrequency: 'monthly',
@@ -413,6 +403,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...agentClientRoutes,
     ...agentClientChannelRoutes,
     ...productRoutes,
+    ...appProductRoutes,
     ...competitorRoutes,
     ...bestListRoutes,
     ...integrationRoutes,

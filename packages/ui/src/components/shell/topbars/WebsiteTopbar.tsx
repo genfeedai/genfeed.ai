@@ -16,11 +16,16 @@ import {
   Building2,
   ChartColumn,
   Clapperboard,
+  Compass,
   Cpu,
+  Film,
   HeartHandshake,
+  Library,
   Megaphone,
+  MessageSquare,
   MonitorDown,
   Rocket,
+  Scissors,
   Send,
   ShieldCheck,
   ShoppingBag,
@@ -28,6 +33,9 @@ import {
   Terminal,
   UserRound,
   Users,
+  Video,
+  Workflow,
+  Zap,
 } from 'lucide-react';
 
 /**
@@ -79,42 +87,115 @@ const USE_CASE_LINKS = [
   },
 ];
 
-/** What the platform is. Grouped, so it renders as the full-width panel. */
+/**
+ * What the platform is: one entry per app surface, in the order the app's rail
+ * and Plugins page group them. Every surface has a page at /products/<slug>.
+ */
 const PRODUCT_LINKS = [
   {
-    description: 'Generate every format in one workspace',
+    description: 'Generate images, video, audio and text',
     group: 'Create',
-    href: '/studio',
+    href: '/products/playground',
     icon: Sparkles,
-    label: 'Studio',
+    label: 'Playground',
+  },
+  {
+    description: 'Plan a story scene by scene, then generate it',
+    group: 'Create',
+    href: '/products/storyboard',
+    icon: Clapperboard,
+    label: 'Storyboard',
+  },
+  {
+    description: 'Turn long videos into short clips',
+    group: 'Create',
+    href: '/products/clipper',
+    icon: Scissors,
+    label: 'Clipper',
+  },
+  {
+    description: 'Animated titles, captions and graphics',
+    group: 'Create',
+    href: '/products/motion',
+    icon: Film,
+    label: 'Motion',
+  },
+  {
+    description: 'Create content in bulk from one brief',
+    group: 'Create',
+    href: '/products/turbo',
+    icon: Zap,
+    label: 'Turbo',
+  },
+  {
+    description: 'Assemble and finish video on a timeline',
+    group: 'Create',
+    href: '/products/editor',
+    icon: Video,
+    label: 'Editor',
+  },
+  {
+    description: 'Review, schedule, and publish everywhere',
+    group: 'Publish & grow',
+    href: '/products/publishing',
+    icon: Send,
+    label: 'Publishing',
+  },
+  {
+    description: 'Review views and engagement',
+    group: 'Publish & grow',
+    href: '/products/analytics',
+    icon: ChartColumn,
+    label: 'Analytics',
+  },
+  {
+    description: 'Find trends and content opportunities',
+    group: 'Publish & grow',
+    href: '/products/discovery',
+    icon: Compass,
+    label: 'Discovery',
+  },
+  {
+    description: 'Read and reply in one inbox',
+    group: 'Publish & grow',
+    href: '/products/messages',
+    icon: MessageSquare,
+    label: 'Messages',
+  },
+  {
+    description: 'Ask for the work. The agent does it',
+    group: 'Operate',
+    href: '/products/agent',
+    icon: Bot,
+    label: 'Agent',
+  },
+  {
+    description: 'Run workflows and recurring tasks',
+    group: 'Operate',
+    href: '/products/automation',
+    icon: Workflow,
+    label: 'Automation',
+  },
+  {
+    description: 'Every asset, saved once and reusable',
+    group: 'Operate',
+    href: '/products/library',
+    icon: Library,
+    label: 'Library',
   },
   {
     description: 'Browse the live generation catalog',
-    group: 'Create',
+    group: 'Operate',
     href: '/models',
     icon: Cpu,
     label: 'Models',
   },
   {
     description: 'A native app with a local workspace',
-    group: 'Create',
+    group: 'Operate',
     href: '/desktop',
     icon: MonitorDown,
     label: 'Desktop',
-  },
-  {
-    description: 'Review, schedule, and publish everywhere',
-    group: 'Operate',
-    href: '/publishing',
-    icon: Send,
-    label: 'Publishing',
-  },
-  {
-    description: 'Review views and engagement',
-    group: 'Operate',
-    href: '/analytics',
-    icon: ChartColumn,
-    label: 'Analytics',
   },
   {
     description: 'Approvals, assets, integrations, and audit',
@@ -125,7 +206,7 @@ const PRODUCT_LINKS = [
   },
   {
     description: 'Connect agents and MCP clients',
-    group: 'Build',
+    group: 'Operate',
     href: '/mcp',
     icon: Terminal,
     label: 'MCP Server',
@@ -221,8 +302,8 @@ export default function WebsiteTopbar() {
           footer: {
             description:
               'One content system from first brief to verified result.',
-            href: '/features',
-            label: 'Explore every capability',
+            href: '/products',
+            label: 'Browse all products',
           },
           items: PRODUCT_LINKS,
           label: 'Product',

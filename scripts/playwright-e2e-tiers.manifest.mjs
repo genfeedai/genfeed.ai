@@ -68,6 +68,12 @@ export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
   },
   {
     lane: 'cross-app',
+    file: 'playwright/e2e/tests/website/products.spec.ts',
+    reason:
+      'Targets the marketing website app, not mocked Studio app-core. Covered by playwright-cross-app.config.ts.',
+  },
+  {
+    lane: 'cross-app',
     file: 'playwright/e2e/tests/website/use-cases.spec.ts',
     reason:
       'Targets the marketing website app, not mocked Studio app-core. Covered by playwright-cross-app.config.ts.',

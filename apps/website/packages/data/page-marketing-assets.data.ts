@@ -11,13 +11,7 @@ export const PAGE_MARKETING_ASSETS = {
   '/about': MARKETING_ASSETS.creator,
   '/agent': MARKETING_ASSETS.integration,
   '/pricing': MARKETING_ASSETS.campaign,
-  '/workflows': MARKETING_ASSETS.workflow,
-  '/publishing': MARKETING_ASSETS.publishing,
   '/research': MARKETING_ASSETS.research,
-  '/analytics': {
-    alt: 'A precise smoked-glass magnifying lens suspended over a contact sheet of diverse campaign photographs, amber highlights isolate three winning frames',
-    src: cdnAsset('/assets/site/pages/analytics.webp'),
-  },
   '/benchmark': {
     alt: 'Three different optical lenses on identical graphite plinths examine the same coral sculpture under identical controlled illumination',
     src: cdnAsset('/assets/site/pages/benchmark.webp'),
@@ -62,10 +56,6 @@ export const PAGE_MARKETING_ASSETS = {
     alt: 'A central polished-silver hub connects through slender physical rails to an elegant orbit of diverse photographic, video and editorial media frames',
     src: cdnAsset('/assets/site/pages/integrations.webp'),
   },
-  '/library': {
-    alt: 'Photoreal carefully organized archive of unmarked black archival sleeves, colorful photo contact sheets and film reels on dark shelves, warm directional lighting',
-    src: cdnAsset('/assets/site/pages/library.webp'),
-  },
   '/models': {
     alt: 'A curated museum cabinet of distinct optical glass lenses and sculptural metallic creative tools, each chamber has its own restrained lighting and material',
     src: cdnAsset('/assets/site/pages/models.webp'),
@@ -77,10 +67,6 @@ export const PAGE_MARKETING_ASSETS = {
   '/skills': {
     alt: 'A neatly stacked modular set of graphite instruction tiles unlocks a silver camera lens, a microphone and a tiny photographic tray',
     src: cdnAsset('/assets/site/pages/skills.webp'),
-  },
-  '/studio': {
-    alt: 'Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light',
-    src: cdnAsset('/assets/site/pages/studio.webp'),
   },
   '/turbo': {
     alt: 'Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light',

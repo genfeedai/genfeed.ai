@@ -97,7 +97,11 @@ describe('initSignupAttribution', () => {
   });
 
   it('decorates a sign-up CTA when the visitor interacts with it', () => {
-    window.history.replaceState({}, '', '/studio?utm_source=chatgpt');
+    window.history.replaceState(
+      {},
+      '',
+      '/products/playground?utm_source=chatgpt',
+    );
     initSignupAttribution();
 
     const link = anchor(`${APP_ORIGIN}/sign-up`);
@@ -110,7 +114,7 @@ describe('initSignupAttribution', () => {
 
     const url = new URL(link.href);
     expect(url.searchParams.get('utm_source')).toBe('chatgpt');
-    expect(url.searchParams.get('signup_landing')).toBe('/studio');
+    expect(url.searchParams.get('signup_landing')).toBe('/products/playground');
   });
 
   it('forwards a landing referral code onto the sign-up link', () => {

@@ -153,11 +153,11 @@ export default function ModelsContent({ models }: ModelsContentProps) {
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'explore_studio_models' }}
+              trackingData={{ action: 'explore_playground_models' }}
               trackingName="models_hero_click"
               variant={ButtonVariant.SECONDARY}
             >
-              <Link href="/studio">Explore Studio</Link>
+              <Link href="/products/playground">Explore Playground</Link>
             </ButtonTracked>
           </>
         }

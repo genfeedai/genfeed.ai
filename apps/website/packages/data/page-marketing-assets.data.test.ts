@@ -29,14 +29,11 @@ describe('page illustration coverage', () => {
 
   it('serves distinct, described website assets through the CDN', () => {
     const assets = Object.values(PAGE_MARKETING_ASSETS);
-    expect(PAGE_MARKETING_ASSETS['/turbo']).toEqual(
-      PAGE_MARKETING_ASSETS['/studio'],
-    );
     expect(PAGE_MARKETING_ASSETS['/hermes']).toBe(
       PAGE_MARKETING_ASSETS['/openclaw'],
     );
     const distinctAssets = Object.entries(PAGE_MARKETING_ASSETS)
-      .filter(([route]) => !['/turbo', '/hermes'].includes(route))
+      .filter(([route]) => route !== '/hermes')
       .map(([, asset]) => asset);
     expect(new Set(distinctAssets.map(({ src }) => src)).size).toBe(
       distinctAssets.length,

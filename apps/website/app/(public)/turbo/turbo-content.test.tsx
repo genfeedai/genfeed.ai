@@ -87,9 +87,9 @@ describe('TurboContent', () => {
     window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
-  it('reuses Studio artwork and contains no public service or agent connection imports', () => {
-    expect(getPageMarketingAsset('/turbo')).toEqual(
-      getPageMarketingAsset('/studio'),
+  it('has its own artwork and contains no public service or agent connection imports', () => {
+    expect(getPageMarketingAsset('/turbo').src).toContain(
+      '/assets/site/pages/',
     );
     const source = readFileSync('app/(public)/turbo/turbo-content.tsx', 'utf8');
     expect(source).not.toMatch(
