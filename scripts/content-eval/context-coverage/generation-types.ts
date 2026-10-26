@@ -112,11 +112,11 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   {
     enumRefs: { ContentType: ['SCRIPT'] },
     id: 'script',
-    marker: 'buildSystemPrompt',
-    note: 'GAP: no dedicated generator. The agent-chat model writes the script work object under a system prompt from AgentContextAssemblyService, which carries brand identity, guidance, memory and recent posts but never composes the harness brief (org directive, guardrails, criteria, anti-examples). Tracked in #7868. Promote to `harness` when the chat script path calls resolveBrief.',
-    path: 'brand-voice-summary',
+    marker: 'resolveBrief',
+    note: 'generate_content type script composes the harness brief (contentType script) and fails with a retryable 503 when it or the provider is unavailable; there is no template fallback. Avatar speech text is tracked separately under avatar-video.',
+    path: 'harness',
     smoke: 'text',
-    source: `${API}/services/agent-context-assembly/agent-context-assembly.service.ts`,
+    source: `${API}/services/script-generation/script-generation.service.ts`,
   },
   {
     enumRefs: { GenerationType: ['NEWSLETTER'] },

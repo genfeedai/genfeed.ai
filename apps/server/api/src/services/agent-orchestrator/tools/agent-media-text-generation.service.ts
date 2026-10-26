@@ -38,6 +38,7 @@ import {
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
+import { ScriptGenerationService } from '@api/services/script-generation/script-generation.service';
 import {
   ActivitySource,
   ContentIntelligencePlatform,
@@ -221,6 +222,7 @@ export class AgentMediaTextGenerationService {
     private readonly brandedTextActions: BrandedTextActionsService,
     private readonly contentGenerator: ContentGeneratorService,
     private readonly knowledgeSelection: KnowledgeSelectionService,
+    private readonly scriptGeneration: ScriptGenerationService,
   ) {}
 
   /**
@@ -433,6 +435,9 @@ export class AgentMediaTextGenerationService {
     if (normalizedType === 'newsletter') {
       return this.generateNewsletter(params, ctx);
     }
+    if (normalizedType === 'script') {
+      return this.generateScript(params, ctx);
+    }
     if (
       normalizedType === 'article' ||
       normalizedType === 'x-article' ||
@@ -454,6 +459,65 @@ export class AgentMediaTextGenerationService {
       normalizedType,
       variations.count,
     );
+  }
+
+  /**
+   * Scripts are long-form, not platform-limited posts: the server composes the
+   * brand harness brief and writes the script against it, then hands the text
+   * back for the chat to save as a script work object.
+   */
+  private async generateScript(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to generate a script.',
+        success: false,
+      };
+    }
+    const topic =
+      readOptionalString(params.topic) ?? readOptionalString(params.prompt);
+    if (!topic) {
+      return {
+        creditsUsed: 0,
+        error: 'A topic is required to generate a script.',
+        success: false,
+      };
+    }
+    if (!(await this.hasTextGenerationCredits(ctx))) {
+      return INSUFFICIENT_TEXT_CREDITS_RESULT;
+    }
+    const durationSeconds = Number(params.durationSeconds);
+    const content = await this.scriptGeneration.generate({
+      brandId,
+      durationSeconds:
+        Number.isFinite(durationSeconds) && durationSeconds > 0
+          ? Math.round(durationSeconds)
+          : undefined,
+      instructions: readOptionalString(params.instructions),
+      model: ctx.generationModelOverride ?? undefined,
+      organizationId: ctx.organizationId,
+      platform: readOptionalString(params.platform),
+      topic,
+      userId: ctx.userId,
+    });
+    if (!content) {
+      return EMPTY_TEXT_GENERATION_RESULT;
+    }
+    await this.chargeTextGeneration(
+      ctx,
+      brandId,
+      'Agent tool: generate_content (script)',
+    );
+    return {
+      creditsUsed: TEXT_GENERATION_CREDITS,
+      data: { content, type: 'script' },
+      isBillingDelegated: true,
+      success: true,
+    };
   }
 
   private async generateNewsletter(

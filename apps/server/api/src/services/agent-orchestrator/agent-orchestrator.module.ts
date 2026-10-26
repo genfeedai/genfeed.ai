@@ -148,11 +148,13 @@ import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-th
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { RouterModule } from '@api/services/router/router.module';
+import { ScriptGenerationService } from '@api/services/script-generation/script-generation.service';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
@@ -199,6 +201,7 @@ import { Module } from '@nestjs/common';
     AgentMessagesModule,
     AgentThreadingCoreModule,
     AiActionsModule,
+    ContentHarnessModule,
     AdsResearchModule,
     AgentStreamPublisherModule,
     AgentGenerationGatewayModule,
@@ -269,6 +272,7 @@ import { Module } from '@nestjs/common';
     AgentMediaTurboRunService,
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
+    ScriptGenerationService,
     AgentMediaTransformService,
     AgentBrandContextAskService,
     AgentOnboardingBrandSetupToolHandler,

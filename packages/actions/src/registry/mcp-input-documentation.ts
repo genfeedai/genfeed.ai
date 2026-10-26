@@ -170,9 +170,9 @@ const TOOL_DOCUMENTATION = new Map([
     'generate_content',
     {
       original:
-        'Generate content for a topic or brief. Social types (caption, post, thread, script, article_outline) return ready-to-publish text written in the brand voice, with a brand receipt (receiptId) and hashtags, and are not scheduled or published; the exact text is kept on that receipt; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready to review and publish. Each field lists the types it applies to.',
+        'Generate content for a topic or brief. Social types (caption, post, thread, article_outline) return ready-to-publish text written in the brand voice, with a brand receipt (receiptId) and hashtags, and are not scheduled or published; the exact text is kept on that receipt; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type script returns a long-form video script written against the composed brand brief (voice, guardrails, criteria), not saved or published; save it as a script work object. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready to review and publish. Each field lists the types it applies to.',
       concise:
-        'Generate brand-voice text from a topic/brief. Social types caption/post/thread/script/article_outline return text, hashtags and receiptId retaining exact text; never schedule/publish. linkedin platform targets LinkedIn; variationsCount adds alternatives. newsletter saves a newsletter draft; article/x-article saves an article draft with id for review/publication. Fields are type-specific.',
+        'Generate brand-voice text from a topic/brief. Social types caption/post/thread/article_outline return text, hashtags and receiptId retaining exact text; never schedule/publish. script returns a long-form script written against the brand brief; not saved. linkedin platform targets LinkedIn; variationsCount adds alternatives. newsletter saves a newsletter draft; article/x-article saves an article draft with id for review/publication. Fields are type-specific.',
     },
   ],
   [

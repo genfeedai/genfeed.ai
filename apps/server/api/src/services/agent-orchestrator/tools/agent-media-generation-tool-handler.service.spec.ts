@@ -72,6 +72,7 @@ function createHandler() {
             ) => selection?.sourceIds,
           ),
       } as never,
+      { generate: vi.fn() } as never,
     ),
     assetGeneration,
     new AgentMediaTurboRunService(

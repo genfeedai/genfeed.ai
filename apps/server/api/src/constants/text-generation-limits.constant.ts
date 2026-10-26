@@ -10,5 +10,6 @@ export const TEXT_GENERATION_LIMITS = {
   postTweetGeneration: 700,
   promptEnhancement: 600,
   promptRemix: 600,
+  scriptDraft: 1800,
   tweetReply: 300,
 } as const;

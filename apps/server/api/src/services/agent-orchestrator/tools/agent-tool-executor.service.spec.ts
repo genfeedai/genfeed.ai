@@ -1141,6 +1141,7 @@ describe('AgentToolExecutorService', () => {
               ) => selection?.sourceIds,
             ),
         } as never,
+        { generate: vi.fn() } as never,
       ),
       assetGenerationService,
       new AgentMediaTurboRunService(
@@ -6477,6 +6478,7 @@ describe('AgentToolExecutorService', () => {
                 ) => selection?.sourceIds,
               ),
           } as never,
+          { generate: vi.fn() } as never,
         ),
         new AgentMediaAssetGenerationService(
           loggerService,

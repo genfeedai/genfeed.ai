@@ -83,6 +83,9 @@ function createService(options: { hasCredits?: boolean } = {}) {
         ) => selection?.sourceIds,
       ),
   };
+  const scriptGeneration = {
+    generate: vi.fn().mockResolvedValue('HOOK: ...\nBEAT 1: ...'),
+  };
   const service = new AgentMediaTextGenerationService(
     {} as never,
     brandedContentActions as never,
@@ -94,8 +97,10 @@ function createService(options: { hasCredits?: boolean } = {}) {
     brandedTextActions as never,
     contentContext as never,
     knowledgeSelection as never,
+    scriptGeneration as never,
   );
   return {
+    scriptGeneration,
     brandedContentActions,
     brandedTextActions,
     credits,
@@ -107,6 +112,55 @@ function createService(options: { hasCredits?: boolean } = {}) {
 }
 
 describe('AgentMediaTextGenerationService billing and brand scope', () => {
+  it('writes a script against the harness brief and charges once', async () => {
+    const { brandedContentActions, credits, scriptGeneration, service } =
+      createService();
+
+    const result = await service.generateContent(
+      {
+        brandId: 'brand-1',
+        durationSeconds: 30.4,
+        platform: 'tiktok',
+        topic: 'Launch day',
+        type: 'script',
+      },
+      headless,
+    );
+
+    expect(scriptGeneration.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        durationSeconds: 30,
+        organizationId: 'org-1',
+        platform: 'tiktok',
+        topic: 'Launch day',
+        userId: 'user-1',
+      }),
+    );
+    expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      data: { content: 'HOOK: ...\nBEAT 1: ...', type: 'script' },
+      isBillingDelegated: true,
+      success: true,
+    });
+    expect(credits.deductCreditsFromOrganization).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not charge when the script has no usable brand context', async () => {
+    const { credits, scriptGeneration, service } = createService();
+    scriptGeneration.generate.mockRejectedValueOnce(
+      new Error('Brand context is unavailable for this script. Please retry.'),
+    );
+
+    await expect(
+      service.generateContent(
+        { brandId: 'brand-1', topic: 'Launch day', type: 'script' },
+        headless,
+      ),
+    ).rejects.toThrow('Brand context is unavailable');
+    expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+  });
+
   it.each(['post', 'thread'])(
     'keeps every generated variant in the %s preview action',
     async (type) => {
