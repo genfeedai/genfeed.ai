@@ -3,12 +3,11 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, ModalEnum } from '@genfeedai/contracts';
 import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import Modal from '@ui/modals/modal/Modal';
 import { Label } from '@ui/primitives/label';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 export default function ModalImageToVideo({
@@ -40,11 +39,6 @@ export default function ModalImageToVideo({
     onSubmit(promptData as PromptTextareaSchema & { isValid: boolean });
   };
 
-  const imageUrl = image
-    ? image.ingredientUrl ||
-      `${EnvironmentService.ingredientsEndpoint}/images/${image.id}`
-    : '';
-
   return (
     <Modal
       id={ModalEnum.IMAGE_TO_VIDEO}
@@ -57,13 +51,12 @@ export default function ModalImageToVideo({
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-6">
             <div className="space-y-4">
               <div className="relative aspect-[3/4] overflow-hidden bg-background">
-                <Image
-                  src={imageUrl}
+                <IngredientThumbnail
                   alt={image.promptText || 'Selected image'}
-                  fill
                   className="object-cover outline-media"
+                  ingredient={image}
+                  isPriority
                   sizes="(max-width: 768px) 100vw, 33vw"
-                  priority
                 />
               </div>
 

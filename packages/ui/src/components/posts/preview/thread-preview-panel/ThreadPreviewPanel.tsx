@@ -10,7 +10,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import Image from 'next/image';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 
 const TWITTER_CHAR_LIMIT = 280;
 
@@ -60,16 +60,11 @@ function PostPreviewMedia({ ingredient }: { ingredient: IIngredient }) {
 
   return (
     <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-md bg-background">
-      <Image
-        src={
-          ingredient.cdnUrl ||
-          ingredient.ingredientUrl ||
-          `${EnvironmentService.ingredientsEndpoint}/images/${ingredient.id}`
-        }
+      <IngredientThumbnail
         alt=""
-        fill
-        sizes="(max-width: 768px) 100vw, 50vw"
         className="object-contain"
+        ingredient={ingredient}
+        sizes="(max-width: 768px) 100vw, 50vw"
       />
     </div>
   );

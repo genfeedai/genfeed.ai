@@ -392,7 +392,11 @@ export interface IngredientThumbnailProps {
   alt: string;
   className?: string;
   ingredient: IIngredient | undefined;
-  size: number;
+  /** Fixed pixel size. Omit to fill the positioned parent instead. */
+  size?: number;
+  /** `sizes` hint for a filling image. */
+  sizes?: string;
+  isPriority?: boolean;
   testId?: string;
   title?: string;
 }

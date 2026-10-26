@@ -10,8 +10,18 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span data-src={src}>{alt}</span>
+  default: ({
+    alt,
+    fill,
+    src,
+  }: {
+    alt: string;
+    fill?: boolean;
+    src: string;
+  }) => (
+    <span data-fill={fill ? 'true' : undefined} data-src={src}>
+      {alt}
+    </span>
   ),
 }));
 
@@ -66,5 +76,20 @@ describe('IngredientThumbnail', () => {
       <IngredientThumbnail alt="Anna" ingredient={undefined} size={40} />,
     );
     expect(screen.getByRole('img', { name: 'Anna' })).toBeInTheDocument();
+  });
+
+  it('fills the positioned parent when no size is given', () => {
+    render(<IngredientThumbnail alt="Anna" ingredient={ingredient} />);
+
+    expect(screen.getByText('Anna')).toHaveAttribute('data-fill', 'true');
+  });
+
+  it('keeps the placeholder inside a filling parent', () => {
+    render(<IngredientThumbnail alt="Anna" ingredient={undefined} />);
+
+    expect(screen.getByRole('img', { name: 'Anna' })).toHaveClass(
+      'absolute',
+      'inset-0',
+    );
   });
 });

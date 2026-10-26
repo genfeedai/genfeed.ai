@@ -16,7 +16,9 @@ export default function IngredientThumbnail({
   alt,
   className,
   ingredient,
+  isPriority,
   size,
+  sizes,
   testId,
   title,
 }: IngredientThumbnailProps) {
@@ -32,7 +34,8 @@ export default function IngredientThumbnail({
       <span
         aria-label={alt}
         className={cn(
-          'flex aspect-square shrink-0 items-center justify-center bg-background-tertiary text-muted-foreground',
+          'flex items-center justify-center bg-background-tertiary text-muted-foreground',
+          size === undefined ? 'absolute inset-0' : 'aspect-square shrink-0',
           className,
         )}
         data-testid={testId}
@@ -49,11 +52,12 @@ export default function IngredientThumbnail({
       alt={alt}
       className={className}
       data-testid={testId}
-      height={size}
       src={src}
       title={title}
       unoptimized={!canOptimizeImageSource(src)}
-      width={size}
+      {...(size === undefined
+        ? { fill: true, priority: isPriority, sizes }
+        : { height: size, priority: isPriority, width: size })}
     />
   );
 }

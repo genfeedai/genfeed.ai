@@ -15,9 +15,10 @@ import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/u
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { ModalAvatarProps } from '@genfeedai/props/modals/modal.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
+import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
@@ -25,8 +26,7 @@ import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowUp } from 'lucide-react';
-import Image from 'next/image';
-import { type ChangeEvent, useEffect } from 'react';
+import { type ChangeEvent, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 
 export default function ModalAvatar({
@@ -37,6 +37,10 @@ export default function ModalAvatar({
 }: ModalAvatarProps) {
   const getIngredientsService = useAuthedService((token) =>
     IngredientsService.getInstance(token),
+  );
+
+  const avatarIngredients = useIngredientsById(
+    useMemo(() => (avatarId ? [avatarId] : []), [avatarId]),
   );
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
@@ -107,14 +111,12 @@ export default function ModalAvatar({
       <Form ref={formRef} onSubmit={onSubmit}>
         <div className="w-full md:col-span-2 flex flex-col md:flex-row gap-4">
           <div className="relative aspect-[9/16] w-full md:w-1/2 h-auto">
-            <Image
-              src={`${EnvironmentService.ingredientsEndpoint}/avatars/${avatarId}`}
+            <IngredientThumbnail
               alt="Avatar"
-              width={1024}
-              height={1024}
               className="size-full object-cover object-center outline-media"
+              ingredient={avatarIngredients.get(avatarId)}
+              isPriority
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority
             />
           </div>
 
