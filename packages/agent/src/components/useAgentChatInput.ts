@@ -1146,6 +1146,7 @@ export function useAgentChatInput({
     references: displayedReferences,
     selectedContentIds,
     setIsContentPickerOpen,
+    skillSlugs,
     startListening,
     stopListening,
   };

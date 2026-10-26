@@ -39,10 +39,14 @@ export function usePromptBarMorph(
     wasActiveRef.current = isActive;
 
     if (hasSwitched && previousHeight !== null && !prefersReducedMotion()) {
+      // An interrupted glide starts from the height the user is looking at.
+      const previousHeightNow = settleRef.current
+        ? shell.getBoundingClientRect().height
+        : previousHeight;
       settleRef.current?.();
       const nextHeight = shell.getBoundingClientRect().height;
 
-      if (Math.abs(nextHeight - previousHeight) > 1) {
+      if (Math.abs(nextHeight - previousHeightNow) > 1) {
         let timeoutId: number | undefined;
         const settle = (): void => {
           window.clearTimeout(timeoutId);
@@ -61,7 +65,7 @@ export function usePromptBarMorph(
         // moving, and clips it while it grows or shrinks.
         shell.style.overflow = 'hidden';
         shell.style.transition = 'none';
-        shell.style.height = `${previousHeight}px`;
+        shell.style.height = `${previousHeightNow}px`;
         // Commit the starting height before the transition is switched on.
         void shell.offsetHeight;
         shell.style.transition = `height ${PROMPT_BAR_MORPH_MS}ms ${PROMPT_BAR_MORPH_EASING}`;
@@ -69,10 +73,14 @@ export function usePromptBarMorph(
         shell.addEventListener('transitionend', handleTransitionEnd);
         timeoutId = window.setTimeout(settle, PROMPT_BAR_MORPH_MS + 80);
         settleRef.current = settle;
+        lastHeightRef.current = nextHeight;
       }
     }
 
-    lastHeightRef.current = shell.getBoundingClientRect().height;
+    // While a transition runs the shell is mid-glide: keep the height it is
+    // heading to, not an intermediate reading.
+    if (!settleRef.current)
+      lastHeightRef.current = shell.getBoundingClientRect().height;
   });
 
   useLayoutEffect(() => () => settleRef.current?.(), []);

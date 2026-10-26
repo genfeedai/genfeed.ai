@@ -37,7 +37,8 @@ const MODEL_CATEGORY_TO_PROMPT_CATEGORY: Record<
 };
 
 export interface UsePromptTextEnhancementParams {
-  brandId: string;
+  /** Left out for an unbranded thread, which is enhanced without a brand. */
+  brandId?: string;
   contentType?: 'image' | 'video';
   modelKey: string;
   onPromptChange: (text: string) => void;
@@ -100,7 +101,7 @@ export function usePromptTextEnhancement({
   const [successfulEnhancement, setSuccessfulEnhancement] = useState<{
     text: string;
     promptId: string;
-    brandId: string;
+    brandId?: string;
     modelKey: string;
     contentType?: 'image' | 'video';
   } | null>(null);

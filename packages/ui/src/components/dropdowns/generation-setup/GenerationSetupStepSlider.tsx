@@ -7,6 +7,7 @@ import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationS
 import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
 import { Undo2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 
 /** Arrow keys and Home/End move the slider, not the menu around it. */
@@ -34,6 +35,7 @@ export default function GenerationSetupStepSlider({
   steps,
   value,
 }: GenerationSetupStepSliderProps) {
+  const translate = useTranslations('agent.generationSetup');
   const exactIndex = steps.findIndex((step) => step.value === value);
   const currentIndex =
     exactIndex >= 0
@@ -60,7 +62,7 @@ export default function GenerationSetupStepSlider({
         <span className="text-xs text-muted-foreground">{label}</span>
         {canReset ? (
           <Button
-            ariaLabel={`Reset ${label} to agent`}
+            ariaLabel={translate('resetToAgent', { field: label })}
             className="size-5 p-0 text-muted-foreground [&_svg]:size-3"
             icon={<Undo2 />}
             onClick={() => onReset?.(fieldKey)}

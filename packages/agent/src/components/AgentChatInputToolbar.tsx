@@ -123,7 +123,7 @@ function AgentChatInputToolbarInner({
       enhance={
         isAgentControlsHidden || !enhancement ? null : (
           <PromptBarEnhanceControls
-            isDisabled={disabled || showStop || isEmptyComposer}
+            isDisabled={disabled || showStop || !promptText.trim()}
             isEnhancing={enhancement.isEnhancing}
             labels={{
               cancelAria: translate('cancelEnhancingPrompt'),

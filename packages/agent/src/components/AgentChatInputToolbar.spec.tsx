@@ -103,6 +103,35 @@ describe('AgentChatInputToolbar', () => {
     expect(onInsertReference).toHaveBeenCalledOnce();
   });
 
+  it('keeps Enhance disabled while the prompt has no text, even with a ready attachment', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Library"
+        draftScopeKey={null}
+        placement="dock"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInputToolbar
+          {...buildDefaultProps({
+            enhancement: {
+              canUndo: false,
+              isEnhancing: false,
+              onCancel: vi.fn(),
+              onEnhance: vi.fn(),
+              onUndo: vi.fn(),
+            },
+            isEmptyComposer: false,
+            promptText: '',
+          })}
+        />
+      </ConversationComposerShellProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Enhance prompt' }),
+    ).toBeDisabled();
+  });
+
   it('hides the agent-only controls but keeps Send for other hosts', () => {
     render(
       <AgentChatInputToolbar
