@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { usePromptBarMorph } from '@hooks/prompt-bar/use-prompt-bar-morph/use-prompt-bar-morph';
+import { usePromptBarMorph } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-morph/use-prompt-bar-morph';
 import type { ReactNode } from 'react';
 import PromptBarBody from './PromptBarBody';
 import PromptBarShell, {

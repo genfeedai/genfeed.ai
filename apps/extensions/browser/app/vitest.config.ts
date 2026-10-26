@@ -24,6 +24,10 @@ export default defineConfig({
           replacement: `${path.resolve(extensionAppDir, `../../../../packages/${name}/src`)}/$1`,
         },
       ]),
+      {
+        find: /^@genfeedai\/hooks\/(.+)$/,
+        replacement: `${path.resolve(extensionAppDir, '../../../../packages/hooks')}/$1`,
+      },
       ...Object.entries({
         react: path.resolve(extensionAppDir, './node_modules/react'),
         'react-dom': path.resolve(extensionAppDir, './node_modules/react-dom'),
