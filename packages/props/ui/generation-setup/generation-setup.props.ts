@@ -60,6 +60,14 @@ export interface GenerationSetupImageEditingMode {
   onChange: (next: boolean) => void;
 }
 
+/** Video Draft switch in the Type menu; `isEnabled` means Generate submits the cheap preview. */
+export interface GenerationSetupVideoDraftMode {
+  /** The preview's price, shown beside the switch once it is known. */
+  credits?: number | null;
+  isEnabled: boolean;
+  onChange: (next: boolean) => void;
+}
+
 /** A platform-owned preset offered to every organization; it can be applied, never deleted. */
 export interface GenerationSetupSystemPreset {
   description?: string;
@@ -193,7 +201,6 @@ export interface GenerationSetupCustomizePanelProps {
   /** Puts every setup field back to its default; offered at the top of the Presets panel. */
   onResetAll?: () => void;
   typeOptions: readonly GenerationSetupTypeOption[];
-  showEnhancementSettings?: boolean;
   capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
@@ -268,7 +275,6 @@ export interface GenerationSetupOutputMenuProps {
 
 export interface GenerationSetupBrandSectionProps {
   capabilities: StudioPlaygroundCapabilities;
-  showEnhancementSettings?: boolean;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
@@ -288,6 +294,8 @@ export interface GenerationSetupTypeBarProps {
   isDisabled?: boolean;
   onTypeChange?: (type: GenerationSetupType) => void;
   setup: GenerationSetup;
+  /** Studio's video Draft mode; other surfaces omit it. */
+  videoDraft?: GenerationSetupVideoDraftMode;
   /** Omitted (or a single entry) on surfaces that lock the type. */
   typeOptions: readonly GenerationSetupTypeOption[];
 }

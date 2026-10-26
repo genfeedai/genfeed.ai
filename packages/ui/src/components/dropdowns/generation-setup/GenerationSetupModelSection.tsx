@@ -11,6 +11,9 @@ import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/mod
 import GenerationSetupLegacyModelsMenu, {
   LEGACY_MODELS_ROW_VALUE,
 } from '@ui/dropdowns/generation-setup/GenerationSetupLegacyModelsMenu';
+import ModelSelectorFamilyRow, {
+  MODEL_FAMILY_ROW_VALUE_PREFIX,
+} from '@ui/dropdowns/model-selector/ModelSelectorFamilyRow';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import {
   AUTO_PRIORITY_LABELS,
@@ -18,6 +21,8 @@ import {
   isAutoGenerationModelKey,
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
+  groupModelOptionsByFamily,
+  parseModelFamilyAndVariant,
   sortModelOptions,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
@@ -38,8 +43,12 @@ import { type KeyboardEvent, useState } from 'react';
  * catalog as single-select rows, reusing `ModelSelectorModelItem` from the
  * model-selector dropdown so the two pickers never visually diverge.
  *
+ * Siblings of one family (GPT Image 2, 2.5 Flare, 2.5 Sunburst) fold into one
+ * expandable row; the selected model's family starts open and a search opens
+ * every family it matches into.
+ *
  * Retired rows are never listed. Legacy rows stay out of the catalog behind a
- * single "N legacy models" row that opens them in a flyout to the right; a
+ * single "Legacy" row that opens them in a flyout to the right; a
  * search narrows the flyout to the legacy models it matches.
  */
 export default function GenerationSetupModelSection({
@@ -56,6 +65,18 @@ export default function GenerationSetupModelSection({
   const [search, setSearch] = useState('');
   const [isLegacyOpen, setIsLegacyOpen] = useState(false);
   const [highlightedValue, setHighlightedValue] = useState('');
+  const [expandedFamilyKeys, setExpandedFamilyKeys] = useState<Set<string>>(
+    () => {
+      const selectedModel = models.find(
+        (model) => model.key === setup.values.modelKey,
+      );
+      return new Set(
+        selectedModel
+          ? [parseModelFamilyAndVariant(selectedModel).familyKey]
+          : [],
+      );
+    },
+  );
   const query = search.trim().toLowerCase();
 
   if (!capabilities.hasModelSelection) {
@@ -87,7 +108,36 @@ export default function GenerationSetupModelSection({
     );
   }
 
+  function toggleFamily(familyKey: string): void {
+    setExpandedFamilyKeys((current) => {
+      const next = new Set(current);
+      if (!next.delete(familyKey)) next.add(familyKey);
+      return next;
+    });
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (highlightedValue.startsWith(MODEL_FAMILY_ROW_VALUE_PREFIX)) {
+      const familyKey = highlightedValue.slice(
+        MODEL_FAMILY_ROW_VALUE_PREFIX.length,
+      );
+      const isFamilyOpen = Boolean(query) || expandedFamilyKeys.has(familyKey);
+      const isKeyForFamily =
+        (event.key === 'ArrowRight' && !isFamilyOpen) ||
+        (event.key === 'ArrowLeft' && isFamilyOpen && !query);
+      if (!isKeyForFamily) return;
+      // In the search box the arrows still move the caret until it is at the
+      // end of the text.
+      const { target } = event;
+      if (
+        target instanceof HTMLInputElement &&
+        target.selectionStart !== target.value.length
+      )
+        return;
+      event.preventDefault();
+      toggleFamily(familyKey);
+      return;
+    }
     if (
       event.key !== 'ArrowRight' ||
       highlightedValue !== LEGACY_MODELS_ROW_VALUE
@@ -107,6 +157,7 @@ export default function GenerationSetupModelSection({
   function renderModelRow(option: ModelSelectorOption) {
     return (
       <ModelSelectorModelItem
+        isCategoryVisible={false}
         isLocked={isDisabled || isCreditLocked(option.model.cost)}
         isSelected={
           !isAutoSelected && setup.values.modelKey === option.model.key
@@ -200,7 +251,29 @@ export default function GenerationSetupModelSection({
 
           {options.length > 0 ? (
             <CommandGroup heading="Catalog">
-              {options.map(renderModelRow)}
+              {groupModelOptionsByFamily(options).map((entry) => {
+                if (entry.kind === 'model') return renderModelRow(entry.option);
+
+                return (
+                  <ModelSelectorFamilyRow
+                    familyKey={entry.familyKey}
+                    familyLabel={entry.familyLabel}
+                    isExpanded={
+                      Boolean(query) || expandedFamilyKeys.has(entry.familyKey)
+                    }
+                    isSelected={entry.options.some(
+                      (option) =>
+                        !isAutoSelected &&
+                        option.model.key === setup.values.modelKey,
+                    )}
+                    key={entry.familyKey}
+                    onToggle={toggleFamily}
+                    options={entry.options}
+                  >
+                    {entry.options.map(renderModelRow)}
+                  </ModelSelectorFamilyRow>
+                );
+              })}
             </CommandGroup>
           ) : null}
 
@@ -208,9 +281,7 @@ export default function GenerationSetupModelSection({
             <CommandGroup>
               <GenerationSetupLegacyModelsMenu
                 isOpen={isLegacyOpen}
-                label={translate('legacyModels', {
-                  count: legacyOptions.length,
-                })}
+                label={translate('legacy')}
                 onOpenChange={setIsLegacyOpen}
               >
                 {legacyOptions.map(renderModelRow)}

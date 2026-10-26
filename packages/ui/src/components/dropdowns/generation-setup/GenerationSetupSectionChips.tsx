@@ -82,7 +82,6 @@ export default function GenerationSetupSectionChips(
     outputControls,
     referenceCount,
     setup,
-    showEnhancementSettings = false,
     showPresets = true,
   } = props;
   const translate = useTranslations('agent.generationSetup');
@@ -165,7 +164,7 @@ export default function GenerationSetupSectionChips(
       label: translate('look'),
       value: translate('look'),
     });
-  if (capabilities.hasBrandEnrichment || showEnhancementSettings)
+  if (capabilities.hasBrandEnrichment)
     chips.push({
       icon: <Megaphone aria-hidden="true" className={SHELL_ICON_CLASS} />,
       id: 'brand',
@@ -303,6 +302,17 @@ export default function GenerationSetupSectionChips(
           )}
           collisionPadding={16}
           onCloseAutoFocus={keepFocusOnSwitch}
+          // Land on the search box when the panel has one, otherwise on the
+          // panel itself: focusing its first button drew a focus outline on
+          // a control nobody had pressed.
+          onOpenAutoFocus={(event) => {
+            const panel = event.currentTarget;
+            if (!(panel instanceof HTMLElement)) return;
+            event.preventDefault();
+            (panel.querySelector('input') ?? panel).focus({
+              preventScroll: true,
+            });
+          }}
           side="top"
           sideOffset={8}
         >

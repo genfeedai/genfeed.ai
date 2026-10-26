@@ -8,6 +8,7 @@ import type {
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AgentGenerationMode,
   AgentThreadMode,
@@ -23,6 +24,7 @@ import type {
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { usePromptTextEnhancement } from '@hooks/prompt-bar/use-prompt-text-enhancement/use-prompt-text-enhancement';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
@@ -142,10 +144,12 @@ export function AgentChatInput({
   const isDock = density === 'dock';
   const [generationMode, setGenerationMode] =
     useState<ConversationComposerGenerationMode>(AgentGenerationMode.AUTO);
+  const { brandId: selectedBrandId } = useBrand();
   const {
     actionFeedback,
     canSendMessage,
     contentLibraryItems,
+    conversationBrandId,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
@@ -206,6 +210,22 @@ export function AgentChatInput({
   const handleToolbarSend = useCallback(() => {
     void handleSend();
   }, [handleSend]);
+  const handleEnhancedPrompt = useCallback(
+    (text: string) => {
+      editor?.commands.setContent(text);
+      editor?.commands.focus('end');
+    },
+    [editor],
+  );
+  const promptEnhancement = usePromptTextEnhancement({
+    brandId: conversationBrandId ?? selectedBrandId,
+    contentType:
+      generationMode === AgentGenerationMode.VIDEO ? 'video' : 'image',
+    modelKey: '',
+    onPromptChange: handleEnhancedPrompt,
+    prompt: promptText,
+  });
+
   return (
     <div
       className="relative w-full min-w-0 max-w-full"
@@ -280,6 +300,15 @@ export function AgentChatInput({
           canSendMessage={canSendMessage}
           canUseVoiceInput={canUseVoiceInput}
           disabled={disabled}
+          enhancement={{
+            canUndo: promptEnhancement.previousPrompt !== null,
+            isEnhancing: promptEnhancement.isEnhancing,
+            onCancel: promptEnhancement.cancelEnhance,
+            onEnhance: () => {
+              void promptEnhancement.enhancePrompt();
+            },
+            onUndo: promptEnhancement.undoEnhance,
+          }}
           hasEditor={Boolean(editor)}
           isAgentControlsHidden={isAgentControlsHidden}
           isEmptyComposer={isEmptyComposer}

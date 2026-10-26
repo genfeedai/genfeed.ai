@@ -7,7 +7,11 @@ import {
   normalizeAgentThreadMode,
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { PROMPT_BAR_CHIP_CLASS } from '@ui/constants/shell-chrome.constant';
+import {
+  PROMPT_BAR_CHIP_CLASS,
+  PROMPT_BAR_CHIP_FIT_CLASS,
+  PROMPT_BAR_CHIP_LABEL_CLASS,
+} from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -30,6 +34,7 @@ interface AgentModeDropdownProps {
 }
 
 interface AgentModeOption {
+  description: string;
   icon: ReactNode;
   label: string;
   value: AgentThreadMode;
@@ -52,16 +57,19 @@ export function AgentModeDropdown({
   const options = useMemo<readonly AgentModeOption[]>(
     () => [
       {
+        description: translate('auto.description'),
         icon: <Sparkles className="size-4" />,
         label: translate('auto.label'),
         value: AgentThreadMode.AUTO,
       },
       {
+        description: translate('manual.description'),
         icon: <Hand className="size-4" />,
         label: translate('manual.label'),
         value: AgentThreadMode.MANUAL,
       },
       {
+        description: translate('plan.description'),
         icon: <ListChecks className="size-4" />,
         label: translate('plan.label'),
         value: AgentThreadMode.PLAN,
@@ -80,7 +88,11 @@ export function AgentModeDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           ariaLabel={triggerLabel}
-          className={cn(PROMPT_BAR_CHIP_CLASS, className)}
+          className={cn(
+            PROMPT_BAR_CHIP_CLASS,
+            PROMPT_BAR_CHIP_FIT_CLASS,
+            className,
+          )}
           icon={active.icon}
           isDisabled={isDisabled}
           size={ButtonSize.SM}
@@ -89,13 +101,19 @@ export function AgentModeDropdown({
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
-          {active.label}
-          <ChevronDown aria-hidden className="size-3 text-muted-foreground" />
+          <span className={PROMPT_BAR_CHIP_LABEL_CLASS}>{active.label}</span>
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              'size-3 text-muted-foreground',
+              PROMPT_BAR_CHIP_LABEL_CLASS,
+            )}
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-64"
+        className="w-72"
         onCloseAutoFocus={keepFocusOnSwitch}
         side="top"
         sideOffset={8}
@@ -110,8 +128,13 @@ export function AgentModeDropdown({
           {options.map((option) => (
             <DropdownMenuRadioItem key={option.value} value={option.value}>
               <span className="text-muted-foreground">{option.icon}</span>
-              <span className="min-w-0 flex-1 truncate text-xs">
-                {option.label}
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-xs normal-case">
+                  {option.label}
+                </span>
+                <span className="text-2xs normal-case leading-4 text-muted-foreground">
+                  {option.description}
+                </span>
               </span>
             </DropdownMenuRadioItem>
           ))}

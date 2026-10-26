@@ -24,8 +24,10 @@ interface GenerationSetupLegacyModelsMenuProps {
 }
 
 /**
- * One "N legacy models" row that opens its models in a flyout to the right,
- * like a cascading menu. The model list is a cmdk list inside a popover, so
+ * One "Legacy" row that opens its models in a flyout to the right, like a
+ * cascading menu. The row is the last one in the model list, so the flyout is
+ * bottom-aligned with it and grows upward; the last legacy model sits level
+ * with the row that opened it. The model list is a cmdk list inside a popover, so
  * Radix's menu submenu cannot be used here; the flyout is a nested popover
  * anchored to the row. Enter, click or the right arrow opens it, Escape or
  * the left arrow closes it. On a phone there is no room beside the list, so
@@ -79,7 +81,7 @@ export default function GenerationSetupLegacyModelsMenu({
         </CommandItem>
       </PopoverAnchor>
       <PopoverContent
-        align="start"
+        align="end"
         aria-label={label}
         avoidCollisions
         className={cn(

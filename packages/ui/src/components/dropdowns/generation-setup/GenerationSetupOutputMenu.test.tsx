@@ -247,6 +247,20 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
     expect(onSetField).not.toHaveBeenCalled();
   });
 
+  it('checks the ratio the chip shows, not Auto, when the agent owns it', () => {
+    renderMenu({
+      capabilities: imageCapabilities,
+      section: 'aspectRatio',
+      setup: buildSetup({ aspectRatio: '1:1', type: 'image' }),
+    });
+
+    const checkedLabels = screen
+      .getAllByRole('menuitem')
+      .filter((item) => item.querySelector('svg.lucide-check'))
+      .map((item) => item.textContent);
+    expect(checkedLabels).toEqual(['1:1']);
+  });
+
   it('sets a concrete ratio', () => {
     const { onSetField } = renderMenu({
       capabilities: imageCapabilities,

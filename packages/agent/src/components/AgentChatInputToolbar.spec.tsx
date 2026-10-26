@@ -66,17 +66,34 @@ describe('AgentChatInputToolbar', () => {
         portalTarget={null}
         shellState="canvas"
       >
-        <AgentChatInputToolbar {...buildDefaultProps({ onInsertReference })} />
+        <AgentChatInputToolbar
+          {...buildDefaultProps({
+            enhancement: {
+              canUndo: false,
+              isEnhancing: false,
+              onCancel: vi.fn(),
+              onEnhance: vi.fn(),
+              onUndo: vi.fn(),
+            },
+            isEmptyComposer: false,
+            onInsertReference,
+            promptText: 'Plan next week',
+          })}
+        />
       </ConversationComposerShellProvider>,
     );
     expect(
       screen.getByRole('button', { name: 'Agent mode: Manual' }),
     ).toBeInTheDocument();
+    // Same labelled Enhance chip as the Studio bar, not a settings popover.
     expect(
-      screen.getByRole('button', { name: 'Prompt enhancement settings' }),
-    ).toHaveTextContent('Settings');
-    const attach = screen.getByRole('button', { name: 'Attach' });
-    expect(attach).toHaveTextContent('Attach');
+      screen.getByRole('button', { name: 'Enhance prompt' }),
+    ).toHaveTextContent('Enhance');
+    expect(
+      screen.queryByRole('button', { name: 'Prompt enhancement settings' }),
+    ).not.toBeInTheDocument();
+    const attach = screen.getByRole('button', { name: 'Add context' });
+    expect(attach).toHaveTextContent('Reference');
     fireEvent.pointerDown(attach);
     fireEvent.click(
       await screen.findByRole('menuitem', {

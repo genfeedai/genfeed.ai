@@ -412,16 +412,19 @@ vi.mock('@pages/studio/playground/components/StudioPlaygroundResults', () => ({
   },
 }));
 
-vi.mock('@pages/studio/playground/hooks/useStudioPromptEnhancement', () => ({
-  useStudioPromptEnhancement: () => ({
-    cancelEnhance: mocks.cancelEnhance,
-    enhancePrompt: mocks.enhancePrompt,
-    undoEnhance: mocks.undoEnhance,
-    isEnhancing: false,
-    previousPrompt: null,
-    enhancedPromptId: mocks.enhancedPromptId.value,
+vi.mock(
+  '@hooks/prompt-bar/use-prompt-text-enhancement/use-prompt-text-enhancement',
+  () => ({
+    usePromptTextEnhancement: () => ({
+      cancelEnhance: mocks.cancelEnhance,
+      enhancePrompt: mocks.enhancePrompt,
+      undoEnhance: mocks.undoEnhance,
+      isEnhancing: false,
+      previousPrompt: null,
+      enhancedPromptId: mocks.enhancedPromptId.value,
+    }),
   }),
-}));
+);
 
 vi.mock('@ui/prompt-editor/use-prompt-command-extension', () => ({
   usePromptCommandExtension: () => ({

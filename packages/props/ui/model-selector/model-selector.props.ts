@@ -105,6 +105,21 @@ export interface ModelSelectorModelItemProps {
   /** Credit lock — row is visible but not selectable. */
   isLocked?: boolean;
   lockReason?: string;
+  /**
+   * Draw the media-type badge (image, video...) on the row's avatar. A picker
+   * that already names its type once in its header turns this off.
+   */
+  isCategoryVisible?: boolean;
+}
+
+export interface ModelSelectorFamilyRowProps {
+  familyKey: string;
+  familyLabel: string;
+  isExpanded: boolean;
+  /** The selected model is one of this family's variants. */
+  isSelected: boolean;
+  onToggle: (familyKey: string) => void;
+  options: readonly ModelSelectorOption[];
 }
 
 export interface ModelSelectorModelSpecProps {

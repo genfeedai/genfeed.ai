@@ -5,7 +5,7 @@ import type {
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioPlaygroundCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import GenerationSetupBrandSection from '@ui/dropdowns/generation-setup/GenerationSetupBrandSection';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -64,32 +64,42 @@ function renderSection(setup: GenerationSetup) {
     />,
   );
   return {
-    group: within(screen.getByRole('group', { name: 'Brand voice' })),
+    brandVoice: screen.getByRole('switch', { name: 'Brand voice' }),
     onResetField,
     onSetField,
   };
 }
 
 describe('GenerationSetupBrandSection', () => {
-  it('selects Inherit while the agent owns brand voice', () => {
-    const { group } = renderSection(buildSetup('brand'));
-    expect(group.getByRole('button', { name: 'Inherit' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+  it('shows brand voice as one switch with no tri-state or enhancement control', () => {
+    const { brandVoice } = renderSection(buildSetup('brand'));
+
+    expect(brandVoice).toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Inherit' })).toBeNull();
+    expect(screen.queryByText(/prompt enhancement/i)).toBeNull();
   });
 
-  it('sets On and Off explicitly and resets back to the agent on Inherit', () => {
-    const { group, onResetField, onSetField } = renderSection(
-      buildSetup('brand', { brandingMode: 'user' }),
+  it('turns brand voice off and on explicitly', () => {
+    const { brandVoice, onSetField } = renderSection(
+      buildSetup('off', { brandingMode: 'user' }),
     );
-    expect(group.getByRole('button', { name: 'On' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+
+    expect(brandVoice).not.toBeChecked();
+    fireEvent.click(brandVoice);
+    expect(onSetField).toHaveBeenCalledWith('brandingMode', 'brand');
+  });
+
+  it('renders nothing when the output type has no brand enrichment', () => {
+    const { container } = render(
+      <GenerationSetupBrandSection
+        capabilities={{ ...CAPABILITIES, hasBrandEnrichment: false }}
+        onResetField={vi.fn()}
+        onSetField={vi.fn()}
+        reasons={{}}
+        setup={buildSetup('brand')}
+      />,
     );
-    fireEvent.click(group.getByRole('button', { name: 'Off' }));
-    expect(onSetField).toHaveBeenCalledWith('brandingMode', 'off');
-    fireEvent.click(group.getByRole('button', { name: 'Inherit' }));
-    expect(onResetField).toHaveBeenCalledWith('brandingMode');
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

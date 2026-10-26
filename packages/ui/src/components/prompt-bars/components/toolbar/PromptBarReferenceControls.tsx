@@ -4,6 +4,11 @@ import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-inte
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
+import {
+  PROMPT_BAR_CHIP_CLASS,
+  PROMPT_BAR_CHIP_FIT_CLASS,
+  PROMPT_BAR_CHIP_LABEL_CLASS,
+} from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -24,6 +29,8 @@ import { type ChangeEvent, type ReactElement, useContext, useRef } from 'react';
 export interface PromptBarReferenceControlsProps {
   accept?: string;
   className?: string;
+  /** Draws the trigger like a setup chip: icon plus a label that folds with the others. */
+  isChip?: boolean;
   isAttachmentDisabled?: boolean;
   isLibraryDisabled?: boolean;
   label?: string;
@@ -40,6 +47,7 @@ export interface PromptBarReferenceControlsProps {
 export default function PromptBarReferenceControls({
   accept = 'image/*,video/*,audio/*',
   className,
+  isChip = false,
   isAttachmentDisabled = false,
   isLibraryDisabled = false,
   label,
@@ -155,16 +163,26 @@ export default function PromptBarReferenceControls({
             ariaLabel={triggerLabel ?? translate('addContext')}
             className={cn(
               'shrink-0',
-              triggerLabel ? 'h-8 gap-1.5 px-2' : 'size-8',
+              isChip
+                ? cn(PROMPT_BAR_CHIP_CLASS, PROMPT_BAR_CHIP_FIT_CLASS)
+                : triggerLabel
+                  ? 'h-8 gap-1.5 px-2'
+                  : 'size-8',
             )}
             icon={<Plus className="size-3.5" />}
             isDisabled={isMenuDisabled}
-            size={triggerLabel ? ButtonSize.SM : ButtonSize.ICON}
+            size={triggerLabel || isChip ? ButtonSize.SM : ButtonSize.ICON}
             tooltip={triggerLabel ?? translate('addContext')}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            {triggerLabel}
+            {isChip ? (
+              <span className={PROMPT_BAR_CHIP_LABEL_CLASS}>
+                {translate('referenceLabel')}
+              </span>
+            ) : (
+              triggerLabel
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

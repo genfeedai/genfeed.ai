@@ -1523,7 +1523,7 @@ describe('StudioPlaygroundComposer', () => {
     ).toBeNull();
   });
 
-  it("offers this type's presets in the row only while the prompt is empty", () => {
+  it("offers this type's presets in the row whether or not the prompt is empty", () => {
     const view = render(
       <StudioPlaygroundComposer
         {...baseProps}
@@ -1551,8 +1551,8 @@ describe('StudioPlaygroundComposer', () => {
       />,
     );
     expect(
-      screen.queryByRole('toolbar', { name: 'Suggestions for this prompt' }),
-    ).toBeNull();
+      screen.getByRole('toolbar', { name: 'Suggestions for this prompt' }),
+    ).toBeInTheDocument();
   });
 
   it('pins the applied preset in the row with a way to unpin it', () => {
@@ -2177,10 +2177,6 @@ describe('StudioPlaygroundComposer', () => {
       expect(
         promptTools.getByRole('button', { name: 'Setup' }),
       ).toBeInTheDocument();
-      expect(setupBarMocks.props.showEnhancementSettings).toBe(true);
-      expect(
-        screen.queryByRole('button', { name: 'Prompt enhancement settings' }),
-      ).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Enhance prompt' }));
 
       expect(onEnhancePrompt).toHaveBeenCalledOnce();
@@ -2551,6 +2547,13 @@ describe('StudioPlaygroundComposer', () => {
         resolution: '1080p',
       };
 
+      const draftControl = () =>
+        setupBarMocks.props.videoDraft as {
+          credits?: number;
+          isEnabled: boolean;
+          onChange: (isEnabled: boolean) => void;
+        };
+
       it('prices the cheap draft and submits it flagged once the price is confirmed', async () => {
         estimateMocks.resolve.mockImplementation(
           (request: { modelKey?: string }) => ({
@@ -2581,9 +2584,14 @@ describe('StudioPlaygroundComposer', () => {
             outputs: 1,
           }),
         );
-        fireEvent.click(
-          screen.getByRole('button', { name: 'Generate a cheap video draft' }),
-        );
+        // Draft is a mode of the Video type, not a second Generate button.
+        expect(
+          screen.queryByRole('button', {
+            name: 'Generate a cheap video draft',
+          }),
+        ).toBeNull();
+        act(() => draftControl().onChange(true));
+        fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
         await waitFor(() =>
           expect(baseProps.onSubmit).toHaveBeenCalledWith({ isDraft: true }),
@@ -2613,11 +2621,7 @@ describe('StudioPlaygroundComposer', () => {
           />,
         );
 
-        expect(
-          screen.queryByRole('button', {
-            name: 'Generate a cheap video draft',
-          }),
-        ).toBeNull();
+        expect(setupBarMocks.props.videoDraft).toBeUndefined();
       });
     });
 

@@ -36,7 +36,7 @@ const MODEL_CATEGORY_TO_PROMPT_CATEGORY: Record<
   voice: PromptCategory.MODELS_PROMPT_MUSIC,
 };
 
-export interface UseStudioPromptEnhancementParams {
+export interface UsePromptTextEnhancementParams {
   brandId: string;
   contentType?: 'image' | 'video';
   modelKey: string;
@@ -53,7 +53,7 @@ export interface UseStudioPromptEnhancementParams {
   };
 }
 
-export interface UseStudioPromptEnhancementResult {
+export interface UsePromptTextEnhancementResult {
   /** Aborts a pending enhancement; safe to call when idle. */
   cancelEnhance: () => void;
   /** Never starts a generation — only replaces the composer's prompt text. */
@@ -68,7 +68,9 @@ export interface UseStudioPromptEnhancementResult {
 }
 
 /**
- * Studio composer's "Enhance prompt" action (#4676 FR6/FR7). Reuses the same
+ * The composers' shared "Enhance prompt" action (#4676 FR6/FR7), used by Studio
+ * and Agent. An Agent composer has no model of its own and passes an empty
+ * `modelKey`; the output type then comes from `contentType`. Reuses the same
  * backend flow as `usePromptBarEnhancement`
  * (packages/hooks/prompt-bar/use-prompt-bar-enhancement) — POST `/prompts`
  * with `isSkipEnhancement: false`, then wait on the prompt's WebSocket
@@ -85,14 +87,14 @@ export interface UseStudioPromptEnhancementResult {
  * token and a mounted flag so a cancelled or unmounted enhancement can never
  * fire a toast or apply a stale result.
  */
-export function useStudioPromptEnhancement({
+export function usePromptTextEnhancement({
   brandId,
   contentType,
   modelKey,
   onPromptChange,
   prompt,
   resolveRequestedSkills,
-}: UseStudioPromptEnhancementParams): UseStudioPromptEnhancementResult {
+}: UsePromptTextEnhancementParams): UsePromptTextEnhancementResult {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
   const [successfulEnhancement, setSuccessfulEnhancement] = useState<{
@@ -240,7 +242,8 @@ export function useStudioPromptEnhancement({
           category: promptCategory,
           isSkipEnhancement: false,
           // Auto is a UI sentinel, not a model the API accepts.
-          model: isAutoStudioModelKey(modelKey) ? undefined : modelKey,
+          model:
+            modelKey && !isAutoStudioModelKey(modelKey) ? modelKey : undefined,
           original: text,
           ...(requestedSkillSlugs.length > 0 ? { requestedSkillSlugs } : {}),
         }),

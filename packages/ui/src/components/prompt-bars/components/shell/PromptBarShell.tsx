@@ -1,5 +1,5 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode, Ref } from 'react';
 
 /** Shared glass and border for every composer. Flat on purpose: no outer shadow. */
 export const PROMPT_BAR_SURFACE_CLASS =
@@ -13,6 +13,8 @@ export interface PromptBarShellProps extends HTMLAttributes<HTMLDivElement> {
   banner?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Passed through to the shell element (React 19 forwards `ref` as a prop). */
+  ref?: Ref<HTMLDivElement>;
 }
 
 export default function PromptBarShell({

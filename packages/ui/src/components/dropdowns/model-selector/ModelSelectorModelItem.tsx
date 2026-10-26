@@ -33,6 +33,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   selectionMode = 'multi',
   isLocked = false,
   lockReason,
+  isCategoryVisible = true,
 }: ModelSelectorModelItemProps) {
   const { model, brandLabel, costTier, isFavorite } = option;
   const isSingleSelect = selectionMode === 'single';
@@ -90,6 +91,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           )}
         >
           <ModelAvatar
+            isCategoryVisible={isCategoryVisible}
             isProviderVisible={false}
             model={model}
             testId="model-row-provider-icon"

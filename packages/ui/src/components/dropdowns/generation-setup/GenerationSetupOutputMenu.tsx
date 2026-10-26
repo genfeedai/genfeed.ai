@@ -66,9 +66,13 @@ export default function GenerationSetupOutputMenu({
     const currentRatio = setup.values.aspectRatio;
     const isRatioOwnedByAgent =
       (setup.sources.aspectRatio ?? 'agent') === 'agent';
+    // The checked row is the value the chip shows. Auto is checked only when
+    // the ratio really is auto, or when the agent's value is not one this
+    // model offers (Auto then stands for "whatever the agent picks").
+    const isRatioListed = fields.ratios.includes(currentRatio);
     const selectedRatioValue =
       currentRatio === GENERATION_SETUP_AUTO_ASPECT_RATIO ||
-      (isRatioOwnedByAgent && !fields.hasAutoRatio)
+      (isRatioOwnedByAgent && !fields.hasAutoRatio && !isRatioListed)
         ? GENERATION_SETUP_AUTO_ASPECT_RATIO
         : currentRatio;
 
