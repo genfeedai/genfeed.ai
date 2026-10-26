@@ -218,5 +218,23 @@ describe('ReviewInboxDecisionService', () => {
       expect(workflowExecutor.submitReviewGateApproval).not.toHaveBeenCalled();
       expect(mcpApprovals.resolve).toHaveBeenCalledTimes(1);
     });
+
+    it('does not leak internal error text for non-HTTP failures', async () => {
+      mcpApprovals.resolve.mockRejectedValueOnce(
+        new Error('Invalid `prisma.mcpApproval.update()` invocation'),
+      );
+
+      const result = await service.decideMany(user, fullAccess, {
+        decision: 'approve',
+        itemIds: ['mcp_approval:apr-1', 'workflow_review_gate:exec-1:gate:1'],
+      });
+
+      expect(result.failed).toEqual([
+        { itemId: 'mcp_approval:apr-1', message: 'Decision failed' },
+      ]);
+      expect(result.decided.map((entry) => entry.itemId)).toEqual([
+        'workflow_review_gate:exec-1:gate:1',
+      ]);
+    });
   });
 });
