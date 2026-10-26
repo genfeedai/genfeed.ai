@@ -423,7 +423,7 @@ export class AgentOrchestratorPlanModeService {
       : routingPlugins;
     const planInstruction = {
       content:
-        'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready.',
+        'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready. Plan motion graphics, animated logos or titles, kinetic typography and visual-code or Remotion requests as a coded visual project (quote_visual_code_generation, then generate_visual_code after approval), never as a provider video model.',
       role: 'system' as const,
     };
 
