@@ -4,6 +4,7 @@ import {
   seedProviderOfferAssociations,
   seedProviderOfferRegistrations,
 } from '@api/seeds/model-provider-offers.seed';
+import { seedOpenRouterTextContracts } from '@api/seeds/openrouter-text-contracts-seed';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import {
   type ReferenceDataDomainName,
@@ -60,7 +61,10 @@ export class ReferenceDataSyncService {
         return {
           failed: [],
           unchanged: 0,
-          written: written + (await seedProviderOfferAssociations(this.prisma)),
+          written:
+            written +
+            (await seedOpenRouterTextContracts(this.prisma)) +
+            (await seedProviderOfferAssociations(this.prisma)),
         };
       }),
     );
