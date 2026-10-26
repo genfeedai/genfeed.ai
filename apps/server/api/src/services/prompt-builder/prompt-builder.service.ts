@@ -165,6 +165,21 @@ export class PromptBuilderService {
     return variables;
   }
 
+  private async prependBrandContext(
+    promptText: string,
+    variables: PromptTemplateVariables,
+    logPrefix: string,
+  ): Promise<string> {
+    const brandContext = await this.buildBrandContext(variables);
+    if (!brandContext) {
+      return promptText;
+    }
+    this.loggerService.debug(`${logPrefix} prepended brand context`, {
+      brandContextLength: brandContext.length,
+    });
+    return `${brandContext}\n\n${promptText}`;
+  }
+
   /**
    * Fold the structured slots (subject, camera, lighting, mood ...) into the
    * prompt as plain prose. Media models read natural captions, so the slots are
@@ -177,7 +192,10 @@ export class PromptBuilderService {
     templateContent: string | undefined,
   ): string {
     const isVideo = params.modelCategory === ModelCategory.VIDEO;
-    if (!isVideo && params.modelCategory !== ModelCategory.IMAGE) {
+    if (
+      params.useTemplate === false ||
+      (!isVideo && params.modelCategory !== ModelCategory.IMAGE)
+    ) {
       return promptText;
     }
     const { prompt } = renderStructuredPrompt(
@@ -365,13 +383,11 @@ export class PromptBuilderService {
         }
       }
 
-      if (params.useTemplate !== false) {
-        promptText = this.renderStructuredSlots(
-          params,
-          promptText,
-          templateContent,
-        );
-      }
+      promptText = this.renderStructuredSlots(
+        params,
+        promptText,
+        templateContent,
+      );
 
       const brandingMode = this.resolveBrandingMode(params);
 
@@ -423,17 +439,9 @@ export class PromptBuilderService {
         }
 
         params = { ...params, systemPrompt: systemPromptResult };
-      } else {
+      } else if (brandingMode === 'brand' && params.brand) {
         // For non-TEXT models, prepend brand context to user prompt
-        if (brandingMode === 'brand' && params.brand) {
-          const brandContext = await this.buildBrandContext(variables);
-          if (brandContext) {
-            promptText = `${brandContext}\n\n${promptText}`;
-            this.loggerService.debug(`${url} prepended brand context`, {
-              brandContextLength: brandContext.length,
-            });
-          }
-        }
+        promptText = await this.prependBrandContext(promptText, variables, url);
       }
 
       // Find the appropriate builder
