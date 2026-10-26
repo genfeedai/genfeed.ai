@@ -152,6 +152,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.get_brand_scan_status',
   'agent.tool.get_brands',
   'agent.tool.get_connection_status',
+  'agent.tool.get_context_coverage',
   'agent.tool.get_current_brand',
   'agent.tool.get_dashboard_layout',
   'agent.tool.get_generation_options',
