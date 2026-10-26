@@ -14,10 +14,7 @@ function Bar({ isResting }: { isResting: boolean }) {
 }
 
 function mockReducedMotion(isReduced: boolean) {
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn().mockReturnValue({ matches: isReduced }),
-  );
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: isReduced }));
 }
 
 describe('usePromptBarMorph', () => {
