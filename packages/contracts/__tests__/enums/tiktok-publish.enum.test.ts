@@ -3,8 +3,8 @@ import { TikTokPublishStatus } from '../../src/enums/tiktok-publish.enum';
 
 describe('tiktok-publish.enum', () => {
   describe('TikTokPublishStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(TikTokPublishStatus)).toHaveLength(4);
+    it('should have 5 members', () => {
+      expect(Object.values(TikTokPublishStatus)).toHaveLength(5);
     });
 
     it('should have correct values', () => {
@@ -12,6 +12,7 @@ describe('tiktok-publish.enum', () => {
       expect(TikTokPublishStatus.PROCESSING_DOWNLOAD).toBe(
         'PROCESSING_DOWNLOAD',
       );
+      expect(TikTokPublishStatus.SEND_TO_USER_INBOX).toBe('SEND_TO_USER_INBOX');
       expect(TikTokPublishStatus.PUBLISH_COMPLETE).toBe('PUBLISH_COMPLETE');
       expect(TikTokPublishStatus.FAILED).toBe('FAILED');
     });

@@ -217,6 +217,42 @@ describe('CronTiktokStatusService', () => {
     ).toHaveBeenCalledOnce();
   });
 
+  it('records a TikTok Inbox delivery as an unpublished receipt, not a published post', async () => {
+    const harness = createHarness();
+    const post = makeTiktokPost();
+    harness.postsService.findOne.mockResolvedValue(post);
+    harness.tiktokService.getPublishStatus.mockResolvedValue({
+      status: 'SEND_TO_USER_INBOX',
+    });
+    harness.schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+
+    await reconcile(harness.registeredActions);
+
+    const [, update, , guard, finalization] =
+      harness.schedulerPublishStateService.transitionPost.mock.calls[0];
+    expect(update).toMatchObject({
+      executionState: TargetExecutionState.PUBLISHED,
+      externalId: 'publish-1',
+      url: null,
+    });
+    expect(update).not.toHaveProperty('publishedAt');
+    expect(update).not.toHaveProperty('publicationDate');
+    expect(guard).toMatchObject({
+      expectedExternalId: 'publish-1',
+      priorExecutionStates: [TargetExecutionState.PUBLISHING],
+    });
+    expect(finalization).toBeUndefined();
+    expect(
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
+    ).not.toHaveBeenCalled();
+    expect(
+      harness.publishEventWebhookService.emitPostPublished,
+    ).not.toHaveBeenCalled();
+    expect(
+      harness.publishEventWebhookService.emitPostFailed,
+    ).not.toHaveBeenCalled();
+  });
+
   it('does not finalize when TikTok reports moderation failure', async () => {
     const harness = createHarness();
     const post = makeTiktokPost();

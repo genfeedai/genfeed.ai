@@ -926,7 +926,10 @@ export class TiktokService {
           status: data.status,
         });
 
-        if (data.status === TikTokPublishStatus.PUBLISH_COMPLETE) {
+        if (
+          data.status === TikTokPublishStatus.PUBLISH_COMPLETE ||
+          data.status === TikTokPublishStatus.SEND_TO_USER_INBOX
+        ) {
           return data;
         }
 

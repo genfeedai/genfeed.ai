@@ -117,6 +117,16 @@ describe('TiktokService', () => {
       expect(httpService.post).toHaveBeenCalledTimes(1);
     });
 
+    it('stops polling once an Inbox upload reaches the creator Inbox', async () => {
+      (httpService.post as Mock).mockReturnValue(
+        of({ data: { data: { status: 'SEND_TO_USER_INBOX' } } }),
+      );
+      expect(
+        await service.getPublishStatus('access', 'publish-inbox', 3, 0),
+      ).toEqual({ status: 'SEND_TO_USER_INBOX' });
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
     it('normalizes TikTok’s documented publicaly_available_post_id field', async () => {
       (httpService.post as Mock).mockReturnValue(
         of({

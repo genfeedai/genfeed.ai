@@ -337,6 +337,22 @@ export class CronTiktokStatusService implements OnModuleInit {
         return;
       }
 
+      // An Inbox handoff is parked for the creator, not published: record the
+      // receipt as a provider draft and stop polling. Never announce it.
+      if (statusData?.status === TikTokPublishStatus.SEND_TO_USER_INBOX) {
+        await this.applyStatusTransition(
+          post,
+          'inboxed',
+          'TikTok video delivered to the creator Inbox - awaiting their post',
+          {},
+          provenance,
+        );
+        this.logger.log(`${url} post ${post.id} delivered to TikTok Inbox`, {
+          publishId,
+        });
+        return;
+      }
+
       // Note: If status === 'FAILED', getPublishStatus() throws an error which is caught
       // in the catch block below and handled by markPostFailed()
     } catch (error: unknown) {
@@ -493,7 +509,7 @@ export class CronTiktokStatusService implements OnModuleInit {
 
   private async applyStatusTransition(
     post: TiktokPost,
-    outcome: 'published' | 'failed',
+    outcome: 'published' | 'failed' | 'inboxed',
     detail: string,
     transitionInput: Record<string, unknown>,
     provenance: SystemWorkflowProvenance,
@@ -549,6 +565,43 @@ export class CronTiktokStatusService implements OnModuleInit {
     return true;
   }
 
+  /**
+   * Keep the Inbox receipt (the publish ID) on the target without publish
+   * timestamps, a URL, a webhook, or learning/finalization work, so it stays
+   * distinct from a published post (same contract as other provider drafts).
+   */
+  private async persistInboxReceipt(
+    input: Record<string, unknown>,
+    provenance: SystemWorkflowProvenance,
+    post: TiktokPost,
+  ): Promise<boolean> {
+    const publishId = String(input.publishId ?? '');
+    const transitioned = await this.schedulerPublishStateService.transitionPost(
+      post as unknown as TiktokPost,
+      {
+        error: null,
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: publishId,
+        url: null,
+        visibility: post.visibility ?? PostVisibility.PUBLIC,
+        workflowExecutionId: provenance.executionId,
+      },
+      String(input.detail ?? 'TikTok Inbox delivery'),
+      {
+        expectedExternalId: publishId,
+        expectedWorkflowExecutionId: provenance.executionId,
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+    if (!transitioned) {
+      this.logger.warn('Ignored stale TikTok Inbox transition', {
+        postId: String(input.postId ?? ''),
+        workflowExecutionId: provenance.executionId,
+      });
+    }
+    return transitioned;
+  }
+
   private async persistStatusTransition(
     input: Record<string, unknown>,
     provenance: SystemWorkflowProvenance,
@@ -567,6 +620,9 @@ export class CronTiktokStatusService implements OnModuleInit {
     }
 
     const outcome = input.outcome;
+    if (outcome === 'inboxed') {
+      return this.persistInboxReceipt(input, provenance, post);
+    }
     const isPublished = outcome === 'published';
     const detail = String(input.detail ?? 'TikTok status reconciliation');
     const publishedAt = new Date();
