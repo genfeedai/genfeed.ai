@@ -3,9 +3,9 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import GenContent from '@public/gen/gen-content';
 import type { Metadata } from 'next';
 
-const title = `$GEN Token: Fuel for the Genfeed OS | ${metadata.name}`;
+const title = `Should Genfeed Launch a Token? | ${metadata.name}`;
 const description =
-  'The $GEN token powers the Genfeed ecosystem. Use tokens to unlock premium features, boost content visibility, and participate in platform governance.';
+  "We're exploring creator rewards and asking whether a $GEN token makes sense. Nothing is promised.";
 
 export function generateMetadata(): Metadata {
   return {

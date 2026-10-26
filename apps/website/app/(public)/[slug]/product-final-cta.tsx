@@ -28,8 +28,8 @@ export default function ProductFinalCTA({
     status && githubUrl
       ? `Join the ${status} program and help shape the future of ${name}.`
       : githubUrl
-        ? 'Join thousands of creators building the future of AI content.'
-        : 'Join thousands of creators using Genfeed to generate and publish AI content at scale.';
+        ? 'Make images, video, and posts with your brand in one place.'
+        : 'Generate content with Genfeed and publish it when you approve.';
 
   return (
     <section className="max-w-4xl mx-auto pb-20">

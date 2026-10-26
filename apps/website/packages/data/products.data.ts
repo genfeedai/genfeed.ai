@@ -259,7 +259,7 @@ export const products: Product[] = [
           },
           {
             description:
-              'Schedule recurring workflow runs so generation, review, and publishing happen autonomously.',
+              'Schedule recurring workflow runs for generation and publishing, with review steps where you add them.',
             name: 'Scheduled Execution Agent',
           },
         ],
@@ -409,7 +409,7 @@ export const products: Product[] = [
       {
         description: 'Generate content from ChatGPT in seconds',
         example:
-          '"Create 5 TikTok videos about AI trends and schedule for this week" → Done',
+          '"Create 5 TikTok videos about AI trends and schedule for this week" → Waiting for your approval',
         title: 'Quick Content Creation',
       },
       {
@@ -421,7 +421,7 @@ export const products: Product[] = [
       {
         description: 'Manage Genfeed while working in ChatGPT',
         example:
-          'Brainstorming in ChatGPT → "Post this as tweet" → Published instantly',
+          'Brainstorming in ChatGPT → "Post this as tweet" → Draft waiting for your approval',
         title: 'Hands-Free Management',
       },
     ],
@@ -759,7 +759,7 @@ export const products: Product[] = [
       {
         problem: 'Copy-pasting content between tools',
         solution:
-          'Seamlessly integrate Genfeed content generation into your development workflow',
+          'Integrate Genfeed content generation into your development workflow',
       },
       {
         problem: 'Missing context when generating content',
@@ -786,7 +786,7 @@ export const products: Product[] = [
       },
       {
         description:
-          'Seamlessly integrate content generation into your development workflow.',
+          'Integrate content generation into your development workflow.',
         icon: '',
         title: 'Workflow Integration',
       },

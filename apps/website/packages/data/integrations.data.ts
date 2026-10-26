@@ -823,7 +823,7 @@ export const integrations: Integration[] = [
       'Blog article creation for Shopify stores to drive organic traffic',
       'Product image generation and enhancement with AI visual models',
       'Collection page content with thematic descriptions and category copy',
-      'GraphQL API integration for seamless content publishing to Shopify',
+      'GraphQL API integration for publishing content to Shopify',
     ],
     icon: 'ShopifyIcon',
     keywords: [
@@ -839,8 +839,7 @@ export const integrations: Integration[] = [
     tagline: 'AI content creation for Shopify e-commerce stores',
     workflow: [
       {
-        description:
-          'Connect your Shopify store via OAuth for seamless content publishing',
+        description: 'Connect your Shopify store via OAuth to publish content',
         step: 1,
         title: 'Connect Shopify Store',
       },
@@ -1013,7 +1012,7 @@ export const integrations: Integration[] = [
     ],
   },
   {
-    cta: 'Supercharge Your Telegram Channel',
+    cta: 'Post to Your Telegram Channel',
     description:
       'Create and publish AI-generated content for Telegram channels and groups. Generate engaging posts, announcements, and media content that keeps your Telegram community active.',
     features: [

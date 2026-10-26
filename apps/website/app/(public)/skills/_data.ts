@@ -573,10 +573,10 @@ export const HOW_IT_WORKS: HowItWorksStep[] = [
   },
   {
     description:
-      'Your agent reads each skill, its rules, patterns, and domain knowledge, and internalizes them.',
+      'Your agent reads each skill, its rules, patterns, and domain knowledge, and follows them.',
     icon: BrainCircuit,
     number: '02',
-    title: 'Agent Learns',
+    title: 'Agent Reads',
   },
   {
     description:

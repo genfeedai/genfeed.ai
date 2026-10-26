@@ -26,9 +26,9 @@ const FEATURES = [
   },
   {
     description:
-      'Run full campaigns on autopilot while agents research, generate, and publish on schedule.',
+      'Agents research and draft each campaign on a schedule. Drafts wait for your approval unless you switch on auto-publish.',
     icon: Zap,
-    title: 'Campaign Autopilot',
+    title: 'Scheduled Campaigns',
   },
 ];
 
@@ -45,8 +45,8 @@ const STEPS = [
   },
   {
     icon: RefreshCw,
-    label: 'Autopilot',
-    sublabel: 'Agents research, generate, and publish on schedule',
+    label: 'Draft',
+    sublabel: 'Agents research and draft on schedule',
   },
   {
     icon: Rocket,
@@ -71,15 +71,15 @@ const HERO_VISUAL = (
       },
       {
         label: 'Workflow',
-        value: 'Hire -> brief -> autopilot -> review.',
+        value: 'Hire -> brief -> draft -> review.',
       },
       {
         label: 'Outcome',
-        value: 'Campaigns that run themselves without losing oversight.',
+        value: 'Campaigns drafted on schedule, published when you approve.',
       },
     ]}
-    subtitle="Autonomous agents, human oversight"
-    title="Your autonomous content team."
+    subtitle="Agents draft, you approve"
+    title="Your content team of agents."
   />
 );
 
@@ -102,7 +102,7 @@ export default function HireAgentsContent() {
         heroVisual={HERO_VISUAL}
         compact
         title="Hire Agents"
-        description="Your autonomous content team, hired and briefed in minutes."
+        description="A content team of agents that drafts on schedule and waits for your approval."
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
@@ -115,7 +115,7 @@ export default function HireAgentsContent() {
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
-                  A Content Team That Runs Itself
+                  A Content Team You Approve
                 </Heading>
                 <Text as="p" className="text-surface/65">
                   Hire agents for research, creative, and publishing. Set goals
@@ -146,7 +146,7 @@ export default function HireAgentsContent() {
         {/* Features Grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
-            Built for Autonomous Execution
+            Built for Scheduled Work
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {FEATURES.map((feature, index) => {
