@@ -3,12 +3,14 @@
 import type { Image } from '@genfeedai/models/ingredients/image.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthorizedMediaUrls } from '@hooks/media/use-authorized-media-urls';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export type StoryboardAssetRequest = { id: string; kind: 'image' | 'video' };
 export type StoryboardAsset = Image | Video;
+const EMPTY_ASSETS: Record<string, StoryboardAsset> = {};
 export const storyboardAssetKey = (request: StoryboardAssetRequest) =>
   `${request.kind}:${request.id}`;
 
@@ -85,5 +87,20 @@ export function useStoryboardAssets(
     void load();
     return () => controller.abort();
   }, [key, requestKey, brandId, getImages, getVideos]);
-  return result.key === key ? result.assets : {};
+  const loaded = result.key === key ? result.assets : EMPTY_ASSETS;
+  const urls = useAuthorizedMediaUrls(loaded);
+  // The API signs each preview, so `cdnUrl` is only usable once its grant is
+  // ready and must be refreshed before it expires.
+  return useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(loaded).map(([assetKey, asset]) => [
+          assetKey,
+          Object.assign(Object.create(Object.getPrototypeOf(asset)), asset, {
+            cdnUrl: urls[assetKey] ?? null,
+          }) as StoryboardAsset,
+        ]),
+      ),
+    [loaded, urls],
+  );
 }

@@ -2,9 +2,14 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStoryboardAssets } from './use-storyboard-assets';
 
-const { findOne, getService } = vi.hoisted(() => {
+const { findOne, getService, previewGrant } = vi.hoisted(() => {
   const findOne = vi.fn();
-  return { findOne, getService: vi.fn(async () => ({ findOne })) };
+  const previewGrant = vi.fn();
+  return {
+    findOne,
+    getService: vi.fn(async () => ({ findOne, previewGrant })),
+    previewGrant,
+  };
 });
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
@@ -72,5 +77,34 @@ describe('scoped storyboard asset reads', () => {
       }),
     );
     expect(result.current).toEqual({});
+  });
+  it('shows a still once its pending media grant is issued', async () => {
+    findOne.mockResolvedValue({
+      id: 'still',
+      brandId: 'brand',
+      cdnUrl: null,
+      mediaDelivery: {
+        expiresAt: null,
+        id: 'still',
+        purpose: 'preview',
+        state: 'PENDING',
+        url: null,
+      },
+    });
+    previewGrant.mockResolvedValue({
+      expiresAt: null,
+      id: 'still',
+      purpose: 'preview',
+      state: 'READY',
+      url: 'https://signed.test/still',
+    });
+    const { result } = renderHook(() =>
+      useStoryboardAssets('run:1', 'brand', [{ id: 'still', kind: 'image' }]),
+    );
+    await waitFor(() =>
+      expect(result.current['image:still']?.cdnUrl).toBe(
+        'https://signed.test/still',
+      ),
+    );
   });
 });
