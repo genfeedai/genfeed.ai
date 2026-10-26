@@ -232,6 +232,10 @@ export function sanitizeStudioPlaygroundSettings(
     // `speech` is per-submission copy, never restored from a previous session.
     speech: undefined,
     style: pickFreeText(style),
+    // `subject` and `action` describe one shot, so like `speech` they are never
+    // restored from a previous session.
+    action: undefined,
+    subject: undefined,
     tags: pickStringList(tags),
     voiceId: pickFreeText(voiceId),
     ...(type === 'music'

@@ -2,6 +2,7 @@ import { RouterPriority } from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const promptTextareaSchema = z.object({
+  action: z.string().optional(),
   autoSelectModel: z.boolean().optional(),
   avatarId: z.string().optional(),
   blacklist: z.array(z.string()),
@@ -48,6 +49,7 @@ export const promptTextareaSchema = z.object({
   sounds: z.array(z.string()),
   speech: z.string().optional(),
   style: z.string(),
+  subject: z.string().optional(),
   tags: z.array(z.string()),
   text: z.string().min(1, 'Prompt text is required'),
   voiceId: z.string().optional(),

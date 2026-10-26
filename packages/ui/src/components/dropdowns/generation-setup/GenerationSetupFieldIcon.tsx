@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupFieldIconProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
+  Activity,
   Aperture,
   Camera,
   Clapperboard,
@@ -24,6 +25,7 @@ import {
   Shapes,
   Smile,
   Sparkles,
+  UserRound,
   WandSparkles,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -35,6 +37,7 @@ const SOURCE_LABEL: Record<GenerationSetupFieldIconProps['source'], string> = {
 };
 
 const FIELD_ICON: Record<GenerationSetupFieldKey, LucideIcon> = {
+  action: Activity,
   aspectRatio: Ratio,
   brandingMode: Megaphone,
   camera: Camera,
@@ -53,10 +56,12 @@ const FIELD_ICON: Record<GenerationSetupFieldKey, LucideIcon> = {
   resolution: ScanLine,
   scene: Clapperboard,
   style: Palette,
+  subject: UserRound,
   type: Shapes,
 };
 
 const FIELD_LABEL: Record<GenerationSetupFieldKey, string> = {
+  action: 'Action',
   aspectRatio: 'Aspect ratio',
   brandingMode: 'Brand voice',
   camera: 'Camera',
@@ -75,6 +80,7 @@ const FIELD_LABEL: Record<GenerationSetupFieldKey, string> = {
   resolution: 'Resolution',
   scene: 'Scene',
   style: 'Style',
+  subject: 'Subject',
   type: 'Type',
 };
 

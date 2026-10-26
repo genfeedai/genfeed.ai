@@ -177,6 +177,27 @@ function backfillBrandingModeForDisabledEnhancement(
   );
 }
 
+/**
+ * Subject and action describe one shot, so they stay in memory and are never
+ * written to storage: a reload must not add last session's subject to the next
+ * generation.
+ */
+function withoutPerShotFields(
+  setupByScope: Record<string, GenerationSetup>,
+): Record<string, GenerationSetup> {
+  return Object.fromEntries(
+    Object.entries(setupByScope).map(([scope, setup]) => {
+      const { action, subject, ...values } = setup.values;
+      const {
+        action: actionSource,
+        subject: subjectSource,
+        ...sources
+      } = setup.sources;
+      return [scope, { ...setup, sources, values }];
+    }),
+  );
+}
+
 export const useGenerationSetupStore = create<GenerationSetupState>()(
   persist(
     (setState, get) => {
@@ -383,7 +404,9 @@ export const useGenerationSetupStore = create<GenerationSetupState>()(
         };
       },
       name: GENERATION_SETUP_STORAGE_KEY,
-      partialize: (state) => ({ setupByScope: state.setupByScope }),
+      partialize: (state) => ({
+        setupByScope: withoutPerShotFields(state.setupByScope),
+      }),
       version: GENERATION_SETUP_STORE_VERSION,
     },
   ),

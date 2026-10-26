@@ -23,6 +23,8 @@ export type GenerationSetupType = StudioPlaygroundType | 'text';
  * {@link StudioPlaygroundSettings} so payload builders stay untouched.
  */
 export interface GenerationSetupValues {
+  /** What the subject does; stored as a structured prompt slot. Free text. */
+  action?: string;
   aspectRatio: string;
   brandingMode: 'brand' | 'off';
   camera?: string;
@@ -44,6 +46,8 @@ export interface GenerationSetupValues {
   resolution?: string;
   scene?: string;
   style?: string;
+  /** Who or what the shot is about; stored as a structured prompt slot. Free text. */
+  subject?: string;
   type: GenerationSetupType;
 }
 

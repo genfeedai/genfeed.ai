@@ -58,6 +58,7 @@ export function buildBaseGenerationPayload(
     promptData.brandingMode || (promptData.isBrandingEnabled ? 'brand' : 'off');
 
   return {
+    action: promptData.action?.trim() || undefined,
     autoSelectModel: isAutoSelectModel,
     blacklist: promptData.blacklist || [],
     brand: brandId,
@@ -78,6 +79,7 @@ export function buildBaseGenerationPayload(
     references: promptData.references || [],
     scene: promptData.scene?.trim() || undefined,
     style: promptData.style?.trim() || undefined,
+    subject: promptData.subject?.trim() || undefined,
     tags: promptData.tags || [],
     text: effectiveText,
     useTemplate: true,
@@ -344,14 +346,21 @@ export function buildStudioCrunQuoteRequest({
         }
       : {}),
     ...Object.fromEntries(
-      ['camera', 'style', 'scene', 'lighting', 'mood', 'lens'].flatMap(
-        (field) => {
-          const value = settings[field as keyof StudioPlaygroundSettings];
-          return typeof value === 'string' && value.trim()
-            ? [[field, value.trim()]]
-            : [];
-        },
-      ),
+      [
+        'camera',
+        'style',
+        'scene',
+        'lighting',
+        'mood',
+        'lens',
+        'subject',
+        'action',
+      ].flatMap((field) => {
+        const value = settings[field as keyof StudioPlaygroundSettings];
+        return typeof value === 'string' && value.trim()
+          ? [[field, value.trim()]]
+          : [];
+      }),
     ),
     ...(requestedSkillSlugs?.length ? { requestedSkillSlugs } : {}),
     ...(knowledge ? { knowledge } : {}),
@@ -465,14 +474,21 @@ export function buildStudioCrunVideoQuoteRequest({
         }
       : {}),
     ...Object.fromEntries(
-      ['camera', 'style', 'scene', 'lighting', 'mood', 'lens'].flatMap(
-        (field) => {
-          const value = settings[field as keyof StudioPlaygroundSettings];
-          return typeof value === 'string' && value.trim()
-            ? [[field, value.trim()]]
-            : [];
-        },
-      ),
+      [
+        'camera',
+        'style',
+        'scene',
+        'lighting',
+        'mood',
+        'lens',
+        'subject',
+        'action',
+      ].flatMap((field) => {
+        const value = settings[field as keyof StudioPlaygroundSettings];
+        return typeof value === 'string' && value.trim()
+          ? [[field, value.trim()]]
+          : [];
+      }),
     ),
     ...(requestedSkillSlugs?.length ? { requestedSkillSlugs } : {}),
     ...(knowledge ? { knowledge } : {}),

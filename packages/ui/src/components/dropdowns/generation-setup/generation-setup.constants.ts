@@ -1,4 +1,7 @@
-import type { GenerationSetupLookFieldKey } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import type {
+  GenerationSetupLookFieldKey,
+  GenerationSetupSlotFieldKey,
+} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 
 /**
  * Small, self-contained option lists for the Output tab. Deliberately not
@@ -50,3 +53,15 @@ export const GENERATION_SETUP_LOOK_FIELD_ORDER: readonly GenerationSetupLookFiel
     'resolution',
     'promptTemplate',
   ];
+
+/** Free-text slot fields, in the order the Look menu lists them. */
+export const GENERATION_SETUP_SLOT_FIELD_ORDER: readonly GenerationSetupSlotFieldKey[] =
+  ['subject', 'action'];
+
+export const GENERATION_SETUP_SLOT_FIELD_LABELS: Record<
+  GenerationSetupSlotFieldKey,
+  string
+> = {
+  action: 'Action',
+  subject: 'Subject',
+};

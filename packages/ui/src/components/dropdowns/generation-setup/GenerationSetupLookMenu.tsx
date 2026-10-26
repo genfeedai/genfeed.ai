@@ -6,11 +6,15 @@ import type {
   GenerationSetupLookPreviewKind,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupMenuField from '@ui/dropdowns/generation-setup/GenerationSetupMenuField';
+import GenerationSetupSlotField from '@ui/dropdowns/generation-setup/GenerationSetupSlotField';
 import GenerationSetupSubmenuList from '@ui/dropdowns/generation-setup/GenerationSetupSubmenuList';
 import {
   GENERATION_SETUP_LOOK_FIELD_LABELS,
   GENERATION_SETUP_LOOK_FIELD_ORDER,
+  GENERATION_SETUP_SLOT_FIELD_LABELS,
+  GENERATION_SETUP_SLOT_FIELD_ORDER,
 } from '@ui/dropdowns/generation-setup/generation-setup.constants';
+import { useTranslations } from 'next-intl';
 
 /** Look fields that have illustrations for their platform defaults. */
 const PREVIEW_KINDS: Partial<
@@ -26,9 +30,10 @@ const PREVIEW_KINDS: Partial<
 };
 
 /**
- * Look as one menu: a row per field (Style, Mood, Scene, …), each opening a
- * searchable list with an illustration of the highlighted option. Empty when
- * the surface passes no `lookOptions`, such as the agent composer.
+ * Look as one menu: free-text Subject and Action rows, then a row per option
+ * field (Style, Mood, Scene, …), each opening a searchable list with an
+ * illustration of the highlighted option. Empty when the surface passes no
+ * `lookOptions`, such as the agent composer.
  */
 export default function GenerationSetupLookMenu({
   lookOptions,
@@ -36,8 +41,24 @@ export default function GenerationSetupLookMenu({
   onSetField,
   setup,
 }: GenerationSetupLookMenuProps) {
+  const translate = useTranslations('agent.generationSetup');
+  const hasLookOptions = Object.values(lookOptions).some(
+    (options) => (options?.length ?? 0) > 0,
+  );
+
   return (
     <>
+      {hasLookOptions
+        ? GENERATION_SETUP_SLOT_FIELD_ORDER.map((key) => (
+            <GenerationSetupSlotField
+              key={key}
+              label={GENERATION_SETUP_SLOT_FIELD_LABELS[key]}
+              onChange={(next) => onSetField(key, next)}
+              placeholder={translate(`${key}Placeholder`)}
+              value={setup.values[key] ?? ''}
+            />
+          ))
+        : null}
       {GENERATION_SETUP_LOOK_FIELD_ORDER.map((key) => {
         const options = lookOptions[key] ?? [];
         if (options.length === 0) return null;

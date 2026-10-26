@@ -31,8 +31,10 @@ export interface BaseGenerationPayload {
   tags: string[];
   width: number;
   height: number;
+  action?: string;
   camera?: string;
   style?: string;
+  subject?: string;
   scene?: string;
   lighting?: string;
   mood?: string;

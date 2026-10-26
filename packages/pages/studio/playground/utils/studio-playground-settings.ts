@@ -249,6 +249,7 @@ export function buildStudioPromptData({
 
   return {
     crunControls: settings.crunControls,
+    action: capabilities.hasLook ? optionalText(settings.action) : undefined,
     autoSelectModel: isAutoSelectModel,
     // Studio posts the portrait as `photoUrl`; `avatarId` on the shared
     // schema means a HeyGen catalog id we never hold here.
@@ -301,6 +302,7 @@ export function buildStudioPromptData({
     sounds: [],
     speech: capabilities.hasSpeech ? speech : undefined,
     style: (capabilities.hasLook && optionalText(settings.style)) || '',
+    subject: capabilities.hasLook ? optionalText(settings.subject) : undefined,
     tags: settings.tags,
     text,
     voiceId: capabilities.hasIdentity ? settings.voiceId : undefined,

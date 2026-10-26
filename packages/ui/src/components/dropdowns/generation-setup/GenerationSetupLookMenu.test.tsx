@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { RouterPriority } from '@genfeedai/contracts';
 import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { GenerationSetupLookOptions } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import GenerationSetupLookMenu from '@ui/dropdowns/generation-setup/GenerationSetupLookMenu';
 import {
@@ -29,7 +30,7 @@ const setup: GenerationSetup = {
   },
 };
 
-function renderMenu() {
+function renderMenu(lookOptions?: GenerationSetupLookOptions) {
   const onSetField = vi.fn();
   const onResetField = vi.fn();
   render(
@@ -37,16 +38,18 @@ function renderMenu() {
       <DropdownMenuTrigger>open</DropdownMenuTrigger>
       <DropdownMenuContent>
         <GenerationSetupLookMenu
-          lookOptions={{
-            lighting: [
-              { key: 'golden-hour', label: 'Golden hour' },
-              { key: 'neon', label: 'Neon' },
-            ],
-            style: [
-              { key: 'noir', label: 'Noir' },
-              { key: 'pop', label: 'Pop art' },
-            ],
-          }}
+          lookOptions={
+            lookOptions ?? {
+              lighting: [
+                { key: 'golden-hour', label: 'Golden hour' },
+                { key: 'neon', label: 'Neon' },
+              ],
+              style: [
+                { key: 'noir', label: 'Noir' },
+                { key: 'pop', label: 'Pop art' },
+              ],
+            }
+          }
           onResetField={onResetField}
           onSetField={onSetField}
           setup={setup}
@@ -89,5 +92,26 @@ describe('GenerationSetupLookMenu', () => {
 
     fireEvent.click(screen.getByRole('menuitem', { name: /Reset Style/ }));
     expect(onResetField).toHaveBeenCalledWith('style');
+  });
+
+  it('lists Subject and Action as free-text rows and writes what is typed', () => {
+    const { onSetField } = renderMenu();
+    expect(screen.getByRole('menuitem', { name: /Subject/ })).toBeVisible();
+
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /Subject/ }), {
+      key: 'ArrowRight',
+    });
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'a courier' },
+    });
+
+    expect(onSetField).toHaveBeenCalledWith('subject', 'a courier');
+  });
+
+  it('leaves Subject and Action out when the surface offers no Look', () => {
+    renderMenu({});
+
+    expect(screen.queryByRole('menuitem', { name: /Subject/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Action/ })).toBeNull();
   });
 });

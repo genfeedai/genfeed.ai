@@ -28,6 +28,15 @@ export type GenerationSetupLookFieldKey = Extract<
   | 'style'
 >;
 
+/**
+ * Free-text fields that fill structured prompt slots (who is in the shot and
+ * what they do). Edited in the Look menu next to the option-driven fields.
+ */
+export type GenerationSetupSlotFieldKey = Extract<
+  GenerationSetupFieldKey,
+  'action' | 'subject'
+>;
+
 /** Per-field option lists for Look. Empty on the agent composer. */
 export type GenerationSetupLookOptions = Partial<
   Record<GenerationSetupLookFieldKey, readonly FormDropdownOption[]>
@@ -214,6 +223,13 @@ export interface GenerationSetupModelSectionProps {
   onFavoriteToggle: (modelKey: string) => void;
   onSetField: GenerationSetupFieldSetter;
   setup: GenerationSetup;
+}
+
+export interface GenerationSetupSlotFieldProps {
+  label: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  value: string;
 }
 
 export interface GenerationSetupLookMenuProps {

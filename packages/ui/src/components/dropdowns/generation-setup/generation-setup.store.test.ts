@@ -491,6 +491,25 @@ describe('generation-setup.store', () => {
       expect(setupByScope['studio:video']?.values.brandingMode).toBe('brand');
     });
 
+    it('keeps the subject and action of a shot out of storage', () => {
+      setGenerationSetupField(SCOPE, 'subject', 'a courier', DEFAULTS);
+      setGenerationSetupField(SCOPE, 'action', 'walking', DEFAULTS);
+      setGenerationSetupField(SCOPE, 'aspectRatio', '9:16', DEFAULTS);
+
+      expect(getGenerationSetup(SCOPE, DEFAULTS).values.subject).toBe(
+        'a courier',
+      );
+      const persistedScopes = readPersisted()?.state?.setupByScope as Record<
+        string,
+        GenerationSetup
+      >;
+      const stored = persistedScopes[SCOPE];
+      expect(stored.values).not.toHaveProperty('subject');
+      expect(stored.values).not.toHaveProperty('action');
+      expect(stored.sources).not.toHaveProperty('subject');
+      expect(stored.values.aspectRatio).toBe('9:16');
+    });
+
     it('persists setupByScope only, never the runtime-only reasons', () => {
       applyGenerationSetupRecommendation(
         SCOPE,

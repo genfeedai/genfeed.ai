@@ -71,6 +71,22 @@ describe('studioSettingsFieldsToGenerationSetupPatch', () => {
     });
   });
 
+  it('carries the subject and action of a shot both ways', () => {
+    const patch = studioSettingsFieldsToGenerationSetupPatch({
+      ...settings,
+      action: 'walking',
+      subject: 'a courier',
+    });
+
+    expect(patch).toMatchObject({ action: 'walking', subject: 'a courier' });
+    expect(
+      generationSetupValuesToStudioSettingsPatch({
+        ...getDefaultGenerationSetupValues('image'),
+        ...patch,
+      }),
+    ).toMatchObject({ action: 'walking', subject: 'a courier' });
+  });
+
   it('never leaks a residual-only field into the patch', () => {
     const patch = studioSettingsFieldsToGenerationSetupPatch({
       ...settings,

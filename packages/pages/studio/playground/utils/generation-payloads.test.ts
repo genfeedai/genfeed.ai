@@ -57,6 +57,17 @@ describe('buildBaseGenerationPayload', () => {
     expect(payload.promptTemplate).toBeUndefined();
   });
 
+  it('sends the trimmed subject and action', () => {
+    const payload = buildBaseGenerationPayload(
+      makePromptData({ action: ' walking ', subject: ' a courier ' }),
+      'model-key',
+      'brand-1',
+    );
+
+    expect(payload.subject).toBe('a courier');
+    expect(payload.action).toBe('walking');
+  });
+
   it('omits the model and derives branding when auto-select and branding are on', () => {
     const payload = buildBaseGenerationPayload(
       makePromptData({

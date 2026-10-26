@@ -174,6 +174,7 @@ export interface StudioPlaygroundSettings {
   editSize?: ImageEditSize;
   editSeed?: number;
   editPrimaryId?: string;
+  action?: string;
   aspectRatio: string;
   /** Public URL of the chosen portrait, posted as `photoUrl`. */
   avatarPhotoUrl?: string;
@@ -200,6 +201,7 @@ export interface StudioPlaygroundSettings {
   scene?: string;
   speech?: string;
   style?: string;
+  subject?: string;
   tags: string[];
   voiceId?: string;
 }
@@ -213,6 +215,7 @@ export interface StudioPlaygroundRecipe {
   crunControls?: StudioCrunControls;
   endFrameId?: string;
   imageEdit?: ImageEditingRecipe;
+  action?: string;
   aspectRatio?: string;
   blacklist: string[];
   /**
@@ -241,6 +244,7 @@ export interface StudioPlaygroundRecipe {
   scene?: string;
   speech?: string;
   style?: string;
+  subject?: string;
   tags: string[];
   text: string;
   type: StudioPlaygroundType;

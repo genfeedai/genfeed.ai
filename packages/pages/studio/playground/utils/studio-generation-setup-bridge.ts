@@ -24,6 +24,7 @@ import {
 
 /** Fields present on both shapes — bridged through the shared store. */
 export const STUDIO_BRIDGED_SETTINGS_KEYS = [
+  'action',
   'aspectRatio',
   'brandingMode',
   'camera',
@@ -41,6 +42,7 @@ export const STUDIO_BRIDGED_SETTINGS_KEYS = [
   'resolution',
   'scene',
   'style',
+  'subject',
 ] as const satisfies readonly (keyof StudioPlaygroundSettings &
   keyof GenerationSetupValues)[];
 
@@ -49,6 +51,7 @@ export const STUDIO_BRIDGED_SETTINGS_KEYS = [
  * these when the saved setup has no value, instead of keeping a stale one.
  */
 export const STUDIO_CLEARABLE_SETUP_KEYS = [
+  'action',
   'camera',
   'cameraMovement',
   'duration',
@@ -61,6 +64,7 @@ export const STUDIO_CLEARABLE_SETUP_KEYS = [
   'resolution',
   'scene',
   'style',
+  'subject',
 ] as const satisfies readonly (typeof STUDIO_BRIDGED_SETTINGS_KEYS)[number][];
 
 /** `StudioPlaygroundSettings`-only fields — no shared-store equivalent. */
@@ -87,6 +91,7 @@ export function getDefaultGenerationSetupValues(
   const defaults = getDefaultStudioPlaygroundSettings(type);
 
   return {
+    action: defaults.action,
     aspectRatio: defaults.aspectRatio,
     brandingMode: defaults.brandingMode,
     camera: defaults.camera,
@@ -105,6 +110,7 @@ export function getDefaultGenerationSetupValues(
     resolution: defaults.resolution,
     scene: defaults.scene,
     style: defaults.style,
+    subject: defaults.subject,
     type,
   };
 }
