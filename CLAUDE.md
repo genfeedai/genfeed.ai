@@ -91,6 +91,13 @@ bun run test --filter=@genfeedai/[name]              # Test one package
   `master`. Review is gated by the PR, not by a per-commit approval dance.
 - Conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`
 
+### Tests & finish condition
+- Do not add service specs whose assertions are mostly `toHaveBeenCalled` / mock-interaction
+  checks. Prefer a real-DB test, a property test, or a Playwright flow.
+- A code-changing PR states its finish condition and shows evidence: repro-before and
+  pass-after for bugs; a walked flow or read-back value for features. Never loosen a gate
+  (i18n, Tests Gate, release suites) to get there.
+
 ## Backend ports
 
 | app | port | | app | port |

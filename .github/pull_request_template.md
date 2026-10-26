@@ -21,6 +21,8 @@ Full contract: CONTRIBUTING.md → Pull-request contract.
 
 <!-- Focused commands you ran and their results (paste output for tests). State which broader checks are intentionally left to CI. Fork PRs: CI runs only after a maintainer applies `run-ci`, so this section is what unblocks review. -->
 
+**Finish condition and evidence** (code-changing PRs): state the finish condition, then show it met — bugs: repro before the fix and pass after; features: the walked flow or a read-back value. New tests should not be mostly mock-interaction assertions (`toHaveBeenCalled`); prefer a real-DB test, property test, or Playwright flow.
+
 ## Screenshots
 
 <!-- Required for visible UI changes; otherwise write "Not applicable". -->
