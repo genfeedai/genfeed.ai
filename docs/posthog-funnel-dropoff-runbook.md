@@ -17,7 +17,7 @@ This runbook covers the cloud signup funnel from account creation through checko
 
 ## Excluding internal accounts
 
-Filter on the person property `is_internal`. The browser sets it from the email domain (`@genfeed.ai` is `true` via `$set`; everyone else gets `false` via `$set_once`). Server-side funnel events from organizations listed in `INTERNAL_ORGANIZATION_IDS` (comma-separated, API and workers) also `$set` `is_internal: true`, so internal organizations drop out even when their members use other email domains. An internal organization is only flagged once it fires one of the server events above; a member who has only browsed is not flagged yet.
+Filter on the person property `is_internal`. The browser sets it from the email domain (`@genfeed.ai` is `true` via `$set`; everyone else gets `false` via `$set_once`). Server-side funnel events from organizations listed in `POSTHOG_INTERNAL_ORGANIZATION_IDS` (comma-separated, API and workers) also `$set` `is_internal: true`, so internal organizations drop out even when their members use other email domains. An internal organization is only flagged once it fires one of the server events above; a member who has only browsed is not flagged yet.
 
 All events are emitted only by the gated Genfeed Cloud PostHog client. Self-hosted and desktop builds keep analytics disabled.
 

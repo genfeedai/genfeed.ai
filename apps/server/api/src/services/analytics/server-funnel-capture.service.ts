@@ -32,7 +32,7 @@ export interface IServerFunnelCaptureInput {
   /** PostHog distinct id — the user or organization this funnel step belongs to. */
   distinctId: string;
   /**
-   * Owning organization. When it is listed in `INTERNAL_ORGANIZATION_IDS` the
+   * Owning organization. When it is listed in `POSTHOG_INTERNAL_ORGANIZATION_IDS` the
    * capture also sets the person property `is_internal: true`, so the same
    * person-level filter that drops `@genfeed.ai` accounts drops internal orgs.
    */
@@ -183,7 +183,9 @@ export class ServerFunnelCaptureService {
   }
 
   private isInternalOrganization(organizationId: string): boolean {
-    return String(this.configService.get('INTERNAL_ORGANIZATION_IDS') || '')
+    return String(
+      this.configService.get('POSTHOG_INTERNAL_ORGANIZATION_IDS') || '',
+    )
       .split(',')
       .map((id) => id.trim())
       .includes(organizationId);

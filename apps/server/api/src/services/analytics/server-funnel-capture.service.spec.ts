@@ -83,8 +83,8 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       return JSON.parse(String(init?.body)).properties;
     }
 
-    it('sets is_internal on the person when the organization is listed in INTERNAL_ORGANIZATION_IDS', async () => {
-      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_a, org_b ,org_c' });
+    it('sets is_internal on the person when the organization is listed in POSTHOG_INTERNAL_ORGANIZATION_IDS', async () => {
+      mockConfig({ POSTHOG_INTERNAL_ORGANIZATION_IDS: 'org_a, org_b ,org_c' });
 
       await service.capture({
         distinctId: 'user_1',
@@ -100,7 +100,7 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
     });
 
     it('leaves the properties untouched for an organization that is not listed', async () => {
-      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_a' });
+      mockConfig({ POSTHOG_INTERNAL_ORGANIZATION_IDS: 'org_a' });
 
       await service.capture({
         distinctId: 'user_1',
@@ -113,7 +113,7 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
     });
 
     it('does not match a partial id or flag anything when the list is unset', async () => {
-      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_abc' });
+      mockConfig({ POSTHOG_INTERNAL_ORGANIZATION_IDS: 'org_abc' });
       await service.capture({
         distinctId: 'user_1',
         event: 'post_published',
@@ -122,7 +122,7 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(postedProperties()).toEqual({});
 
       vi.mocked(safeFetch).mockClear();
-      mockConfig({ INTERNAL_ORGANIZATION_IDS: undefined });
+      mockConfig({ POSTHOG_INTERNAL_ORGANIZATION_IDS: undefined });
       await service.capture({
         distinctId: 'user_1',
         event: 'post_published',
@@ -132,7 +132,7 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
     });
 
     it('keeps an existing $set when flagging an internal organization', async () => {
-      mockConfig({ INTERNAL_ORGANIZATION_IDS: 'org_a' });
+      mockConfig({ POSTHOG_INTERNAL_ORGANIZATION_IDS: 'org_a' });
 
       await service.capture({
         distinctId: 'user_1',
