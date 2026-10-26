@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cdnAsset } from '@genfeedai/helpers/media/cdn/cdn.helper';
 import type { AuthShowcaseProps } from '@genfeedai/props/layout/auth-showcase.props';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { Pause, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -15,7 +16,15 @@ import { useEffect, useRef, useState } from 'react';
 const HERO_LOOP = {
   mp4: cdnAsset('/assets/site/home/hero/hero-loop.mp4'),
   poster: cdnAsset('/assets/site/home/hero/hero-loop-poster.webp'),
-  webm: cdnAsset('/assets/site/home/hero/hero-loop.webm'),
+} as const;
+
+const BACKGROUND_VIDEO_CONFIG = {
+  autoPlay: true,
+  controls: false,
+  loop: true,
+  muted: true,
+  playsInline: true,
+  preload: 'metadata',
 } as const;
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
@@ -83,20 +92,15 @@ export default function AuthShowcase({
       />
       {isVideoEnabled ? (
         <>
-          <video
-            ref={videoRef}
-            autoPlay
-            className="absolute inset-0 size-full object-cover"
-            loop
-            muted
-            playsInline
-            poster={HERO_LOOP.poster}
-            preload="metadata"
-          >
-            <source src={HERO_LOOP.webm} type="video/webm" />
-            <source src={HERO_LOOP.mp4} type="video/mp4" />
-            <track kind="captions" />
-          </video>
+          <div className="absolute inset-0">
+            <VideoPlayer
+              config={BACKGROUND_VIDEO_CONFIG}
+              mediaClassName="object-cover"
+              mediaProps={{ 'aria-hidden': true, poster: HERO_LOOP.poster }}
+              src={HERO_LOOP.mp4}
+              videoRef={videoRef}
+            />
+          </div>
           <Button
             ariaLabel={isPlaying ? pauseLabel : playLabel}
             className="absolute right-4 top-4"
