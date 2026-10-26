@@ -3090,68 +3090,6 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-21T20:55:14.793Z',
   },
   {
-    endpoint: 'fal-ai/veo3.1',
-    provider: 'fal',
-    rates: [
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.2,
-        when: {
-          resolution: '720p',
-          generate_audio: false,
-        },
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.4,
-        when: {
-          resolution: '720p',
-          generate_audio: true,
-        },
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.2,
-        when: {
-          resolution: '1080p',
-          generate_audio: false,
-        },
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.4,
-        when: {
-          resolution: '1080p',
-          generate_audio: true,
-        },
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.4,
-        when: {
-          resolution: '4k',
-          generate_audio: false,
-        },
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.6,
-        when: {
-          resolution: '4k',
-          generate_audio: true,
-        },
-      },
-    ],
-    sourceUrl: 'https://fal.ai/models/fal-ai/veo3.1',
-    verifiedAt: '2026-10-21T20:55:14.793Z',
-  },
-  {
     // fal's pricing API (GET /v1/models/pricing, 2026-10-25) returns a flat
     // $0.01 per megapixel. The model page still prints the old 24 MP block
     // table ($0.08 to 24 MP), which is stale. fal states no rounding, so each

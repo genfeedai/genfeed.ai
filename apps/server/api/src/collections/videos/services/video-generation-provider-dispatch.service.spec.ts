@@ -88,7 +88,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     falService.generateVideo.mockResolvedValue({
       url: 'https://fal.example.com/video.mp4',
     });
-    const params = buildParams({ model: MODEL_KEYS.FAL_VEO_3_1 });
+    const params = buildParams({ model: MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO });
 
     await expect(service.dispatch(params)).resolves.toEqual({
       completion: 'remote-output',
@@ -97,7 +97,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     });
 
     expect(falService.generateVideo).toHaveBeenCalledWith(
-      MODEL_KEYS.FAL_VEO_3_1,
+      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
       {
         duration: 8,
         image_url: 'https://cdn.example.com/reference.png',
@@ -116,13 +116,13 @@ describe('VideoGenerationProviderDispatchService', () => {
     });
     const params = buildParams({
       apiKeyOverride: 'org-fal-key',
-      model: MODEL_KEYS.FAL_VEO_3_1,
+      model: MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
     });
 
     await service.dispatch(params);
 
     expect(falService.generateVideo).toHaveBeenCalledWith(
-      MODEL_KEYS.FAL_VEO_3_1,
+      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
       expect.anything(),
       'org-fal-key',
       undefined,

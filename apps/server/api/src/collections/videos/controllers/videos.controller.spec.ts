@@ -1620,12 +1620,11 @@ describe('VideosController', () => {
     });
 
     // Regression: provider routing used to be duplicated across two divergent
-    // switches, and the multi-output copy omitted FAL_KLING_VIDEO_V3_PRO,
-    // FAL_VEO_3_1 and FAL_PIXVERSE_V6 — so additional outputs silently fell
+    // switches, and the multi-output copy omitted FAL_KLING_VIDEO_V3_PRO
+    // and FAL_PIXVERSE_V6 — so additional outputs silently fell
     // through to Replicate. A single dispatch (isFalDestination-based) must now
     // route EVERY output of these models to FAL.
     it.each([
-      MODEL_KEYS.FAL_VEO_3_1,
       MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
       MODEL_KEYS.FAL_PIXVERSE_V6,
     ])('routes every multi-output %s request to FAL', async (model) => {

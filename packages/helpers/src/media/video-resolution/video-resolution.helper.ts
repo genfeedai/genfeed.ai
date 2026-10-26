@@ -54,14 +54,6 @@ export const videoModelResolutions: VideoModelResolution[] = [
     ],
   },
   {
-    default: '720p',
-    model: MODEL_KEYS.FAL_VEO_3_1,
-    resolutions: [
-      { label: '720p', value: '720p' },
-      { label: '1080p', value: '1080p' },
-    ],
-  },
-  {
     default: 'standard',
     model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
     resolutions: [
