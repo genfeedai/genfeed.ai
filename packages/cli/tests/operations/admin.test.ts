@@ -9,6 +9,7 @@ import {
   findPricingFixTargets,
   fixModelPricing,
   readOrganizationAppsReport,
+  readOrganizationsReport,
   seedArticles,
   seedTemplates,
   seedWorkflows,
@@ -82,6 +83,31 @@ describe('operations/admin', () => {
     expect(result.organizations).toEqual([{ id: 'org_1' }, { id: 'org_2' }]);
     expect(result.releaseFlags).toEqual({ release_clipper: true });
     expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/admin/organization-apps?page=2&limit=100');
+  });
+
+  it('walks every page of the organizations list and can include deleted ones', async () => {
+    const pageOf = (page: number, id: string) => ({
+      data: {
+        generatedAt: '2026-10-26T00:00:00.000Z',
+        organizations: [{ id }],
+        pagination: { limit: 100, page, pages: 2, total: 101 },
+      },
+    });
+    mockAdminGet
+      .mockResolvedValueOnce(pageOf(1, 'org_1'))
+      .mockResolvedValueOnce(pageOf(2, 'org_2'));
+
+    const result = await readOrganizationsReport(true);
+
+    expect(result.organizations).toEqual([{ id: 'org_1' }, { id: 'org_2' }]);
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      1,
+      '/admin/organizations?page=1&limit=100&includeDeleted=true'
+    );
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      2,
+      '/admin/organizations?page=2&limit=100&includeDeleted=true'
+    );
   });
 
   const rows = [

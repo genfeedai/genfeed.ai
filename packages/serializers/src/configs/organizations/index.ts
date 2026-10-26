@@ -11,5 +11,6 @@ export * from '@serializers/configs/organizations/member-invitation.config';
 export * from '@serializers/configs/organizations/organization.config';
 export * from '@serializers/configs/organizations/organization-apps-report.config';
 export * from '@serializers/configs/organizations/organization-settings.config';
+export * from '@serializers/configs/organizations/organizations-report.config';
 export * from '@serializers/configs/organizations/profile.config';
 export * from './brand-font-asset.config';
