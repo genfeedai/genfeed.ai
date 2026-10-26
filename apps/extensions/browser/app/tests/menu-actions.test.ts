@@ -64,6 +64,7 @@ describe('buildMenuGroups', () => {
     ).toEqual([
       ['Write', ['Generate reply', 'Proofread', 'Rewrite in my voice']],
       ['Generate', ['Image', 'Video', 'GIF']],
+      [undefined, ['Attach from Library']],
     ]);
   });
 
@@ -81,7 +82,7 @@ describe('buildMenuGroups', () => {
     ).not.toContain('generate-image');
   });
 
-  it('offers only the draft actions in a new-post composer with no post open', () => {
+  it('offers the draft actions and the Library in a new-post composer with no post open', () => {
     const groups = buildMenuGroups({
       hasPost: false,
       platform: platforms.twitter,
@@ -90,7 +91,17 @@ describe('buildMenuGroups', () => {
 
     expect(
       groups.map((group) => [group.label, group.items.map((i) => i.label)]),
-    ).toEqual([['Write', ['Proofread', 'Rewrite in my voice']]]);
+    ).toEqual([
+      ['Write', ['Proofread', 'Rewrite in my voice']],
+      [undefined, ['Attach from Library']],
+    ]);
+  });
+
+  it('offers the Library only where the reply box takes files', () => {
+    expect(find('attach-from-library').isAvailable?.()).toBe(true);
+    expect(find('attach-from-library', 'linkedin').isAvailable?.()).toBe(
+      Boolean(platforms.linkedin.mediaReply),
+    );
   });
 
   it('keeps a full accessible name on each media row', () => {

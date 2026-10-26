@@ -1,5 +1,6 @@
 import { markWrittenByGenfeed } from '~platforms/composer-helpers';
 import type { PlatformConfig } from '~platforms/config';
+import { openLibraryPicker } from '~platforms/library-picker';
 import { extractPostContext } from '~platforms/post-context';
 import { type ReplyMediaKind, runReplyWithMedia } from '~platforms/reply-media';
 import { createSourceMenuItem } from '~platforms/source-capture-control';
@@ -96,8 +97,18 @@ export function buildMenuGroups({
     }),
   );
 
+  // The menu's own button has focus after a click, so the picker opens beside it.
+  const fromLibrary: MenuItemSpec = {
+    icon: icons.library,
+    id: 'attach-from-library',
+    isAvailable: () => Boolean(platform?.mediaReply),
+    label: 'Attach from Library',
+    run: () => openLibraryPicker(platform, document.activeElement),
+  };
+  const libraryGroup: MenuGroupSpec = { id: 'library', items: [fromLibrary] };
+
   if (!hasPost) {
-    return [{ id: 'write', items: textActions, label: 'Write' }];
+    return [{ id: 'write', items: textActions, label: 'Write' }, libraryGroup];
   }
 
   const saveSource = createSourceMenuItem(platform);
@@ -110,6 +121,7 @@ export function buildMenuGroups({
       items: mediaItems,
       label: 'Generate',
     },
+    libraryGroup,
     ...(saveSource ? [{ id: 'source', items: [saveSource] }] : []),
   ];
 }

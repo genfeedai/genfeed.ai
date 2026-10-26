@@ -33,6 +33,10 @@ import {
   setCaptureBrand,
 } from '~services/knowledge-capture.service';
 import {
+  handlePageLibraryMessage,
+  PAGE_LIBRARY_EVENTS,
+} from '~services/page-library-message';
+import {
   handlePublicationCaptureMessage,
   initializePublicationCapture,
   registerExtensionWrittenText,
@@ -400,6 +404,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   if (SOURCE_REMIX_EVENTS.has(request.event)) {
     handleSourceRemixMessage(request, sendResponse);
+    return true;
+  }
+  if (PAGE_LIBRARY_EVENTS.has(request.event)) {
+    handlePageLibraryMessage(request, sendResponse, fetchBlobAsDataUrl);
     return true;
   }
   switch (request.event) {

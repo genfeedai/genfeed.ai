@@ -1,4 +1,5 @@
 import type {
+  AgentArtifactReference,
   ReplyVariantsResult,
   ReplyVariantTone,
   TextActionMode,
@@ -103,4 +104,14 @@ export interface PagePost {
   avatarUrl?: string;
   text: string;
   url: string;
+}
+
+/** A Library image or video offered in the page's picker. */
+export interface PageLibraryItem {
+  id: string;
+  kind: 'image' | 'video';
+  reference: AgentArtifactReference;
+  /** Preview as a data URL, since pages block images from other origins. */
+  thumbnail?: string;
+  title: string;
 }
