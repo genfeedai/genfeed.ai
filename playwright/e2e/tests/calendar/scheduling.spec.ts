@@ -343,12 +343,13 @@ test.describe('Calendar — Scheduling', () => {
       { hasText: 'Mixed Social Post' },
     );
     // Articles carry no channel, badge or indicator, so the calendar leaves
-    // them to FullCalendar's default event markup (`.fc-event`); only posts get
-    // the custom `.gen-calendar-event` card.
+    // them to FullCalendar's default event markup. Its classes are
+    // build-hashed in FullCalendar 7, so find the article by its title inside
+    // its own day column instead of by a class.
     const articleEvent = dayColumn(
       authenticatedPage,
       dates.wednesdayDateKey,
-    ).locator('.fc-event', { hasText: 'Mixed Launch Article' });
+    ).getByText('Mixed Launch Article');
     await expect(postEvent).toBeVisible();
     await expect(articleEvent).toBeVisible();
 
