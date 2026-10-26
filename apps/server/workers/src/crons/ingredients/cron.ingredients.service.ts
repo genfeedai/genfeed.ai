@@ -124,7 +124,6 @@ export class CronIngredientsService {
     try {
       this.logger.log('Checking for stuck processing ingredients', context);
 
-      // Calculate the cutoff time: 30 minutes ago
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
       const stuckIngredients = await this.ingredientsService.findAll(
