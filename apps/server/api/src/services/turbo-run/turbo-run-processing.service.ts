@@ -1,4 +1,5 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -18,6 +19,7 @@ import {
   type WriteTurboRunJsonAndItemRowsInput,
   writeTurboRunJsonAndItemRows,
 } from '@api/services/turbo-run/turbo-run-item-rows';
+import { resolveTurboRunLearningSignals } from '@api/services/turbo-run/turbo-run-learning-signals';
 import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import {
   fromPrismaTurboRunStatus,
@@ -44,7 +46,7 @@ import {
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type TurboRunProcessingCounts = {
   cancelled: boolean;
@@ -105,6 +107,8 @@ export class TurboRunProcessingService {
     private readonly summaryService: TurboRunSummaryService,
     private readonly autonomousPublishPolicy: AutonomousPublishPolicyService,
     private readonly reviewService: TurboRunReviewService,
+    @Optional()
+    private readonly harnessProfilesService?: HarnessProfilesService,
   ) {}
 
   async processTurboRun(
@@ -148,23 +152,13 @@ export class TurboRunProcessingService {
     const turboRunItems = resolveTurboRunItems(turboRunRecord);
 
     if (claim === 'resumed') {
-      // The previous run died mid-run. Items it had started but never
-      // persisted go back to PENDING so they are regenerated; items already
-      // persisted as COMPLETED/FAILED are left alone, so neither the work nor
-      // the credits for them are duplicated.
-      for (const item of turboRunItems) {
-        if (item.status === TurboRunItemStatus.PROCESSING) {
-          item.status = TurboRunItemStatus.PENDING;
-          item.error = undefined;
-        }
-      }
-      turboRunConfig.resumeCount = (turboRunConfig.resumeCount ?? 0) + 1;
-
-      this.logger.warn(`Resuming stranded run: ${turboRunId}`, {
-        turboRunId,
-        resumeCount: turboRunConfig.resumeCount,
-      });
+      this.resetInterruptedItems(turboRunId, turboRunItems, turboRunConfig);
     }
+
+    turboRunConfig.learningSignals ??= await this.readLearningSignals(
+      orgId,
+      turboRunRecord.brandId,
+    );
 
     await this.invokeLifecycleCallback(
       'onTurboRunStarted',
@@ -255,6 +249,51 @@ export class TurboRunProcessingService {
       totalCount,
     });
     return this.summaryService.toTurboRunSummary(updatedTurboRun);
+  }
+
+  /**
+   * The previous run died mid-run. Items it had started but never persisted go
+   * back to PENDING so they are regenerated; items already persisted as
+   * COMPLETED/FAILED are left alone, so neither the work nor the credits for
+   * them are duplicated.
+   */
+  private resetInterruptedItems(
+    turboRunId: string,
+    turboRunItems: TurboRunItemFull[],
+    turboRunConfig: TurboRunConfig,
+  ): void {
+    for (const item of turboRunItems) {
+      if (item.status === TurboRunItemStatus.PROCESSING) {
+        item.status = TurboRunItemStatus.PENDING;
+        item.error = undefined;
+      }
+    }
+    turboRunConfig.resumeCount = (turboRunConfig.resumeCount ?? 0) + 1;
+
+    this.logger.warn(`Resuming stranded run: ${turboRunId}`, {
+      turboRunId,
+      resumeCount: turboRunConfig.resumeCount,
+    });
+  }
+
+  /** A failed profile read must never block generation, so it only logs. */
+  private async readLearningSignals(
+    orgId: string,
+    brandId: string | null | undefined,
+  ) {
+    try {
+      return await resolveTurboRunLearningSignals(
+        this.harnessProfilesService,
+        orgId,
+        brandId,
+      );
+    } catch (error) {
+      this.logger.warn('Unable to read learning signals for turbo run', {
+        brandId,
+        error: error instanceof Error ? error.message : error,
+      });
+      return undefined;
+    }
   }
 
   private async reportTurboRunComplete(input: {

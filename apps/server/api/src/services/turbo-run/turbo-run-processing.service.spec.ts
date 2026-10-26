@@ -1,4 +1,5 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { TurboRunProcessingService } from '@api/services/turbo-run/turbo-run-processing.service';
@@ -499,6 +500,7 @@ describe('TurboRunProcessingService resume', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
+  let harnessProfiles: { getActiveForBrand: ReturnType<typeof vi.fn> };
 
   /** A run the previous run got halfway through before it was killed. */
   const strandedItems = [
@@ -533,6 +535,12 @@ describe('TurboRunProcessingService resume', () => {
   beforeEach(async () => {
     postsService = { create: vi.fn().mockResolvedValue({ id: 'post-2' }) };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    harnessProfiles = {
+      getActiveForBrand: vi.fn().mockResolvedValue({
+        avoidFeedback: [{ content: 'a' }, { content: 'b' }],
+        goodFeedback: [{ content: 'c' }],
+      }),
+    };
     turboRunDelegate = {
       findFirst: vi.fn().mockResolvedValue({
         ...strandedTurboRun,
@@ -578,6 +586,7 @@ describe('TurboRunProcessingService resume', () => {
           },
         },
         { provide: LoggerService, useValue: logger },
+        { provide: HarnessProfilesService, useValue: harnessProfiles },
         { provide: PostsService, useValue: postsService },
         {
           provide: ContentGeneratorService,
@@ -660,6 +669,36 @@ describe('TurboRunProcessingService resume', () => {
     expect(config.completedCount).toBe(2);
     expect(config.failedCount).toBe(0);
     expect(config.resumeCount).toBe(2);
+  });
+
+  it('records the review feedback the brand held when the batch was generated', async () => {
+    await service.processTurboRun('run-1', 'org-1');
+
+    const finalUpdate = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0];
+    const config = finalUpdate?.data?.config as {
+      learningSignals?: { approvalCount: number; rejectionCount: number };
+    };
+    expect(harnessProfiles.getActiveForBrand).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+    );
+    expect(config.learningSignals).toEqual({
+      approvalCount: 1,
+      rejectionCount: 2,
+    });
+  });
+
+  it('still generates when the profile read fails', async () => {
+    harnessProfiles.getActiveForBrand.mockRejectedValue(new Error('db down'));
+
+    await service.processTurboRun('run-1', 'org-1');
+
+    const finalUpdate = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0];
+    const config = finalUpdate?.data?.config as {
+      learningSignals?: unknown;
+    };
+    expect(postsService.create).toHaveBeenCalledOnce();
+    expect(config.learningSignals).toBeUndefined();
   });
 
   it('refuses the run when neither claim wins', async () => {

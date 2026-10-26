@@ -42,3 +42,13 @@ describe('getTurboRunOptionLabel', () => {
     );
   });
 });
+
+describe('learning signals message', () => {
+  it('says how many earlier review decisions the batch drew on', () => {
+    expect(
+      translate('queue.learningSignals', { approvals: 1, rejections: 3 }),
+    ).toBe(
+      'Written with 3 rejected drafts and 1 approved draft from earlier reviews.',
+    );
+  });
+});

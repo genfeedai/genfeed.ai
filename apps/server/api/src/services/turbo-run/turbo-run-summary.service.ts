@@ -94,6 +94,7 @@ export class TurboRunSummaryService {
         createdAt: turboRun.createdAt.toISOString(),
         failedCount: turboRunConfig.failedCount ?? 0,
         id: turboRun.id,
+        learningSignals: turboRunConfig.learningSignals,
         items: turboRunItems.map((item) => {
           const linkedPost = item.postId
             ? linkedPostMap.get(item.postId)

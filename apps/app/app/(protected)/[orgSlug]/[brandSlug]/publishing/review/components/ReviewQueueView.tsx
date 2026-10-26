@@ -297,6 +297,14 @@ export default function ReviewQueueView({
         />
       ) : activeTurboRun ? (
         <>
+          {activeTurboRun.learningSignals ? (
+            <p className="text-xs text-foreground/60">
+              {translateReview('queue.learningSignals', {
+                approvals: activeTurboRun.learningSignals.approvalCount,
+                rejections: activeTurboRun.learningSignals.rejectionCount,
+              })}
+            </p>
+          ) : null}
           <ReviewWorkspaceSurfaceAdapter
             activeItem={activeItem}
             activeItemOrigin={

@@ -9,6 +9,7 @@ import {
 import type { TurboRunPricingOptions } from '@genfeedai/contracts/constants';
 import type {
   IPublishApproval,
+  ITurboRunLearningSignals,
   VideoContinuityQaReport,
 } from '@genfeedai/contracts/interfaces';
 import type { TurboRun } from '@genfeedai/prisma';
@@ -125,6 +126,8 @@ export type TurboRunConfig = {
   queuedAt?: string;
   /** Number of times a stranded run has been re-claimed and resumed. */
   resumeCount?: number;
+  /** Review feedback the brand's harness held when the batch was generated. */
+  learningSignals?: ITurboRunLearningSignals;
 };
 
 export type TurboRunItemTypedRow = {

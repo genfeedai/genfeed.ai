@@ -518,6 +518,7 @@
         "CANCELLED": "cancelled"
       },
       "discardBatch": "Discard batch",
+      "learningSignals": "Written with {rejections, plural, one {# rejected draft} other {# rejected drafts}} and {approvals, plural, one {# approved draft} other {# approved drafts}} from earlier reviews.",
       "loadFailed": "Unable to load the review queue",
       "emptyTitle": "No review work waiting",
       "emptyDescription": "Generated batches appear here when drafts are ready to review.",

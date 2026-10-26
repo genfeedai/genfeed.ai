@@ -128,6 +128,17 @@ export interface ITurboRunReviewEvent {
 }
 
 /**
+ * What the brand's harness already knew from earlier review decisions when a
+ * batch was generated, so the reviewer can see the batch learned from them.
+ */
+export interface ITurboRunLearningSignals {
+  /** Approved drafts fed back as positive examples. */
+  approvalCount: number;
+  /** Rejected / changed drafts fed back as anti-examples. */
+  rejectionCount: number;
+}
+
+/**
  * Summary of a Turbo run job with all items
  */
 export interface ITurboRunSummary {
@@ -145,4 +156,6 @@ export interface ITurboRunSummary {
   items: ITurboRunItem[];
   createdAt: string;
   completedAt?: string;
+  /** Absent on batches generated before review feedback reached the harness. */
+  learningSignals?: ITurboRunLearningSignals;
 }
