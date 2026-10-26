@@ -1,4 +1,8 @@
 import {
+  ModelsToolbarProvider,
+  useModelsToolbar,
+} from '@contexts/models/models-toolbar-context/models-toolbar-context';
+import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
@@ -14,6 +18,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -112,6 +117,18 @@ function buildModel(overrides: Partial<IModel> = {}): IModel {
   } as unknown as IModel;
 }
 
+/** Stands in for the settings layout, which hosts the published toolbar. */
+function ModelsToolbarHost() {
+  const toolbar = useModelsToolbar();
+
+  return toolbar ? (
+    <header data-testid="models-subbar">
+      {toolbar.searchNode}
+      <FilterMenu facets={toolbar.facets} onClear={toolbar.onClear} />
+    </header>
+  ) : null;
+}
+
 function renderModelsList(
   scope: PageScope = PageScope.ORGANIZATION,
   type?: string,
@@ -123,7 +140,12 @@ function renderModelsList(
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ModelsToolbarProvider>
+          <ModelsToolbarHost />
+          {children}
+        </ModelsToolbarProvider>
+      </QueryClientProvider>
     );
   }
 
@@ -355,17 +377,24 @@ describe('ModelsList', () => {
     });
   });
 
-  it('renders the shared category overview outside the superadmin scope', async () => {
+  it('offers the catalog categories with counts in the Filters menu outside the superadmin scope', async () => {
+    const user = userEvent.setup();
     renderModelsList();
 
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /^Image/ })).toHaveTextContent(
-        'Image1',
-      );
+    await user.click(await screen.findByRole('button', { name: /^Filters/ }));
+    const category = await screen.findByRole('menuitem', {
+      name: /^Category/,
     });
-    expect(screen.getByText('Model catalog')).toBeInTheDocument();
-    // Every category sits in a single tab row.
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+    category.focus();
+    await user.keyboard('{ArrowRight}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitemradio', { name: /^Image/ }),
+      ).toHaveTextContent('Image1');
+    });
+    expect(
+      screen.getAllByRole('menuitemradio').map((option) => option.textContent),
+    ).toEqual([
       'All1',
       'Image1',
       'Video0',
@@ -374,9 +403,12 @@ describe('ModelsList', () => {
       'Text0',
       'Embedding0',
     ]);
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText('Model catalog')).not.toBeInTheDocument();
   });
 
   it('lists a whole catalog group when a category is selected', async () => {
+    const user = userEvent.setup();
     renderModelsList(PageScope.ORGANIZATION, 'image');
 
     await waitFor(() => {
@@ -386,22 +418,28 @@ describe('ModelsList', () => {
       categories: 'image,image-edit,image-upscale',
     });
     expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('category');
-    expect(screen.getByRole('tab', { name: /^Image/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    expect(
+      await screen.findByRole('button', { name: /^Filters/ }),
+    ).toHaveTextContent('1');
+    await user.click(screen.getByRole('button', { name: /^Filters/ }));
+    expect(
+      await screen.findByRole('menuitem', { name: /^Category.*Image/ }),
+    ).toBeInTheDocument();
   });
 
-  it('filters by category from the one-line chip row', async () => {
+  it('filters by category from the Filters menu', async () => {
+    const user = userEvent.setup();
     renderModelsList();
 
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /^Video/ })).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /^Filters/ }));
+    const category = await screen.findByRole('menuitem', {
+      name: /^Category/,
     });
-    // Radix tabs activate on mouse down.
-    fireEvent.mouseDown(screen.getByRole('tab', { name: /^Video/ }), {
-      button: 0,
-    });
+    category.focus();
+    await user.keyboard('{ArrowRight}');
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: /^Video/ }),
+    );
 
     expect(mockReplace).toHaveBeenCalledWith('/models?type=video', {
       scroll: false,
@@ -414,7 +452,7 @@ describe('ModelsList', () => {
     const toolbar = screen.getByTestId('section-topbar');
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
     expect(screen.getByTestId('section-topbar-leading')).toContainElement(
-      screen.getByRole('textbox', { name: 'Search models' }),
+      screen.getByPlaceholderText('Search models'),
     );
     expect(
       within(toolbar).getByRole('button', { name: /^Filters/ }),

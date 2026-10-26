@@ -1,16 +1,17 @@
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModelsLayoutContent from './models-layout-content';
 
 const mockPush = vi.fn();
 const mockPathname = vi.hoisted(() => ({ value: '/acme/~/settings/models' }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
-    ({ title: 'Custom Models' })[key] ?? key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
@@ -47,16 +48,6 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-beforeAll(() => {
-  // Radix Select drives its trigger through Pointer Events and scrolls the
-  // highlighted option into view; jsdom implements neither, so opening the
-  // listbox throws before any option renders.
-  Element.prototype.hasPointerCapture = vi.fn(() => false);
-  Element.prototype.setPointerCapture = vi.fn();
-  Element.prototype.releasePointerCapture = vi.fn();
-  Element.prototype.scrollIntoView = vi.fn();
-});
-
 describe('ModelsLayoutContent', () => {
   beforeEach(() => {
     mockPathname.value = '/acme/~/settings/models';
@@ -71,7 +62,7 @@ describe('ModelsLayoutContent', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('leaves category filtering to the catalog chips', async () => {
+  it('offers the model types as one facet of the Filters menu', async () => {
     const user = userEvent.setup();
     render(
       <ModelsLayoutContent>
@@ -79,25 +70,29 @@ describe('ModelsLayoutContent', () => {
       </ModelsLayoutContent>,
     );
 
-    await user.click(screen.getByRole('combobox', { name: 'Model type' }));
+    await user.click(screen.getByRole('button', { name: /^Filters/ }));
+    const type = await screen.findByRole('menuitem', { name: /^Model type/ });
+    type.focus();
+    await user.keyboard('{ArrowRight}');
 
     expect(
-      await screen.findByRole('option', { name: 'Catalog' }),
+      await screen.findByRole('menuitemradio', { name: 'Catalog' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('option', { name: 'Images' }),
+      screen.queryByRole('menuitemradio', { name: 'Images' }),
     ).not.toBeInTheDocument();
   });
 
-  it('renders a model type filter instead of type tabs', () => {
+  it('renders a model type filter instead of type tabs or a dropdown', () => {
     render(
       <ModelsLayoutContent>
         <div>children</div>
       </ModelsLayoutContent>,
     );
 
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('combobox', { name: 'Model type' }),
+      screen.getByRole('button', { name: /^Filters/ }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Images' }),
@@ -117,15 +112,14 @@ describe('ModelsLayoutContent', () => {
       </ModelsLayoutContent>,
     );
 
-    await user.click(screen.getByRole('combobox', { name: 'Model type' }));
-    await user.click(await screen.findByRole('option', { name: 'Trainings' }));
+    await selectFilterOption(user, 'Model type', 'Trainings');
 
     expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/models/trainings', {
       scroll: false,
     });
   });
 
-  it('keeps the type filter on one non-wrapping row and refresh in the refresh slot', () => {
+  it('keeps the Filters menu on one non-wrapping row and refresh in the refresh slot', () => {
     render(
       <ModelsLayoutContent>
         <div>children</div>
@@ -133,7 +127,7 @@ describe('ModelsLayoutContent', () => {
     );
 
     const row = screen.getByTestId('models-layout-actions');
-    const filter = screen.getByRole('combobox', { name: 'Model type' });
+    const filter = screen.getByRole('button', { name: /^Filters/ });
     const refresh = screen.getByRole('button', { name: 'Refresh' });
 
     expect(row.className).toMatch(/items-center/);
@@ -141,8 +135,6 @@ describe('ModelsLayoutContent', () => {
     expect(row).toContainElement(filter);
     // Refresh lives in the Container `refresh` slot, not the actions row.
     expect(row).not.toContainElement(refresh);
-    expect(filter.className).toMatch(/\bw-36\b/);
-    expect(filter.className).not.toMatch(/\bw-full\b/);
   });
 
   it('hides refresh on the Custom Models tab', () => {
@@ -155,7 +147,7 @@ describe('ModelsLayoutContent', () => {
     );
 
     expect(
-      screen.getByRole('combobox', { name: 'Model type' }),
+      screen.getByRole('button', { name: /^Filters/ }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Refresh' }),

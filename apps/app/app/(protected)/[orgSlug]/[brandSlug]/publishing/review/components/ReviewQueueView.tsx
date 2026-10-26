@@ -10,7 +10,6 @@ import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Loading from '@ui/loading/default/Loading';
@@ -19,12 +18,9 @@ import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isAgentSourceVisible } from '../useReviewInboxApprovals';
+import ReviewFilterMenu from './ReviewFilterMenu';
 import ReviewGrid from './ReviewGrid';
 import ReviewInboxApprovalsSection from './ReviewInboxApprovalsSection';
-import ReviewSourceFilters from './ReviewSourceFilters';
-import ReviewStatusFilters, {
-  PUBLISH_HEADER_DROPDOWN_CLASS,
-} from './ReviewStatusFilters';
 import ReviewWorkspaceSurfaceAdapter from './ReviewWorkspaceSurfaceAdapter';
 
 export function getTurboRunOptionLabel(
@@ -153,30 +149,17 @@ export default function ReviewQueueView({
     // New content / refresh — same vertical level, no page-body orphan row.
     setFiltersNode(
       <div className="flex min-w-0 items-center gap-2">
-        <ReviewSourceFilters
+        <ReviewFilterMenu
+          activeFilters={activeFilters}
           activeSources={sourceFilters}
+          activeTurboRunId={activeTurboRunId}
+          filterCounts={filterCounts}
+          hasTurboControls={hasTurboControls}
+          onFilterChange={onFilterChange}
           onSourceChange={onSourceFilterChange}
+          onTurboRunChange={onTurboRunChange}
+          turboRunOptions={turboRunOptions}
         />
-        {hasTurboControls ? (
-          <>
-            <ReviewStatusFilters
-              activeFilters={activeFilters}
-              filterCounts={filterCounts}
-              onFilterChange={onFilterChange}
-            />
-            <ButtonDropdown
-              className={PUBLISH_HEADER_DROPDOWN_CLASS}
-              name="review-batch"
-              onChange={(_name, value) => {
-                onTurboRunChange(value);
-              }}
-              options={turboRunOptions}
-              placeholder={translateReview('queue.selectBatch')}
-              tooltip={translateReview('queue.selectBatchTooltip')}
-              value={activeTurboRunId ?? ''}
-            />
-          </>
-        ) : null}
         {hasTurboControls && canDiscardTurboRun ? (
           <Button
             className="h-8 shrink-0 gap-1.5 px-3 text-xs"

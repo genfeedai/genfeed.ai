@@ -4,38 +4,31 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import SkillFilters from './skill-filters';
+import SkillFilters, { SkillSearch } from './skill-filters';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   const translate = translateFromCatalog('common.settings.skills');
 
   return { useTranslations: () => translate };
 });
 
 describe('SkillFilters', () => {
-  it('renders search input and one Filters menu with source/modality/stage', async () => {
+  it('renders one Filters menu with source/modality/stage and no search', async () => {
     const user = userEvent.setup();
     render(
       <SkillFilters
         agentHref="/acme-org/acme-creator/agent"
         modalityFilter="all"
         onModalityFilterChange={vi.fn()}
-        onRefresh={vi.fn()}
-        onSearchQueryChange={vi.fn()}
         onSourceFilterChange={vi.fn()}
         onStageFilterChange={vi.fn()}
-        searchQuery=""
         sourceFilter="all"
         stageFilter="all"
       />,
     );
 
-    expect(
-      screen.getByRole('textbox', { name: /search skills/i }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^Filters/ }));
     expect(screen.getByRole('menuitem', { name: /^Source/ })).toBeVisible();
@@ -51,11 +44,8 @@ describe('SkillFilters', () => {
         agentHref="/acme-org/acme-creator/agent"
         modalityFilter="all"
         onModalityFilterChange={vi.fn()}
-        onRefresh={vi.fn()}
-        onSearchQueryChange={vi.fn()}
         onSourceFilterChange={vi.fn()}
         onStageFilterChange={onStageFilterChange}
-        searchQuery=""
         sourceFilter="custom"
         stageFilter="all"
       />,
@@ -74,49 +64,20 @@ describe('SkillFilters', () => {
     expect(onStageFilterChange).toHaveBeenCalledWith('research');
   });
 
-  it('calls onSearchQueryChange as the user types', () => {
+  it('rests the search as an icon and reports what the user types', () => {
     const onSearchQueryChange = vi.fn();
     render(
-      <SkillFilters
-        agentHref="/acme-org/acme-creator/agent"
-        modalityFilter="all"
-        onModalityFilterChange={vi.fn()}
-        onRefresh={vi.fn()}
-        onSearchQueryChange={onSearchQueryChange}
-        onSourceFilterChange={vi.fn()}
-        onStageFilterChange={vi.fn()}
-        searchQuery=""
-        sourceFilter="all"
-        stageFilter="all"
-      />,
+      <SkillSearch onSearchQueryChange={onSearchQueryChange} searchQuery="" />,
     );
 
-    fireEvent.change(screen.getByRole('textbox', { name: /search skills/i }), {
+    expect(screen.getByTestId('collapsible-search')).toHaveAttribute(
+      'data-state',
+      'closed',
+    );
+    fireEvent.change(screen.getByPlaceholderText(/search skills/i), {
       target: { value: 'script' },
     });
 
     expect(onSearchQueryChange).toHaveBeenCalledWith('script');
-  });
-
-  it('calls onRefresh when the refresh button is clicked', () => {
-    const onRefresh = vi.fn();
-    render(
-      <SkillFilters
-        agentHref="/acme-org/acme-creator/agent"
-        modalityFilter="all"
-        onModalityFilterChange={vi.fn()}
-        onRefresh={onRefresh}
-        onSearchQueryChange={vi.fn()}
-        onSourceFilterChange={vi.fn()}
-        onStageFilterChange={vi.fn()}
-        searchQuery=""
-        sourceFilter="all"
-        stageFilter="all"
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
-
-    expect(onRefresh).toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { PageScope, PostStatus } from '@genfeedai/contracts';
+import { PageScope, type Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost, IPreset } from '@genfeedai/contracts/interfaces';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import AdminPostsTable from '@pages/posts/list/components/AdminPostsTable';
@@ -65,6 +65,7 @@ export default function PostsList({
     handleSearchChange,
     handleOpenPostDetail,
     handlePageChange,
+    handlePlatformChange,
     handlePublicationStateChange,
     handlePostEvaluated,
     isLoading,
@@ -159,16 +160,25 @@ export default function PostsList({
         sortValue={filterSort || getDefaultSort(status)}
         sortOptions={sortOptions}
         publishingView={publishingView}
+        onPlatformChange={
+          isAdminScope
+            ? (value) => handlePlatformChange(value as Platform | 'all')
+            : undefined
+        }
         onPublishingViewChange={handlePublicationStateChange}
         onSortChange={handleToolbarSortChange}
+        platformValue={platformParam ?? 'all'}
       />,
     );
   }, [
     filterSearch,
     filterSort,
+    handlePlatformChange,
     handlePublicationStateChange,
     handleSearchChange,
     handleToolbarSortChange,
+    isAdminScope,
+    platformParam,
     publishingView,
     setFiltersNode,
     setLeadingNode,

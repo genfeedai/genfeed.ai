@@ -161,11 +161,14 @@ test.describe('Core Content Loop', () => {
       postId: String(contentLoopPost.id),
     });
     await postsPage.gotoReview();
-    // The review queue is batch-scoped: the batch picker is the surface's
-    // stable landmark (the old "Batch <id>" heading was retired in #2572).
+    // The review queue is batch-scoped: the Batch facet of the one Filters
+    // menu is the surface's stable landmark (the old "Batch <id>" heading was
+    // retired in #2572).
+    await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Select review batch' }),
+      authenticatedPage.getByRole('menuitem', { name: /^Batch/ }),
     ).toBeVisible();
+    await authenticatedPage.keyboard.press('Escape');
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);
     await postsPage.gotoCalendar();

@@ -14,7 +14,7 @@ import {
  * Deep interaction E2E coverage for the Discovery surface.
  *
  * Exercises the Signal Desk (`/discovery/overview`: search, refresh, source
- * tabs) and the Ads page (`/discovery/ads`: search, refresh, platform tabs).
+ * tabs) and the Ads page (`/discovery/ads`: search, refresh, platform filter).
  *
  * Every navigated route goes through `assertRouteRenders`, which fails on an
  * HTTP error status, a framework error overlay, an application ErrorBoundary
@@ -171,7 +171,7 @@ test.describe('Discovery — deep interactions', () => {
     await expect(authenticatedPage).toHaveURL(/source=trends/);
   });
 
-  test('Ads page renders, refresh re-fetches, and platform tabs switch with observable state', async ({
+  test('Ads page renders, refresh re-fetches, and the platform filter switches with observable state', async ({
     authenticatedPage,
   }) => {
     await mockAdsResearchResults(authenticatedPage);
@@ -221,11 +221,17 @@ test.describe('Discovery — deep interactions', () => {
     await refreshButton.click();
     await refetched;
 
-    const googleTab = authenticatedPage.getByRole('tab', {
-      name: 'Google + YouTube',
-    });
-    await googleTab.click();
-    await expect(googleTab).toHaveAttribute('data-state', 'active');
+    // The platform strip lives in the one nested Filters menu.
+    await expect(authenticatedPage.getByRole('tab')).toHaveCount(0);
+    const choosePlatform = async (name: RegExp) => {
+      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+      await authenticatedPage
+        .getByRole('menuitem', { name: /^Platform/ })
+        .click();
+      await authenticatedPage.getByRole('menuitemradio', { name }).click();
+    };
+
+    await choosePlatform(/^Google \+ YouTube/);
     await expect(authenticatedPage).toHaveURL(/platform=google/);
     // The platform filter is server-side (`filters.platform` on
     // `service.list()`) — the mock must honor it, so only the Google ad
@@ -241,10 +247,7 @@ test.describe('Discovery — deep interactions', () => {
       }),
     ).toBeHidden();
 
-    const metaTab = authenticatedPage.getByRole('tab', { name: 'Meta' });
-    await metaTab.click();
-    await expect(metaTab).toHaveAttribute('data-state', 'active');
-    await expect(googleTab).toHaveAttribute('data-state', 'inactive');
+    await choosePlatform(/^Meta/);
     await expect(authenticatedPage).toHaveURL(/platform=meta/);
     await expect(
       authenticatedPage.getByRole('heading', {

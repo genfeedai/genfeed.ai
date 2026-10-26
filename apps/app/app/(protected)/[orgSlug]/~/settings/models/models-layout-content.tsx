@@ -1,31 +1,26 @@
 import { useModelsContext } from '@contexts/models/models-context/models-context';
+import { useModelsToolbar } from '@contexts/models/models-toolbar-context/models-toolbar-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { hasTrainingAccess } from '@genfeedai/pricing';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Cpu, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
 
-// Category filtering lives in the catalog's own chip row; the header only
-// switches between the catalog, the organization's trainings and its managed
-// custom models.
+// The Filters menu switches between the catalog, the organization's trainings
+// and its managed custom models, and carries the catalog's category filter.
 const MODEL_TYPE_OPTIONS = [
   { value: 'all', label: 'Catalog' },
   { value: 'trainings', label: 'Trainings' },
@@ -42,10 +37,12 @@ export default function ModelsLayoutContent({
   const translateCustomModels = useTranslations(
     'common.settings.organizationCustomModels',
   );
+  const translateFilters = useTranslations('pages.models');
   const pathname = usePathname();
   const router = useRouter();
   const { orgHref } = useOrgUrl();
   const { settings } = useBrand();
+  const toolbar = useModelsToolbar();
   const canTrain =
     isSelfHostedDeployment() || hasTrainingAccess(settings?.subscriptionTier);
 
@@ -93,10 +90,29 @@ export default function ModelsLayoutContent({
     [activeType, orgHref, router],
   );
 
+  const typeFacet: FilterMenuFacet = {
+    defaultValue: 'all',
+    isCounted: false,
+    key: 'type',
+    label: translateFilters('modelType'),
+    onChange: handleTypeChange,
+    options: MODEL_TYPE_OPTIONS.map((option) => ({
+      label: option.label ?? translateCustomModels('title'),
+      value: option.value,
+    })),
+    selection: 'single',
+    value: activeType,
+  };
+  const facets: FilterMenuFacet[] = [
+    typeFacet,
+    ...(activeType === 'all' ? (toolbar?.facets ?? []) : []),
+  ];
+
   return (
     <Container
       label="Models"
       icon={Cpu}
+      leading={activeType === 'all' ? toolbar?.searchNode : undefined}
       refresh={
         isCustomModelsTab ? undefined : (
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
@@ -107,22 +123,12 @@ export default function ModelsLayoutContent({
           data-testid="models-layout-actions"
           className="flex items-center gap-2"
         >
-          <Select value={activeType} onValueChange={handleTypeChange}>
-            <SelectTrigger
-              id="models-type-filter"
-              className="h-8 w-36 shrink-0"
-              aria-label="Model type"
-            >
-              <SelectValue placeholder="Catalog" />
-            </SelectTrigger>
-            <SelectContent>
-              {MODEL_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label ?? translateCustomModels('title')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FilterMenu
+            facets={facets}
+            onClear={() => {
+              toolbar?.onClear();
+            }}
+          />
 
           {isTrainingsTab && canTrain ? (
             <Button

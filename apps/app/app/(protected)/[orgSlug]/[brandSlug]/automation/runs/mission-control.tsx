@@ -75,7 +75,7 @@ export default function MissionControl() {
       titleVisibility="sr-only"
       leading={
         <FormSearchbar
-          className="w-64"
+          isCollapsible
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Search workflow executions"
           size={ComponentSize.SM}

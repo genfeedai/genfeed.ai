@@ -61,10 +61,6 @@ vi.mock('./useReviewInboxApprovals', async (importOriginal) => ({
   useReviewInboxApprovals: () => mocks.approvals,
 }));
 
-vi.mock('./components/ReviewSourceFilters', () => ({
-  default: () => <div>Source filters</div>,
-}));
-
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getTurboRunsService,
 }));
@@ -224,20 +220,25 @@ vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
   ),
 }));
 
-vi.mock('./components/ReviewStatusFilters', () => ({
-  PUBLISH_HEADER_DROPDOWN_CLASS: '',
+vi.mock('./components/ReviewFilterMenu', () => ({
   default: ({
     activeFilters,
+    activeTurboRunId,
     filterCounts,
     onFilterChange,
+    onTurboRunChange,
   }: {
     activeFilters: string[];
+    activeTurboRunId: string | null;
     filterCounts: Record<string, number>;
     onFilterChange: (filters: string[]) => void;
+    onTurboRunChange: (turboRunId: string) => void;
   }) => (
     <div>
+      <div>Source filters</div>
       <div>Active filters: {activeFilters.join(',') || 'all'}</div>
       <div>Ready count: {filterCounts.ready}</div>
+      <div>Selected Turbo run: {activeTurboRunId}</div>
       <button type="button" onClick={() => onFilterChange([])}>
         Show All
       </button>
@@ -246,6 +247,9 @@ vi.mock('./components/ReviewStatusFilters', () => ({
         onClick={() => onFilterChange(['ready', 'approved'])}
       >
         Select Ready And Approved
+      </button>
+      <button type="button" onClick={() => onTurboRunChange('batch-2')}>
+        Select Turbo run 2
       </button>
     </div>
   ),
@@ -323,23 +327,6 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
     setScheduleActionsNode: vi.fn(),
     setViewToggleNode: vi.fn(),
   }),
-}));
-
-vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
-  default: ({
-    onChange,
-    value,
-  }: {
-    onChange: (name: string, value: string) => void;
-    value: string;
-  }) => (
-    <div>
-      <div>Selected Turbo run: {value}</div>
-      <button type="button" onClick={() => onChange('review-batch', 'batch-2')}>
-        Select Turbo run 2
-      </button>
-    </div>
-  ),
 }));
 
 vi.mock('@pages/posts/detail/PostDetailPanel', () => ({

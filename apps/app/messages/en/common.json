@@ -1637,7 +1637,7 @@
       "dialogCancel": "Cancel"
     },
     "contentRuns": {
-      "statusFilter": "Filter content runs by status",
+      "statusFilter": "Status",
       "emptyFilteredTitle": "No content runs match this status",
       "clearFilter": "Clear status filter",
       "allStatuses": "All statuses",

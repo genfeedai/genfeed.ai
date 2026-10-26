@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CostUsagePage from '@/features/settings/cost-usage/CostUsagePage';
 
@@ -121,7 +122,8 @@ describe('CostUsagePage', () => {
     });
   });
 
-  it('shows credit usage and charts without vendor accounting', () => {
+  it('shows credit usage and charts without vendor accounting', async () => {
+    const user = userEvent.setup();
     render(<CostUsagePage />);
     expect(screen.getByRole('heading', { name: 'Usage' })).toBeInTheDocument();
     expect(screen.getAllByText('18.5 GEN').length).toBeGreaterThan(0);
@@ -133,7 +135,14 @@ describe('CostUsagePage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/provider|\$2.75|BYOK/i)).not.toBeInTheDocument();
     expect(screen.queryByText('flux-schnell')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Brand')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Filters/ }));
+    expect(
+      await screen.findByRole('menuitem', { name: /^Date range/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /^Brand/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   describe('zero usage', () => {
@@ -252,7 +261,14 @@ describe('CostUsagePage', () => {
 
     render(<CostUsagePage lockedBrandId="brand-1" />);
 
-    expect(screen.queryByLabelText('Brand')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+    expect(
+      await screen.findByRole('menuitem', { name: /^Date range/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: /^Brand/ }),
+    ).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Provider cost')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Export credits/i }));

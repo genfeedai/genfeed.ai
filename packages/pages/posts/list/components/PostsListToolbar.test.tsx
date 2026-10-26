@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -71,5 +72,33 @@ describe('PostsListToolbar.tsx', () => {
     expect(screen.getByRole('menuitem', { name: /Source/ })).toHaveTextContent(
       'Imported',
     );
+  });
+
+  it('offers the Platform facet only when a handler is supplied and reports the pick', async () => {
+    const onPlatformChange = vi.fn();
+    const { rerender } = render(
+      <Module
+        onSortChange={vi.fn()}
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+      />,
+    );
+    await openFilters();
+    expect(
+      screen.queryByRole('menuitem', { name: /Platform/ }),
+    ).not.toBeInTheDocument();
+    await userEvent.setup().keyboard('{Escape}');
+
+    rerender(
+      <Module
+        onPlatformChange={onPlatformChange}
+        onSortChange={vi.fn()}
+        platformValue="all"
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+      />,
+    );
+    await selectFilterOption(userEvent.setup(), 'Platform', 'YouTube');
+    expect(onPlatformChange).toHaveBeenCalledWith('youtube');
   });
 });

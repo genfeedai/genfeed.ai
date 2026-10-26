@@ -15,19 +15,13 @@ import { ContentRunsService } from '@services/content/content-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Badge from '@ui/display/badge/Badge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { CirclePlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -67,6 +61,7 @@ function getPublishCount(run: ContentRunRecord): number {
 
 export default function ContentRunListPage() {
   const translate = useTranslations('common.automation.contentRuns');
+  const translateMenu = useTranslations('ui.filtersButton');
   const collectionScope = useCollectionScope();
   const { brandId, pageScope } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
@@ -128,26 +123,27 @@ export default function ContentRunListPage() {
   const isInitialFetch = isFetching && data.length === 0;
 
   const statusFilter = (
-    <Select value={status} onValueChange={handleStatusChange}>
-      <SelectTrigger
-        aria-label={translate('statusFilter')}
-        className="min-w-36"
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL_STATUSES}>{translate('allStatuses')}</SelectItem>
-        {STATUS_OPTIONS.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <FilterMenu
+      facets={[
+        {
+          defaultValue: ALL_STATUSES,
+          key: 'status',
+          label: translate('statusFilter'),
+          onChange: handleStatusChange,
+          options: [
+            { label: translateMenu('all'), value: ALL_STATUSES },
+            ...STATUS_OPTIONS,
+          ],
+          selection: 'single',
+          value: status,
+        },
+      ]}
+      onClear={() => handleStatusChange(ALL_STATUSES)}
+    />
   );
 
   return (
-    <Container label="Content Runs" icon={CirclePlay} leading={statusFilter}>
+    <Container label="Content Runs" icon={CirclePlay} right={statusFilter}>
       {pageScope === 'org' && !isBrandReady ? (
         <p className="mt-6 text-sm text-muted-foreground">
           {translate('selectBrand')}

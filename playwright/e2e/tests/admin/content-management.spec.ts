@@ -41,11 +41,13 @@ test.describe('Admin Content Management', () => {
 
       await admin.assertPageVisible();
       await expect(adminPage).toHaveURL(/library\/voices/);
-      // Catalog controls are the shared CollectionToolbar (search, provider
-      // filter, sync actions, view toggle), not a titled surface.
+      // Catalog controls are the shared subbar (collapsed search, Filters
+      // menu with the provider facet, sync actions), not a titled surface.
+      await adminPage.getByRole('button', { name: /^Filters/ }).click();
       await expect(
-        adminPage.getByRole('combobox', { name: 'Provider' }),
+        adminPage.getByRole('menuitem', { name: /^Provider/ }),
       ).toBeVisible();
+      await adminPage.keyboard.press('Escape');
       await expect(
         adminPage.getByRole('button', { name: 'Sync All' }),
       ).toBeVisible();

@@ -150,18 +150,6 @@ vi.mock('@ui/navigation/pagination/Pagination', () => ({
     ) : null,
 }));
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectValue: () => null,
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,

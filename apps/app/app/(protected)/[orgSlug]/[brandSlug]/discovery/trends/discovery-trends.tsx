@@ -1,24 +1,17 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import { TrendingHashtags, TrendingSounds } from '@ui/analytics/trends';
 import TrendVideoGallery from '@ui/analytics/trends/trend-video-gallery';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import Tabs from '@ui/navigation/tabs/Tabs';
-import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -69,84 +62,80 @@ export default function DiscoveryTrends() {
         title={translate('heading')}
         icon={Flame}
         tabs={<SocialsNavigation active="overview" />}
-      />
-
-      <Container bodyClassName="space-y-8" moduleChrome={false}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Tabs
-            activeTab={relevance}
-            ariaLabel={discovery('relevance')}
-            fullWidth={false}
-            items={[
-              { id: 'brand', label: discovery('brand') },
-              { id: 'market', label: discovery('market') },
-            ]}
-            onTabChange={(value) => {
-              if (value === 'brand' || value === 'market') setRelevance(value);
-            }}
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            <Select
-              value={hashtagPlatform || 'all'}
-              onValueChange={(value) =>
-                setHashtagPlatform(value === 'all' ? '' : value)
-              }
-            >
-              <SelectTrigger
-                aria-label={discovery('platformFilter')}
-                className="w-40"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{discovery('allPlatforms')}</SelectItem>
-                {TRENDS_PLATFORMS.map(({ id, label }) => (
-                  <SelectItem key={id} value={id}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={videoTimeframe}
-              onValueChange={(value) => {
-                if (
-                  value === Timeframe.H24 ||
-                  value === Timeframe.H72 ||
-                  value === Timeframe.D7
-                )
-                  setVideoTimeframe(value);
-              }}
-            >
-              <SelectTrigger
-                aria-label={discovery('timeframeFilter')}
-                className="w-36"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={Timeframe.H24}>
-                  {discovery('hours24')}
-                </SelectItem>
-                <SelectItem value={Timeframe.H72}>
-                  {discovery('hours72')}
-                </SelectItem>
-                <SelectItem value={Timeframe.D7}>
-                  {discovery('days7')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
+        refresh={
+          <ButtonRefresh
             onClick={() => {
               void reload();
             }}
-          >
-            {discovery('reload')}
-          </Button>
-        </div>
+          />
+        }
+        actions={
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: 'brand',
+                key: 'relevance',
+                label: discovery('relevance'),
+                onChange: (value) => {
+                  if (value === 'brand' || value === 'market') {
+                    setRelevance(value);
+                  }
+                },
+                options: [
+                  { label: discovery('brand'), value: 'brand' },
+                  { label: discovery('market'), value: 'market' },
+                ],
+                selection: 'single',
+                value: relevance,
+              },
+              {
+                defaultValue: 'all',
+                key: 'platform',
+                label: discovery('platformFilter'),
+                onChange: (value) =>
+                  setHashtagPlatform(value === 'all' ? '' : value),
+                options: [
+                  { label: discovery('allPlatforms'), value: 'all' },
+                  ...TRENDS_PLATFORMS.map(({ id, label }) => ({
+                    label,
+                    value: id,
+                  })),
+                ],
+                selection: 'single',
+                value: hashtagPlatform || 'all',
+              },
+              {
+                defaultValue: Timeframe.H72,
+                key: 'timeframe',
+                label: discovery('timeframeFilter'),
+                onChange: (value) => {
+                  if (
+                    value === Timeframe.H24 ||
+                    value === Timeframe.H72 ||
+                    value === Timeframe.D7
+                  ) {
+                    setVideoTimeframe(value);
+                  }
+                },
+                options: [
+                  { label: discovery('hours24'), value: Timeframe.H24 },
+                  { label: discovery('hours72'), value: Timeframe.H72 },
+                  { label: discovery('days7'), value: Timeframe.D7 },
+                ],
+                selection: 'single',
+                value: videoTimeframe,
+              },
+            ]}
+            onClear={() => {
+              setRelevance('brand');
+              setHashtagPlatform('');
+              setVideoTimeframe(Timeframe.H72);
+            }}
+          />
+        }
+      />
+
+      <Container bodyClassName="space-y-8" moduleChrome={false}>
         <p className="text-sm text-muted-foreground">
           {relevance === 'brand'
             ? discovery('brandDescription')

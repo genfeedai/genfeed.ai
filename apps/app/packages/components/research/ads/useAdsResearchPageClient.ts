@@ -293,17 +293,6 @@ export function useAdsResearchPageClient() {
     defaultValue: ViewType.GRID,
     key: 'view',
   });
-  const [filtersVisibility, setFiltersVisibility] = useResearchSearchParamState<
-    'hidden' | 'visible'
-  >({
-    allowedValues: ['hidden', 'visible'],
-    defaultValue: 'hidden',
-    key: 'filters',
-  });
-  const showFilters = filtersVisibility === 'visible';
-  const setShowFilters = (isVisible: boolean) =>
-    setFiltersVisibility(isVisible ? 'visible' : 'hidden');
-
   const brandLabel = getBrandLabel(selectedBrand);
   const effectivePlatform = platform;
   const showChannelFilter = effectivePlatform === AdsPlatform.GOOGLE;
@@ -932,12 +921,10 @@ export function useAdsResearchPageClient() {
     setMetric,
     setPlatform,
     setSearch,
-    setShowFilters,
     setSource,
     setSortKey,
     setTimeframe,
     showChannelFilter,
-    showFilters,
     sortKey,
     source,
     adAccountId,

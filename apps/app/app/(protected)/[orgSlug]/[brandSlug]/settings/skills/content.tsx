@@ -27,6 +27,7 @@ import {
   SkillImportRejectedError,
   SkillsService,
 } from '@services/content/skills.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -50,7 +51,7 @@ import {
 } from 'react';
 import SkillDetailPanel from './skill-detail-panel';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
-import SkillFilters from './skill-filters';
+import SkillFilters, { SkillSearch } from './skill-filters';
 import SkillImportForm, {
   type SkillImportFormLabels,
 } from './skill-import-form';
@@ -978,6 +979,15 @@ export default function BrandSettingsSkillsPage() {
     <Container
       fullWidth
       label={translate('heading')}
+      leading={
+        <SkillSearch
+          onSearchQueryChange={(value) =>
+            dispatch({ type: 'SET_SEARCH_QUERY', value })
+          }
+          searchQuery={searchQuery}
+        />
+      }
+      refresh={<ButtonRefresh onClick={() => void refreshCatalog()} />}
       right={
         <SkillFilters
           agentHref={href(APP_ROUTES.AGENT.ROOT)}
@@ -985,17 +995,12 @@ export default function BrandSettingsSkillsPage() {
           onModalityFilterChange={(value) =>
             dispatch({ type: 'SET_MODALITY_FILTER', value })
           }
-          onRefresh={() => void refreshCatalog()}
-          onSearchQueryChange={(value) =>
-            dispatch({ type: 'SET_SEARCH_QUERY', value })
-          }
           onSourceFilterChange={(value) =>
             dispatch({ type: 'SET_SOURCE_FILTER', value })
           }
           onStageFilterChange={(value) =>
             dispatch({ type: 'SET_STAGE_FILTER', value })
           }
-          searchQuery={searchQuery}
           sourceFilter={sourceFilter}
           stageFilter={stageFilter}
         />

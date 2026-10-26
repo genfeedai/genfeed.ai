@@ -24,17 +24,11 @@ import type {
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/card/EmptyState';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { MessageCircleReply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -311,54 +305,57 @@ export default function RepliesPage() {
           isRefreshing={isLoading}
         />
       }
-    >
-      <Card
-        label="Inbox controls"
-        bodyClassName="gap-4 p-4"
-        headerAction={
-          <div className="flex flex-wrap gap-2">
-            <Button
-              isDisabled={isEnabling}
-              onClick={() => void handleEnableAuto()}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-            >
-              {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex max-w-xs flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            {translate('platform.label')}
-          </span>
-          <Select
-            value={inboxPlatform}
-            onValueChange={(value) => {
-              const platform = parsePlatform(value);
-              if (
-                platform === Platform.TWITTER ||
-                platform === Platform.YOUTUBE
-              ) {
-                setInboxPlatform(platform);
-                setItems([]);
-                setInboxError(null);
-              }
+      right={
+        <div className="flex items-center gap-2">
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: Platform.TWITTER,
+                key: 'platform',
+                label: translate('platform.label'),
+                onChange: (value) => {
+                  const platform = parsePlatform(value);
+                  if (
+                    platform === Platform.TWITTER ||
+                    platform === Platform.YOUTUBE
+                  ) {
+                    setInboxPlatform(platform);
+                    setItems([]);
+                    setInboxError(null);
+                  }
+                },
+                options: [
+                  {
+                    label: translate('platform.twitter'),
+                    value: Platform.TWITTER,
+                  },
+                  {
+                    label: translate('platform.youtube'),
+                    value: Platform.YOUTUBE,
+                  },
+                ],
+                selection: 'single',
+                value: inboxPlatform,
+              },
+            ]}
+            onClear={() => {
+              setInboxPlatform(Platform.TWITTER);
+              setItems([]);
+              setInboxError(null);
             }}
+          />
+          <Button
+            isDisabled={isEnabling}
+            onClick={() => void handleEnableAuto()}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
           >
-            <SelectTrigger aria-label="Replies platform">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={Platform.TWITTER}>
-                {translate('platform.twitter')}
-              </SelectItem>
-              <SelectItem value={Platform.YOUTUBE}>
-                {translate('platform.youtube')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
+          </Button>
         </div>
+      }
+    >
+      <Card label="Inbox status" bodyClassName="gap-4 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">
             <MessageCircleReply className="mr-1 size-3" />

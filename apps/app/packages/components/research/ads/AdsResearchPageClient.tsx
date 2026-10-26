@@ -9,25 +9,15 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import {
-  AdsPlatform,
-  type AdsResearchPlatform,
-} from '@genfeedai/contracts/interfaces';
+import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Columns2,
-  Eye,
-  Funnel as Filter,
-  Megaphone,
-  Table,
-} from 'lucide-react';
+import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -35,42 +25,14 @@ import { useState } from 'react';
 import AdsPublicDiscoveryPanel from './AdsPublicDiscoveryPanel';
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
-import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
-import { AdsResearchWatchlistPanel } from './AdsResearchWatchlistPanel';
 import {
-  type AdSortKey,
-  useAdsResearchPageClient,
-} from './useAdsResearchPageClient';
+  AdsResearchFilterMenu,
+  AdsResearchTextFilters,
+} from './AdsResearchFilterMenu';
+import { AdsResearchWatchlistPanel } from './AdsResearchWatchlistPanel';
+import { useAdsResearchPageClient } from './useAdsResearchPageClient';
 import { useAdsResearchWatchlist } from './useAdsResearchWatchlist';
 import XAdsDsaNotice from './XAdsDsaNotice';
-
-const SORT_OPTIONS = [
-  { label: 'Score (High → Low)', value: 'score' },
-  { label: 'CTR (High → Low)', value: 'ctr' },
-  { label: 'ROAS (High → Low)', value: 'roas' },
-  // The only ranking axis competitor archive rows carry: no archive publishes
-  // CTR or ROAS, but all of them publish how long an ad has been running.
-  { label: 'Longest running', value: 'longevity' },
-];
-
-function CompactStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm font-semibold tabular-nums text-foreground">
-        {value}
-      </span>
-    </div>
-  );
-}
 
 export default function AdsResearchPageClient() {
   const translate = useTranslations('pages.adsResearch');
@@ -114,12 +76,10 @@ export default function AdsResearchPageClient() {
     setMetric,
     setPlatform,
     setSearch,
-    setShowFilters,
     setSource,
     setSortKey,
     setTimeframe,
     showChannelFilter,
-    showFilters,
     sortKey,
     source,
     adAccountId,
@@ -160,17 +120,51 @@ export default function AdsResearchPageClient() {
       !isLoading &&
       !resultsError &&
       results.summary.publicCount === 0);
-  const sourceLabel =
-    source === 'saved'
-      ? translate('swipeFile.saved')
-      : results.summary.selectedSource === 'my_accounts'
-        ? 'My accounts'
-        : results.summary.selectedSource === 'public'
-          ? 'Public'
-          : 'All';
-
   const headerRight = (
     <div className="flex items-center gap-2">
+      <Button
+        variant={
+          isWatchlistVisible ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+        }
+        size={ButtonSize.SM}
+        icon={<Eye className="size-4" />}
+        onClick={() => setShowWatchlist(!isWatchlistVisible)}
+      >
+        {translate('actions.watchCompetitors')}
+      </Button>
+      <AdsResearchFilterMenu
+        adAccountId={adAccountId}
+        adAccounts={adAccounts}
+        channel={channel}
+        connectedCount={results.summary.connectedCount}
+        credentialId={credentialId}
+        credentialOptions={credentialOptions}
+        metric={metric}
+        onAdAccountChange={setAdAccountId}
+        onChannelChange={setChannel}
+        onClear={() => {
+          setPlatform('all');
+          setSource('all');
+          setSortKey('score');
+          setMetric('performanceScore');
+          setTimeframe('last_30_days');
+          setChannel(AdsChannel.ALL);
+          setCredentialId('');
+          setAdAccountId('');
+        }}
+        onCredentialChange={setCredentialId}
+        onMetricChange={setMetric}
+        onPlatformChange={setPlatform}
+        onSortChange={setSortKey}
+        onSourceChange={setSource}
+        onTimeframeChange={setTimeframe}
+        platform={effectivePlatform}
+        publicCount={results.summary.publicCount}
+        showChannelFilter={showChannelFilter}
+        sortKey={sortKey}
+        source={source}
+        timeframe={timeframe}
+      />
       <ViewToggle
         options={[
           {
@@ -202,19 +196,15 @@ export default function AdsResearchPageClient() {
   return (
     <Container
       label="Ads"
-      headerTabs={{
-        activeTab: effectivePlatform,
-        fullWidth: false,
-        items: [
-          { id: 'all', label: 'Overview' },
-          { id: AdsPlatform.META, label: 'Meta' },
-          { id: AdsPlatform.GOOGLE, label: 'Google + YouTube' },
-          { id: AdsPlatform.TIKTOK, label: 'TikTok' },
-          { id: AdsPlatform.X, label: 'X' },
-        ],
-        onTabChange: (value) =>
-          setPlatform(value as AdsResearchPlatform | 'all'),
-      }}
+      leading={
+        <FormSearchbar
+          isCollapsible
+          value={search}
+          onSearch={setSearch}
+          placeholder="Search ads"
+          size={ComponentSize.SM}
+        />
+      }
       icon={Megaphone}
       refresh={headerRefresh}
       right={headerRight}
@@ -247,68 +237,14 @@ export default function AdsResearchPageClient() {
         </Alert>
       ) : null}
 
-      {/* Search left · filters / sort / counts right */}
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="w-full sm:max-w-xs lg:max-w-sm">
-          <FormSearchbar
-            value={search}
-            onSearch={setSearch}
-            placeholder="Search ads"
-            size={ComponentSize.MD}
-            className="w-full"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            variant={
-              isWatchlistVisible ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-            }
-            size={ButtonSize.SM}
-            icon={<Eye className="size-4" />}
-            onClick={() => setShowWatchlist(!isWatchlistVisible)}
-          >
-            {translate('actions.watchCompetitors')}
-          </Button>
-          <Button
-            variant={
-              showFilters ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-            }
-            size={ButtonSize.SM}
-            icon={<Filter className="size-4" />}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            {translate('actions.filters')}
-          </Button>
-          <ButtonDropdown
-            name="sort"
-            value={sortKey}
-            options={SORT_OPTIONS}
-            onChange={(_name, value) => setSortKey(value as AdSortKey)}
-            className="h-9 rounded-md bg-background-tertiary px-3 text-sm text-foreground shadow-border hover:bg-hover"
-          />
-          <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-            {source === 'saved' ? (
-              <CompactStat
-                label={translate('swipeFile.saved')}
-                value={allAds.length}
-              />
-            ) : (
-              <>
-                <CompactStat
-                  label="Public"
-                  value={results.summary.publicCount}
-                />
-                <CompactStat
-                  label="My ads"
-                  value={results.summary.connectedCount}
-                />
-              </>
-            )}
-            <CompactStat label="Source" value={sourceLabel} />
-          </div>
-        </div>
-      </div>
+      <AdsResearchTextFilters
+        effectivePlatform={effectivePlatform}
+        industry={industry}
+        loginCustomerId={loginCustomerId}
+        onIndustryChange={setIndustry}
+        onLoginCustomerIdChange={setLoginCustomerId}
+        source={source}
+      />
 
       {source === 'all' || source === 'public' ? (
         <AdsPublicDiscoveryPanel
@@ -330,31 +266,6 @@ export default function AdsResearchPageClient() {
           {...(watchlist.addError ? { addError: watchlist.addError } : {})}
           {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}
           {...(watchlist.loadError ? { loadError: watchlist.loadError } : {})}
-        />
-      ) : null}
-
-      {showFilters ? (
-        <AdsResearchFilterPanel
-          adAccountId={adAccountId}
-          adAccounts={adAccounts}
-          channel={channel}
-          credentialId={credentialId}
-          credentialOptions={credentialOptions}
-          effectivePlatform={effectivePlatform}
-          industry={industry}
-          loginCustomerId={loginCustomerId}
-          metric={metric}
-          showChannelFilter={showChannelFilter}
-          source={source}
-          timeframe={timeframe}
-          onAdAccountChange={setAdAccountId}
-          onChannelChange={setChannel}
-          onCredentialChange={setCredentialId}
-          onIndustryChange={setIndustry}
-          onLoginCustomerIdChange={setLoginCustomerId}
-          onMetricChange={setMetric}
-          onSourceChange={setSource}
-          onTimeframeChange={setTimeframe}
         />
       ) : null}
 

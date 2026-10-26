@@ -272,6 +272,7 @@ vi.mock('@ui/layout/container/Container', () => ({
     children,
     headerTabs,
     label,
+    leading,
     refresh,
     right,
   }: {
@@ -282,12 +283,14 @@ vi.mock('@ui/layout/container/Container', () => ({
       onTabChange?: (tabId: string) => void;
     };
     label?: string;
+    leading?: ReactNode;
     refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
       <header>
         <h1>{label}</h1>
+        {leading}
         <div data-testid="container-refresh">{refresh}</div>
         {headerTabs?.items ? (
           <nav>
@@ -359,30 +362,6 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
-  default: ({
-    name,
-    onChange,
-    options,
-  }: {
-    name: string;
-    onChange: (_name: string, value: string) => void;
-    options: Array<{ label: string; value: string }>;
-  }) => (
-    <div>
-      {options.map((option) => (
-        <button
-          key={option.value}
-          onClick={() => onChange(name, option.value)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
-
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
 }));
@@ -449,45 +428,40 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({
-    children,
-    onValueChange,
+// The real menu is covered by FilterMenu's own tests; here every option is a
+// plain button named "<facet>: <option>" so page wiring can be asserted.
+vi.mock('@ui/content/filter-menu/FilterMenu', () => ({
+  default: ({
+    facets,
+    onClear,
   }: {
-    children?: ReactNode;
-    onValueChange?: (value: string) => void;
+    facets: Array<{
+      key: string;
+      label: string;
+      onChange: (value: string) => void;
+      options: Array<{ count?: number; label: string; value: string }>;
+    }>;
+    onClear: () => void;
   }) => (
-    <div>
-      {children}
-      <button type="button" onClick={() => onValueChange?.('my_accounts')}>
-        Select My Accounts Source
-      </button>
-      <button type="button" onClick={() => onValueChange?.('public')}>
-        Select Public Source
-      </button>
-      <button type="button" onClick={() => onValueChange?.('cred-google')}>
-        Select Google Credential
-      </button>
-      <button type="button" onClick={() => onValueChange?.('acct-google-1')}>
-        Select Google Account
+    <div data-testid="filter-menu">
+      {facets.map((facet) => (
+        <fieldset aria-label={facet.label} key={facet.key}>
+          {facet.options.map((option) => (
+            <button
+              data-count={option.count}
+              key={option.value}
+              onClick={() => facet.onChange(option.value)}
+              type="button"
+            >
+              {`${facet.label}: ${option.label}`}
+            </button>
+          ))}
+        </fieldset>
+      ))}
+      <button onClick={onClear} type="button">
+        Clear filters
       </button>
     </div>
-  ),
-  SelectContent: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectItem: ({
-    children,
-    value,
-  }: {
-    children?: ReactNode;
-    value: string;
-  }) => <div data-value={value}>{children}</div>,
-  SelectTrigger: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectValue: ({ placeholder }: { placeholder?: string }) => (
-    <span>{placeholder}</span>
   ),
 }));
 
@@ -499,10 +473,7 @@ import {
 } from './useAdsResearchPageClient';
 
 function getSourceSelect() {
-  const element = screen.getByText('Public + My Accounts').parentElement
-    ?.parentElement;
-  if (!element) throw new Error('Source selector was not rendered');
-  return within(element);
+  return screen.getByRole('group', { name: 'Source' });
 }
 
 describe('AdsResearchPageClient', () => {
@@ -617,24 +588,21 @@ describe('AdsResearchPageClient', () => {
     const { container } = render(<AdsResearchPageClient />);
 
     expect(screen.getByRole('heading', { name: 'Ads' })).toBeInTheDocument();
-    // Compact stats strip (labels also appear on ad badges — use counts).
-    expect(screen.getByText('Source')).toBeInTheDocument();
     // Launch policy is a footnote when credentials exist — not a second alert.
     expect(
       screen.getByText(/No external campaign objects are created/i),
     ).toBeInTheDocument();
     expect(screen.queryByText('Launch policy')).not.toBeInTheDocument();
     expect(screen.queryByText('Review Policy')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /filters/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('filter-menu')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
     expect(screen.getByText('Meta hook story')).toBeInTheDocument();
     expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
-    expect(screen.getByText('Metric')).toBeInTheDocument();
-    expect(screen.getByText('Timeframe')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Metric' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'Timeframe' }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText('Search ads'), {
       target: { value: 'google' },
@@ -679,18 +647,19 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText('Title')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'CTR (High → Low)' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sort: CTR (High → Low)' }),
+    );
     expect(screen.getByText('2.40')).toBeInTheDocument();
 
     const refreshButton = screen.getByRole('button', { name: 'Refresh' });
-    // Refresh is passed through the Container `refresh` slot, ahead of the tabs.
+    // Refresh is passed through the Container `refresh` slot, ahead of the filters.
     expect(screen.getByTestId('container-refresh')).toContainElement(
       refreshButton,
     );
     expect(
-      refreshButton.compareDocumentPosition(
-        screen.getByRole('button', { name: 'Overview' }),
-      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      refreshButton.compareDocumentPosition(screen.getByTestId('filter-menu')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     fireEvent.click(refreshButton);
     expect(useQueryStates[0].refetch).toHaveBeenCalled();
@@ -732,9 +701,12 @@ describe('AdsResearchPageClient', () => {
   it('opens a typed prefilled brief and a non-publishing launch plan for selected connected ads', async () => {
     render(<AdsResearchPageClient />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google + YouTube' }));
-    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
-    expect(screen.getByText('Google Channel')).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Platform: Google + YouTube' }),
+    );
+    expect(
+      screen.getByRole('group', { name: 'Google channel' }),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('MCC / manager ID')).toBeInTheDocument();
 
     fireEvent.click(
@@ -1191,7 +1163,7 @@ describe('AdsResearchPageClient', () => {
       screen.getByRole('button', { name: 'Refresh' }),
     );
     expect(
-      screen.getByRole('button', { name: 'Meta', exact: true }),
+      screen.getByRole('button', { name: 'Platform: Meta' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Competitors' }),
@@ -1206,9 +1178,8 @@ describe('AdsResearchPageClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
     expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
     fireEvent.click(
-      getSourceSelect().getByRole('button', { name: 'Select Public Source' }),
+      within(getSourceSelect()).getByRole('button', { name: 'Source: Public' }),
     );
     expect(
       screen.queryByRole('link', { name: 'Manage ad connections' }),
@@ -1224,14 +1195,17 @@ describe('AdsResearchPageClient', () => {
     };
 
     render(<AdsResearchPageClient />);
-    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
     fireEvent.click(
-      getSourceSelect().getByRole('button', {
-        name: 'Select My Accounts Source',
+      within(getSourceSelect()).getByRole('button', {
+        name: 'Source: My Accounts',
       }),
     );
 
-    expect(screen.getByText('My ads').parentElement).toHaveTextContent('0');
+    expect(
+      within(getSourceSelect()).getByRole('button', {
+        name: 'Source: My Accounts',
+      }),
+    ).toHaveAttribute('data-count', '0');
     expect(
       screen.getByText(
         'No ads match the current filters. Adjust filters or widen the timeframe.',
@@ -1276,12 +1250,11 @@ describe('AdsResearchPageClient', () => {
     };
 
     render(<AdsResearchPageClient />);
-    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
     expect(screen.queryByText('Disconnected Meta')).not.toBeInTheDocument();
     expect(screen.queryByText('Deleted Google')).not.toBeInTheDocument();
     fireEvent.click(
-      getSourceSelect().getByRole('button', {
-        name: 'Select My Accounts Source',
+      within(getSourceSelect()).getByRole('button', {
+        name: 'Source: My Accounts',
       }),
     );
 
@@ -1326,10 +1299,9 @@ describe('AdsResearchPageClient', () => {
       });
       render(<AdsResearchPageClient />);
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
       fireEvent.click(
-        getSourceSelect().getByRole('button', {
-          name: 'Select My Accounts Source',
+        within(getSourceSelect()).getByRole('button', {
+          name: 'Source: My Accounts',
         }),
       );
       expect(
@@ -1404,7 +1376,9 @@ describe('AdsResearchPageClient', () => {
     expect(readTitles()).toEqual(['Google lead gen winner', 'Meta hook story']);
     expect(screen.getByText('120d live')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Longest running' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sort: Longest running' }),
+    );
 
     expect(readTitles()).toEqual(['Meta hook story', 'Google lead gen winner']);
   });

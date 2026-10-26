@@ -20,17 +20,11 @@ import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Text } from '@ui/typography/text';
 import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -70,6 +64,7 @@ const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
 
 const PAGE_SIZE = 25;
 const ALL_BRANDS_VALUE = '__all_brands__';
+const DEFAULT_RANGE_DAYS = 30;
 
 interface CostUsagePageProps {
   lockedBrandId?: string;
@@ -101,7 +96,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   const translate = useTranslations('pages.costUsage');
   const { brands, isReady, organizationId } = useBrand();
   const [selectedBrandId, setSelectedBrandId] = useState('');
-  const [rangeDays, setRangeDays] = useState(30);
+  const [rangeDays, setRangeDays] = useState(DEFAULT_RANGE_DAYS);
   const [activeTab, setActiveTab] = useState('overview');
   const [pageState, setPageState] = useState({ scope: '', page: 1 });
   const [isExporting, setIsExporting] = useState(false);
@@ -256,49 +251,53 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
       }}
       right={
         <>
-          <Select
-            value={String(rangeDays)}
-            onValueChange={(value) => setRangeDays(Number(value))}
-          >
-            <SelectTrigger
-              className="h-8 w-36"
-              aria-label={translate('filters.dateRange')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[7, 30, 90, 366].map((days) => (
-                <SelectItem key={days} value={String(days)}>
-                  {translate('filters.lastDays', { days })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!lockedBrandId ? (
-            <Select
-              value={selectedBrandId || ALL_BRANDS_VALUE}
-              onValueChange={(value) =>
-                setSelectedBrandId(value === ALL_BRANDS_VALUE ? '' : value)
-              }
-            >
-              <SelectTrigger
-                className="h-8 w-40"
-                aria-label={translate('filters.brand')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_BRANDS_VALUE}>
-                  {translate('filters.allBrands')}
-                </SelectItem>
-                {brands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id}>
-                    {brand.label || brand.slug || brand.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : null}
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: String(DEFAULT_RANGE_DAYS),
+                isCounted: false,
+                key: 'dateRange',
+                label: translate('filters.dateRange'),
+                onChange: (value) => setRangeDays(Number(value)),
+                options: [7, 30, 90, 366].map((days) => ({
+                  label: translate('filters.lastDays', { days }),
+                  value: String(days),
+                })),
+                selection: 'single',
+                value: String(rangeDays),
+              },
+              ...(lockedBrandId
+                ? []
+                : [
+                    {
+                      defaultValue: ALL_BRANDS_VALUE,
+                      key: 'brand',
+                      label: translate('filters.brand'),
+                      onChange: (value: string) =>
+                        setSelectedBrandId(
+                          value === ALL_BRANDS_VALUE ? '' : value,
+                        ),
+                      options: [
+                        {
+                          label: translate('filters.allBrands'),
+                          value: ALL_BRANDS_VALUE,
+                        },
+                        ...brands.map((brand) => ({
+                          isLiteral: true,
+                          label: brand.label || brand.slug || brand.id,
+                          value: brand.id,
+                        })),
+                      ],
+                      selection: 'single' as const,
+                      value: selectedBrandId || ALL_BRANDS_VALUE,
+                    },
+                  ]),
+            ]}
+            onClear={() => {
+              setRangeDays(DEFAULT_RANGE_DAYS);
+              setSelectedBrandId('');
+            }}
+          />
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}

@@ -239,7 +239,6 @@
       "viewOn": "View on {platform}",
       "viewPost": "View post",
       "platformFilter": "Platform",
-      "allPlatforms": "All platforms",
       "status": {
         "draft": "Draft",
         "failed": "Failed",

@@ -137,13 +137,15 @@ export type SkillFiltersProps = {
   agentHref: string;
   modalityFilter: ModalityFilterValue;
   onModalityFilterChange: (value: ModalityFilterValue) => void;
-  onRefresh: () => void;
-  onSearchQueryChange: (value: string) => void;
   onSourceFilterChange: (value: SourceFilterValue) => void;
   onStageFilterChange: (value: StageFilterValue) => void;
-  searchQuery: string;
   sourceFilter: SourceFilterValue;
   stageFilter: StageFilterValue;
+};
+
+export type SkillSearchProps = {
+  onSearchQueryChange: (value: string) => void;
+  searchQuery: string;
 };
 
 export type SkillsTableProps = {

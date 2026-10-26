@@ -411,12 +411,17 @@ test.describe('Tasks', () => {
       taskTitleLink(authenticatedPage, 'Analytics export is failing'),
     ).toBeVisible();
 
-    // The status filter is a `@ui/primitives/select` (Radix), not a raw
-    // `<select>` — scoped to the toolbar to avoid the per-row status/priority
-    // selects sharing the combobox role.
+    // The status filter is a facet of the shared Filters menu, scoped to the
+    // toolbar so it never collides with the per-row status/priority selects.
     const toolbar = authenticatedPage.getByTestId('container-header-actions');
-    await toolbar.getByRole('combobox').click();
-    await authenticatedPage.getByRole('option', { name: 'Blocked' }).click();
+    const chooseStatus = async (name: RegExp) => {
+      await toolbar.getByRole('button', { name: /^Filters/ }).click();
+      await authenticatedPage
+        .getByRole('menuitem', { name: /^Status/ })
+        .click();
+      await authenticatedPage.getByRole('menuitemradio', { name }).click();
+    };
+    await chooseStatus(/^Blocked/);
 
     await expect(
       taskTitleLink(authenticatedPage, 'Analytics export is failing'),
@@ -425,10 +430,7 @@ test.describe('Tasks', () => {
       taskTitleLink(authenticatedPage, 'Regression in task orchestration'),
     ).toHaveCount(0);
 
-    await toolbar.getByRole('combobox').click();
-    await authenticatedPage
-      .getByRole('option', { name: 'All Statuses' })
-      .click();
+    await chooseStatus(/^All Statuses/);
     // Clicking the row (not the title link, which opens the detail page)
     // selects the task.
     await openTaskInspector(

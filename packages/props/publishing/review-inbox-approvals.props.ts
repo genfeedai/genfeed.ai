@@ -54,11 +54,6 @@ export interface ReviewInboxApprovalsSectionProps {
   title?: string;
 }
 
-export interface ReviewSourceFiltersProps {
-  activeSources: readonly ReviewInboxItemSource[];
-  onSourceChange: (sources: ReviewInboxItemSource[]) => void;
-}
-
 export interface ReviewInboxBulkBarProps {
   /** Rows selected, across pages. */
   selectedCount: number;

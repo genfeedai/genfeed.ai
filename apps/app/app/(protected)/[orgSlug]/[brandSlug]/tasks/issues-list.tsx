@@ -20,6 +20,7 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -33,7 +34,6 @@ import {
   DialogTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
-import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -392,34 +392,27 @@ export default function IssuesList() {
   // Same Container header chrome as Inbox (mb-4 pb-3 under py-5).
   const toolbar = showToolbar ? (
     <div className="flex flex-wrap items-center justify-end gap-2.5">
-      {hasItems ? (
-        <Button
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-          onClick={openCreateDialog}
-        >
-          <CirclePlus className="size-4" aria-hidden="true" />
-          {translate('newTask')}
-        </Button>
-      ) : null}
-      <Select
-        value={statusFilter || 'all'}
-        onValueChange={(value) =>
-          setUrlParam('status', value === 'all' ? null : value)
-        }
-      >
-        <SelectTrigger className={ghostSelectTriggerClassName}>
-          <SelectValue placeholder={translate('allStatuses')} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{translate('allStatuses')}</SelectItem>
-          {STATUS_ORDER.map((s) => (
-            <SelectItem key={s} value={s}>
-              {statusLabels[s]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterMenu
+        facets={[
+          {
+            defaultValue: 'all',
+            key: 'status',
+            label: translate('statusColumn'),
+            onChange: (value) =>
+              setUrlParam('status', value === 'all' ? null : value),
+            options: [
+              { label: translate('allStatuses'), value: 'all' },
+              ...STATUS_ORDER.map((s) => ({
+                label: statusLabels[s],
+                value: s,
+              })),
+            ],
+            selection: 'single',
+            value: statusFilter || 'all',
+          },
+        ]}
+        onClear={() => setUrlParam('status', null)}
+      />
       {hasItems ? (
         <ViewToggle
           activeView={viewMode}
@@ -444,6 +437,16 @@ export default function IssuesList() {
             },
           ]}
         />
+      ) : null}
+      {hasItems ? (
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.SM}
+          onClick={openCreateDialog}
+        >
+          <CirclePlus className="size-4" aria-hidden="true" />
+          {translate('newTask')}
+        </Button>
       ) : null}
     </div>
   ) : undefined;

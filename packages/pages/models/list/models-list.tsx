@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  type ModelsToolbar,
+  usePublishModelsToolbar,
+} from '@contexts/models/models-toolbar-context/models-toolbar-context';
 import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { ModelsListProps } from '@props/admin/models.props';
@@ -18,8 +22,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import AdminModelsToolbar from './components/AdminModelsToolbar';
+import type { ModelCategoryGroupKey } from './components/models-catalog-overview.helpers';
 
-import ModelsCatalogOverview from './components/ModelsCatalogOverview';
 import { useModelsList } from './useModelsList';
 
 export default function ModelsList({
@@ -78,6 +82,66 @@ export default function ModelsList({
     },
     [getModelHref, router, handleViewDetails],
   );
+
+  // Outside the admin the search and the category filter live in the
+  // settings layout's subbar, in its one Filters menu.
+  const searchNode = useMemo(
+    () => (
+      <FormSearchbar
+        isCollapsible
+        onSearch={handleSearchChange}
+        placeholder={translate('searchModels')}
+        size={ComponentSize.SM}
+        value={searchTerm}
+      />
+    ),
+    [handleSearchChange, searchTerm, translate],
+  );
+  const modelsToolbar = useMemo<ModelsToolbar | null>(
+    () =>
+      isAdminScope
+        ? null
+        : {
+            facets: [
+              {
+                defaultValue: 'all',
+                key: 'category',
+                label: translate('categoryFilterLabel'),
+                onChange: (value) =>
+                  handleCategorySelect(
+                    value === 'all' ? 'all' : (value as ModelCategoryGroupKey),
+                  ),
+                options: [
+                  {
+                    count: isLoadingCatalog ? undefined : catalogTotal,
+                    label: translate('categoryAll'),
+                    value: 'all',
+                  },
+                  ...catalogOverviewCards.map((card) => ({
+                    count: isLoadingCatalog ? undefined : card.count,
+                    label: card.label,
+                    value: card.key,
+                  })),
+                ],
+                selection: 'single' as const,
+                value: selectedGroupKey ?? 'all',
+              },
+            ],
+            onClear: () => handleCategorySelect('all'),
+            searchNode,
+          },
+    [
+      catalogOverviewCards,
+      catalogTotal,
+      handleCategorySelect,
+      isAdminScope,
+      isLoadingCatalog,
+      searchNode,
+      selectedGroupKey,
+      translate,
+    ],
+  );
+  usePublishModelsToolbar(modelsToolbar);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   async function handleRefresh() {
@@ -195,41 +259,6 @@ export default function ModelsList({
   const content = (
     <>
       {beforeList}
-      {!isAdminScope ? (
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">
-              {translate('catalogTitle')}
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {translate('catalogDescription')}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {renderToolbar?.(models)}
-            <div className="w-full sm:w-64">
-              <FormSearchbar
-                className="w-full"
-                onSearch={handleSearchChange}
-                placeholder={translate('searchModels')}
-                size={ComponentSize.SM}
-                value={searchTerm}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {!isAdminScope ? (
-        <ModelsCatalogOverview
-          cards={catalogOverviewCards}
-          isLoading={isLoadingCatalog}
-          onSelect={isAdminScope ? undefined : handleCategorySelect}
-          selectedKey={selectedGroupKey}
-          total={catalogTotal}
-        />
-      ) : null}
-
       <AppTable<IModel>
         isLoading={isLoading}
         error={

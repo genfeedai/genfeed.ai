@@ -3,7 +3,6 @@
     "relevance": "Trend relevance",
     "market": "Market trends",
     "brand": "For this brand",
-    "reload": "Reload data",
     "loadError": "Some trend data could not be loaded. Reload to retry.",
     "openSource": "Open source",
     "asAccount": "{action} as {account}",

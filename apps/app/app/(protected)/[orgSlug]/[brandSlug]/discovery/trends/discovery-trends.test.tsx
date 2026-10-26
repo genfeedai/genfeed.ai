@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { Platform, Timeframe } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -397,9 +398,7 @@ describe('DiscoveryTrends', () => {
       });
     });
     const user = userEvent.setup();
-    screen.getByRole('combobox', { name: 'Trend timeframe' }).focus();
-    await user.keyboard('{ArrowDown}');
-    await user.click(screen.getByRole('option', { name: '7 days' }));
+    await selectFilterOption(user, 'Trend timeframe', '7 days');
     await waitFor(() => {
       expect(mocks.getViralVideos).toHaveBeenLastCalledWith({
         brandId: 'brand-1',
@@ -429,9 +428,9 @@ describe('DiscoveryTrends', () => {
   it('defaults every surface to brand and changes all reads on explicit Market opt-in', async () => {
     renderDiscoveryTrends();
     await screen.findByText('AI video');
-    expect(screen.getByRole('tab', { name: 'For this brand' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveTextContent(
+      /^Filters$/,
     );
     for (const read of [
       mocks.getTrendsDiscovery,
@@ -446,9 +445,11 @@ describe('DiscoveryTrends', () => {
         }),
       );
     }
-    await userEvent
-      .setup()
-      .click(screen.getByRole('tab', { name: 'Market trends' }));
+    await selectFilterOption(
+      userEvent.setup(),
+      'Trend relevance',
+      'Market trends',
+    );
     await waitFor(() => {
       for (const read of [
         mocks.getTrendsDiscovery,
@@ -472,9 +473,7 @@ describe('DiscoveryTrends', () => {
     fireEvent.click(screen.getByRole('button', { name: '#AIAgents' }));
     expect(screen.queryByText('External video')).not.toBeInTheDocument();
     const user = userEvent.setup();
-    screen.getByRole('combobox', { name: 'Trend platform' }).focus();
-    await user.keyboard('{ArrowDown}');
-    await user.click(screen.getByRole('option', { name: 'YouTube' }));
+    await selectFilterOption(user, 'Trend platform', 'YouTube');
     await waitFor(() => {
       for (const read of [
         mocks.getTrendsDiscovery,
@@ -495,9 +494,11 @@ describe('DiscoveryTrends', () => {
   it('resets scope-dependent state and keeps query caches separate across brand switches', async () => {
     const view = renderDiscoveryTrends();
     await screen.findByText('#AIAgents');
-    await userEvent
-      .setup()
-      .click(screen.getByRole('tab', { name: 'Market trends' }));
+    await selectFilterOption(
+      userEvent.setup(),
+      'Trend relevance',
+      'Market trends',
+    );
     await waitFor(() =>
       expect(mocks.getTrendingSounds).toHaveBeenLastCalledWith(
         expect.objectContaining({ relevance: 'market' }),
@@ -551,9 +552,9 @@ describe('DiscoveryTrends', () => {
         <DiscoveryTrends />
       </QueryClientProvider>,
     );
-    expect(screen.getByRole('tab', { name: 'For this brand' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveTextContent(
+      /^Filters$/,
     );
   });
 
@@ -633,7 +634,7 @@ describe('DiscoveryTrends', () => {
     mocks.getTrendsDiscovery.mockRejectedValue(new Error('topics failed'));
     mocks.getTrendingHashtags.mockRejectedValue(new Error('hashtags failed'));
     mocks.getTrendingSounds.mockRejectedValue(new Error('sounds failed'));
-    fireEvent.click(screen.getByRole('button', { name: 'Reload data' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Some trend data could not be loaded.',
     );

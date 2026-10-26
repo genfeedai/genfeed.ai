@@ -53,11 +53,11 @@ test.describe('Admin Organization', () => {
       ).toBeVisible();
 
       if (hasOrganizationsList) {
+        await adminPage.getByRole('button', { name: /^Filters/ }).click();
         await expect(
-          adminPage.getByRole('combobox', {
-            name: 'Sort organization analytics',
-          }),
+          adminPage.getByRole('menuitem', { name: /^Sort/ }),
         ).toBeVisible();
+        await adminPage.keyboard.press('Escape');
         await expect(organizationsListSurface(adminPage)).toBeVisible();
       }
     });

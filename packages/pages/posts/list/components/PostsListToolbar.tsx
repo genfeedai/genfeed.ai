@@ -2,6 +2,7 @@
 
 import { ComponentSize, PostStatus } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import {
   POSTS_SOURCE_EXTENSION,
   type PostsSourceFilter,
@@ -32,6 +33,9 @@ export interface PostsListToolbarProps {
   sortValue: string;
   sortOptions: PostsListToolbarOption[];
   onSortChange: (value: string) => void;
+  /** A platform id, or `all`; with `onPlatformChange` it adds the Platform facet. */
+  platformValue?: string;
+  onPlatformChange?: (value: string) => void;
   onPublishingViewChange?: (value: PublishingPostsView) => void;
   onSourceChange?: (value: PostsSourceFilter | undefined) => void;
   publishingView?: PublishingPostsView;
@@ -66,12 +70,15 @@ export default function PostsListToolbar({
   sortValue,
   sortOptions,
   onSortChange,
+  onPlatformChange,
   onPublishingViewChange,
   onSourceChange,
+  platformValue,
   publishingView,
   sourceValue,
 }: PostsListToolbarProps) {
   const translate = useTranslations('pages.posts.list');
+  const translateAdmin = useTranslations('pages.posts.list.admin');
   const translateMenu = useTranslations('ui.filtersButton');
 
   const facets: FilterMenuFacet[] = [];
@@ -90,6 +97,23 @@ export default function PostsListToolbar({
       })),
       selection: 'single',
       value: publishingView,
+    });
+  }
+
+  if (onPlatformChange) {
+    facets.push({
+      defaultValue: 'all',
+      key: 'platform',
+      label: translateAdmin('platformFilter'),
+      onChange: onPlatformChange,
+      options: getPostPlatformTabs().map(({ icon: Icon, id, label }) => ({
+        icon: Icon ? <Icon aria-hidden="true" className="size-4" /> : undefined,
+        label: id === 'all' ? translateMenu('all') : label,
+        value: id,
+        isLiteral: id !== 'all',
+      })),
+      selection: 'single',
+      value: platformValue ?? 'all',
     });
   }
 
@@ -128,7 +152,10 @@ export default function PostsListToolbar({
       facets={facets}
       getActiveCountLabel={(count) => translateMenu('activeCount', { count })}
       label={translateMenu('menu')}
-      onClear={() => onSourceChange?.(undefined)}
+      onClear={() => {
+        onSourceChange?.(undefined);
+        onPlatformChange?.('all');
+      }}
     />
   );
 }

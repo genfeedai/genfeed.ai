@@ -87,7 +87,7 @@
     "startMessage": "Eligible approved posts schedule through existing publish controls. Rejected items stay ineligible.",
     "startTitle": "Start this campaign?",
     "started": "Campaign started. {succeeded} succeeded, {ineligible} ineligible, {failed} failed.",
-    "statusFilter": "Campaign status",
+    "statusFilter": "Status",
     "tabs": {
       "calendar": "Calendar",
       "content": "Content",
@@ -367,7 +367,6 @@
         "workflow": "Workflow",
         "mcpClient": "MCP client"
       },
-      "allSources": "All sources",
       "emptyFilteredTitle": "Nothing from these sources",
       "emptyFilteredDescription": "No request from the selected sources needs a decision. Try All sources.",
       "organizationWide": "All brands",
@@ -388,7 +387,8 @@
       "bulkRejectMessage": "{count, plural, one {This request is rejected and will not run.} other {These requests are rejected and will not run.}}",
       "bulkApproved": "{count, plural, one {Approved # request} other {Approved # requests}}",
       "bulkRejected": "{count, plural, one {Rejected # request} other {Rejected # requests}}",
-      "bulkPartial": "Decided {count}, {failed} could not be saved"
+      "bulkPartial": "Decided {count}, {failed} could not be saved",
+      "sourceLabel": "Source"
     },
     "assignment": {
       "unavailable": "Unavailable member",
@@ -517,8 +517,6 @@
         "FAILED": "failed",
         "CANCELLED": "cancelled"
       },
-      "selectBatch": "Select batch",
-      "selectBatchTooltip": "Select review batch",
       "discardBatch": "Discard batch",
       "loadFailed": "Unable to load the review queue",
       "emptyTitle": "No review work waiting",
@@ -527,11 +525,11 @@
       "batchLoadDescription": "The batch list loaded, but the selected batch details could not be retrieved. Pick another batch or refresh.",
       "noDetails": "No batch details are available",
       "noDetailsDescription": "Pick another batch or reload the queue.",
-      "invalidResponse": "The review batches response was invalid or failed to load. Refresh the page and check the batches API."
+      "invalidResponse": "The review batches response was invalid or failed to load. Refresh the page and check the batches API.",
+      "batchLabel": "Batch"
     },
     "filters": {
-      "all": "All statuses",
-      "option": "{status} · {count}",
+      "label": "Status",
       "status": {
         "approved": "Approved",
         "changes_requested": "Changes",

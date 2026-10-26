@@ -27,6 +27,31 @@ const BRANDS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.BRANDS);
 const API_KEYS_PATTERN = '**/api.genfeed.ai/v1/api-keys**';
 const BRANDS_LIST_PATTERN = '**/api.genfeed.ai/v1/brands?**';
 
+/** Opens the Category facet of the models Filters menu. */
+async function openModelCategoryFacet(settingsPage: SettingsPage) {
+  await settingsPage.canvas.getByRole('button', { name: /^Filters/ }).click();
+  await settingsPage.page.getByRole('menuitem', { name: /^Category/ }).click();
+}
+
+async function chooseModelCategory(
+  settingsPage: SettingsPage,
+  name: RegExp,
+): Promise<void> {
+  await openModelCategoryFacet(settingsPage);
+  await settingsPage.page.getByRole('menuitemradio', { name }).click();
+}
+
+async function expectModelCategoryChecked(
+  settingsPage: SettingsPage,
+  name: RegExp,
+): Promise<void> {
+  await openModelCategoryFacet(settingsPage);
+  await expect(
+    settingsPage.page.getByRole('menuitemradio', { name }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await settingsPage.page.keyboard.press('Escape');
+}
+
 /** Answer the API key list GET; everything else falls back to the mocks. */
 async function mockApiKeyList(
   page: Page,
@@ -175,18 +200,12 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
       await settingsPage.open(MODELS_ROUTE);
 
+      // Model type and category are facets of the one Filters menu.
       await expect(
-        settingsPage.canvas.getByRole('heading', {
-          exact: true,
-          name: 'Model catalog',
-        }),
+        settingsPage.canvas.getByRole('button', { name: /^Filters/ }),
       ).toBeVisible();
-      await expect(
-        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
-      ).toContainText('Catalog');
-      await expect(
-        settingsPage.canvas.getByRole('tab', { name: /^All\b/ }),
-      ).toHaveAttribute('aria-selected', 'true');
+      await expect(settingsPage.canvas.getByRole('combobox')).toHaveCount(0);
+      await expect(settingsPage.canvas.getByRole('tablist')).toHaveCount(0);
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,
@@ -205,14 +224,12 @@ test.describe('Settings Connections & Sub-Pages', () => {
         authenticatedPage,
         'video',
       );
-      await settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }).click();
+      await chooseModelCategory(settingsPage, /^Video\b/);
 
       await expect(authenticatedPage).toHaveURL(/[?&]type=video(?:&|$)/);
-      // The tab is not just highlighted: the list asks the API for that group.
+      // The option is not just checked: the list asks the API for that group.
       await videoRequest;
-      await expect(
-        settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }),
-      ).toHaveAttribute('aria-selected', 'true');
+      await expectModelCategoryChecked(settingsPage, /^Video\b/);
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,
@@ -232,16 +249,8 @@ test.describe('Settings Connections & Sub-Pages', () => {
       );
       await settingsPage.open(`${MODELS_ROUTE}?type=images`);
 
-      await expect(
-        settingsPage.canvas.getByRole('tab', { name: /^Image\b/ }),
-      ).toHaveAttribute('aria-selected', 'true');
+      await expectModelCategoryChecked(settingsPage, /^Image\b/);
       await imageRequest;
-      await expect(
-        settingsPage.canvas.getByRole('heading', {
-          exact: true,
-          name: 'Model catalog',
-        }),
-      ).toBeVisible();
     });
 
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
@@ -250,14 +259,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
       await settingsPage.open(`${MODELS_ROUTE}?type=videos`);
 
+      await expectModelCategoryChecked(settingsPage, /^Video\b/);
       await expect(
-        settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }),
-      ).toHaveAttribute('aria-selected', 'true');
-      await expect(
-        settingsPage.canvas.getByRole('heading', {
-          exact: true,
-          name: 'Model catalog',
-        }),
+        settingsPage.canvas.getByRole('button', { name: /^Filters/ }),
       ).toBeVisible();
     });
   });

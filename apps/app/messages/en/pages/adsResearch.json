@@ -103,5 +103,57 @@
     "videoPreviewUnavailable": "Video preview unavailable. View the saved archive link for source details.",
     "tiktokProvider": "TikTok Ads Library",
     "videoPreview": "Public ad video preview"
+  },
+  "filters": {
+    "platform": "Platform",
+    "source": "Source",
+    "sort": "Sort",
+    "metric": "Metric",
+    "timeframe": "Timeframe",
+    "channel": "Google channel",
+    "credential": "Credential",
+    "adAccount": "Ad account",
+    "noCredential": "No credential",
+    "noAdAccount": "No ad account",
+    "sources": {
+      "all": "Public + My Accounts",
+      "public": "Public",
+      "myAccounts": "My Accounts",
+      "saved": "Saved"
+    },
+    "platforms": {
+      "all": "All platforms",
+      "meta": "Meta",
+      "google": "Google + YouTube",
+      "tiktok": "TikTok",
+      "x": "X"
+    },
+    "sorts": {
+      "score": "Score (High → Low)",
+      "ctr": "CTR (High → Low)",
+      "roas": "ROAS (High → Low)",
+      "longevity": "Longest running"
+    },
+    "channels": {
+      "all": "All Inventory",
+      "search": "Search",
+      "display": "Display",
+      "youtube": "YouTube"
+    },
+    "metrics": {
+      "performanceScore": "Performance Score",
+      "ctr": "CTR",
+      "roas": "ROAS",
+      "conversions": "Conversions",
+      "spendEfficiency": "Spend Efficiency"
+    },
+    "timeframes": {
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "last90Days": "Last 90 Days",
+      "allTime": "All Time"
+    },
+    "industryPlaceholder": "Niche / industry…",
+    "loginCustomerPlaceholder": "MCC / manager ID"
   }
 }

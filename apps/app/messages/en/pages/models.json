@@ -3,10 +3,9 @@
   "model": "Model",
   "newModel": "New model",
   "loadError": "Models could not be loaded.",
-  "catalogTitle": "Model catalog",
   "categoryAll": "All",
-  "categoryFilterLabel": "Model category",
-  "catalogDescription": "Compare available models by category, quality, and credit cost.",
+  "categoryFilterLabel": "Category",
+  "modelType": "Model type",
   "table": {
     "approvedStatus": "Approved",
     "categoryHeader": "Category",

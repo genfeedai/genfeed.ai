@@ -23,19 +23,13 @@ import CampaignCreateDialog from '@pages/campaigns/form/CampaignCreateDialog';
 import type { CampaignsListPageProps } from '@props/content/campaign-setup.props';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Container from '@ui/layout/container/Container';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Flag, Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -195,21 +189,20 @@ export default function CampaignsListPage({
       label={translate('title')}
       right={
         <div className="flex items-center gap-2">
-          <Select onValueChange={replaceStatus} value={status ?? 'all'}>
-            <SelectTrigger
-              aria-label={translate('statusFilter')}
-              className="w-36 shrink-0"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CAMPAIGN_STATUS_FILTERS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: 'all',
+                key: 'status',
+                label: translate('statusFilter'),
+                onChange: replaceStatus,
+                options: CAMPAIGN_STATUS_FILTERS,
+                selection: 'single',
+                value: status ?? 'all',
+              },
+            ]}
+            onClear={() => replaceStatus('all')}
+          />
           <Button
             onClick={() => setIsCreating(true)}
             size={ButtonSize.SM}

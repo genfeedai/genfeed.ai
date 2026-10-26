@@ -4,9 +4,7 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
-import { Platform } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import PostsPlatformSelect from '@pages/posts/list/components/PostsPlatformSelect';
 import type {
   PostsLayoutAction,
   PostsLayoutState,
@@ -14,7 +12,7 @@ import type {
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Newspaper } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 
@@ -75,14 +73,8 @@ function postsLayoutReducer(
 }
 
 function PostsLayoutContent({ children }: { children: ReactNode }) {
-  const { push, refresh } = useRouter();
+  const { refresh } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString() ?? '';
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
 
   const [state, dispatch] = useReducer(
     postsLayoutReducer,
@@ -101,38 +93,6 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
   const isDetailRoute =
     pathname.startsWith(`${APP_ROUTES.ADMIN.CONTENT.POSTS}/`) &&
     pathname.split('/').length === 5;
-
-  const platformParam = parsedSearchParams.get('platform');
-  const activeTab =
-    platformParam === Platform.YOUTUBE ||
-    platformParam === Platform.INSTAGRAM ||
-    platformParam === Platform.TWITTER ||
-    platformParam === Platform.TIKTOK
-      ? platformParam
-      : 'all';
-
-  const handlePlatformChange = useCallback(
-    (platform: string) => {
-      if (platform === activeTab) {
-        return;
-      }
-
-      const params = new URLSearchParams(searchParamsString);
-      if (platform === 'all') {
-        params.delete('platform');
-      } else {
-        params.set('platform', platform);
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      push(
-        queryString
-          ? `${APP_ROUTES.ADMIN.CONTENT.POSTS}?${queryString}`
-          : APP_ROUTES.ADMIN.CONTENT.POSTS,
-      );
-    },
-    [push, activeTab, searchParamsString],
-  );
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn !== 'function') {
@@ -221,10 +181,6 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
           isListRoute ? (
             <>
               <AdminOrgBrandUrlFilter />
-              <PostsPlatformSelect
-                value={activeTab}
-                onChange={handlePlatformChange}
-              />
               {filtersNode}
             </>
           ) : undefined

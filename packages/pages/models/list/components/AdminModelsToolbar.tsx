@@ -25,15 +25,14 @@ export default function AdminModelsToolbar({
       title={translate('title')}
       icon={Cpu}
       search={
-        <div className="w-48 sm:w-64">
-          <FormSearchbar
-            ariaLabel={translate('searchModels')}
-            onSearch={onSearch}
-            placeholder={translate('searchModels')}
-            size={ComponentSize.SM}
-            value={searchTerm}
-          />
-        </div>
+        <FormSearchbar
+          ariaLabel={translate('searchModels')}
+          isCollapsible
+          onSearch={onSearch}
+          placeholder={translate('searchModels')}
+          size={ComponentSize.SM}
+          value={searchTerm}
+        />
       }
       filters={<AdminModelsFilters category={category} />}
       onRefresh={onRefresh}

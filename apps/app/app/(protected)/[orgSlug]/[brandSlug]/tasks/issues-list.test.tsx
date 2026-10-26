@@ -1,3 +1,4 @@
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -372,10 +373,7 @@ describe('IssuesList pagination', () => {
     render(<IssuesList />);
     await screen.findByText('Filtered task');
 
-    await user.click(screen.getAllByRole('combobox')[0]);
-    await user.click(
-      await screen.findByRole('option', { name: 'All Statuses' }),
-    );
+    await selectFilterOption(user, 'Status', 'All Statuses');
 
     expect(mocks.replace).toHaveBeenCalledWith('/', { scroll: false });
   });
