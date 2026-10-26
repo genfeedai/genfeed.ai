@@ -164,7 +164,7 @@ export class CreateImageDto extends CreateIngredientDto {
   @IsOptional()
   @ApiProperty({
     description:
-      'Native provider quality enum from the model OpenAPI schema (e.g. low, medium, high, xhigh, max, auto). Missing or auto bills at the top band.',
+      'Native provider quality enum from the model OpenAPI schema (e.g. low, medium, high, xhigh, max, auto). Auto bills at the top band; omitted quality uses the selected model default quality.',
     required: false,
   })
   readonly quality?: string;
