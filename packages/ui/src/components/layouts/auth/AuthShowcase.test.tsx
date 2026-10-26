@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import AuthShowcase from '@ui/layouts/auth/AuthShowcase';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/image', () => ({
   default: ({
@@ -9,68 +9,58 @@ vi.mock('next/image', () => ({
     fill: _fill,
     priority: _priority,
     sizes: _sizes,
+    unoptimized: _unoptimized,
     ...props
   }: Record<string, unknown>) => (
     <img src={src as string} alt={alt as string} {...props} />
   ),
 }));
 
-const COPY = {
-  pauseLabel: 'Pause',
-  playLabel: 'Play',
-  description: 'Create, review and publish.',
-  headline: 'From brief to published.',
-  steps: ['Create', 'Review', 'Publish'],
-};
-
-function mockReducedMotion(isReduced: boolean) {
+function mockMedia({ isDesktop, isReducedMotion }: Record<string, boolean>) {
   vi.stubGlobal(
     'matchMedia',
-    vi.fn().mockReturnValue({
+    vi.fn((query: string) => ({
       addEventListener: vi.fn(),
-      matches: isReduced,
+      matches: query.includes('prefers-reduced-motion')
+        ? isReducedMotion
+        : isDesktop,
       removeEventListener: vi.fn(),
-    }),
+    })),
   );
 }
 
 describe('AuthShowcase', () => {
-  it.each(['wall', 'rotator', 'bento'] as const)(
-    'renders the value line and steps for the %s variant',
-    (variant) => {
-      render(<AuthShowcase variant={variant} {...COPY} />);
-
-      expect(
-        screen.getByRole('heading', { name: COPY.headline }),
-      ).toBeInTheDocument();
-      expect(screen.getByText(COPY.description)).toBeInTheDocument();
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
-    },
-  );
-
-  it('keeps media decorative', () => {
-    const { container } = render(<AuthShowcase variant="wall" {...COPY} />);
-
-    const images = Array.from(container.querySelectorAll('img'));
-    expect(images.length).toBeGreaterThan(0);
-    for (const image of images) {
-      expect(image).toHaveAttribute('alt', '');
-    }
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  it('plays the video variant with a pause control', () => {
-    mockReducedMotion(false);
-    const { container } = render(<AuthShowcase variant="video" {...COPY} />);
+  it('plays a muted video with a pause control on desktop', () => {
+    mockMedia({ isDesktop: true, isReducedMotion: false });
+    const { container } = render(
+      <AuthShowcase pauseLabel="Pause" playLabel="Play" />,
+    );
 
     expect(container.querySelector('video')?.muted).toBe(true);
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
   });
 
-  it('keeps the video variant to its poster under reduced motion', () => {
-    mockReducedMotion(true);
-    const { container } = render(<AuthShowcase variant="video" {...COPY} />);
+  it('shows only the poster under reduced motion', () => {
+    mockMedia({ isDesktop: true, isReducedMotion: true });
+    const { container } = render(
+      <AuthShowcase pauseLabel="Pause" playLabel="Play" />,
+    );
 
     expect(container.querySelector('video')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
+    expect(container.querySelector('img')).toHaveAttribute('alt', '');
+  });
+
+  it('does not load the video below desktop width', () => {
+    mockMedia({ isDesktop: false, isReducedMotion: false });
+    const { container } = render(
+      <AuthShowcase pauseLabel="Pause" playLabel="Play" />,
+    );
+
+    expect(container.querySelector('video')).toBeNull();
   });
 });

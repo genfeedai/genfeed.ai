@@ -1518,7 +1518,7 @@ export default proxy;
 
 export const config = {
   matcher: [
-    '/((?!_next|serwist(?:/|$)|v1(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|mp4|webm|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
+    '/((?!_next|serwist(?:/|$)|v1(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
     '/(api|trpc)(.*)',
   ],
 };

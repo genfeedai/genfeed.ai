@@ -323,3 +323,45 @@ test.describe('Login Success Flow', () => {
     ).toBeVisible();
   });
 });
+
+test.describe('Auth background video', () => {
+  const AUTH_PATHS = ['/login', '/sign-up'] as const;
+
+  for (const path of AUTH_PATHS) {
+    test(`plays a muted background video beside the ${path} form on desktop`, async ({
+      unauthenticatedPage,
+    }) => {
+      await unauthenticatedPage.setViewportSize({ height: 900, width: 1440 });
+      await unauthenticatedPage.goto(path);
+
+      const video = unauthenticatedPage.locator('video');
+      await expect(video).toBeVisible();
+      await expect(video).toHaveJSProperty('muted', true);
+      await expect(video).toHaveJSProperty('loop', true);
+      await expect(
+        unauthenticatedPage.getByRole('button', {
+          name: /pause background video/i,
+        }),
+      ).toBeVisible();
+    });
+
+    test(`keeps ${path} to the form alone on mobile`, async ({
+      unauthenticatedPage,
+    }) => {
+      await unauthenticatedPage.setViewportSize({ height: 844, width: 390 });
+      await unauthenticatedPage.goto(path);
+
+      await expect(unauthenticatedPage.locator('video')).toHaveCount(0);
+    });
+
+    test(`${path} shows no video when reduced motion is requested`, async ({
+      unauthenticatedPage,
+    }) => {
+      await unauthenticatedPage.emulateMedia({ reducedMotion: 'reduce' });
+      await unauthenticatedPage.setViewportSize({ height: 900, width: 1440 });
+      await unauthenticatedPage.goto(path);
+
+      await expect(unauthenticatedPage.locator('video')).toHaveCount(0);
+    });
+  }
+});
