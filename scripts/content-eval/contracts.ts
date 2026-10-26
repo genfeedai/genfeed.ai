@@ -13,6 +13,7 @@ import type { ZodType } from 'zod';
 import { z } from 'zod';
 import { matchSchema } from './bench/schema';
 import { calibrationSectionSchema } from './calibration/contracts';
+import { noiseSectionSchema } from './noise/contracts';
 import {
   outlierSectionSchema,
   outlierThresholdsSchema,
@@ -35,6 +36,9 @@ import {
 export * from './rows';
 
 export const CONTENT_EVAL_REPORT_SCHEMA_VERSION = 1;
+
+/** Upper bound on `--repeats`; more repeats than this is a budget decision, not a default. */
+export const MAX_REPEATS = 10;
 
 export const DISPATCHER_KINDS = ['stub', 'live'] as const;
 export type DispatcherKind = (typeof DISPATCHER_KINDS)[number];
@@ -90,6 +94,8 @@ export const suiteConfigSchema = z.object({
   maxCredits: z.number().positive(),
   /** Outlier cut (#5234); the report records the defaults when unset. */
   outlierThresholds: outlierThresholdsSchema.optional(),
+  /** Answers per case and contestant (#5600); above 1 enables grade-twice. */
+  repeats: z.number().int().min(1).max(MAX_REPEATS).default(1),
   seed: z.number().int(),
   suite: z.enum(SUITE_NAMES),
   tieBand: z.number().min(0).max(1),
@@ -307,6 +313,8 @@ export const contentEvalReportSchema = z.object({
   outcome: suiteOutcomeSchema,
   /** Owned by #4926; narrowed by `media/` when it lands. */
   media: z.unknown().optional(),
+  /** Noise section (#5600): intervals, paired verdicts and diagnostics. */
+  noise: noiseSectionSchema.optional(),
   /** Outlier section (#5234): capped cases plus per-contestant rates. */
   outliers: outlierSectionSchema.optional(),
   passed: z.boolean(),
@@ -460,6 +468,11 @@ export interface StubDispatcherOptions {
   /** Registry keys whose calls fail, to exercise void handling. */
   failingModels?: string[];
   isFirstAlwaysPreferred?: boolean;
+  /**
+   * Some pointwise gradings are shifted, so the same text can be graded
+   * differently twice: a flaky-judge fixture (#5600).
+   */
+  isJudgeFlaky?: boolean;
   qualityOf?: (content: string) => number;
   usdPerToken?: number;
 }
@@ -521,7 +534,7 @@ export interface ReportAnalyzerInput {
 /** Adds a report section from already-scored results; never calls a model. */
 export interface ReportAnalyzer {
   analyze(input: ReportAnalyzerInput): unknown;
-  readonly key: 'outliers';
+  readonly key: 'noise' | 'outliers';
   summaryLines?(report: ContentEvalReport): string[];
 }
 
@@ -549,6 +562,8 @@ export interface ContentEvalRunOptions {
   models: string[];
   now?: Date;
   outlierThresholds?: unknown;
+  /** Answers per case and contestant; defaults to 1. */
+  repeats?: number;
   runId?: string;
   seed: number;
   suite: SuiteName;
@@ -567,6 +582,7 @@ export interface ContentEvalCliArgs {
   maxCredits: number;
   models: string[];
   out: string | null;
+  repeats: number;
   seed: number;
   suite: SuiteName;
   tieBand: number;

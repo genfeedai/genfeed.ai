@@ -1,10 +1,7 @@
 import 'server-only';
 
 import { getBetterAuthServerToken } from '@genfeedai/auth-client/server';
-import {
-  isDesktopClient,
-  isSelfHostedDeployment,
-} from '@genfeedai/config/deployment';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
@@ -16,6 +13,7 @@ import {
   resolveServerSuperAdminFromToken,
 } from './admin-ip-access.server';
 import { isDesktopServerRequest } from './desktop-request.server';
+import { getRequestDeployment } from './request-deployment.server';
 
 export { isDesktopServerRequest } from './desktop-request.server';
 
@@ -78,8 +76,10 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
   }
 });
 
-export function hasUsableServerAuthToken(token: string): boolean {
-  return Boolean(token) || isSelfHostedDeployment();
+export async function hasUsableServerAuthToken(
+  token: string,
+): Promise<boolean> {
+  return Boolean(token) || (await getRequestDeployment()) === 'self-hosted';
 }
 
 export function shouldSkipCloudBootstrap(
@@ -101,7 +101,7 @@ export const loadProtectedBootstrap = cache(
       return null;
     }
 
-    if (!hasUsableServerAuthToken(token)) {
+    if (!(await hasUsableServerAuthToken(token))) {
       return null;
     }
 
@@ -156,7 +156,7 @@ export const loadServerSuperAdmin = cache(async (): Promise<boolean> => {
 
   if (
     shouldSkipCloudBootstrap(token, await isDesktopServerRequest()) ||
-    !hasUsableServerAuthToken(token)
+    !(await hasUsableServerAuthToken(token))
   ) {
     return false;
   }

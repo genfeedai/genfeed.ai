@@ -19,7 +19,7 @@ summary; the canonical, decision-of-record version is the ADR at
 
 ## Choosing a mode (env)
 
-- **SaaS** — a production build whose URL env keys (`GENFEEDAI_APP_URL`, `GENFEEDAI_API_PUBLIC_URL`, …) or browser hostname are on `*.genfeed.ai` (+ Better Auth, AWS, Stripe). With `NODE_ENV=production` the domain is the only signal; `GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD` are ignored, so a self-hoster cannot flip into Cloud. They still select Cloud outside production (Portless, local Cloud). Playwright production builds on localhost use the test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud|self-hosted`, which is ignored on any `*.genfeed.ai` host.
+- **SaaS** — a production build whose URL env keys (`GENFEEDAI_APP_URL`, `GENFEEDAI_API_PUBLIC_URL`, …) or browser hostname are on `*.genfeed.ai` (+ Better Auth, AWS, Stripe). With `NODE_ENV=production` the domain is the only signal (on the web app's server paths — runtime config, auth bootstrap, admin gate — it is the request `Host`, so no URL env is needed there); `GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD` are ignored, so a self-hoster cannot flip into Cloud. They still select Cloud outside production (Portless, local Cloud). Playwright production builds on localhost use the test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud|self-hosted`, which is ignored on any `*.genfeed.ai` host.
 - **Community** — leave `GENFEED_CLOUD` unset. The release bundle's default
   `.env.example` enables local Better Auth sign-up
   (`BETTER_AUTH_ENABLED=true`, `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true`) so the

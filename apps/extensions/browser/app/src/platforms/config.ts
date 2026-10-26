@@ -56,7 +56,9 @@ export interface PlatformConfig {
   constructPostUrl: (postId: string) => string;
 }
 
-const LINKEDIN_PHOTO_BUTTON = 'button[aria-label="Share photo"]';
+// The comment box's photo button, and the share box's Media button on its own screen.
+const LINKEDIN_PHOTO_BUTTON =
+  'button[aria-label="Share photo"], [data-sdui-screen$=".sharing.ShareCompose"] button[aria-label="Media"]';
 const LINKEDIN_POST_MENU_LABEL = 'Open control menu for post by ';
 
 function parseTwitterPostUrl(value: string) {
@@ -245,7 +247,7 @@ export const platforms: Record<string, PlatformConfig> = {
     // LinkedIn's feed has no stable class names or post ids in its markup.
     // Its comment box always shows an icon row (emoji, GIF, photo) while its
     // Comment button only appears once something is typed, so the group joins
-    // the icon row, found by the photo button.
+    // the icon row, found by its photo button (the share box: its Media button).
     readPostAuthor: (root) =>
       root
         .querySelector(`button[aria-label^="${LINKEDIN_POST_MENU_LABEL}"]`)
@@ -261,7 +263,8 @@ export const platforms: Record<string, PlatformConfig> = {
       postIdentifier: 'div[data-urn*="activity"]',
       replyTextarea: 'div[contenteditable="true"][role="textbox"]',
       submitButton: LINKEDIN_PHOTO_BUTTON,
-      toolbar: `div:has(> ${LINKEDIN_PHOTO_BUTTON})`,
+      toolbar:
+        'div:has(> button[aria-label="Share photo"]), div:has(> button[aria-label="Media"])',
       postAuthor: [
         '.feed-shared-actor__name',
         '.update-components-actor__name',

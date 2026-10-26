@@ -6,6 +6,7 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type {
   StoryboardARollChunk,
   StoryboardARollQuote,
+  StoryboardLongFormEstimate,
   StoryboardPresenterTrack,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
@@ -22,6 +23,7 @@ import Field from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 
 interface TrackProgress {
   total: number;
@@ -69,6 +71,28 @@ export default function StoryboardLongFormBoard({
   const animatic = trackProgress(run.config.animatic?.chunks);
   const presenter = trackProgress(run.config.aRoll?.chunks);
   const isBusy = isDisabled || !actions;
+  const estimateLongForm = actions?.estimateLongForm;
+  const revision = run.config.revision;
+  const [estimate, setEstimate] = useState<StoryboardLongFormEstimate>();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-price whenever the script or a finished part changes what is left; part renders do not bump the revision.
+  useEffect(() => {
+    if (!estimateLongForm) return;
+    const controller = new AbortController();
+    estimateLongForm(revision, controller.signal)
+      .then((next) => {
+        if (!controller.signal.aborted) setEstimate(next);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setEstimate(undefined);
+      });
+    return () => controller.abort();
+  }, [
+    estimateLongForm,
+    revision,
+    missingCutaways.length,
+    animatic.ready,
+    presenter.ready,
+  ]);
 
   function price(quote: StoryboardStillQuote | StoryboardARollQuote) {
     return quote.billingMode === 'byok'
@@ -125,9 +149,16 @@ export default function StoryboardLongFormBoard({
   function openEdit(track: StoryboardPresenterTrack) {
     if (!actions) return;
     onPerform(async () => {
-      const projectId = await actions.assembleLongForm(track);
+      const { editorProjectId, skippedCutawayIds } =
+        await actions.assembleLongForm(track);
+      if (skippedCutawayIds.length)
+        NotificationsService.getInstance().warning(
+          translate('cutawaysSkipped', { count: skippedCutawayIds.length }),
+        );
       router.push(
-        href(`${APP_ROUTES.STUDIO.EDITOR}/${encodeURIComponent(projectId)}`),
+        href(
+          `${APP_ROUTES.STUDIO.EDITOR}/${encodeURIComponent(editorProjectId)}`,
+        ),
       );
     });
   }
@@ -139,6 +170,16 @@ export default function StoryboardLongFormBoard({
         <h2 className="text-sm font-semibold">
           {translate('productionTitle')}
         </h2>
+        {estimate ? (
+          <p className="text-sm text-muted-foreground">
+            {estimate.billingMode === 'byok'
+              ? translate('estimateByok')
+              : translate('estimateCredits', {
+                  credits: estimate.totalCredits,
+                })}
+            {estimate.presenter.problem ? ` ${estimate.presenter.problem}` : ''}
+          </p>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
           <section
             aria-label={translate('brollTitle')}

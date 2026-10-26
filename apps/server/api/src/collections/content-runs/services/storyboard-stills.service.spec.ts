@@ -731,6 +731,19 @@ describe('StoryboardStillsService long-form cutaways', () => {
     ).toEqual(['asset-1', 'existing-footage']);
   });
 
+  it('prices every cutaway still without footage for the whole-video estimate', async () => {
+    const config = longFormConfig();
+    const context = setup(config);
+
+    const estimate = await context.service.estimateCutaways(
+      'org-1',
+      storyboardStoredRunConfigSchema.parse(config),
+    );
+
+    expect(estimate).toEqual({ parts: 1, credits: 4, billingMode: 'platform' });
+    expect(context.images.generateImage).not.toHaveBeenCalled();
+  });
+
   it('leaves the slot empty when the brief changed while it rendered', async () => {
     const context = setup(longFormConfig());
     const quote = await context.service.quote('org-1', 'brand-1', 'run-1', {

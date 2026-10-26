@@ -20,6 +20,7 @@ import type {
 } from './contracts';
 import { suiteConfigSchema } from './contracts';
 import { assertCrossFamily } from './families';
+import { projectComparisonSpendCredits } from './noise/projection';
 import { readSourceRevision } from './provenance';
 import { buildReport } from './report';
 import { createEvalJudge } from './scorers/judge';
@@ -112,6 +113,7 @@ export async function runContentEval(
     judgeRegistryKeys: options.judgeRegistryKeys,
     maxCredits: options.maxCredits,
     outlierThresholds: options.outlierThresholds,
+    repeats: options.repeats ?? 1,
     seed: options.seed,
     suite: options.suite,
     tieBand: options.tieBand,
@@ -123,6 +125,21 @@ export async function runContentEval(
       ),
       judgeRegistryKeys: config.judgeRegistryKeys,
     });
+  }
+
+  if (config.repeats > 1) {
+    const projected = projectComparisonSpendCredits({
+      contestants: config.contestants,
+      judgeRegistryKeys: config.judgeRegistryKeys,
+      repeats: config.repeats,
+      rows: fixture.rows,
+    });
+    // Refused before a dispatcher exists, so nothing has been spent.
+    if (projected > config.maxCredits) {
+      throw new UsageError(
+        `--repeats=${config.repeats} projects up to ${projected.toFixed(2)} credits, over --max-credits=${config.maxCredits}; lower --repeats or raise the cap`,
+      );
+    }
   }
 
   const revision = readSourceRevision();

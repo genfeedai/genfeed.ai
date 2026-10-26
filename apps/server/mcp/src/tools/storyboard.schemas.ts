@@ -88,6 +88,9 @@ const storyboardLongFormSchema = z.discriminatedUnion('action', [
       cutawayIds: storyboardCutawayIdsSchema.optional(),
     })
     .strict(),
+  z
+    .object({ ...run, action: z.literal('estimate'), expectedRevision })
+    .strict(),
   z.object({ ...run, action: z.literal('reconcile') }).strict(),
   z
     .object({

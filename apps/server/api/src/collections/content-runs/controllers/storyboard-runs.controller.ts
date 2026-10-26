@@ -16,6 +16,7 @@ import {
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
+import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
@@ -53,6 +54,7 @@ export class StoryboardRunsController {
     private readonly stills: StoryboardStillsService,
     private readonly aRoll: StoryboardARollService,
     private readonly assembly: StoryboardLongFormAssemblyService,
+    private readonly estimates: StoryboardLongFormEstimateService,
   ) {}
 
   @Post()
@@ -198,6 +200,23 @@ export class StoryboardRunsController {
       request,
       StoryboardRunSerializer,
       await this.stills.reconcile(user.organizationId, brandId, runId),
+    );
+  }
+
+  /** Everything the long-form video still costs, before any spend (#8221). */
+  @Post(':runId/long-form/estimate')
+  estimateLongForm(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: QuoteStoryboardARollDto,
+  ) {
+    return this.estimates.estimate(
+      user.organizationId,
+      brandId,
+      runId,
+      user.userId,
+      body,
     );
   }
 

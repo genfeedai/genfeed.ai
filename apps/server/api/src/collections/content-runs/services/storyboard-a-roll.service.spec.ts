@@ -224,6 +224,26 @@ describe('StoryboardARollService', () => {
     ).rejects.toThrow(ConflictException);
   });
 
+  it('estimates the presenter before approval without holding credits', async () => {
+    const draft = {
+      ...approvedConfig(),
+      state: 'storyboard' as const,
+      approvedRevision: undefined,
+    };
+    const ctx = setup(draft);
+
+    const estimate = await ctx.service.estimate(
+      'aRoll',
+      'org-1',
+      'brand-1',
+      'user-1',
+      storyboardStoredRunConfigSchema.parse(draft),
+    );
+
+    expect(estimate).toMatchObject({ parts: 2, credits: 2_398 });
+    expect(ctx.avatars.generateAvatarVideo).not.toHaveBeenCalled();
+  });
+
   it('renders each chunk and records its measured length', async () => {
     const ctx = setup();
     await renderAll(ctx);

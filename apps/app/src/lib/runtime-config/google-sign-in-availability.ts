@@ -8,9 +8,11 @@ import { isCloudDeployment } from '@genfeedai/config';
  * uses to register the provider. Without them the button only errors, so
  * self-hosted auth screens must not offer it.
  */
-export function readGoogleSignInAvailableFromEnv(): boolean {
+export function readGoogleSignInAvailableFromEnv(
+  isCloud: boolean = isCloudDeployment(),
+): boolean {
   return (
-    isCloudDeployment() ||
+    isCloud ||
     Boolean(
       process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() &&
         process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim(),

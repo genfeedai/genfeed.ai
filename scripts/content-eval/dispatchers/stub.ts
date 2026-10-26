@@ -63,6 +63,7 @@ function stubJudgement(
   schemaName: string,
   qualityOf: (content: string) => number,
   isFirstAlwaysPreferred: boolean,
+  pointwiseQualityOf: (content: string) => number = qualityOf,
 ): unknown {
   const prompt = textOf(messages[messages.length - 1]);
   if (schemaName === 'content_quality_scoring') {
@@ -109,7 +110,7 @@ function stubJudgement(
   const content = between(prompt, '[Content]:', '***') ?? prompt;
   const index = Math.min(
     choices.length - 1,
-    Math.floor(qualityOf(content) * choices.length),
+    Math.floor(pointwiseQualityOf(content) * choices.length),
   );
   return {
     choice: choices[index],
@@ -124,6 +125,17 @@ export function createStubDispatcher(
   const failingModels = new Set(options.failingModels ?? []);
   const qualityOf = (content: string): number =>
     Math.min(1, Math.max(0, (options.qualityOf ?? stubQuality)(content)));
+  // A flaky judge shifts some gradings by half the scale, wrapping around. Which
+  // ones is a stable hash of the text and how often it was graded, so a re-run
+  // flakes identically.
+  const timesGraded = new Map<string, number>();
+  const pointwiseQualityOf = (content: string): number => {
+    const times = timesGraded.get(content) ?? 0;
+    timesGraded.set(content, times + 1);
+    return options.isJudgeFlaky && stubQuality(`${content}#${times}`) > 0.5
+      ? (qualityOf(content) + 0.5) % 1
+      : qualityOf(content);
+  };
 
   return {
     async close() {},
@@ -148,6 +160,7 @@ export function createStubDispatcher(
               request.schemaName,
               qualityOf,
               options.isFirstAlwaysPreferred ?? false,
+              pointwiseQualityOf,
             );
       // Same contract as the live helper: the answer must match the schema.
       const value = request.schema.parse(raw);

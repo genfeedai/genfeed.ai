@@ -7,6 +7,7 @@ import type { ContentEvalCliArgs } from './contracts';
 import {
   CONTENT_EVAL_THRESHOLDS,
   DISPATCHER_KINDS,
+  MAX_REPEATS,
   SUITE_NAMES,
 } from './contracts';
 
@@ -95,6 +96,23 @@ export function parseCliArgs(argv: string[]): ContentEvalCliArgs {
     throw new UsageError('--judge needs at least one registry key');
   }
 
+  const repeats = Math.trunc(
+    readNumber('repeats', readFlag(argv, 'repeats') ?? '1'),
+  );
+  if (repeats < 1 || repeats > MAX_REPEATS) {
+    throw new UsageError(`--repeats must be between 1 and ${MAX_REPEATS}`);
+  }
+  const suite = readEnum(
+    'suite',
+    requireFlag(argv, 'suite', SUITE_NAMES.join('|')),
+    SUITE_NAMES,
+  );
+  if (repeats > 1 && suite !== 'ladder' && suite !== 'harness-ab') {
+    throw new UsageError(
+      '--repeats above 1 is only valid with --suite=ladder or --suite=harness-ab',
+    );
+  }
+
   return {
     dispatcherKind: readEnum(
       'dispatcher',
@@ -106,12 +124,9 @@ export function parseCliArgs(argv: string[]): ContentEvalCliArgs {
     maxCredits,
     models: readList(readFlag(argv, 'models')),
     out: readFlag(argv, 'out') ?? null,
+    repeats,
     seed: Math.trunc(readNumber('seed', readFlag(argv, 'seed') ?? '1')),
-    suite: readEnum(
-      'suite',
-      requireFlag(argv, 'suite', SUITE_NAMES.join('|')),
-      SUITE_NAMES,
-    ),
+    suite,
     tieBand,
   };
 }

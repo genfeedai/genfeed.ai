@@ -2,6 +2,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -11,6 +12,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { REPLICATE_POLL_MAX_ATTEMPTS } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -32,6 +34,13 @@ interface IngredientWithMetadataDoc {
   metadataId: string;
 }
 
+interface TimedOutPredictionDoc {
+  category: IngredientCategory;
+  id: unknown;
+  metadata: { externalId?: string | null } | null;
+  organizationId?: string | null;
+}
+
 /**
  * Cron service for handling ingredient processing timeouts
  * Checks for ingredients stuck in PROCESSING status for more than 30 minutes
@@ -45,6 +54,9 @@ export class CronIngredientsService {
   private static readonly LOCK_KEY_STUCK_INGREDIENTS = 'cron:ingredients:stuck';
   private static readonly LOCK_KEY_METADATA_REFRESH =
     'cron:ingredients:metadata';
+  /** A timed-out prediction is asked about for this long, then left to an operator. */
+  private static readonly TIMEOUT_RECOVERY_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+  private static readonly TIMEOUT_RECOVERY_BATCH = 100;
   // Lock TTL: 10 minutes (should be longer than max expected execution time)
   private static readonly LOCK_TTL_SECONDS = 600;
   /** Persisted so status readers (e.g. MCP get_job_status) see why it failed. */
@@ -81,6 +93,7 @@ export class CronIngredientsService {
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
+    private readonly replicatePollQueue: ReplicatePollQueueService,
   ) {}
 
   /**
@@ -111,7 +124,6 @@ export class CronIngredientsService {
     try {
       this.logger.log('Checking for stuck processing ingredients', context);
 
-      // Calculate the cutoff time: 30 minutes ago
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
       const stuckIngredients = await this.ingredientsService.findAll(
@@ -239,9 +251,70 @@ export class CronIngredientsService {
         context,
       );
     } finally {
+      await this.recoverTimedOutPredictions(context);
       await this.cacheService.releaseLock(
         CronIngredientsService.LOCK_KEY_STUCK_INGREDIENTS,
       );
+    }
+  }
+
+  /**
+   * The timeout above is a guess: the provider may have failed, or may still
+   * deliver. Its credit hold stays reserved until the provider says which, so
+   * every timed-out Replicate prediction gets one status read per sweep. The
+   * poll processor charges a finished output, or releases the hold on a
+   * confirmed failure, and leaves an unfinished prediction funded. Starting at
+   * the polling ceiling keeps each read a single request.
+   */
+  private async recoverTimedOutPredictions(context: string): Promise<void> {
+    try {
+      const timedOut = await this.ingredientsService.findAll(
+        {
+          include: { metadata: true },
+          where: {
+            generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+            isDeleted: false,
+            metadata: {
+              is: { externalId: { not: null }, externalProvider: 'replicate' },
+            },
+            organizationId: { not: null },
+            status: IngredientStatus.FAILED,
+            updatedAt: {
+              gte: new Date(
+                Date.now() - CronIngredientsService.TIMEOUT_RECOVERY_WINDOW_MS,
+              ),
+            },
+          },
+        },
+        {
+          limit: CronIngredientsService.TIMEOUT_RECOVERY_BATCH,
+          pagination: false,
+          sort: { updatedAt: -1 },
+        },
+      );
+      let scheduled = 0;
+      for (const ingredient of timedOut.docs as unknown as TimedOutPredictionDoc[]) {
+        const stored = ingredient.metadata?.externalId;
+        if (!stored || !ingredient.organizationId) continue;
+        // A batch output is stored as `<prediction>_<index>`.
+        const batch = /^(.+)_(\d+)$/.exec(stored);
+        const jobId = await this.replicatePollQueue.schedule({
+          attempt: REPLICATE_POLL_MAX_ATTEMPTS,
+          category: ingredient.category,
+          externalId: batch ? batch[1] : stored,
+          ingredientId: String(ingredient.id),
+          organizationId: ingredient.organizationId,
+          ...(batch ? { outputIndex: Number(batch[2]) } : {}),
+        });
+        if (jobId) scheduled += 1;
+      }
+      if (scheduled > 0)
+        this.logger.log(
+          `Scheduled ${scheduled} status reads for timed-out predictions`,
+          { context, scheduled },
+        );
+    } catch (error: unknown) {
+      this.logger.error('Timed-out prediction recovery failed', error, context);
     }
   }
 

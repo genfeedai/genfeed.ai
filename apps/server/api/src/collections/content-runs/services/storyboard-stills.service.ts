@@ -224,6 +224,36 @@ export class StoryboardStillsService {
     return next;
   }
 
+  /**
+   * Prices a still for every cutaway still without footage, for the
+   * whole-video estimate (#8221). Every still costs the same.
+   */
+  async estimateCutaways(
+    organizationId: string,
+    config: StoryboardStoredRunConfig,
+  ): Promise<{
+    parts: number;
+    credits: number;
+    billingMode?: StoryboardStillQuote['billingMode'];
+  }> {
+    const live = new Set(
+      (config.stillOperations ?? [])
+        .filter(isLiveStillOperation)
+        .map((op) => op.shotId),
+    );
+    const missing = (config.plan.longForm?.segments ?? [])
+      .flatMap((segment) => segment.cutaways)
+      .filter((cutaway) => !cutaway.assetId && !live.has(cutaway.id));
+    const first = missing[0];
+    if (!first) return { parts: 0, credits: 0 };
+    const quote = await this.priceStills(organizationId, config, [first.id]);
+    return {
+      parts: missing.length,
+      credits: quote.total * missing.length,
+      billingMode: quote.billingMode,
+    };
+  }
+
   private async buildQuote(
     organizationId: string,
     config: StoryboardStoredRunConfig,

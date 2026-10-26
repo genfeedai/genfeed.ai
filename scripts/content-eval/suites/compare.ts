@@ -28,6 +28,7 @@ import type {
 } from '../contracts';
 import { CONTENT_EVAL_THRESHOLDS } from '../contracts';
 import { requireModelFamily, resolveModelFamily } from '../families';
+import { GRADE_TWICE_SAMPLE_SIZE } from '../noise/contracts';
 import {
   canonicalJson,
   MeteredCallError,
@@ -58,7 +59,7 @@ import {
 } from './shared';
 
 export const GENERATION_SCHEMA_NAME = 'content_eval_generation';
-const GENERATION_MAX_TOKENS = 1024;
+export const GENERATION_MAX_TOKENS = 1024;
 const GENERATION_TEMPERATURE = 0.7;
 
 const generationSchema = z.object({ text: z.string().min(1) });
@@ -115,6 +116,7 @@ async function generateViaProduct(
   row: FixtureRow,
   contestant: Contestant,
   binding: ProductTextBinding,
+  repeatIndex: number,
 ): Promise<ProductGeneration> {
   const route = PRODUCT_TEXT_ROUTES[row.contentKind];
   if (!route) {
@@ -161,7 +163,7 @@ async function generateViaProduct(
     rowId: row.id,
     rubricDigest: null,
     rubricVersion: null,
-    seed: context.config.seed,
+    seed: context.config.seed + repeatIndex,
     settings: {
       endpoint: 'posts/draft-generations',
       platform: route.platform,
@@ -197,6 +199,7 @@ async function answerRow(
   row: FixtureRow,
   contestant: Contestant,
   product: ProductTextBinding | null,
+  repeatIndex: number,
 ): Promise<ContestantAnswer> {
   const provenance: ContestantProvenance = {
     family: requireModelFamily(contestant.registryKey),
@@ -215,6 +218,7 @@ async function answerRow(
     fixtureId: row.id,
     fixtureVisibility: row.source.visibility,
     humanLabel: humanLabelOf(row),
+    repeatIndex,
     rubricVersion: row.rubricVersion,
     runId: context.runId,
     suite,
@@ -232,6 +236,7 @@ async function answerRow(
         row,
         contestant,
         product,
+        repeatIndex,
       );
       text = generated.text;
       generationCallId = generated.callId;
@@ -253,7 +258,8 @@ async function answerRow(
           role: 'generation',
           schema: generationSchema,
           schemaName: GENERATION_SCHEMA_NAME,
-          seed: context.config.seed,
+          // A repeat that reused the seed would measure nothing on a seeded route.
+          seed: context.config.seed + repeatIndex,
           temperature: GENERATION_TEMPERATURE,
         },
       );
@@ -342,6 +348,7 @@ async function comparePair(
   row: FixtureRow,
   baseline: ContestantAnswer,
   challenger: ContestantAnswer,
+  repeatIndex: number,
 ): Promise<PairJudging> {
   const baselineId = baseline.scoredRow.contestant?.id ?? 'baseline';
   const challengerId = challenger.scoredRow.contestant?.id ?? 'challenger';
@@ -350,6 +357,7 @@ async function comparePair(
     challengerId,
     contentKind: row.contentKind,
     fixtureId: row.id,
+    repeatIndex,
   };
 
   if (baseline.text === null || challenger.text === null) {
@@ -497,6 +505,64 @@ function summarizeContestant(
   };
 }
 
+/** Evenly spaced pick, stable for a fixed set of answers. */
+function pickRegradeSample(rows: ScoredRow[]): number[] {
+  const candidates = rows
+    .map((row, index) => ({ index, row }))
+    .filter(
+      ({ row }) =>
+        row.voidReason === null &&
+        row.output !== null &&
+        row.isAccepted !== null,
+    )
+    .sort(
+      (left, right) =>
+        left.row.fixtureId.localeCompare(right.row.fixtureId) ||
+        (left.row.contestant?.id ?? '').localeCompare(
+          right.row.contestant?.id ?? '',
+        ) ||
+        (left.row.repeatIndex ?? 0) - (right.row.repeatIndex ?? 0),
+    );
+  const size = Math.min(GRADE_TWICE_SAMPLE_SIZE, candidates.length);
+
+  return Array.from({ length: size }, (_unused, slot) => {
+    const pick = candidates[Math.floor((slot * candidates.length) / size)];
+    return pick?.index ?? 0;
+  });
+}
+
+/**
+ * Grades a sample of outputs a second time (#5600). A judge that flips its
+ * accept verdict on identical input is the noise floor under every score gap.
+ * Its calls count against the cap but not against any contestant's credits.
+ */
+async function regradeSample(
+  context: SuiteContext,
+  rows: ScoredRow[],
+  onRegraded: () => void,
+): Promise<void> {
+  for (const index of pickRegradeSample(rows)) {
+    const scored = rows[index];
+    const fixtureRow = context.rows.find((row) => row.id === scored?.fixtureId);
+    if (!scored || !fixtureRow || scored.output === null) {
+      continue;
+    }
+
+    const judged = await judgeText(context, fixtureRow, scored.output);
+    if (judged.score === null) {
+      continue;
+    }
+    const checks = runDeterministicChecks(scored.output, fixtureRow);
+    rows[index] = {
+      ...scored,
+      regradedIsAccepted:
+        hasPassedAll(checks) &&
+        judged.score >= CONTENT_EVAL_THRESHOLDS.acceptedMinScore,
+    };
+    onRegraded();
+  }
+}
+
 export function createComparisonSuite(
   suite: SuiteName,
   /** Resolved at run time: the product binding is built in `prepare`. */
@@ -551,37 +617,50 @@ export function createComparisonSuite(
       };
 
       for (const row of context.rows) {
-        const baselineAnswer = await answerRow(
-          context,
-          suite,
-          row,
-          baseline,
-          productBinding(),
-        );
-        rows.push(baselineAnswer.scoredRow);
-        onProgress(outcomeOf(false));
-
-        for (const challenger of challengers) {
-          const answer = await answerRow(
+        for (
+          let repeatIndex = 0;
+          repeatIndex < context.config.repeats;
+          repeatIndex++
+        ) {
+          const baselineAnswer = await answerRow(
             context,
             suite,
             row,
-            challenger,
+            baseline,
             productBinding(),
+            repeatIndex,
           );
-          rows.push(answer.scoredRow);
+          rows.push(baselineAnswer.scoredRow);
           onProgress(outcomeOf(false));
 
-          const judged = await comparePair(
-            context,
-            row,
-            baselineAnswer,
-            answer,
-          );
-          pairs.push(judged.pair);
-          biasFlags.push(...judged.biasFlags);
-          onProgress(outcomeOf(false));
+          for (const challenger of challengers) {
+            const answer = await answerRow(
+              context,
+              suite,
+              row,
+              challenger,
+              productBinding(),
+              repeatIndex,
+            );
+            rows.push(answer.scoredRow);
+            onProgress(outcomeOf(false));
+
+            const judged = await comparePair(
+              context,
+              row,
+              baselineAnswer,
+              answer,
+              repeatIndex,
+            );
+            pairs.push(judged.pair);
+            biasFlags.push(...judged.biasFlags);
+            onProgress(outcomeOf(false));
+          }
         }
+      }
+
+      if (context.config.repeats > 1) {
+        await regradeSample(context, rows, () => onProgress(outcomeOf(false)));
       }
 
       return outcomeOf(true);

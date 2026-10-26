@@ -5,6 +5,7 @@ import {
   getClientSurface,
   getDeployment,
   getDeploymentFromReader,
+  getDeploymentFromRequestHost,
   hasSingleStepOnboarding,
   hostnameFromUrl,
   isCloudDeployment,
@@ -448,6 +449,83 @@ describe('isProductionCloudFromReader', () => {
         read({ GENFEEDAI_APP_URL: 42, NODE_ENV: 'production' }),
       ),
     ).toBe(false);
+  });
+});
+
+describe('getDeploymentFromRequestHost', () => {
+  const resolveHost = (
+    host: string | null | undefined,
+    env: Record<string, string | undefined> = {},
+  ) =>
+    getDeploymentFromRequestHost(host, (key) =>
+      key === 'NODE_ENV' ? 'production' : env[key],
+    );
+
+  it('is cloud on app.genfeed.ai with no URL env at all', () => {
+    expect(resolveHost('app.genfeed.ai')).toBe('cloud');
+    expect(resolveHost('app.genfeed.ai:443')).toBe('cloud');
+    expect(resolveHost('genfeed.ai')).toBe('cloud');
+  });
+
+  it('takes the first host of a forwarded chain', () => {
+    expect(resolveHost('app.genfeed.ai, proxy.internal')).toBe('cloud');
+    expect(resolveHost('proxy.internal, app.genfeed.ai')).toBe('self-hosted');
+  });
+
+  it.each([
+    'localhost:3000',
+    'studio.example.com',
+    'app.genfeed.ai.evil.com',
+    'notgenfeed.ai',
+    '',
+    null,
+    undefined,
+  ])('is self-hosted on %s', (host) => {
+    expect(resolveHost(host)).toBe('self-hosted');
+  });
+
+  it('ignores flags and hosted URL env, so only the host decides', () => {
+    const env = {
+      GENFEED_CLOUD: 'true',
+      GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+      NEXT_PUBLIC_API_ENDPOINT: 'https://api.genfeed.ai/v1',
+      NEXT_PUBLIC_GENFEED_CLOUD: '1',
+    };
+
+    expect(resolveHost('studio.example.com', env)).toBe('self-hosted');
+    expect(resolveHost('app.genfeed.ai', { GENFEED_CLOUD: 'false' })).toBe(
+      'cloud',
+    );
+  });
+
+  it('honours the test override only off *.genfeed.ai', () => {
+    expect(
+      resolveHost('localhost:3000', {
+        NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT: 'cloud',
+      }),
+    ).toBe('cloud');
+    expect(
+      resolveHost('app.genfeed.ai', {
+        NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT: 'self-hosted',
+      }),
+    ).toBe('cloud');
+  });
+
+  it('keeps non-production resolution on the flags and URL keys', () => {
+    expect(
+      getDeploymentFromRequestHost('app.genfeed.ai', (key) =>
+        key === 'NODE_ENV' ? 'development' : undefined,
+      ),
+    ).toBe('self-hosted');
+    expect(
+      getDeploymentFromRequestHost('localhost', (key) =>
+        key === 'NODE_ENV'
+          ? 'development'
+          : key === 'GENFEED_CLOUD'
+            ? '1'
+            : undefined,
+      ),
+    ).toBe('cloud');
   });
 });
 

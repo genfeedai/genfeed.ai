@@ -2,7 +2,6 @@ import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
   hasSingleStepOnboarding,
-  isCloudDeployment,
   isDesktopClient,
 } from '@genfeedai/config/deployment';
 import {
@@ -53,7 +52,6 @@ const SEEDED_WORKSPACE_PATH = createBrandAppRoute(
   'default',
   APP_ROUTES.WORKSPACE.OVERVIEW,
 );
-let hasWarnedAboutHostedModeMisconfiguration = false;
 const DEFAULT_MINIMUM_DESKTOP_VERSION = '0.1.0';
 
 type ParsedVersion = {
@@ -1454,17 +1452,6 @@ export async function proxy(req: NextRequest) {
   const minimumVersionResponse = enforceMinimumDesktopVersion(req);
   if (minimumVersionResponse) {
     return minimumVersionResponse;
-  }
-
-  if (
-    !hasWarnedAboutHostedModeMisconfiguration &&
-    req.nextUrl.hostname === 'app.genfeed.ai' &&
-    !isCloudDeployment()
-  ) {
-    hasWarnedAboutHostedModeMisconfiguration = true;
-    console.warn(
-      'app.genfeed.ai is running without a *.genfeed.ai URL env key (GENFEEDAI_APP_URL); deployment mode remains self-hosted.',
-    );
   }
 
   if (req.nextUrl.pathname === '/playwright-ready') {

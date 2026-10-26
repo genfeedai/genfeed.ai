@@ -40,7 +40,7 @@ export const loadOverviewPageData = cache(
       };
     }
 
-    if (!hasUsableServerAuthToken(token)) {
+    if (!(await hasUsableServerAuthToken(token))) {
       return {
         analytics: {},
         reviewInbox: {

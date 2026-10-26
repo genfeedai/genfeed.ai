@@ -64,6 +64,7 @@ function context(
       fixturePath: 'synthetic:kelder',
       judgeRegistryKeys: [DEFAULT_TEXT_MODEL],
       maxCredits,
+      repeats: 1,
       seed: 7,
       suite: 'judge',
       tieBand: 0.05,

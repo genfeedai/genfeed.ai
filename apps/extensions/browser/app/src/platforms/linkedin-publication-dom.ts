@@ -25,14 +25,31 @@ const COMMENT_SUBMIT = 'button.comments-comment-box__submit-button';
 const COMMENT_ENTITY = '[data-id^="urn:li:comment:"]';
 const COMMENT_BODY =
   '.comments-comment-item__main-content, .comments-comment-entity__content';
+// LinkedIn's newer feed has no class names or data-urn. A post is a feed list item whose
+// URN appears only in its comments' component keys; a comment box is a labelled editor
+// whose submit button carries just its text.
+const FEED_CARD = '[role="listitem"][componentkey^="update-card"]';
+const COMMENT_KEY_PREFIX = 'replaceableComment_';
+const FEED_COMMENT_ENTITY = `[componentkey^="${COMMENT_KEY_PREFIX}urn:li:comment:"]`;
+const FEED_COMMENT_BODY = '[data-testid="expandable-text-box"]';
+const FEED_COMMENT_ACTOR = 'a[href*="/in/"]';
+const FEED_EDITOR =
+  '[role="textbox"][contenteditable="true"][aria-label^="Text editor for creating"]';
+const FEED_SUBMIT_LABELS = ['comment', 'reply'];
+const FEED_COMPOSER_DEPTH = 8;
+// The newer share box is its own screen with one marked editor and a button reading Post.
+const FEED_SHARE_SCREEN = '[data-sdui-screen$=".sharing.ShareCompose"]';
+const FEED_SHARE_EDITOR =
+  '[componentkey="ShareBox_textEditor"][contenteditable="true"]';
 const COMMENT_ACTOR =
   '.comments-comment-meta a[href*="/in/"], .comments-post-meta a[href*="/in/"]';
 const UPDATE_BODY =
   '.update-components-text, .feed-shared-update-v2__description, .feed-shared-text';
 const UPDATE_ACTOR =
   '.update-components-actor a[href*="/in/"], .feed-shared-actor a[href*="/in/"]';
+// The newer layout drops the artdeco classes; its notices are announced through live regions.
 const TOAST_LINKS =
-  '.artdeco-toast-item a[href], .artdeco-toasts a[href], [data-test-artdeco-toast-item] a[href]';
+  '.artdeco-toast-item a[href], .artdeco-toasts a[href], [data-test-artdeco-toast-item] a[href], [role="alert"] a[href], [role="status"] a[href], [aria-live="polite"] a[href], [aria-live="assertive"] a[href]';
 const POST_URN = /^urn:li:(?:activity|share|ugcPost):\d+$/;
 const POST_PATH =
   /^\/feed\/update\/(urn:li:(?:activity|share|ugcPost):\d+)\/?$/;
@@ -58,14 +75,39 @@ function postContainerUrn(element: Element): string | null {
   }
   return null;
 }
+/** The comment URN an entity carries, in either layout. */
+function commentUrn(entity: Element): string | null {
+  const key = entity.getAttribute('componentkey') ?? '';
+  return canonicalLinkedInUrn(
+    key.startsWith(COMMENT_KEY_PREFIX)
+      ? key.slice(COMMENT_KEY_PREFIX.length)
+      : entity.getAttribute('data-id'),
+  );
+}
+/**
+ * The post a feed card shows, read from the comments already under it: the newer layout
+ * prints the URN nowhere else. Comments that disagree, or none at all, give no post.
+ */
+function feedCardPostUrn(element: Element): string | null {
+  const card = element.closest(FEED_CARD);
+  if (!card) return null;
+  const posts = new Set(
+    [...card.querySelectorAll(FEED_COMMENT_ENTITY)].map((entity) => {
+      const urn = commentUrn(entity);
+      return urn ? linkedInPostUrn(urn) : null;
+    }),
+  );
+  const [post] = posts;
+  return posts.size === 1 && post ? post : null;
+}
 function parentOf(
   root: Element,
   origin: string,
 ): PublicationCaptureParent | null {
-  const comment = root.closest(COMMENT_ENTITY);
+  const comment = root.closest(`${COMMENT_ENTITY}, ${FEED_COMMENT_ENTITY}`);
   const id = comment
-    ? canonicalLinkedInUrn(comment.getAttribute('data-id'))
-    : postContainerUrn(root);
+    ? commentUrn(comment)
+    : (postContainerUrn(root) ?? feedCardPostUrn(root));
   const post = id ? linkedInPostUrn(id) : null;
   const url = post ? linkedInPermalink(origin, post) : null;
   return id && url ? { externalId: id, url } : null;
@@ -78,6 +120,10 @@ export function findLinkedInComposer(
   if (!(target instanceof Element)) return null;
   const post = target.closest<HTMLElement>(POST_SUBMIT);
   const comment = post ? null : target.closest<HTMLElement>(COMMENT_SUBMIT);
+  if (!post && !comment)
+    return (
+      findFeedShareComposer(target) ?? findFeedCommentComposer(target, origin)
+    );
   const submit = post ?? comment;
   const root = post
     ? post.closest('[role="dialog"]')
@@ -95,6 +141,58 @@ export function findLinkedInComposer(
   return parent
     ? { root, editor: editors[0], submit, kind: 'comment', parent }
     : null;
+}
+/** The newer share box: its Post button, on the share screen holding exactly one share editor. */
+function findFeedShareComposer(
+  target: Element,
+): LinkedInPublicationComposer | null {
+  const submit = target.closest<HTMLElement>('button');
+  const root = submit?.closest(FEED_SHARE_SCREEN);
+  if (!submit || !root || submit.textContent?.trim().toLowerCase() !== 'post')
+    return null;
+  const editors = root.querySelectorAll<HTMLElement>(FEED_SHARE_EDITOR);
+  const posts = [...root.querySelectorAll('button')].filter(
+    (button) => button.textContent?.trim().toLowerCase() === 'post',
+  );
+  // A share screen never holds a comment box; refuse a mixed container.
+  return editors.length === 1 &&
+    posts.length === 1 &&
+    !root.querySelector(FEED_EDITOR)
+    ? { root, editor: editors[0], submit, kind: 'post', parent: null }
+    : null;
+}
+/**
+ * A comment or reply box in the newer feed: a button whose whole text is Comment or Reply,
+ * inside the nearest ancestor that holds exactly one comment editor. That ancestor must not
+ * also hold another such button, so a button outside the box is never taken for its submit.
+ */
+function findFeedCommentComposer(
+  target: Element,
+  origin: string,
+): LinkedInPublicationComposer | null {
+  const submit = target.closest<HTMLElement>('button');
+  const label = submit?.textContent?.trim().toLowerCase() ?? '';
+  if (!submit || !FEED_SUBMIT_LABELS.includes(label)) return null;
+  let root = submit.parentElement;
+  for (
+    let depth = 0;
+    root && depth < FEED_COMPOSER_DEPTH;
+    depth += 1, root = root.parentElement
+  ) {
+    const editors = root.querySelectorAll<HTMLElement>(FEED_EDITOR);
+    if (editors.length === 0) continue;
+    const submits = [...root.querySelectorAll('button')].filter((button) =>
+      FEED_SUBMIT_LABELS.includes(
+        button.textContent?.trim().toLowerCase() ?? '',
+      ),
+    );
+    if (editors.length !== 1 || submits.length !== 1) return null;
+    const parent = parentOf(root, origin);
+    return parent
+      ? { root, editor: editors[0], submit, kind: 'comment', parent }
+      : null;
+  }
+  return null;
 }
 export function isTrustedLinkedInSubmission(
   isTrusted: boolean,
@@ -137,6 +235,10 @@ export function linkedInBaselineIds(
       const urn = canonicalLinkedInUrn(element.getAttribute(name));
       if (urn) ids.add(urn);
     }
+  for (const entity of document.querySelectorAll(FEED_COMMENT_ENTITY)) {
+    const urn = commentUrn(entity);
+    if (urn) ids.add(urn);
+  }
   return [...ids];
 }
 function authorSlug(
@@ -231,9 +333,14 @@ function commentCandidates(
 ): LinkedInPublicationCandidate[] {
   const post = linkedInPostUrn(parent.externalId);
   const text = normalizePublicationWrittenText(attempt.description);
-  return [...document.querySelectorAll(COMMENT_ENTITY)].flatMap((entity) => {
-    const urn = canonicalLinkedInUrn(entity.getAttribute('data-id'));
-    const body = entity.querySelector(COMMENT_BODY);
+  return [
+    ...document.querySelectorAll(`${COMMENT_ENTITY}, ${FEED_COMMENT_ENTITY}`),
+  ].flatMap((entity) => {
+    const isFeed = entity.matches(FEED_COMMENT_ENTITY);
+    const urn = commentUrn(entity);
+    const body = entity.querySelector(
+      isFeed ? FEED_COMMENT_BODY : COMMENT_BODY,
+    );
     const publicationDate = urn ? publicationTime(urn, attempt, now) : null;
     const url = urn ? linkedInPermalink(origin, urn) : null;
     return urn &&
@@ -247,7 +354,11 @@ function commentCandidates(
           {
             externalId: urn,
             url,
-            authorHandle: authorSlug(entity, COMMENT_ACTOR, origin),
+            authorHandle: authorSlug(
+              entity,
+              isFeed ? FEED_COMMENT_ACTOR : COMMENT_ACTOR,
+              origin,
+            ),
             publicationDate,
           },
         ]

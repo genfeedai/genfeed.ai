@@ -131,7 +131,40 @@ export type StoryboardPresenterTrack = 'aRoll' | 'animatic';
 /** The Editor project an animatic or a finished long-form edit opened as. */
 export const storyboardLongFormAssemblySchema = z.object({
   editorProjectId: z.string().trim().min(1).max(255),
+  /** Cutaways left out of the edit because their footage failed or never came. */
+  skippedCutawayIds: z.array(z.string().trim().min(1).max(255)).max(600),
 });
+
+/**
+ * One paid step of a long-form video in the whole-video estimate (#8221):
+ * what is still to make and what it costs now. Finished parts are free.
+ */
+export const storyboardLongFormStageEstimateSchema = z
+  .object({
+    parts: z.number().int().nonnegative(),
+    credits: z.number().finite().nonnegative(),
+    /** Spoken length still to render, for the presenter and the animatic. */
+    seconds: z.number().finite().nonnegative().optional(),
+    /** Why this step cannot be priced yet, such as a missing presenter voice. */
+    problem: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict();
+
+/**
+ * Everything a long-form video still costs, before any spend. Each step is
+ * still quoted on its own and bound to that quote, so no step can charge
+ * more than its quote; this is the total the creator agrees to up front.
+ */
+export const storyboardLongFormEstimateSchema = z
+  .object({
+    revision: z.number().int().positive(),
+    billingMode: z.enum(['platform', 'byok', 'mixed']).nullable(),
+    cutaways: storyboardLongFormStageEstimateSchema,
+    animatic: storyboardLongFormStageEstimateSchema,
+    presenter: storyboardLongFormStageEstimateSchema,
+    totalCredits: z.number().finite().nonnegative(),
+  })
+  .strict();
 
 export type StoryboardARollPiece = z.infer<typeof storyboardARollPieceSchema>;
 export type StoryboardARollChunk = z.infer<typeof storyboardARollChunkSchema>;
@@ -141,4 +174,10 @@ export type StoryboardARollQuote = z.infer<typeof storyboardARollQuoteSchema>;
 export type RenderStoryboardARoll = z.infer<typeof renderStoryboardARollSchema>;
 export type StoryboardLongFormAssembly = z.infer<
   typeof storyboardLongFormAssemblySchema
+>;
+export type StoryboardLongFormStageEstimate = z.infer<
+  typeof storyboardLongFormStageEstimateSchema
+>;
+export type StoryboardLongFormEstimate = z.infer<
+  typeof storyboardLongFormEstimateSchema
 >;

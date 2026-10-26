@@ -5,6 +5,12 @@ import { GET } from './route';
 
 vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 
+function request(host = 'localhost:3000'): Request {
+  return new Request('http://localhost/runtime-config.js', {
+    headers: { host },
+  });
+}
+
 beforeEach(() => {
   vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', undefined);
   vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', undefined);
@@ -32,7 +38,7 @@ describe('self-hosted runtime config', () => {
         betterAuthEnabled: flag !== 'true',
       };
 
-      const response = await GET();
+      const response = await GET(request());
       const source = await response.text();
       expect(connection).toHaveBeenCalled();
       expect(source).toContain(`"betterAuthEnabled":${flag}`);
@@ -67,7 +73,7 @@ describe('self-hosted runtime config', () => {
     async ({ expected, key }) => {
       vi.stubEnv('RESEND_API_KEY', key);
 
-      const source = await (await GET()).text();
+      const source = await (await GET(request())).text();
 
       expect(source).toContain(`"isMagicLinkAvailable":${expected}`);
     },
@@ -94,7 +100,7 @@ describe('self-hosted runtime config', () => {
       globalThis.__GENFEED_RUNTIME_CONFIG__ = {
         isGoogleSignInAvailable: !expected,
       };
-      const source = await (await GET()).text();
+      const source = await (await GET(request())).text();
       const runtimeGlobal = { __GENFEED_RUNTIME_CONFIG__: {} };
       new Function('globalThis', source)(runtimeGlobal);
       expect(runtimeGlobal.__GENFEED_RUNTIME_CONFIG__).toMatchObject({
@@ -108,15 +114,15 @@ describe('self-hosted runtime config', () => {
 
   it('reflects credential changes between requests without a build or restart', async () => {
     vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', 'test-client-id');
-    expect(await (await GET()).text()).toContain(
+    expect(await (await GET(request())).text()).toContain(
       '"isGoogleSignInAvailable":false',
     );
     vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', 'test-client-secret');
-    expect(await (await GET()).text()).toContain(
+    expect(await (await GET(request())).text()).toContain(
       '"isGoogleSignInAvailable":true',
     );
     vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', ' ');
-    expect(await (await GET()).text()).toContain(
+    expect(await (await GET(request())).text()).toContain(
       '"isGoogleSignInAvailable":false',
     );
   });
@@ -127,8 +133,32 @@ describe('self-hosted runtime config', () => {
       '</script>' as unknown as boolean,
     );
 
-    const source = await (await GET()).text();
+    const source = await (await GET(request())).text();
     expect(source).toContain('\\u003c/script>');
     expect(source).not.toContain('<');
+  });
+});
+
+describe('cloud runtime config', () => {
+  it('is available on app.genfeed.ai from the request host alone', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('RESEND_API_KEY', '');
+
+    const source = await (await GET(request('app.genfeed.ai'))).text();
+
+    expect(source).toContain('"isGoogleSignInAvailable":true');
+    expect(source).toContain('"isMagicLinkAvailable":true');
+  });
+
+  it('stays self-hosted on any other host, whatever the URL env says', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('RESEND_API_KEY', '');
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'https://api.genfeed.ai/v1');
+
+    const source = await (await GET(request('studio.example.com'))).text();
+
+    expect(source).toContain('"isGoogleSignInAvailable":false');
+    expect(source).toContain('"isMagicLinkAvailable":false');
   });
 });

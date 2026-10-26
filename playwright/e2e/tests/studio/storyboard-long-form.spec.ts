@@ -131,10 +131,28 @@ test('reviews a long-form script and opens the rendered edit in the Editor', asy
         });
         return;
       }
+      if (path.endsWith('/long-form/estimate')) {
+        const free = { parts: 0, credits: 0 };
+        await route.fulfill({
+          json: {
+            revision: run.config.revision,
+            billingMode: 'platform',
+            cutaways: { parts: 1, credits: 4 },
+            animatic: free,
+            presenter: free,
+            totalCredits: 4,
+          },
+        });
+        return;
+      }
       if (path.endsWith('/long-form/assemble')) {
         assembled = true;
         await route.fulfill({
-          json: { editorProjectId: 'long-form-edit', timeline: {} },
+          json: {
+            editorProjectId: 'long-form-edit',
+            skippedCutawayIds: [],
+            timeline: {},
+          },
         });
         return;
       }
@@ -208,6 +226,12 @@ test('reviews a long-form script and opens the rendered edit in the Editor', asy
   ).toBeVisible();
   await expect(
     page.getByText('1 of 1 parts ready', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'The whole video still costs about 4 credits. Each step asks before it charges.',
+      { exact: true },
+    ),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Render presenter' }),
