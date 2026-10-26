@@ -183,6 +183,7 @@ const createImageGenerationService = () => {
   };
   const promptsService = {
     create: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
+    patch: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
   };
   const promptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
@@ -360,6 +361,7 @@ const createImageGenerationService = () => {
     comfyUIService,
     falService,
     klingAIService,
+    promptsService,
     replicateService,
     service,
   };
@@ -373,6 +375,7 @@ describe('Generation completes with a fake AI provider (zero network, real routi
       replicateService,
       comfyUIService,
       klingAIService,
+      promptsService,
     } = createImageGenerationService();
 
     const response = await service.generateImage(
@@ -386,6 +389,14 @@ describe('Generation completes with a fake AI provider (zero network, real routi
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     expect(comfyUIService.generateImage).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
+    // The text the model was sent is kept next to the prompt's slots.
+    expect(promptsService.patch).toHaveBeenCalledWith(
+      'prompt-doc',
+      expect.objectContaining({
+        renderedPrompt: expect.any(String),
+        renderTarget: 'prose',
+      }),
+    );
   });
 });
 
