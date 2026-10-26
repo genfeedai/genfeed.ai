@@ -7,6 +7,11 @@ import type {
   UpdateModelProviderRouting,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  AdminModelOffer,
+  AdminModelPricingRow,
+  AdminModelProviderUsage,
+} from '@props/admin/model-detail.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelDetailService } from '@services/admin/model-detail.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -38,15 +43,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-
-type ModelOffer = AdminModelDetail['offers'][number];
-type ModelRate = ModelOffer['rates'][number];
-type PricingRow = { key: string; offer: ModelOffer; rate: ModelRate | null };
-type ProviderUsage = {
-  provider: string;
-  generations: number;
-  vendorCostUsd: number;
-};
 
 const usd = (value: number) =>
   new Intl.NumberFormat('en-US', {
@@ -115,7 +111,7 @@ export default function ModelDetailContent() {
     return [...points.values()];
   }, [model, days]);
   const providers = useMemo(() => {
-    const points = new Map<string, ProviderUsage>();
+    const points = new Map<string, AdminModelProviderUsage>();
     for (const point of model?.usage ?? []) {
       const current = points.get(point.provider) ?? {
         provider: point.provider,
@@ -143,7 +139,7 @@ export default function ModelDetailContent() {
       </div>
     );
   const draft = modelDraft?.id === model.id ? modelDraft : model;
-  const offerColumns: TableColumn<ModelOffer>[] = [
+  const offerColumns: TableColumn<AdminModelOffer>[] = [
     {
       className: 'font-medium',
       header: t('provider'),
@@ -215,16 +211,17 @@ export default function ModelDetailContent() {
       ),
     },
   ];
-  const pricingRows: PricingRow[] = model.offers.flatMap<PricingRow>((offer) =>
-    offer.rates.length
-      ? offer.rates.map((rate) => ({
-          key: `${offer.id}-${rate.component}-${rate.unit}-${JSON.stringify(rate.when)}`,
-          offer,
-          rate,
-        }))
-      : [{ key: offer.id, offer, rate: null }],
-  );
-  const pricingColumns: TableColumn<PricingRow>[] = [
+  const pricingRows: AdminModelPricingRow[] =
+    model.offers.flatMap<AdminModelPricingRow>((offer) =>
+      offer.rates.length
+        ? offer.rates.map((rate) => ({
+            key: `${offer.id}-${rate.component}-${rate.unit}-${JSON.stringify(rate.when)}`,
+            offer,
+            rate,
+          }))
+        : [{ key: offer.id, offer, rate: null }],
+    );
+  const pricingColumns: TableColumn<AdminModelPricingRow>[] = [
     {
       header: t('provider'),
       key: 'provider',
@@ -302,7 +299,7 @@ export default function ModelDetailContent() {
         ) : null,
     },
   ];
-  const usageColumns: TableColumn<ProviderUsage>[] = [
+  const usageColumns: TableColumn<AdminModelProviderUsage>[] = [
     { header: t('provider'), key: 'provider' },
     {
       header: t('recordedGenerations'),
@@ -434,7 +431,7 @@ export default function ModelDetailContent() {
             </SelectContent>
           </Select>
         </div>
-        <Table<ModelOffer>
+        <Table<AdminModelOffer>
           ariaLabel={t('routingProvider')}
           columns={offerColumns}
           getRowKey={(offer) => offer.id}
@@ -477,7 +474,7 @@ export default function ModelDetailContent() {
           {t('pricingTable')}
         </h2>
         <p className="text-sm text-muted-foreground">{t('pricingTableHint')}</p>
-        <Table<PricingRow>
+        <Table<AdminModelPricingRow>
           ariaLabel={t('pricingTable')}
           columns={pricingColumns}
           getRowKey={(row) => row.key}
@@ -558,7 +555,7 @@ export default function ModelDetailContent() {
         {!model.usage.length && (
           <p className="text-sm text-muted-foreground">{t('noUsage')}</p>
         )}
-        <Table<ProviderUsage>
+        <Table<AdminModelProviderUsage>
           ariaLabel={t('usageTitle')}
           columns={usageColumns}
           getRowKey={(provider) => provider.provider}
