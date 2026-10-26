@@ -115,8 +115,51 @@ const KNOWLEDGE_PASSAGE_SCHEMA = closedObjectSchema(
   ['citation', 'content', 'relevance'],
 );
 
+const CONTEXT_COVERAGE_STATE = enumSchema([
+  'available',
+  'disconnected',
+  'empty',
+  'failed',
+  'partial',
+  'stale',
+] as const);
+
+const CONTEXT_COVERAGE_PROPERTIES = {
+  families: arraySchema(
+    closedObjectSchema(
+      {
+        family: enumSchema(['knowledge', 'social_connections'] as const),
+        lastSuccessAt: nullableSchema(STRING_SCHEMA),
+        purpose: KNOWLEDGE_PURPOSE,
+        recoveries: arraySchema(
+          closedObjectSchema(
+            {
+              kind: enumSchema(['open_knowledge', 'reconnect'] as const),
+              label: STRING_SCHEMA,
+              platform: STRING_SCHEMA,
+              sourceId: STRING_SCHEMA,
+              state: CONTEXT_COVERAGE_STATE,
+            },
+            ['kind', 'label', 'state'],
+          ),
+        ),
+        state: CONTEXT_COVERAGE_STATE,
+      },
+      ['family', 'lastSuccessAt', 'recoveries', 'state'],
+    ),
+  ),
+  isIncomplete: BOOLEAN_SCHEMA,
+  usage: enumSchema(['context', 'search'] as const),
+} as const;
+
+export const CONTEXT_COVERAGE_SCHEMA = closedObjectSchema(
+  CONTEXT_COVERAGE_PROPERTIES,
+  ['families', 'isIncomplete', 'usage'],
+);
+
 export const SEARCH_KNOWLEDGE_DATA_SCHEMA = closedObjectSchema(
   {
+    coverage: CONTEXT_COVERAGE_SCHEMA,
     message: STRING_SCHEMA,
     passages: arraySchema(KNOWLEDGE_PASSAGE_SCHEMA),
     query: STRING_SCHEMA,
@@ -199,6 +242,14 @@ const MUTATION_KNOWLEDGE_DATA_SCHEMA = closedObjectSchema(
   ['id', 'isVisible', 'kind', 'purpose', 'scope', 'title'],
 );
 
+const GET_CONTEXT_COVERAGE_DATA_SCHEMA = closedObjectSchema(
+  {
+    ...CONTEXT_COVERAGE_PROPERTIES,
+    message: STRING_SCHEMA,
+  },
+  ['families', 'isIncomplete', 'message', 'usage'],
+);
+
 const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
   archive_knowledge_source: {
     inputSchema: closedObjectSchema({ sourceId: STRING_SCHEMA }, ['sourceId']),
@@ -230,6 +281,13 @@ const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
       [],
     ),
     outputSchema: toolActionOutputSchema(CAPTURE_KNOWLEDGE_DATA_SCHEMA),
+  },
+  get_context_coverage: {
+    inputSchema: closedObjectSchema({
+      purposes: arraySchema(KNOWLEDGE_PURPOSE),
+      usage: enumSchema(['context', 'search'] as const),
+    }),
+    outputSchema: toolActionOutputSchema(GET_CONTEXT_COVERAGE_DATA_SCHEMA),
   },
   list_knowledge_sources: {
     inputSchema: closedObjectSchema({

@@ -42,7 +42,8 @@ export class KnowledgeRecordsService {
     await assertKnowledgeGovernance(this.prisma, actor);
   }
 
-  private async ownership(
+  /** The one ownership predicate for reads, shared with coverage so eligibility never forks. */
+  async ownership(
     actor: KnowledgeActor,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<

@@ -562,6 +562,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
+  ['get_context_coverage', 'Get Context Coverage', true, false, true, false],
   [
     'get_generation_options',
     'Get Generation Options',
@@ -1044,7 +1045,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(146);
+    expect(rows).toHaveLength(147);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });

@@ -252,6 +252,7 @@ export * from './integrations/news.interface';
 export * from './integrations/replicate.interface';
 export * from './integrations/research-finding-reference.interface';
 export * from './integrations/social-api.interface';
+export * from './knowledge-base/context-coverage.interface';
 export * from './knowledge-base/knowledge-base.interface';
 export * from './knowledge-base/knowledge-record.interface';
 export * from './knowledge-base/knowledge-retrieval.interface';

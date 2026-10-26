@@ -1,6 +1,8 @@
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
+import { KnowledgeContextCoverageService } from '@api/collections/contexts/services/knowledge-context-coverage.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { describeContextCoverage } from '@api/collections/contexts/utils/context-coverage.util';
 import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/knowledge-source.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -10,7 +12,11 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  ContextCoverage,
+  ContextCoverageUsage,
+} from '@genfeedai/contracts/interfaces';
 import type {
   KnowledgeSource,
   KnowledgeSourceVersion,
@@ -22,6 +28,7 @@ export type KnowledgeToolName =
   | 'archive_knowledge_source'
   | 'assign_knowledge_purpose'
   | 'capture_knowledge'
+  | 'get_context_coverage'
   | 'list_knowledge_sources'
   | 'read_knowledge_source'
   | 'retry_knowledge_ingestion'
@@ -146,6 +153,7 @@ export class AgentKnowledgeToolHandler {
     private readonly records: KnowledgeRecordsService,
     private readonly capture: KnowledgeCaptureService,
     private readonly knowledgeContentRetrievalService: KnowledgeContentRetrievalService,
+    private readonly contextCoverage: KnowledgeContextCoverageService,
   ) {}
 
   /** Single dispatch entry so the executor's route table stays flat. */
@@ -157,6 +165,8 @@ export class AgentKnowledgeToolHandler {
     switch (toolName) {
       case 'search_knowledge':
         return this.searchKnowledge(params, ctx);
+      case 'get_context_coverage':
+        return this.getContextCoverage(params, ctx);
       case 'list_knowledge_sources':
         return this.listKnowledgeSources(params, ctx);
       case 'read_knowledge_source':
@@ -233,18 +243,62 @@ export class AgentKnowledgeToolHandler {
         content: hit.content,
         relevance: hit.relevance,
       }));
+    // Zero hits never prove the library is empty, so an empty result carries coverage.
+    const coverage =
+      passages.length === 0
+        ? await this.readCoverage(ctx, 'search', readPurposes(params.purposes))
+        : undefined;
     return {
       creditsUsed: 0,
       data: {
+        ...(coverage ? { coverage } : {}),
         message:
           passages.length === 0
-            ? 'No saved Knowledge matched. Capture a source first or broaden the query.'
+            ? coverage?.isIncomplete
+              ? 'No eligible passages were returned; coverage is incomplete. Do not tell the user nothing exists.'
+              : 'No saved Knowledge matched. Capture a source first or broaden the query.'
             : `${passages.length} cited passage${passages.length === 1 ? '' : 's'} found.`,
         passages,
         query,
       },
       success: true,
     };
+  }
+
+  async getContextCoverage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const usage: ContextCoverageUsage =
+      params.usage === 'context' ? 'context' : 'search';
+    const coverage = await this.contextCoverage.forActor(toActor(ctx), {
+      purposes: readPurposes(params.purposes),
+      usage,
+    });
+    return {
+      creditsUsed: 0,
+      data: {
+        ...coverage,
+        message: describeContextCoverage(coverage.families),
+      },
+      success: true,
+    };
+  }
+
+  /** Coverage is advisory on a search result: a failed read must not fail the search. */
+  private async readCoverage(
+    ctx: ToolExecutionContext,
+    usage: ContextCoverageUsage,
+    purposes: KnowledgeSourcePurpose[] | undefined,
+  ): Promise<ContextCoverage | undefined> {
+    try {
+      return await this.contextCoverage.forActor(toActor(ctx), {
+        purposes,
+        usage,
+      });
+    } catch {
+      return undefined;
+    }
   }
 
   async listKnowledgeSources(

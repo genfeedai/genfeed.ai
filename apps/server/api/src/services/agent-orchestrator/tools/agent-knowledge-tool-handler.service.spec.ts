@@ -89,18 +89,148 @@ function buildHandler() {
       { content: 'Uncited legacy memory', relevance: 0.8 },
     ]),
   };
+  const contextCoverage = {
+    forActor: vi.fn().mockResolvedValue({
+      families: [],
+      isIncomplete: false,
+      usage: 'search',
+    }),
+  };
   const handler = new AgentKnowledgeToolHandler(
     { log: vi.fn() } as never,
     records as never,
     capture as never,
     knowledgeContentRetrievalService as never,
+    contextCoverage as never,
   );
-  return { capture, knowledgeContentRetrievalService, handler, records };
+  return {
+    capture,
+    contextCoverage,
+    handler,
+    knowledgeContentRetrievalService,
+    records,
+  };
 }
 
 describe('AgentKnowledgeToolHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('attaches coverage to an empty search and says it is incomplete when sources are partial', async () => {
+    const { contextCoverage, knowledgeContentRetrievalService, handler } =
+      buildHandler();
+    knowledgeContentRetrievalService.retrieveBrandContentMemory.mockResolvedValue(
+      [],
+    );
+    const coverage = {
+      families: [
+        {
+          family: 'knowledge',
+          lastSuccessAt: null,
+          purpose: 'BRAND_TRUTH',
+          recoveries: [],
+          state: 'partial',
+        },
+      ],
+      isIncomplete: true,
+      usage: 'search',
+    };
+    contextCoverage.forActor.mockResolvedValue(coverage);
+
+    const result = await handler.searchKnowledge(
+      { purposes: ['BRAND_TRUTH'], query: 'pricing' },
+      ctx,
+    );
+
+    expect(contextCoverage.forActor).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
+      { purposes: [KnowledgeSourcePurpose.BRAND_TRUTH], usage: 'search' },
+    );
+    expect(result.data?.coverage).toEqual(coverage);
+    expect(result.data?.message).toContain('coverage is incomplete');
+    expect(result.data?.passages).toEqual([]);
+  });
+
+  it('keeps the plain empty message when an empty search has complete coverage', async () => {
+    const { knowledgeContentRetrievalService, handler } = buildHandler();
+    knowledgeContentRetrievalService.retrieveBrandContentMemory.mockResolvedValue(
+      [],
+    );
+
+    const result = await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+    expect(result.data?.message).toContain('No saved Knowledge matched');
+  });
+
+  it('still answers an empty search when the coverage read fails', async () => {
+    const { contextCoverage, knowledgeContentRetrievalService, handler } =
+      buildHandler();
+    knowledgeContentRetrievalService.retrieveBrandContentMemory.mockResolvedValue(
+      [],
+    );
+    contextCoverage.forActor.mockRejectedValue(new Error('db down'));
+
+    const result = await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.coverage).toBeUndefined();
+  });
+
+  it('does not read coverage when a search returns passages', async () => {
+    const { contextCoverage, handler } = buildHandler();
+
+    await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+    expect(contextCoverage.forActor).not.toHaveBeenCalled();
+  });
+
+  it('returns coverage for the authenticated scope and defaults usage to search', async () => {
+    const { contextCoverage, handler } = buildHandler();
+    contextCoverage.forActor.mockResolvedValue({
+      families: [
+        {
+          family: 'social_connections',
+          lastSuccessAt: null,
+          recoveries: [
+            {
+              kind: 'reconnect',
+              label: 'Reconnect account',
+              platform: 'twitter',
+              state: 'disconnected',
+            },
+          ],
+          state: 'disconnected',
+        },
+      ],
+      isIncomplete: true,
+      usage: 'search',
+    });
+
+    const result = await handler.execute(
+      'get_context_coverage',
+      { brandId: 'other-brand', purposes: ['RESEARCH'] },
+      ctx,
+    );
+
+    expect(contextCoverage.forActor).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
+      { purposes: [KnowledgeSourcePurpose.RESEARCH], usage: 'search' },
+    );
+    expect(result.success).toBe(true);
+    expect(result.data?.isIncomplete).toBe(true);
+    expect(result.data?.message).toContain('Coverage is incomplete');
+  });
+
+  it('passes the context usage through to coverage', async () => {
+    const { contextCoverage, handler } = buildHandler();
+
+    await handler.getContextCoverage({ usage: 'context' }, ctx);
+
+    expect(contextCoverage.forActor).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ usage: 'context' }),
+    );
   });
 
   it('searches brand Knowledge with explicit filters and returns only cited passages', async () => {

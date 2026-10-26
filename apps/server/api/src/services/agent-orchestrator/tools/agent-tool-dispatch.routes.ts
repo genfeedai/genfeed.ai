@@ -429,6 +429,7 @@ function dispatchKnowledgeFamily(
 ): FamilyResult {
   switch (toolName) {
     case 'search_knowledge':
+    case 'get_context_coverage':
     case 'list_knowledge_sources':
     case 'read_knowledge_source':
     case 'capture_knowledge':

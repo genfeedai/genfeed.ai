@@ -58,6 +58,30 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Report whether the context behind an answer is complete: per source family (Knowledge by purpose, social connections) whether it is available, partial, stale, disconnected, failed or empty, with the last success time and recovery steps. Call it when a search returns nothing or before claiming something does not exist.',
+    name: 'get_context_coverage',
+    parameters: {
+      properties: {
+        purposes: {
+          description:
+            'Restrict the Knowledge rows to these purposes; omit for all purposes',
+          items: { enum: [...PURPOSE_ENUM], type: 'string' },
+          type: 'array',
+        },
+        usage: {
+          description:
+            'search covers an explicit Knowledge search (default); context covers the automatic answer context',
+          enum: ['context', 'search'],
+          type: 'string',
+        },
+      },
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'List the brand Knowledge sources with their purpose, processing state and failure reason.',
     name: 'list_knowledge_sources',
     parameters: {

@@ -236,6 +236,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'onboarding',
   },
   { name: 'get_content_analytics', surfaces: ['mcp'], toolset: 'analytics' },
+  {
+    name: 'get_context_coverage',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'knowledge',
+  },
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   {
