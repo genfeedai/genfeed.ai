@@ -165,7 +165,7 @@ describe('GenerationEventWebhookService', () => {
 
   describe('PostHog activation capture', () => {
     function makeFunnelService(options?: {
-      ingredient?: { userId: string | null } | null;
+      ingredient?: { category?: string; userId: string | null } | null;
       priorGenerationCount?: number;
     }) {
       const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
@@ -176,7 +176,7 @@ describe('GenerationEventWebhookService', () => {
             .fn()
             .mockResolvedValue(
               options?.ingredient === undefined
-                ? { userId: 'user_1' }
+                ? { category: 'IMAGE', userId: 'user_1' }
                 : options.ingredient,
             ),
         },
@@ -223,6 +223,7 @@ describe('GenerationEventWebhookService', () => {
       );
       expect(prisma.ingredient.count).toHaveBeenCalledWith({
         where: expect.objectContaining({
+          category: { in: ['IMAGE', 'VIDEO'] },
           id: { not: 'ingredient_1' },
           isDeleted: false,
           organizationId: 'org_1',
@@ -269,9 +270,28 @@ describe('GenerationEventWebhookService', () => {
       );
     });
 
+    it('captures generation_completed but not first_successful_generation for a non image or video ingredient', async () => {
+      const { funnelCaptureService, prisma, service } = makeFunnelService({
+        ingredient: { category: 'VOICE', userId: 'user_1' },
+      });
+
+      await service.emitGenerationCompleted({
+        generationId: 'ingredient_6',
+        kind: 'image',
+        organizationId: 'org_1',
+      });
+      await flushMicrotasks();
+
+      expect(prisma.ingredient.count).toHaveBeenCalled();
+      expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+      expect(funnelCaptureService.capture).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'generation_completed' }),
+      );
+    });
+
     it('does not capture without an owning user, rather than inventing an identity', async () => {
       const { funnelCaptureService, prisma, service } = makeFunnelService({
-        ingredient: { userId: null },
+        ingredient: { category: 'IMAGE', userId: null },
       });
 
       await service.emitGenerationCompleted({

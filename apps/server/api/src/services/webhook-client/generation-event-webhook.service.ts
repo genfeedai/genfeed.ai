@@ -1,7 +1,7 @@
 import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
   classifyGenerationWebhookError,
   createGenerationWebhookEventId,
@@ -24,6 +24,15 @@ import {
   GENERATION_WEBHOOK_JOB_ID_PREFIX,
   WebhookDispatchService,
 } from './webhook-dispatch.service';
+
+/**
+ * `first_successful_generation` is the organization's first generated image or
+ * video; a voice or music output neither counts as one nor suppresses it.
+ */
+const FIRST_GENERATION_CATEGORIES = [
+  IngredientCategory.IMAGE,
+  IngredientCategory.VIDEO,
+];
 
 export interface GenerationWebhookOutcomeInput {
   brandId?: string | null;
@@ -89,7 +98,7 @@ export class GenerationEventWebhookService {
 
     void (async () => {
       const ingredient = await prisma.ingredient.findFirst({
-        select: { userId: true },
+        select: { category: true, userId: true },
         where: scopedWhere(organizationId, { id: generationId }),
       });
       if (!ingredient?.userId) {
@@ -109,13 +118,17 @@ export class GenerationEventWebhookService {
 
       const priorGenerationCount = await prisma.ingredient.count({
         where: scopedWhere(organizationId, {
+          category: { in: FIRST_GENERATION_CATEGORIES },
           id: { not: generationId },
           status: {
             in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
           },
         }),
       });
-      if (priorGenerationCount > 0) {
+      const isFirstGenerationCategory =
+        ingredient.category === IngredientCategory.IMAGE ||
+        ingredient.category === IngredientCategory.VIDEO;
+      if (!isFirstGenerationCategory || priorGenerationCount > 0) {
         return;
       }
       await funnelCaptureService.capture({
