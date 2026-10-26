@@ -36,7 +36,6 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/research', label: 'Research' },
       { href: '/hire-agents', label: 'Hire Agents' },
       { href: '/brand-os', label: 'Brand OS' },
-      { href: '/gen', label: 'Gen' },
       { href: '/features', label: 'All features' },
     ],
     title: 'Product',

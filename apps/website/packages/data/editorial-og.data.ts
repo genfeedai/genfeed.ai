@@ -43,11 +43,10 @@ export const EDITORIAL_OG_ARTWORKS = {
   analytics: { headline: ['Learn', 'what works'], route: '/analytics' },
   'brand-os': { headline: ['Your brand', 'Everywhere'], route: '/brand-os' },
   calendar: { headline: ['Plan', 'Publish'], route: '/calendar' },
-  cloud: { headline: ['Your content', 'Hosted for you'], route: '/cloud' },
+  cloud: { headline: ['Your content', 'On autopilot'], route: '/cloud' },
   download: { headline: ['Genfeed', 'On your desk'], route: '/desktop' },
   experts: { headline: ['Learn from', 'the builders'], route: '/experts' },
   features: { headline: ['One OS', 'Every format'], route: '/features' },
-  gen: { headline: ['Creator', 'rewards?'], route: '/gen' },
   'hire-agents': {
     headline: ['Delegate', 'Create', 'Grow'],
     route: '/hire-agents',

@@ -188,7 +188,6 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/faq',
     '/features',
     '/founder-content',
-    '/gen',
     '/gemini',
     '/gemini/:channel',
     '/hermes',
