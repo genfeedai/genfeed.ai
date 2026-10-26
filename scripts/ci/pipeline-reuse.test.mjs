@@ -126,7 +126,12 @@ test('Playwright tiers share build setup without enabling auth bypass for real s
     /NEXT_PUBLIC_API_ENDPOINT: \$\{\{ inputs.api-endpoint \}\}/,
   );
   assert.match(action, /NEXT_PUBLIC_API_URL: \$\{\{ inputs.api-endpoint \}\}/);
-  assert.match(action, /NEXT_PUBLIC_GENFEED_CLOUD: 'false'/);
+  // Community unless a caller opts into the Cloud cohort explicitly.
+  assert.match(
+    action,
+    /NEXT_PUBLIC_GENFEED_CLOUD: \$\{\{ inputs.genfeed-cloud \}\}/,
+  );
+  assert.match(action, /genfeed-cloud:[\s\S]*?default: 'false'/);
   assert.match(action, /E2E_COVERAGE: '1'/);
   for (const file of [
     'e2e.yml',
