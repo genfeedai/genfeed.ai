@@ -6,6 +6,7 @@ import {
 import {
   B2bPlaybookCompileError,
   type B2bPlaybookCompileErrorCode,
+  type CompileB2bPlaybookInput,
   compileB2bPlaybook,
 } from './b2b-playbook-compiler';
 import { B2B_PLAYBOOKS } from './b2b-playbooks.constant';
@@ -110,7 +111,7 @@ describe('compileB2bPlaybook', () => {
     });
   });
 
-  it.each<[B2bPlaybookCompileErrorCode, Partial<typeof base>]>([
+  it.each<[B2bPlaybookCompileErrorCode, Partial<CompileB2bPlaybookInput>]>([
     ['MODEL_NOT_ALLOWED', { model: 'unreviewed/model' }],
     ['MISSING_REQUIRED_SLOT', { attachments: [] }],
     [
