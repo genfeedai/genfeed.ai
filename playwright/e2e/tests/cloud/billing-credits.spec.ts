@@ -37,7 +37,12 @@ test.describe('Billing Settings (Cloud)', () => {
         new RegExp(`${APP_ROUTES.SETTINGS.CREDITS}`),
       );
       await expect(authenticatedPage.getByText('Credits Left')).toBeVisible();
-      await expect(authenticatedPage.getByText('Buy credits')).toBeVisible();
+      // Org billing sells packs under "Add credits"; "Buy credits" is the
+      // community managed-checkout heading, which this build must not show.
+      await expect(
+        authenticatedPage.getByRole('heading', { name: 'Add credits' }),
+      ).toBeVisible();
+      await expect(authenticatedPage.getByText('Buy credits')).toHaveCount(0);
     });
 
     test('should display current credit balance', async ({
