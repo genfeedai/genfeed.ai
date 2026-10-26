@@ -1,4 +1,8 @@
 import { findReviewedOpenRouterTextContract } from '@api/collections/models/utils/openrouter-text-contract.util';
+import {
+  prepareOpenRouterTextLine,
+  validatePreparedOpenRouterTextLine,
+} from '@api/helpers/utils/credits/openrouter-text-quote.util';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import {
   buildOpenRouterTextSnapshot,
@@ -89,6 +93,52 @@ describe('seedOpenRouterTextContracts', () => {
     } as unknown as PrismaService;
     const result = await findReviewedOpenRouterTextContract(reader, GEMINI);
     expect(result.status).toBe('reviewed');
+  });
+
+  it('turns the seeded tariff into a platform quote instead of PRICING_UNAVAILABLE', async () => {
+    const h = harness({ id: 'model-1', reviewedProviderContractVersion: null });
+    await seedOpenRouterTextContracts(h.service);
+    const { create: stored } =
+      h.prisma.modelProviderContract.upsert.mock.calls[0][0];
+    const {
+      discoveredAt: _discovered,
+      lastSeenAt: _seen,
+      reviewedBy: _reviewer,
+      ...create
+    } = stored;
+    const reader = {
+      model: {
+        findFirst: vi.fn().mockResolvedValue({
+          endpoint: GEMINI,
+          id: 'model-1',
+          isActive: true,
+          isDeleted: false,
+          isFree: false,
+          key: GEMINI,
+          provider: 'openrouter',
+          providerContracts: [create],
+          reviewedProviderContractVersion: create.version,
+        }),
+      },
+    } as unknown as PrismaService;
+    const result = await findReviewedOpenRouterTextContract(reader, GEMINI);
+    if (result.status !== 'reviewed') throw new Error('contract not reviewed');
+
+    const prepared = prepareOpenRouterTextLine({
+      contract: result.contract,
+      maximumOutputTokens: 2048,
+      messages: [{ content: 'A synthetic post to enhance', role: 'user' }],
+      route: { kind: 'platform' },
+    });
+    if (prepared.kind !== 'openrouter-text-platform-quote')
+      throw new Error('expected a platform quote');
+    // Full context ceiling in, capped completion out, no per-request fee.
+    expect(prepared.maximumProviderCostUsd).toBeCloseTo(
+      (1_048_576 * 0.825 + 2048 * 4.125) / 1_000_000,
+      6,
+    );
+    expect(prepared.maximumCredits).toBeGreaterThan(0);
+    expect(validatePreparedOpenRouterTextLine(prepared)).toEqual(prepared);
   });
 
   it('is idempotent once the pointer already carries the version', async () => {

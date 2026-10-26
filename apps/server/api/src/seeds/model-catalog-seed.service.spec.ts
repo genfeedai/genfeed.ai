@@ -373,6 +373,30 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
+  it('activates and prices the existing uncurated Gemini 3.8 Flash row', async () => {
+    const gemini = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+    );
+    if (!gemini) throw new Error('Expected Gemini 3.8 Flash in the catalog');
+    // Production holds the row discovery created: inactive, cost 0.
+    prisma.model.findUnique.mockResolvedValueOnce({
+      cost: 0,
+      id: 'existing-id',
+    });
+
+    await service.reconcileCatalog([gemini]);
+
+    expect(
+      callForKey(MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH)?.update,
+    ).toMatchObject({
+      cost: gemini.cost,
+      isActive: true,
+      isDiscovered: false,
+      pricingType: PricingType.FLAT,
+    });
+    expect(gemini.cost).toBeGreaterThan(0);
+  });
+
   describe('curated legacy selection', () => {
     it('demotes a priced production Schnell row while preserving operator activation', async () => {
       const entry = UNIFIED_MODEL_CATALOG.find(
