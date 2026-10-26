@@ -122,16 +122,37 @@ test.describe('Chat flow interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('retired agent onboarding URL is a plain thread route, not a redirect', async ({
+  test('retired agent onboarding URL is rejected as an unknown thread, not redirected', async ({
     authenticatedPage,
   }) => {
-    // Redirects for retired entries were removed (hard cuts). The old URL now
-    // resolves like any other thread id and canonical onboarding stays at
-    // /onboarding (see onboarding.spec.ts: "keeps the onboarding entry route").
+    // Redirects for retired entries were removed (hard cuts). `onboarding` is
+    // now just an id no thread has, so the API answers 404 for it and the
+    // agent shows the not-found state with a way back. Canonical onboarding
+    // stays at /onboarding (onboarding.spec.ts: "keeps the onboarding entry
+    // route").
+    await authenticatedPage.route('**/threads/onboarding**', (route) =>
+      route.fulfill({
+        body: JSON.stringify({ message: 'Thread not found.' }),
+        contentType: 'application/json',
+        status: 404,
+      }),
+    );
+
     await authenticatedPage.goto(`${ORG}/agent/onboarding`, {
       waitUntil: 'domcontentloaded',
     });
+
     await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding$/);
+    const notFound = authenticatedPage.getByTestId('agent-thread-not-found');
+    await expect(notFound).toBeVisible({ timeout: 30_000 });
+    await expect(
+      notFound.getByRole('heading', { name: 'Chat not found' }),
+    ).toBeVisible();
+
+    // The only way out is a fresh chat, never a legacy onboarding route.
+    await notFound.getByRole('link', { name: 'Start a new chat' }).click();
+    await expect(authenticatedPage).toHaveURL(/\/agent\/new(\?|$)/);
+    await expect(authenticatedPage).not.toHaveURL(/onboarding/);
     await expectNoErrorOverlay(authenticatedPage);
   });
 });

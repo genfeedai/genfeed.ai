@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import {
@@ -7,6 +8,7 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
 import { openFilterFacet } from '../../utils/filter-menu';
+import { waitForIngredientsRead } from '../../utils/ingredients-requests';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -29,12 +31,15 @@ async function useListView(page: Page): Promise<void> {
  */
 async function gotoAvatarLibrary(page: Page): Promise<void> {
   const avatarsRoute = brandPath(APP_ROUTES.LIBRARY.AVATARS);
+  // The avatars route seeds the AVATAR type into the library read.
+  const avatarsRead = waitForIngredientsRead(page, [IngredientCategory.AVATAR]);
   await page.goto(avatarsRoute, {
     timeout: 60000,
     waitUntil: 'domcontentloaded',
   });
   await assertNoErrorBoundaryFallback(page, avatarsRoute);
   await expect(page).toHaveURL(/library\/avatars/);
+  await avatarsRead;
 }
 
 /**

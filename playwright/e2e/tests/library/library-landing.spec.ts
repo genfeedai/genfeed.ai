@@ -1,4 +1,4 @@
-import { LibraryShelf } from '@genfeedai/contracts';
+import { IngredientCategory, LibraryShelf } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryShelfRoute,
@@ -9,6 +9,7 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { waitForIngredientsRead } from '../../utils/ingredients-requests';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
@@ -138,10 +139,16 @@ test.describe('Library', () => {
   test('serves type routes as their own destinations', async ({
     authenticatedPage,
   }) => {
+    // The route seeds its type preset into the library read.
+    const videosRead = waitForIngredientsRead(authenticatedPage, [
+      IngredientCategory.VIDEO,
+      IngredientCategory.VIDEO_EDIT,
+    ]);
     await assertRouteRenders(
       authenticatedPage,
       brandRoute(APP_ROUTES.LIBRARY.VIDEOS),
     );
+    await videosRead;
 
     // The type is the path (#8067), not a `categories` query param.
     const actual = new URL(authenticatedPage.url());
