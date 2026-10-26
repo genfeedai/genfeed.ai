@@ -41,12 +41,12 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
 - **Deterministic** (free, every trigger): harness tests, `genfeedai/benchmark`
   validation and ladder recompute, proof that the pinned media task pack
   matches the benchmark checkout, and a stub run of every cell.
-- **Live** (paid): `workflow_dispatch` with `dispatcher=live`, after a
-  published Release (all cells), and nightly when the repository variable
-  `CONTENT_EVAL_NIGHTLY=true` (text only, a third of the cap). It never
-  spends without `CONTENT_EVAL_MAX_CREDITS` and the
-  `CONTENT_EVAL_OPENROUTER_API_KEY` secret: a manual dispatch fails when either
-  is missing, and an automatic trigger skips with a notice (no provider call).
+- **Live** (paid): a manual check. Run it with `workflow_dispatch` and
+  `dispatcher=live`; it never runs after a Release. It also runs nightly only
+  when the repository variable `CONTENT_EVAL_NIGHTLY=true` (text only, a third
+  of the cap). It never spends without `CONTENT_EVAL_MAX_CREDITS` and the
+  `CONTENT_EVAL_OPENROUTER_API_KEY` secret: a dispatch fails when either is
+  missing, and the opt-in nightly skips with a notice (no provider call).
 
 Repository settings the live lane reads: variable `CONTENT_EVAL_MAX_CREDITS`,
 secret `CONTENT_EVAL_OPENROUTER_API_KEY`, and for media cells variables
