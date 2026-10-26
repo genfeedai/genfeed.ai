@@ -316,6 +316,18 @@ export interface StudioPlaygroundCardProps {
   view: ViewType.GRID | ViewType.LIST;
 }
 
+export interface StudioPlaygroundFailureDetailsDialogProps {
+  isOpen: boolean;
+  modelLabel: string;
+  onOpenChange: (isOpen: boolean) => void;
+  onRemove: () => void;
+  onReprompt: () => void;
+  prompt: string;
+  /** The provider's own error text, shown whole. */
+  rawError?: string | null | undefined;
+  typeLabel: string;
+}
+
 export interface StudioPlaygroundInspectorProps {
   onAnimate?: (ingredient: IIngredient) => void;
   onOpenInEditor?: (ingredient: IIngredient) => void;

@@ -155,9 +155,13 @@
       "unavailable": "The provider is temporarily unavailable. Try again."
     },
     "showDetails": "Show details",
-    "hideDetails": "Hide details",
     "copyDetails": "Copy details",
-    "detailsLabel": "Provider error details"
+    "detailsLabel": "Provider error details",
+    "dialog": {
+      "title": "Generation failed",
+      "reason": "What happened",
+      "prompt": "Prompt"
+    }
   },
   "history": {
     "loadFailedTitle": "Generation history couldn’t load",

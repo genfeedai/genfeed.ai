@@ -16,7 +16,7 @@ import type {
 } from '@genfeedai/props/content/masonry.props';
 import type { StudioPlaygroundAssetActions } from '@genfeedai/props/studio/studio-playground.props';
 import StudioPlaygroundCard from '@pages/studio/playground/components/StudioPlaygroundCard';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -567,10 +567,115 @@ describe('StudioPlaygroundCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
 
-    expect(screen.getByText(rawError)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Hide details' }),
-    ).toHaveAttribute('aria-expanded', 'true');
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Generation failed')).toBeInTheDocument();
+    expect(within(dialog).getByText(rawError)).toBeInTheDocument();
+    expect(within(dialog).getByText(job.prompt)).toBeInTheDocument();
+  });
+
+  it('renders Inspect, Remove and Reprompt with one shared button style', () => {
+    const ingredient = {
+      id: 'saved',
+      brandId: 'brand',
+      category: IngredientCategory.VIDEO,
+      status: IngredientStatus.FAILED,
+      generationError: '503 Service unavailable',
+      generationPrompt: 'Saved prompt',
+      modelUsed: 'saved-model',
+      sources: ['reference'],
+    } as IVideo;
+    const actions = buildAssetActions();
+    actions.failedRecovery = {
+      onRetryFailedIngredient: vi.fn(),
+      onReviewFailedIngredient: vi.fn().mockResolvedValue(undefined),
+      isRecovering: false,
+      retriedIds: [],
+    };
+    render(
+      <StudioPlaygroundCard
+        assetActions={actions}
+        job={{
+          ...generatedJob,
+          id: ingredient.id,
+          ingredientId: ingredient.id,
+          ingredient,
+          status: IngredientStatus.FAILED,
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    const buttons = [
+      screen.getByRole('button', { name: 'Inspect' }),
+      screen.getByRole('button', { name: /^Remove/ }),
+      screen.getByRole('button', { name: /^Reprompt/ }),
+    ];
+    for (const button of buttons) {
+      expect(button).toHaveClass('bg-transparent', 'h-8', 'px-2', 'text-xs');
+      expect(button).not.toHaveClass('border', 'h-auto');
+    }
+  });
+
+  it('keeps clicks inside the failure dialog from selecting the card', () => {
+    const onSelect = vi.fn();
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          error: 'Provider returned 503',
+          status: IngredientStatus.FAILED,
+        }}
+        onReprompt={vi.fn()}
+        onSelect={onSelect}
+        view={ViewType.GRID}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
+    fireEvent.click(screen.getByText('Provider returned 503'));
+
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('reprompts and removes a failed generation from the details dialog', () => {
+    const assetActions = buildAssetActions();
+    const onReprompt = vi.fn();
+    const job = {
+      ...generatedJob,
+      error: 'Provider returned 503',
+      status: IngredientStatus.FAILED,
+    };
+    render(
+      <StudioPlaygroundCard
+        assetActions={assetActions}
+        job={job}
+        onReprompt={onReprompt}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Reprompt',
+      }),
+    );
+
+    expect(onReprompt).toHaveBeenCalledWith(job);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Remove',
+      }),
+    );
+
+    expect(assetActions.onRemoveGeneration).toHaveBeenCalledWith(job);
   });
 
   it('separates reprompting a failed generation from removing it', () => {

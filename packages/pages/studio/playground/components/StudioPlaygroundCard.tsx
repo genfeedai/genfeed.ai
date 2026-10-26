@@ -19,6 +19,7 @@ import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioPlaygroundCardProps } from '@genfeedai/props/studio/studio-playground.props';
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StudioPlaygroundFailureDetailsDialog from '@pages/studio/playground/components/StudioPlaygroundFailureDetailsDialog';
 import StudioPlaygroundFailureNotice from '@pages/studio/playground/components/StudioPlaygroundFailureNotice';
 import { studioAssetAccessibleLabel } from '@pages/studio/playground/utils/studio-playground-recipe';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
@@ -36,13 +37,16 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   Film,
   GitBranch,
   ImageOff,
   ImagePlus,
+  Pencil,
   RotateCcw,
   Scissors,
+  Search,
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -81,6 +85,9 @@ function GenerationReferencePreview({
   );
 }
 
+// Every action on the card shares one ghost style, so the row reads as one set.
+const ACTION_CLASS = 'px-2 text-xs';
+const REMOVE_ACTION_CLASS = `${ACTION_CLASS} hover:text-destructive`;
 const AUDIO_TYPES = new Set(['music', 'voice']);
 const VIDEO_TYPES = new Set(['video', 'avatar']);
 const MODEL_GETTER_FIELDS = new Set([
@@ -191,6 +198,7 @@ export default function StudioPlaygroundCard({
   const mediaKey = mediaSource
     ? `${previewRevision}\u0001${mediaSource}`
     : null;
+  const [isFailureDetailsOpen, setIsFailureDetailsOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const cancelGeneration = async () => {
     setIsCancelling(true);
@@ -245,6 +253,14 @@ export default function StudioPlaygroundCard({
 
   const handleCardActivate = useCallback(
     (event: MouseEvent<HTMLElement>) => {
+      // The failure dialog is portaled out of the card, yet its clicks still
+      // bubble through React to this handler.
+      if (
+        event.target instanceof Node &&
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
       if (
         event.target instanceof Element &&
         event.target.closest('a, button, input, [role="slider"]')
@@ -283,10 +299,19 @@ export default function StudioPlaygroundCard({
             ? translateRecovery('started')
             : translateRecovery(`actions.${recovery.action}`)
         }
-        className="px-2 text-xs"
+        className={ACTION_CLASS}
+        icon={
+          recovery.action === 'retry' ? (
+            <RotateCcw className="size-3.5" />
+          ) : recovery.action === 'viewDetails' ? (
+            <Search className="size-3.5" />
+          ) : (
+            <Pencil className="size-3.5" />
+          )
+        }
         withWrapper={false}
         size={ButtonSize.SM}
-        variant={ButtonVariant.SECONDARY}
+        variant={ButtonVariant.GHOST}
         isDisabled={capability.isRecovering || hasRetried}
         onClick={() =>
           recovery.action === 'retry'
@@ -305,7 +330,11 @@ export default function StudioPlaygroundCard({
     }
     return (
       <Link
-        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={buttonVariants({
+          className: ACTION_CLASS,
+          size: ButtonSize.SM,
+          variant: ButtonVariant.GHOST,
+        })}
         href={href(
           `${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${job.ingredient?.id}`,
         )}
@@ -370,7 +399,7 @@ export default function StudioPlaygroundCard({
   }
 
   function renderDetails(showLifecycleActions = false): ReactElement {
-    const referenceAction = renderUseAsReferenceAction('px-2 text-xs');
+    const referenceAction = renderUseAsReferenceAction(ACTION_CLASS);
     const hasDetailActions =
       Boolean(referenceAction) ||
       showLifecycleActions ||
@@ -412,7 +441,7 @@ export default function StudioPlaygroundCard({
         {hasDetailActions ? (
           <div className="flex items-center gap-1 border-t border-border pt-2">
             {referenceAction}
-            {renderSourceAction('px-2 text-xs')}
+            {renderSourceAction(ACTION_CLASS)}
             {renderMakeClipsAction()}
             {showLifecycleActions && isFailed ? renderRecoveryAction() : null}
             {showLifecycleActions && isFailed ? (
@@ -421,7 +450,7 @@ export default function StudioPlaygroundCard({
                   prompt: accessibleLabel,
                   type: label,
                 })}
-                className="px-2 text-xs"
+                className={REMOVE_ACTION_CLASS}
                 icon={<Trash2 className="size-3.5" />}
                 label={translate('remove')}
                 onClick={() => assetActions.onRemoveGeneration(job)}
@@ -436,7 +465,7 @@ export default function StudioPlaygroundCard({
                   prompt: accessibleLabel,
                   type: label,
                 })}
-                className="px-2 text-xs"
+                className={ACTION_CLASS}
                 icon={<RotateCcw className="size-3.5" />}
                 label={translate('reprompt')}
                 onClick={() => onReprompt(job)}
@@ -452,9 +481,7 @@ export default function StudioPlaygroundCard({
   }
 
   function renderHoverDetails(showLifecycleActions = false): ReactElement {
-    const referenceAction = renderUseAsReferenceAction(
-      'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
-    );
+    const referenceAction = renderUseAsReferenceAction(ACTION_CLASS);
     const hasLifecycleActions =
       showLifecycleActions || Boolean(parentJob) || canMakeClips;
 
@@ -467,9 +494,7 @@ export default function StudioPlaygroundCard({
               {hasLifecycleActions ? (
                 <>
                   {renderMakeClipsAction()}
-                  {renderSourceAction(
-                    'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
-                  )}
+                  {renderSourceAction(ACTION_CLASS)}
                   {showLifecycleActions && isFailed
                     ? renderRecoveryAction()
                     : null}
@@ -479,7 +504,7 @@ export default function StudioPlaygroundCard({
                         prompt: accessibleLabel,
                         type: label,
                       })}
-                      className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                      className={REMOVE_ACTION_CLASS}
                       icon={<Trash2 className="size-3.5" />}
                       label={translate('remove')}
                       onClick={() => assetActions.onRemoveGeneration(job)}
@@ -494,7 +519,7 @@ export default function StudioPlaygroundCard({
                         prompt: accessibleLabel,
                         type: label,
                       })}
-                      className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                      className={ACTION_CLASS}
                       icon={<RotateCcw className="size-3.5" />}
                       label={translate('reprompt')}
                       onClick={() => onReprompt(job)}
@@ -674,6 +699,7 @@ export default function StudioPlaygroundCard({
         ) : isFailed ? (
           <StudioPlaygroundFailureNotice
             assetId={job.id}
+            onShowDetails={() => setIsFailureDetailsOpen(true)}
             rawError={job.error}
           />
         ) : isPreviewUnavailable ? (
@@ -702,6 +728,19 @@ export default function StudioPlaygroundCard({
       </div>
 
       {isListView ? renderDetails(true) : renderHoverDetails(true)}
+
+      {isFailed ? (
+        <StudioPlaygroundFailureDetailsDialog
+          isOpen={isFailureDetailsOpen}
+          modelLabel={job.modelKey || 'Auto'}
+          onOpenChange={setIsFailureDetailsOpen}
+          onRemove={() => assetActions.onRemoveGeneration(job)}
+          onReprompt={() => onReprompt(job)}
+          prompt={job.prompt}
+          rawError={job.error}
+          typeLabel={label}
+        />
+      ) : null}
     </article>
   );
 }
