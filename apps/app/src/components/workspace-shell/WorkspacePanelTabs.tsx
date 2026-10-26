@@ -11,7 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { ChevronDown, Maximize2, SquarePen } from 'lucide-react';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
+import { ChevronDown, Maximize2, SquarePen, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /** The sidebar and compact sheet share one header, with stable named views. */
@@ -101,14 +105,15 @@ export default function WorkspacePanelTabs({
         ) : null}
         <Button
           ariaLabel={translate('close')}
+          className={SHELL_ICON_BUTTON_CLASS}
           data-testid="workspace-panel-close"
+          icon={<X className={SHELL_ICON_CLASS} />}
           onClick={onClose}
-          size={ButtonSize.SM}
+          size={ButtonSize.ICON}
+          tooltip={translate('close')}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
-        >
-          {translate('closeLabel')}
-        </Button>
+        />
       </div>
     </div>
   );
