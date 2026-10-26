@@ -72,6 +72,17 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
   AgentOutputsPanel: () => <div>agent-outputs-panel</div>,
 }));
 
+vi.mock('@genfeedai/agent/components/AgentContextCoveragePanel', () => ({
+  AgentContextCoveragePanel: (props: {
+    brandId?: string;
+    isActive?: boolean;
+  }) => (
+    <div data-active={String(props.isActive)} data-testid="coverage-panel">
+      {`coverage-panel brand:${props.brandId ?? 'none'}`}
+    </div>
+  ),
+}));
+
 vi.mock('@genfeedai/agent/components/AgentSidebarContent', () => ({
   AgentSidebarContent: () => <div>agent-sidebar-content</div>,
 }));
@@ -262,11 +273,16 @@ function createAbortAwareValue<T>(value: T, signal?: AbortSignal): Promise<T> {
 function SelectionProbe() {
   const contextSidebar = useContextSidebar();
   return (
-    <p data-testid="context-sidebar-selection">
-      {contextSidebar?.selection
-        ? `${contextSidebar.selection.kind}:${contextSidebar.selection.id}`
-        : 'none'}
-    </p>
+    <>
+      <p data-testid="context-sidebar-selection">
+        {contextSidebar?.selection
+          ? `${contextSidebar.selection.kind}:${contextSidebar.selection.id}`
+          : 'none'}
+      </p>
+      <p data-testid="context-sidebar-open">
+        {contextSidebar?.isOpen ? 'open' : 'closed'}
+      </p>
+    </>
   );
 }
 
@@ -1197,7 +1213,7 @@ describe('AgentFullPage', () => {
       ).toBeInTheDocument();
     });
     expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-      'thread:thread-outputs:thread-1',
+      'thread:thread-context:thread-1:outputs',
     );
   });
 
@@ -1207,7 +1223,7 @@ describe('AgentFullPage', () => {
     const view = render(shellTree({ threadId: 'thread-1' }));
     await waitFor(() => {
       expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-        'thread:thread-outputs:thread-1',
+        'thread:thread-context:thread-1:outputs',
       );
     });
 
@@ -1216,7 +1232,7 @@ describe('AgentFullPage', () => {
     view.rerender(shellTree({ threadId: 'thread-2' }));
     await waitFor(() => {
       expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-        'thread:thread-outputs:thread-2',
+        'thread:thread-context:thread-2:outputs',
       );
     });
 
@@ -1225,10 +1241,12 @@ describe('AgentFullPage', () => {
     view.rerender(shellTree({ threadId: 'thread-3' }));
     await waitFor(() => {
       expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-        'none',
+        'thread:thread-context:thread-3:coverage',
       );
     });
-    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+    const outlet = screen.getByTestId('context-sidebar-outlet');
+    expect(within(outlet).getByTestId('coverage-panel')).toBeInTheDocument();
+    expect(within(outlet).queryByText('agent-outputs-panel')).toBeNull();
   });
 
   it('releases the sidebar when the conversation unmounts', async () => {
@@ -1237,7 +1255,7 @@ describe('AgentFullPage', () => {
     const view = render(shellTree({ threadId: 'thread-1' }));
     await waitFor(() => {
       expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
-        'thread:thread-outputs:thread-1',
+        'thread:thread-context:thread-1:outputs',
       );
     });
 
@@ -1248,14 +1266,50 @@ describe('AgentFullPage', () => {
     );
   });
 
-  it('leaves the context sidebar empty without outputs, even while setup is incomplete', () => {
+  it('offers coverage without outputs but keeps the sidebar closed, even while setup is incomplete', async () => {
     setupStatusState.showSetupPanel = true;
     storeState.activeThreadId = 'thread-1';
     storeState.messages = [];
 
     render(shellTree({ threadId: 'thread-1' }));
 
-    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+        'thread:thread-context:thread-1:coverage',
+      );
+    });
+    expect(screen.getByTestId('context-sidebar-open')).toHaveTextContent(
+      'closed',
+    );
+    expect(screen.queryByText('agent-outputs-panel')).toBeNull();
+  });
+
+  it('opens the sidebar by itself only when there are outputs, with coverage beside them', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [outputMessage('thread-1')] as never;
+
+    render(shellTree({ threadId: 'thread-1' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-open')).toHaveTextContent(
+        'open',
+      );
+    });
+    const outlet = screen.getByTestId('context-sidebar-outlet');
+    expect(within(outlet).getByTestId('coverage-panel')).toBeInTheDocument();
+    expect(within(outlet).getByText('agent-outputs-panel')).toBeInTheDocument();
+  });
+
+  it('requests coverage for the thread brand and only while the sidebar is visible', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.threads = [{ brandId: 'brand-9', id: 'thread-1' }] as never;
+    storeState.messages = [];
+
+    render(shellTree({ threadId: 'thread-1' }));
+
+    const panel = await screen.findByTestId('coverage-panel');
+    expect(panel).toHaveTextContent('coverage-panel brand:brand-9');
+    expect(panel).toHaveAttribute('data-active', 'false');
   });
 
   it('prefers latest assistant completion recos over static page-context actions', () => {

@@ -1,5 +1,9 @@
-import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
+import {
+  ContextSidebarPanel,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import { AgentContextCoveragePanel } from '@genfeedai/agent/components/AgentContextCoveragePanel';
 import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPageMobileBar';
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
@@ -7,6 +11,7 @@ import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarCon
 import { AgentThreadNotFound } from '@genfeedai/agent/components/AgentThreadNotFound';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import type { MemberRole } from '@genfeedai/contracts';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
@@ -76,6 +81,18 @@ export function AgentFullPage({
     userRole,
   });
 
+  const contextSidebar = useContextSidebar();
+  // Coverage is requested for the thread's own brand, never the workspace's
+  // current one; a thread without a brand reads the organization lane only.
+  const threadBrandId = useAgentChatStore(
+    (state) =>
+      state.threads.find((thread) => thread.id === threadId)?.brandId ??
+      undefined,
+  );
+  const isContextSidebarVisible = contextSidebar
+    ? contextSidebar.isOpen || contextSidebar.isMobileOpen
+    : true;
+
   return (
     <div
       className={cn(
@@ -134,20 +151,30 @@ export function AgentFullPage({
         </div>
       </div>
 
-      {/* Inside the workspace shell the thread's outputs are the context
-        sidebar's selection; the sidebar stays closed until there are any. */}
-      {hasThreadOutputs ? (
-        <ContextSidebarPanel
-          selection={{
-            id: `thread-outputs:${threadId ?? 'new'}`,
-            kind: 'thread',
-            origin: 'automatic',
-            title: translate('outputs'),
-          }}
-        >
-          <AgentOutputsPanel className="h-full w-full" />
-        </ContextSidebarPanel>
-      ) : null}
+      {/* Inside the workspace shell the thread's context is the sidebar's
+        selection: source coverage always, the outputs once there are any. The
+        sidebar opens by itself only when there are outputs; otherwise the
+        topbar Context toggle opens it. */}
+      <ContextSidebarPanel
+        selection={{
+          id: `thread-context:${threadId ?? 'new'}:${hasThreadOutputs ? 'outputs' : 'coverage'}`,
+          isOpenByDefault: hasThreadOutputs,
+          kind: 'thread',
+          origin: 'automatic',
+          title: translate(hasThreadOutputs ? 'outputs' : 'context'),
+        }}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <AgentContextCoveragePanel
+            apiService={apiService}
+            brandId={threadBrandId}
+            isActive={isContextSidebarVisible}
+          />
+          {hasThreadOutputs ? (
+            <AgentOutputsPanel className="h-full w-full" />
+          ) : null}
+        </div>
+      </ContextSidebarPanel>
 
       <AgentFullPageMobileDrawers
         apiService={apiService}

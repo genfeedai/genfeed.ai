@@ -16,7 +16,34 @@
     "title": "Agent",
     "unsupportedCard": "This card type is not supported yet."
   },
+  "contextCoverage": {
+    "complete": "Every source listed here is readable. An empty search still does not prove something does not exist.",
+    "description": "What the agent can read for this chat.",
+    "error": "Coverage could not be loaded.",
+    "incomplete": "Some sources are incomplete. The agent will say so instead of claiming nothing exists.",
+    "lastSuccess": "Most recent success {date}",
+    "lastSuccessUnavailable": "Success time unavailable",
+    "openSource": "Open {title}",
+    "purpose": {
+      "BRAND_TRUTH": "Brand truth",
+      "INSPIRATION": "Inspiration",
+      "RESEARCH": "Research"
+    },
+    "reconnect": "Reconnect {platform}",
+    "retry": "Try again",
+    "socialConnections": "Social connections",
+    "state": {
+      "available": "Available",
+      "disconnected": "Disconnected",
+      "empty": "Empty",
+      "failed": "Failed",
+      "partial": "Partial",
+      "stale": "Stale"
+    },
+    "title": "Context coverage"
+  },
   "fullPage": {
+    "context": "Context",
     "outputs": "Outputs",
     "placeholder": "Ask for help with content, review, or planning...",
     "threadNotFound": {

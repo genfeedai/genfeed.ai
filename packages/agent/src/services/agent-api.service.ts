@@ -1,3 +1,4 @@
+import * as contextCoverageApi from '@genfeedai/agent/services/agent-api/agent-api.context-coverage';
 import * as executionsApi from '@genfeedai/agent/services/agent-api/agent-api.executions';
 import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
 import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
@@ -67,6 +68,9 @@ export class AgentApiService extends AgentBaseApiService {
   retryAgentTransfer = threadsApi.retryAgentTransfer.bind(null, this);
 
   // Brands
+
+  // Context coverage
+  getContextCoverage = contextCoverageApi.getContextCoverage.bind(null, this);
 
   // Workflow executions / credits / readiness
   getInstallReadiness = executionsApi.getInstallReadiness.bind(null, this);

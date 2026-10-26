@@ -14,6 +14,7 @@ import '../../tests/fixtures/thread-recovery.browser.css';
 // The transcript/composer and workspace panels are outside this read fixture.
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
   ContextSidebarPanel: () => null,
+  useContextSidebar: () => null,
 }));
 vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
   AgentChatContainer: ({ emptyStateTitle }: AgentChatContainerProps) => (
